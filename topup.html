@@ -6,7 +6,7 @@
   <title>TopUpVerse 3D Premium - Top Up Game, E-Wallet, E-Toll</title>
   <meta name="description" content="Frontend 3D premium satu file HTML untuk website top up game, e-wallet, e-toll, pulsa, paket data, token PLN, dan produk digital." />
   <meta name="theme-color" content="#050816" />
-  <meta name="x-build" content="mobile-fullstack-v3-3d-touch-upgrade" />
+  <meta name="x-build" content="threejs-only-v4-mobile-fixed" />
   <link rel="icon" href="data:," />
 
   <style>
@@ -4820,1026 +4820,667 @@
 
 
   <!-- ==========================================================
-       THREE.JS INTERACTIVE 3D UPGRADE
-       Area ini hanya menambah layer 3JS. Script/form/login/hash lama tidak diubah.
-       Fallback CSS 3D lama tetap tersedia jika CDN Three.js gagal dimuat.
+       THREE.JS ONLY 3D REPLACEMENT
+       CSS 3D hero/mobile animation is hidden. Login/hash/checkout logic is untouched.
        ========================================================== -->
-  <style id="threejs-upgrade-style">
-    .scene-zone,
-    .real-3d-stage-wrap {
-      position: relative;
-      isolation: isolate;
+  <style id="threejs-only-replacement-style">
+    html.threejs-only-active #mainScene,
+    html.threejs-only-active .scene-hint,
+    html.threejs-only-active #mobile-home,
+    html.threejs-only-active #realMobile3DStage,
+    html.threejs-only-active .real-3d-note {
+      display: none !important;
+      visibility: hidden !important;
+      opacity: 0 !important;
+      transform: none !important;
+      pointer-events: none !important;
     }
 
-    .threejs-hero-mount,
-    .threejs-mobile-mount {
-      position: absolute;
-      inset: 0;
-      z-index: 7;
-      overflow: visible;
-      border-radius: 42px;
-      touch-action: none;
-      user-select: none;
-      -webkit-user-select: none;
-      cursor: grab;
-      contain: layout paint;
+    html.threejs-only-active .scene-zone,
+    html.threejs-only-active .real-3d-stage-wrap {
+      position: relative !important;
+      overflow: hidden !important;
+      min-height: 610px !important;
+      border-radius: 34px !important;
+      touch-action: none !important;
+      user-select: none !important;
     }
 
-    .threejs-hero-mount.is-grabbing,
-    .threejs-mobile-mount.is-grabbing {
-      cursor: grabbing;
+    html.threejs-only-active .real-3d-stage-wrap {
+      min-height: 560px !important;
+      display: grid !important;
+      place-items: center !important;
+      perspective: none !important;
     }
 
-    .threejs-hero-mount canvas,
-    .threejs-mobile-mount canvas {
+    .threejs-only-mount {
+      position: absolute !important;
+      inset: 0 !important;
+      z-index: 12 !important;
       width: 100% !important;
       height: 100% !important;
-      display: block;
-      outline: none;
-      border-radius: inherit;
+      min-height: inherit !important;
+      display: block !important;
+      overflow: hidden !important;
+      border-radius: inherit !important;
+      touch-action: none !important;
+      cursor: grab !important;
+      background:
+        radial-gradient(circle at 50% 28%, rgba(56,189,248,0.14), transparent 36%),
+        radial-gradient(circle at 18% 72%, rgba(168,85,247,0.12), transparent 34%),
+        radial-gradient(circle at 82% 66%, rgba(236,72,153,0.09), transparent 34%);
     }
 
-    .threejs-hero-badge,
-    .threejs-mobile-badge {
-      position: absolute;
-      left: 50%;
-      bottom: 8px;
-      z-index: 12;
-      transform: translateX(-50%);
-      padding: 8px 13px;
-      border-radius: 999px;
-      border: 1px solid rgba(103,232,249,0.28);
-      background: rgba(2,6,23,0.66);
-      color: #dff9ff;
-      font-size: 12px;
-      font-weight: 900;
-      letter-spacing: 0.15px;
-      white-space: nowrap;
-      pointer-events: none;
-      box-shadow: 0 16px 50px rgba(0,0,0,0.22), 0 0 28px rgba(56,189,248,0.15);
-      backdrop-filter: blur(14px);
-      animation: hintFloat 2.2s ease-in-out infinite;
+    .threejs-only-mount.is-grabbing { cursor: grabbing !important; }
+
+    .threejs-only-mount canvas {
+      width: 100% !important;
+      height: 100% !important;
+      display: block !important;
+      outline: none !important;
+      touch-action: none !important;
     }
 
-    .scene-zone.threejs-ready .scene {
-      opacity: 0.045;
-      pointer-events: none;
-      filter: blur(3px) saturate(0.7);
-      transform: scale(0.96) !important;
-      transition: opacity 0.35s ease, filter 0.35s ease, transform 0.35s ease;
+    .threejs-only-badge {
+      position: absolute !important;
+      left: 50% !important;
+      bottom: 18px !important;
+      z-index: 15 !important;
+      transform: translateX(-50%) !important;
+      padding: 10px 15px !important;
+      border-radius: 999px !important;
+      color: #dffbff !important;
+      background: rgba(2, 6, 23, 0.66) !important;
+      border: 1px solid rgba(103, 232, 249, 0.26) !important;
+      box-shadow: 0 16px 38px rgba(0,0,0,0.28), inset 0 0 20px rgba(56,189,248,0.06) !important;
+      backdrop-filter: blur(15px) !important;
+      font-size: 12px !important;
+      font-weight: 900 !important;
+      letter-spacing: .15px !important;
+      white-space: nowrap !important;
+      pointer-events: none !important;
     }
 
-    .scene-zone.threejs-ready .scene-hint {
-      display: none;
+    .threejs-only-loader {
+      position: absolute !important;
+      inset: 0 !important;
+      z-index: 14 !important;
+      display: grid !important;
+      place-items: center !important;
+      text-align: center !important;
+      padding: 24px !important;
+      color: #dbeafe !important;
+      font-weight: 900 !important;
+      line-height: 1.5 !important;
+      background: radial-gradient(circle at 50% 35%, rgba(56,189,248,0.14), transparent 36%) !important;
+      pointer-events: none !important;
     }
 
-    .real-3d-stage-wrap.threejs-ready #realMobile3DStage {
-      opacity: 0.03;
-      pointer-events: none;
-      filter: blur(3px) saturate(0.7);
-      transition: opacity 0.35s ease, filter 0.35s ease;
+    .threejs-only-loader span {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      min-height: 46px !important;
+      padding: 10px 16px !important;
+      border-radius: 999px !important;
+      color: #e0f7ff !important;
+      background: rgba(255,255,255,0.08) !important;
+      border: 1px solid rgba(255,255,255,0.13) !important;
+      backdrop-filter: blur(12px) !important;
     }
 
-    .threejs-fallback-note {
-      position: absolute;
-      left: 50%;
-      bottom: 8px;
-      z-index: 12;
-      transform: translateX(-50%);
-      padding: 8px 12px;
-      border-radius: 999px;
-      border: 1px solid rgba(250,204,21,0.28);
-      background: rgba(2,6,23,0.72);
-      color: #fde68a;
-      font-size: 12px;
-      font-weight: 900;
-      white-space: nowrap;
-      pointer-events: none;
-      backdrop-filter: blur(12px);
+    .threejs-only-mount.is-ready .threejs-only-loader { display: none !important; }
+
+    .threejs-only-mount.is-error .threejs-only-loader span {
+      color: #fde68a !important;
+      background: rgba(250,204,21,0.08) !important;
+      border-color: rgba(250,204,21,0.22) !important;
     }
 
     @media (max-width: 720px) {
-      .threejs-hero-mount,
-      .threejs-hero-badge {
-        display: none;
+      html.threejs-only-active #home.hero { display: none !important; }
+      html.threejs-only-active #real-mobile-3d {
+        display: block !important;
+        position: relative !important;
+        z-index: 80 !important;
+        min-height: calc(100svh - 86px) !important;
+        padding: 22px 0 38px !important;
       }
-
-      .threejs-mobile-mount {
-        inset: -10px -4px 0 -4px;
-        min-height: 390px;
-        border-radius: 32px;
+      html.threejs-only-active .real-mobile-copy {
+        padding-left: 5% !important;
+        padding-right: 5% !important;
       }
-
-      .threejs-mobile-badge {
-        bottom: -4px;
-        font-size: 11px;
-        padding: 7px 10px;
+      html.threejs-only-active .real-mobile-badge {
+        font-size: 0 !important;
       }
-    }
-
-    @media (min-width: 721px) {
-      .threejs-mobile-mount,
-      .threejs-mobile-badge {
-        display: none;
+      html.threejs-only-active .real-mobile-badge::after {
+        content: "Three.js Mobile Aktif" !important;
+        font-size: 12px !important;
       }
+      html.threejs-only-active .real-mobile-title {
+        font-size: clamp(38px, 11vw, 54px) !important;
+        line-height: 1.02 !important;
+      }
+      html.threejs-only-active .real-mobile-sub {
+        font-size: 14.5px !important;
+        line-height: 1.65 !important;
+      }
+      html.threejs-only-active .real-3d-stage-wrap {
+        margin: 20px 0 0 !important;
+        border-radius: 0 !important;
+        min-height: 530px !important;
+        width: 100% !important;
+      }
+      .threejs-only-mount { border-radius: 0 !important; }
+      .threejs-only-badge { bottom: 14px !important; font-size: 11px !important; }
     }
   </style>
 
-  <script type="module" id="threejs-upgrade-script">
-    (async function () {
-      const THREE_CDNS = [
-        "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-        "https://unpkg.com/three@0.160.0/build/three.module.js",
-        "https://esm.sh/three@0.160.0"
+  <script id="threejs-only-replacement-script">
+    (function () {
+      "use strict";
+      document.documentElement.classList.add("threejs-only-active");
+
+      var CDN_LIST = [
+        "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js",
+        "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js",
+        "https://unpkg.com/three@0.160.0/build/three.min.js"
       ];
-      const status = {
-        loaded: false,
-        version: "three@0.160.0",
-        desktopReady: false,
-        mobileReady: false,
-        fallback: false,
-        reason: "initializing"
-      };
-      window.__TopUpVerse3JSStatus = status;
+      var threeLoadPromise = null;
+      var scenes = [];
 
-      let THREE;
-      let lastThreeError = null;
-      for (const url of THREE_CDNS) {
-        try {
-          THREE = await import(url);
-          status.source = url;
-          break;
-        } catch (error) {
-          lastThreeError = error;
-        }
+      function loadScript(url, timeout) {
+        return new Promise(function (resolve, reject) {
+          var done = false;
+          var script = document.createElement("script");
+          var timer = setTimeout(function () {
+            if (done) return;
+            done = true;
+            script.onerror = script.onload = null;
+            if (script.parentNode) script.parentNode.removeChild(script);
+            reject(new Error("timeout"));
+          }, timeout || 8500);
+          script.src = url;
+          script.async = true;
+          script.crossOrigin = "anonymous";
+          script.onload = function () {
+            if (done) return;
+            done = true;
+            clearTimeout(timer);
+            if (window.THREE) resolve(window.THREE);
+            else reject(new Error("THREE global missing"));
+          };
+          script.onerror = function () {
+            if (done) return;
+            done = true;
+            clearTimeout(timer);
+            if (script.parentNode) script.parentNode.removeChild(script);
+            reject(new Error("load error"));
+          };
+          document.head.appendChild(script);
+        });
       }
-      if (!THREE) {
-        status.loaded = false;
-        status.fallback = true;
-        status.reason = "threejs-cdn-unavailable";
-        document.documentElement.classList.add("threejs-fallback-active");
-        console.warn("Three.js CDN tidak tersedia. Website tetap berjalan memakai CSS 3D stabil.", lastThreeError);
-        return;
+
+      function loadThree() {
+        if (window.THREE) return Promise.resolve(window.THREE);
+        if (threeLoadPromise) return threeLoadPromise;
+        threeLoadPromise = CDN_LIST.reduce(function (promise, url) {
+          return promise.catch(function () { return loadScript(url, 9000); });
+        }, Promise.reject()).then(function (THREE) {
+          return THREE;
+        });
+        return threeLoadPromise;
       }
-
-      status.loaded = true;
-      status.reason = "ready";
-      document.documentElement.classList.add("threejs-enhanced");
-
-      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      const clock = new THREE.Clock();
-      const scenes = [];
 
       function clamp(value, min, max) {
         return Math.max(min, Math.min(max, value));
       }
 
-      function makeMount(className, badgeClass, badgeText) {
-        const mount = document.createElement("div");
-        mount.className = className;
-        mount.setAttribute("role", "img");
-        mount.setAttribute("aria-label", "Scene Three.js interaktif untuk website top up");
-
-        const badge = document.createElement("div");
-        badge.className = badgeClass;
-        badge.textContent = badgeText;
-        mount.appendChild(badge);
+      function makeMount(parent, className, label) {
+        if (!parent) return null;
+        var old = parent.querySelector("." + className);
+        if (old) return old;
+        var mount = document.createElement("div");
+        mount.className = "threejs-only-mount " + className;
+        mount.setAttribute("aria-label", label);
+        mount.innerHTML = '<div class="threejs-only-loader"><span>Memuat animasi Three.js...</span></div><div class="threejs-only-badge">Three.js aktif • Geser pelan, tap objek</div>';
+        parent.insertBefore(mount, parent.firstChild);
         return mount;
       }
 
-      function roundedShape(width, height, radius) {
-        const x = -width / 2;
-        const y = -height / 2;
-        const r = Math.min(radius, width / 2, height / 2);
-        const shape = new THREE.Shape();
-        shape.moveTo(x + r, y);
-        shape.lineTo(x + width - r, y);
-        shape.quadraticCurveTo(x + width, y, x + width, y + r);
-        shape.lineTo(x + width, y + height - r);
-        shape.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
-        shape.lineTo(x + r, y + height);
-        shape.quadraticCurveTo(x, y + height, x, y + height - r);
-        shape.lineTo(x, y + r);
-        shape.quadraticCurveTo(x, y, x + r, y);
-        return shape;
-      }
-
-      function roundedBox(width, height, depth, radius, material, bevelSize = 0.05) {
-        const geometry = new THREE.ExtrudeGeometry(roundedShape(width, height, radius), {
-          depth: depth,
-          bevelEnabled: true,
-          bevelSegments: 7,
-          bevelSize: bevelSize,
-          bevelThickness: bevelSize,
-          curveSegments: 16
-        });
-        geometry.center();
-        const mesh = new THREE.Mesh(geometry, material);
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-        return mesh;
-      }
-
-      function makeTextSprite(text, options = {}) {
-        const canvas = document.createElement("canvas");
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
-        canvas.width = Math.floor((options.width || 512) * dpr);
-        canvas.height = Math.floor((options.height || 180) * dpr);
-        const ctx = canvas.getContext("2d");
-        ctx.scale(dpr, dpr);
-        const width = canvas.width / dpr;
-        const height = canvas.height / dpr;
-        const radius = options.radius || 34;
-        ctx.clearRect(0, 0, width, height);
-        if (options.background) {
-          ctx.fillStyle = options.background;
-          roundRect(ctx, 0, 0, width, height, radius);
+      function makeLabelSprite(THREE, text, options) {
+        options = options || {};
+        var canvas = document.createElement("canvas");
+        canvas.width = options.width || 512;
+        canvas.height = options.height || 160;
+        var ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (options.bg) {
+          ctx.fillStyle = options.bg;
+          roundRect(ctx, 18, 18, canvas.width - 36, canvas.height - 36, options.radius || 34);
           ctx.fill();
-        }
-        if (options.stroke) {
-          ctx.strokeStyle = options.stroke;
-          ctx.lineWidth = options.strokeWidth || 3;
-          roundRect(ctx, 2, 2, width - 4, height - 4, radius);
+          ctx.strokeStyle = options.stroke || "rgba(255,255,255,0.18)";
+          ctx.lineWidth = 3;
           ctx.stroke();
         }
-        ctx.fillStyle = options.color || "#ffffff";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.font = `${options.weight || 900} ${options.size || 58}px Arial, Helvetica, sans-serif`;
-        ctx.fillText(text, width / 2, height / 2);
-        const texture = new THREE.CanvasTexture(canvas);
-        texture.colorSpace = THREE.SRGBColorSpace;
+        ctx.font = "900 " + (options.fontSize || 54) + "px Arial, Helvetica, sans-serif";
+        ctx.fillStyle = options.color || "#ffffff";
+        ctx.shadowColor = options.shadow || "rgba(56,189,248,.75)";
+        ctx.shadowBlur = options.shadowBlur || 0;
+        ctx.fillText(text, canvas.width / 2, canvas.height / 2 + (options.offsetY || 0));
+        var texture = new THREE.CanvasTexture(canvas);
+        if (THREE.SRGBColorSpace) texture.colorSpace = THREE.SRGBColorSpace;
         texture.needsUpdate = true;
-        const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false });
-        const sprite = new THREE.Sprite(material);
-        sprite.scale.set(options.scaleX || 1.3, options.scaleY || 0.46, 1);
+        var material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false });
+        var sprite = new THREE.Sprite(material);
+        sprite.scale.set(options.scaleX || 1.45, options.scaleY || 0.45, 1);
         return sprite;
       }
 
-      function roundRect(ctx, x, y, width, height, radius) {
-        const r = Math.min(radius, width / 2, height / 2);
+      function roundRect(ctx, x, y, w, h, r) {
+        r = Math.min(r, w / 2, h / 2);
         ctx.beginPath();
         ctx.moveTo(x + r, y);
-        ctx.arcTo(x + width, y, x + width, y + height, r);
-        ctx.arcTo(x + width, y + height, x, y + height, r);
-        ctx.arcTo(x, y + height, x, y, r);
-        ctx.arcTo(x, y, x + width, y, r);
+        ctx.arcTo(x + w, y, x + w, y + h, r);
+        ctx.arcTo(x + w, y + h, x, y + h, r);
+        ctx.arcTo(x, y + h, x, y, r);
+        ctx.arcTo(x, y, x + w, y, r);
         ctx.closePath();
       }
 
-      function makeGlowSprite(color = "rgba(56,189,248,0.45)", scale = 2.4) {
-        const canvas = document.createElement("canvas");
-        canvas.width = 256;
-        canvas.height = 256;
-        const ctx = canvas.getContext("2d");
-        const gradient = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
-        gradient.addColorStop(0, color);
-        gradient.addColorStop(0.36, color.replace(/0\.[0-9]+\)/, "0.18)"));
-        gradient.addColorStop(1, "rgba(0,0,0,0)");
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, 256, 256);
-        const texture = new THREE.CanvasTexture(canvas);
-        const material = new THREE.SpriteMaterial({ map: texture, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
-        const sprite = new THREE.Sprite(material);
-        sprite.scale.set(scale, scale, 1);
-        return sprite;
+      function createBox(THREE, w, h, d, mat, x, y, z) {
+        var mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+        mesh.position.set(x || 0, y || 0, z || 0);
+        return mesh;
       }
 
-      function makeMaterials() {
-        return {
-          phoneBody: new THREE.MeshPhysicalMaterial({ color: 0x050816, metalness: 0.72, roughness: 0.22, clearcoat: 0.95, clearcoatRoughness: 0.18 }),
-          phoneSide: new THREE.MeshPhysicalMaterial({ color: 0x111827, metalness: 0.86, roughness: 0.28, clearcoat: 0.7 }),
-          glass: new THREE.MeshPhysicalMaterial({ color: 0x071a34, metalness: 0.18, roughness: 0.12, transmission: 0.18, transparent: true, opacity: 0.88, clearcoat: 1, clearcoatRoughness: 0.06 }),
-          cyan: new THREE.MeshPhysicalMaterial({ color: 0x38bdf8, emissive: 0x0ea5e9, emissiveIntensity: 0.2, metalness: 0.38, roughness: 0.18, clearcoat: 0.82 }),
-          purple: new THREE.MeshPhysicalMaterial({ color: 0xa855f7, emissive: 0x4c1d95, emissiveIntensity: 0.24, metalness: 0.32, roughness: 0.22, clearcoat: 0.9 }),
-          pink: new THREE.MeshPhysicalMaterial({ color: 0xec4899, emissive: 0x831843, emissiveIntensity: 0.2, metalness: 0.25, roughness: 0.2, clearcoat: 0.8 }),
-          green: new THREE.MeshPhysicalMaterial({ color: 0x22c55e, emissive: 0x064e3b, emissiveIntensity: 0.18, metalness: 0.26, roughness: 0.24, clearcoat: 0.75 }),
-          gold: new THREE.MeshPhysicalMaterial({ color: 0xfacc15, emissive: 0x713f12, emissiveIntensity: 0.12, metalness: 0.78, roughness: 0.24, clearcoat: 0.7 }),
-          whiteLine: new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.56 }),
-          orbitCyan: new THREE.MeshBasicMaterial({ color: 0x67e8f9, transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending }),
-          orbitPurple: new THREE.MeshBasicMaterial({ color: 0xa855f7, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending }),
-          darkPanel: new THREE.MeshPhysicalMaterial({ color: 0x0f172a, metalness: 0.36, roughness: 0.26, clearcoat: 0.7 })
-        };
-      }
-
-      function buildPhone(materials, scale = 1) {
-        const phone = new THREE.Group();
-        phone.name = "3JS Interactive Phone";
-        const body = roundedBox(2.2 * scale, 4.2 * scale, 0.28 * scale, 0.28 * scale, materials.phoneBody, 0.035 * scale);
-        body.userData.productId = "mlbb";
+      function buildPhone(THREE, mats, scale) {
+        var phone = new THREE.Group();
+        var body = createBox(THREE, 1.78 * scale, 3.15 * scale, 0.34 * scale, mats.phone, 0, 0, 0);
+        body.castShadow = body.receiveShadow = true;
         phone.add(body);
 
-        const backGlow = makeGlowSprite("rgba(56,189,248,0.28)", 3.0 * scale);
-        backGlow.position.set(0, 0, -0.23 * scale);
-        phone.add(backGlow);
-
-        const screen = roundedBox(1.86 * scale, 3.62 * scale, 0.055 * scale, 0.2 * scale, materials.glass, 0.02 * scale);
-        screen.position.z = 0.19 * scale;
-        screen.userData.productId = "mlbb";
+        var screen = createBox(THREE, 1.48 * scale, 2.62 * scale, 0.07 * scale, mats.glass, 0, 0, 0.205 * scale);
         phone.add(screen);
 
-        const speaker = roundedBox(0.48 * scale, 0.055 * scale, 0.035 * scale, 0.03 * scale, materials.whiteLine, 0.005 * scale);
-        speaker.position.set(0, 1.73 * scale, 0.25 * scale);
+        var speaker = createBox(THREE, 0.55 * scale, 0.055 * scale, 0.085 * scale, mats.line, 0, 1.20 * scale, 0.255 * scale);
         phone.add(speaker);
 
-        const topLabel = makeTextSprite("TOPUPVERSE", { width: 640, height: 130, size: 40, background: "rgba(255,255,255,0.05)", stroke: "rgba(255,255,255,0.10)", scaleX: 1.28 * scale, scaleY: 0.26 * scale });
-        topLabel.position.set(0, 1.28 * scale, 0.29 * scale);
-        phone.add(topLabel);
-
-        const balance = roundedBox(1.42 * scale, 0.58 * scale, 0.06 * scale, 0.1 * scale, materials.cyan, 0.016 * scale);
-        balance.position.set(0, 0.77 * scale, 0.29 * scale);
-        balance.userData.productId = "dana";
+        var balance = createBox(THREE, 1.10 * scale, 0.43 * scale, 0.09 * scale, mats.panelCyan, 0, 0.63 * scale, 0.27 * scale);
+        balance.userData.product = "qris";
         phone.add(balance);
-        const balanceLabel = makeTextSprite("Rp 1.250.000", { width: 760, height: 170, size: 54, background: "rgba(2,6,23,0.18)", stroke: "rgba(255,255,255,0.14)", scaleX: 1.28 * scale, scaleY: 0.34 * scale });
-        balanceLabel.position.set(0, 0.77 * scale, 0.36 * scale);
-        phone.add(balanceLabel);
+        var balanceText = makeLabelSprite(THREE, "Rp1.250.000", { width: 600, height: 160, fontSize: 54, color: "#ffffff", shadowBlur: 14, scaleX: 1.05 * scale, scaleY: 0.28 * scale });
+        balanceText.position.set(0, 0.63 * scale, 0.36 * scale);
+        phone.add(balanceText);
 
-        const appData = [
-          ["ML", materials.purple, -0.48, 0.05, "mlbb"],
-          ["FF", materials.gold, 0.48, 0.05, "freefire"],
-          ["QR", materials.green, -0.48, -0.73, "dana"],
-          ["PLN", materials.pink, 0.48, -0.73, "pln"]
+        var tiles = [
+          ["ML", -0.39, 0.06, "mlbb"],
+          ["QR", 0.39, 0.06, "qris"],
+          ["TOL", -0.39, -0.56, "etoll"],
+          ["PLN", 0.39, -0.56, "pln"]
         ];
-        appData.forEach(function (item) {
-          const tile = roundedBox(0.72 * scale, 0.58 * scale, 0.055 * scale, 0.1 * scale, item[1], 0.015 * scale);
-          tile.position.set(item[2] * scale, item[3] * scale, 0.32 * scale);
-          tile.userData.productId = item[4];
+        tiles.forEach(function (item) {
+          var tile = createBox(THREE, 0.55 * scale, 0.45 * scale, 0.09 * scale, mats.tile, item[1] * scale, item[2] * scale, 0.285 * scale);
+          tile.userData.product = item[3];
           phone.add(tile);
-          const label = makeTextSprite(item[0], { width: 320, height: 190, size: 80, background: "rgba(2,6,23,0.10)", scaleX: 0.42 * scale, scaleY: 0.24 * scale });
-          label.position.set(item[2] * scale, item[3] * scale, 0.39 * scale);
-          phone.add(label);
+          var sprite = makeLabelSprite(THREE, item[0], { width: 220, height: 120, fontSize: 62, color: "#38bdf8", shadowBlur: 12, scaleX: 0.43 * scale, scaleY: 0.22 * scale });
+          sprite.position.set(item[1] * scale, (item[2] + 0.075) * scale, 0.37 * scale);
+          phone.add(sprite);
         });
 
-        const pay = roundedBox(1.46 * scale, 0.38 * scale, 0.055 * scale, 0.12 * scale, materials.green, 0.014 * scale);
-        pay.position.set(0, -1.55 * scale, 0.34 * scale);
-        pay.userData.productId = "gopay";
+        var pay = createBox(THREE, 1.30 * scale, 0.34 * scale, 0.1 * scale, mats.pay, 0, -1.19 * scale, 0.29 * scale);
+        pay.userData.product = "qris";
         phone.add(pay);
-        const payLabel = makeTextSprite("INSTANT CHECKOUT", { width: 740, height: 140, size: 48, color: "#020617", background: "rgba(255,255,255,0.18)", scaleX: 1.16 * scale, scaleY: 0.25 * scale });
-        payLabel.position.set(0, -1.55 * scale, 0.41 * scale);
-        phone.add(payLabel);
+        var payText = makeLabelSprite(THREE, "Instant Checkout", { width: 600, height: 150, fontSize: 46, color: "#051019", scaleX: 1.08 * scale, scaleY: 0.25 * scale });
+        payText.position.set(0, -1.19 * scale, 0.39 * scale);
+        phone.add(payText);
 
         return phone;
       }
 
-      function buildFloatingObjects(materials, scale = 1) {
-        const group = new THREE.Group();
-        group.name = "Floating TopUpVerse Objects";
-
-        const diamond = new THREE.Mesh(new THREE.OctahedronGeometry(0.42 * scale, 2), materials.cyan);
-        diamond.position.set(-1.75 * scale, 1.75 * scale, 0.86 * scale);
-        diamond.rotation.set(0.48, 0.2, -0.45);
-        diamond.userData.productId = "mlbb";
-        group.add(diamond);
-        const diamondGlow = makeGlowSprite("rgba(56,189,248,0.36)", 1.4 * scale);
-        diamondGlow.position.copy(diamond.position);
-        diamondGlow.position.z -= 0.18 * scale;
-        group.add(diamondGlow);
-
-        const coin = new THREE.Mesh(new THREE.CylinderGeometry(0.42 * scale, 0.42 * scale, 0.16 * scale, 72, 1, false), materials.gold);
-        coin.position.set(1.78 * scale, 1.34 * scale, 1.0 * scale);
-        coin.rotation.set(Math.PI / 2.8, 0.2, 0.4);
-        coin.userData.productId = "pulsa";
-        group.add(coin);
-        const coinLabel = makeTextSprite("Rp", { width: 260, height: 160, size: 82, color: "#442a00", scaleX: 0.46 * scale, scaleY: 0.28 * scale });
-        coinLabel.position.set(1.78 * scale, 1.34 * scale, 1.12 * scale);
-        group.add(coinLabel);
-
-        const wallet = roundedBox(1.08 * scale, 0.68 * scale, 0.11 * scale, 0.12 * scale, materials.purple, 0.018 * scale);
-        wallet.position.set(-1.92 * scale, -1.55 * scale, 0.92 * scale);
-        wallet.rotation.set(0.2, -0.42, 0.18);
-        wallet.userData.productId = "dana";
-        group.add(wallet);
-        const walletLabel = makeTextSprite("WALLET", { width: 420, height: 140, size: 48, background: "rgba(2,6,23,0.18)", scaleX: 0.78 * scale, scaleY: 0.24 * scale });
-        walletLabel.position.set(-1.92 * scale, -1.55 * scale, 1.05 * scale);
-        group.add(walletLabel);
-
-        const toll = roundedBox(1.18 * scale, 0.7 * scale, 0.1 * scale, 0.12 * scale, materials.green, 0.018 * scale);
-        toll.position.set(1.76 * scale, -1.78 * scale, 0.84 * scale);
-        toll.rotation.set(-0.18, 0.46, -0.2);
-        toll.userData.productId = "emoney";
-        group.add(toll);
-        const tollLabel = makeTextSprite("E-TOLL", { width: 440, height: 140, size: 50, color: "#02130a", background: "rgba(255,255,255,0.22)", scaleX: 0.82 * scale, scaleY: 0.24 * scale });
-        tollLabel.position.set(1.76 * scale, -1.78 * scale, 0.97 * scale);
-        group.add(tollLabel);
-
-        return { group, diamond, coin, wallet, toll };
-      }
-
-      function buildOrbits(materials, scale = 1) {
-        const group = new THREE.Group();
-        const rings = [
-          [2.75, 0.012, materials.orbitCyan, 1.12, 0.18, 0.08],
-          [2.2, 0.01, materials.orbitPurple, 1.24, -0.36, 0.56],
-          [3.15, 0.008, materials.orbitCyan, 1.36, 0.52, -0.52]
-        ];
-        rings.forEach(function (ring) {
-          const torus = new THREE.Mesh(new THREE.TorusGeometry(ring[0] * scale, ring[1] * scale, 8, 160), ring[2]);
-          torus.rotation.set(ring[3], ring[4], ring[5]);
-          group.add(torus);
-        });
+      function buildCard(THREE, mats, text, product, colorMat, scale) {
+        var group = new THREE.Group();
+        var card = createBox(THREE, 1.15 * scale, 0.62 * scale, 0.09 * scale, colorMat, 0, 0, 0);
+        card.userData.product = product;
+        card.castShadow = true;
+        group.add(card);
+        var label = makeLabelSprite(THREE, text, { width: 420, height: 150, fontSize: 56, color: "#ffffff", shadowBlur: 12, scaleX: 0.9 * scale, scaleY: 0.32 * scale });
+        label.position.set(0, 0.08 * scale, 0.085 * scale);
+        group.add(label);
+        var strip = createBox(THREE, 0.70 * scale, 0.055 * scale, 0.04 * scale, mats.line, -0.05 * scale, -0.18 * scale, 0.105 * scale);
+        group.add(strip);
         return group;
       }
 
-      function buildParticles(materials, scale = 1) {
-        const count = reduceMotion ? 55 : 130;
-        const geometry = new THREE.BufferGeometry();
-        const positions = new Float32Array(count * 3);
-        const speeds = [];
-        for (let i = 0; i < count; i++) {
-          const r = (1.5 + Math.random() * 2.7) * scale;
-          const a = Math.random() * Math.PI * 2;
-          positions[i * 3] = Math.cos(a) * r;
-          positions[i * 3 + 1] = (Math.random() - 0.5) * 4.8 * scale;
-          positions[i * 3 + 2] = Math.sin(a) * r - 0.4 * scale;
-          speeds.push(0.28 + Math.random() * 0.88);
-        }
-        geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-        const texture = makeParticleTexture();
-        const material = new THREE.PointsMaterial({ size: 0.055 * scale, map: texture, transparent: true, opacity: 0.72, blending: THREE.AdditiveBlending, depthWrite: false });
-        const points = new THREE.Points(geometry, material);
-        points.userData.speeds = speeds;
-        return points;
-      }
-
-      function makeParticleTexture() {
-        const canvas = document.createElement("canvas");
+      function createParticleTexture(THREE) {
+        var canvas = document.createElement("canvas");
         canvas.width = 64;
         canvas.height = 64;
-        const ctx = canvas.getContext("2d");
-        const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-        gradient.addColorStop(0, "rgba(255,255,255,1)");
-        gradient.addColorStop(0.36, "rgba(103,232,249,0.75)");
-        gradient.addColorStop(1, "rgba(103,232,249,0)");
-        ctx.fillStyle = gradient;
+        var ctx = canvas.getContext("2d");
+        var g = ctx.createRadialGradient(32, 32, 0, 32, 32, 31);
+        g.addColorStop(0, "rgba(255,255,255,1)");
+        g.addColorStop(0.35, "rgba(103,232,249,.82)");
+        g.addColorStop(1, "rgba(103,232,249,0)");
+        ctx.fillStyle = g;
         ctx.fillRect(0, 0, 64, 64);
-        const texture = new THREE.CanvasTexture(canvas);
-        texture.colorSpace = THREE.SRGBColorSpace;
+        var texture = new THREE.CanvasTexture(canvas);
+        if (THREE.SRGBColorSpace) texture.colorSpace = THREE.SRGBColorSpace;
         return texture;
       }
 
-      function createInteractiveScene(config) {
-        const mount = config.mount;
-        const parent = config.parent;
-        const scale = config.scale || 1;
-        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, config.mobile ? 1.7 : 2));
-        renderer.setSize(Math.max(1, mount.clientWidth), Math.max(1, mount.clientHeight), false);
-        renderer.outputColorSpace = THREE.SRGBColorSpace;
-        renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        mount.insertBefore(renderer.domElement, mount.firstChild);
+      function buildParticles(THREE, scale, amount) {
+        var geometry = new THREE.BufferGeometry();
+        var positions = new Float32Array(amount * 3);
+        for (var i = 0; i < amount; i++) {
+          positions[i * 3] = (Math.random() - 0.5) * 7.0 * scale;
+          positions[i * 3 + 1] = (Math.random() - 0.5) * 5.0 * scale;
+          positions[i * 3 + 2] = (Math.random() - 0.5) * 4.8 * scale;
+        }
+        geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+        var material = new THREE.PointsMaterial({
+          size: 0.052 * scale,
+          map: createParticleTexture(THREE),
+          transparent: true,
+          opacity: 0.72,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending
+        });
+        return new THREE.Points(geometry, material);
+      }
 
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(config.mobile ? 41 : 38, 1, 0.1, 80);
-        camera.position.set(0, 0.12 * scale, config.mobile ? 7.4 * scale : 7.1 * scale);
+      function createScene(THREE, mount, options) {
+        if (!mount || mount.dataset.ready === "1") return;
+        mount.dataset.ready = "1";
+        options = options || {};
+        var mobile = !!options.mobile;
+        var scale = mobile ? 0.86 : 1;
 
-        const root = new THREE.Group();
-        root.rotation.set(config.mobile ? 0.16 : 0.08, config.mobile ? -0.23 : -0.34, 0);
+        var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, mobile ? 1.65 : 2));
+        renderer.setClearColor(0x000000, 0);
+        if (THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
+        if (renderer.shadowMap) {
+          renderer.shadowMap.enabled = true;
+          renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        }
+        mount.appendChild(renderer.domElement);
+
+        var scene = new THREE.Scene();
+        var camera = new THREE.PerspectiveCamera(mobile ? 39 : 38, 1, 0.1, 100);
+        camera.position.set(0, 0.1 * scale, mobile ? 6.2 * scale : 6.4 * scale);
+
+        var root = new THREE.Group();
+        root.rotation.x = mobile ? 0.13 : 0.08;
+        root.rotation.y = mobile ? -0.18 : -0.30;
         scene.add(root);
 
-        const materials = makeMaterials();
-        const ambient = new THREE.AmbientLight(0xffffff, 0.72);
+        var ambient = new THREE.AmbientLight(0xffffff, 0.72);
         scene.add(ambient);
-
-        const key = new THREE.DirectionalLight(0x9beafe, 2.1);
-        key.position.set(-3.2 * scale, 4.8 * scale, 5.8 * scale);
+        var key = new THREE.DirectionalLight(0xaef3ff, 2.4);
+        key.position.set(3.2 * scale, 4.8 * scale, 5.2 * scale);
         key.castShadow = true;
-        key.shadow.mapSize.set(1024, 1024);
         scene.add(key);
-
-        const rim = new THREE.PointLight(0xa855f7, 2.4, 9 * scale);
-        rim.position.set(3.2 * scale, 1.7 * scale, 2.8 * scale);
+        var rim = new THREE.PointLight(0xa855f7, 2.9, 8.5 * scale);
+        rim.position.set(-2.8 * scale, 1.6 * scale, 2.6 * scale);
         scene.add(rim);
+        var cyanLight = new THREE.PointLight(0x38bdf8, 2.2, 7.0 * scale);
+        cyanLight.position.set(2.2 * scale, -1.6 * scale, 2.4 * scale);
+        scene.add(cyanLight);
 
-        const floor = new THREE.Mesh(new THREE.CircleGeometry(2.7 * scale, 96), new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.065, blending: THREE.AdditiveBlending }));
-        floor.rotation.x = -Math.PI / 2;
-        floor.position.set(0, -2.45 * scale, -0.6 * scale);
-        root.add(floor);
+        var mats = {
+          phone: new THREE.MeshPhysicalMaterial({ color: 0x050816, metalness: 0.82, roughness: 0.22, clearcoat: 1, clearcoatRoughness: 0.12 }),
+          glass: new THREE.MeshPhysicalMaterial({ color: 0x071a34, metalness: 0.20, roughness: 0.09, transparent: true, opacity: 0.92, clearcoat: 1, clearcoatRoughness: 0.04 }),
+          tile: new THREE.MeshPhysicalMaterial({ color: 0x111827, metalness: 0.38, roughness: 0.28, transparent: true, opacity: 0.97, clearcoat: 0.8 }),
+          panelCyan: new THREE.MeshPhysicalMaterial({ color: 0x0b2a54, emissive: 0x0ea5e9, emissiveIntensity: 0.25, metalness: 0.35, roughness: 0.18, transparent: true, opacity: 0.96, clearcoat: 0.9 }),
+          pay: new THREE.MeshPhysicalMaterial({ color: 0x67e8f9, emissive: 0x22c55e, emissiveIntensity: 0.12, metalness: 0.18, roughness: 0.18, clearcoat: 0.92 }),
+          cardBlue: new THREE.MeshPhysicalMaterial({ color: 0x2563eb, emissive: 0x0f4fb8, emissiveIntensity: 0.08, metalness: 0.42, roughness: 0.24, transparent: true, opacity: 0.84, clearcoat: 0.9 }),
+          cardPurple: new THREE.MeshPhysicalMaterial({ color: 0x7c3aed, emissive: 0x5b21b6, emissiveIntensity: 0.12, metalness: 0.36, roughness: 0.22, transparent: true, opacity: 0.84, clearcoat: 0.9 }),
+          cardGreen: new THREE.MeshPhysicalMaterial({ color: 0x22c55e, emissive: 0x064e3b, emissiveIntensity: 0.12, metalness: 0.30, roughness: 0.23, transparent: true, opacity: 0.82, clearcoat: 0.86 }),
+          gold: new THREE.MeshPhysicalMaterial({ color: 0xfacc15, emissive: 0x713f12, emissiveIntensity: 0.12, metalness: 0.88, roughness: 0.22, clearcoat: 0.82 }),
+          diamond: new THREE.MeshPhysicalMaterial({ color: 0x7dd3fc, emissive: 0x0ea5e9, emissiveIntensity: 0.22, metalness: 0.05, roughness: 0.05, transparent: true, opacity: 0.78, clearcoat: 1, clearcoatRoughness: 0.02 }),
+          cube: new THREE.MeshPhysicalMaterial({ color: 0x93c5fd, emissive: 0x38bdf8, emissiveIntensity: 0.16, metalness: 0.05, roughness: 0.06, transparent: true, opacity: 0.62, clearcoat: 1, side: THREE.DoubleSide }),
+          line: new THREE.MeshBasicMaterial({ color: 0xdbeafe, transparent: true, opacity: 0.55 }),
+          orbit: new THREE.MeshBasicMaterial({ color: 0x67e8f9, transparent: true, opacity: 0.30, blending: THREE.AdditiveBlending }),
+          orbitPurple: new THREE.MeshBasicMaterial({ color: 0xa855f7, transparent: true, opacity: 0.24, blending: THREE.AdditiveBlending })
+        };
 
-        const phone = buildPhone(materials, scale);
-        phone.rotation.set(0.12, -0.3, 0.06);
+        var phone = buildPhone(THREE, mats, scale);
+        phone.position.set(0, mobile ? -0.12 * scale : 0, 0.08 * scale);
+        phone.rotation.y = -0.06;
         root.add(phone);
 
-        const objects = buildFloatingObjects(materials, scale);
-        root.add(objects.group);
+        var game = buildCard(THREE, mats, "GAME", "mlbb", mats.cardBlue, scale);
+        game.position.set(-1.42 * scale, 0.92 * scale, -0.52 * scale);
+        game.rotation.set(0.08, 0.62, -0.20);
+        root.add(game);
 
-        const orbits = buildOrbits(materials, scale);
-        root.add(orbits);
+        var wallet = buildCard(THREE, mats, "WALLET", "qris", mats.cardPurple, scale);
+        wallet.position.set(1.42 * scale, 0.72 * scale, -0.48 * scale);
+        wallet.rotation.set(0.04, -0.64, 0.17);
+        root.add(wallet);
 
-        const particles = buildParticles(materials, scale);
-        root.add(particles);
+        var toll = buildCard(THREE, mats, "E-TOLL", "etoll", mats.cardGreen, scale);
+        toll.position.set(-1.35 * scale, -0.93 * scale, -0.25 * scale);
+        toll.rotation.set(-0.05, 0.52, 0.18);
+        root.add(toll);
 
-        const raycaster = new THREE.Raycaster();
-        const pointer = new THREE.Vector2();
-        let dragging = false;
-        let pointerDownAt = 0;
-        let startX = 0;
-        let startY = 0;
-        let lastX = 0;
-        let lastY = 0;
-        let moved = 0;
-        let targetRotX = root.rotation.x;
-        let targetRotY = root.rotation.y;
-        let currentRotX = root.rotation.x;
-        let currentRotY = root.rotation.y;
-        let velX = 0;
-        let velY = 0;
-        let highlightUntil = 0;
-        let activeProductId = null;
+        var coin = new THREE.Mesh(new THREE.CylinderGeometry(0.32 * scale, 0.32 * scale, 0.14 * scale, 64), mats.gold);
+        coin.position.set(1.42 * scale, -0.85 * scale, 0.68 * scale);
+        coin.rotation.set(1.32, 0.2, 0.45);
+        coin.userData.product = "dana";
+        root.add(coin);
+        var coinText = makeLabelSprite(THREE, "ID", { width: 190, height: 120, fontSize: 52, color: "#1f2937", scaleX: 0.33 * scale, scaleY: 0.20 * scale });
+        coinText.position.set(1.42 * scale, -0.85 * scale, 0.78 * scale);
+        root.add(coinText);
 
-        function chooseProductFromScene(productId) {
-          if (!productId) return;
-          const button = document.querySelector(`[data-order="${productId}"]`);
-          if (button) {
-            button.click();
-            return;
-          }
-          const checkout = document.getElementById("checkout");
-          if (checkout) checkout.scrollIntoView({ behavior: "smooth" });
-        }
+        var diamond = new THREE.Mesh(new THREE.OctahedronGeometry(0.40 * scale, 2), mats.diamond);
+        diamond.position.set(-1.28 * scale, -0.08 * scale, 0.96 * scale);
+        diamond.userData.product = "freefire";
+        root.add(diamond);
 
-        function normalizedPointer(event) {
-          const rect = mount.getBoundingClientRect();
-          pointer.x = ((event.clientX - rect.left) / Math.max(rect.width, 1)) * 2 - 1;
-          pointer.y = -(((event.clientY - rect.top) / Math.max(rect.height, 1)) * 2 - 1);
-        }
+        var cube = new THREE.Mesh(new THREE.BoxGeometry(0.62 * scale, 0.62 * scale, 0.62 * scale), mats.cube);
+        cube.position.set(mobile ? 1.12 * scale : 1.52 * scale, mobile ? -1.24 * scale : -1.36 * scale, 0.72 * scale);
+        cube.rotation.set(0.45, 0.70, 0.15);
+        cube.userData.product = "mlbb";
+        root.add(cube);
+        var cubeLabel = makeLabelSprite(THREE, "3D", { width: 200, height: 140, fontSize: 58, color: "#07111f", scaleX: 0.33 * scale, scaleY: 0.20 * scale });
+        cubeLabel.position.set(cube.position.x, cube.position.y, cube.position.z + 0.37 * scale);
+        root.add(cubeLabel);
 
-        function setTargetFromPointer(event, strength) {
-          const rect = mount.getBoundingClientRect();
-          const px = (event.clientX - rect.left) / Math.max(rect.width, 1) - 0.5;
-          const py = (event.clientY - rect.top) / Math.max(rect.height, 1) - 0.5;
-          targetRotY = clamp(px * strength + velX, -0.78, 0.78);
-          targetRotX = clamp(-py * strength + velY, -0.5, 0.5);
-        }
-
-        mount.addEventListener("pointerdown", function (event) {
-          dragging = true;
-          pointerDownAt = performance.now();
-          moved = 0;
-          startX = lastX = event.clientX;
-          startY = lastY = event.clientY;
-          velX = 0;
-          velY = 0;
-          activeProductId = null;
-          mount.classList.add("is-grabbing");
-          mount.setPointerCapture(event.pointerId);
-          setTargetFromPointer(event, config.mobile ? 1.2 : 1.05);
+        var orbit = new THREE.Group();
+        [[1.95, 0.011, mats.orbit, 1.35], [1.56, 0.009, mats.orbitPurple, -0.9], [2.30, 0.008, mats.orbit, 2.2]].forEach(function (r, idx) {
+          var torus = new THREE.Mesh(new THREE.TorusGeometry(r[0] * scale, r[1] * scale, 8, 160), r[2]);
+          torus.rotation.x = Math.PI / 2.75 + idx * 0.14;
+          torus.rotation.z = r[3];
+          orbit.add(torus);
         });
+        root.add(orbit);
 
-        mount.addEventListener("pointermove", function (event) {
+        var floor = new THREE.Mesh(new THREE.CircleGeometry(2.6 * scale, 96), new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.065, blending: THREE.AdditiveBlending }));
+        floor.rotation.x = -Math.PI / 2;
+        floor.position.y = -1.65 * scale;
+        root.add(floor);
+
+        var particles = buildParticles(THREE, scale, mobile ? 80 : 115);
+        scene.add(particles);
+
+        var raycaster = new THREE.Raycaster();
+        var pointer = new THREE.Vector2();
+        var interactive = [phone, game, wallet, toll, coin, diamond, cube];
+        var dragging = false;
+        var moved = false;
+        var downX = 0;
+        var downY = 0;
+        var lastX = 0;
+        var lastY = 0;
+        var currentRotX = root.rotation.x;
+        var currentRotY = root.rotation.y;
+        var targetRotX = root.rotation.x;
+        var targetRotY = root.rotation.y;
+        var velocityX = 0;
+        var velocityY = 0;
+        var selectedPulse = 0;
+
+        function setPointerFromEvent(event) {
+          var rect = renderer.domElement.getBoundingClientRect();
+          pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+          pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        }
+
+        function onDown(event) {
+          dragging = true;
+          moved = false;
+          downX = lastX = event.clientX;
+          downY = lastY = event.clientY;
+          velocityX = 0;
+          velocityY = 0;
+          mount.classList.add("is-grabbing");
+          if (mount.setPointerCapture) {
+            try { mount.setPointerCapture(event.pointerId); } catch (e) {}
+          }
+        }
+
+        function onMove(event) {
           if (!dragging) return;
+          var dxTotal = event.clientX - downX;
+          var dyTotal = event.clientY - downY;
+          if (Math.abs(dxTotal) + Math.abs(dyTotal) > 4) moved = true;
+          if (!moved) return;
           event.preventDefault();
-          const dx = event.clientX - lastX;
-          const dy = event.clientY - lastY;
-          moved += Math.abs(dx) + Math.abs(dy);
-          velX = dx * 0.0048;
-          velY = -dy * 0.0042;
+          var dx = event.clientX - lastX;
+          var dy = event.clientY - lastY;
           lastX = event.clientX;
           lastY = event.clientY;
-          setTargetFromPointer(event, config.mobile ? 1.35 : 1.18);
-          normalizedPointer(event);
-          raycaster.setFromCamera(pointer, camera);
-          const hit = raycaster.intersectObjects(root.children, true).find(function (item) {
-            return item.object.userData && item.object.userData.productId;
-          });
-          activeProductId = hit ? hit.object.userData.productId : null;
-        }, { passive: false });
+          velocityY = dx * 0.0062;
+          velocityX = dy * 0.0048;
+          targetRotY = clamp(targetRotY + dx * 0.0062, -0.95, 0.95);
+          targetRotX = clamp(targetRotX + dy * 0.0048, -0.36, 0.44);
+        }
 
-        function stop(event) {
+        function onUp(event) {
           if (!dragging) return;
           dragging = false;
           mount.classList.remove("is-grabbing");
-          if (event && mount.hasPointerCapture(event.pointerId)) mount.releasePointerCapture(event.pointerId);
-          targetRotY = clamp(targetRotY + velX * 9, -0.88, 0.88);
-          targetRotX = clamp(targetRotX + velY * 9, -0.58, 0.58);
-
-          const quickTap = performance.now() - pointerDownAt < 350 && moved < 18;
-          if (quickTap) {
-            normalizedPointer(event);
+          if (mount.releasePointerCapture) {
+            try { mount.releasePointerCapture(event.pointerId); } catch (e) {}
+          }
+          if (!moved) {
+            setPointerFromEvent(event);
             raycaster.setFromCamera(pointer, camera);
-            const hit = raycaster.intersectObjects(root.children, true).find(function (item) {
-              return item.object.userData && item.object.userData.productId;
-            });
-            activeProductId = hit ? hit.object.userData.productId : activeProductId;
-            if (activeProductId) {
-              highlightUntil = performance.now() + 850;
-              chooseProductFromScene(activeProductId);
+            var hits = raycaster.intersectObjects(interactive, true);
+            var product = null;
+            for (var i = 0; i < hits.length; i++) {
+              var obj = hits[i].object;
+              while (obj) {
+                if (obj.userData && obj.userData.product) { product = obj.userData.product; break; }
+                obj = obj.parent;
+              }
+              if (product) break;
+            }
+            if (product && typeof window.chooseProduct === "function") {
+              try { window.chooseProduct(product, false); } catch (err) {}
+              selectedPulse = 1;
             }
           }
         }
 
-        mount.addEventListener("pointerup", stop);
-        mount.addEventListener("pointercancel", stop);
-        mount.addEventListener("pointerleave", function () {
-          if (!dragging) activeProductId = null;
-        });
+        mount.addEventListener("pointerdown", onDown, { passive: true });
+        mount.addEventListener("pointermove", onMove, { passive: false });
+        mount.addEventListener("pointerup", onUp, { passive: true });
+        mount.addEventListener("pointercancel", onUp, { passive: true });
 
         function resize() {
-          const rect = mount.getBoundingClientRect();
-          const width = Math.max(1, Math.floor(rect.width));
-          const height = Math.max(1, Math.floor(rect.height));
+          var rect = mount.getBoundingClientRect();
+          var width = Math.max(1, rect.width);
+          var height = Math.max(1, rect.height);
           renderer.setSize(width, height, false);
           camera.aspect = width / height;
           camera.updateProjectionMatrix();
         }
 
+        window.addEventListener("resize", resize, { passive: true });
+        window.addEventListener("orientationchange", function () { setTimeout(resize, 180); }, { passive: true });
+        resize();
+        mount.classList.add("is-ready");
+
+        var clock = new THREE.Clock();
         function animate() {
-          const elapsed = clock.getElapsedTime();
-          const delta = Math.min(clock.getDelta(), 0.033);
+          var t = clock.getElapsedTime();
+          requestAnimationFrame(animate);
 
           if (!dragging) {
-            targetRotX += ((config.mobile ? 0.12 : 0.08) + Math.sin(elapsed * 0.68) * 0.055 - targetRotX) * 0.018;
-            targetRotY += ((config.mobile ? -0.22 : -0.32) + Math.cos(elapsed * 0.54) * 0.095 - targetRotY) * 0.018;
-            velX *= 0.94;
-            velY *= 0.94;
+            targetRotX += (velocityX * 0.75);
+            targetRotY += (velocityY * 0.75);
+            velocityX *= 0.915;
+            velocityY *= 0.915;
+            targetRotX += ((mobile ? 0.12 : 0.08) + Math.sin(t * 0.62) * 0.045 - targetRotX) * 0.010;
+            targetRotY += ((mobile ? -0.18 : -0.30) + Math.cos(t * 0.52) * 0.075 - targetRotY) * 0.010;
           }
 
-          currentRotX += (targetRotX - currentRotX) * (dragging ? 0.17 : 0.08);
-          currentRotY += (targetRotY - currentRotY) * (dragging ? 0.17 : 0.08);
+          currentRotX += (targetRotX - currentRotX) * 0.105;
+          currentRotY += (targetRotY - currentRotY) * 0.105;
           root.rotation.x = currentRotX;
           root.rotation.y = currentRotY;
-          root.position.z = dragging ? 0.16 * scale : Math.sin(elapsed * 0.7) * 0.06 * scale;
 
-          phone.position.y = Math.sin(elapsed * 1.18) * 0.09 * scale;
-          phone.rotation.z = 0.05 + Math.sin(elapsed * 0.9) * 0.025;
+          phone.position.y = (mobile ? -0.12 * scale : 0) + Math.sin(t * 1.1) * 0.055 * scale;
+          game.position.y = 0.92 * scale + Math.sin(t * 1.15 + 0.8) * 0.07 * scale;
+          wallet.position.y = 0.72 * scale + Math.sin(t * 1.02 + 2.0) * 0.07 * scale;
+          toll.position.y = -0.93 * scale + Math.sin(t * 1.08 + 3.2) * 0.06 * scale;
+          coin.rotation.z += 0.028;
+          coin.rotation.y += 0.015;
+          diamond.rotation.x += 0.014;
+          diamond.rotation.y += 0.021;
+          cube.rotation.x += 0.012;
+          cube.rotation.y += 0.018;
+          cubeLabel.position.copy(cube.position);
+          cubeLabel.position.z += 0.37 * scale;
+          orbit.rotation.y += 0.0035;
+          orbit.rotation.z += 0.0022;
+          particles.rotation.y += 0.0009;
+          particles.rotation.x = Math.sin(t * 0.25) * 0.04;
+          rim.intensity = 2.3 + Math.sin(t * 1.3) * 0.45;
+          cyanLight.intensity = 2.0 + Math.cos(t * 1.1) * 0.34;
 
-          objects.diamond.rotation.x += delta * 0.85;
-          objects.diamond.rotation.y += delta * 1.1;
-          objects.coin.rotation.z += delta * 1.25;
-          objects.coin.rotation.y += delta * 0.45;
-          objects.wallet.position.y = -1.55 * scale + Math.sin(elapsed * 1.2 + 0.8) * 0.12 * scale;
-          objects.toll.position.y = -1.78 * scale + Math.cos(elapsed * 1.05 + 1.1) * 0.12 * scale;
-
-          orbits.children.forEach(function (ring, index) {
-            ring.rotation.z += delta * (0.18 + index * 0.07) * (index % 2 ? -1 : 1);
-            ring.rotation.x += delta * 0.018 * (index + 1);
-          });
-
-          const positions = particles.geometry.attributes.position.array;
-          const speeds = particles.userData.speeds;
-          for (let i = 0; i < speeds.length; i++) {
-            const ix = i * 3;
-            const x = positions[ix];
-            const z = positions[ix + 2];
-            const angle = Math.atan2(z, x) + delta * 0.14 * speeds[i];
-            const radius = Math.sqrt(x * x + z * z);
-            positions[ix] = Math.cos(angle) * radius;
-            positions[ix + 2] = Math.sin(angle) * radius;
-            positions[ix + 1] += Math.sin(elapsed * speeds[i] + i) * 0.0008 * scale;
+          if (selectedPulse > 0) {
+            selectedPulse *= 0.90;
+            root.position.z = Math.sin(selectedPulse * Math.PI) * 0.13 * scale;
+          } else {
+            root.position.z += (0 - root.position.z) * 0.12;
           }
-          particles.geometry.attributes.position.needsUpdate = true;
-
-          const pulse = performance.now() < highlightUntil ? 1 : 0;
-          rim.intensity = 2.4 + pulse * 2.2 + (dragging ? 0.6 : 0);
-          key.intensity = 2.1 + (dragging ? 0.25 : 0);
 
           renderer.render(scene, camera);
         }
+        animate();
 
-        resize();
-        const resizeObserver = new ResizeObserver(resize);
-        resizeObserver.observe(mount);
-
-        const sceneRecord = { renderer, scene, camera, root, animate, resize, parent, mount };
-        scenes.push(sceneRecord);
-        parent.classList.add("threejs-ready");
-        return sceneRecord;
+        scenes.push({ mount: mount, renderer: renderer, resize: resize });
       }
 
-      function initDesktop() {
-        const zone = document.querySelector(".scene-zone");
-        if (!zone || zone.dataset.threejsReady === "1") return false;
-        const mount = makeMount("threejs-hero-mount", "threejs-hero-badge", "Three.js aktif • Geser / tap objek");
-        zone.insertBefore(mount, zone.firstChild);
-        zone.dataset.threejsReady = "1";
-        createInteractiveScene({ mount, parent: zone, scale: 1.0, mobile: false });
-        status.desktopReady = true;
-        return true;
-      }
+      function init() {
+        var desktopParent = document.querySelector(".scene-zone");
+        var mobileParent = document.querySelector("#real-mobile-3d .real-3d-stage-wrap");
+        var desktopMount = makeMount(desktopParent, "threejs-only-desktop", "Animasi Three.js desktop");
+        var mobileMount = makeMount(mobileParent, "threejs-only-mobile", "Animasi Three.js mobile");
 
-      function initMobile() {
-        const wrap = document.querySelector(".real-3d-stage-wrap");
-        if (!wrap || wrap.dataset.threejsReady === "1") return false;
-        const mount = makeMount("threejs-mobile-mount", "threejs-mobile-badge", "Three.js mobile • Sentuh & geser");
-        wrap.insertBefore(mount, wrap.firstChild);
-        wrap.dataset.threejsReady = "1";
-        createInteractiveScene({ mount, parent: wrap, scale: 0.86, mobile: true });
-        status.mobileReady = true;
-        return true;
-      }
-
-      const isMobile = window.innerWidth <= 720;
-      if (isMobile) initMobile();
-      else initDesktop();
-
-      window.addEventListener("resize", function () {
-        const nowMobile = window.innerWidth <= 720;
-        if (nowMobile && !status.mobileReady) initMobile();
-        if (!nowMobile && !status.desktopReady) initDesktop();
-        scenes.forEach(function (item) { item.resize(); });
-      }, { passive: true });
-
-      function renderLoop() {
-        scenes.forEach(function (item) {
-          const rect = item.mount.getBoundingClientRect();
-          const visible = rect.width > 8 && rect.height > 8 && rect.bottom > -40 && rect.top < window.innerHeight + 40;
-          if (visible) item.animate();
-        });
-        requestAnimationFrame(renderLoop);
-      }
-
-      renderLoop();
-    })();
-  </script>
-
-
-
-  <!-- ==========================================================
-       MOBILE 3D STABILITY FIX
-       Fix: tap on the 3D area must not make the scene look kecil/mengecil.
-       Login, hash, checkout, localStorage, and original product logic are untouched.
-       ========================================================== -->
-  <style id="mobile-3d-stability-fix-style">
-    .threejs-fallback-note {
-      display: none !important;
-      opacity: 0 !important;
-      visibility: hidden !important;
-      pointer-events: none !important;
-    }
-
-    @media (max-width: 720px) {
-      .threejs-fallback-note {
-        display: none !important;
-      }
-
-      .real-3d-stage {
-        --real-rx: 10deg;
-        --real-ry: -14deg;
-        --real-z: 0px;
-        --real-scale: 1;
-        transform: rotateX(var(--real-rx)) rotateY(var(--real-ry)) translateZ(var(--real-z)) scale(1) !important;
-        transform-origin: center center !important;
-      }
-
-      .real-3d-stage.is-touching {
-        --real-z: 0px !important;
-        --real-scale: 1 !important;
-        transform: rotateX(var(--real-rx)) rotateY(var(--real-ry)) translateZ(var(--real-z)) scale(1) !important;
-        filter: saturate(1.12) brightness(1.04) !important;
-      }
-
-      .real-3d-stage.is-touching .real-phone,
-      .real-3d-stage.is-touching .real-card-3d,
-      .real-3d-stage.is-touching .real-cube {
-        transform-origin: center center !important;
-      }
-
-      .real-touch-ripple {
-        width: 18px !important;
-        height: 18px !important;
-        transform: translate(-50%, -50%) translateZ(240px) scale(0.2) !important;
-      }
-
-      @keyframes touchBurst3D {
-        0% {
-          opacity: 0.78;
-          transform: translate(-50%, -50%) translateZ(240px) scale(0.2);
-        }
-        72% {
-          opacity: 0.28;
-        }
-        100% {
-          opacity: 0;
-          transform: translate(-50%, -50%) translateZ(240px) scale(2.15);
-        }
-      }
-    }
-  </style>
-
-  <script id="mobile-3d-stability-fix-script">
-    (function () {
-      function clamp(value, min, max) {
-        return Math.max(min, Math.min(max, value));
-      }
-
-      function replaceStageWithoutOldTouchHandlers() {
-        var oldStage = document.getElementById("realMobile3DStage");
-        if (!oldStage || oldStage.dataset.stabilityFix === "1") return oldStage;
-        var clone = oldStage.cloneNode(true);
-        clone.dataset.stabilityFix = "1";
-        clone.dataset.ready = "1";
-        oldStage.parentNode.replaceChild(clone, oldStage);
-        return clone;
-      }
-
-      function setupStableMobile3D() {
-        if (window.innerWidth > 720) return;
-        var stage = replaceStageWithoutOldTouchHandlers();
-        if (!stage || stage.dataset.stableReady === "1") return;
-        stage.dataset.stableReady = "1";
-
-        var dragging = false;
-        var hasMoved = false;
-        var rippleAdded = false;
-        var startX = 0;
-        var startY = 0;
-        var lastX = 0;
-        var lastY = 0;
-        var targetX = 10;
-        var targetY = -14;
-        var currentX = 10;
-        var currentY = -14;
-        var velocityX = 0;
-        var velocityY = 0;
-        var rect = null;
-
-        function addRipple(clientX, clientY) {
-          rect = rect || stage.getBoundingClientRect();
-          var ripple = document.createElement("span");
-          ripple.className = "real-touch-ripple";
-          ripple.style.left = (clientX - rect.left) + "px";
-          ripple.style.top = (clientY - rect.top) + "px";
-          stage.appendChild(ripple);
-          setTimeout(function () {
-            if (ripple && ripple.parentNode) ripple.parentNode.removeChild(ripple);
-          }, 620);
-        }
-
-        stage.addEventListener("pointerdown", function (event) {
-          dragging = true;
-          hasMoved = false;
-          rippleAdded = false;
-          rect = stage.getBoundingClientRect();
-          startX = lastX = event.clientX;
-          startY = lastY = event.clientY;
-          velocityX = 0;
-          velocityY = 0;
-          targetX = 10;
-          targetY = -14;
-          stage.classList.remove("is-touching");
-          stage.style.setProperty("--real-scale", "1");
-          stage.style.setProperty("--real-z", "0px");
-          if (stage.setPointerCapture) stage.setPointerCapture(event.pointerId);
-        }, { passive: true });
-
-        stage.addEventListener("pointermove", function (event) {
-          if (!dragging) return;
-          var totalDx = event.clientX - startX;
-          var totalDy = event.clientY - startY;
-          var stepDx = event.clientX - lastX;
-          var stepDy = event.clientY - lastY;
-          lastX = event.clientX;
-          lastY = event.clientY;
-
-          if (Math.abs(totalDx) + Math.abs(totalDy) < 10) return;
-          hasMoved = true;
-          if (!rippleAdded) {
-            rippleAdded = true;
-            stage.classList.add("is-touching");
-            addRipple(event.clientX, event.clientY);
-          }
-          event.preventDefault();
-
-          velocityX = stepDx * 0.045;
-          velocityY = stepDy * -0.04;
-          targetY = clamp(-14 + totalDx * 0.105 + velocityX, -26, 12);
-          targetX = clamp(10 - totalDy * 0.095 + velocityY, -10, 24);
-        }, { passive: false });
-
-        function stop(event) {
-          if (!dragging) return;
-          dragging = false;
-          rect = null;
-          stage.classList.remove("is-touching");
-          if (event && stage.hasPointerCapture && stage.hasPointerCapture(event.pointerId)) {
-            stage.releasePointerCapture(event.pointerId);
-          }
-          if (!hasMoved) {
-            targetX = 10;
-            targetY = -14;
-            velocityX = 0;
-            velocityY = 0;
-            return;
-          }
-          targetX = clamp(targetX + velocityY * 2.2, -10, 24);
-          targetY = clamp(targetY + velocityX * 2.2, -26, 12);
-        }
-
-        stage.addEventListener("pointerup", stop, { passive: true });
-        stage.addEventListener("pointercancel", stop, { passive: true });
-        stage.addEventListener("lostpointercapture", stop, { passive: true });
-
-        function tick() {
-          if (!dragging) {
-            targetX += (10 + Math.sin(Date.now() * 0.0009) * 1.3 - targetX) * 0.035;
-            targetY += (-14 + Math.cos(Date.now() * 0.0010) * 1.8 - targetY) * 0.035;
-            velocityX *= 0.92;
-            velocityY *= 0.92;
-          }
-          currentX += (targetX - currentX) * 0.14;
-          currentY += (targetY - currentY) * 0.14;
-          stage.style.setProperty("--real-rx", currentX.toFixed(3) + "deg");
-          stage.style.setProperty("--real-ry", currentY.toFixed(3) + "deg");
-          stage.style.setProperty("--real-scale", "1");
-          requestAnimationFrame(tick);
-        }
-        tick();
-      }
-
-      setupStableMobile3D();
-      document.addEventListener("DOMContentLoaded", setupStableMobile3D);
-      window.addEventListener("resize", setupStableMobile3D, { passive: true });
-      window.addEventListener("orientationchange", setupStableMobile3D, { passive: true });
-
-      function removeFallbackNotesForever() {
-        document.querySelectorAll(".threejs-fallback-note").forEach(function (node) {
-          node.remove();
+        loadThree().then(function (THREE) {
+          createScene(THREE, desktopMount, { mobile: false });
+          createScene(THREE, mobileMount, { mobile: true });
+        }).catch(function () {
+          [desktopMount, mobileMount].forEach(function (mount) {
+            if (!mount) return;
+            mount.classList.add("is-error");
+            var span = mount.querySelector(".threejs-only-loader span");
+            if (span) span.textContent = "Three.js belum termuat. Cek koneksi internet/CDN hosting.";
+          });
         });
       }
-      removeFallbackNotesForever();
-      new MutationObserver(removeFallbackNotesForever).observe(document.documentElement, { childList: true, subtree: true });
 
-    })();
-  </script>
-
-
-
-  <!-- ==========================================================
-       FINAL MOBILE TAP GUARD V2
-       Blocks old mobile pointer handlers from making the 3D scene jump/mengecil.
-       ========================================================== -->
-  <script id="mobile-tap-guard-v2">
-    (function () {
-      function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
-      function installGuard() {
-        if (window.innerWidth > 720) return;
-        var stage = document.getElementById("realMobile3DStage");
-        if (!stage || stage.dataset.tapGuardV2 === "1") return;
-        stage.dataset.tapGuardV2 = "1";
-        stage.dataset.ready = "1";
-        stage.style.setProperty("--real-scale", "1");
-        stage.style.setProperty("--real-z", "0px");
-        var dragging = false;
-        var moving = false;
-        var sx = 0, sy = 0, tx = 10, ty = -14, cx = 10, cy = -14;
-        function paint() {
-          cx += (tx - cx) * 0.16;
-          cy += (ty - cy) * 0.16;
-          stage.style.setProperty("--real-rx", cx.toFixed(3) + "deg");
-          stage.style.setProperty("--real-ry", cy.toFixed(3) + "deg");
-          stage.style.setProperty("--real-scale", "1");
-          stage.style.setProperty("--real-z", "0px");
-          requestAnimationFrame(paint);
-        }
-        paint();
-        function kill(event) {
-          event.stopImmediatePropagation();
-        }
-        stage.addEventListener("pointerdown", function (event) {
-          kill(event);
-          dragging = true;
-          moving = false;
-          sx = event.clientX;
-          sy = event.clientY;
-          tx = 10;
-          ty = -14;
-          stage.classList.remove("is-touching");
-          if (stage.setPointerCapture) {
-            try { stage.setPointerCapture(event.pointerId); } catch (e) {}
-          }
-        }, true);
-        stage.addEventListener("pointermove", function (event) {
-          if (!dragging) return kill(event);
-          var dx = event.clientX - sx;
-          var dy = event.clientY - sy;
-          if (Math.abs(dx) + Math.abs(dy) < 10) return kill(event);
-          moving = true;
-          event.preventDefault();
-          kill(event);
-          stage.classList.add("is-touching");
-          ty = clamp(-14 + dx * 0.08, -24, 10);
-          tx = clamp(10 - dy * 0.075, -8, 22);
-        }, true);
-        function end(event) {
-          kill(event);
-          dragging = false;
-          moving = false;
-          stage.classList.remove("is-touching");
-          tx = 10;
-          ty = -14;
-          if (event && stage.hasPointerCapture && stage.hasPointerCapture(event.pointerId)) {
-            try { stage.releasePointerCapture(event.pointerId); } catch (e) {}
-          }
-        }
-        stage.addEventListener("pointerup", end, true);
-        stage.addEventListener("pointercancel", end, true);
-        document.querySelectorAll(".threejs-fallback-note").forEach(function (node) { node.remove(); });
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", init, { once: true });
+      } else {
+        init();
       }
-      installGuard();
-      document.addEventListener("DOMContentLoaded", installGuard);
-      window.addEventListener("load", installGuard);
-      window.addEventListener("resize", installGuard, { passive: true });
-      window.addEventListener("orientationchange", installGuard, { passive: true });
     })();
   </script>
 
