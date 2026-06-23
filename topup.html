@@ -6439,7 +6439,11 @@
         }
 
         function buildScene(time) {
-          var sc = mobile ? 1.00 : 1.07;
+          var faces = [], labels = [];
+          var bob = reduceMotion ? 0 : Math.sin(time * 1.12) * .050;
+          var sc = mobile ? 1.00 : 1.06;
+          var phoneRot = [0.035, -0.045, 0];
+
           drawGlow();
           drawParticles(time);
           drawRing(2.05 * sc, 1.25, time * .10, -0.36 * sc, time * .26, "rgba(56,189,248,.34)", .42);
@@ -6450,7 +6454,31 @@
           drawIconOrb([-1.34 * sc, -.82 * sc, .07 * sc], time, "E-TOLL", "toll", "#22c55e", "#0891b2");
           drawIconOrb([1.34 * sc, -.82 * sc, .07 * sc], time, "PLN", "bolt", "#facc15", "#22c55e");
 
-          drawPremiumPhone(time, sc);
+          addBox(faces, labels, { w: 1.82 * sc, h: 3.18 * sc, d: .34 * sc, pos: [0, bob, 0], rot: phoneRot, color: "#020617", stroke: "rgba(255,255,255,.22)" });
+          addBox(faces, labels, { w: 1.56 * sc, h: 2.64 * sc, d: .08 * sc, pos: [0, bob, .24 * sc], rot: phoneRot, color: "#071b36", alpha: .98, stroke: "rgba(56,189,248,.28)" });
+          addBox(faces, labels, { w: .62 * sc, h: .050 * sc, d: .045 * sc, pos: [0, 1.23 * sc + bob, .31 * sc], rot: phoneRot, color: "#94a3b8", alpha: .55 });
+
+          labels.push({ text: "TopUpVerse", pos: objectPoint([-0.34 * sc, .96 * sc, .34 * sc], [0, bob, 0], phoneRot), size: 13, color: "rgba(226,232,240,.82)", depth: 1.2, weight: "900" });
+
+          addBox(faces, labels, { w: 1.16 * sc, h: .46 * sc, d: .10 * sc, pos: [0, .62 * sc + bob, .34 * sc], rot: phoneRot, color: "#0e7490", alpha: .88, stroke: "rgba(103,232,249,.55)", label: "Rp1.250.000", labelSize: 20, labelBg: "rgba(15,23,42,.74)" });
+
+          var tiles = [
+            ["ML", "GAME", -.39, .05, "#38bdf8"],
+            ["QR", "QRIS", .39, .05, "#a855f7"],
+            ["SIM", "PULSA", -.39, -.57, "#facc15"],
+            ["⚡", "PLN", .39, -.57, "#22c55e"]
+          ];
+          tiles.forEach(function(t){
+            addBox(faces, labels, { w: .56 * sc, h: .46 * sc, d: .09 * sc, pos: [t[2] * sc, t[3] * sc + bob, .35 * sc], rot: phoneRot, color: "#111827", alpha: .92, stroke: "rgba(255,255,255,.12)", label: t[0], labelSize: 17, labelColor: t[4] });
+            labels.push({ text: t[1], pos: objectPoint([t[2] * sc, (t[3] - .16) * sc, .405 * sc], [0, bob, 0], phoneRot), size: 9, color: "rgba(226,232,240,.70)", depth: 1.3, weight: "800" });
+          });
+
+          addBox(faces, labels, { w: 1.22 * sc, h: .34 * sc, d: .10 * sc, pos: [0, -1.20 * sc + bob, .35 * sc], rot: phoneRot, color: "#67e8f9", alpha: .92, stroke: "rgba(255,255,255,.18)", label: "Mulai Top Up", labelSize: 16, labelColor: "#061226" });
+
+          faces.sort(function(a, b){ return a.depth - b.depth; });
+          faces.forEach(drawFace);
+          labels.sort(function(a, b){ return (a.depth || a.pos[2]) - (b.depth || b.pos[2]); });
+          labels.forEach(drawLabel);
         }
 
         function frame(now) {
@@ -9013,5 +9041,6 @@
 <!-- V17 note: objek hero 3D telah diarahkan ke Three.js murni pada mode threejs-only-active. Perubahan hanya visual; checkout, invoice, localStorage, API, login, hash, payment gateway, dan keamanan backend tidak diubah. -->
 <!-- V19 note: Minimal Premium Top-Up Hub. Perubahan hanya pada visual hero/offline renderer agar desain tidak kotak, lebih bersih, dan lebih fokus. Endpoint, login, hash, payment gateway, email template, A2F, keamanan, checkout, invoice, dan localStorage tidak diubah. -->
 <!-- V20 note: phone canvas dan semua UI di dalam phone ikut transform yaw/pitch saat digeser, sehingga kotak tengah tidak diam lagi. Perubahan tetap visual-only; endpoint/login/hash/payment/email/A2F/security tidak diubah. -->
+<!-- V21 note: phone tengah dikembalikan ke sistem face-projection 3D seperti V18, sehingga body phone dan semua kotak UI di dalamnya benar-benar ikut rotasi penuh saat digeser. Visual-only; endpoint/login/hash/payment/email/A2F/security tidak diubah. -->
 </body>
 </html>
