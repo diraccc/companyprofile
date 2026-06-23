@@ -2408,7 +2408,7 @@
         background: radial-gradient(circle at 44% 8%, rgba(56,189,248,.24), transparent 36%), rgba(2,6,23,.92) !important;
         overflow: hidden !important;
       }
-      .mobile-device-bar { width: 70px !important; height: 7px !important; border-radius: 999px !important; margin: 0 auto 16px !important; background: rgba(255,255,255,.22) !important; }
+      .mobile-device-bar { width: 60px !important; height: 6px !important; border-radius: 999px !important; margin: 0 auto 16px !important; background: rgba(255,255,255,.22) !important; }
       .mobile-balance-card { padding: 16px !important; border-radius: 22px !important; background: linear-gradient(135deg, rgba(56,189,248,.20), rgba(168,85,247,.16)) !important; border: 1px solid rgba(56,189,248,.24) !important; }
       .mobile-balance-card small { display: block !important; color: #cbd5e1 !important; font-weight: 800 !important; }
       .mobile-balance-card strong { display: block !important; margin-top: 7px !important; color: #fff !important; font-size: 25px !important; letter-spacing: -.6px !important; }
@@ -2420,7 +2420,7 @@
       .mobile-float-card { position: absolute !important; display: grid !important; place-items: center !important; border-radius: 20px !important; border: 1px solid rgba(255,255,255,.16) !important; background: rgba(255,255,255,.085) !important; backdrop-filter: blur(12px) !important; box-shadow: 0 22px 54px rgba(0,0,0,.32) !important; color: #eafaff !important; font-weight: 900 !important; }
       .mobile-float-card.a { width: 92px !important; height: 62px !important; left: -2px !important; top: 76px !important; transform: rotate(-10deg) !important; }
       .mobile-float-card.b { width: 82px !important; height: 82px !important; right: 0 !important; top: 124px !important; border-radius: 50% !important; color: #020617 !important; background: radial-gradient(circle, #f7d774, #67e8f9) !important; }
-      .mobile-float-card.c { width: 104px !important; height: 64px !important; right: 16px !important; bottom: 30px !important; transform: rotate(10deg) !important; }
+      .mobile-float-card.c { width: 104px !important; height: 56px !important; right: 16px !important; bottom: 30px !important; transform: rotate(10deg) !important; }
 
       /* Keep full site features below, but remove the heavy desktop hero from mobile. */
       #home.hero { display: none !important; }
@@ -2532,7 +2532,7 @@
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        min-height: 48px !important;
+        min-height: 42px !important;
         border-radius: 16px !important;
         font-weight: 900 !important;
         text-decoration: none !important;
@@ -2624,7 +2624,7 @@
         position: relative !important;
         height: 100% !important;
         border-radius: 25px !important;
-        padding: 13px !important;
+        padding: 11px !important;
         overflow: hidden !important;
         transform: translateZ(28px) !important;
         background:
@@ -2635,14 +2635,14 @@
 
       .real-speaker {
         width: 58px !important;
-        height: 7px !important;
+        height: 6px !important;
         border-radius: 999px !important;
         margin: 0 auto 14px !important;
         background: rgba(255,255,255,0.22) !important;
       }
 
       .real-screen-card {
-        padding: 13px !important;
+        padding: 11px !important;
         border-radius: 20px !important;
         background: linear-gradient(135deg, rgba(56,189,248,0.19), rgba(168,85,247,0.14)) !important;
         border: 1px solid rgba(56,189,248,0.23) !important;
@@ -2659,7 +2659,7 @@
         display: block !important;
         margin-top: 5px !important;
         color: #ffffff !important;
-        font-size: 20px !important;
+        font-size: 18px !important;
       }
 
       .real-mini-grid {
@@ -2709,7 +2709,7 @@
         width: 128px !important;
         height: 82px !important;
         border-radius: 21px !important;
-        padding: 13px !important;
+        padding: 11px !important;
         transform-style: preserve-3d !important;
         border: 1px solid rgba(255,255,255,0.18) !important;
         background:
@@ -5115,7 +5115,7 @@
     }
   </style>
 
-  <script id="threejs-only-replacement-script">
+  <script id="threejs-only-replacement-script" type="text/plain" data-disabled-by="v13-light-balanced">
     (function () {
       "use strict";
       document.documentElement.classList.add("threejs-only-active");
@@ -5681,7 +5681,7 @@
     }
   </style>
 
-  <script id="offline-3d-emergency-script">
+  <script id="offline-3d-emergency-script" type="text/plain" data-disabled-by="v13-light-balanced">
     (function () {
       "use strict";
 
@@ -6579,7 +6579,7 @@
     html.premium-final-3d-active .real-mobile-actions a {
       min-height: 54px !important;
       border-radius: 24px !important;
-      font-size: 17px !important;
+      font-size: 15px !important;
     }
     html.premium-final-3d-active .real-3d-stage-wrap {
       min-height: 690px !important;
@@ -6667,13 +6667,15 @@
     }
     function ensureStage(parent, className) {
       if (!parent) return null;
-      var existing = parent.querySelector('.' + className);
+      var existing = parent.querySelector('.premium3d-stage.' + className);
       if (existing) return existing;
       var wrap = document.createElement('div');
-      wrap.className = 'premium3d-final-mount ' + className;
       wrap.innerHTML = buildStage();
-      parent.insertBefore(wrap.firstChild, parent.firstChild);
-      return parent.querySelector('.premium3d-stage');
+      var stage = wrap.firstElementChild;
+      if (!stage) return null;
+      stage.classList.add('premium3d-final-mount', className);
+      parent.insertBefore(stage, parent.firstChild);
+      return stage;
     }
     function bind(stage, mobile) {
       if (!stage || stage.__premiumBound) return;
@@ -6686,6 +6688,7 @@
       var dragging = false, moved = false;
       var downX = 0, downY = 0, lastX = 0, lastY = 0;
       var start = performance.now();
+      var lastFrame = 0;
       function setVars() {
         stage.style.setProperty('--ry', yaw.toFixed(2) + 'deg');
         stage.style.setProperty('--rx', pitch.toFixed(2) + 'deg');
@@ -6719,6 +6722,9 @@
       }
       function onUp() { dragging = false; stage.classList.remove('is-dragging'); }
       function raf(now) {
+        var frameGap = mobile ? 34 : 24;
+        if (now - lastFrame < frameGap) { requestAnimationFrame(raf); return; }
+        lastFrame = now;
         var t = (now - start) / 1000;
         if (!dragging) {
           targetYaw += velYaw;
@@ -6744,10 +6750,11 @@
     }
     function activate() {
       document.documentElement.classList.add('premium-final-3d-active');
+      var isMobile = window.matchMedia && window.matchMedia('(max-width: 720px)').matches;
       var desktopParent = document.querySelector('.scene-zone');
       var mobileParent = document.querySelector('#real-mobile-3d .real-3d-stage-wrap');
-      var desktopStage = ensureStage(desktopParent, 'premium3d-desktop');
-      var mobileStage = ensureStage(mobileParent, 'premium3d-mobile');
+      var desktopStage = isMobile ? null : ensureStage(desktopParent, 'premium3d-desktop');
+      var mobileStage = isMobile ? ensureStage(mobileParent, 'premium3d-mobile') : null;
       bind(desktopStage, false);
       bind(mobileStage, true);
     }
@@ -7219,7 +7226,7 @@
     function q(sel, root) { return (root || document).querySelector(sel); }
     function qa(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
     function safeJson(value, fallback) { try { return JSON.parse(value); } catch (_) { return fallback; } }
-    function invoices() { try { return safeJson(localStorage.getItem("topupverse_invoices") || "[]", []); } catch (_) { return []; } }
+    function invoices() { return safeJson(localStorage.getItem("topupverse_invoices") || "[]", []); }
     function rupiah(value) {
       try { return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(value || 0); }
       catch (_) { return "Rp" + String(value || 0); }
@@ -7469,7 +7476,369 @@
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot, { once: true });
     else boot();
     window.addEventListener("load", boot, { passive: true });
-    setInterval(function () { enhance3DObjectActions(); syncAdminAndHistory(); }, 1800);
+    setInterval(function () { enhance3DObjectActions(); syncAdminAndHistory(); }, 3600);
+  })();
+</script>
+
+
+<!-- ==========================================================
+     V13 LIGHT BALANCED PATCH
+     Scope: compact mobile hero, lower visual weight, lower CPU/GPU load.
+     Protected areas untouched: endpoints, login, hash, payment gateway,
+     email template, A2F, security, checkout backend flow.
+========================================================== -->
+<style id="v13-light-balanced-style">
+  :root { --v13-safe-bottom: env(safe-area-inset-bottom, 0px); }
+
+  html.v13-light-balanced #particleCanvas {
+    opacity: .45;
+  }
+
+  html.v13-light-balanced .premium3d-stage {
+    background:
+      radial-gradient(circle at 50% 40%, rgba(56,189,248,.13), transparent 38%),
+      radial-gradient(circle at 18% 68%, rgba(168,85,247,.13), transparent 40%),
+      rgba(2,6,23,.08) !important;
+    box-shadow: none !important;
+  }
+
+  html.v13-light-balanced .premium3d-world {
+    width: min(560px, 92vw) !important;
+    height: min(610px, 88%) !important;
+    transform:
+      translate3d(-50%, -50%, 0)
+      rotateX(var(--rx)) rotateY(var(--ry))
+      scale(.92) !important;
+  }
+
+  html.v13-light-balanced .premium-phone {
+    width: min(315px, 58vw) !important;
+    box-shadow:
+      0 35px 90px rgba(0,0,0,.50),
+      0 0 54px rgba(56,189,248,.20),
+      inset 0 0 0 1px rgba(255,255,255,.07) !important;
+  }
+
+  html.v13-light-balanced .premium-card3d,
+  html.v13-light-balanced .premium-coin,
+  html.v13-light-balanced .premium-diamond {
+    box-shadow: 0 16px 42px rgba(0,0,0,.28), inset 0 0 18px rgba(255,255,255,.05) !important;
+  }
+
+  html.v13-light-balanced .premium3d-stars {
+    opacity: .55 !important;
+    animation-duration: 9s !important;
+  }
+
+  html.v13-light-balanced .premium3d-orbit {
+    opacity: .42 !important;
+    animation-duration: 34s !important;
+  }
+
+  html.v13-light-balanced .premium3d-orbit.o2,
+  html.v13-light-balanced .premium3d-orbit.o3 {
+    opacity: .25 !important;
+  }
+
+  html.v13-light-balanced .premium-glow-dot {
+    opacity: .45 !important;
+    animation-duration: 7s !important;
+  }
+
+  @media (max-width: 720px) {
+    html.v13-light-balanced #particleCanvas {
+      display: none !important;
+    }
+
+    html.v13-light-balanced .scroll-progress {
+      height: 3px !important;
+    }
+
+    html.v13-light-balanced.premium-final-3d-active #real-mobile-3d {
+      padding-top: 8px !important;
+    }
+
+    html.v13-light-balanced.premium-final-3d-active .real-mobile-copy {
+      padding: 0 5% !important;
+    }
+
+    html.v13-light-balanced.premium-final-3d-active .real-mobile-actions {
+      gap: 10px !important;
+      margin-top: 0 !important;
+    }
+
+    html.v13-light-balanced.premium-final-3d-active .real-mobile-actions a {
+      min-height: 42px !important;
+      border-radius: 21px !important;
+      font-size: 14px !important;
+      padding: 12px 14px !important;
+    }
+
+    html.v13-light-balanced.premium-final-3d-active .real-3d-stage-wrap {
+      min-height: min(430px, 51svh) !important;
+      height: min(430px, 51svh) !important;
+      margin-top: 6px !important;
+      overflow: visible !important;
+    }
+
+    html.v13-light-balanced .premium3d-stage {
+      min-height: min(430px, 51svh) !important;
+      height: min(430px, 51svh) !important;
+      overflow: hidden !important;
+      touch-action: pan-y !important;
+    }
+
+    html.v13-light-balanced .premium3d-world {
+      width: min(390px, 100vw) !important;
+      height: 430px !important;
+      top: 50% !important;
+      transform:
+        translate3d(-50%, -50%, 0)
+        rotateX(var(--rx)) rotateY(var(--ry))
+        scale(.68) !important;
+    }
+
+    html.v13-light-balanced .premium-phone {
+      width: min(238px, 58vw) !important;
+      aspect-ratio: 300 / 485 !important;
+      border-radius: 39px !important;
+      padding: 12px !important;
+      transform: translate3d(-50%, -50%, 118px) rotateX(5deg) rotateY(-3deg) !important;
+      box-shadow:
+        0 24px 62px rgba(0,0,0,.46),
+        0 0 34px rgba(56,189,248,.18),
+        inset 0 0 0 1px rgba(255,255,255,.07) !important;
+      animation-duration: 8s !important;
+    }
+
+    html.v13-light-balanced .premium-screen {
+      border-radius: 30px !important;
+      padding: 15px 13px 13px !important;
+    }
+
+    html.v13-light-balanced .premium-speaker {
+      width: 60px !important;
+      height: 6px !important;
+      margin-bottom: 10px !important;
+    }
+
+    html.v13-light-balanced .premium-balance {
+      padding: 11px !important;
+      margin-bottom: 12px !important;
+      border-radius: 20px !important;
+    }
+
+    html.v13-light-balanced .premium-balance small {
+      font-size: 12px !important;
+    }
+
+    html.v13-light-balanced .premium-balance strong {
+      font-size: clamp(20px, 5.3vw, 24px) !important;
+    }
+
+    html.v13-light-balanced .premium-mini-grid {
+      gap: 10px !important;
+    }
+
+    html.v13-light-balanced .premium-mini {
+      min-height: 58px !important;
+      border-radius: 18px !important;
+    }
+
+    html.v13-light-balanced .premium-mini b {
+      font-size: 19px !important;
+    }
+
+    html.v13-light-balanced .premium-mini span {
+      font-size: 12px !important;
+    }
+
+    html.v13-light-balanced .premium-checkout {
+      height: 42px !important;
+      bottom: 11px !important;
+      border-radius: 18px !important;
+      font-size: 15px !important;
+    }
+
+    html.v13-light-balanced .premium-card3d {
+      width: 104px !important;
+      height: 62px !important;
+      padding: 12px !important;
+      border-radius: 18px !important;
+      animation-duration: 8.5s !important;
+    }
+
+    html.v13-light-balanced .premium-card3d b {
+      font-size: 14px !important;
+    }
+
+    html.v13-light-balanced .premium-card3d span {
+      display: none !important;
+    }
+
+    html.v13-light-balanced .premium-card3d::before {
+      width: 35px !important;
+      height: 23px !important;
+      right: 10px !important;
+      top: 10px !important;
+      border-radius: 8px !important;
+    }
+
+    html.v13-light-balanced .premium-card3d::after {
+      min-width: 27px !important;
+      padding: 3px 6px !important;
+      right: 9px !important;
+      bottom: 8px !important;
+      font-size: 9px !important;
+    }
+
+    html.v13-light-balanced .premium-card3d.game {
+      transform: translate3d(calc(-50% - 108px), -78px, 32px) rotateY(-28deg) rotateZ(-10deg) !important;
+    }
+
+    html.v13-light-balanced .premium-card3d.wallet {
+      transform: translate3d(calc(-50% + 110px), -62px, 28px) rotateY(28deg) rotateZ(9deg) !important;
+    }
+
+    html.v13-light-balanced .premium-card3d.toll {
+      transform: translate3d(calc(-50% - 110px), 86px, 34px) rotateY(-25deg) rotateZ(9deg) !important;
+    }
+
+    html.v13-light-balanced .premium-coin {
+      width: 56px !important;
+      height: 56px !important;
+      font-size: 18px !important;
+      border-width: 4px !important;
+      transform: translate3d(calc(-50% + 103px), -132px, 158px) rotateY(18deg) !important;
+      animation-duration: 8s !important;
+    }
+
+    html.v13-light-balanced .premium-diamond {
+      width: 58px !important;
+      height: 58px !important;
+      border-radius: 16px !important;
+      transform: translate3d(calc(-50% - 100px), -136px, 150px) rotateX(22deg) rotateY(-18deg) rotateZ(45deg) !important;
+      animation-duration: 8s !important;
+    }
+
+    html.v13-light-balanced .premium-diamond::before { inset: 13px !important; }
+    html.v13-light-balanced .premium-diamond::after { inset: 25px !important; }
+    html.v13-light-balanced .premium-diamond-label { font-size: 13px !important; }
+
+    html.v13-light-balanced .premium3d-orbit {
+      width: 250px !important;
+      height: 152px !important;
+      opacity: .28 !important;
+    }
+
+    html.v13-light-balanced .premium3d-orbit.o2 {
+      width: 250px !important;
+      height: 152px !important;
+    }
+
+    html.v13-light-balanced .premium3d-orbit.o3 {
+      display: none !important;
+    }
+
+    html.v13-light-balanced .premium-glow-dot.d2,
+    html.v13-light-balanced .premium-glow-dot.d3 {
+      display: none !important;
+    }
+
+    html.v13-light-balanced .sticky-mobile-checkout {
+      display: none !important;
+      bottom: calc(10px + var(--v13-safe-bottom)) !important;
+      padding: 8px 10px !important;
+      border-radius: 18px !important;
+    }
+
+    html.v13-light-balanced.v13-show-sticky .sticky-mobile-checkout {
+      display: grid !important;
+    }
+
+    html.v13-light-balanced .sticky-mobile-checkout span {
+      font-size: 12px !important;
+    }
+
+    html.v13-light-balanced .sticky-mobile-checkout a {
+      padding: 9px 11px !important;
+      border-radius: 14px !important;
+      font-size: 13px !important;
+    }
+
+    html.v13-light-balanced footer {
+      padding-bottom: calc(72px + var(--v13-safe-bottom)) !important;
+    }
+  }
+
+  @media (max-width: 380px) {
+    html.v13-light-balanced.premium-final-3d-active .real-3d-stage-wrap,
+    html.v13-light-balanced .premium3d-stage {
+      min-height: min(410px, 50svh) !important;
+      height: min(410px, 50svh) !important;
+    }
+
+    html.v13-light-balanced .premium3d-world {
+      height: 405px !important;
+      scale: none !important;
+      transform:
+        translate3d(-50%, -50%, 0)
+        rotateX(var(--rx)) rotateY(var(--ry))
+        scale(.64) !important;
+    }
+
+    html.v13-light-balanced .premium-phone { width: min(226px, 59vw) !important; }
+    html.v13-light-balanced .premium-card3d.game { transform: translate3d(calc(-50% - 98px), -74px, 32px) rotateY(-28deg) rotateZ(-10deg) !important; }
+    html.v13-light-balanced .premium-card3d.wallet { transform: translate3d(calc(-50% + 100px), -58px, 28px) rotateY(28deg) rotateZ(9deg) !important; }
+    html.v13-light-balanced .premium-card3d.toll { transform: translate3d(calc(-50% - 100px), 78px, 34px) rotateY(-25deg) rotateZ(9deg) !important; }
+    html.v13-light-balanced .premium-coin { transform: translate3d(calc(-50% + 96px), -126px, 158px) rotateY(18deg) !important; }
+    html.v13-light-balanced .premium-diamond { transform: translate3d(calc(-50% - 92px), -130px, 150px) rotateX(22deg) rotateY(-18deg) rotateZ(45deg) !important; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html.v13-light-balanced .premium3d-orbit,
+    html.v13-light-balanced .premium3d-stars,
+    html.v13-light-balanced .premium-phone,
+    html.v13-light-balanced .premium-card3d,
+    html.v13-light-balanced .premium-coin,
+    html.v13-light-balanced .premium-diamond,
+    html.v13-light-balanced .premium-glow-dot {
+      animation: none !important;
+    }
+  }
+</style>
+<script id="v13-light-balanced-script">
+  (function () {
+    "use strict";
+    var root = document.documentElement;
+    root.classList.add("v13-light-balanced");
+    window.__topupverseV13LightNotice = "V13 hanya menyeimbangkan ukuran dan performa frontend. Endpoint, login, hash, payment gateway, email template, A2F, dan keamanan tidak diubah.";
+
+    function toggleSticky() {
+      var y = window.scrollY || document.documentElement.scrollTop || 0;
+      var trigger = Math.max(420, Math.round((window.innerHeight || 720) * 0.62));
+      if (y > trigger) root.classList.add("v13-show-sticky");
+      else root.classList.remove("v13-show-sticky");
+    }
+
+    function bootV13() {
+      toggleSticky();
+      var stages = document.querySelectorAll(".premium3d-stage");
+      stages.forEach(function (stage) {
+        if (stage.__v13Light) return;
+        stage.__v13Light = true;
+        stage.addEventListener("click", function () {
+          stage.classList.add("v13-touched");
+          setTimeout(function () { stage.classList.remove("v13-touched"); }, 180);
+        }, { passive: true });
+      });
+    }
+
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", bootV13, { once: true });
+    else bootV13();
+    window.addEventListener("load", bootV13, { passive: true });
+    window.addEventListener("scroll", toggleSticky, { passive: true });
+    window.addEventListener("resize", toggleSticky, { passive: true });
   })();
 </script>
 
