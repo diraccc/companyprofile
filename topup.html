@@ -3260,38 +3260,16 @@
       </section>
 
       <section class="section reveal" id="showcase">
-        <div class="section-head">
-          <div class="kicker">MOTION STORY</div>
-          <h2>Tampilan Modern untuk Pengalaman Belanja yang Nyaman</h2>
-          <p class="section-sub">
-            Desain dibuat rapi agar pengguna dapat melihat layanan, memilih produk, dan melanjutkan pembayaran tanpa bingung.
-          </p>
-        </div>
-
-        <div class="showcase">
-          <div class="glass-panel show-text">
-            <h3>Tampilan dibuat modern, ringan, dan mudah digunakan.</h3>
-            <p>
-              Setiap bagian disusun untuk membantu pengguna memahami layanan, memilih produk, dan menyelesaikan top up dengan alur yang jelas.
-            </p>
-
-            <div class="feature-list">
-              <div class="feature"><b>01</b><span>Halaman utama menampilkan layanan top up secara menarik dan mudah dipahami.</span></div>
-              <div class="feature"><b>02</b><span>Produk populer bisa digeser dan dipilih langsung.</span></div>
-              <div class="feature"><b>03</b><span>Form checkout punya loading transaksi bertahap.</span></div>
-              <div class="feature"><b>04</b><span>Status pesanan dibuat jelas dan mudah dipantau.</span></div>
-            </div>
-          </div>
-
+        <div class="showcase source-animation-only">
           <div class="glass-panel holo-wrap">
-            <div class="holo-stack" id="holoStack">
-              <div class="holo-core"><div class="diamond3d"></div></div>
-              <div class="holo-card hc1"><h4>Game Top Up</h4><p>Mobile Legends, Free Fire, PUBG, Valorant, dan voucher game lain.</p></div>
-              <div class="holo-card hc2"><h4>E-Wallet</h4><p>DANA, OVO, GoPay, ShopeePay, dan LinkAja.</p></div>
-              <div class="holo-card hc3"><h4>E-Toll</h4><p>e-Money, Brizzi, TapCash, dan Flazz.</p></div>
-              <div class="holo-card hc4"><h4>Produk Digital</h4><p>Pulsa, paket data, token PLN, dan voucher digital.</p></div>
-            </div>
-          </div>
+<div class="holo-stack" id="holoStack">
+<div class="holo-core"><div class="diamond3d"></div></div>
+<div class="holo-card hc1"><h4>Game Top Up</h4><p>Mobile Legends, Free Fire, PUBG, Valorant, dan voucher game lain.</p></div>
+<div class="holo-card hc2"><h4>E-Wallet</h4><p>DANA, OVO, GoPay, ShopeePay, dan LinkAja.</p></div>
+<div class="holo-card hc3"><h4>E-Toll</h4><p>e-Money, Brizzi, TapCash, dan Flazz.</p></div>
+<div class="holo-card hc4"><h4>Produk Digital</h4><p>Pulsa, paket data, token PLN, dan voucher digital.</p></div>
+</div>
+</div>
         </div>
       </section>
 
@@ -10578,157 +10556,47 @@
 </script>
 
 
-<style id="v36-restore-showcase-flow">
-  /* Restore requested showcase and flow order, but make them clean on mobile. */
-  #showcase,
-  #cara {
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    pointer-events: auto !important;
-    height: auto !important;
-    min-height: 0 !important;
-    margin: 0 !important;
-    overflow: visible !important;
-  }
-  #showcase { padding-top: 70px !important; padding-bottom: 58px !important; }
-  #cara { padding-top: 58px !important; padding-bottom: 72px !important; }
-  #showcase .showcase {
-    display: grid !important;
-    grid-template-columns: minmax(0, .92fr) minmax(320px, 1.08fr) !important;
-    gap: 20px !important;
-    align-items: stretch !important;
-  }
-  #showcase .holo-wrap {
-    min-height: 0 !important;
-    padding: 22px !important;
-    touch-action: pan-y !important;
-  }
-  #showcase .holo-stack {
-    width: 100% !important;
-    height: auto !important;
-    min-height: 0 !important;
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 12px !important;
-    transform: none !important;
-    animation: none !important;
-    perspective: none !important;
-  }
-  #showcase .holo-core { display: none !important; }
-  #showcase .holo-card {
-    position: relative !important;
-    left: auto !important;
-    top: auto !important;
-    width: auto !important;
-    min-height: 126px !important;
-    padding: 17px !important;
-    transform: none !important;
-    border-radius: 22px !important;
-    background: linear-gradient(145deg, rgba(255,255,255,.105), rgba(255,255,255,.045)) !important;
-    border: 1px solid rgba(148,163,184,.16) !important;
-    box-shadow: 0 16px 44px rgba(0,0,0,.18) !important;
-    backdrop-filter: blur(12px) !important;
-  }
-  #showcase .holo-card h4 { margin-bottom: 8px !important; font-size: 17px !important; line-height: 1.25 !important; }
-  #showcase .holo-card p { font-size: 13px !important; line-height: 1.55 !important; color: rgba(203,213,225,.86) !important; }
-  #cara .steps {
-    display: grid !important;
-    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-    gap: 14px !important;
-  }
-  #cara .step-card {
-    min-height: 190px !important;
-    padding: 20px !important;
-  }
-  #cara .step-card p { font-size: 13px !important; line-height: 1.58 !important; }
-  @media (max-width: 900px) {
-    #showcase .showcase { grid-template-columns: 1fr !important; }
-    #cara .steps { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
-  }
-  @media (max-width: 580px) {
-    #showcase { padding-top: 46px !important; padding-bottom: 42px !important; }
-    #cara { padding-top: 42px !important; padding-bottom: 56px !important; }
-    #showcase .section-head,
-    #cara .section-head { margin-bottom: 24px !important; }
-    #showcase .showcase { gap: 14px !important; }
-    #showcase .show-text { padding: 22px !important; }
-    #showcase .feature-list { gap: 9px !important; }
-    #showcase .feature { padding: 11px !important; border-radius: 16px !important; }
-    #showcase .holo-wrap { padding: 16px !important; }
-    #showcase .holo-stack { grid-template-columns: 1fr !important; gap: 10px !important; }
-    #showcase .holo-card { min-height: 112px !important; padding: 15px !important; }
-    #cara .steps { grid-template-columns: 1fr !important; gap: 12px !important; }
-    #cara .step-card { min-height: 0 !important; padding: 18px !important; }
-  }
-</style>
-<script id="v36-restore-showcase-flow-script">
-  (function(){
-    document.documentElement.classList.add('v36-restore-showcase-flow');
-    window.__topupidV36Notice = 'V36: requested showcase and flow order sections restored and cleaned for mobile. Other hidden sections and protected systems remain unchanged.';
-  })();
-</script>
 
-
-<style id="v38-restore-html-3d-animation">
-  /* Restore the requested 3D animation as HTML/CSS, not an image. */
+<style id="v40-source-animation-only">
+  /* V40: only the uploaded source 3D animation from topup1.html is used here. No image replacement. */
   #showcase {
     display: block !important;
     visibility: visible !important;
     opacity: 1 !important;
-    pointer-events: auto !important;
     height: auto !important;
     min-height: 0 !important;
     margin: 0 !important;
-    padding: 46px 7% 62px !important;
+    padding: 42px 7% 64px !important;
     overflow: visible !important;
   }
-  #showcase .section-head,
-  #showcase .show-text {
-    display: none !important;
-  }
-  #showcase .showcase {
+  #showcase .source-animation-only {
     display: grid !important;
     grid-template-columns: 1fr !important;
     place-items: center !important;
     max-width: 760px !important;
     margin: 0 auto !important;
+    overflow: visible !important;
   }
   #showcase .holo-wrap {
+    min-height: 440px !important;
+    width: 100% !important;
     display: grid !important;
     place-items: center !important;
-    min-height: 430px !important;
-    width: 100% !important;
-    padding: 28px !important;
     perspective: 1150px !important;
+    padding: 30px !important;
     touch-action: none !important;
+    overflow: visible !important;
     border-radius: 34px !important;
   }
   #showcase .holo-stack {
     position: relative !important;
     width: min(380px, 84vw) !important;
     height: 370px !important;
-    display: block !important;
     transform-style: preserve-3d !important;
-    transform: none;
-    perspective: 1150px !important;
     animation: stackRotate 12s ease-in-out infinite !important;
-    user-select: none !important;
     touch-action: none !important;
-  }
-  #showcase .holo-core {
-    display: grid !important;
-    position: absolute !important;
-    left: 50% !important;
-    top: 50% !important;
-    width: 124px !important;
-    height: 124px !important;
-    place-items: center !important;
-    border-radius: 50% !important;
-    background: radial-gradient(circle, rgba(56,189,248,0.95), rgba(168,85,247,0.22), transparent 68%) !important;
-    transform: translate(-50%, -50%) !important;
-    filter: drop-shadow(0 0 36px rgba(56,189,248,0.65)) !important;
-    animation: corePulse 2.4s ease-in-out infinite !important;
+    user-select: none !important;
+    overflow: visible !important;
   }
   #showcase .holo-card {
     position: absolute !important;
@@ -10736,34 +10604,37 @@
     top: 50% !important;
     width: 258px !important;
     min-height: 138px !important;
-    display: block !important;
     padding: 18px !important;
-    text-align: left !important;
     border-radius: 25px !important;
     border: 1px solid rgba(255,255,255,0.18) !important;
     background: linear-gradient(145deg, rgba(255,255,255,0.16), rgba(255,255,255,0.06)) !important;
     backdrop-filter: blur(14px) !important;
     box-shadow: 0 24px 70px rgba(0,0,0,0.28) !important;
     transform-style: preserve-3d !important;
-  }
-  #showcase .holo-card h4 {
     display: block !important;
-    margin: 0 0 7px !important;
-    font-size: 18px !important;
-    line-height: 1.25 !important;
+    text-align: left !important;
   }
-  #showcase .holo-card p {
-    display: block !important;
-    margin: 0 !important;
-    color: rgba(203,213,225,.88) !important;
-    font-size: 13px !important;
-    line-height: 1.5 !important;
-  }
+  #showcase .holo-card h4 { font-size: 18px !important; margin: 0 0 7px !important; line-height: 1.25 !important; }
+  #showcase .holo-card p { display: block !important; color: var(--soft) !important; font-size: 13px !important; line-height: 1.5 !important; margin: 0 !important; }
   #showcase .hc1 { transform: translate(-50%, -50%) rotateY(0deg) translateZ(158px) !important; }
   #showcase .hc2 { transform: translate(-50%, -50%) rotateY(90deg) translateZ(158px) !important; }
   #showcase .hc3 { transform: translate(-50%, -50%) rotateY(180deg) translateZ(158px) !important; }
   #showcase .hc4 { transform: translate(-50%, -50%) rotateY(270deg) translateZ(158px) !important; }
-  /* Keep other restored sections hidden; only the 3D animation returns. */
+  #showcase .holo-core {
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
+    width: 124px !important;
+    height: 124px !important;
+    display: grid !important;
+    place-items: center !important;
+    border-radius: 50% !important;
+    background: radial-gradient(circle, rgba(56,189,248,0.95), rgba(168,85,247,0.22), transparent 68%) !important;
+    transform: translate(-50%, -50%) !important;
+    filter: drop-shadow(0 0 36px rgba(56,189,248,0.65)) !important;
+    animation: corePulse 2.4s ease-in-out infinite !important;
+  }
+  #showcase .holo-core .diamond3d { width: 54px !important; height: 54px !important; border-radius: 12px !important; }
   #cara,
   #trust,
   #smartflow,
@@ -10783,7 +10654,7 @@
     overflow: hidden !important;
   }
   @media (max-width: 580px) {
-    #showcase { padding: 34px 5% 52px !important; }
+    #showcase { padding: 34px 5% 58px !important; }
     #showcase .holo-wrap { min-height: 365px !important; padding: 20px !important; border-radius: 28px !important; }
     #showcase .holo-stack { width: min(330px, 88vw) !important; height: 315px !important; }
     #showcase .holo-core { width: 94px !important; height: 94px !important; }
@@ -10796,10 +10667,10 @@
     #showcase .hc4 { transform: translate(-50%, -50%) rotateY(270deg) translateZ(128px) !important; }
   }
 </style>
-<script id="v38-restore-html-3d-animation-script">
+<script id="v40-source-animation-only-script">
   (function(){
-    document.documentElement.classList.add('v38-restore-html-3d-animation');
-    window.__topupidV38Notice = 'V38: the requested HTML/CSS 3D animation is restored. It is not an image. Other extra sections remain hidden and protected systems are unchanged.';
+    document.documentElement.classList.add('v40-source-animation-only');
+    window.__topupidV40Notice = 'V40: only the 3D animation block from uploaded topup1.html is inserted. No image replacement. Extra sections remain hidden.';
   })();
 </script>
 
