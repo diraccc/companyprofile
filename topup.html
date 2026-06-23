@@ -3017,16 +3017,13 @@
   <div class="page">
     <header class="navbar">
       <a href="#home" class="brand brand-logo-link" aria-label="TopupID">
-        <img class="brand-logo-img" src="dnnn.webp" alt="TopupID" />
+        <span class="brand-mark image-brand"><img src="dnnn.webp" alt="" /></span>
+        <b>Topup<span>ID</span></b>
       </a>
 
       <nav class="nav-links" aria-label="Navigasi utama">
-        <a href="#premium">Layanan</a>
         <a href="#premium">Produk</a>
-        <a href="#showcase">Keunggulan</a>
-        <a href="#cara">Cara Order</a>
         <a href="#checkout">Top Up</a>
-        
         <a href="#checkout" class="nav-cta">Mulai</a>
       </nav>
 
@@ -3034,12 +3031,8 @@
     </header>
 
     <div class="mobile-menu" id="mobileMenu">
-      <a href="#premium">Layanan</a>
       <a href="#premium">Produk</a>
-      <a href="#showcase">Keunggulan</a>
-      <a href="#cara">Cara Order</a>
       <a href="#checkout">Top Up</a>
-      
     </div>
 
 
@@ -3104,7 +3097,7 @@
           <div class="real-card-3d real-card-toll"><b>E-TOLL</b><span></span></div>
 
           <div class="real-cube" aria-hidden="true">
-            <span class="front">PAY</span>
+            <span class="front">3D</span>
             <span class="back">PAY</span>
             <span class="right">ID</span>
             <span class="left">TOP</span>
@@ -3140,7 +3133,7 @@
       <section class="hero" id="home">
         <div class="hero-text reveal">
           <div class="badge"><span class="badge-dot"></span> Layanan Digital Terpercaya</div>
-          <h1>Top Up <span class="grad">Game, Wallet, dan Produk Digital</span></h1>
+          <h1>Website Top Up <span class="grad">3D Premium</span> untuk Game, Wallet, dan E-Toll</h1>
           <p class="hero-copy">
             Pilih produk digital favorit, isi data tujuan, lalu lanjutkan pembayaran dengan alur yang sederhana dan nyaman digunakan di HP.
           </p>
@@ -3268,7 +3261,7 @@
 
       <section class="section reveal" id="showcase">
         <div class="section-head">
-          <div class="kicker">KEUNGGULAN</div>
+          <div class="kicker">MOTION STORY</div>
           <h2>Tampilan Modern untuk Pengalaman Belanja yang Nyaman</h2>
           <p class="section-sub">
             Desain dibuat rapi agar pengguna dapat melihat layanan, memilih produk, dan melanjutkan pembayaran tanpa bingung.
@@ -3499,7 +3492,7 @@
 
       <section class="section reveal" id="cek">
         <div class="section-head">
-          <div class="kicker">STATUS PESANAN</div>
+          <div class="kicker">INVOICE</div>
           <h2>Cek Status Pesanan</h2>
           <p class="section-sub">
             Masukkan kode pesanan untuk melihat status transaksi.
@@ -3565,9 +3558,7 @@
 
     <footer class="dirac-footer">
       <div class="footer-links">
-        <a href="#premium">Layanan</a>
         <a href="#premium">Produk</a>
-        <a href="#showcase">Keunggulan</a>
         <a href="#checkout">Top Up</a>
       </div>
       <p>© 2026 TopupID. Copyright by Dirac Group.</p>
@@ -5091,7 +5082,7 @@
         font-size: 0 !important;
       }
       html.threejs-only-active .real-mobile-badge::after {
-        content: "Three.js Mobile Aktif" !important;
+        content: "Layanan Mobile Aktif" !important;
         font-size: 12px !important;
       }
       html.threejs-only-active .real-mobile-title {
@@ -5180,7 +5171,7 @@
         var mount = document.createElement("div");
         mount.className = "threejs-only-mount " + className;
         mount.setAttribute("aria-label", label);
-        mount.innerHTML = '<div class="threejs-only-loader"><span>Memuat animasi Three.js...</span></div><div class="threejs-only-badge">Three.js aktif • Geser pelan, tap objek</div>';
+        mount.innerHTML = '<div class="threejs-only-loader"><span>Memuat tampilan layanan...</span></div><div class="threejs-only-badge">Tampilan aktif • Geser pelan, tap objek</div>';
         parent.insertBefore(mount, parent.firstChild);
         return mount;
       }
@@ -9015,7 +9006,7 @@
       if (!copy || copy.querySelector('.v16-mobile-headline')) return;
       var node = document.createElement('div');
       node.className = 'v16-mobile-headline';
-      node.innerHTML = 'Top Up <span>Digital</span> Cepat dan Mudah';
+      node.innerHTML = 'Top Up <span>3D Premium</span> yang Ringan di HP';
       var actions = copy.querySelector('.real-mobile-actions');
       if (actions) copy.insertBefore(node, actions);
       else copy.appendChild(node);
@@ -10193,13 +10184,13 @@
     }
 
     function dynamicTotal() {
-      var label = "Total checkout dipilih";
+      var label = "Total pesanan";
       var amountText = "Rp0";
       var summaryText = textValue(q("#sumTotal"));
       var productText = textValue(q("#sumProduct"));
       if (summaryText && summaryText !== "-" && summaryText !== "Rp0") {
         amountText = summaryText;
-        label = productText && productText !== "-" ? "Total checkout dipilih" : "Estimasi checkout";
+        label = productText && productText !== "-" ? "Total pesanan" : "Estimasi pesanan";
       }
 
       qa(".v22-balance small").forEach(function (node) { node.textContent = label; });
@@ -10573,45 +10564,17 @@
 
 <!-- V28 correction: file is named topup.html only. Existing brand name is preserved; only lower check/history/admin sections remain hidden and footer copyright remains Dirac Group. -->
 
-<style id="v33-topupid-logo-smartflow-cleanup">
-  .brand-logo-link {
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: flex-start !important;
-    min-width: 0 !important;
-    gap: 0 !important;
-  }
-  .brand-logo-img {
-    height: 64px !important;
-    width: auto !important;
-    max-width: 174px !important;
-    display: block !important;
-    object-fit: contain !important;
-    filter: drop-shadow(0 0 14px rgba(56,189,248,.20));
-  }
-  @media (max-width: 580px) {
-    .navbar { padding-top: 12px !important; padding-bottom: 12px !important; }
-    .brand-logo-img { height: 58px !important; max-width: 152px !important; }
-  }
-  #smartflow,
-  #produk,
-  .sticky-mobile-checkout {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-    height: 0 !important;
-    min-height: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: hidden !important;
-  }
+<style id="v35-topupid-focus-topup-cleanup">
+  .brand-logo-link { display:inline-flex !important; align-items:center !important; justify-content:flex-start !important; gap:10px !important; min-width:0 !important; }
+  .brand-mark.image-brand { width:46px !important; height:46px !important; min-width:46px !important; display:grid !important; place-items:center !important; background:transparent !important; box-shadow:none !important; transform:none !important; border-radius:0 !important; overflow:visible !important; }
+  .brand-mark.image-brand::before { display:none !important; }
+  .brand-mark.image-brand img { width:46px !important; height:46px !important; display:block !important; object-fit:contain !important; border-radius:0 !important; filter:drop-shadow(0 0 12px rgba(56,189,248,.24)); }
+  .brand-logo-link b { display:inline-block !important; font-size:21px !important; letter-spacing:.2px !important; line-height:1 !important; }
+  @media (max-width:580px){ .brand-logo-link{gap:8px !important;} .brand-mark.image-brand,.brand-mark.image-brand img{width:42px !important;height:42px !important;min-width:42px !important;} .brand-logo-link b{font-size:19px !important;} }
+  #showcase, #cara, #trust, #smartflow, #produk, #cek, #history, #admin-preview, .sticky-mobile-checkout { display:none !important; visibility:hidden !important; opacity:0 !important; pointer-events:none !important; height:0 !important; min-height:0 !important; margin:0 !important; padding:0 !important; overflow:hidden !important; }
 </style>
-<script id="v33-topupid-logo-smartflow-cleanup-script">
-  (function(){
-    document.documentElement.classList.add('v33-topupid-logo-smartflow-cleanup');
-    window.__topupidV33Notice = 'V33: header uses cropped transparent dnnn.webp from the uploaded TopupID logo; smartflow, product grid and sticky checkout are hidden. Protected systems are unchanged.';
-  })();
+<script id="v35-topupid-focus-topup-cleanup-script">
+  (function(){ document.documentElement.classList.add('v35-topupid-focus-topup-cleanup'); window.__topupidV35Notice='V35: transparent icon logo plus TopupID text; non-essential card/explanation sections hidden; focus on products and top-up checkout. Protected systems unchanged.'; })();
 </script>
 
 </body>
