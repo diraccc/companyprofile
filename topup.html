@@ -5425,6 +5425,140 @@
         return group;
       }
 
+      function makeServiceIconTexture(THREE, label, icon, colorA, colorB, mode) {
+        var canvas = document.createElement("canvas");
+        canvas.width = 512;
+        canvas.height = 512;
+        var ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, 512, 512);
+
+        var glow = ctx.createRadialGradient(176, 132, 20, 256, 256, 230);
+        glow.addColorStop(0, "rgba(255,255,255,0.95)");
+        glow.addColorStop(0.32, colorA);
+        glow.addColorStop(1, colorB);
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(256, 230, 174, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.lineWidth = 8;
+        ctx.strokeStyle = "rgba(255,255,255,0.55)";
+        ctx.stroke();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "rgba(103,232,249,0.62)";
+        ctx.beginPath();
+        ctx.arc(256, 230, 205, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.save();
+        ctx.shadowColor = "rgba(2,6,23,0.38)";
+        ctx.shadowBlur = 20;
+        ctx.fillStyle = "rgba(2,6,23,0.28)";
+        ctx.beginPath();
+        ctx.ellipse(256, 404, 118, 18, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        if (mode === "qr") {
+          ctx.save();
+          ctx.translate(256, 202);
+          ctx.fillStyle = "rgba(255,255,255,0.92)";
+          ctx.fillRect(-70, -70, 140, 140);
+          ctx.fillStyle = "#07111f";
+          for (var y = 0; y < 7; y++) {
+            for (var x = 0; x < 7; x++) {
+              if ((x + y) % 2 === 0 || x === 0 || y === 6 || (x > 4 && y < 3)) {
+                ctx.fillRect(-58 + x * 18, -58 + y * 18, 12, 12);
+              }
+            }
+          }
+          ctx.restore();
+        } else if (mode === "bolt") {
+          ctx.save();
+          ctx.translate(256, 198);
+          ctx.fillStyle = "#fef08a";
+          ctx.shadowColor = "rgba(250,204,21,0.9)";
+          ctx.shadowBlur = 24;
+          ctx.beginPath();
+          ctx.moveTo(28, -120); ctx.lineTo(-56, -8); ctx.lineTo(-8, -8); ctx.lineTo(-48, 116); ctx.lineTo(68, -22); ctx.lineTo(14, -22); ctx.closePath();
+          ctx.fill();
+          ctx.restore();
+        } else if (mode === "sim") {
+          ctx.save();
+          ctx.translate(256, 202);
+          ctx.fillStyle = "rgba(2,6,23,0.78)";
+          ctx.beginPath();
+          ctx.moveTo(-80, -98); ctx.lineTo(42, -98); ctx.lineTo(86, -54); ctx.lineTo(86, 98); ctx.lineTo(-80, 98); ctx.closePath();
+          ctx.fill();
+          ctx.fillStyle = "#facc15";
+          ctx.fillRect(-44, -20, 88, 68);
+          ctx.strokeStyle = "rgba(2,6,23,0.45)";
+          ctx.lineWidth = 4;
+          [-18, 10].forEach(function(x){ ctx.beginPath(); ctx.moveTo(x, -20); ctx.lineTo(x, 48); ctx.stroke(); });
+          ctx.restore();
+        } else if (mode === "toll") {
+          ctx.save();
+          ctx.translate(256, 205);
+          ctx.strokeStyle = "rgba(255,255,255,0.95)";
+          ctx.lineWidth = 14;
+          ctx.lineCap = "round";
+          ctx.beginPath(); ctx.moveTo(-88, 56); ctx.lineTo(-88, -58); ctx.lineTo(88, -58); ctx.lineTo(88, 56); ctx.stroke();
+          ctx.strokeStyle = "#bbf7d0";
+          ctx.lineWidth = 10;
+          ctx.beginPath(); ctx.moveTo(-100, 78); ctx.lineTo(100, 78); ctx.stroke();
+          ctx.restore();
+        } else {
+          ctx.save();
+          ctx.translate(256, 202);
+          ctx.fillStyle = "rgba(2,6,23,0.72)";
+          ctx.beginPath(); ctx.ellipse(0, 0, 118, 68, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "rgba(255,255,255,0.88)";
+          ctx.beginPath(); ctx.arc(-54, 2, 24, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(54, 2, 24, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = colorA;
+          ctx.beginPath(); ctx.arc(44, -6, 8, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(66, 12, 8, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "rgba(2,6,23,0.88)";
+          ctx.fillRect(-74, -6, 40, 12);
+          ctx.fillRect(-60, -20, 12, 40);
+          ctx.restore();
+        }
+
+        ctx.save();
+        ctx.font = "900 52px Arial, Helvetica, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "#ffffff";
+        ctx.shadowColor = "rgba(2,6,23,0.7)";
+        ctx.shadowBlur = 12;
+        ctx.fillText(label, 256, 392);
+        ctx.restore();
+
+        var texture = new THREE.CanvasTexture(canvas);
+        if (THREE.SRGBColorSpace) texture.colorSpace = THREE.SRGBColorSpace;
+        texture.needsUpdate = true;
+        return texture;
+      }
+
+      function buildServiceIcon(THREE, mats, label, icon, product, colorA, colorB, mode, scale) {
+        var group = new THREE.Group();
+        group.userData.product = product;
+        var texture = makeServiceIconTexture(THREE, label, icon, colorA, colorB, mode);
+        var material = new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false, side: THREE.DoubleSide });
+        var disc = new THREE.Mesh(new THREE.PlaneGeometry(0.98 * scale, 0.98 * scale), material);
+        disc.userData.product = product;
+        group.add(disc);
+        var ring = new THREE.Mesh(new THREE.TorusGeometry(0.50 * scale, 0.012 * scale, 10, 96), mats.orbit);
+        ring.position.z = -0.02 * scale;
+        ring.userData.product = product;
+        group.add(ring);
+        var backRing = new THREE.Mesh(new THREE.TorusGeometry(0.58 * scale, 0.007 * scale, 8, 96), mats.orbitPurple);
+        backRing.rotation.x = Math.PI / 2.35;
+        backRing.position.z = -0.08 * scale;
+        group.add(backRing);
+        return group;
+      }
+
       function createParticleTexture(THREE) {
         var canvas = document.createElement("canvas");
         canvas.width = 64;
@@ -5522,29 +5656,29 @@
         phone.rotation.y = -0.08;
         root.add(phone);
 
-        var controller = buildGameController(THREE, mats, scale);
-        controller.position.set(-1.56 * scale, 0.88 * scale, -0.34 * scale);
-        controller.rotation.set(0.10, 0.55, -0.17);
+        var controller = buildServiceIcon(THREE, mats, "GAME", "GAME", "mlbb", "#38bdf8", "rgba(37,99,235,0.85)", "game", scale);
+        controller.position.set(-1.52 * scale, 0.88 * scale, -0.28 * scale);
+        controller.rotation.set(0.08, 0.46, -0.10);
         root.add(controller);
 
-        var qrisCard = buildQrisCard(THREE, mats, scale);
-        qrisCard.position.set(1.52 * scale, 0.76 * scale, -0.30 * scale);
-        qrisCard.rotation.set(0.06, -0.58, 0.16);
+        var qrisCard = buildServiceIcon(THREE, mats, "QRIS", "QRIS", "qris", "#a855f7", "rgba(14,165,233,0.82)", "qr", scale);
+        qrisCard.position.set(1.50 * scale, 0.76 * scale, -0.22 * scale);
+        qrisCard.rotation.set(0.05, -0.46, 0.10);
         root.add(qrisCard);
 
-        var etollGate = buildEtollGate(THREE, mats, scale);
-        etollGate.position.set(-1.45 * scale, -0.92 * scale, -0.18 * scale);
-        etollGate.rotation.set(-0.04, 0.50, 0.16);
+        var etollGate = buildServiceIcon(THREE, mats, "E-TOLL", "TOLL", "etoll", "#22c55e", "rgba(56,189,248,0.78)", "toll", scale);
+        etollGate.position.set(-1.42 * scale, -0.92 * scale, -0.10 * scale);
+        etollGate.rotation.set(-0.04, 0.42, 0.08);
         root.add(etollGate);
 
-        var simChip = buildSimChip(THREE, mats, scale);
-        simChip.position.set(1.44 * scale, -0.91 * scale, 0.62 * scale);
-        simChip.rotation.set(0.12, -0.48, -0.11);
+        var simChip = buildServiceIcon(THREE, mats, "PULSA", "SIM", "telkomsel", "#facc15", "rgba(251,113,133,0.82)", "sim", scale);
+        simChip.position.set(1.42 * scale, -0.90 * scale, 0.56 * scale);
+        simChip.rotation.set(0.09, -0.42, -0.07);
         root.add(simChip);
 
-        var plnBolt = buildPlnBolt(THREE, mats, scale);
-        plnBolt.position.set(mobile ? 0.92 * scale : 1.22 * scale, mobile ? -1.43 * scale : -1.48 * scale, 0.95 * scale);
-        plnBolt.rotation.set(0.16, -0.16, -0.12);
+        var plnBolt = buildServiceIcon(THREE, mats, "PLN", "PLN", "pln", "#facc15", "rgba(34,197,94,0.82)", "bolt", scale);
+        plnBolt.position.set(mobile ? 0.88 * scale : 1.18 * scale, mobile ? -1.42 * scale : -1.47 * scale, 0.92 * scale);
+        plnBolt.rotation.set(0.12, -0.12, -0.08);
         root.add(plnBolt);
 
         var orbit = new THREE.Group();
@@ -5851,7 +5985,7 @@
         var mount = document.createElement("div");
         mount.className = "threejs-only-mount " + className;
         mount.setAttribute("aria-label", label);
-        mount.innerHTML = '<div class="threejs-only-loader"><span>Memuat animasi 3D...</span></div><div class="threejs-only-badge">3D premium aktif • Geser dengan jari</div>';
+        mount.innerHTML = '<div class="threejs-only-loader"><span>Memuat animasi 3D...</span></div><div class="threejs-only-badge">3D ringan aktif • Geser dengan jari</div>';
         parent.insertBefore(mount, parent.firstChild);
         return mount;
       }
@@ -5866,7 +6000,7 @@
         mount.insertBefore(canvas, mount.firstChild);
         var ctx = canvas.getContext("2d", { alpha: true });
         var badge = mount.querySelector(".threejs-only-badge");
-        if (badge) badge.textContent = "3D premium aktif • Geser dengan jari";
+        if (badge) badge.textContent = "3D ringan aktif • Geser dengan jari";
         mount.classList.remove("is-error");
         mount.classList.add("is-ready", "offline-3d-ready");
 
@@ -6042,6 +6176,67 @@
           ctx.fillText("Rp", 0, 1);
           ctx.restore();
         }
+        function drawIconOrb(pos, time, label, mode, colorA, colorB) {
+          var p = project(rootPoint(pos));
+          var r = clamp(0.42 * p.s, 34, mobile ? 70 : 86);
+          ctx.save();
+          ctx.translate(p.x, p.y + Math.sin(time * 1.2 + pos[0]) * 4);
+          ctx.rotate(Math.sin(time * 0.9 + pos[1]) * 0.08);
+          var g = ctx.createRadialGradient(-r * .28, -r * .32, r * .08, 0, 0, r);
+          g.addColorStop(0, "rgba(255,255,255,.95)");
+          g.addColorStop(.34, colorA);
+          g.addColorStop(1, colorB);
+          ctx.fillStyle = g;
+          ctx.shadowColor = colorA;
+          ctx.shadowBlur = 22;
+          ctx.beginPath();
+          ctx.arc(0, 0, r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.lineWidth = 2.5;
+          ctx.strokeStyle = "rgba(255,255,255,.55)";
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+
+          ctx.save();
+          ctx.fillStyle = "rgba(2,6,23,.58)";
+          ctx.beginPath();
+          ctx.arc(0, -r * .08, r * .50, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+
+          ctx.fillStyle = "#ffffff";
+          ctx.strokeStyle = "rgba(255,255,255,.92)";
+          ctx.lineWidth = Math.max(2, r * .08);
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+          if (mode === "game") {
+            ctx.beginPath(); ctx.ellipse(0, -r*.10, r*.55, r*.34, 0, 0, Math.PI*2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-r*.32, -r*.10); ctx.lineTo(-r*.16, -r*.10); ctx.moveTo(-r*.24, -r*.18); ctx.lineTo(-r*.24, -r*.02); ctx.stroke();
+            ctx.beginPath(); ctx.arc(r*.20, -r*.13, r*.045, 0, Math.PI*2); ctx.arc(r*.34, -r*.03, r*.045, 0, Math.PI*2); ctx.fill();
+          } else if (mode === "qr") {
+            ctx.fillStyle = "rgba(255,255,255,.94)"; ctx.fillRect(-r*.32, -r*.40, r*.64, r*.64);
+            ctx.fillStyle = "#07111f";
+            for (var yy=0; yy<5; yy++) for (var xx=0; xx<5; xx++) if ((xx+yy)%2===0 || xx===0 || yy===4) ctx.fillRect(-r*.25 + xx*r*.11, -r*.33 + yy*r*.11, r*.07, r*.07);
+          } else if (mode === "toll") {
+            ctx.beginPath(); ctx.moveTo(-r*.44, r*.18); ctx.lineTo(-r*.44, -r*.34); ctx.lineTo(r*.44, -r*.34); ctx.lineTo(r*.44, r*.18); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-r*.52, r*.34); ctx.lineTo(r*.52, r*.34); ctx.stroke();
+          } else if (mode === "sim") {
+            ctx.fillStyle = "rgba(2,6,23,.78)";
+            ctx.beginPath(); ctx.moveTo(-r*.36, -r*.48); ctx.lineTo(r*.18, -r*.48); ctx.lineTo(r*.44, -r*.22); ctx.lineTo(r*.44, r*.46); ctx.lineTo(-r*.36, r*.46); ctx.closePath(); ctx.fill();
+            ctx.fillStyle = "#facc15"; ctx.fillRect(-r*.18, -r*.08, r*.36, r*.30);
+          } else if (mode === "bolt") {
+            ctx.fillStyle = "#fef08a";
+            ctx.beginPath(); ctx.moveTo(r*.10, -r*.56); ctx.lineTo(-r*.24, -r*.02); ctx.lineTo(-r*.04, -r*.02); ctx.lineTo(-r*.24, r*.56); ctx.lineTo(r*.34, -r*.09); ctx.lineTo(r*.08, -r*.09); ctx.closePath(); ctx.fill();
+          }
+          ctx.font = "900 " + Math.round(r*.23) + "px Arial, Helvetica, sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillStyle = "#ffffff";
+          ctx.shadowColor = "rgba(2,6,23,.75)";
+          ctx.shadowBlur = 10;
+          ctx.fillText(label, 0, r*.74);
+          ctx.restore();
+        }
         function drawParticles(time) {
           ctx.save();
           ctx.fillStyle = "rgba(103,232,249,.72)";
@@ -6098,17 +6293,16 @@
           });
           addBox(faces, labels, { w: 1.30*sc, h: .34*sc, d: .10*sc, pos: [0, -1.20*sc + bob, .35*sc], rot: [0.03, -0.04, 0], color: "#67e8f9", alpha: .90, stroke: "rgba(255,255,255,.18)", label: "Checkout", labelSize: 17, labelColor: "#061226" });
 
-          addBox(faces, labels, { w: 1.28*sc, h: .70*sc, d: .10*sc, pos: [-1.28*sc, .74*sc, -.18*sc], rot: [.02, -.66, -.20], color: "#334155", alpha: .72, stroke: "rgba(255,255,255,.20)", label: "GAME", labelSize: 16 });
-          addBox(faces, labels, { w: 1.30*sc, h: .70*sc, d: .10*sc, pos: [1.34*sc, .57*sc, -.20*sc], rot: [.02, .55, .16], color: "#334155", alpha: .70, stroke: "rgba(255,255,255,.18)", label: "WALLET", labelSize: 15 });
-          addBox(faces, labels, { w: 1.28*sc, h: .70*sc, d: .10*sc, pos: [-1.45*sc, -1.00*sc, -.10*sc], rot: [.05, -.52, .20], color: "#334155", alpha: .72, stroke: "rgba(255,255,255,.20)", label: "E-TOLL", labelSize: 15 });
-          addBox(faces, labels, { w: .78*sc, h: .78*sc, d: .78*sc, pos: [1.44*sc, -1.38*sc, .72*sc], rot: [time*.65, time*.52, .18], color: "#67e8f9", alpha: .78, stroke: "rgba(255,255,255,.40)", label: "3D", labelSize: 19, labelColor: "#020617" });
-          addDiamond(faces, labels, [-1.42*sc, 1.40*sc, .52*sc], .62*sc, [time*.35, time*.75, .70]);
-          drawCoin([1.46*sc, 1.22*sc, .48*sc], time);
-
           faces.sort(function(a, b){ return a.depth - b.depth; });
           faces.forEach(drawFace);
           labels.sort(function(a, b){ return (a.depth || a.pos[2]) - (b.depth || b.pos[2]); });
           labels.forEach(drawLabel);
+
+          drawIconOrb([-1.42*sc, .88*sc, -.05*sc], time, "GAME", "game", "#38bdf8", "#1d4ed8");
+          drawIconOrb([1.42*sc, .74*sc, .00*sc], time, "QRIS", "qr", "#a855f7", "#0ea5e9");
+          drawIconOrb([-1.45*sc, -1.00*sc, .03*sc], time, "E-TOLL", "toll", "#22c55e", "#0891b2");
+          drawIconOrb([1.36*sc, -1.10*sc, .52*sc], time, "PULSA", "sim", "#facc15", "#fb7185");
+          drawIconOrb([1.15*sc, 1.30*sc, .50*sc], time, "PLN", "bolt", "#facc15", "#22c55e");
         }
 
         function frame(now) {
@@ -8667,6 +8861,7 @@
 </script>
 
 
+<!-- V18 note: objek samping diganti dari kotak menjadi ikon/orb visual; fallback offline juga tidak lagi memakai card/kubus lama. -->
 <!-- V17 note: objek hero 3D telah diarahkan ke Three.js murni pada mode threejs-only-active. Perubahan hanya visual; checkout, invoice, localStorage, API, login, hash, payment gateway, dan keamanan backend tidak diubah. -->
 </body>
 </html>
