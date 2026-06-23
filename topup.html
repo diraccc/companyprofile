@@ -8149,5 +8149,472 @@
   })();
 </script>
 
+
+<!-- ==========================================================
+     V16 ANIMATION PREMIUM SAFE PATCH
+     Scope: animation polish only for points 1-10.
+     Locked: V13/V15 size, layout, endpoint, login, hash, payment,
+     email template, A2F, security, existing checkout, invoice, products.
+     ========================================================== -->
+<style id="v16-animation-premium-safe-style">
+  html.v16-animation-premium-safe .premium3d-stage {
+    --v16-light-x: 48%;
+    --v16-light-y: 38%;
+    --v16-depth: 1;
+    --v16-active-color: rgba(56,189,248,.44);
+    isolation: isolate !important;
+  }
+
+  html.v16-animation-premium-safe .premium3d-stage::after {
+    background:
+      radial-gradient(ellipse at center, rgba(56,189,248,.27), rgba(168,85,247,.14) 42%, transparent 74%) !important;
+    animation: v16ShadowBreath 8.8s ease-in-out infinite !important;
+  }
+
+  html.v16-animation-premium-safe .premium3d-stage .v16-stage-light {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at var(--v16-light-x) var(--v16-light-y), rgba(255,255,255,.14), transparent 17%),
+      radial-gradient(circle at calc(var(--v16-light-x) + 12%) calc(var(--v16-light-y) + 8%), rgba(56,189,248,.14), transparent 25%);
+    opacity: .72;
+    mix-blend-mode: screen;
+    transition: opacity .28s ease;
+  }
+
+  html.v16-animation-premium-safe .premium3d-stage.v15-paused .v16-stage-light,
+  html.v16-animation-premium-safe .premium3d-stage.v15-paused .v16-scanline,
+  html.v16-animation-premium-safe .premium3d-stage.v15-paused .v16-card-glint,
+  html.v16-animation-premium-safe .premium3d-stage.v15-paused .v16-sparkle {
+    animation-play-state: paused !important;
+  }
+
+  html.v16-animation-premium-safe .premium3d-world {
+    filter: drop-shadow(0 30px 52px rgba(0,0,0,.24));
+  }
+
+  /* 1. material premium without resizing */
+  html.v16-animation-premium-safe .premium-phone {
+    background:
+      radial-gradient(circle at 23% 8%, rgba(255,255,255,.25), transparent 28%),
+      radial-gradient(circle at 85% 18%, rgba(103,232,249,.14), transparent 34%),
+      linear-gradient(145deg, rgba(255,255,255,.24), rgba(255,255,255,.055) 23%, rgba(4,8,22,.965) 72%),
+      linear-gradient(160deg, #10182f, #020617 60%, #0f172a) !important;
+    border-color: rgba(255,255,255,.31) !important;
+    box-shadow:
+      0 58px 130px rgba(0,0,0,.52),
+      0 0 86px rgba(56,189,248,.30),
+      0 0 40px rgba(168,85,247,.16),
+      inset 0 0 0 2px rgba(255,255,255,.065),
+      inset 0 -30px 62px rgba(56,189,248,.09) !important;
+    animation: v16PhoneWeight 10.4s ease-in-out infinite !important;
+    transition: opacity .62s ease, filter .24s ease, box-shadow .24s ease;
+  }
+
+  html.v16-animation-premium-safe .premium-phone::before {
+    background: linear-gradient(116deg, transparent 32%, rgba(255,255,255,.27) 48%, transparent 64%) !important;
+    animation: v16GlassSweep 8.6s ease-in-out infinite !important;
+    mix-blend-mode: screen;
+  }
+
+  html.v16-animation-premium-safe .premium-phone::after {
+    border-color: rgba(255,255,255,.18) !important;
+    box-shadow:
+      inset 0 0 34px rgba(255,255,255,.065),
+      inset 0 0 0 1px rgba(56,189,248,.11) !important;
+  }
+
+  html.v16-animation-premium-safe .premium-screen {
+    background:
+      radial-gradient(circle at 48% 0%, rgba(56,189,248,.34), transparent 34%),
+      radial-gradient(circle at 100% 32%, rgba(168,85,247,.20), transparent 40%),
+      radial-gradient(circle at 7% 74%, rgba(34,211,238,.12), transparent 37%),
+      linear-gradient(180deg, rgba(3,12,33,.985), rgba(2,6,23,.97)) !important;
+    border-color: rgba(103,232,249,.27) !important;
+  }
+
+  html.v16-animation-premium-safe .premium-screen .v16-scanline {
+    position: absolute;
+    left: 6%;
+    right: 6%;
+    top: 12%;
+    height: 1px;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0;
+    background: linear-gradient(90deg, transparent, rgba(103,232,249,.78), transparent);
+    box-shadow: 0 0 20px rgba(56,189,248,.62);
+    animation: v16ScanLine 7.2s ease-in-out infinite;
+  }
+
+  html.v16-animation-premium-safe .premium-balance {
+    background:
+      radial-gradient(circle at 14% 16%, rgba(255,255,255,.20), transparent 28%),
+      linear-gradient(135deg, rgba(56,189,248,.34), rgba(168,85,247,.24)) !important;
+    box-shadow: 0 22px 48px rgba(0,0,0,.24), inset 0 0 30px rgba(255,255,255,.055), 0 0 30px rgba(56,189,248,.08) !important;
+  }
+
+  /* 2-4. shimmer, sparkle, coin shine */
+  html.v16-animation-premium-safe .premium-balance strong {
+    text-shadow: 0 0 22px rgba(56,189,248,.52), 0 4px 20px rgba(0,0,0,.32) !important;
+  }
+
+  html.v16-animation-premium-safe .premium-checkout {
+    box-shadow: 0 20px 48px rgba(56,189,248,.34), inset 0 1px 0 rgba(255,255,255,.48) !important;
+    animation: v16CheckoutPulse 6.4s ease-in-out infinite !important;
+  }
+
+  html.v16-animation-premium-safe .premium-mini {
+    background:
+      radial-gradient(circle at 18% 8%, rgba(255,255,255,.14), transparent 30%),
+      linear-gradient(145deg, rgba(255,255,255,.13), rgba(255,255,255,.045)) !important;
+  }
+
+  html.v16-animation-premium-safe .premium-card3d {
+    background:
+      radial-gradient(circle at 0 0, rgba(255,255,255,.23), transparent 35%),
+      radial-gradient(circle at 100% 100%, rgba(56,189,248,.12), transparent 40%),
+      linear-gradient(140deg, rgba(51,65,85,.88), rgba(15,23,42,.72)) !important;
+    box-shadow: 0 30px 72px rgba(0,0,0,.30), inset 0 0 28px rgba(255,255,255,.055), 0 0 25px rgba(56,189,248,.065) !important;
+    animation: v16CardWeight 10.2s ease-in-out infinite !important;
+    transition: filter .22s ease, box-shadow .22s ease;
+  }
+
+  html.v16-animation-premium-safe .premium-card3d.wallet { animation-delay: -1.8s !important; }
+  html.v16-animation-premium-safe .premium-card3d.toll { animation-delay: -3.1s !important; }
+
+  html.v16-animation-premium-safe .premium-card3d .v16-card-glint {
+    position: absolute;
+    inset: -30% -55%;
+    pointer-events: none;
+    opacity: 0;
+    background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,.18), transparent 62%);
+    transform: translateX(-34%) rotate(8deg);
+    animation: v16CardGlint 8.4s ease-in-out infinite;
+    mix-blend-mode: screen;
+  }
+
+  html.v16-animation-premium-safe .premium-coin {
+    background:
+      radial-gradient(circle at 30% 22%, #fffad1 0 12%, #facc15 34%, #d49208 67%, #7c4208 100%) !important;
+    border-color: rgba(255,255,255,.50) !important;
+    box-shadow: 0 0 50px rgba(250,204,21,.42), 0 0 32px rgba(251,191,36,.22), inset -14px -16px 26px rgba(0,0,0,.20), inset 7px 8px 18px rgba(255,255,255,.26) !important;
+    animation: v16CoinWeight 8.8s ease-in-out infinite !important;
+  }
+
+  html.v16-animation-premium-safe .premium-coin::before {
+    border-color: rgba(255,255,255,.52) !important;
+    box-shadow: inset 0 0 14px rgba(255,255,255,.20), 0 0 0 5px rgba(120,53,15,.18);
+  }
+
+  html.v16-animation-premium-safe .premium-coin::after {
+    inset: -9px !important;
+    opacity: 0;
+    background: conic-gradient(from 60deg, transparent 0 38%, rgba(255,255,255,.72) 46%, transparent 55% 100%) !important;
+    animation: v16CoinGleam 5.8s ease-in-out infinite !important;
+  }
+
+  html.v16-animation-premium-safe .premium-diamond {
+    background:
+      linear-gradient(135deg, rgba(255,255,255,.94), rgba(103,232,249,.84) 25%, rgba(168,85,247,.76) 64%, rgba(37,99,235,.80)),
+      conic-gradient(from 30deg, rgba(255,255,255,.22), transparent, rgba(255,255,255,.18), transparent) !important;
+    box-shadow: 0 0 56px rgba(56,189,248,.54), 0 0 38px rgba(168,85,247,.22), inset 0 0 32px rgba(255,255,255,.38) !important;
+    animation: v16DiamondWeight 9.4s ease-in-out infinite !important;
+  }
+
+  html.v16-animation-premium-safe .premium-diamond .v16-sparkle {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.98);
+    box-shadow: 0 0 17px rgba(103,232,249,.95), 0 0 26px rgba(255,255,255,.55);
+    pointer-events: none;
+    opacity: 0;
+    transform: rotate(-45deg);
+    animation: v16Sparkle 3.9s ease-in-out infinite;
+  }
+  html.v16-animation-premium-safe .premium-diamond .v16-sparkle.s1 { left: 18%; top: 16%; animation-delay: -.45s; }
+  html.v16-animation-premium-safe .premium-diamond .v16-sparkle.s2 { right: 16%; top: 30%; animation-delay: -1.45s; }
+  html.v16-animation-premium-safe .premium-diamond .v16-sparkle.s3 { left: 52%; bottom: 16%; animation-delay: -2.25s; }
+  html.v16-animation-premium-safe .premium-diamond .v16-sparkle.s4 { right: 30%; bottom: 34%; animation-delay: -3.1s; }
+
+  /* 5. stronger but safe tap feedback */
+  html.v16-animation-premium-safe .premium3d-stage.v16-object-picked .premium-checkout,
+  html.v16-animation-premium-safe .premium3d-stage.v16-connected .premium-checkout {
+    filter: brightness(1.13) saturate(1.16) drop-shadow(0 0 12px rgba(56,189,248,.34));
+  }
+
+  html.v16-animation-premium-safe .v16-picked {
+    filter: brightness(1.17) saturate(1.18) drop-shadow(0 0 16px var(--v16-active-color)) !important;
+  }
+
+  html.v16-animation-premium-safe .v16-burst {
+    position: fixed;
+    z-index: 9998;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    pointer-events: none;
+    background: rgba(103,232,249,.92);
+    box-shadow: 0 0 18px rgba(56,189,248,.9);
+    transform: translate(-50%, -50%) translate(var(--vx), var(--vy)) scale(.25);
+    opacity: 0;
+    animation: v16Burst .58s ease-out forwards;
+  }
+
+  html.v16-animation-premium-safe .v16-path-line {
+    position: fixed;
+    left: 50%;
+    bottom: calc(94px + env(safe-area-inset-bottom, 0px));
+    z-index: 9996;
+    width: min(54vw, 260px);
+    height: 2px;
+    border-radius: 999px;
+    pointer-events: none;
+    background: linear-gradient(90deg, transparent, rgba(56,189,248,.82), transparent);
+    box-shadow: 0 0 22px rgba(56,189,248,.65);
+    transform: translateX(-50%) scaleX(.2);
+    opacity: 0;
+    animation: v16PathLine .78s ease-out forwards;
+  }
+
+  /* 7. depth: back objects softer, front objects sharper */
+  html.v16-animation-premium-safe .premium-card3d.game,
+  html.v16-animation-premium-safe .premium-card3d.wallet,
+  html.v16-animation-premium-safe .premium-card3d.toll {
+    opacity: .86;
+  }
+  html.v16-animation-premium-safe .premium-phone,
+  html.v16-animation-premium-safe .premium-coin,
+  html.v16-animation-premium-safe .premium-diamond {
+    opacity: .98;
+  }
+
+  /* 8. opening animation: opacity only, no scale or size change */
+  html.v16-animation-premium-safe .premium3d-stage.v16-intro .premium-phone,
+  html.v16-animation-premium-safe .premium3d-stage.v16-intro .premium-card3d,
+  html.v16-animation-premium-safe .premium3d-stage.v16-intro .premium-coin,
+  html.v16-animation-premium-safe .premium3d-stage.v16-intro .premium-diamond,
+  html.v16-animation-premium-safe .premium3d-stage.v16-intro .premium3d-orbit {
+    opacity: 0 !important;
+    filter: blur(2px) brightness(.9) !important;
+  }
+
+  html.v16-animation-premium-safe .premium3d-stage.v16-intro-clear .premium-phone,
+  html.v16-animation-premium-safe .premium3d-stage.v16-intro-clear .premium-card3d,
+  html.v16-animation-premium-safe .premium3d-stage.v16-intro-clear .premium-coin,
+  html.v16-animation-premium-safe .premium3d-stage.v16-intro-clear .premium-diamond,
+  html.v16-animation-premium-safe .premium3d-stage.v16-intro-clear .premium3d-orbit {
+    transition: opacity .78s ease, filter .78s ease !important;
+  }
+
+  /* 9. checkout connection without changing backend logic */
+  html.v16-animation-premium-safe .premium-mini,
+  html.v16-animation-premium-safe .premium-checkout,
+  html.v16-animation-premium-safe .premium-card3d,
+  html.v16-animation-premium-safe .premium-coin,
+  html.v16-animation-premium-safe .premium-diamond {
+    pointer-events: auto !important;
+  }
+
+  /* 10. Safari/mobile light mode */
+  @media (max-width: 720px) {
+    html.v16-animation-premium-safe .premium3d-stage::after { filter: blur(11px) !important; opacity: .74 !important; }
+    html.v16-animation-premium-safe .premium-card3d,
+    html.v16-animation-premium-safe .premium-phone,
+    html.v16-animation-premium-safe .premium-coin,
+    html.v16-animation-premium-safe .premium-diamond { animation-duration: 10.8s !important; }
+    html.v16-animation-premium-safe .premium3d-orbit { opacity: .72 !important; }
+    html.v16-animation-premium-safe .v16-burst:nth-of-type(n+7) { display: none !important; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html.v16-animation-premium-safe .v16-stage-light,
+    html.v16-animation-premium-safe .v16-scanline,
+    html.v16-animation-premium-safe .v16-card-glint,
+    html.v16-animation-premium-safe .v16-sparkle,
+    html.v16-animation-premium-safe .premium-phone,
+    html.v16-animation-premium-safe .premium-card3d,
+    html.v16-animation-premium-safe .premium-coin,
+    html.v16-animation-premium-safe .premium-diamond,
+    html.v16-animation-premium-safe .premium-checkout {
+      animation: none !important;
+    }
+  }
+
+  @keyframes v16ShadowBreath { 0%,100% { opacity:.66; transform: translateX(-50%) scale(.96); } 50% { opacity:.88; transform: translateX(-50%) scale(1.03); } }
+  @keyframes v16PhoneWeight { 0%,100% { margin-top: 0; filter: brightness(1) saturate(1); } 50% { margin-top: -6px; filter: brightness(1.045) saturate(1.055); } }
+  @keyframes v16GlassSweep { 0%,62%,100% { opacity:.18; transform: translateX(-46%) rotate(4deg); } 76% { opacity:.54; } 88% { opacity:.08; transform: translateX(46%) rotate(7deg); } }
+  @keyframes v16ScanLine { 0%,68%,100% { opacity:0; transform: translateY(0); } 76% { opacity:.60; } 86% { opacity:.05; transform: translateY(220px); } }
+  @keyframes v16CheckoutPulse { 0%,100% { filter: brightness(1) saturate(1); } 50% { filter: brightness(1.085) saturate(1.12); } }
+  @keyframes v16CardWeight { 0%,100% { margin-top:0; filter: brightness(1); } 50% { margin-top:-5px; filter: brightness(1.065) saturate(1.04); } }
+  @keyframes v16CardGlint { 0%,66%,100% { opacity:0; transform: translateX(-38%) rotate(8deg); } 78% { opacity:.34; } 92% { opacity:0; transform: translateX(38%) rotate(8deg); } }
+  @keyframes v16CoinWeight { 0%,100% { margin-top:0; filter: brightness(1) saturate(1); } 50% { margin-top:-6px; filter: brightness(1.14) saturate(1.13); } }
+  @keyframes v16CoinGleam { 0%,52%,100% { opacity:0; transform: rotate(0deg); } 63% { opacity:.48; } 81% { opacity:0; transform: rotate(150deg); } }
+  @keyframes v16DiamondWeight { 0%,100% { margin-top:0; filter: brightness(1) saturate(1); } 50% { margin-top:-6px; filter: brightness(1.15) saturate(1.14); } }
+  @keyframes v16Sparkle { 0%,100% { opacity:0; transform: rotate(-45deg) scale(.48); } 42% { opacity:.96; transform: rotate(-45deg) scale(1.22); } 62% { opacity:.10; transform: rotate(-45deg) scale(.88); } }
+  @keyframes v16Burst { 0% { opacity:.98; transform: translate(-50%, -50%) translate(0,0) scale(.45); } 100% { opacity:0; transform: translate(-50%, -50%) translate(var(--vx), var(--vy)) scale(1); } }
+  @keyframes v16PathLine { 0% { opacity:0; transform: translateX(-50%) scaleX(.2); } 30% { opacity:.86; } 100% { opacity:0; transform: translateX(-50%) scaleX(1); } }
+</style>
+<script id="v16-animation-premium-safe-script">
+  (function () {
+    "use strict";
+    var root = document.documentElement;
+    root.classList.add("v16-animation-premium-safe");
+    window.__topupverseV16Notice = "V16 memoles animasi 1-10 tanpa mengubah ukuran, endpoint, login, hash, payment gateway, email template, A2F, keamanan, checkout backend, invoice, atau produk.";
+
+    function qa(sel, ctx) { return Array.prototype.slice.call((ctx || document).querySelectorAll(sel)); }
+    function q(sel, ctx) { return (ctx || document).querySelector(sel); }
+
+    function ensureNode(parent, cls, html) {
+      if (!parent) return null;
+      var node = q('.' + cls, parent);
+      if (node) return node;
+      var box = document.createElement('div');
+      box.innerHTML = html;
+      node = box.firstElementChild;
+      parent.insertBefore(node, parent.firstChild);
+      return node;
+    }
+
+    function installPremiumDetails(stage) {
+      if (!stage || stage.__v16Details) return;
+      stage.__v16Details = true;
+      ensureNode(stage, 'v16-stage-light', '<div class="v16-stage-light" aria-hidden="true"></div>');
+      qa('.premium-screen', stage).forEach(function (screen) {
+        if (!q('.v16-scanline', screen)) {
+          var s = document.createElement('i');
+          s.className = 'v16-scanline';
+          s.setAttribute('aria-hidden', 'true');
+          screen.insertBefore(s, screen.firstChild);
+        }
+      });
+      qa('.premium-card3d', stage).forEach(function (card) {
+        if (!q('.v16-card-glint', card)) {
+          var g = document.createElement('i');
+          g.className = 'v16-card-glint';
+          g.setAttribute('aria-hidden', 'true');
+          card.appendChild(g);
+        }
+      });
+      qa('.premium-diamond', stage).forEach(function (diamond) {
+        for (var i = 1; i <= 4; i += 1) {
+          if (!q('.v16-sparkle.s' + i, diamond)) {
+            var sp = document.createElement('i');
+            sp.className = 'v16-sparkle s' + i;
+            sp.setAttribute('aria-hidden', 'true');
+            diamond.appendChild(sp);
+          }
+        }
+      });
+    }
+
+    function burst(x, y, count) {
+      var max = Math.min(count || 8, window.matchMedia('(max-width: 720px)').matches ? 6 : 10);
+      for (var i = 0; i < max; i += 1) {
+        var p = document.createElement('i');
+        var angle = (Math.PI * 2 * i / max) + (Math.random() * .25);
+        var dist = 24 + Math.random() * 32;
+        p.className = 'v16-burst';
+        p.style.left = x + 'px';
+        p.style.top = y + 'px';
+        p.style.setProperty('--vx', Math.cos(angle) * dist + 'px');
+        p.style.setProperty('--vy', Math.sin(angle) * dist + 'px');
+        document.body.appendChild(p);
+        setTimeout((function (node) { return function () { if (node && node.remove) node.remove(); }; })(p), 650);
+      }
+    }
+
+    function pathLine() {
+      var old = q('.v16-path-line');
+      if (old) old.remove();
+      var line = document.createElement('i');
+      line.className = 'v16-path-line';
+      line.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(line);
+      setTimeout(function () { if (line && line.remove) line.remove(); }, 850);
+    }
+
+    function highlightObject(el, x, y) {
+      if (!el) return;
+      el.classList.add('v16-picked');
+      var stage = el.closest('.premium3d-stage');
+      if (stage) {
+        stage.classList.add('v16-object-picked', 'v16-connected');
+        setTimeout(function () { stage.classList.remove('v16-object-picked'); }, 360);
+        setTimeout(function () { stage.classList.remove('v16-connected'); }, 900);
+      }
+      burst(x, y, 8);
+      pathLine();
+      setTimeout(function () { el.classList.remove('v16-picked'); }, 780);
+    }
+
+    function updateLight(stage, x, y) {
+      if (!stage) return;
+      var rect = stage.getBoundingClientRect();
+      var lx = Math.max(0, Math.min(100, ((x - rect.left) / Math.max(1, rect.width)) * 100));
+      var ly = Math.max(0, Math.min(100, ((y - rect.top) / Math.max(1, rect.height)) * 100));
+      stage.style.setProperty('--v16-light-x', lx.toFixed(1) + '%');
+      stage.style.setProperty('--v16-light-y', ly.toFixed(1) + '%');
+    }
+
+    function bindStage(stage) {
+      if (!stage || stage.__v16Bound) return;
+      stage.__v16Bound = true;
+      var moved = false;
+      var downX = 0, downY = 0;
+      stage.classList.add('v16-intro', 'v16-intro-clear');
+      requestAnimationFrame(function () {
+        setTimeout(function () { stage.classList.remove('v16-intro'); }, 80);
+        setTimeout(function () { stage.classList.remove('v16-intro-clear'); }, 1050);
+      });
+      stage.addEventListener('pointerdown', function (e) {
+        moved = false; downX = e.clientX; downY = e.clientY;
+        updateLight(stage, e.clientX, e.clientY);
+      }, { passive: true });
+      stage.addEventListener('pointermove', function (e) {
+        if (Math.abs(e.clientX - downX) + Math.abs(e.clientY - downY) > 7) moved = true;
+        updateLight(stage, e.clientX, e.clientY);
+      }, { passive: true });
+      stage.addEventListener('pointerup', function (e) {
+        updateLight(stage, e.clientX, e.clientY);
+        if (!moved) {
+          var target = e.target && e.target.closest ? e.target.closest('.premium-mini, .premium-checkout, .premium-card3d, .premium-coin, .premium-diamond') : null;
+          if (target) highlightObject(target, e.clientX, e.clientY);
+        }
+      }, { passive: true });
+      stage.addEventListener('pointerleave', function () { stage.style.setProperty('--v16-light-x', '48%'); stage.style.setProperty('--v16-light-y', '38%'); }, { passive: true });
+    }
+
+    function connectExistingActions() {
+      qa('.premium-mini, .premium-checkout, .premium-card3d, .premium-coin, .premium-diamond').forEach(function (el) {
+        if (el.__v16Connected) return;
+        el.__v16Connected = true;
+        el.addEventListener('click', function (e) {
+          if (e.detail !== 0) highlightObject(el, e.clientX || (window.innerWidth / 2), e.clientY || (window.innerHeight / 2));
+        }, { passive: true });
+      });
+    }
+
+    function boot() {
+      qa('.premium3d-stage').forEach(function (stage) {
+        installPremiumDetails(stage);
+        bindStage(stage);
+      });
+      connectExistingActions();
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
+    else boot();
+    window.addEventListener('load', boot, { passive: true });
+    setTimeout(boot, 220);
+    setTimeout(boot, 900);
+    setTimeout(boot, 1600);
+  })();
+</script>
+
 </body>
 </html>
