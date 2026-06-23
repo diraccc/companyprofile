@@ -3027,7 +3027,7 @@
         <a href="#showcase">Animasi</a>
         <a href="#cara">Flow</a>
         <a href="#checkout">Top Up</a>
-        <a href="#cek">Cek</a>
+        
         <a href="#checkout" class="nav-cta">Mulai</a>
       </nav>
 
@@ -3040,7 +3040,7 @@
       <a href="#showcase">Animasi</a>
       <a href="#cara">Flow</a>
       <a href="#checkout">Top Up</a>
-      <a href="#cek">Cek Transaksi</a>
+      
     </div>
 
 
@@ -3049,7 +3049,7 @@
         <div class="mobile-cinematic-kicker"><span></span> Mobile Fullstack Safe</div>
         <h1 class="mobile-cinematic-title">Top Up Digital <span>Premium</span> Aman Buat HP</h1>
         <p class="mobile-cinematic-copy">
-          Tampilan tetap cinematic, tapi versi mobile dibuat ringan. Produk, checkout, invoice, cek transaksi, dan API backend tetap ada.
+          Tampilan tetap cinematic, tapi versi mobile dibuat ringan. Produk, checkout, dan API backend tetap ada.
         </p>
         <div class="mobile-cinematic-actions">
           <a class="mobile-cinematic-primary" href="#checkout">Mulai Top Up</a>
@@ -3316,7 +3316,7 @@
           <article class="tilt-card step-card"><div class="step-num">1</div><h3>Pilih Produk</h3><p>User memilih kategori game, e-wallet, e-toll, pulsa, data, PLN, atau voucher.</p></article>
           <article class="tilt-card step-card"><div class="step-num">2</div><h3>Isi Tujuan</h3><p>User mengisi ID game, nomor HP, nomor kartu, atau data tujuan lain.</p></article>
           <article class="tilt-card step-card"><div class="step-num">3</div><h3>Kirim ke API</h3><p>Frontend mengirim data ke backend. Backend membuat invoice dan mengecek harga final.</p></article>
-          <article class="tilt-card step-card"><div class="step-num">4</div><h3>Cek Status</h3><p>User mengecek invoice. Demo ini menyimpan status di browser terlebih dahulu.</p></article>
+          <article class="tilt-card step-card"><div class="step-num">4</div><h3>Cek Status</h3><p>User mengecek status pesanan melalui sistem backend dan pembayaran.</p></article>
         </div>
       </section>
 
@@ -3465,7 +3465,7 @@
                 </select>
               </label>
 
-              <button class="btn btn-primary submit-btn" type="submit">Buat Invoice Demo</button>
+              <button class="btn btn-primary submit-btn" type="submit">Lanjut Pembayaran</button>
             </form>
 
             <div class="api-box">
@@ -3476,7 +3476,7 @@
           <aside class="panel tilt-card">
             <div class="summary-title">
               <h3>Ringkasan</h3>
-              <span class="pill">Demo</span>
+              <span class="pill">Produksi</span>
             </div>
 
             <div class="summary-list">
@@ -3503,7 +3503,7 @@
           <div class="kicker">INVOICE</div>
           <h2>Cek transaksi dengan tampilan digital card</h2>
           <p class="section-sub">
-            Invoice demo tersimpan di browser yang sama. Pada produksi asli, invoice harus dicek dari backend.
+            Status invoice diproses melalui backend, database, dan payment gateway yang sudah kamu gunakan.
           </p>
         </div>
 
@@ -3520,7 +3520,7 @@
           <div class="kicker">RIWAYAT LOKAL</div>
           <h2>Riwayat transaksi di browser ini</h2>
           <p class="section-sub">
-            Riwayat ini membaca invoice demo dari localStorage. Pada produksi asli, riwayat permanen tetap harus diambil dari backend.
+            Riwayat permanen sebaiknya dibaca dari backend/database agar tidak memakai invoice demo lokal.
           </p>
         </div>
         <div class="history-shell panel">
@@ -3539,7 +3539,7 @@
           <div class="kicker">ADMIN MONITOR</div>
           <h2>Dashboard admin frontend tanpa menyentuh login</h2>
           <p class="section-sub">
-            Ini hanya monitor lokal dari invoice demo. Sistem login, A2F, email template, payment gateway, endpoint, dan keamanan backend tidak diubah.
+            Area ini hanya tampilan monitor frontend. Sistem login, A2F, email template, payment gateway, endpoint, dan keamanan backend tidak diubah.
           </p>
         </div>
         <div class="admin-grid">
@@ -3564,15 +3564,15 @@
 
     </main>
 
-    <footer>
+    <footer class="dirac-footer">
       <div class="footer-links">
         <a href="#premium">Premium</a>
         <a href="#produk">Produk</a>
         <a href="#showcase">Animasi</a>
         <a href="#checkout">Top Up</a>
-        <a href="#cek">Cek Transaksi</a>
       </div>
-      <p>© 2026 TopUpVerse 3D Premium. Satu file HTML siap GitHub Pages.</p>
+      <p>© 2026 TopUpVerse. Copyright by Dirac Group.</p>
+      <p class="footer-sub">TopUpVerse dinaungi Dirac Group.</p>
     </footer>
   </div>
 
@@ -4306,7 +4306,7 @@
         invoiceResult.style.display = "block";
         invoiceResult.innerHTML = createInvoiceCard(order);
         $("#cek").scrollIntoView({ behavior: "smooth" });
-        showToast("Invoice demo berhasil dibuat");
+        showToast("Order berhasil dibuat");
       } catch (err) {
         transactionModal.classList.remove("show");
         showToast(err.message || "Gagal membuat pesanan");
@@ -4328,7 +4328,7 @@
         invoiceResult.innerHTML = `
           <div class="invoice-card">
             <p><b>Invoice tidak ditemukan.</b></p>
-            <p>Untuk demo ini, invoice hanya tersimpan di browser yang sama. Di website asli, invoice dicek dari backend.</p>
+            <p>Invoice tidak dibuat secara lokal. Status harus dicek melalui backend/database production.</p>
           </div>
         `;
         return;
@@ -7918,7 +7918,7 @@
       var refresh = q("#refreshHistoryBtn");
       if (refresh && !refresh.__v12) { refresh.__v12 = true; refresh.addEventListener("click", function(){ syncAdminAndHistory(); toast("Riwayat diperbarui"); }); }
       var clear = q("#clearHistoryViewBtn");
-      if (clear && !clear.__v12) { clear.__v12 = true; clear.addEventListener("click", function(){ var list=q("#localHistoryList"); if(list) list.innerHTML='<div class="empty-history">Tampilan dikosongkan sementara. Data localStorage tidak dihapus.</div>'; }); }
+      if (clear && !clear.__v12) { clear.__v12 = true; clear.addEventListener("click", function(){ var list=q("#localHistoryList"); if(list) list.innerHTML='<div class="empty-history">Tampilan dikosongkan sementara.</div>'; }); }
       document.addEventListener("click", function (e) {
         var copy = e.target.closest && e.target.closest("[data-history-copy]");
         var check = e.target.closest && e.target.closest("[data-history-check]");
@@ -10177,7 +10177,7 @@
     "use strict";
     var root = document.documentElement;
     root.classList.add("v23-compact-360");
-    window.__topupverseV23Notice = "V23: 3D object is smaller, yaw rotation is no longer clamped so it can rotate 360 degrees, and balance text is dynamic from localStorage/checkout summary. Backend and checkout logic are unchanged.";
+    window.__topupverseV23Notice = "V23: 3D object is smaller, yaw rotation is no longer clamped so it can rotate 360 degrees, and balance text is dynamic from checkout summary. Backend and checkout logic are unchanged.";
 
     function q(sel) { return document.querySelector(sel); }
     function qa(sel, ctx) { return Array.prototype.slice.call((ctx || document).querySelectorAll(sel)); }
@@ -10190,32 +10190,17 @@
     function textValue(el) { return el ? String(el.textContent || "").trim() : ""; }
 
     function activeInvoices() {
-      var data = safeJson(localStorage.getItem("topupverse_invoices") || "[]", []);
-      if (!Array.isArray(data)) return [];
-      return data.filter(function (order) {
-        var status = String(order && order.status || "").toLowerCase();
-        return !status.includes("selesai") && !status.includes("batal") && !status.includes("cancel");
-      });
+      return [];
     }
 
     function dynamicTotal() {
-      var active = activeInvoices();
-      var label = "Total order aktif";
+      var label = "Total checkout dipilih";
       var amountText = "Rp0";
-
-      if (active.length) {
-        var total = active.reduce(function (sum, order) {
-          return sum + Number(order.total || order.nominal || 0);
-        }, 0);
-        label = "Total " + active.length + " order aktif";
-        amountText = rupiah(total);
-      } else {
-        var summaryText = textValue(q("#sumTotal"));
-        var productText = textValue(q("#sumProduct"));
-        if (summaryText && summaryText !== "-" && summaryText !== "Rp0") {
-          label = productText && productText !== "-" ? "Total checkout dipilih" : "Estimasi checkout";
-          amountText = summaryText;
-        }
+      var summaryText = textValue(q("#sumTotal"));
+      var productText = textValue(q("#sumProduct"));
+      if (summaryText && summaryText !== "-" && summaryText !== "Rp0") {
+        amountText = summaryText;
+        label = productText && productText !== "-" ? "Total checkout dipilih" : "Estimasi checkout";
       }
 
       qa(".v22-balance small").forEach(function (node) { node.textContent = label; });
@@ -10320,5 +10305,273 @@
 </script>
 <!-- End V24 fan cards to WEBP cleanup -->
 
+
+
+<!-- ==========================================================
+     V25 PRODUCTION-SAFE CHECKOUT GUARD
+     Tujuan: tidak membuat invoice demo/localStorage. Checkout hanya jalan
+     melalui API_BASE_URL + endpoint existing /orders. Endpoint, login, hash,
+     payment gateway, email template, A2F, dan security tidak diubah.
+     ========================================================== -->
+<style id="v25-production-safe-style">
+  html.v25-production-safe #localHistoryList .empty-history::after {
+    content: "";
+  }
+</style>
+<script id="v25-production-safe-checkout-script">
+  (function () {
+    "use strict";
+    document.documentElement.classList.add("v25-production-safe");
+    window.__topupverseV25Notice = "V25: production-safe checkout guard active. It prevents local/demo invoice creation and uses the existing API_BASE_URL + /orders flow only. Protected systems and endpoints are not modified.";
+
+    function q(sel) { return document.querySelector(sel); }
+    function toast(message) {
+      if (typeof window.showToast === "function") window.showToast(message);
+      else console.warn(message);
+    }
+    function visibleError(message) {
+      var box = q("#invoiceResult");
+      var canShowInvoiceBox = box && box.offsetParent !== null;
+      if (canShowInvoiceBox) {
+        box.style.display = "block";
+        box.innerHTML = '<div class="invoice-card"><h3>Checkout production belum bisa dilanjutkan dari frontend ini</h3><p>' + message + '</p><p>Invoice demo/localStorage tidak dibuat.</p></div>';
+      } else {
+        var checkout = q("#checkout .panel") || q("#checkout");
+        var notice = q("#productionCheckoutNotice");
+        if (!notice && checkout) {
+          notice = document.createElement("div");
+          notice.id = "productionCheckoutNotice";
+          notice.className = "api-box";
+          checkout.appendChild(notice);
+        }
+        if (notice) notice.textContent = message + " Invoice demo/localStorage tidak dibuat.";
+      }
+      toast(message);
+    }
+    function getSelectedProduct() {
+      try {
+        if (typeof products !== "undefined") return products.find(function (p) { return p.id === (q("#productSelect") || {}).value; }) || null;
+      } catch (e) {}
+      return null;
+    }
+    function normalizeBackendOrder(response, payload) {
+      var data = response && (response.order || response.data || response.result || response) || {};
+      return {
+        category: data.category || payload.category,
+        product_id: data.product_id || data.productId || payload.product_id,
+        productName: data.productName || data.product_name || data.product || payload.productName,
+        customer: data.customer || data.target || payload.customer,
+        nominal: Number(data.nominal || data.amount || payload.nominal || 0),
+        payment: data.payment || data.payment_method || payload.payment,
+        invoice: data.invoice || data.invoice_code || data.order_id || data.id || "ORDER-BACKEND",
+        total: Number(data.total || data.amount || data.nominal || payload.nominal || 0),
+        status: data.status || data.payment_status || "Diproses Backend",
+        createdAt: data.createdAt || data.created_at || new Date().toLocaleString("id-ID")
+      };
+    }
+
+    function bindProductionCheckout() {
+      var form = q("#checkoutForm") || q("#orderForm");
+      if (!form || form.__v25ProductionBound) return;
+      form.__v25ProductionBound = true;
+      form.addEventListener("submit", async function (event) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+
+        var category = (q("#categorySelect") || {}).value || "";
+        var product = getSelectedProduct();
+        var customer = ((q("#customerInput") || {}).value || "").trim();
+        var payment = (q("#paymentSelect") || {}).value || "";
+        var nominal = 0;
+        try { nominal = Number(typeof selectedNominal !== "undefined" ? selectedNominal : ((q("#nominalValue") || {}).value || 0)); } catch (e) { nominal = Number(((q("#nominalValue") || {}).value || 0)); }
+
+        if (!category || !product || !customer || !payment || !nominal) {
+          toast("Lengkapi data checkout terlebih dahulu");
+          return;
+        }
+
+        var apiBase = "";
+        try { apiBase = typeof API_BASE_URL !== "undefined" ? String(API_BASE_URL || "").trim() : ""; } catch (e) { apiBase = ""; }
+        if (!apiBase) {
+          visibleError("API_BASE_URL masih kosong, jadi frontend tidak membuat invoice demo. Isi endpoint backend production yang sudah kamu pakai tanpa mengubah sistem login/hash/payment/security.");
+          return;
+        }
+
+        var payload = {
+          category: category,
+          product_id: product.id,
+          productName: product.name,
+          customer: customer,
+          nominal: nominal,
+          payment: payment
+        };
+
+        try {
+          if (typeof runTransactionAnimation === "function") await runTransactionAnimation();
+          var response = typeof createOrderToBackend === "function"
+            ? await createOrderToBackend(payload)
+            : null;
+          var order = normalizeBackendOrder(response, payload);
+          var modal = q("#transactionModal");
+          if (modal) modal.classList.remove("show");
+          var input = q("#invoiceInput");
+          if (input && order.invoice) input.value = order.invoice;
+          var result = q("#invoiceResult");
+          if (result) {
+            result.style.display = "block";
+            if (typeof createInvoiceCard === "function") result.innerHTML = createInvoiceCard(order);
+            else result.textContent = JSON.stringify(order);
+          }
+          var cek = q("#cek");
+          if (cek && window.getComputedStyle(cek).display !== "none") cek.scrollIntoView({ behavior: "smooth" });
+          toast("Order dikirim ke backend production");
+        } catch (err) {
+          var modal2 = q("#transactionModal");
+          if (modal2) modal2.classList.remove("show");
+          visibleError((err && err.message) ? err.message : "Checkout production gagal diproses backend.");
+        }
+      }, true);
+    }
+
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", bindProductionCheckout, { once: true });
+    else bindProductionCheckout();
+    window.addEventListener("load", bindProductionCheckout, { passive: true });
+    setTimeout(bindProductionCheckout, 250);
+    setTimeout(bindProductionCheckout, 1000);
+  })();
+</script>
+<!-- End V25 production-safe checkout guard -->
+
+
+
+<!-- ==========================================================
+     V26 MINIMAL MODERN CARD DESIGN
+     Scope: visual card styling only. Endpoint, login, hash, payment gateway,
+     email template, A2F, checkout guard, and security are not modified.
+     ========================================================== -->
+<style id="v26-minimal-modern-cards-style">
+  html.v26-minimal-cards {
+    --v26-card-bg: rgba(8, 13, 30, .78);
+    --v26-card-bg-2: rgba(15, 23, 42, .72);
+    --v26-card-border: rgba(148, 163, 184, .18);
+    --v26-card-border-strong: rgba(56, 189, 248, .28);
+    --v26-card-shadow: 0 18px 48px rgba(0, 0, 0, .28);
+  }
+  html.v26-minimal-cards .fan-carousel-shell {
+    border-radius: 30px !important;
+    border-color: var(--v26-card-border) !important;
+    background: radial-gradient(circle at 50% 16%, rgba(56,189,248,.10), transparent 32%), linear-gradient(180deg, rgba(15,23,42,.60), rgba(2,6,23,.56)) !important;
+    box-shadow: 0 24px 74px rgba(0,0,0,.24) !important;
+  }
+  html.v26-minimal-cards .fan-carousel-shell::before { opacity: .45 !important; }
+  html.v26-minimal-cards .fan-copy, html.v26-minimal-cards .fan-helper { color: rgba(226,232,240,.82) !important; }
+  html.v26-minimal-cards .fan-helper { background: rgba(2,6,23,.42) !important; border-color: rgba(148,163,184,.14) !important; box-shadow: none !important; }
+  html.v26-minimal-cards .fan-card-html { border-radius: 24px !important; border: 1px solid rgba(148,163,184,.18) !important; background: rgba(8,13,30,.82) !important; box-shadow: 0 18px 48px rgba(0,0,0,.28) !important; }
+  html.v26-minimal-cards .fan-card-html::before { opacity: .20 !important; background: linear-gradient(115deg, transparent 28%, rgba(255,255,255,.16), transparent 66%) !important; }
+  html.v26-minimal-cards .fan-card-html::after { inset: 7px !important; border-radius: 19px !important; border-color: rgba(255,255,255,.07) !important; }
+  html.v26-minimal-cards .fan-card-html.is-center { box-shadow: 0 26px 72px rgba(56,189,248,.13), 0 20px 54px rgba(0,0,0,.32) !important; border-color: rgba(56,189,248,.25) !important; }
+  html.v26-minimal-cards .fan-arrow-html, html.v26-minimal-cards .round-btn { background: rgba(15,23,42,.72) !important; border-color: rgba(148,163,184,.20) !important; box-shadow: 0 12px 30px rgba(0,0,0,.20) !important; }
+  html.v26-minimal-cards .fan-dot-html, html.v26-minimal-cards .dot { background: rgba(148,163,184,.35) !important; }
+  html.v26-minimal-cards .fan-dot-html.active, html.v26-minimal-cards .dot.active { background: #38bdf8 !important; box-shadow: 0 0 14px rgba(56,189,248,.60) !important; }
+  html.v26-minimal-cards .tilt-card, html.v26-minimal-cards .product-card, html.v26-minimal-cards .carousel-card, html.v26-minimal-cards .panel, html.v26-minimal-cards .invoice-card, html.v26-minimal-cards .metric, html.v26-minimal-cards .step-card, html.v26-minimal-cards .holo-card {
+    border-color: var(--v26-card-border) !important;
+    background: linear-gradient(180deg, rgba(15,23,42,.72), rgba(2,6,23,.62)) !important;
+    box-shadow: var(--v26-card-shadow) !important;
+    backdrop-filter: blur(13px) !important;
+  }
+  html.v26-minimal-cards .tilt-card::before, html.v26-minimal-cards .carousel-card::before { opacity: 0 !important; }
+  html.v26-minimal-cards .tilt-card:hover, html.v26-minimal-cards .tilt-card.active3d, html.v26-minimal-cards .carousel-card.active { border-color: var(--v26-card-border-strong) !important; box-shadow: 0 22px 60px rgba(56,189,248,.10), 0 18px 48px rgba(0,0,0,.28) !important; }
+  html.v26-minimal-cards .product-icon, html.v26-minimal-cards .carousel-icon, html.v26-minimal-cards .step-num { width: 56px !important; height: 56px !important; border-radius: 18px !important; background: rgba(15,23,42,.76) !important; border: 1px solid rgba(148,163,184,.18) !important; box-shadow: inset 0 0 18px rgba(255,255,255,.03) !important; font-size: 28px !important; }
+  html.v26-minimal-cards .product-title, html.v26-minimal-cards .carousel-card h3, html.v26-minimal-cards .summary-title h3 { letter-spacing: -.3px !important; }
+  html.v26-minimal-cards .product-desc, html.v26-minimal-cards .carousel-card p, html.v26-minimal-cards .feature span, html.v26-minimal-cards .summary-row, html.v26-minimal-cards .api-box { color: rgba(203,213,225,.82) !important; }
+  html.v26-minimal-cards .product-action, html.v26-minimal-cards .small-btn, html.v26-minimal-cards .nominal, html.v26-minimal-cards input, html.v26-minimal-cards select { border-radius: 14px !important; border-color: rgba(148,163,184,.18) !important; background: rgba(8,13,30,.78) !important; box-shadow: none !important; }
+  html.v26-minimal-cards .product-action:hover, html.v26-minimal-cards .small-btn:hover, html.v26-minimal-cards .nominal:hover, html.v26-minimal-cards .nominal.active { background: rgba(56,189,248,.18) !important; border-color: rgba(56,189,248,.38) !important; color: #e0f7ff !important; }
+  html.v26-minimal-cards .btn-primary, html.v26-minimal-cards .submit-btn, html.v26-minimal-cards .nav-cta { border-radius: 16px !important; box-shadow: 0 16px 38px rgba(56,189,248,.20) !important; }
+  html.v26-minimal-cards .total-box { border-radius: 20px !important; background: rgba(15,23,42,.70) !important; border-color: rgba(56,189,248,.18) !important; }
+  html.v26-minimal-cards .summary-row { border-bottom-color: rgba(148,163,184,.12) !important; }
+  html.v26-minimal-cards .sticky-checkout, html.v26-minimal-cards .smart-checkout-bar, html.v26-minimal-cards #stickyCheckout { border-color: rgba(56,189,248,.22) !important; background: rgba(5,10,25,.82) !important; backdrop-filter: blur(18px) !important; }
+  @media (max-width: 580px) {
+    html.v26-minimal-cards .fan-card-html { width: 122px !important; border-radius: 20px !important; }
+    html.v26-minimal-cards .fan-carousel-shell { border-radius: 24px !important; }
+    html.v26-minimal-cards .product-grid { gap: 13px !important; }
+  }
+</style>
+<script id="v26-minimal-modern-cards-script">
+  (function () {
+    "use strict";
+    document.documentElement.classList.add("v26-minimal-cards");
+    window.__topupverseV26Notice = "V26: card/card-cart visual style changed to minimal modern. Protected systems, endpoints, checkout guard and payment/security logic are untouched.";
+  })();
+</script>
+<!-- End V26 minimal modern card design -->
+
+
+
+<!-- ==========================================================
+     V27 REMOVE CHECK/HISTORY/ADMIN SECTIONS + TOPUPID FOOTER
+     Scope: visual/navigation/footer cleanup only. Endpoint, login, hash,
+     payment gateway, email template, A2F, checkout guard, and security remain untouched.
+     ========================================================== -->
+<style id="v27-topupid-footer-cleanup-style">
+  html.v27-topupid-footer #cek,
+  html.v27-topupid-footer #history,
+  html.v27-topupid-footer #admin-preview {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+  }
+
+  html.v27-topupid-footer .nav-links a[href="#cek"],
+  html.v27-topupid-footer .mobile-menu a[href="#cek"],
+  html.v27-topupid-footer .footer-links a[href="#cek"] {
+    display: none !important;
+  }
+
+  html.v27-topupid-footer .dirac-footer {
+    padding: 34px 7% 42px !important;
+    text-align: center !important;
+    color: rgba(203,213,225,.88) !important;
+    background: rgba(2,6,23,.92) !important;
+    border-top: 1px solid rgba(148,163,184,.14) !important;
+  }
+
+  html.v27-topupid-footer .dirac-footer .footer-links {
+    margin-bottom: 14px !important;
+  }
+
+  html.v27-topupid-footer .dirac-footer p {
+    margin: 0 !important;
+    font-weight: 800 !important;
+    letter-spacing: .2px !important;
+  }
+
+  html.v27-topupid-footer .dirac-footer .footer-sub {
+    margin-top: 8px !important;
+    color: rgba(148,163,184,.80) !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+  }
+
+  html.v27-topupid-footer #productionCheckoutNotice {
+    margin-top: 16px !important;
+  }
+</style>
+<script id="v27-topupid-footer-cleanup-script">
+  (function () {
+    "use strict";
+    document.documentElement.classList.add("v27-topupid-footer");
+    window.__topupverseV27Notice = "V27: check/history/admin sections are hidden from the page; footer copyright uses Dirac Group while keeping the existing brand name. Protected systems and endpoints are untouched.";
+  })();
+</script>
+<!-- End V27 footer cleanup -->
+
+
+<!-- V28 correction: file is named topup.html only. Existing brand name is preserved; only lower check/history/admin sections remain hidden and footer copyright remains Dirac Group. -->
 </body>
 </html>
