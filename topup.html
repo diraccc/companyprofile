@@ -3260,16 +3260,13 @@
       </section>
 
       <section class="section reveal" id="showcase">
-        <div class="showcase source-animation-only">
-          <div class="glass-panel holo-wrap">
-<div class="holo-stack" id="holoStack">
-<div class="holo-core"><div class="diamond3d"></div></div>
-<div class="holo-card hc1"><h4>Game Top Up</h4><p>Mobile Legends, Free Fire, PUBG, Valorant, dan voucher game lain.</p></div>
-<div class="holo-card hc2"><h4>E-Wallet</h4><p>DANA, OVO, GoPay, ShopeePay, dan LinkAja.</p></div>
-<div class="holo-card hc3"><h4>E-Toll</h4><p>e-Money, Brizzi, TapCash, dan Flazz.</p></div>
-<div class="holo-card hc4"><h4>Produk Digital</h4><p>Pulsa, paket data, token PLN, dan voucher digital.</p></div>
-</div>
-</div>
+        <div class="tls-visual-shell">
+          <div class="tls-rotator" aria-label="Animasi gambar layanan TopupID berputar">
+            <div class="tls-card tls-card-1"><img src="tls1.webp" alt="Game Top Up" /></div>
+            <div class="tls-card tls-card-2"><img src="tls2.webp" alt="E-Wallet" /></div>
+            <div class="tls-card tls-card-3"><img src="tls3.webp" alt="E-Toll" /></div>
+            <div class="tls-card tls-card-4"><img src="tls4.webp" alt="Produk Digital" /></div>
+          </div>
         </div>
       </section>
 
@@ -10557,121 +10554,22 @@
 
 
 
-<style id="v40-source-animation-only">
-  /* V40: only the uploaded source 3D animation from topup1.html is used here. No image replacement. */
-  #showcase {
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    height: auto !important;
-    min-height: 0 !important;
-    margin: 0 !important;
-    padding: 42px 7% 64px !important;
-    overflow: visible !important;
-  }
-  #showcase .source-animation-only {
-    display: grid !important;
-    grid-template-columns: 1fr !important;
-    place-items: center !important;
-    max-width: 760px !important;
-    margin: 0 auto !important;
-    overflow: visible !important;
-  }
-  #showcase .holo-wrap {
-    min-height: 440px !important;
-    width: 100% !important;
-    display: grid !important;
-    place-items: center !important;
-    perspective: 1150px !important;
-    padding: 30px !important;
-    touch-action: none !important;
-    overflow: visible !important;
-    border-radius: 34px !important;
-  }
-  #showcase .holo-stack {
-    position: relative !important;
-    width: min(380px, 84vw) !important;
-    height: 370px !important;
-    transform-style: preserve-3d !important;
-    animation: stackRotate 12s ease-in-out infinite !important;
-    touch-action: none !important;
-    user-select: none !important;
-    overflow: visible !important;
-  }
-  #showcase .holo-card {
-    position: absolute !important;
-    left: 50% !important;
-    top: 50% !important;
-    width: 258px !important;
-    min-height: 138px !important;
-    padding: 18px !important;
-    border-radius: 25px !important;
-    border: 1px solid rgba(255,255,255,0.18) !important;
-    background: linear-gradient(145deg, rgba(255,255,255,0.16), rgba(255,255,255,0.06)) !important;
-    backdrop-filter: blur(14px) !important;
-    box-shadow: 0 24px 70px rgba(0,0,0,0.28) !important;
-    transform-style: preserve-3d !important;
-    display: block !important;
-    text-align: left !important;
-  }
-  #showcase .holo-card h4 { font-size: 18px !important; margin: 0 0 7px !important; line-height: 1.25 !important; }
-  #showcase .holo-card p { display: block !important; color: var(--soft) !important; font-size: 13px !important; line-height: 1.5 !important; margin: 0 !important; }
-  #showcase .hc1 { transform: translate(-50%, -50%) rotateY(0deg) translateZ(158px) !important; }
-  #showcase .hc2 { transform: translate(-50%, -50%) rotateY(90deg) translateZ(158px) !important; }
-  #showcase .hc3 { transform: translate(-50%, -50%) rotateY(180deg) translateZ(158px) !important; }
-  #showcase .hc4 { transform: translate(-50%, -50%) rotateY(270deg) translateZ(158px) !important; }
-  #showcase .holo-core {
-    position: absolute !important;
-    left: 50% !important;
-    top: 50% !important;
-    width: 124px !important;
-    height: 124px !important;
-    display: grid !important;
-    place-items: center !important;
-    border-radius: 50% !important;
-    background: radial-gradient(circle, rgba(56,189,248,0.95), rgba(168,85,247,0.22), transparent 68%) !important;
-    transform: translate(-50%, -50%) !important;
-    filter: drop-shadow(0 0 36px rgba(56,189,248,0.65)) !important;
-    animation: corePulse 2.4s ease-in-out infinite !important;
-  }
-  #showcase .holo-core .diamond3d { width: 54px !important; height: 54px !important; border-radius: 12px !important; }
-  #cara,
-  #trust,
-  #smartflow,
-  #produk,
-  #cek,
-  #history,
-  #admin-preview,
-  .sticky-mobile-checkout {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-    height: 0 !important;
-    min-height: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: hidden !important;
-  }
-  @media (max-width: 580px) {
-    #showcase { padding: 34px 5% 58px !important; }
-    #showcase .holo-wrap { min-height: 365px !important; padding: 20px !important; border-radius: 28px !important; }
-    #showcase .holo-stack { width: min(330px, 88vw) !important; height: 315px !important; }
-    #showcase .holo-core { width: 94px !important; height: 94px !important; }
-    #showcase .holo-card { width: 214px !important; min-height: 118px !important; padding: 15px !important; border-radius: 21px !important; }
-    #showcase .holo-card h4 { font-size: 16px !important; }
-    #showcase .holo-card p { font-size: 12px !important; }
-    #showcase .hc1 { transform: translate(-50%, -50%) rotateY(0deg) translateZ(128px) !important; }
-    #showcase .hc2 { transform: translate(-50%, -50%) rotateY(90deg) translateZ(128px) !important; }
-    #showcase .hc3 { transform: translate(-50%, -50%) rotateY(180deg) translateZ(128px) !important; }
-    #showcase .hc4 { transform: translate(-50%, -50%) rotateY(270deg) translateZ(128px) !important; }
-  }
+<style id="v41-tls-image-rotator">
+  #showcase { display:block!important; visibility:visible!important; opacity:1!important; height:auto!important; min-height:0!important; padding:42px 7% 68px!important; overflow:visible!important; }
+  .tls-visual-shell { position:relative!important; width:min(760px,100%)!important; min-height:430px!important; margin:0 auto!important; display:grid!important; place-items:center!important; perspective:1300px!important; overflow:visible!important; border-radius:34px!important; border:1px solid rgba(148,163,184,.18)!important; background:radial-gradient(circle at 50% 42%, rgba(56,189,248,.13), transparent 42%), rgba(255,255,255,.045)!important; backdrop-filter:blur(15px)!important; }
+  .tls-rotator { position:relative!important; width:min(430px,86vw)!important; height:280px!important; transform-style:preserve-3d!important; animation:tlsImageSpin 12s linear infinite!important; will-change:transform!important; }
+  .tls-card { position:absolute!important; left:50%!important; top:50%!important; width:min(360px,76vw)!important; aspect-ratio:5/3!important; border-radius:28px!important; overflow:hidden!important; transform-style:preserve-3d!important; backface-visibility:visible!important; box-shadow:0 26px 70px rgba(0,0,0,.35)!important; border:1px solid rgba(255,255,255,.20)!important; }
+  .tls-card img { width:100%!important; height:100%!important; display:block!important; object-fit:cover!important; }
+  .tls-card-1 { transform:translate(-50%,-50%) rotateY(0deg) translateZ(210px)!important; }
+  .tls-card-2 { transform:translate(-50%,-50%) rotateY(90deg) translateZ(210px)!important; }
+  .tls-card-3 { transform:translate(-50%,-50%) rotateY(180deg) translateZ(210px)!important; }
+  .tls-card-4 { transform:translate(-50%,-50%) rotateY(270deg) translateZ(210px)!important; }
+  @keyframes tlsImageSpin { from { transform:rotateX(-8deg) rotateY(0deg); } to { transform:rotateX(-8deg) rotateY(360deg); } }
+  #cara,#trust,#smartflow,#produk,#cek,#history,#admin-preview,.sticky-mobile-checkout { display:none!important; visibility:hidden!important; opacity:0!important; pointer-events:none!important; height:0!important; min-height:0!important; margin:0!important; padding:0!important; overflow:hidden!important; }
+  @media (max-width:580px){ #showcase{padding:30px 5% 54px!important;} .tls-visual-shell{min-height:365px!important; border-radius:28px!important;} .tls-rotator{width:min(340px,88vw)!important; height:230px!important;} .tls-card{width:min(288px,76vw)!important; border-radius:22px!important;} .tls-card-1{transform:translate(-50%,-50%) rotateY(0deg) translateZ(150px)!important;} .tls-card-2{transform:translate(-50%,-50%) rotateY(90deg) translateZ(150px)!important;} .tls-card-3{transform:translate(-50%,-50%) rotateY(180deg) translateZ(150px)!important;} .tls-card-4{transform:translate(-50%,-50%) rotateY(270deg) translateZ(150px)!important;} }
 </style>
-<script id="v40-source-animation-only-script">
-  (function(){
-    document.documentElement.classList.add('v40-source-animation-only');
-    window.__topupidV40Notice = 'V40: only the 3D animation block from uploaded topup1.html is inserted. No image replacement. Extra sections remain hidden.';
-  })();
+<script id="v41-tls-image-rotator-script">
+  (function(){ document.documentElement.classList.add('v41-tls-image-rotator'); window.__topupidV41Notice='V41: tls1.webp to tls4.webp rotate in HTML/CSS 3D. HTML edited only.'; })();
 </script>
 
 </body>
