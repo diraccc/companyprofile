@@ -3284,7 +3284,7 @@
             </p>
 
             <div class="feature-list">
-              <div class="feature"><b>01</b><span>Hero 3D memakai objek custom seperti diamond, coin, wallet card, dan toll card.</span></div>
+              <div class="feature"><b>01</b><span>Hero 3D memakai objek Three.js yang lebih relevan: smartphone, game controller, QRIS, e-toll, SIM chip, dan token PLN.</span></div>
               <div class="feature"><b>02</b><span>Carousel 3D bisa swipe dan langsung memilih produk.</span></div>
               <div class="feature"><b>03</b><span>Form checkout punya loading transaksi bertahap.</span></div>
               <div class="feature"><b>04</b><span>Invoice tampil seperti digital card dengan timeline status.</span></div>
@@ -5293,6 +5293,138 @@
         return group;
       }
 
+      function buildGameController(THREE, mats, scale) {
+        var group = new THREE.Group();
+        group.userData.product = "mlbb";
+        var body = createBox(THREE, 1.16 * scale, 0.43 * scale, 0.28 * scale, mats.cardBlue, 0, 0, 0);
+        body.userData.product = "mlbb";
+        body.castShadow = body.receiveShadow = true;
+        group.add(body);
+
+        var leftGrip = new THREE.Mesh(new THREE.SphereGeometry(0.30 * scale, 32, 18), mats.cardBlue);
+        leftGrip.scale.set(0.82, 1.08, 0.48);
+        leftGrip.position.set(-0.48 * scale, -0.16 * scale, 0.02 * scale);
+        leftGrip.userData.product = "mlbb";
+        leftGrip.castShadow = true;
+        group.add(leftGrip);
+
+        var rightGrip = leftGrip.clone();
+        rightGrip.position.x = 0.48 * scale;
+        rightGrip.userData.product = "mlbb";
+        group.add(rightGrip);
+
+        var pad = createBox(THREE, 0.30 * scale, 0.08 * scale, 0.05 * scale, mats.line, -0.34 * scale, 0.02 * scale, 0.18 * scale);
+        var pad2 = createBox(THREE, 0.08 * scale, 0.30 * scale, 0.05 * scale, mats.line, -0.34 * scale, 0.02 * scale, 0.19 * scale);
+        group.add(pad, pad2);
+
+        [[0.31, 0.09], [0.48, 0.03], [0.38, -0.12], [0.56, -0.08]].forEach(function (p) {
+          var btn = new THREE.Mesh(new THREE.CylinderGeometry(0.055 * scale, 0.055 * scale, 0.04 * scale, 24), mats.pay);
+          btn.rotation.x = Math.PI / 2;
+          btn.position.set(p[0] * scale, p[1] * scale, 0.205 * scale);
+          btn.userData.product = "mlbb";
+          group.add(btn);
+        });
+
+        var label = makeLabelSprite(THREE, "GAME", { width: 360, height: 130, fontSize: 50, color: "#ffffff", shadowBlur: 10, scaleX: 0.68 * scale, scaleY: 0.24 * scale });
+        label.position.set(0, 0.28 * scale, 0.22 * scale);
+        group.add(label);
+        return group;
+      }
+
+      function buildQrisCard(THREE, mats, scale) {
+        var group = new THREE.Group();
+        group.userData.product = "qris";
+        var card = createBox(THREE, 1.20 * scale, 0.72 * scale, 0.10 * scale, mats.cardPurple, 0, 0, 0);
+        card.userData.product = "qris";
+        card.castShadow = true;
+        group.add(card);
+
+        var title = makeLabelSprite(THREE, "QRIS", { width: 360, height: 130, fontSize: 58, color: "#ffffff", shadowBlur: 12, scaleX: 0.72 * scale, scaleY: 0.25 * scale });
+        title.position.set(-0.20 * scale, 0.20 * scale, 0.12 * scale);
+        group.add(title);
+
+        var qrMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.92 });
+        var darkQrMat = new THREE.MeshBasicMaterial({ color: 0x07111f, transparent: true, opacity: 0.96 });
+        var qrBack = createBox(THREE, 0.32 * scale, 0.32 * scale, 0.025 * scale, qrMat, 0.36 * scale, 0.03 * scale, 0.13 * scale);
+        group.add(qrBack);
+        for (var y = 0; y < 5; y++) {
+          for (var x = 0; x < 5; x++) {
+            if ((x + y) % 2 === 0 || (x === 0 && y < 2) || (y === 4 && x > 1)) {
+              var dot = createBox(THREE, 0.043 * scale, 0.043 * scale, 0.018 * scale, darkQrMat, (0.25 + x * 0.055) * scale, (-0.08 + y * 0.055) * scale, 0.155 * scale);
+              group.add(dot);
+            }
+          }
+        }
+        var sub = makeLabelSprite(THREE, "E-Wallet", { width: 360, height: 110, fontSize: 40, color: "#bae6fd", shadowBlur: 8, scaleX: 0.68 * scale, scaleY: 0.20 * scale });
+        sub.position.set(-0.12 * scale, -0.23 * scale, 0.13 * scale);
+        group.add(sub);
+        return group;
+      }
+
+      function buildEtollGate(THREE, mats, scale) {
+        var group = new THREE.Group();
+        group.userData.product = "etoll";
+        var base = createBox(THREE, 1.18 * scale, 0.64 * scale, 0.10 * scale, mats.cardGreen, 0, 0, 0);
+        base.userData.product = "etoll";
+        base.castShadow = true;
+        group.add(base);
+        var road = createBox(THREE, 0.90 * scale, 0.08 * scale, 0.045 * scale, mats.line, 0, -0.21 * scale, 0.11 * scale);
+        group.add(road);
+        var postL = createBox(THREE, 0.10 * scale, 0.43 * scale, 0.06 * scale, mats.line, -0.35 * scale, 0.03 * scale, 0.135 * scale);
+        var postR = createBox(THREE, 0.10 * scale, 0.43 * scale, 0.06 * scale, mats.line, 0.35 * scale, 0.03 * scale, 0.135 * scale);
+        var gate = createBox(THREE, 0.82 * scale, 0.07 * scale, 0.05 * scale, mats.pay, 0, 0.22 * scale, 0.15 * scale);
+        group.add(postL, postR, gate);
+        var title = makeLabelSprite(THREE, "E-TOLL", { width: 420, height: 130, fontSize: 50, color: "#ffffff", shadowBlur: 10, scaleX: 0.78 * scale, scaleY: 0.24 * scale });
+        title.position.set(0, 0.02 * scale, 0.18 * scale);
+        group.add(title);
+        return group;
+      }
+
+      function buildSimChip(THREE, mats, scale) {
+        var group = new THREE.Group();
+        group.userData.product = "telkomsel";
+        var card = createBox(THREE, 0.78 * scale, 0.98 * scale, 0.09 * scale, mats.tile, 0, 0, 0);
+        card.userData.product = "telkomsel";
+        card.castShadow = true;
+        group.add(card);
+        var chip = createBox(THREE, 0.42 * scale, 0.34 * scale, 0.045 * scale, mats.gold, 0, 0.13 * scale, 0.09 * scale);
+        group.add(chip);
+        [-0.11, 0.0, 0.11].forEach(function (x) {
+          group.add(createBox(THREE, 0.025 * scale, 0.31 * scale, 0.02 * scale, mats.line, x * scale, 0.13 * scale, 0.125 * scale));
+        });
+        var title = makeLabelSprite(THREE, "PULSA", { width: 340, height: 120, fontSize: 48, color: "#ffffff", shadowBlur: 10, scaleX: 0.58 * scale, scaleY: 0.21 * scale });
+        title.position.set(0, -0.32 * scale, 0.12 * scale);
+        group.add(title);
+        return group;
+      }
+
+      function buildPlnBolt(THREE, mats, scale) {
+        var group = new THREE.Group();
+        group.userData.product = "pln";
+        var shape = new THREE.Shape();
+        shape.moveTo(0.10 * scale, 0.58 * scale);
+        shape.lineTo(-0.26 * scale, 0.05 * scale);
+        shape.lineTo(-0.05 * scale, 0.05 * scale);
+        shape.lineTo(-0.24 * scale, -0.58 * scale);
+        shape.lineTo(0.32 * scale, -0.02 * scale);
+        shape.lineTo(0.08 * scale, -0.02 * scale);
+        shape.lineTo(0.10 * scale, 0.58 * scale);
+        var geo = new THREE.ExtrudeGeometry(shape, { depth: 0.12 * scale, bevelEnabled: true, bevelSize: 0.018 * scale, bevelThickness: 0.018 * scale, bevelSegments: 2 });
+        var bolt = new THREE.Mesh(geo, mats.gold);
+        bolt.position.z = -0.06 * scale;
+        bolt.userData.product = "pln";
+        bolt.castShadow = true;
+        group.add(bolt);
+        var glow = new THREE.Mesh(new THREE.TorusGeometry(0.48 * scale, 0.012 * scale, 8, 90), mats.orbit);
+        glow.rotation.x = Math.PI / 2;
+        glow.position.set(0.04 * scale, 0, -0.025 * scale);
+        group.add(glow);
+        var title = makeLabelSprite(THREE, "PLN", { width: 260, height: 110, fontSize: 52, color: "#fef9c3", shadowBlur: 14, scaleX: 0.45 * scale, scaleY: 0.19 * scale });
+        title.position.set(0.05 * scale, -0.55 * scale, 0.16 * scale);
+        group.add(title);
+        return group;
+      }
+
       function createParticleTexture(THREE) {
         var canvas = document.createElement("canvas");
         canvas.width = 64;
@@ -5386,47 +5518,34 @@
         };
 
         var phone = buildPhone(THREE, mats, scale);
-        phone.position.set(0, mobile ? -0.04 * scale : 0, 0.14 * scale);
-        phone.rotation.y = -0.06;
+        phone.position.set(0, mobile ? -0.02 * scale : 0.02 * scale, 0.18 * scale);
+        phone.rotation.y = -0.08;
         root.add(phone);
 
-        var game = buildCard(THREE, mats, "GAME", "mlbb", mats.cardBlue, scale);
-        game.position.set(-1.42 * scale, 0.92 * scale, -0.52 * scale);
-        game.rotation.set(0.08, 0.62, -0.20);
-        root.add(game);
+        var controller = buildGameController(THREE, mats, scale);
+        controller.position.set(-1.56 * scale, 0.88 * scale, -0.34 * scale);
+        controller.rotation.set(0.10, 0.55, -0.17);
+        root.add(controller);
 
-        var wallet = buildCard(THREE, mats, "WALLET", "qris", mats.cardPurple, scale);
-        wallet.position.set(1.42 * scale, 0.72 * scale, -0.48 * scale);
-        wallet.rotation.set(0.04, -0.64, 0.17);
-        root.add(wallet);
+        var qrisCard = buildQrisCard(THREE, mats, scale);
+        qrisCard.position.set(1.52 * scale, 0.76 * scale, -0.30 * scale);
+        qrisCard.rotation.set(0.06, -0.58, 0.16);
+        root.add(qrisCard);
 
-        var toll = buildCard(THREE, mats, "E-TOLL", "etoll", mats.cardGreen, scale);
-        toll.position.set(-1.35 * scale, -0.93 * scale, -0.25 * scale);
-        toll.rotation.set(-0.05, 0.52, 0.18);
-        root.add(toll);
+        var etollGate = buildEtollGate(THREE, mats, scale);
+        etollGate.position.set(-1.45 * scale, -0.92 * scale, -0.18 * scale);
+        etollGate.rotation.set(-0.04, 0.50, 0.16);
+        root.add(etollGate);
 
-        var coin = new THREE.Mesh(new THREE.CylinderGeometry(0.32 * scale, 0.32 * scale, 0.14 * scale, 64), mats.gold);
-        coin.position.set(1.42 * scale, -0.85 * scale, 0.68 * scale);
-        coin.rotation.set(1.32, 0.2, 0.45);
-        coin.userData.product = "dana";
-        root.add(coin);
-        var coinText = makeLabelSprite(THREE, "ID", { width: 190, height: 120, fontSize: 52, color: "#1f2937", scaleX: 0.33 * scale, scaleY: 0.20 * scale });
-        coinText.position.set(1.42 * scale, -0.85 * scale, 0.78 * scale);
-        root.add(coinText);
+        var simChip = buildSimChip(THREE, mats, scale);
+        simChip.position.set(1.44 * scale, -0.91 * scale, 0.62 * scale);
+        simChip.rotation.set(0.12, -0.48, -0.11);
+        root.add(simChip);
 
-        var diamond = new THREE.Mesh(new THREE.OctahedronGeometry(0.40 * scale, 2), mats.diamond);
-        diamond.position.set(-1.28 * scale, -0.08 * scale, 0.96 * scale);
-        diamond.userData.product = "freefire";
-        root.add(diamond);
-
-        var cube = new THREE.Mesh(new THREE.BoxGeometry(0.72 * scale, 0.72 * scale, 0.72 * scale), mats.cube);
-        cube.position.set(mobile ? 1.12 * scale : 1.52 * scale, mobile ? -1.24 * scale : -1.36 * scale, 0.72 * scale);
-        cube.rotation.set(0.45, 0.70, 0.15);
-        cube.userData.product = "mlbb";
-        root.add(cube);
-        var cubeLabel = makeLabelSprite(THREE, "3D", { width: 200, height: 140, fontSize: 58, color: "#07111f", scaleX: 0.33 * scale, scaleY: 0.20 * scale });
-        cubeLabel.position.set(cube.position.x, cube.position.y, cube.position.z + 0.37 * scale);
-        root.add(cubeLabel);
+        var plnBolt = buildPlnBolt(THREE, mats, scale);
+        plnBolt.position.set(mobile ? 0.92 * scale : 1.22 * scale, mobile ? -1.43 * scale : -1.48 * scale, 0.95 * scale);
+        plnBolt.rotation.set(0.16, -0.16, -0.12);
+        root.add(plnBolt);
 
         var orbit = new THREE.Group();
         [[1.95, 0.011, mats.orbit, 1.35], [1.56, 0.009, mats.orbitPurple, -0.9], [2.30, 0.008, mats.orbit, 2.2]].forEach(function (r, idx) {
@@ -5447,7 +5566,7 @@
 
         var raycaster = new THREE.Raycaster();
         var pointer = new THREE.Vector2();
-        var interactive = [phone, game, wallet, toll, coin, diamond, cube];
+        var interactive = [phone, controller, qrisCard, etollGate, simChip, plnBolt];
         var dragging = false;
         var moved = false;
         var downX = 0;
@@ -5563,18 +5682,19 @@
           root.rotation.x = currentRotX;
           root.rotation.y = currentRotY;
 
-          phone.position.y = (mobile ? -0.04 * scale : 0) + Math.sin(t * 1.1) * 0.058 * scale;
-          game.position.y = 0.92 * scale + Math.sin(t * 1.15 + 0.8) * 0.07 * scale;
-          wallet.position.y = 0.72 * scale + Math.sin(t * 1.02 + 2.0) * 0.07 * scale;
-          toll.position.y = -0.93 * scale + Math.sin(t * 1.08 + 3.2) * 0.06 * scale;
-          coin.rotation.z += 0.028;
-          coin.rotation.y += 0.015;
-          diamond.rotation.x += 0.014;
-          diamond.rotation.y += 0.021;
-          cube.rotation.x += 0.012;
-          cube.rotation.y += 0.018;
-          cubeLabel.position.copy(cube.position);
-          cubeLabel.position.z += 0.37 * scale;
+          phone.position.y = (mobile ? -0.02 * scale : 0.02 * scale) + Math.sin(t * 1.1) * 0.052 * scale;
+          controller.position.y = 0.88 * scale + Math.sin(t * 1.15 + 0.8) * 0.07 * scale;
+          controller.rotation.z = -0.17 + Math.sin(t * 0.78) * 0.035;
+          qrisCard.position.y = 0.76 * scale + Math.sin(t * 1.02 + 2.0) * 0.07 * scale;
+          qrisCard.rotation.y = -0.58 + Math.sin(t * 0.72) * 0.04;
+          etollGate.position.y = -0.92 * scale + Math.sin(t * 1.08 + 3.2) * 0.06 * scale;
+          etollGate.rotation.z = 0.16 + Math.cos(t * 0.82) * 0.025;
+          simChip.position.y = -0.91 * scale + Math.sin(t * 1.16 + 4.1) * 0.07 * scale;
+          simChip.rotation.y += 0.010;
+          plnBolt.position.y = (mobile ? -1.43 * scale : -1.48 * scale) + Math.sin(t * 1.35 + 1.4) * 0.075 * scale;
+          plnBolt.rotation.z = -0.12 + Math.sin(t * 1.08) * 0.09;
+          var boltPulse = 1 + Math.sin(t * 2.1) * 0.035;
+          plnBolt.scale.set(boltPulse, boltPulse, boltPulse);
           orbit.rotation.y += 0.0035;
           orbit.rotation.z += 0.0022;
           particles.rotation.y += 0.0009;
@@ -6747,6 +6867,7 @@
       requestAnimationFrame(raf);
     }
     function activate() {
+      if (document.documentElement.classList.contains('threejs-only-active')) return;
       document.documentElement.classList.add('premium-final-3d-active');
       var isMobile = window.matchMedia && window.matchMedia('(max-width: 720px)').matches;
       var desktopParent = document.querySelector('.scene-zone');
@@ -8545,5 +8666,7 @@
   })();
 </script>
 
+
+<!-- V17 note: objek hero 3D telah diarahkan ke Three.js murni pada mode threejs-only-active. Perubahan hanya visual; checkout, invoice, localStorage, API, login, hash, payment gateway, dan keamanan backend tidak diubah. -->
 </body>
 </html>
