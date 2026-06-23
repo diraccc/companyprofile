@@ -6,7 +6,7 @@
   <title>TopUpVerse 3D Premium - Top Up Game, E-Wallet, E-Toll</title>
   <meta name="description" content="Frontend 3D premium satu file HTML untuk website top up game, e-wallet, e-toll, pulsa, paket data, token PLN, dan produk digital." />
   <meta name="theme-color" content="#050816" />
-  <meta name="x-build" content="threejs-only-v4-mobile-fixed" />
+  <meta name="x-build" content="threejs-offline-embedded-v5-no-cdn-blank-fix" />
   <link rel="icon" href="data:," />
 
   <style>
@@ -5471,7 +5471,7 @@
             if (!mount) return;
             mount.classList.add("is-error");
             var span = mount.querySelector(".threejs-only-loader span");
-            if (span) span.textContent = "Three.js belum termuat. Cek koneksi internet/CDN hosting.";
+            if (span) span.textContent = "Menyiapkan animasi 3D internal...";
           });
         });
       }
@@ -5480,6 +5480,454 @@
         document.addEventListener("DOMContentLoaded", init, { once: true });
       } else {
         init();
+      }
+    })();
+  </script>
+
+
+
+  <!-- =========================================================
+       OFFLINE 3D EMERGENCY FIX
+       Menjaga Three.js CDN loader tetap ada, tetapi jika CDN hosting gagal,
+       animasi tidak kosong lagi. Renderer 3D internal ini tidak memakai CSS 3D lama.
+       ========================================================= -->
+  <style id="offline-3d-emergency-style">
+    .threejs-only-mount.offline-3d-ready .threejs-only-loader,
+    .threejs-only-mount.offline-3d-ready.is-error .threejs-only-loader {
+      display: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+    }
+    .offline-3d-canvas {
+      position: absolute !important;
+      inset: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      display: block !important;
+      z-index: 2 !important;
+      touch-action: none !important;
+      user-select: none !important;
+      -webkit-user-select: none !important;
+    }
+    .threejs-only-mount.offline-3d-ready .threejs-only-badge {
+      z-index: 5 !important;
+      border-color: rgba(56,189,248,.34) !important;
+      background: rgba(2,6,23,.66) !important;
+      color: #e0f7ff !important;
+    }
+    .threejs-only-mount.offline-3d-ready::after {
+      content: "";
+      position: absolute;
+      left: 8%;
+      right: 8%;
+      bottom: 18%;
+      height: 80px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(56,189,248,.16), transparent 68%);
+      filter: blur(18px);
+      pointer-events: none;
+      z-index: 1;
+    }
+  </style>
+
+  <script id="offline-3d-emergency-script">
+    (function () {
+      "use strict";
+
+      function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+      function hexToRgb(hex) {
+        hex = String(hex || "#ffffff").replace("#", "");
+        if (hex.length === 3) hex = hex.split("").map(function(c){ return c + c; }).join("");
+        var n = parseInt(hex, 16);
+        return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+      }
+      function shadeColor(hex, k, alpha) {
+        var c = hexToRgb(hex);
+        var r = clamp(Math.round(c.r * k), 0, 255);
+        var g = clamp(Math.round(c.g * k), 0, 255);
+        var b = clamp(Math.round(c.b * k), 0, 255);
+        return "rgba(" + r + "," + g + "," + b + "," + (alpha == null ? 1 : alpha) + ")";
+      }
+      function vadd(a, b) { return [a[0] + b[0], a[1] + b[1], a[2] + b[2]]; }
+      function vsub(a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; }
+      function cross(a, b) { return [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]]; }
+      function dot(a, b) { return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]; }
+      function norm(a) { var l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0]/l, a[1]/l, a[2]/l]; }
+      function rotX(p, a) { var c = Math.cos(a), s = Math.sin(a); return [p[0], p[1]*c - p[2]*s, p[1]*s + p[2]*c]; }
+      function rotY(p, a) { var c = Math.cos(a), s = Math.sin(a); return [p[0]*c + p[2]*s, p[1], -p[0]*s + p[2]*c]; }
+      function rotZ(p, a) { var c = Math.cos(a), s = Math.sin(a); return [p[0]*c - p[1]*s, p[0]*s + p[1]*c, p[2]]; }
+      function rotate(p, r) {
+        p = rotX(p, r[0] || 0);
+        p = rotY(p, r[1] || 0);
+        p = rotZ(p, r[2] || 0);
+        return p;
+      }
+      function roundRectPath(ctx, x, y, w, h, r) {
+        r = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + w, y, x + w, y + h, r);
+        ctx.arcTo(x + w, y + h, x, y + h, r);
+        ctx.arcTo(x, y + h, x, y, r);
+        ctx.arcTo(x, y, x + w, y, r);
+        ctx.closePath();
+      }
+
+      function makeMount(parent, className, label) {
+        if (!parent) return null;
+        var old = parent.querySelector("." + className);
+        if (old) return old;
+        var mount = document.createElement("div");
+        mount.className = "threejs-only-mount " + className;
+        mount.setAttribute("aria-label", label);
+        mount.innerHTML = '<div class="threejs-only-loader"><span>Memuat animasi 3D...</span></div><div class="threejs-only-badge">3D aktif • Geser pelan, tap objek</div>';
+        parent.insertBefore(mount, parent.firstChild);
+        return mount;
+      }
+
+      function OfflineRenderer(mount, options) {
+        if (!mount || mount.__offline3dStarted) return;
+        mount.__offline3dStarted = true;
+        options = options || {};
+        var mobile = !!options.mobile;
+        var canvas = document.createElement("canvas");
+        canvas.className = "offline-3d-canvas";
+        mount.insertBefore(canvas, mount.firstChild);
+        var ctx = canvas.getContext("2d", { alpha: true });
+        var badge = mount.querySelector(".threejs-only-badge");
+        if (badge) badge.textContent = "3D aktif • Geser dengan jari";
+        mount.classList.remove("is-error");
+        mount.classList.add("is-ready", "offline-3d-ready");
+
+        var w = 1, h = 1, dpr = 1, f = 1, cx = 0, cy = 0;
+        var camDist = mobile ? 7.8 : 7.3;
+        var yaw = mobile ? -0.25 : -0.34;
+        var pitch = mobile ? 0.05 : 0.11;
+        var targetYaw = yaw, targetPitch = pitch;
+        var velYaw = 0, velPitch = 0;
+        var dragging = false, moved = false;
+        var downX = 0, downY = 0, lastX = 0, lastY = 0;
+        var timeStart = performance.now();
+        var particles = [];
+        var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+        function resetParticles() {
+          particles = [];
+          var count = mobile ? 58 : 96;
+          for (var i = 0; i < count; i++) {
+            particles.push({
+              x: (Math.random() - .5) * 5.8,
+              y: (Math.random() - .5) * 4.6,
+              z: (Math.random() - .5) * 2.6,
+              s: Math.random() * .018 + .008,
+              a: Math.random() * Math.PI * 2,
+              sp: .25 + Math.random() * .55
+            });
+          }
+        }
+
+        function resize() {
+          var rect = mount.getBoundingClientRect();
+          w = Math.max(1, Math.round(rect.width));
+          h = Math.max(1, Math.round(rect.height));
+          dpr = Math.min(2, window.devicePixelRatio || 1);
+          canvas.width = Math.round(w * dpr);
+          canvas.height = Math.round(h * dpr);
+          canvas.style.width = w + "px";
+          canvas.style.height = h + "px";
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          f = Math.min(w, h) * (mobile ? 0.98 : 1.08);
+          cx = w * 0.5;
+          cy = h * (mobile ? 0.47 : 0.50);
+        }
+
+        function rootPoint(p) {
+          p = rotX(p, pitch);
+          p = rotY(p, yaw);
+          return p;
+        }
+        function project(p) {
+          var z = camDist - p[2];
+          var s = f / Math.max(1.2, z);
+          return { x: cx + p[0] * s, y: cy - p[1] * s, s: s, z: p[2] };
+        }
+        function objectPoint(p, pos, rot) {
+          return rootPoint(vadd(rotate(p, rot || [0,0,0]), pos || [0,0,0]));
+        }
+        function addBox(faces, labels, spec) {
+          var hw = spec.w/2, hh = spec.h/2, hd = spec.d/2;
+          var verts = [
+            [-hw,-hh,-hd],[hw,-hh,-hd],[hw,hh,-hd],[-hw,hh,-hd],
+            [-hw,-hh, hd],[hw,-hh, hd],[hw,hh, hd],[-hw,hh, hd]
+          ].map(function(p){ return objectPoint(p, spec.pos, spec.rot); });
+          var idx = [
+            [0,1,2,3], [4,7,6,5], [0,4,5,1], [3,2,6,7], [1,5,6,2], [0,3,7,4]
+          ];
+          for (var i = 0; i < idx.length; i++) {
+            var ids = idx[i];
+            var pts = ids.map(function(id){ return verts[id]; });
+            var n = norm(cross(vsub(pts[1], pts[0]), vsub(pts[2], pts[0])));
+            var light = norm([-.35, .55, .75]);
+            var bright = .52 + Math.max(0, dot(n, light)) * .42 + Math.max(0, n[2]) * .16;
+            var depth = pts.reduce(function(a,p){ return a + p[2]; }, 0) / pts.length;
+            faces.push({ pts: pts, color: spec.color, alpha: spec.alpha == null ? 1 : spec.alpha, bright: bright, depth: depth, stroke: spec.stroke });
+          }
+          if (spec.label) {
+            labels.push({ text: spec.label, pos: objectPoint([0,0,spec.d/2+.03], spec.pos, spec.rot), size: spec.labelSize || 18, color: spec.labelColor || "#ffffff", bg: spec.labelBg || null, depth: verts[6][2]+.01, weight: spec.labelWeight || "900" });
+          }
+        }
+        function addDiamond(faces, labels, pos, scale, rot) {
+          var points = [[0, .52*scale, 0], [0, -.52*scale, 0], [.46*scale,0,0], [0,0,.46*scale], [-.46*scale,0,0], [0,0,-.46*scale]];
+          points = points.map(function(p){ return objectPoint(p, pos, rot); });
+          var tris = [[0,2,3],[0,3,4],[0,4,5],[0,5,2],[1,3,2],[1,4,3],[1,5,4],[1,2,5]];
+          tris.forEach(function(ids, i){
+            var pts = ids.map(function(id){ return points[id]; });
+            var n = norm(cross(vsub(pts[1], pts[0]), vsub(pts[2], pts[0])));
+            var bright = .58 + Math.max(0, dot(n, norm([-.25,.4,.85]))) * .55;
+            var depth = pts.reduce(function(a,p){ return a + p[2]; }, 0) / pts.length;
+            faces.push({ pts: pts, color: i % 2 ? "#67e8f9" : "#a855f7", alpha: .88, bright: bright, depth: depth, stroke: "rgba(255,255,255,.42)" });
+          });
+          labels.push({ text: "DM", pos: objectPoint([0,0,.53*scale], pos, rot), size: 15, color: "#ffffff", depth: 3 });
+        }
+        function drawFace(face) {
+          var pts = face.pts.map(project);
+          ctx.beginPath();
+          ctx.moveTo(pts[0].x, pts[0].y);
+          for (var i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+          ctx.closePath();
+          ctx.fillStyle = shadeColor(face.color, clamp(face.bright, .36, 1.35), face.alpha);
+          ctx.fill();
+          if (face.stroke) {
+            ctx.strokeStyle = face.stroke;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+        }
+        function drawLabel(label) {
+          var p = project(label.pos);
+          if (p.s < 20) return;
+          var fs = clamp(label.size * p.s / 90, 9, mobile ? 30 : 38);
+          ctx.save();
+          ctx.font = label.weight + " " + fs + "px Arial, Helvetica, sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.shadowColor = "rgba(56,189,248,.8)";
+          ctx.shadowBlur = label.bg ? 0 : 10;
+          if (label.bg) {
+            var tw = ctx.measureText(label.text).width + fs * 1.6;
+            var th = fs * 1.95;
+            roundRectPath(ctx, p.x - tw/2, p.y - th/2, tw, th, fs * .55);
+            ctx.fillStyle = label.bg;
+            ctx.fill();
+            ctx.strokeStyle = "rgba(255,255,255,.15)";
+            ctx.stroke();
+          }
+          ctx.fillStyle = label.color;
+          ctx.fillText(label.text, p.x, p.y);
+          ctx.restore();
+        }
+        function drawRing(radius, tiltX, tiltZ, y, time, color, alpha) {
+          var last = null;
+          ctx.save();
+          ctx.strokeStyle = color;
+          ctx.lineWidth = mobile ? 1 : 1.25;
+          ctx.globalAlpha = alpha;
+          ctx.shadowColor = "rgba(56,189,248,.7)";
+          ctx.shadowBlur = 10;
+          ctx.beginPath();
+          for (var i = 0; i <= 150; i++) {
+            var a = (i / 150) * Math.PI * 2 + time;
+            var p = [Math.cos(a) * radius, Math.sin(a) * .36 + y, Math.sin(a) * radius * .32];
+            p = rotate(p, [tiltX, 0, tiltZ]);
+            p = rootPoint(p);
+            var q = project(p);
+            if (!last) ctx.moveTo(q.x, q.y); else ctx.lineTo(q.x, q.y);
+            last = q;
+          }
+          ctx.stroke();
+          ctx.restore();
+        }
+        function drawCoin(pos, time) {
+          var p = project(rootPoint(pos));
+          var r = clamp(.34 * p.s, 18, mobile ? 45 : 58);
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate(Math.sin(time * 2.5) * .25);
+          var g = ctx.createRadialGradient(-r*.25, -r*.25, r*.1, 0, 0, r);
+          g.addColorStop(0, "#fff7b8");
+          g.addColorStop(.45, "#facc15");
+          g.addColorStop(1, "#a16207");
+          ctx.fillStyle = g;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, r, r * (.78 + Math.sin(time*2)*.06), 0, 0, Math.PI*2);
+          ctx.fill();
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = "rgba(255,255,255,.35)";
+          ctx.stroke();
+          ctx.font = "900 " + Math.round(r*.48) + "px Arial";
+          ctx.fillStyle = "#3b2600";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("Rp", 0, 1);
+          ctx.restore();
+        }
+        function drawParticles(time) {
+          ctx.save();
+          ctx.fillStyle = "rgba(103,232,249,.72)";
+          ctx.shadowColor = "rgba(56,189,248,.9)";
+          ctx.shadowBlur = 8;
+          particles.forEach(function(pt){
+            var p = [pt.x + Math.sin(time*pt.sp + pt.a)*.10, pt.y + Math.cos(time*pt.sp + pt.a)*.08, pt.z];
+            p = rootPoint(p);
+            var q = project(p);
+            var r = clamp(pt.s * q.s, .7, 2.7);
+            ctx.globalAlpha = .25 + .45 * Math.sin(time*pt.sp + pt.a) * .5 + .35;
+            ctx.beginPath(); ctx.arc(q.x, q.y, r, 0, Math.PI*2); ctx.fill();
+          });
+          ctx.restore();
+        }
+        function drawGlow() {
+          ctx.clearRect(0, 0, w, h);
+          var bg = ctx.createRadialGradient(cx, cy, 20, cx, cy, Math.max(w,h)*.65);
+          bg.addColorStop(0, "rgba(56,189,248,.16)");
+          bg.addColorStop(.42, "rgba(168,85,247,.07)");
+          bg.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = bg;
+          ctx.fillRect(0, 0, w, h);
+          ctx.save();
+          ctx.globalAlpha = .22;
+          var floorY = cy + (mobile ? 175 : 190);
+          var fl = ctx.createRadialGradient(cx, floorY, 0, cx, floorY, Math.min(w,h)*.35);
+          fl.addColorStop(0, "rgba(56,189,248,.35)");
+          fl.addColorStop(1, "rgba(56,189,248,0)");
+          ctx.fillStyle = fl;
+          ctx.beginPath();
+          ctx.ellipse(cx, floorY, Math.min(w,h)*.30, Math.min(w,h)*.06, 0, 0, Math.PI*2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        function buildScene(time) {
+          var faces = [], labels = [];
+          var bob = reduceMotion ? 0 : Math.sin(time * 1.25) * .055;
+          var sc = mobile ? .92 : 1.0;
+
+          drawGlow();
+          drawParticles(time);
+          drawRing(2.15*sc, 1.25, time*.12, -.34*sc, time*.35, "rgba(56,189,248,.48)", .62);
+          drawRing(1.68*sc, 1.45, -1.1 + time*.08, -.25*sc, -time*.42, "rgba(168,85,247,.42)", .55);
+
+          addBox(faces, labels, { w: 2.0*sc, h: 3.30*sc, d: .34*sc, pos: [0, bob, 0], rot: [0.03, -0.04, 0], color: "#111827", stroke: "rgba(255,255,255,.20)" });
+          addBox(faces, labels, { w: 1.60*sc, h: 2.65*sc, d: .08*sc, pos: [0, bob, .24*sc], rot: [0.03, -0.04, 0], color: "#061226", alpha: .96, stroke: "rgba(56,189,248,.20)" });
+          addBox(faces, labels, { w: .62*sc, h: .055*sc, d: .05*sc, pos: [0, 1.23*sc + bob, .31*sc], rot: [0.03, -0.04, 0], color: "#94a3b8", alpha: .62 });
+          addBox(faces, labels, { w: 1.20*sc, h: .48*sc, d: .10*sc, pos: [0, .66*sc + bob, .33*sc], rot: [0.03, -0.04, 0], color: "#1e3a8a", alpha: .86, stroke: "rgba(56,189,248,.45)", label: "Rp1.250.000", labelSize: 20, labelBg: "rgba(15,23,42,.74)" });
+          var tiles = [["ML",-.42,.10],["QR",.42,.10],["TOL",-.42,-.58],["PLN",.42,-.58]];
+          tiles.forEach(function(t){
+            addBox(faces, labels, { w: .60*sc, h: .48*sc, d: .09*sc, pos: [t[1]*sc, t[2]*sc + bob, .35*sc], rot: [0.03, -0.04, 0], color: "#1f2937", alpha: .92, stroke: "rgba(255,255,255,.13)", label: t[0], labelSize: 18, labelColor: "#38bdf8" });
+          });
+          addBox(faces, labels, { w: 1.30*sc, h: .34*sc, d: .10*sc, pos: [0, -1.20*sc + bob, .35*sc], rot: [0.03, -0.04, 0], color: "#67e8f9", alpha: .90, stroke: "rgba(255,255,255,.18)", label: "Checkout", labelSize: 17, labelColor: "#061226" });
+
+          addBox(faces, labels, { w: 1.28*sc, h: .70*sc, d: .10*sc, pos: [-1.28*sc, .74*sc, -.18*sc], rot: [.02, -.66, -.20], color: "#334155", alpha: .72, stroke: "rgba(255,255,255,.20)", label: "GAME", labelSize: 16 });
+          addBox(faces, labels, { w: 1.30*sc, h: .70*sc, d: .10*sc, pos: [1.34*sc, .57*sc, -.20*sc], rot: [.02, .55, .16], color: "#334155", alpha: .70, stroke: "rgba(255,255,255,.18)", label: "WALLET", labelSize: 15 });
+          addBox(faces, labels, { w: 1.28*sc, h: .70*sc, d: .10*sc, pos: [-1.45*sc, -1.00*sc, -.10*sc], rot: [.05, -.52, .20], color: "#334155", alpha: .72, stroke: "rgba(255,255,255,.20)", label: "E-TOLL", labelSize: 15 });
+          addBox(faces, labels, { w: .74*sc, h: .74*sc, d: .74*sc, pos: [1.44*sc, -1.38*sc, .72*sc], rot: [time*.65, time*.52, .18], color: "#67e8f9", alpha: .78, stroke: "rgba(255,255,255,.40)", label: "3D", labelSize: 19, labelColor: "#020617" });
+          addDiamond(faces, labels, [-1.45*sc, 1.45*sc, .48*sc], .58*sc, [time*.35, time*.75, .70]);
+          drawCoin([1.50*sc, 1.25*sc, .42*sc], time);
+
+          faces.sort(function(a, b){ return a.depth - b.depth; });
+          faces.forEach(drawFace);
+          labels.sort(function(a, b){ return (a.depth || a.pos[2]) - (b.depth || b.pos[2]); });
+          labels.forEach(drawLabel);
+        }
+
+        function frame(now) {
+          var t = (now - timeStart) / 1000;
+          if (!dragging && !reduceMotion) {
+            targetYaw += velYaw;
+            targetPitch += velPitch;
+            velYaw *= .92;
+            velPitch *= .90;
+            targetYaw += Math.sin(t * .45) * .0009;
+            targetPitch += Math.cos(t * .52) * .00035;
+          }
+          targetPitch = clamp(targetPitch, -.55, .65);
+          yaw += (targetYaw - yaw) * .13;
+          pitch += (targetPitch - pitch) * .13;
+          buildScene(t);
+          requestAnimationFrame(frame);
+        }
+
+        function getXY(e) {
+          var p = e.touches && e.touches[0] ? e.touches[0] : e;
+          return { x: p.clientX, y: p.clientY };
+        }
+        function down(e) {
+          var p = getXY(e);
+          dragging = true; moved = false;
+          downX = lastX = p.x; downY = lastY = p.y;
+          velYaw = 0; velPitch = 0;
+          mount.classList.add("is-grabbing");
+          if (canvas.setPointerCapture && e.pointerId != null) { try { canvas.setPointerCapture(e.pointerId); } catch (_) {} }
+        }
+        function move(e) {
+          if (!dragging) return;
+          var p = getXY(e);
+          var dxAll = p.x - downX, dyAll = p.y - downY;
+          if (Math.abs(dxAll) + Math.abs(dyAll) > 4) moved = true;
+          if (!moved) return;
+          if (e.cancelable) e.preventDefault();
+          var dx = p.x - lastX, dy = p.y - lastY;
+          lastX = p.x; lastY = p.y;
+          var sens = mobile ? .0062 : .0048;
+          targetYaw += dx * sens;
+          targetPitch += dy * sens * .72;
+          velYaw = dx * sens * .12;
+          velPitch = dy * sens * .08;
+        }
+        function up() {
+          dragging = false;
+          mount.classList.remove("is-grabbing");
+        }
+
+        canvas.addEventListener("pointerdown", down, { passive: true });
+        window.addEventListener("pointermove", move, { passive: false });
+        window.addEventListener("pointerup", up, { passive: true });
+        window.addEventListener("pointercancel", up, { passive: true });
+        canvas.addEventListener("touchstart", down, { passive: true });
+        canvas.addEventListener("touchmove", move, { passive: false });
+        canvas.addEventListener("touchend", up, { passive: true });
+
+        resize();
+        resetParticles();
+        if (window.ResizeObserver) new ResizeObserver(resize).observe(mount);
+        window.addEventListener("resize", resize, { passive: true });
+        requestAnimationFrame(frame);
+      }
+
+      function activateOfflineIfNeeded() {
+        var desktopParent = document.querySelector(".scene-zone");
+        var mobileParent = document.querySelector("#real-mobile-3d .real-3d-stage-wrap");
+        var desktopMount = makeMount(desktopParent, "threejs-only-desktop", "Animasi 3D desktop");
+        var mobileMount = makeMount(mobileParent, "threejs-only-mobile", "Animasi 3D mobile");
+        [desktopMount, mobileMount].forEach(function(mount){
+          if (!mount) return;
+          var alreadyHasCanvas = mount.querySelector("canvas") && mount.classList.contains("is-ready") && !mount.classList.contains("is-error");
+          if (alreadyHasCanvas && !mount.querySelector(".offline-3d-canvas")) return;
+          if (!mount.querySelector(".offline-3d-canvas")) {
+            OfflineRenderer(mount, { mobile: mount.classList.contains("threejs-only-mobile") });
+          }
+        });
+      }
+
+      function initEmergency3D() {
+        setTimeout(activateOfflineIfNeeded, 900);
+        setTimeout(activateOfflineIfNeeded, 1900);
+        setTimeout(activateOfflineIfNeeded, 3200);
+      }
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initEmergency3D, { once: true });
+      } else {
+        initEmergency3D();
       }
     })();
   </script>
