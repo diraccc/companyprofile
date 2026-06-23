@@ -6,7 +6,7 @@
   <title>TopUpVerse 3D Premium - Top Up Game, E-Wallet, E-Toll</title>
   <meta name="description" content="Frontend 3D premium satu file HTML untuk website top up game, e-wallet, e-toll, pulsa, paket data, token PLN, dan produk digital." />
   <meta name="theme-color" content="#050816" />
-  <meta name="x-build" content="threejs-offline-embedded-v5-no-cdn-blank-fix" />
+  <meta name="x-build" content="threejs-balanced-premium-v7-large-no-shrink" />
   <link rel="icon" href="data:," />
 
   <style>
@@ -4847,7 +4847,7 @@
     }
 
     html.threejs-only-active .real-3d-stage-wrap {
-      min-height: 560px !important;
+      min-height: 600px !important;
       display: grid !important;
       place-items: center !important;
       perspective: none !important;
@@ -4968,7 +4968,7 @@
       html.threejs-only-active .real-3d-stage-wrap {
         margin: 20px 0 0 !important;
         border-radius: 0 !important;
-        min-height: 530px !important;
+        min-height: min(68svh, 610px) !important;
         width: 100% !important;
       }
       .threejs-only-mount { border-radius: 0 !important; }
@@ -5195,7 +5195,7 @@
         mount.dataset.ready = "1";
         options = options || {};
         var mobile = !!options.mobile;
-        var scale = mobile ? 0.86 : 1;
+        var scale = mobile ? 1.03 : 1.08;
 
         var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
         renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, mobile ? 1.65 : 2));
@@ -5208,8 +5208,8 @@
         mount.appendChild(renderer.domElement);
 
         var scene = new THREE.Scene();
-        var camera = new THREE.PerspectiveCamera(mobile ? 39 : 38, 1, 0.1, 100);
-        camera.position.set(0, 0.1 * scale, mobile ? 6.2 * scale : 6.4 * scale);
+        var camera = new THREE.PerspectiveCamera(mobile ? 36 : 35, 1, 0.1, 100);
+        camera.position.set(0, mobile ? 0.02 * scale : 0.08 * scale, mobile ? 5.85 * scale : 5.65 * scale);
 
         var root = new THREE.Group();
         root.rotation.x = mobile ? 0.13 : 0.08;
@@ -5247,7 +5247,7 @@
         };
 
         var phone = buildPhone(THREE, mats, scale);
-        phone.position.set(0, mobile ? -0.12 * scale : 0, 0.08 * scale);
+        phone.position.set(0, mobile ? -0.04 * scale : 0, 0.14 * scale);
         phone.rotation.y = -0.06;
         root.add(phone);
 
@@ -5280,7 +5280,7 @@
         diamond.userData.product = "freefire";
         root.add(diamond);
 
-        var cube = new THREE.Mesh(new THREE.BoxGeometry(0.62 * scale, 0.62 * scale, 0.62 * scale), mats.cube);
+        var cube = new THREE.Mesh(new THREE.BoxGeometry(0.72 * scale, 0.72 * scale, 0.72 * scale), mats.cube);
         cube.position.set(mobile ? 1.12 * scale : 1.52 * scale, mobile ? -1.24 * scale : -1.36 * scale, 0.72 * scale);
         cube.rotation.set(0.45, 0.70, 0.15);
         cube.userData.product = "mlbb";
@@ -5303,7 +5303,7 @@
         floor.position.y = -1.65 * scale;
         root.add(floor);
 
-        var particles = buildParticles(THREE, scale, mobile ? 80 : 115);
+        var particles = buildParticles(THREE, scale, mobile ? 110 : 145);
         scene.add(particles);
 
         var raycaster = new THREE.Raycaster();
@@ -5424,7 +5424,7 @@
           root.rotation.x = currentRotX;
           root.rotation.y = currentRotY;
 
-          phone.position.y = (mobile ? -0.12 * scale : 0) + Math.sin(t * 1.1) * 0.055 * scale;
+          phone.position.y = (mobile ? -0.04 * scale : 0) + Math.sin(t * 1.1) * 0.058 * scale;
           game.position.y = 0.92 * scale + Math.sin(t * 1.15 + 0.8) * 0.07 * scale;
           wallet.position.y = 0.72 * scale + Math.sin(t * 1.02 + 2.0) * 0.07 * scale;
           toll.position.y = -0.93 * scale + Math.sin(t * 1.08 + 3.2) * 0.06 * scale;
@@ -5471,7 +5471,7 @@
             if (!mount) return;
             mount.classList.add("is-error");
             var span = mount.querySelector(".threejs-only-loader span");
-            if (span) span.textContent = "Menyiapkan animasi 3D internal...";
+            if (span) span.textContent = "Three.js belum termuat. Cek koneksi internet/CDN hosting.";
           });
         });
       }
@@ -5529,6 +5529,18 @@
       z-index: 1;
     }
   </style>
+  <style id="balanced-premium-mobile-polish">
+    @media (max-width: 720px) {
+      html.threejs-only-active .real-3d-stage-wrap {
+        margin-top: 10px !important;
+        background: radial-gradient(circle at 50% 42%, rgba(56,189,248,.18), transparent 33%), radial-gradient(circle at 50% 80%, rgba(168,85,247,.18), transparent 44%) !important;
+      }
+    }
+    .threejs-only-mount.offline-3d-ready::before {
+      content: ""; position:absolute; inset:0; pointer-events:none; z-index:1;
+      background: radial-gradient(circle at 50% 42%, rgba(56,189,248,.10), transparent 34%), linear-gradient(180deg, transparent 0%, rgba(2,6,23,.14) 100%);
+    }
+  </style>
 
   <script id="offline-3d-emergency-script">
     (function () {
@@ -5580,7 +5592,7 @@
         var mount = document.createElement("div");
         mount.className = "threejs-only-mount " + className;
         mount.setAttribute("aria-label", label);
-        mount.innerHTML = '<div class="threejs-only-loader"><span>Memuat animasi 3D...</span></div><div class="threejs-only-badge">3D aktif • Geser pelan, tap objek</div>';
+        mount.innerHTML = '<div class="threejs-only-loader"><span>Memuat animasi 3D...</span></div><div class="threejs-only-badge">3D premium aktif • Geser dengan jari</div>';
         parent.insertBefore(mount, parent.firstChild);
         return mount;
       }
@@ -5595,14 +5607,14 @@
         mount.insertBefore(canvas, mount.firstChild);
         var ctx = canvas.getContext("2d", { alpha: true });
         var badge = mount.querySelector(".threejs-only-badge");
-        if (badge) badge.textContent = "3D aktif • Geser dengan jari";
+        if (badge) badge.textContent = "3D premium aktif • Geser dengan jari";
         mount.classList.remove("is-error");
         mount.classList.add("is-ready", "offline-3d-ready");
 
         var w = 1, h = 1, dpr = 1, f = 1, cx = 0, cy = 0;
-        var camDist = mobile ? 7.8 : 7.3;
-        var yaw = mobile ? -0.25 : -0.34;
-        var pitch = mobile ? 0.05 : 0.11;
+        var camDist = mobile ? 6.05 : 5.85;
+        var yaw = mobile ? -0.20 : -0.30;
+        var pitch = mobile ? 0.035 : 0.085;
         var targetYaw = yaw, targetPitch = pitch;
         var velYaw = 0, velPitch = 0;
         var dragging = false, moved = false;
@@ -5613,7 +5625,7 @@
 
         function resetParticles() {
           particles = [];
-          var count = mobile ? 58 : 96;
+          var count = mobile ? 105 : 145;
           for (var i = 0; i < count; i++) {
             particles.push({
               x: (Math.random() - .5) * 5.8,
@@ -5636,9 +5648,9 @@
           canvas.style.width = w + "px";
           canvas.style.height = h + "px";
           ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-          f = Math.min(w, h) * (mobile ? 0.98 : 1.08);
+          f = Math.min(w, h) * (mobile ? 1.22 : 1.28);
           cx = w * 0.5;
-          cy = h * (mobile ? 0.47 : 0.50);
+          cy = h * (mobile ? 0.455 : 0.49);
         }
 
         function rootPoint(p) {
@@ -5796,13 +5808,13 @@
           ctx.fillRect(0, 0, w, h);
           ctx.save();
           ctx.globalAlpha = .22;
-          var floorY = cy + (mobile ? 175 : 190);
+          var floorY = cy + (mobile ? 188 : 210);
           var fl = ctx.createRadialGradient(cx, floorY, 0, cx, floorY, Math.min(w,h)*.35);
           fl.addColorStop(0, "rgba(56,189,248,.35)");
           fl.addColorStop(1, "rgba(56,189,248,0)");
           ctx.fillStyle = fl;
           ctx.beginPath();
-          ctx.ellipse(cx, floorY, Math.min(w,h)*.30, Math.min(w,h)*.06, 0, 0, Math.PI*2);
+          ctx.ellipse(cx, floorY, Math.min(w,h)*.36, Math.min(w,h)*.075, 0, 0, Math.PI*2);
           ctx.fill();
           ctx.restore();
         }
@@ -5810,17 +5822,17 @@
         function buildScene(time) {
           var faces = [], labels = [];
           var bob = reduceMotion ? 0 : Math.sin(time * 1.25) * .055;
-          var sc = mobile ? .92 : 1.0;
+          var sc = mobile ? 1.05 : 1.10;
 
           drawGlow();
           drawParticles(time);
           drawRing(2.15*sc, 1.25, time*.12, -.34*sc, time*.35, "rgba(56,189,248,.48)", .62);
           drawRing(1.68*sc, 1.45, -1.1 + time*.08, -.25*sc, -time*.42, "rgba(168,85,247,.42)", .55);
 
-          addBox(faces, labels, { w: 2.0*sc, h: 3.30*sc, d: .34*sc, pos: [0, bob, 0], rot: [0.03, -0.04, 0], color: "#111827", stroke: "rgba(255,255,255,.20)" });
-          addBox(faces, labels, { w: 1.60*sc, h: 2.65*sc, d: .08*sc, pos: [0, bob, .24*sc], rot: [0.03, -0.04, 0], color: "#061226", alpha: .96, stroke: "rgba(56,189,248,.20)" });
+          addBox(faces, labels, { w: 2.0*sc, h: 3.30*sc, d: .34*sc, pos: [0, bob, 0], rot: [0.03, -0.04, 0], color: "#020617", stroke: "rgba(255,255,255,.25)" });
+          addBox(faces, labels, { w: 1.60*sc, h: 2.65*sc, d: .08*sc, pos: [0, bob, .24*sc], rot: [0.03, -0.04, 0], color: "#071b36", alpha: .98, stroke: "rgba(56,189,248,.30)" });
           addBox(faces, labels, { w: .62*sc, h: .055*sc, d: .05*sc, pos: [0, 1.23*sc + bob, .31*sc], rot: [0.03, -0.04, 0], color: "#94a3b8", alpha: .62 });
-          addBox(faces, labels, { w: 1.20*sc, h: .48*sc, d: .10*sc, pos: [0, .66*sc + bob, .33*sc], rot: [0.03, -0.04, 0], color: "#1e3a8a", alpha: .86, stroke: "rgba(56,189,248,.45)", label: "Rp1.250.000", labelSize: 20, labelBg: "rgba(15,23,42,.74)" });
+          addBox(faces, labels, { w: 1.20*sc, h: .48*sc, d: .10*sc, pos: [0, .66*sc + bob, .33*sc], rot: [0.03, -0.04, 0], color: "#0e7490", alpha: .90, stroke: "rgba(103,232,249,.60)", label: "Rp1.250.000", labelSize: 20, labelBg: "rgba(15,23,42,.74)" });
           var tiles = [["ML",-.42,.10],["QR",.42,.10],["TOL",-.42,-.58],["PLN",.42,-.58]];
           tiles.forEach(function(t){
             addBox(faces, labels, { w: .60*sc, h: .48*sc, d: .09*sc, pos: [t[1]*sc, t[2]*sc + bob, .35*sc], rot: [0.03, -0.04, 0], color: "#1f2937", alpha: .92, stroke: "rgba(255,255,255,.13)", label: t[0], labelSize: 18, labelColor: "#38bdf8" });
@@ -5830,9 +5842,9 @@
           addBox(faces, labels, { w: 1.28*sc, h: .70*sc, d: .10*sc, pos: [-1.28*sc, .74*sc, -.18*sc], rot: [.02, -.66, -.20], color: "#334155", alpha: .72, stroke: "rgba(255,255,255,.20)", label: "GAME", labelSize: 16 });
           addBox(faces, labels, { w: 1.30*sc, h: .70*sc, d: .10*sc, pos: [1.34*sc, .57*sc, -.20*sc], rot: [.02, .55, .16], color: "#334155", alpha: .70, stroke: "rgba(255,255,255,.18)", label: "WALLET", labelSize: 15 });
           addBox(faces, labels, { w: 1.28*sc, h: .70*sc, d: .10*sc, pos: [-1.45*sc, -1.00*sc, -.10*sc], rot: [.05, -.52, .20], color: "#334155", alpha: .72, stroke: "rgba(255,255,255,.20)", label: "E-TOLL", labelSize: 15 });
-          addBox(faces, labels, { w: .74*sc, h: .74*sc, d: .74*sc, pos: [1.44*sc, -1.38*sc, .72*sc], rot: [time*.65, time*.52, .18], color: "#67e8f9", alpha: .78, stroke: "rgba(255,255,255,.40)", label: "3D", labelSize: 19, labelColor: "#020617" });
-          addDiamond(faces, labels, [-1.45*sc, 1.45*sc, .48*sc], .58*sc, [time*.35, time*.75, .70]);
-          drawCoin([1.50*sc, 1.25*sc, .42*sc], time);
+          addBox(faces, labels, { w: .78*sc, h: .78*sc, d: .78*sc, pos: [1.44*sc, -1.38*sc, .72*sc], rot: [time*.65, time*.52, .18], color: "#67e8f9", alpha: .78, stroke: "rgba(255,255,255,.40)", label: "3D", labelSize: 19, labelColor: "#020617" });
+          addDiamond(faces, labels, [-1.42*sc, 1.40*sc, .52*sc], .62*sc, [time*.35, time*.75, .70]);
+          drawCoin([1.46*sc, 1.22*sc, .48*sc], time);
 
           faces.sort(function(a, b){ return a.depth - b.depth; });
           faces.forEach(drawFace);
