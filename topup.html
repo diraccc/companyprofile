@@ -4817,5 +4817,734 @@
     })();
   </script>
 
+  <!-- ==========================================================
+       THREE.JS INTERACTIVE 3D UPGRADE
+       Area ini hanya menambah layer 3JS. Script dan form lama tidak diubah.
+       Fallback CSS 3D lama tetap tersedia jika CDN Three.js gagal dimuat.
+       ========================================================== -->
+  <style id="threejs-upgrade-style">
+    .scene-zone,
+    .real-3d-stage-wrap {
+      position: relative;
+      isolation: isolate;
+    }
+
+    .threejs-hero-mount,
+    .threejs-mobile-mount {
+      position: absolute;
+      inset: 0;
+      z-index: 7;
+      overflow: visible;
+      border-radius: 42px;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      cursor: grab;
+      contain: layout paint;
+    }
+
+    .threejs-hero-mount.is-grabbing,
+    .threejs-mobile-mount.is-grabbing {
+      cursor: grabbing;
+    }
+
+    .threejs-hero-mount canvas,
+    .threejs-mobile-mount canvas {
+      width: 100% !important;
+      height: 100% !important;
+      display: block;
+      outline: none;
+      border-radius: inherit;
+    }
+
+    .threejs-hero-badge,
+    .threejs-mobile-badge {
+      position: absolute;
+      left: 50%;
+      bottom: 8px;
+      z-index: 12;
+      transform: translateX(-50%);
+      padding: 8px 13px;
+      border-radius: 999px;
+      border: 1px solid rgba(103,232,249,0.28);
+      background: rgba(2,6,23,0.66);
+      color: #dff9ff;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.15px;
+      white-space: nowrap;
+      pointer-events: none;
+      box-shadow: 0 16px 50px rgba(0,0,0,0.22), 0 0 28px rgba(56,189,248,0.15);
+      backdrop-filter: blur(14px);
+      animation: hintFloat 2.2s ease-in-out infinite;
+    }
+
+    .scene-zone.threejs-ready .scene {
+      opacity: 0.045;
+      pointer-events: none;
+      filter: blur(3px) saturate(0.7);
+      transform: scale(0.96) !important;
+      transition: opacity 0.35s ease, filter 0.35s ease, transform 0.35s ease;
+    }
+
+    .scene-zone.threejs-ready .scene-hint {
+      display: none;
+    }
+
+    .real-3d-stage-wrap.threejs-ready #realMobile3DStage {
+      opacity: 0.03;
+      pointer-events: none;
+      filter: blur(3px) saturate(0.7);
+      transition: opacity 0.35s ease, filter 0.35s ease;
+    }
+
+    .threejs-fallback-note {
+      position: absolute;
+      left: 50%;
+      bottom: 8px;
+      z-index: 12;
+      transform: translateX(-50%);
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(250,204,21,0.28);
+      background: rgba(2,6,23,0.72);
+      color: #fde68a;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+      pointer-events: none;
+      backdrop-filter: blur(12px);
+    }
+
+    @media (max-width: 720px) {
+      .threejs-hero-mount,
+      .threejs-hero-badge {
+        display: none;
+      }
+
+      .threejs-mobile-mount {
+        inset: -10px -4px 0 -4px;
+        min-height: 390px;
+        border-radius: 32px;
+      }
+
+      .threejs-mobile-badge {
+        bottom: -4px;
+        font-size: 11px;
+        padding: 7px 10px;
+      }
+    }
+
+    @media (min-width: 721px) {
+      .threejs-mobile-mount,
+      .threejs-mobile-badge {
+        display: none;
+      }
+    }
+  </style>
+
+  <script type="module" id="threejs-upgrade-script">
+    (async function () {
+      const THREE_CDN = "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+      const status = {
+        loaded: false,
+        version: "three@0.160.0",
+        desktopReady: false,
+        mobileReady: false,
+        fallback: false,
+        reason: "initializing"
+      };
+      window.__TopUpVerse3JSStatus = status;
+
+      let THREE;
+      try {
+        THREE = await import(THREE_CDN);
+      } catch (error) {
+        status.loaded = false;
+        status.fallback = true;
+        status.reason = "threejs-cdn-unavailable";
+        document.documentElement.classList.add("threejs-fallback-active");
+        document.querySelectorAll(".scene-zone, .real-3d-stage-wrap").forEach(function (target) {
+          if (!target.querySelector(".threejs-fallback-note")) {
+            const note = document.createElement("div");
+            note.className = "threejs-fallback-note";
+            note.textContent = "Fallback CSS 3D aktif";
+            target.appendChild(note);
+          }
+        });
+        console.warn("Three.js CDN tidak tersedia. Website tetap berjalan memakai fallback CSS 3D lama.");
+        return;
+      }
+
+      status.loaded = true;
+      status.reason = "ready";
+      document.documentElement.classList.add("threejs-enhanced");
+
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const clock = new THREE.Clock();
+      const scenes = [];
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function makeMount(className, badgeClass, badgeText) {
+        const mount = document.createElement("div");
+        mount.className = className;
+        mount.setAttribute("role", "img");
+        mount.setAttribute("aria-label", "Scene Three.js interaktif untuk website top up");
+
+        const badge = document.createElement("div");
+        badge.className = badgeClass;
+        badge.textContent = badgeText;
+        mount.appendChild(badge);
+        return mount;
+      }
+
+      function roundedShape(width, height, radius) {
+        const x = -width / 2;
+        const y = -height / 2;
+        const r = Math.min(radius, width / 2, height / 2);
+        const shape = new THREE.Shape();
+        shape.moveTo(x + r, y);
+        shape.lineTo(x + width - r, y);
+        shape.quadraticCurveTo(x + width, y, x + width, y + r);
+        shape.lineTo(x + width, y + height - r);
+        shape.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+        shape.lineTo(x + r, y + height);
+        shape.quadraticCurveTo(x, y + height, x, y + height - r);
+        shape.lineTo(x, y + r);
+        shape.quadraticCurveTo(x, y, x + r, y);
+        return shape;
+      }
+
+      function roundedBox(width, height, depth, radius, material, bevelSize = 0.05) {
+        const geometry = new THREE.ExtrudeGeometry(roundedShape(width, height, radius), {
+          depth: depth,
+          bevelEnabled: true,
+          bevelSegments: 7,
+          bevelSize: bevelSize,
+          bevelThickness: bevelSize,
+          curveSegments: 16
+        });
+        geometry.center();
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        return mesh;
+      }
+
+      function makeTextSprite(text, options = {}) {
+        const canvas = document.createElement("canvas");
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.floor((options.width || 512) * dpr);
+        canvas.height = Math.floor((options.height || 180) * dpr);
+        const ctx = canvas.getContext("2d");
+        ctx.scale(dpr, dpr);
+        const width = canvas.width / dpr;
+        const height = canvas.height / dpr;
+        const radius = options.radius || 34;
+        ctx.clearRect(0, 0, width, height);
+        if (options.background) {
+          ctx.fillStyle = options.background;
+          roundRect(ctx, 0, 0, width, height, radius);
+          ctx.fill();
+        }
+        if (options.stroke) {
+          ctx.strokeStyle = options.stroke;
+          ctx.lineWidth = options.strokeWidth || 3;
+          roundRect(ctx, 2, 2, width - 4, height - 4, radius);
+          ctx.stroke();
+        }
+        ctx.fillStyle = options.color || "#ffffff";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.font = `${options.weight || 900} ${options.size || 58}px Arial, Helvetica, sans-serif`;
+        ctx.fillText(text, width / 2, height / 2);
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.colorSpace = THREE.SRGBColorSpace;
+        texture.needsUpdate = true;
+        const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false });
+        const sprite = new THREE.Sprite(material);
+        sprite.scale.set(options.scaleX || 1.3, options.scaleY || 0.46, 1);
+        return sprite;
+      }
+
+      function roundRect(ctx, x, y, width, height, radius) {
+        const r = Math.min(radius, width / 2, height / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + width, y, x + width, y + height, r);
+        ctx.arcTo(x + width, y + height, x, y + height, r);
+        ctx.arcTo(x, y + height, x, y, r);
+        ctx.arcTo(x, y, x + width, y, r);
+        ctx.closePath();
+      }
+
+      function makeGlowSprite(color = "rgba(56,189,248,0.45)", scale = 2.4) {
+        const canvas = document.createElement("canvas");
+        canvas.width = 256;
+        canvas.height = 256;
+        const ctx = canvas.getContext("2d");
+        const gradient = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+        gradient.addColorStop(0, color);
+        gradient.addColorStop(0.36, color.replace(/0\.[0-9]+\)/, "0.18)"));
+        gradient.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 256, 256);
+        const texture = new THREE.CanvasTexture(canvas);
+        const material = new THREE.SpriteMaterial({ map: texture, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+        const sprite = new THREE.Sprite(material);
+        sprite.scale.set(scale, scale, 1);
+        return sprite;
+      }
+
+      function makeMaterials() {
+        return {
+          phoneBody: new THREE.MeshPhysicalMaterial({ color: 0x050816, metalness: 0.72, roughness: 0.22, clearcoat: 0.95, clearcoatRoughness: 0.18 }),
+          phoneSide: new THREE.MeshPhysicalMaterial({ color: 0x111827, metalness: 0.86, roughness: 0.28, clearcoat: 0.7 }),
+          glass: new THREE.MeshPhysicalMaterial({ color: 0x071a34, metalness: 0.18, roughness: 0.12, transmission: 0.18, transparent: true, opacity: 0.88, clearcoat: 1, clearcoatRoughness: 0.06 }),
+          cyan: new THREE.MeshPhysicalMaterial({ color: 0x38bdf8, emissive: 0x0ea5e9, emissiveIntensity: 0.2, metalness: 0.38, roughness: 0.18, clearcoat: 0.82 }),
+          purple: new THREE.MeshPhysicalMaterial({ color: 0xa855f7, emissive: 0x4c1d95, emissiveIntensity: 0.24, metalness: 0.32, roughness: 0.22, clearcoat: 0.9 }),
+          pink: new THREE.MeshPhysicalMaterial({ color: 0xec4899, emissive: 0x831843, emissiveIntensity: 0.2, metalness: 0.25, roughness: 0.2, clearcoat: 0.8 }),
+          green: new THREE.MeshPhysicalMaterial({ color: 0x22c55e, emissive: 0x064e3b, emissiveIntensity: 0.18, metalness: 0.26, roughness: 0.24, clearcoat: 0.75 }),
+          gold: new THREE.MeshPhysicalMaterial({ color: 0xfacc15, emissive: 0x713f12, emissiveIntensity: 0.12, metalness: 0.78, roughness: 0.24, clearcoat: 0.7 }),
+          whiteLine: new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.56 }),
+          orbitCyan: new THREE.MeshBasicMaterial({ color: 0x67e8f9, transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending }),
+          orbitPurple: new THREE.MeshBasicMaterial({ color: 0xa855f7, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending }),
+          darkPanel: new THREE.MeshPhysicalMaterial({ color: 0x0f172a, metalness: 0.36, roughness: 0.26, clearcoat: 0.7 })
+        };
+      }
+
+      function buildPhone(materials, scale = 1) {
+        const phone = new THREE.Group();
+        phone.name = "3JS Interactive Phone";
+        const body = roundedBox(2.2 * scale, 4.2 * scale, 0.28 * scale, 0.28 * scale, materials.phoneBody, 0.035 * scale);
+        body.userData.productId = "mlbb";
+        phone.add(body);
+
+        const backGlow = makeGlowSprite("rgba(56,189,248,0.28)", 3.0 * scale);
+        backGlow.position.set(0, 0, -0.23 * scale);
+        phone.add(backGlow);
+
+        const screen = roundedBox(1.86 * scale, 3.62 * scale, 0.055 * scale, 0.2 * scale, materials.glass, 0.02 * scale);
+        screen.position.z = 0.19 * scale;
+        screen.userData.productId = "mlbb";
+        phone.add(screen);
+
+        const speaker = roundedBox(0.48 * scale, 0.055 * scale, 0.035 * scale, 0.03 * scale, materials.whiteLine, 0.005 * scale);
+        speaker.position.set(0, 1.73 * scale, 0.25 * scale);
+        phone.add(speaker);
+
+        const topLabel = makeTextSprite("TOPUPVERSE", { width: 640, height: 130, size: 40, background: "rgba(255,255,255,0.05)", stroke: "rgba(255,255,255,0.10)", scaleX: 1.28 * scale, scaleY: 0.26 * scale });
+        topLabel.position.set(0, 1.28 * scale, 0.29 * scale);
+        phone.add(topLabel);
+
+        const balance = roundedBox(1.42 * scale, 0.58 * scale, 0.06 * scale, 0.1 * scale, materials.cyan, 0.016 * scale);
+        balance.position.set(0, 0.77 * scale, 0.29 * scale);
+        balance.userData.productId = "dana";
+        phone.add(balance);
+        const balanceLabel = makeTextSprite("Rp 1.250.000", { width: 760, height: 170, size: 54, background: "rgba(2,6,23,0.18)", stroke: "rgba(255,255,255,0.14)", scaleX: 1.28 * scale, scaleY: 0.34 * scale });
+        balanceLabel.position.set(0, 0.77 * scale, 0.36 * scale);
+        phone.add(balanceLabel);
+
+        const appData = [
+          ["ML", materials.purple, -0.48, 0.05, "mlbb"],
+          ["FF", materials.gold, 0.48, 0.05, "freefire"],
+          ["QR", materials.green, -0.48, -0.73, "dana"],
+          ["PLN", materials.pink, 0.48, -0.73, "pln"]
+        ];
+        appData.forEach(function (item) {
+          const tile = roundedBox(0.72 * scale, 0.58 * scale, 0.055 * scale, 0.1 * scale, item[1], 0.015 * scale);
+          tile.position.set(item[2] * scale, item[3] * scale, 0.32 * scale);
+          tile.userData.productId = item[4];
+          phone.add(tile);
+          const label = makeTextSprite(item[0], { width: 320, height: 190, size: 80, background: "rgba(2,6,23,0.10)", scaleX: 0.42 * scale, scaleY: 0.24 * scale });
+          label.position.set(item[2] * scale, item[3] * scale, 0.39 * scale);
+          phone.add(label);
+        });
+
+        const pay = roundedBox(1.46 * scale, 0.38 * scale, 0.055 * scale, 0.12 * scale, materials.green, 0.014 * scale);
+        pay.position.set(0, -1.55 * scale, 0.34 * scale);
+        pay.userData.productId = "gopay";
+        phone.add(pay);
+        const payLabel = makeTextSprite("INSTANT CHECKOUT", { width: 740, height: 140, size: 48, color: "#020617", background: "rgba(255,255,255,0.18)", scaleX: 1.16 * scale, scaleY: 0.25 * scale });
+        payLabel.position.set(0, -1.55 * scale, 0.41 * scale);
+        phone.add(payLabel);
+
+        return phone;
+      }
+
+      function buildFloatingObjects(materials, scale = 1) {
+        const group = new THREE.Group();
+        group.name = "Floating TopUpVerse Objects";
+
+        const diamond = new THREE.Mesh(new THREE.OctahedronGeometry(0.42 * scale, 2), materials.cyan);
+        diamond.position.set(-1.75 * scale, 1.75 * scale, 0.86 * scale);
+        diamond.rotation.set(0.48, 0.2, -0.45);
+        diamond.userData.productId = "mlbb";
+        group.add(diamond);
+        const diamondGlow = makeGlowSprite("rgba(56,189,248,0.36)", 1.4 * scale);
+        diamondGlow.position.copy(diamond.position);
+        diamondGlow.position.z -= 0.18 * scale;
+        group.add(diamondGlow);
+
+        const coin = new THREE.Mesh(new THREE.CylinderGeometry(0.42 * scale, 0.42 * scale, 0.16 * scale, 72, 1, false), materials.gold);
+        coin.position.set(1.78 * scale, 1.34 * scale, 1.0 * scale);
+        coin.rotation.set(Math.PI / 2.8, 0.2, 0.4);
+        coin.userData.productId = "pulsa";
+        group.add(coin);
+        const coinLabel = makeTextSprite("Rp", { width: 260, height: 160, size: 82, color: "#442a00", scaleX: 0.46 * scale, scaleY: 0.28 * scale });
+        coinLabel.position.set(1.78 * scale, 1.34 * scale, 1.12 * scale);
+        group.add(coinLabel);
+
+        const wallet = roundedBox(1.08 * scale, 0.68 * scale, 0.11 * scale, 0.12 * scale, materials.purple, 0.018 * scale);
+        wallet.position.set(-1.92 * scale, -1.55 * scale, 0.92 * scale);
+        wallet.rotation.set(0.2, -0.42, 0.18);
+        wallet.userData.productId = "dana";
+        group.add(wallet);
+        const walletLabel = makeTextSprite("WALLET", { width: 420, height: 140, size: 48, background: "rgba(2,6,23,0.18)", scaleX: 0.78 * scale, scaleY: 0.24 * scale });
+        walletLabel.position.set(-1.92 * scale, -1.55 * scale, 1.05 * scale);
+        group.add(walletLabel);
+
+        const toll = roundedBox(1.18 * scale, 0.7 * scale, 0.1 * scale, 0.12 * scale, materials.green, 0.018 * scale);
+        toll.position.set(1.76 * scale, -1.78 * scale, 0.84 * scale);
+        toll.rotation.set(-0.18, 0.46, -0.2);
+        toll.userData.productId = "emoney";
+        group.add(toll);
+        const tollLabel = makeTextSprite("E-TOLL", { width: 440, height: 140, size: 50, color: "#02130a", background: "rgba(255,255,255,0.22)", scaleX: 0.82 * scale, scaleY: 0.24 * scale });
+        tollLabel.position.set(1.76 * scale, -1.78 * scale, 0.97 * scale);
+        group.add(tollLabel);
+
+        return { group, diamond, coin, wallet, toll };
+      }
+
+      function buildOrbits(materials, scale = 1) {
+        const group = new THREE.Group();
+        const rings = [
+          [2.75, 0.012, materials.orbitCyan, 1.12, 0.18, 0.08],
+          [2.2, 0.01, materials.orbitPurple, 1.24, -0.36, 0.56],
+          [3.15, 0.008, materials.orbitCyan, 1.36, 0.52, -0.52]
+        ];
+        rings.forEach(function (ring) {
+          const torus = new THREE.Mesh(new THREE.TorusGeometry(ring[0] * scale, ring[1] * scale, 8, 160), ring[2]);
+          torus.rotation.set(ring[3], ring[4], ring[5]);
+          group.add(torus);
+        });
+        return group;
+      }
+
+      function buildParticles(materials, scale = 1) {
+        const count = reduceMotion ? 55 : 130;
+        const geometry = new THREE.BufferGeometry();
+        const positions = new Float32Array(count * 3);
+        const speeds = [];
+        for (let i = 0; i < count; i++) {
+          const r = (1.5 + Math.random() * 2.7) * scale;
+          const a = Math.random() * Math.PI * 2;
+          positions[i * 3] = Math.cos(a) * r;
+          positions[i * 3 + 1] = (Math.random() - 0.5) * 4.8 * scale;
+          positions[i * 3 + 2] = Math.sin(a) * r - 0.4 * scale;
+          speeds.push(0.28 + Math.random() * 0.88);
+        }
+        geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+        const texture = makeParticleTexture();
+        const material = new THREE.PointsMaterial({ size: 0.055 * scale, map: texture, transparent: true, opacity: 0.72, blending: THREE.AdditiveBlending, depthWrite: false });
+        const points = new THREE.Points(geometry, material);
+        points.userData.speeds = speeds;
+        return points;
+      }
+
+      function makeParticleTexture() {
+        const canvas = document.createElement("canvas");
+        canvas.width = 64;
+        canvas.height = 64;
+        const ctx = canvas.getContext("2d");
+        const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+        gradient.addColorStop(0, "rgba(255,255,255,1)");
+        gradient.addColorStop(0.36, "rgba(103,232,249,0.75)");
+        gradient.addColorStop(1, "rgba(103,232,249,0)");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 64, 64);
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.colorSpace = THREE.SRGBColorSpace;
+        return texture;
+      }
+
+      function createInteractiveScene(config) {
+        const mount = config.mount;
+        const parent = config.parent;
+        const scale = config.scale || 1;
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, config.mobile ? 1.7 : 2));
+        renderer.setSize(Math.max(1, mount.clientWidth), Math.max(1, mount.clientHeight), false);
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        mount.insertBefore(renderer.domElement, mount.firstChild);
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(config.mobile ? 41 : 38, 1, 0.1, 80);
+        camera.position.set(0, 0.12 * scale, config.mobile ? 7.4 * scale : 7.1 * scale);
+
+        const root = new THREE.Group();
+        root.rotation.set(config.mobile ? 0.16 : 0.08, config.mobile ? -0.23 : -0.34, 0);
+        scene.add(root);
+
+        const materials = makeMaterials();
+        const ambient = new THREE.AmbientLight(0xffffff, 0.72);
+        scene.add(ambient);
+
+        const key = new THREE.DirectionalLight(0x9beafe, 2.1);
+        key.position.set(-3.2 * scale, 4.8 * scale, 5.8 * scale);
+        key.castShadow = true;
+        key.shadow.mapSize.set(1024, 1024);
+        scene.add(key);
+
+        const rim = new THREE.PointLight(0xa855f7, 2.4, 9 * scale);
+        rim.position.set(3.2 * scale, 1.7 * scale, 2.8 * scale);
+        scene.add(rim);
+
+        const floor = new THREE.Mesh(new THREE.CircleGeometry(2.7 * scale, 96), new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.065, blending: THREE.AdditiveBlending }));
+        floor.rotation.x = -Math.PI / 2;
+        floor.position.set(0, -2.45 * scale, -0.6 * scale);
+        root.add(floor);
+
+        const phone = buildPhone(materials, scale);
+        phone.rotation.set(0.12, -0.3, 0.06);
+        root.add(phone);
+
+        const objects = buildFloatingObjects(materials, scale);
+        root.add(objects.group);
+
+        const orbits = buildOrbits(materials, scale);
+        root.add(orbits);
+
+        const particles = buildParticles(materials, scale);
+        root.add(particles);
+
+        const raycaster = new THREE.Raycaster();
+        const pointer = new THREE.Vector2();
+        let dragging = false;
+        let pointerDownAt = 0;
+        let startX = 0;
+        let startY = 0;
+        let lastX = 0;
+        let lastY = 0;
+        let moved = 0;
+        let targetRotX = root.rotation.x;
+        let targetRotY = root.rotation.y;
+        let currentRotX = root.rotation.x;
+        let currentRotY = root.rotation.y;
+        let velX = 0;
+        let velY = 0;
+        let highlightUntil = 0;
+        let activeProductId = null;
+
+        function chooseProductFromScene(productId) {
+          if (!productId) return;
+          const button = document.querySelector(`[data-order="${productId}"]`);
+          if (button) {
+            button.click();
+            return;
+          }
+          const checkout = document.getElementById("checkout");
+          if (checkout) checkout.scrollIntoView({ behavior: "smooth" });
+        }
+
+        function normalizedPointer(event) {
+          const rect = mount.getBoundingClientRect();
+          pointer.x = ((event.clientX - rect.left) / Math.max(rect.width, 1)) * 2 - 1;
+          pointer.y = -(((event.clientY - rect.top) / Math.max(rect.height, 1)) * 2 - 1);
+        }
+
+        function setTargetFromPointer(event, strength) {
+          const rect = mount.getBoundingClientRect();
+          const px = (event.clientX - rect.left) / Math.max(rect.width, 1) - 0.5;
+          const py = (event.clientY - rect.top) / Math.max(rect.height, 1) - 0.5;
+          targetRotY = clamp(px * strength + velX, -0.78, 0.78);
+          targetRotX = clamp(-py * strength + velY, -0.5, 0.5);
+        }
+
+        mount.addEventListener("pointerdown", function (event) {
+          dragging = true;
+          pointerDownAt = performance.now();
+          moved = 0;
+          startX = lastX = event.clientX;
+          startY = lastY = event.clientY;
+          velX = 0;
+          velY = 0;
+          activeProductId = null;
+          mount.classList.add("is-grabbing");
+          mount.setPointerCapture(event.pointerId);
+          setTargetFromPointer(event, config.mobile ? 1.2 : 1.05);
+        });
+
+        mount.addEventListener("pointermove", function (event) {
+          if (!dragging) return;
+          event.preventDefault();
+          const dx = event.clientX - lastX;
+          const dy = event.clientY - lastY;
+          moved += Math.abs(dx) + Math.abs(dy);
+          velX = dx * 0.0048;
+          velY = -dy * 0.0042;
+          lastX = event.clientX;
+          lastY = event.clientY;
+          setTargetFromPointer(event, config.mobile ? 1.35 : 1.18);
+          normalizedPointer(event);
+          raycaster.setFromCamera(pointer, camera);
+          const hit = raycaster.intersectObjects(root.children, true).find(function (item) {
+            return item.object.userData && item.object.userData.productId;
+          });
+          activeProductId = hit ? hit.object.userData.productId : null;
+        }, { passive: false });
+
+        function stop(event) {
+          if (!dragging) return;
+          dragging = false;
+          mount.classList.remove("is-grabbing");
+          if (event && mount.hasPointerCapture(event.pointerId)) mount.releasePointerCapture(event.pointerId);
+          targetRotY = clamp(targetRotY + velX * 9, -0.88, 0.88);
+          targetRotX = clamp(targetRotX + velY * 9, -0.58, 0.58);
+
+          const quickTap = performance.now() - pointerDownAt < 350 && moved < 18;
+          if (quickTap) {
+            normalizedPointer(event);
+            raycaster.setFromCamera(pointer, camera);
+            const hit = raycaster.intersectObjects(root.children, true).find(function (item) {
+              return item.object.userData && item.object.userData.productId;
+            });
+            activeProductId = hit ? hit.object.userData.productId : activeProductId;
+            if (activeProductId) {
+              highlightUntil = performance.now() + 850;
+              chooseProductFromScene(activeProductId);
+            }
+          }
+        }
+
+        mount.addEventListener("pointerup", stop);
+        mount.addEventListener("pointercancel", stop);
+        mount.addEventListener("pointerleave", function () {
+          if (!dragging) activeProductId = null;
+        });
+
+        function resize() {
+          const rect = mount.getBoundingClientRect();
+          const width = Math.max(1, Math.floor(rect.width));
+          const height = Math.max(1, Math.floor(rect.height));
+          renderer.setSize(width, height, false);
+          camera.aspect = width / height;
+          camera.updateProjectionMatrix();
+        }
+
+        function animate() {
+          const elapsed = clock.getElapsedTime();
+          const delta = Math.min(clock.getDelta(), 0.033);
+
+          if (!dragging) {
+            targetRotX += ((config.mobile ? 0.12 : 0.08) + Math.sin(elapsed * 0.68) * 0.055 - targetRotX) * 0.018;
+            targetRotY += ((config.mobile ? -0.22 : -0.32) + Math.cos(elapsed * 0.54) * 0.095 - targetRotY) * 0.018;
+            velX *= 0.94;
+            velY *= 0.94;
+          }
+
+          currentRotX += (targetRotX - currentRotX) * (dragging ? 0.17 : 0.08);
+          currentRotY += (targetRotY - currentRotY) * (dragging ? 0.17 : 0.08);
+          root.rotation.x = currentRotX;
+          root.rotation.y = currentRotY;
+          root.position.z = dragging ? 0.16 * scale : Math.sin(elapsed * 0.7) * 0.06 * scale;
+
+          phone.position.y = Math.sin(elapsed * 1.18) * 0.09 * scale;
+          phone.rotation.z = 0.05 + Math.sin(elapsed * 0.9) * 0.025;
+
+          objects.diamond.rotation.x += delta * 0.85;
+          objects.diamond.rotation.y += delta * 1.1;
+          objects.coin.rotation.z += delta * 1.25;
+          objects.coin.rotation.y += delta * 0.45;
+          objects.wallet.position.y = -1.55 * scale + Math.sin(elapsed * 1.2 + 0.8) * 0.12 * scale;
+          objects.toll.position.y = -1.78 * scale + Math.cos(elapsed * 1.05 + 1.1) * 0.12 * scale;
+
+          orbits.children.forEach(function (ring, index) {
+            ring.rotation.z += delta * (0.18 + index * 0.07) * (index % 2 ? -1 : 1);
+            ring.rotation.x += delta * 0.018 * (index + 1);
+          });
+
+          const positions = particles.geometry.attributes.position.array;
+          const speeds = particles.userData.speeds;
+          for (let i = 0; i < speeds.length; i++) {
+            const ix = i * 3;
+            const x = positions[ix];
+            const z = positions[ix + 2];
+            const angle = Math.atan2(z, x) + delta * 0.14 * speeds[i];
+            const radius = Math.sqrt(x * x + z * z);
+            positions[ix] = Math.cos(angle) * radius;
+            positions[ix + 2] = Math.sin(angle) * radius;
+            positions[ix + 1] += Math.sin(elapsed * speeds[i] + i) * 0.0008 * scale;
+          }
+          particles.geometry.attributes.position.needsUpdate = true;
+
+          const pulse = performance.now() < highlightUntil ? 1 : 0;
+          rim.intensity = 2.4 + pulse * 2.2 + (dragging ? 0.6 : 0);
+          key.intensity = 2.1 + (dragging ? 0.25 : 0);
+
+          renderer.render(scene, camera);
+        }
+
+        resize();
+        const resizeObserver = new ResizeObserver(resize);
+        resizeObserver.observe(mount);
+
+        const sceneRecord = { renderer, scene, camera, root, animate, resize, parent, mount };
+        scenes.push(sceneRecord);
+        parent.classList.add("threejs-ready");
+        return sceneRecord;
+      }
+
+      function initDesktop() {
+        const zone = document.querySelector(".scene-zone");
+        if (!zone || zone.dataset.threejsReady === "1") return false;
+        const mount = makeMount("threejs-hero-mount", "threejs-hero-badge", "Three.js aktif • Geser / tap objek");
+        zone.insertBefore(mount, zone.firstChild);
+        zone.dataset.threejsReady = "1";
+        createInteractiveScene({ mount, parent: zone, scale: 1.0, mobile: false });
+        status.desktopReady = true;
+        return true;
+      }
+
+      function initMobile() {
+        const wrap = document.querySelector(".real-3d-stage-wrap");
+        if (!wrap || wrap.dataset.threejsReady === "1") return false;
+        const mount = makeMount("threejs-mobile-mount", "threejs-mobile-badge", "Three.js mobile • Sentuh & geser");
+        wrap.insertBefore(mount, wrap.firstChild);
+        wrap.dataset.threejsReady = "1";
+        createInteractiveScene({ mount, parent: wrap, scale: 0.86, mobile: true });
+        status.mobileReady = true;
+        return true;
+      }
+
+      const isMobile = window.innerWidth <= 720;
+      if (isMobile) initMobile();
+      else initDesktop();
+
+      window.addEventListener("resize", function () {
+        const nowMobile = window.innerWidth <= 720;
+        if (nowMobile && !status.mobileReady) initMobile();
+        if (!nowMobile && !status.desktopReady) initDesktop();
+        scenes.forEach(function (item) { item.resize(); });
+      }, { passive: true });
+
+      function renderLoop() {
+        scenes.forEach(function (item) {
+          const rect = item.mount.getBoundingClientRect();
+          const visible = rect.width > 8 && rect.height > 8 && rect.bottom > -40 && rect.top < window.innerHeight + 40;
+          if (visible) item.animate();
+        });
+        requestAnimationFrame(renderLoop);
+      }
+
+      renderLoop();
+    })();
+  </script>
+
 </body>
 </html>
