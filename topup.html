@@ -5944,5 +5944,682 @@
     })();
   </script>
 
+
+
+<!-- ==========================================================
+     FINAL PREMIUM 3D HERO 100 UPGRADE
+     Self-contained. No CDN dependency. No scale-on-tap.
+     It overrides the previous CSS/Canvas fallback visually only.
+     Login, hash, checkout, product, invoice logic stays untouched.
+     ========================================================== -->
+<style id="premium-final-3d-style">
+  html.premium-final-3d-active .threejs-only-mount,
+  html.premium-final-3d-active #mainScene,
+  html.premium-final-3d-active .scene-hint,
+  html.premium-final-3d-active #mobile-home,
+  html.premium-final-3d-active #realMobile3DStage,
+  html.premium-final-3d-active .real-3d-note {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  html.premium-final-3d-active .scene-zone,
+  html.premium-final-3d-active .real-3d-stage-wrap {
+    position: relative !important;
+    overflow: hidden !important;
+    isolation: isolate !important;
+    border-radius: 34px !important;
+    min-height: 680px !important;
+    touch-action: none !important;
+    perspective: none !important;
+    user-select: none !important;
+  }
+
+  html.premium-final-3d-active .real-3d-stage-wrap {
+    margin-top: 8px !important;
+    width: 100% !important;
+    min-height: 650px !important;
+  }
+
+  .premium3d-stage {
+    position: absolute;
+    inset: 0;
+    z-index: 80;
+    display: block;
+    overflow: hidden;
+    border-radius: inherit;
+    touch-action: none;
+    cursor: grab;
+    --rx: 0deg;
+    --ry: 0deg;
+    --glowx: 50%;
+    --glowy: 44%;
+    background:
+      radial-gradient(circle at var(--glowx) var(--glowy), rgba(103,232,249,.20), transparent 31%),
+      radial-gradient(circle at 20% 76%, rgba(168,85,247,.20), transparent 42%),
+      radial-gradient(circle at 86% 42%, rgba(56,189,248,.16), transparent 36%),
+      linear-gradient(180deg, rgba(5,8,22,0) 0%, rgba(5,8,22,.08) 100%);
+    transform: translateZ(0);
+  }
+
+  .premium3d-stage.is-dragging { cursor: grabbing; }
+
+  .premium3d-stage::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+    background-size: 46px 46px;
+    opacity: .45;
+    mask-image: radial-gradient(circle at center, #000 0 43%, transparent 82%);
+    pointer-events: none;
+  }
+
+  .premium3d-stage::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: 42px;
+    width: min(78%, 610px);
+    height: 118px;
+    transform: translateX(-50%);
+    border-radius: 999px;
+    background: radial-gradient(ellipse at center, rgba(56,189,248,.23), rgba(168,85,247,.12) 42%, transparent 73%);
+    filter: blur(14px);
+    opacity: .82;
+    pointer-events: none;
+  }
+
+  .premium3d-stars {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 9% 32%, rgba(103,232,249,.9) 0 2px, transparent 3px),
+      radial-gradient(circle at 18% 58%, rgba(103,232,249,.62) 0 1.6px, transparent 2.7px),
+      radial-gradient(circle at 77% 20%, rgba(103,232,249,.62) 0 2px, transparent 3px),
+      radial-gradient(circle at 91% 63%, rgba(103,232,249,.55) 0 2px, transparent 3px),
+      radial-gradient(circle at 48% 16%, rgba(255,255,255,.42) 0 1.4px, transparent 2.5px),
+      radial-gradient(circle at 36% 70%, rgba(103,232,249,.6) 0 1.8px, transparent 3px),
+      radial-gradient(circle at 70% 72%, rgba(255,255,255,.38) 0 1.3px, transparent 2.5px);
+    animation: premiumStars 5.6s ease-in-out infinite;
+  }
+
+  .premium3d-world {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: min(620px, 95vw);
+    height: min(690px, 95%);
+    transform-style: preserve-3d;
+    transform:
+      translate3d(-50%, -50%, 0)
+      rotateX(var(--rx)) rotateY(var(--ry));
+    will-change: transform;
+    pointer-events: none;
+  }
+
+  .premium3d-orbit {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 500px;
+    height: 310px;
+    border: 1.5px solid rgba(103,232,249,.34);
+    border-radius: 50%;
+    transform-style: preserve-3d;
+    transform: translate(-50%, -50%) rotateX(72deg) rotateZ(16deg) translateZ(-60px);
+    box-shadow: 0 0 32px rgba(56,189,248,.18), inset 0 0 28px rgba(168,85,247,.12);
+    animation: premiumOrbit 13s linear infinite;
+  }
+
+  .premium3d-orbit.o2 {
+    width: 420px;
+    height: 266px;
+    border-color: rgba(168,85,247,.32);
+    transform: translate(-50%, -50%) rotateX(76deg) rotateZ(-31deg) translateZ(-35px);
+    animation-duration: 17s;
+    animation-direction: reverse;
+  }
+
+  .premium3d-orbit.o3 {
+    width: 560px;
+    height: 350px;
+    border-color: rgba(236,72,153,.18);
+    transform: translate(-50%, -50%) rotateX(78deg) rotateZ(66deg) translateZ(-90px);
+    animation-duration: 22s;
+  }
+
+  .premium-phone {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 300px;
+    height: 485px;
+    transform: translate3d(-50%, -50%, 130px) rotateX(5deg) rotateY(-3deg);
+    transform-style: preserve-3d;
+    border-radius: 48px;
+    padding: 17px;
+    background:
+      linear-gradient(145deg, rgba(255,255,255,.22), rgba(255,255,255,.04) 23%, rgba(4,8,22,.96) 72%),
+      linear-gradient(160deg, #0d1326, #020617 58%, #0f172a);
+    border: 1px solid rgba(255,255,255,.28);
+    box-shadow:
+      0 58px 130px rgba(0,0,0,.56),
+      0 0 78px rgba(56,189,248,.28),
+      inset 0 0 0 2px rgba(255,255,255,.055),
+      inset 0 -25px 55px rgba(56,189,248,.08);
+    overflow: hidden;
+    animation: premiumPhoneFloat 5.2s ease-in-out infinite;
+  }
+
+  .premium-phone::before {
+    content: "";
+    position: absolute;
+    inset: -95px -130px;
+    background: linear-gradient(116deg, transparent 36%, rgba(255,255,255,.24) 49%, transparent 62%);
+    transform: translateX(-45%) rotate(3deg);
+    animation: premiumGlassSweep 5.8s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  .premium-phone::after {
+    content: "";
+    position: absolute;
+    inset: 10px;
+    border-radius: 39px;
+    border: 1px solid rgba(255,255,255,.13);
+    box-shadow: inset 0 0 28px rgba(255,255,255,.055);
+    transform: translateZ(24px);
+    pointer-events: none;
+  }
+
+  .premium-screen {
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    padding: 20px 18px 18px;
+    border-radius: 38px;
+    background:
+      radial-gradient(circle at 50% 0%, rgba(56,189,248,.28), transparent 34%),
+      radial-gradient(circle at 100% 30%, rgba(168,85,247,.16), transparent 40%),
+      linear-gradient(180deg, rgba(2,9,26,.98), rgba(2,6,23,.96));
+    border: 1px solid rgba(103,232,249,.20);
+    transform-style: preserve-3d;
+    transform: translateZ(20px);
+    overflow: hidden;
+  }
+
+  .premium-speaker {
+    width: 88px;
+    height: 8px;
+    margin: 0 auto 20px;
+    border-radius: 999px;
+    background: rgba(148,163,184,.58);
+    box-shadow: 0 0 18px rgba(103,232,249,.18), inset 0 0 10px rgba(0,0,0,.35);
+  }
+
+  .premium-balance {
+    position: relative;
+    margin: 0 auto 18px;
+    padding: 17px 18px;
+    border-radius: 24px;
+    background:
+      radial-gradient(circle at 12% 18%, rgba(255,255,255,.16), transparent 28%),
+      linear-gradient(135deg, rgba(56,189,248,.30), rgba(168,85,247,.20));
+    border: 1px solid rgba(103,232,249,.38);
+    box-shadow: 0 20px 46px rgba(0,0,0,.22), inset 0 0 26px rgba(255,255,255,.045);
+    transform: translateZ(46px);
+  }
+
+  .premium-balance small {
+    display: block;
+    color: #dbeafe;
+    font-weight: 900;
+    font-size: 14px;
+    letter-spacing: .1px;
+  }
+
+  .premium-balance strong {
+    display: block;
+    margin-top: 6px;
+    color: #ffffff;
+    font-size: 31px;
+    line-height: 1;
+    letter-spacing: -1.4px;
+    text-shadow: 0 0 20px rgba(56,189,248,.42);
+  }
+
+  .premium-mini-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 13px;
+    transform-style: preserve-3d;
+  }
+
+  .premium-mini {
+    min-height: 84px;
+    padding: 14px 12px;
+    border-radius: 22px;
+    border: 1px solid rgba(255,255,255,.16);
+    background: linear-gradient(145deg, rgba(255,255,255,.12), rgba(255,255,255,.04));
+    box-shadow: inset 0 0 22px rgba(255,255,255,.035), 0 18px 32px rgba(0,0,0,.14);
+    transform: translateZ(42px);
+  }
+
+  .premium-mini b {
+    display: block;
+    color: #38bdf8;
+    font-size: 26px;
+    line-height: 1;
+    letter-spacing: -.5px;
+    text-shadow: 0 0 16px rgba(56,189,248,.72);
+  }
+
+  .premium-mini span {
+    display: block;
+    margin-top: 9px;
+    color: #dbeafe;
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  .premium-checkout {
+    position: absolute;
+    left: 19px;
+    right: 19px;
+    bottom: 18px;
+    height: 58px;
+    display: grid;
+    place-items: center;
+    border-radius: 20px;
+    color: #051120;
+    background: linear-gradient(135deg, #38bdf8, #86efac);
+    font-size: 18px;
+    font-weight: 950;
+    letter-spacing: -.2px;
+    box-shadow: 0 18px 44px rgba(56,189,248,.30), inset 0 1px 0 rgba(255,255,255,.38);
+    transform: translateZ(54px);
+  }
+
+  .premium-card3d,
+  .premium-diamond,
+  .premium-coin {
+    position: absolute;
+    transform-style: preserve-3d;
+    pointer-events: none;
+  }
+
+  .premium-card3d {
+    width: 172px;
+    height: 96px;
+    padding: 18px;
+    border-radius: 25px;
+    color: #fff;
+    background:
+      radial-gradient(circle at 0 0, rgba(255,255,255,.20), transparent 35%),
+      linear-gradient(140deg, rgba(51,65,85,.86), rgba(15,23,42,.70));
+    border: 1px solid rgba(255,255,255,.22);
+    box-shadow: 0 30px 70px rgba(0,0,0,.30), inset 0 0 28px rgba(255,255,255,.05);
+    overflow: hidden;
+    animation: premiumFloat 5.7s ease-in-out infinite;
+  }
+
+  .premium-card3d::before {
+    content: "";
+    position: absolute;
+    width: 58px;
+    height: 34px;
+    right: 16px;
+    top: 16px;
+    border-radius: 12px;
+    background: rgba(255,255,255,.20);
+    border: 1px solid rgba(255,255,255,.20);
+  }
+
+  .premium-card3d::after {
+    content: "";
+    position: absolute;
+    left: 18px;
+    right: 58px;
+    bottom: 20px;
+    height: 9px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.28);
+  }
+
+  .premium-card3d b {
+    position: relative;
+    z-index: 2;
+    display: block;
+    font-size: 21px;
+    letter-spacing: .7px;
+    text-shadow: 0 6px 22px rgba(0,0,0,.55), 0 0 18px rgba(103,232,249,.32);
+  }
+
+  .premium-card3d span {
+    position: relative;
+    z-index: 2;
+    display: block;
+    margin-top: 7px;
+    color: #bae6fd;
+    font-weight: 900;
+    font-size: 12px;
+  }
+
+  .premium-card3d.game {
+    left: 50%; top: 50%;
+    transform: translate3d(calc(-50% - 220px), -142px, 32px) rotateY(-32deg) rotateZ(-12deg);
+  }
+
+  .premium-card3d.wallet {
+    left: 50%; top: 50%;
+    transform: translate3d(calc(-50% + 218px), -104px, 22px) rotateY(31deg) rotateZ(10deg);
+    animation-delay: -1.6s;
+  }
+
+  .premium-card3d.toll {
+    left: 50%; top: 50%;
+    transform: translate3d(calc(-50% - 228px), 132px, 44px) rotateY(-26deg) rotateZ(11deg);
+    animation-delay: -2.8s;
+  }
+
+  .premium-coin {
+    left: 50%; top: 50%;
+    width: 92px;
+    height: 92px;
+    transform: translate3d(calc(-50% + 210px), -198px, 188px) rotateY(18deg);
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 24%, #fff7b8, #facc15 35%, #ca8a04 72%, #713f12);
+    border: 5px solid rgba(255,255,255,.42);
+    box-shadow: 0 0 46px rgba(250,204,21,.38), inset -13px -14px 25px rgba(0,0,0,.18);
+    display: grid;
+    place-items: center;
+    color: #402900;
+    font-size: 28px;
+    font-weight: 950;
+    animation: premiumCoin 4.6s ease-in-out infinite;
+  }
+
+  .premium-coin::before {
+    content: "";
+    position: absolute;
+    inset: 11px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,.42);
+  }
+
+  .premium-diamond {
+    left: 50%; top: 50%;
+    width: 100px;
+    height: 100px;
+    transform: translate3d(calc(-50% - 208px), -214px, 170px) rotateX(22deg) rotateY(-18deg) rotateZ(45deg);
+    border-radius: 22px;
+    background:
+      linear-gradient(135deg, rgba(255,255,255,.92), rgba(103,232,249,.78) 26%, rgba(168,85,247,.72) 72%, rgba(37,99,235,.78));
+    border: 1px solid rgba(255,255,255,.62);
+    box-shadow: 0 0 54px rgba(56,189,248,.52), inset 0 0 30px rgba(255,255,255,.35);
+    animation: premiumDiamond 5.2s ease-in-out infinite;
+  }
+
+  .premium-diamond::before,
+  .premium-diamond::after {
+    content: "";
+    position: absolute;
+    inset: 18px;
+    border: 1px solid rgba(255,255,255,.54);
+    transform: rotate(45deg);
+  }
+
+  .premium-diamond::after {
+    inset: 37px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.28);
+    filter: blur(2px);
+  }
+
+  .premium-diamond-label {
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%) rotate(-45deg);
+    color: white;
+    font-size: 18px;
+    font-weight: 950;
+    text-shadow: 0 4px 18px rgba(0,0,0,.45);
+  }
+
+  .premium-glow-dot {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #38bdf8;
+    box-shadow: 0 0 24px rgba(56,189,248,.9);
+    opacity: .75;
+    animation: premiumDot 4s ease-in-out infinite;
+  }
+
+  .premium-glow-dot.d1 { left: 23%; top: 36%; animation-delay: -.4s; }
+  .premium-glow-dot.d2 { right: 19%; top: 57%; width: 9px; height: 9px; animation-delay: -1.8s; }
+  .premium-glow-dot.d3 { left: 68%; top: 26%; width: 7px; height: 7px; animation-delay: -2.6s; }
+
+  @keyframes premiumOrbit { from { rotate: 0deg; } to { rotate: 360deg; } }
+  @keyframes premiumStars { 0%,100% { opacity:.65; transform: translateY(0); } 50% { opacity:1; transform: translateY(-5px); } }
+  @keyframes premiumPhoneFloat { 0%,100% { margin-top: 0; } 50% { margin-top: -16px; } }
+  @keyframes premiumGlassSweep { 0%,65%,100% { transform: translateX(-48%) rotate(3deg); } 82% { transform: translateX(48%) rotate(7deg); } }
+  @keyframes premiumFloat { 0%,100% { margin-top:0; } 50% { margin-top:-14px; } }
+  @keyframes premiumCoin { 0%,100% { margin-top:0; rotate: 0deg; } 50% { margin-top:-18px; rotate: 6deg; } }
+  @keyframes premiumDiamond { 0%,100% { margin-top:0; } 50% { margin-top:-18px; } }
+  @keyframes premiumDot { 0%,100% { opacity:.32; transform: scale(.82); } 50% { opacity:.92; transform: scale(1.25); } }
+
+  @media (max-width: 720px) {
+    html.premium-final-3d-active #home.hero { display: none !important; }
+    html.premium-final-3d-active #real-mobile-3d {
+      display: block !important;
+      position: relative !important;
+      z-index: 90 !important;
+      min-height: auto !important;
+      padding-top: 14px !important;
+    }
+    html.premium-final-3d-active .real-mobile-badge,
+    html.premium-final-3d-active .real-mobile-title,
+    html.premium-final-3d-active .real-mobile-sub {
+      display: none !important;
+    }
+    html.premium-final-3d-active .real-mobile-copy {
+      padding: 0 5% !important;
+      margin: 0 !important;
+    }
+    html.premium-final-3d-active .real-mobile-actions {
+      margin-top: 0 !important;
+    }
+    html.premium-final-3d-active .real-mobile-actions a {
+      min-height: 54px !important;
+      border-radius: 24px !important;
+      font-size: 17px !important;
+    }
+    html.premium-final-3d-active .real-3d-stage-wrap {
+      min-height: 690px !important;
+      margin-top: 12px !important;
+      border-radius: 0 !important;
+    }
+    .premium3d-stage {
+      border-radius: 0 !important;
+    }
+    .premium3d-world {
+      width: min(100vw, 430px);
+      height: 640px;
+      top: 48%;
+    }
+    .premium-phone {
+      width: min(72vw, 305px);
+      height: min(112vw, 495px);
+      border-radius: 43px;
+      padding: 15px;
+      transform: translate3d(-50%, -50%, 135px) rotateX(5deg) rotateY(-3deg);
+    }
+    .premium-screen { border-radius: 34px; padding: 19px 16px 16px; }
+    .premium-speaker { width: 82px; margin-bottom: 18px; }
+    .premium-balance { padding: 16px 16px; margin-bottom: 15px; border-radius: 22px; }
+    .premium-balance strong { font-size: clamp(26px, 7.2vw, 31px); }
+    .premium-mini-grid { gap: 12px; }
+    .premium-mini { min-height: 80px; border-radius: 20px; }
+    .premium-mini b { font-size: 25px; }
+    .premium-checkout { height: 56px; bottom: 16px; }
+    .premium3d-orbit { width: 430px; height: 270px; }
+    .premium3d-orbit.o2 { width: 360px; height: 232px; }
+    .premium3d-orbit.o3 { width: 480px; height: 306px; }
+    .premium-card3d { width: 150px; height: 88px; border-radius: 22px; padding: 15px; }
+    .premium-card3d b { font-size: 19px; }
+    .premium-card3d.game { transform: translate3d(calc(-50% - 168px), -146px, 38px) rotateY(-33deg) rotateZ(-12deg); }
+    .premium-card3d.wallet { transform: translate3d(calc(-50% + 172px), -115px, 32px) rotateY(34deg) rotateZ(10deg); }
+    .premium-card3d.toll { transform: translate3d(calc(-50% - 174px), 144px, 42px) rotateY(-28deg) rotateZ(10deg); }
+    .premium-coin { width: 84px; height: 84px; font-size: 25px; transform: translate3d(calc(-50% + 150px), -226px, 184px) rotateY(18deg); }
+    .premium-diamond { width: 86px; height: 86px; transform: translate3d(calc(-50% - 150px), -232px, 174px) rotateX(22deg) rotateY(-18deg) rotateZ(45deg); }
+    .premium-diamond-label { font-size: 16px; }
+  }
+
+  @media (max-width: 380px) {
+    html.premium-final-3d-active .real-3d-stage-wrap { min-height: 655px !important; }
+    .premium3d-world { height: 610px; }
+    .premium-phone { width: min(76vw, 286px); height: min(116vw, 466px); }
+    .premium-card3d.game { transform: translate3d(calc(-50% - 148px), -134px, 38px) rotateY(-33deg) rotateZ(-12deg); }
+    .premium-card3d.wallet { transform: translate3d(calc(-50% + 148px), -106px, 32px) rotateY(34deg) rotateZ(10deg); }
+    .premium-card3d.toll { transform: translate3d(calc(-50% - 150px), 136px, 42px) rotateY(-28deg) rotateZ(10deg); }
+    .premium-coin { transform: translate3d(calc(-50% + 134px), -211px, 184px) rotateY(18deg); }
+    .premium-diamond { transform: translate3d(calc(-50% - 134px), -216px, 174px) rotateX(22deg) rotateY(-18deg) rotateZ(45deg); }
+  }
+</style>
+<script id="premium-final-3d-script">
+  (function () {
+    "use strict";
+    function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+    function buildStage() {
+      return '' +
+        '<div class="premium3d-stage" aria-label="Premium interactive 3D top up hero">' +
+          '<div class="premium3d-stars"></div>' +
+          '<div class="premium-glow-dot d1"></div><div class="premium-glow-dot d2"></div><div class="premium-glow-dot d3"></div>' +
+          '<div class="premium3d-world">' +
+            '<div class="premium3d-orbit o1"></div><div class="premium3d-orbit o2"></div><div class="premium3d-orbit o3"></div>' +
+            '<div class="premium-card3d game"><b>GAME</b><span>Diamond instan</span></div>' +
+            '<div class="premium-card3d wallet"><b>WALLET</b><span>QRIS cepat</span></div>' +
+            '<div class="premium-card3d toll"><b>E-TOLL</b><span>Saldo jalan</span></div>' +
+            '<div class="premium-diamond"><div class="premium-diamond-label">DM</div></div>' +
+            '<div class="premium-coin">Rp</div>' +
+            '<div class="premium-phone">' +
+              '<div class="premium-screen">' +
+                '<div class="premium-speaker"></div>' +
+                '<div class="premium-balance"><small>Order aktif</small><strong>Rp1.250.000</strong></div>' +
+                '<div class="premium-mini-grid">' +
+                  '<div class="premium-mini"><b>ML</b><span>Game</span></div>' +
+                  '<div class="premium-mini"><b>QR</b><span>Wallet</span></div>' +
+                  '<div class="premium-mini"><b>TOL</b><span>E-Toll</span></div>' +
+                  '<div class="premium-mini"><b>PLN</b><span>Digital</span></div>' +
+                '</div>' +
+                '<div class="premium-checkout">Instant Checkout</div>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+    }
+    function ensureStage(parent, className) {
+      if (!parent) return null;
+      var existing = parent.querySelector('.premium3d-stage.' + className);
+      if (existing) return existing;
+      var tmp = document.createElement('div');
+      tmp.innerHTML = buildStage();
+      var stage = tmp.firstChild;
+      stage.classList.add(className);
+      parent.insertBefore(stage, parent.firstChild);
+      return stage;
+    }
+    function bind(stage, mobile) {
+      if (!stage || stage.__premiumBound) return;
+      stage.__premiumBound = true;
+      var root = stage.querySelector('.premium3d-world');
+      var yaw = mobile ? -5 : -7;
+      var pitch = mobile ? 3.5 : 4.5;
+      var targetYaw = yaw, targetPitch = pitch;
+      var velYaw = 0, velPitch = 0;
+      var dragging = false, moved = false;
+      var downX = 0, downY = 0, lastX = 0, lastY = 0;
+      var start = performance.now();
+      function setVars() {
+        stage.style.setProperty('--ry', yaw.toFixed(2) + 'deg');
+        stage.style.setProperty('--rx', pitch.toFixed(2) + 'deg');
+      }
+      function getXY(e) { return { x: e.clientX, y: e.clientY }; }
+      function onDown(e) {
+        var p = getXY(e);
+        dragging = true; moved = false;
+        downX = lastX = p.x; downY = lastY = p.y;
+        velYaw = 0; velPitch = 0;
+        stage.classList.add('is-dragging');
+        try { stage.setPointerCapture(e.pointerId); } catch (_) {}
+      }
+      function onMove(e) {
+        var rect = stage.getBoundingClientRect();
+        stage.style.setProperty('--glowx', clamp(((e.clientX - rect.left) / Math.max(1, rect.width)) * 100, 0, 100).toFixed(1) + '%');
+        stage.style.setProperty('--glowy', clamp(((e.clientY - rect.top) / Math.max(1, rect.height)) * 100, 0, 100).toFixed(1) + '%');
+        if (!dragging) return;
+        var p = getXY(e);
+        var dxAll = p.x - downX, dyAll = p.y - downY;
+        if (Math.abs(dxAll) + Math.abs(dyAll) > 4) moved = true;
+        if (!moved) return;
+        if (e.cancelable) e.preventDefault();
+        var dx = p.x - lastX, dy = p.y - lastY;
+        lastX = p.x; lastY = p.y;
+        var sens = mobile ? .118 : .095;
+        targetYaw += dx * sens;
+        targetPitch -= dy * sens * .52;
+        velYaw = dx * sens * .028;
+        velPitch = -dy * sens * .016;
+      }
+      function onUp() { dragging = false; stage.classList.remove('is-dragging'); }
+      function raf(now) {
+        var t = (now - start) / 1000;
+        if (!dragging) {
+          targetYaw += velYaw;
+          targetPitch += velPitch;
+          velYaw *= .92;
+          velPitch *= .90;
+          targetYaw += Math.sin(t * .55) * .010;
+          targetPitch += Math.cos(t * .65) * .004;
+        }
+        targetPitch = clamp(targetPitch, -14, 16);
+        targetYaw = clamp(targetYaw, -32, 32);
+        yaw += (targetYaw - yaw) * .115;
+        pitch += (targetPitch - pitch) * .115;
+        setVars();
+        requestAnimationFrame(raf);
+      }
+      stage.addEventListener('pointerdown', onDown, { passive: true });
+      stage.addEventListener('pointermove', onMove, { passive: false });
+      stage.addEventListener('pointerup', onUp, { passive: true });
+      stage.addEventListener('pointercancel', onUp, { passive: true });
+      setVars();
+      requestAnimationFrame(raf);
+    }
+    function activate() {
+      document.documentElement.classList.add('premium-final-3d-active');
+      var desktopParent = document.querySelector('.scene-zone');
+      var mobileParent = document.querySelector('#real-mobile-3d .real-3d-stage-wrap');
+      var desktopStage = ensureStage(desktopParent, 'premium3d-desktop');
+      var mobileStage = ensureStage(mobileParent, 'premium3d-mobile');
+      bind(desktopStage, false);
+      bind(mobileStage, true);
+    }
+    activate();
+    document.addEventListener('DOMContentLoaded', activate);
+    window.addEventListener('load', activate, { passive: true });
+    setTimeout(activate, 200);
+    setTimeout(activate, 900);
+  })();
+</script>
+
 </body>
 </html>
