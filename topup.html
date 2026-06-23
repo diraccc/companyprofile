@@ -6276,11 +6276,25 @@
         function drawPremiumPhone(time, sc) {
           var phoneW = clamp(Math.min(w * (mobile ? 0.43 : 0.38), mobile ? 260 : 330), mobile ? 220 : 260, mobile ? 290 : 360);
           var phoneH = phoneW * 1.56;
-          var x = cx - phoneW / 2;
-          var y = cy - phoneH / 2 + (mobile ? 18 : 8);
           var r = phoneW * 0.105;
           var floatY = reduceMotion ? 0 : Math.sin(time * 1.05) * 5;
-          y += floatY;
+          var visualYaw = clamp(yaw, -0.55, 0.55);
+          var visualPitch = clamp(pitch, -0.35, 0.35);
+          var phoneCx = cx + Math.sin(visualYaw) * (mobile ? 26 : 34);
+          var phoneCy = cy + (mobile ? 18 : 8) + floatY + Math.sin(visualPitch) * (mobile ? 10 : 14);
+
+          ctx.save();
+          ctx.translate(phoneCx, phoneCy);
+          ctx.transform(
+            Math.max(0.72, Math.cos(visualYaw * 0.95)),
+            -Math.sin(visualPitch) * 0.12,
+            Math.sin(visualYaw) * 0.24,
+            1 - Math.abs(Math.sin(visualPitch)) * 0.08,
+            0,
+            0
+          );
+          var x = -phoneW / 2;
+          var y = -phoneH / 2;
 
           ctx.save();
           ctx.shadowColor = "rgba(0,0,0,.55)";
@@ -6419,6 +6433,7 @@
           roundRectPath(ctx, x + 9, y + 9, phoneW - 18, phoneH - 18, r * .72);
           ctx.fillStyle = shine;
           ctx.fill();
+          ctx.restore();
           ctx.restore();
           ctx.restore();
         }
@@ -8997,5 +9012,6 @@
 <!-- V18 note: objek samping diganti dari kotak menjadi ikon/orb visual; fallback offline juga tidak lagi memakai card/kubus lama. -->
 <!-- V17 note: objek hero 3D telah diarahkan ke Three.js murni pada mode threejs-only-active. Perubahan hanya visual; checkout, invoice, localStorage, API, login, hash, payment gateway, dan keamanan backend tidak diubah. -->
 <!-- V19 note: Minimal Premium Top-Up Hub. Perubahan hanya pada visual hero/offline renderer agar desain tidak kotak, lebih bersih, dan lebih fokus. Endpoint, login, hash, payment gateway, email template, A2F, keamanan, checkout, invoice, dan localStorage tidak diubah. -->
+<!-- V20 note: phone canvas dan semua UI di dalam phone ikut transform yaw/pitch saat digeser, sehingga kotak tengah tidak diam lagi. Perubahan tetap visual-only; endpoint/login/hash/payment/email/A2F/security tidak diubah. -->
 </body>
 </html>
