@@ -2408,7 +2408,7 @@
         background: radial-gradient(circle at 44% 8%, rgba(56,189,248,.24), transparent 36%), rgba(2,6,23,.92) !important;
         overflow: hidden !important;
       }
-      .mobile-device-bar { width: 60px !important; height: 6px !important; border-radius: 999px !important; margin: 0 auto 16px !important; background: rgba(255,255,255,.22) !important; }
+      .mobile-device-bar { width: 70px !important; height: 7px !important; border-radius: 999px !important; margin: 0 auto 16px !important; background: rgba(255,255,255,.22) !important; }
       .mobile-balance-card { padding: 16px !important; border-radius: 22px !important; background: linear-gradient(135deg, rgba(56,189,248,.20), rgba(168,85,247,.16)) !important; border: 1px solid rgba(56,189,248,.24) !important; }
       .mobile-balance-card small { display: block !important; color: #cbd5e1 !important; font-weight: 800 !important; }
       .mobile-balance-card strong { display: block !important; margin-top: 7px !important; color: #fff !important; font-size: 25px !important; letter-spacing: -.6px !important; }
@@ -2420,7 +2420,7 @@
       .mobile-float-card { position: absolute !important; display: grid !important; place-items: center !important; border-radius: 20px !important; border: 1px solid rgba(255,255,255,.16) !important; background: rgba(255,255,255,.085) !important; backdrop-filter: blur(12px) !important; box-shadow: 0 22px 54px rgba(0,0,0,.32) !important; color: #eafaff !important; font-weight: 900 !important; }
       .mobile-float-card.a { width: 92px !important; height: 62px !important; left: -2px !important; top: 76px !important; transform: rotate(-10deg) !important; }
       .mobile-float-card.b { width: 82px !important; height: 82px !important; right: 0 !important; top: 124px !important; border-radius: 50% !important; color: #020617 !important; background: radial-gradient(circle, #f7d774, #67e8f9) !important; }
-      .mobile-float-card.c { width: 104px !important; height: 56px !important; right: 16px !important; bottom: 30px !important; transform: rotate(10deg) !important; }
+      .mobile-float-card.c { width: 104px !important; height: 64px !important; right: 16px !important; bottom: 30px !important; transform: rotate(10deg) !important; }
 
       /* Keep full site features below, but remove the heavy desktop hero from mobile. */
       #home.hero { display: none !important; }
@@ -2532,7 +2532,7 @@
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        min-height: 42px !important;
+        min-height: 48px !important;
         border-radius: 16px !important;
         font-weight: 900 !important;
         text-decoration: none !important;
@@ -2624,7 +2624,7 @@
         position: relative !important;
         height: 100% !important;
         border-radius: 25px !important;
-        padding: 11px !important;
+        padding: 13px !important;
         overflow: hidden !important;
         transform: translateZ(28px) !important;
         background:
@@ -2635,14 +2635,14 @@
 
       .real-speaker {
         width: 58px !important;
-        height: 6px !important;
+        height: 7px !important;
         border-radius: 999px !important;
         margin: 0 auto 14px !important;
         background: rgba(255,255,255,0.22) !important;
       }
 
       .real-screen-card {
-        padding: 11px !important;
+        padding: 13px !important;
         border-radius: 20px !important;
         background: linear-gradient(135deg, rgba(56,189,248,0.19), rgba(168,85,247,0.14)) !important;
         border: 1px solid rgba(56,189,248,0.23) !important;
@@ -2659,7 +2659,7 @@
         display: block !important;
         margin-top: 5px !important;
         color: #ffffff !important;
-        font-size: 18px !important;
+        font-size: 20px !important;
       }
 
       .real-mini-grid {
@@ -2709,7 +2709,7 @@
         width: 128px !important;
         height: 82px !important;
         border-radius: 21px !important;
-        padding: 11px !important;
+        padding: 13px !important;
         transform-style: preserve-3d !important;
         border: 1px solid rgba(255,255,255,0.18) !important;
         background:
@@ -5115,7 +5115,7 @@
     }
   </style>
 
-  <script id="threejs-only-replacement-script" type="text/plain" data-disabled-by="v13-light-balanced">
+  <script id="threejs-only-replacement-script">
     (function () {
       "use strict";
       document.documentElement.classList.add("threejs-only-active");
@@ -5681,7 +5681,7 @@
     }
   </style>
 
-  <script id="offline-3d-emergency-script" type="text/plain" data-disabled-by="v13-light-balanced">
+  <script id="offline-3d-emergency-script">
     (function () {
       "use strict";
 
@@ -6579,7 +6579,7 @@
     html.premium-final-3d-active .real-mobile-actions a {
       min-height: 54px !important;
       border-radius: 24px !important;
-      font-size: 15px !important;
+      font-size: 17px !important;
     }
     html.premium-final-3d-active .real-3d-stage-wrap {
       min-height: 690px !important;
@@ -6667,15 +6667,13 @@
     }
     function ensureStage(parent, className) {
       if (!parent) return null;
-      var existing = parent.querySelector('.premium3d-stage.' + className);
+      var existing = parent.querySelector('.' + className);
       if (existing) return existing;
       var wrap = document.createElement('div');
+      wrap.className = 'premium3d-final-mount ' + className;
       wrap.innerHTML = buildStage();
-      var stage = wrap.firstElementChild;
-      if (!stage) return null;
-      stage.classList.add('premium3d-final-mount', className);
-      parent.insertBefore(stage, parent.firstChild);
-      return stage;
+      parent.insertBefore(wrap.firstChild, parent.firstChild);
+      return parent.querySelector('.premium3d-stage');
     }
     function bind(stage, mobile) {
       if (!stage || stage.__premiumBound) return;
@@ -7568,38 +7566,38 @@
     }
 
     html.v13-light-balanced.premium-final-3d-active .real-mobile-actions a {
-      min-height: 42px !important;
+      min-height: 48px !important;
       border-radius: 21px !important;
-      font-size: 14px !important;
+      font-size: 15px !important;
       padding: 12px 14px !important;
     }
 
     html.v13-light-balanced.premium-final-3d-active .real-3d-stage-wrap {
-      min-height: min(430px, 51svh) !important;
-      height: min(430px, 51svh) !important;
+      min-height: min(505px, 58svh) !important;
+      height: min(505px, 58svh) !important;
       margin-top: 6px !important;
       overflow: visible !important;
     }
 
     html.v13-light-balanced .premium3d-stage {
-      min-height: min(430px, 51svh) !important;
-      height: min(430px, 51svh) !important;
+      min-height: min(505px, 58svh) !important;
+      height: min(505px, 58svh) !important;
       overflow: hidden !important;
       touch-action: pan-y !important;
     }
 
     html.v13-light-balanced .premium3d-world {
       width: min(390px, 100vw) !important;
-      height: 430px !important;
+      height: 500px !important;
       top: 50% !important;
       transform:
         translate3d(-50%, -50%, 0)
         rotateX(var(--rx)) rotateY(var(--ry))
-        scale(.68) !important;
+        scale(.79) !important;
     }
 
     html.v13-light-balanced .premium-phone {
-      width: min(238px, 58vw) !important;
+      width: min(270px, 63vw) !important;
       aspect-ratio: 300 / 485 !important;
       border-radius: 39px !important;
       padding: 12px !important;
@@ -7617,13 +7615,13 @@
     }
 
     html.v13-light-balanced .premium-speaker {
-      width: 60px !important;
-      height: 6px !important;
-      margin-bottom: 10px !important;
+      width: 70px !important;
+      height: 7px !important;
+      margin-bottom: 13px !important;
     }
 
     html.v13-light-balanced .premium-balance {
-      padding: 11px !important;
+      padding: 13px !important;
       margin-bottom: 12px !important;
       border-radius: 20px !important;
     }
@@ -7633,7 +7631,7 @@
     }
 
     html.v13-light-balanced .premium-balance strong {
-      font-size: clamp(20px, 5.3vw, 24px) !important;
+      font-size: clamp(22px, 6vw, 27px) !important;
     }
 
     html.v13-light-balanced .premium-mini-grid {
@@ -7641,12 +7639,12 @@
     }
 
     html.v13-light-balanced .premium-mini {
-      min-height: 58px !important;
+      min-height: 68px !important;
       border-radius: 18px !important;
     }
 
     html.v13-light-balanced .premium-mini b {
-      font-size: 19px !important;
+      font-size: 22px !important;
     }
 
     html.v13-light-balanced .premium-mini span {
@@ -7654,22 +7652,22 @@
     }
 
     html.v13-light-balanced .premium-checkout {
-      height: 42px !important;
-      bottom: 11px !important;
+      height: 48px !important;
+      bottom: 13px !important;
       border-radius: 18px !important;
-      font-size: 15px !important;
+      font-size: 17px !important;
     }
 
     html.v13-light-balanced .premium-card3d {
-      width: 104px !important;
-      height: 62px !important;
+      width: 118px !important;
+      height: 70px !important;
       padding: 12px !important;
       border-radius: 18px !important;
       animation-duration: 8.5s !important;
     }
 
     html.v13-light-balanced .premium-card3d b {
-      font-size: 14px !important;
+      font-size: 15px !important;
     }
 
     html.v13-light-balanced .premium-card3d span {
@@ -7693,31 +7691,31 @@
     }
 
     html.v13-light-balanced .premium-card3d.game {
-      transform: translate3d(calc(-50% - 108px), -78px, 32px) rotateY(-28deg) rotateZ(-10deg) !important;
+      transform: translate3d(calc(-50% - 124px), -95px, 32px) rotateY(-28deg) rotateZ(-10deg) !important;
     }
 
     html.v13-light-balanced .premium-card3d.wallet {
-      transform: translate3d(calc(-50% + 110px), -62px, 28px) rotateY(28deg) rotateZ(9deg) !important;
+      transform: translate3d(calc(-50% + 126px), -76px, 28px) rotateY(28deg) rotateZ(9deg) !important;
     }
 
     html.v13-light-balanced .premium-card3d.toll {
-      transform: translate3d(calc(-50% - 110px), 86px, 34px) rotateY(-25deg) rotateZ(9deg) !important;
+      transform: translate3d(calc(-50% - 128px), 102px, 34px) rotateY(-25deg) rotateZ(9deg) !important;
     }
 
     html.v13-light-balanced .premium-coin {
-      width: 56px !important;
-      height: 56px !important;
-      font-size: 18px !important;
+      width: 64px !important;
+      height: 64px !important;
+      font-size: 20px !important;
       border-width: 4px !important;
-      transform: translate3d(calc(-50% + 103px), -132px, 158px) rotateY(18deg) !important;
+      transform: translate3d(calc(-50% + 122px), -155px, 158px) rotateY(18deg) !important;
       animation-duration: 8s !important;
     }
 
     html.v13-light-balanced .premium-diamond {
-      width: 58px !important;
-      height: 58px !important;
+      width: 66px !important;
+      height: 66px !important;
       border-radius: 16px !important;
-      transform: translate3d(calc(-50% - 100px), -136px, 150px) rotateX(22deg) rotateY(-18deg) rotateZ(45deg) !important;
+      transform: translate3d(calc(-50% - 118px), -160px, 150px) rotateX(22deg) rotateY(-18deg) rotateZ(45deg) !important;
       animation-duration: 8s !important;
     }
 
@@ -7726,14 +7724,14 @@
     html.v13-light-balanced .premium-diamond-label { font-size: 13px !important; }
 
     html.v13-light-balanced .premium3d-orbit {
-      width: 250px !important;
-      height: 152px !important;
+      width: 335px !important;
+      height: 205px !important;
       opacity: .28 !important;
     }
 
     html.v13-light-balanced .premium3d-orbit.o2 {
-      width: 250px !important;
-      height: 152px !important;
+      width: 292px !important;
+      height: 178px !important;
     }
 
     html.v13-light-balanced .premium3d-orbit.o3 {
@@ -7774,25 +7772,25 @@
   @media (max-width: 380px) {
     html.v13-light-balanced.premium-final-3d-active .real-3d-stage-wrap,
     html.v13-light-balanced .premium3d-stage {
-      min-height: min(410px, 50svh) !important;
-      height: min(410px, 50svh) !important;
+      min-height: min(478px, 57svh) !important;
+      height: min(478px, 57svh) !important;
     }
 
     html.v13-light-balanced .premium3d-world {
-      height: 405px !important;
+      height: 470px !important;
       scale: none !important;
       transform:
         translate3d(-50%, -50%, 0)
         rotateX(var(--rx)) rotateY(var(--ry))
-        scale(.64) !important;
+        scale(.74) !important;
     }
 
-    html.v13-light-balanced .premium-phone { width: min(226px, 59vw) !important; }
-    html.v13-light-balanced .premium-card3d.game { transform: translate3d(calc(-50% - 98px), -74px, 32px) rotateY(-28deg) rotateZ(-10deg) !important; }
-    html.v13-light-balanced .premium-card3d.wallet { transform: translate3d(calc(-50% + 100px), -58px, 28px) rotateY(28deg) rotateZ(9deg) !important; }
-    html.v13-light-balanced .premium-card3d.toll { transform: translate3d(calc(-50% - 100px), 78px, 34px) rotateY(-25deg) rotateZ(9deg) !important; }
-    html.v13-light-balanced .premium-coin { transform: translate3d(calc(-50% + 96px), -126px, 158px) rotateY(18deg) !important; }
-    html.v13-light-balanced .premium-diamond { transform: translate3d(calc(-50% - 92px), -130px, 150px) rotateX(22deg) rotateY(-18deg) rotateZ(45deg) !important; }
+    html.v13-light-balanced .premium-phone { width: min(252px, 66vw) !important; }
+    html.v13-light-balanced .premium-card3d.game { transform: translate3d(calc(-50% - 114px), -90px, 32px) rotateY(-28deg) rotateZ(-10deg) !important; }
+    html.v13-light-balanced .premium-card3d.wallet { transform: translate3d(calc(-50% + 116px), -70px, 28px) rotateY(28deg) rotateZ(9deg) !important; }
+    html.v13-light-balanced .premium-card3d.toll { transform: translate3d(calc(-50% - 116px), 96px, 34px) rotateY(-25deg) rotateZ(9deg) !important; }
+    html.v13-light-balanced .premium-coin { transform: translate3d(calc(-50% + 110px), -145px, 158px) rotateY(18deg) !important; }
+    html.v13-light-balanced .premium-diamond { transform: translate3d(calc(-50% - 108px), -148px, 150px) rotateX(22deg) rotateY(-18deg) rotateZ(45deg) !important; }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -7839,6 +7837,408 @@
     window.addEventListener("load", bootV13, { passive: true });
     window.addEventListener("scroll", toggleSticky, { passive: true });
     window.addEventListener("resize", toggleSticky, { passive: true });
+  })();
+</script>
+
+
+
+<!-- ==========================================================
+     V14 ANIMATION POLISH LOCKED SIZE
+     Scope: animation polish only. Size/layout locked from V13.
+     Protected: endpoint, login, hash, payment gateway, email template,
+     A2F, security, checkout backend flow are untouched.
+========================================================== -->
+<style id="v14-animation-polish-locked-style">
+  html.v14-animation-locked .premium3d-stage {
+    --v14-tap-x: 50%;
+    --v14-tap-y: 50%;
+    isolation: isolate;
+  }
+
+  html.v14-animation-locked .premium3d-stage::before {
+    content: "";
+    position: absolute;
+    left: var(--v14-tap-x);
+    top: var(--v14-tap-y);
+    width: 1px;
+    height: 1px;
+    border-radius: 50%;
+    pointer-events: none;
+    opacity: 0;
+    z-index: 8;
+    box-shadow:
+      0 0 0 0 rgba(103,232,249,.0),
+      0 0 0 0 rgba(168,85,247,.0);
+  }
+
+  html.v14-animation-locked .premium3d-stage.v14-hit::before {
+    animation: v14HitRing .62s ease-out forwards;
+  }
+
+  html.v14-animation-locked .premium-phone {
+    animation: v14PhoneAlive 7.8s cubic-bezier(.45,0,.25,1) infinite !important;
+    will-change: translate, filter, box-shadow;
+  }
+
+  html.v14-animation-locked .premium-screen {
+    position: relative;
+  }
+
+  html.v14-animation-locked .premium-screen > * {
+    position: relative;
+    z-index: 2;
+  }
+
+  html.v14-animation-locked .premium-screen::before {
+    content: "";
+    position: absolute;
+    inset: -35% -60%;
+    z-index: 1;
+    pointer-events: none;
+    opacity: .0;
+    background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.20) 49%, transparent 62%);
+    transform: translateX(-46%) rotate(7deg);
+    animation: v14ScreenSheen 6.8s ease-in-out infinite;
+    mix-blend-mode: screen;
+  }
+
+  html.v14-animation-locked .premium-balance {
+    overflow: hidden;
+  }
+
+  html.v14-animation-locked .premium-balance::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: .34;
+    background: radial-gradient(circle at var(--v14-tap-x, 50%) var(--v14-tap-y, 50%), rgba(255,255,255,.18), transparent 36%);
+    animation: v14BalanceGlow 4.8s ease-in-out infinite;
+  }
+
+  html.v14-animation-locked .premium-mini {
+    animation: v14MiniPulse 5.8s ease-in-out infinite;
+  }
+
+  html.v14-animation-locked .premium-mini:nth-child(2) { animation-delay: -1.2s; }
+  html.v14-animation-locked .premium-mini:nth-child(3) { animation-delay: -2.1s; }
+  html.v14-animation-locked .premium-mini:nth-child(4) { animation-delay: -3.0s; }
+
+  html.v14-animation-locked .premium-checkout {
+    animation: v14CheckoutBreath 4.2s ease-in-out infinite;
+  }
+
+  html.v14-animation-locked .premium-card3d.game {
+    animation: v14CardDriftA 8.2s ease-in-out infinite !important;
+  }
+
+  html.v14-animation-locked .premium-card3d.wallet {
+    animation: v14CardDriftB 9.1s ease-in-out infinite !important;
+  }
+
+  html.v14-animation-locked .premium-card3d.toll {
+    animation: v14CardDriftC 8.8s ease-in-out infinite !important;
+  }
+
+  html.v14-animation-locked .premium-coin {
+    animation: v14CoinAlive 6.9s ease-in-out infinite !important;
+    will-change: translate, rotate, filter;
+  }
+
+  html.v14-animation-locked .premium-coin::after {
+    content: "";
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    pointer-events: none;
+    opacity: .0;
+    background: conic-gradient(from 90deg, transparent, rgba(255,255,255,.70), transparent 22%, transparent 100%);
+    animation: v14CoinGleam 5.6s ease-in-out infinite;
+    mix-blend-mode: screen;
+  }
+
+  html.v14-animation-locked .premium-diamond {
+    animation: v14DiamondAlive 7.3s ease-in-out infinite !important;
+    will-change: translate, rotate, filter;
+  }
+
+  html.v14-animation-locked .premium-diamond .v14-sparkle {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.95);
+    box-shadow: 0 0 16px rgba(103,232,249,.9);
+    pointer-events: none;
+    opacity: .0;
+    transform: rotate(-45deg);
+    animation: v14DiamondSpark 2.8s ease-in-out infinite;
+  }
+
+  html.v14-animation-locked .premium-diamond .v14-sparkle.s1 { left: 18%; top: 16%; animation-delay: -.4s; }
+  html.v14-animation-locked .premium-diamond .v14-sparkle.s2 { right: 17%; top: 29%; animation-delay: -1.2s; }
+  html.v14-animation-locked .premium-diamond .v14-sparkle.s3 { left: 48%; bottom: 16%; animation-delay: -2.0s; }
+
+  html.v14-animation-locked .premium3d-orbit {
+    animation: premiumOrbit 34s linear infinite, v14OrbitPulse 7.4s ease-in-out infinite !important;
+  }
+
+  html.v14-animation-locked .premium3d-orbit.o2 {
+    animation: premiumOrbit 42s linear infinite reverse, v14OrbitPulse 8.8s ease-in-out infinite !important;
+  }
+
+  html.v14-animation-locked .premium3d-orbit.o3 {
+    animation: premiumOrbit 52s linear infinite, v14OrbitPulse 10s ease-in-out infinite !important;
+  }
+
+  html.v14-animation-locked .premium-glow-dot.d1 {
+    animation: v14DotOrbit 7.4s ease-in-out infinite !important;
+  }
+
+  html.v14-animation-locked .premium-glow-dot.d2,
+  html.v14-animation-locked .premium-glow-dot.d3 {
+    animation: v14DotOrbit 8.2s ease-in-out infinite !important;
+  }
+
+  html.v14-animation-locked .premium3d-stage.v14-pulse .premium-phone,
+  html.v14-animation-locked .premium3d-stage.v14-pulse .premium-card3d,
+  html.v14-animation-locked .premium3d-stage.v14-pulse .premium-coin,
+  html.v14-animation-locked .premium3d-stage.v14-pulse .premium-diamond {
+    filter: brightness(1.13) saturate(1.16) drop-shadow(0 0 18px rgba(56,189,248,.30));
+  }
+
+  html.v14-animation-locked .v14-micro-particle {
+    position: fixed;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9997;
+    background: rgba(103,232,249,.92);
+    box-shadow: 0 0 12px rgba(56,189,248,.8);
+    transform: translate(-50%, -50%);
+    animation: v14MicroParticle .64s ease-out forwards;
+  }
+
+  html.v14-animation-locked .premium3d-stage.v14-paused .premium3d-orbit,
+  html.v14-animation-locked .premium3d-stage.v14-paused .premium3d-stars,
+  html.v14-animation-locked .premium3d-stage.v14-paused .premium-phone,
+  html.v14-animation-locked .premium3d-stage.v14-paused .premium-card3d,
+  html.v14-animation-locked .premium3d-stage.v14-paused .premium-coin,
+  html.v14-animation-locked .premium3d-stage.v14-paused .premium-diamond,
+  html.v14-animation-locked .premium3d-stage.v14-paused .premium-mini,
+  html.v14-animation-locked .premium3d-stage.v14-paused .premium-checkout,
+  html.v14-animation-locked .premium3d-stage.v14-paused .premium-glow-dot {
+    animation-play-state: paused !important;
+  }
+
+  html.v14-animation-locked:not(.v14-ready) .premium3d-stage .premium-phone,
+  html.v14-animation-locked:not(.v14-ready) .premium3d-stage .premium-card3d,
+  html.v14-animation-locked:not(.v14-ready) .premium3d-stage .premium-coin,
+  html.v14-animation-locked:not(.v14-ready) .premium3d-stage .premium-diamond {
+    opacity: 0;
+  }
+
+  html.v14-animation-locked.v14-ready .premium3d-stage .premium-phone,
+  html.v14-animation-locked.v14-ready .premium3d-stage .premium-card3d,
+  html.v14-animation-locked.v14-ready .premium3d-stage .premium-coin,
+  html.v14-animation-locked.v14-ready .premium3d-stage .premium-diamond {
+    transition: opacity .38s ease, filter .22s ease;
+  }
+
+  @keyframes v14PhoneAlive {
+    0%,100% { translate: 0 0; filter: brightness(1) saturate(1); }
+    38% { translate: 0 -5px; filter: brightness(1.045) saturate(1.05); }
+    58% { translate: 0 -8px; filter: brightness(1.06) saturate(1.08); }
+    78% { translate: 0 -3px; filter: brightness(1.025) saturate(1.03); }
+  }
+
+  @keyframes v14ScreenSheen {
+    0%, 56%, 100% { opacity: 0; transform: translateX(-48%) rotate(7deg); }
+    66% { opacity: .42; }
+    78% { opacity: .10; transform: translateX(48%) rotate(7deg); }
+  }
+
+  @keyframes v14BalanceGlow {
+    0%,100% { opacity: .20; }
+    50% { opacity: .42; }
+  }
+
+  @keyframes v14MiniPulse {
+    0%,100% { filter: brightness(1); }
+    44% { filter: brightness(1.10) drop-shadow(0 0 8px rgba(56,189,248,.22)); }
+  }
+
+  @keyframes v14CheckoutBreath {
+    0%,100% { filter: brightness(1); }
+    50% { filter: brightness(1.08) saturate(1.10); }
+  }
+
+  @keyframes v14CardDriftA {
+    0%,100% { translate: 0 0; filter: brightness(1); }
+    50% { translate: 0 -7px; filter: brightness(1.08); }
+  }
+
+  @keyframes v14CardDriftB {
+    0%,100% { translate: 0 0; filter: brightness(1); }
+    48% { translate: 0 -6px; filter: brightness(1.07); }
+  }
+
+  @keyframes v14CardDriftC {
+    0%,100% { translate: 0 0; filter: brightness(1); }
+    52% { translate: 0 -8px; filter: brightness(1.09); }
+  }
+
+  @keyframes v14CoinAlive {
+    0%,100% { translate: 0 0; rotate: 0deg; filter: brightness(1) saturate(1); }
+    33% { translate: 0 -6px; rotate: 6deg; filter: brightness(1.12) saturate(1.12); }
+    66% { translate: 0 -2px; rotate: -4deg; filter: brightness(1.04) saturate(1.08); }
+  }
+
+  @keyframes v14CoinGleam {
+    0%,54%,100% { opacity: 0; transform: rotate(0deg); }
+    62% { opacity: .42; }
+    74% { opacity: .0; transform: rotate(135deg); }
+  }
+
+  @keyframes v14DiamondAlive {
+    0%,100% { translate: 0 0; rotate: 0deg; filter: brightness(1) saturate(1); }
+    45% { translate: 0 -7px; rotate: 3deg; filter: brightness(1.16) saturate(1.15); }
+    72% { translate: 0 -3px; rotate: -2deg; filter: brightness(1.05) saturate(1.10); }
+  }
+
+  @keyframes v14DiamondSpark {
+    0%,100% { opacity: 0; scale: .55; }
+    46% { opacity: .95; scale: 1.18; }
+    58% { opacity: .10; scale: .86; }
+  }
+
+  @keyframes v14OrbitPulse {
+    0%,100% { opacity: .22; }
+    50% { opacity: .42; }
+  }
+
+  @keyframes v14DotOrbit {
+    0%,100% { opacity:.32; translate: 0 0; scale:.85; }
+    50% { opacity:.84; translate: 0 -7px; scale:1.18; }
+  }
+
+  @keyframes v14HitRing {
+    0% { opacity: .9; box-shadow: 0 0 0 0 rgba(103,232,249,.32), 0 0 0 0 rgba(168,85,247,.18); }
+    100% { opacity: 0; box-shadow: 0 0 0 48px rgba(103,232,249,0), 0 0 0 76px rgba(168,85,247,0); }
+  }
+
+  @keyframes v14MicroParticle {
+    0% { opacity: 1; translate: 0 0; scale: 1; }
+    100% { opacity: 0; translate: var(--dx) var(--dy); scale: .3; }
+  }
+
+  @media (max-width: 720px) {
+    html.v14-animation-locked .premium-phone { animation-duration: 8.8s !important; }
+    html.v14-animation-locked .premium-card3d.game,
+    html.v14-animation-locked .premium-card3d.wallet,
+    html.v14-animation-locked .premium-card3d.toll { animation-duration: 9.5s !important; }
+    html.v14-animation-locked .premium-coin,
+    html.v14-animation-locked .premium-diamond { animation-duration: 8.4s !important; }
+    html.v14-animation-locked .premium-screen::before { animation-duration: 8.2s !important; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html.v14-animation-locked .premium-screen::before,
+    html.v14-animation-locked .premium-balance::after,
+    html.v14-animation-locked .premium-mini,
+    html.v14-animation-locked .premium-checkout,
+    html.v14-animation-locked .premium-card3d,
+    html.v14-animation-locked .premium-coin,
+    html.v14-animation-locked .premium-diamond,
+    html.v14-animation-locked .premium-diamond .v14-sparkle {
+      animation: none !important;
+    }
+  }
+</style>
+<script id="v14-animation-polish-locked-script">
+  (function () {
+    "use strict";
+    var root = document.documentElement;
+    root.classList.add("v14-animation-locked");
+    window.__topupverseV14AnimationNotice = "V14 hanya memoles animasi. Ukuran V13 dikunci. Endpoint, login, hash, payment gateway, email template, A2F, keamanan, dan checkout backend tidak diubah.";
+
+    function qsa(sel, ctx) { return Array.prototype.slice.call((ctx || document).querySelectorAll(sel)); }
+
+    function addSparkles() {
+      qsa(".premium-diamond").forEach(function (diamond) {
+        if (diamond.__v14Sparkles) return;
+        diamond.__v14Sparkles = true;
+        for (var i = 1; i <= 3; i += 1) {
+          var s = document.createElement("i");
+          s.className = "v14-sparkle s" + i;
+          s.setAttribute("aria-hidden", "true");
+          diamond.appendChild(s);
+        }
+      });
+    }
+
+    function spawnParticles(x, y) {
+      var count = window.matchMedia && window.matchMedia("(max-width: 720px)").matches ? 5 : 7;
+      for (var i = 0; i < count; i += 1) {
+        var p = document.createElement("i");
+        p.className = "v14-micro-particle";
+        var angle = (Math.PI * 2 * i / count) + (Math.random() * .35);
+        var dist = 24 + Math.random() * 30;
+        p.style.left = x + "px";
+        p.style.top = y + "px";
+        p.style.setProperty("--dx", Math.cos(angle) * dist + "px");
+        p.style.setProperty("--dy", Math.sin(angle) * dist + "px");
+        document.body.appendChild(p);
+        setTimeout(function (node) { if (node && node.remove) node.remove(); }, 760, p);
+      }
+    }
+
+    function bindStage(stage) {
+      if (!stage || stage.__v14Bound) return;
+      stage.__v14Bound = true;
+      stage.addEventListener("pointerdown", function (e) {
+        var rect = stage.getBoundingClientRect();
+        var x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / Math.max(1, rect.width)) * 100));
+        var y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / Math.max(1, rect.height)) * 100));
+        stage.style.setProperty("--v14-tap-x", x.toFixed(1) + "%");
+        stage.style.setProperty("--v14-tap-y", y.toFixed(1) + "%");
+      }, { passive: true });
+
+      stage.addEventListener("pointerup", function (e) {
+        stage.classList.remove("v14-hit", "v14-pulse");
+        void stage.offsetWidth;
+        stage.classList.add("v14-hit", "v14-pulse");
+        spawnParticles(e.clientX, e.clientY);
+        setTimeout(function () { stage.classList.remove("v14-pulse"); }, 260);
+        setTimeout(function () { stage.classList.remove("v14-hit"); }, 680);
+      }, { passive: true });
+    }
+
+    function installVisibilityPause() {
+      if (!("IntersectionObserver" in window)) return;
+      if (window.__topupverseV14Observer) return;
+      window.__topupverseV14Observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) entry.target.classList.remove("v14-paused");
+          else entry.target.classList.add("v14-paused");
+        });
+      }, { threshold: 0.04 });
+      qsa(".premium3d-stage").forEach(function (stage) { window.__topupverseV14Observer.observe(stage); });
+    }
+
+    function boot() {
+      addSparkles();
+      qsa(".premium3d-stage").forEach(bindStage);
+      installVisibilityPause();
+      setTimeout(function () { root.classList.add("v14-ready"); }, 90);
+    }
+
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot, { once: true });
+    else boot();
+    window.addEventListener("load", boot, { passive: true });
+    setTimeout(boot, 350);
+    setTimeout(boot, 1200);
   })();
 </script>
 
