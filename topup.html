@@ -3320,6 +3320,97 @@
         </div>
       </section>
 
+
+
+      <section class="section reveal production-polish" id="trust">
+        <div class="section-head">
+          <div class="kicker">TRUST & SAFETY</div>
+          <h2>Transaksi terlihat premium, tapi rahasia tetap di backend</h2>
+          <p class="section-sub">
+            Bagian ini menambah kepercayaan pengguna tanpa membuka token, API key, payment gateway, email template, A2F, endpoint, atau sistem login.
+          </p>
+        </div>
+
+        <div class="trust-grid">
+          <article class="trust-card tilt-card">
+            <div class="trust-icon">🔒</div>
+            <h3>Secret tetap aman</h3>
+            <p>HTML hanya menampilkan frontend. API key, token gateway, password admin, dan callback tetap harus dikelola server.</p>
+          </article>
+          <article class="trust-card tilt-card">
+            <div class="trust-icon">⚡</div>
+            <h3>Alur cepat</h3>
+            <p>Produk, nominal, tujuan, dan pembayaran diringkas langsung agar pembeli tidak bingung saat checkout.</p>
+          </article>
+          <article class="trust-card tilt-card">
+            <div class="trust-icon">🧾</div>
+            <h3>Invoice jelas</h3>
+            <p>Setiap invoice punya status, total, waktu, tombol salin, dan timeline supaya transaksi lebih mudah dicek.</p>
+          </article>
+          <article class="trust-card tilt-card">
+            <div class="trust-icon">📱</div>
+            <h3>Mobile first</h3>
+            <p>CTA, hero 3D, produk, riwayat, dan ringkasan dibuat nyaman untuk layar HP.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section reveal production-polish" id="smartflow">
+        <div class="section-head">
+          <div class="kicker">SMART CHECKOUT</div>
+          <h2>Panduan checkout yang lebih pintar</h2>
+          <p class="section-sub">
+            Panel ini membantu pengguna mengisi data dengan benar. Validasi backend dan payment gateway tidak diubah.
+          </p>
+        </div>
+
+        <div class="smart-grid">
+          <article class="smart-panel panel">
+            <div class="smart-panel-head">
+              <span class="smart-step-num">01</span>
+              <h3>Validasi tujuan</h3>
+            </div>
+            <div class="ux-validator" id="smartValidator">
+              Pilih produk dulu untuk melihat panduan format tujuan.
+            </div>
+            <div class="smart-tips" id="smartTips">
+              <span>Game: User ID</span>
+              <span>E-Wallet: nomor HP</span>
+              <span>E-Toll: nomor kartu</span>
+              <span>Digital: nomor pelanggan</span>
+            </div>
+          </article>
+
+          <article class="smart-panel panel payment-preview-card">
+            <div class="smart-panel-head">
+              <span class="smart-step-num">02</span>
+              <h3>Preview pembayaran</h3>
+            </div>
+            <div class="payment-preview">
+              <div class="preview-qr" aria-hidden="true"></div>
+              <div>
+                <span>Metode aktif</span>
+                <strong id="smartPaymentName">Belum dipilih</strong>
+                <p id="smartPaymentNote">Gateway asli tetap mengikuti backend kamu.</p>
+              </div>
+            </div>
+          </article>
+
+          <article class="smart-panel panel">
+            <div class="smart-panel-head">
+              <span class="smart-step-num">03</span>
+              <h3>Shortcut produk</h3>
+            </div>
+            <div class="shortcut-grid" id="quickProductShortcuts">
+              <button type="button" data-quick-product="mlbb">MLBB</button>
+              <button type="button" data-quick-product="dana">DANA</button>
+              <button type="button" data-quick-product="emoney">E-Toll</button>
+              <button type="button" data-quick-product="pln">PLN</button>
+            </div>
+          </article>
+        </div>
+      </section>
+
       <section class="section reveal" id="checkout">
         <div class="section-head">
           <div class="kicker">CHECKOUT</div>
@@ -3423,6 +3514,54 @@
 
         <div class="result-box" id="invoiceResult"></div>
       </section>
+
+      <section class="section reveal production-polish" id="history">
+        <div class="section-head">
+          <div class="kicker">RIWAYAT LOKAL</div>
+          <h2>Riwayat transaksi di browser ini</h2>
+          <p class="section-sub">
+            Riwayat ini membaca invoice demo dari localStorage. Pada produksi asli, riwayat permanen tetap harus diambil dari backend.
+          </p>
+        </div>
+        <div class="history-shell panel">
+          <div class="history-toolbar">
+            <button class="small-btn" type="button" id="refreshHistoryBtn">Refresh Riwayat</button>
+            <button class="small-btn" type="button" id="clearHistoryViewBtn">Kosongkan Tampilan</button>
+          </div>
+          <div class="history-list" id="localHistoryList">
+            <div class="empty-history">Belum ada invoice di browser ini.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section reveal production-polish" id="admin-preview">
+        <div class="section-head">
+          <div class="kicker">ADMIN MONITOR</div>
+          <h2>Dashboard admin frontend tanpa menyentuh login</h2>
+          <p class="section-sub">
+            Ini hanya monitor lokal dari invoice demo. Sistem login, A2F, email template, payment gateway, endpoint, dan keamanan backend tidak diubah.
+          </p>
+        </div>
+        <div class="admin-grid">
+          <article class="admin-card panel">
+            <span>Total invoice lokal</span>
+            <strong id="adminTotalOrders">0</strong>
+          </article>
+          <article class="admin-card panel">
+            <span>Menunggu pembayaran</span>
+            <strong id="adminPendingOrders">0</strong>
+          </article>
+          <article class="admin-card panel">
+            <span>Selesai</span>
+            <strong id="adminDoneOrders">0</strong>
+          </article>
+          <article class="admin-card panel">
+            <span>Estimasi omzet lokal</span>
+            <strong id="adminLocalRevenue">Rp0</strong>
+          </article>
+        </div>
+      </section>
+
     </main>
 
     <footer>
@@ -6528,14 +6667,13 @@
     }
     function ensureStage(parent, className) {
       if (!parent) return null;
-      var existing = parent.querySelector('.premium3d-stage.' + className);
+      var existing = parent.querySelector('.' + className);
       if (existing) return existing;
-      var tmp = document.createElement('div');
-      tmp.innerHTML = buildStage();
-      var stage = tmp.firstChild;
-      stage.classList.add(className);
-      parent.insertBefore(stage, parent.firstChild);
-      return stage;
+      var wrap = document.createElement('div');
+      wrap.className = 'premium3d-final-mount ' + className;
+      wrap.innerHTML = buildStage();
+      parent.insertBefore(wrap.firstChild, parent.firstChild);
+      return parent.querySelector('.premium3d-stage');
     }
     function bind(stage, mobile) {
       if (!stage || stage.__premiumBound) return;
@@ -6618,6 +6756,720 @@
     window.addEventListener('load', activate, { passive: true });
     setTimeout(activate, 200);
     setTimeout(activate, 900);
+  })();
+</script>
+
+
+
+<!-- ==========================================================
+     COMPLETE V12 FRONTEND UPGRADE
+     Scope: visual 3D polish, smart checkout helper, trust section,
+     local history, admin monitor, mobile UX, and object shortcuts.
+     Protected: API endpoint, login, hash, payment gateway, email template,
+     A2F, backend security, and existing order logic are not modified.
+     ========================================================== -->
+<style id="complete-v12-polish-style">
+  :root {
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .production-polish { scroll-margin-top: 92px; }
+
+  .trust-grid,
+  .smart-grid,
+  .admin-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 18px;
+  }
+
+  .smart-grid {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  .trust-card,
+  .smart-panel,
+  .admin-card {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .trust-card {
+    min-height: 225px;
+  }
+
+  .trust-card h3,
+  .smart-panel h3 {
+    position: relative;
+    z-index: 2;
+    margin-top: 12px;
+    font-size: 21px;
+  }
+
+  .trust-card p,
+  .smart-panel p {
+    position: relative;
+    z-index: 2;
+    margin-top: 10px;
+    color: var(--soft);
+    font-size: 14px;
+    line-height: 1.65;
+  }
+
+  .trust-icon {
+    position: relative;
+    z-index: 2;
+    width: 62px;
+    height: 62px;
+    display: grid;
+    place-items: center;
+    border-radius: 22px;
+    background: rgba(56, 189, 248, 0.14);
+    border: 1px solid rgba(56, 189, 248, 0.24);
+    font-size: 31px;
+    transform: translateZ(44px);
+    box-shadow: inset 0 0 24px rgba(255,255,255,0.05), 0 18px 48px rgba(56,189,248,0.16);
+  }
+
+  .smart-panel-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .smart-step-num {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    border-radius: 15px;
+    color: #061226;
+    background: linear-gradient(135deg, var(--cyan), #86efac);
+    font-weight: 900;
+    box-shadow: 0 15px 38px rgba(56,189,248,0.24);
+  }
+
+  .ux-validator {
+    min-height: 86px;
+    padding: 14px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.065);
+    border: 1px solid rgba(255,255,255,0.11);
+    color: #dbeafe;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .ux-validator.good {
+    color: #bbf7d0;
+    background: rgba(34,197,94,.10);
+    border-color: rgba(34,197,94,.26);
+  }
+
+  .ux-validator.warn {
+    color: #fde68a;
+    background: rgba(250,204,21,.095);
+    border-color: rgba(250,204,21,.25);
+  }
+
+  .ux-validator.danger {
+    color: #fecdd3;
+    background: rgba(251,113,133,.095);
+    border-color: rgba(251,113,133,.25);
+  }
+
+  .smart-tips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .smart-tips span,
+  .smart-chip {
+    padding: 8px 10px;
+    border-radius: 999px;
+    color: #bae6fd;
+    background: rgba(56,189,248,.10);
+    border: 1px solid rgba(56,189,248,.18);
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  .payment-preview {
+    display: grid;
+    grid-template-columns: 112px minmax(0,1fr);
+    gap: 15px;
+    align-items: center;
+  }
+
+  .preview-qr {
+    width: 112px;
+    height: 112px;
+    border-radius: 22px;
+    border: 1px solid rgba(255,255,255,.18);
+    background:
+      linear-gradient(90deg, rgba(255,255,255,.92) 8px, transparent 8px) 0 0 / 22px 22px,
+      linear-gradient(rgba(255,255,255,.92) 8px, transparent 8px) 0 0 / 22px 22px,
+      radial-gradient(circle at 22% 22%, #fff 0 14px, transparent 15px),
+      radial-gradient(circle at 78% 22%, #fff 0 14px, transparent 15px),
+      radial-gradient(circle at 22% 78%, #fff 0 14px, transparent 15px),
+      linear-gradient(135deg, rgba(56,189,248,.28), rgba(168,85,247,.20)),
+      #020617;
+    box-shadow: 0 0 36px rgba(56,189,248,.22);
+  }
+
+  .payment-preview span {
+    display: block;
+    color: var(--soft);
+    font-size: 13px;
+    margin-bottom: 5px;
+  }
+
+  .payment-preview strong {
+    display: block;
+    font-size: 24px;
+    color: white;
+    letter-spacing: -0.6px;
+  }
+
+  .payment-preview p {
+    margin-top: 8px;
+    color: var(--soft);
+    line-height: 1.55;
+    font-size: 13px;
+  }
+
+  .shortcut-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0,1fr));
+    gap: 10px;
+  }
+
+  .shortcut-grid button {
+    min-height: 58px;
+    border-radius: 18px;
+    border: 1px solid rgba(56,189,248,.24);
+    background: rgba(56,189,248,.105);
+    color: #e0f7ff;
+    font-weight: 900;
+    transition: .22s ease;
+  }
+
+  .shortcut-grid button:hover,
+  .shortcut-grid button:active {
+    transform: translateY(-2px);
+    color: #061226;
+    background: var(--cyan);
+    box-shadow: 0 16px 42px rgba(56,189,248,.24);
+  }
+
+  .history-shell { padding: 22px; }
+
+  .history-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .history-list {
+    display: grid;
+    gap: 12px;
+  }
+
+  .history-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    padding: 15px;
+    border-radius: 20px;
+    background: rgba(255,255,255,.065);
+    border: 1px solid rgba(255,255,255,.095);
+  }
+
+  .history-item strong {
+    display: block;
+    color: white;
+    font-size: 16px;
+    word-break: break-word;
+  }
+
+  .history-item span {
+    display: block;
+    margin-top: 5px;
+    color: var(--soft);
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .history-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+
+  .empty-history {
+    padding: 18px;
+    border-radius: 20px;
+    color: var(--soft);
+    background: rgba(255,255,255,.055);
+    border: 1px dashed rgba(255,255,255,.16);
+    text-align: center;
+  }
+
+  .admin-card {
+    min-height: 150px;
+    display: grid;
+    align-content: center;
+    gap: 8px;
+  }
+
+  .admin-card span {
+    color: var(--soft);
+    font-size: 14px;
+  }
+
+  .admin-card strong {
+    font-size: clamp(26px, 4vw, 38px);
+    letter-spacing: -1px;
+  }
+
+  .premium3d-stage {
+    outline: none;
+  }
+
+  .premium3d-world {
+    pointer-events: auto !important;
+    width: min(710px, 99vw) !important;
+    height: min(740px, 100%) !important;
+  }
+
+  .premium-phone {
+    width: min(365px, 78vw) !important;
+    height: auto !important;
+    aspect-ratio: 300 / 485 !important;
+    border-radius: 52px !important;
+    box-shadow:
+      0 64px 150px rgba(0,0,0,.62),
+      0 0 98px rgba(56,189,248,.30),
+      inset 0 0 0 2px rgba(255,255,255,.07),
+      inset 0 -35px 65px rgba(56,189,248,.11) !important;
+  }
+
+  .premium-card3d,
+  .premium-diamond,
+  .premium-coin,
+  .premium-mini,
+  .premium-checkout {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+  }
+
+  .premium-card3d:hover,
+  .premium-diamond:hover,
+  .premium-coin:hover,
+  .premium-mini:hover,
+  .premium-checkout:hover {
+    filter: brightness(1.12) saturate(1.18) drop-shadow(0 0 16px rgba(56,189,248,.36));
+  }
+
+  .premium-card3d::after {
+    content: "Tap";
+    width: auto !important;
+    height: auto !important;
+    left: auto !important;
+    right: 13px !important;
+    bottom: 11px !important;
+    top: auto !important;
+    display: inline-grid;
+    place-items: center;
+    min-width: 36px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: rgba(2,6,23,.55) !important;
+    color: #bae6fd;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: .3px;
+  }
+
+  .premium-tap-ripple {
+    position: fixed;
+    z-index: 9998;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    pointer-events: none;
+    background: rgba(103,232,249,.62);
+    box-shadow: 0 0 0 12px rgba(56,189,248,.14), 0 0 34px rgba(56,189,248,.9);
+    transform: translate(-50%, -50%) scale(.4);
+    animation: premiumTapRipple .52s ease-out forwards;
+  }
+
+  .sticky-mobile-checkout {
+    position: fixed;
+    left: 14px;
+    right: 14px;
+    bottom: calc(12px + var(--safe-bottom));
+    z-index: 8800;
+    display: none;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 22px;
+    border: 1px solid rgba(56,189,248,.28);
+    background: rgba(5,8,22,.82);
+    backdrop-filter: blur(18px);
+    box-shadow: 0 20px 65px rgba(0,0,0,.38);
+  }
+
+  .sticky-mobile-checkout span {
+    color: #dbeafe;
+    font-size: 13px;
+    font-weight: 800;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sticky-mobile-checkout a {
+    padding: 10px 13px;
+    border-radius: 16px;
+    color: #061226;
+    background: var(--cyan);
+    font-weight: 900;
+    white-space: nowrap;
+  }
+
+  @keyframes premiumTapRipple {
+    0% { opacity: 1; transform: translate(-50%, -50%) scale(.4); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(3.1); }
+  }
+
+  @media (max-width: 1100px) {
+    .trust-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .smart-grid { grid-template-columns: 1fr; }
+    .admin-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  @media (max-width: 640px) {
+    html.premium-final-3d-active .real-3d-stage-wrap {
+      min-height: min(625px, 72svh) !important;
+    }
+
+    .premium3d-world {
+      top: 49% !important;
+      width: 100vw !important;
+      height: 100% !important;
+    }
+
+    .premium-phone {
+      width: min(335px, 78vw) !important;
+    }
+
+    .trust-grid,
+    .admin-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .trust-card {
+      min-height: 185px;
+    }
+
+    .payment-preview {
+      grid-template-columns: 92px minmax(0,1fr);
+    }
+
+    .preview-qr {
+      width: 92px;
+      height: 92px;
+      border-radius: 18px;
+    }
+
+    .history-item {
+      grid-template-columns: 1fr;
+    }
+
+    .history-actions {
+      justify-content: flex-start;
+    }
+
+    .sticky-mobile-checkout {
+      display: grid;
+    }
+
+    footer {
+      padding-bottom: calc(88px + var(--safe-bottom));
+    }
+  }
+</style>
+
+<script id="complete-v12-polish-script">
+  (function () {
+    "use strict";
+
+    var protectedNotice = "Endpoint, login, hash, payment gateway, email template, A2F, dan keamanan backend tidak diubah oleh upgrade V12.";
+    window.__topupverseV12ProtectedNotice = protectedNotice;
+
+    function q(sel, root) { return (root || document).querySelector(sel); }
+    function qa(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+    function safeJson(value, fallback) { try { return JSON.parse(value); } catch (_) { return fallback; } }
+    function invoices() { try { return safeJson(localStorage.getItem("topupverse_invoices") || "[]", []); } catch (_) { return []; } }
+    function rupiah(value) {
+      try { return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(value || 0); }
+      catch (_) { return "Rp" + String(value || 0); }
+    }
+    function toast(message) {
+      if (typeof window.showToast === "function") window.showToast(message);
+      else {
+        var t = q("#toast");
+        if (t) { t.textContent = message; t.classList.add("show"); setTimeout(function(){ t.classList.remove("show"); }, 2400); }
+      }
+    }
+
+    function syncAdminAndHistory() {
+      var data = invoices();
+      var total = data.length;
+      var pending = data.filter(function (x) { return String(x.status || "").toLowerCase().indexOf("menunggu") >= 0; }).length;
+      var done = data.filter(function (x) { return String(x.status || "").toLowerCase().indexOf("selesai") >= 0; }).length;
+      var revenue = data.reduce(function (sum, x) { return sum + Number(x.total || x.nominal || 0); }, 0);
+      var set = function (id, value) { var el = q(id); if (el) el.textContent = value; };
+      set("#adminTotalOrders", String(total));
+      set("#adminPendingOrders", String(pending));
+      set("#adminDoneOrders", String(done));
+      set("#adminLocalRevenue", rupiah(revenue));
+
+      var list = q("#localHistoryList");
+      if (!list) return;
+      if (!data.length) {
+        list.innerHTML = '<div class="empty-history">Belum ada invoice di browser ini.</div>';
+        return;
+      }
+      list.innerHTML = data.slice(0, 12).map(function (order) {
+        var invoice = String(order.invoice || "-");
+        var productName = String(order.productName || order.product_id || "Produk");
+        var status = String(order.status || "-");
+        var totalText = rupiah(order.total || order.nominal || 0);
+        var created = String(order.createdAt || "-");
+        return '' +
+          '<article class="history-item">' +
+            '<div>' +
+              '<strong>' + invoice + '</strong>' +
+              '<span>' + productName + ' • ' + totalText + ' • ' + status + '</span>' +
+              '<span>' + created + '</span>' +
+            '</div>' +
+            '<div class="history-actions">' +
+              '<button class="small-btn" type="button" data-history-copy="' + invoice + '">Salin</button>' +
+              '<button class="small-btn" type="button" data-history-check="' + invoice + '">Cek</button>' +
+            '</div>' +
+          '</article>';
+      }).join("");
+    }
+
+    function selectProduct(productId, scroll) {
+      if (typeof window.chooseProduct === "function") {
+        window.chooseProduct(productId, !!scroll);
+        syncSmartPanel();
+        return;
+      }
+      var products = window.products || [];
+      var product = products.find(function (p) { return p.id === productId; });
+      var categorySelect = q("#categorySelect");
+      var productSelect = q("#productSelect");
+      if (product && categorySelect && productSelect) {
+        categorySelect.value = product.category;
+        categorySelect.dispatchEvent(new Event("change", { bubbles: true }));
+        setTimeout(function () {
+          productSelect.value = product.id;
+          productSelect.dispatchEvent(new Event("change", { bubbles: true }));
+          if (scroll && q("#checkout")) q("#checkout").scrollIntoView({ behavior: "smooth" });
+        }, 0);
+      }
+    }
+
+    function selectCategory(category) {
+      var categorySelect = q("#categorySelect");
+      if (categorySelect) {
+        categorySelect.value = category;
+        categorySelect.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+      var tab = q('.tab[data-filter="' + category + '"]');
+      if (tab) tab.click();
+      var produk = q("#produk");
+      if (produk) produk.scrollIntoView({ behavior: "smooth", block: "start" });
+      toast("Kategori dipilih: " + ({ game: "Top Up Game", wallet: "E-Wallet", toll: "E-Toll", digital: "Produk Digital" }[category] || category));
+      syncSmartPanel();
+    }
+
+    function syncSmartPanel() {
+      var category = q("#categorySelect") && q("#categorySelect").value;
+      var productText = q("#productSelect") && q("#productSelect").selectedOptions[0] ? q("#productSelect").selectedOptions[0].textContent : "";
+      var customer = q("#customerInput") ? q("#customerInput").value.trim() : "";
+      var payment = q("#paymentSelect") ? q("#paymentSelect").value : "";
+      var box = q("#smartValidator");
+      var payName = q("#smartPaymentName");
+      var payNote = q("#smartPaymentNote");
+      if (payName) payName.textContent = payment || "Belum dipilih";
+      if (payNote) payNote.textContent = payment ? (payment + " tampil sebagai preview. Proses gateway asli tetap mengikuti backend.") : "Gateway asli tetap mengikuti backend kamu.";
+      if (!box) return;
+      box.classList.remove("good", "warn", "danger");
+      if (!category) {
+        box.textContent = "Pilih kategori produk dulu untuk melihat panduan format tujuan.";
+        box.classList.add("warn");
+        return;
+      }
+      if (!customer) {
+        var hint = {
+          game: "Isi User ID game. Tambahkan server ID jika produk membutuhkannya.",
+          wallet: "Isi nomor HP aktif, disarankan format 08xxxxxxxxxx.",
+          toll: "Isi nomor kartu e-toll sesuai fisik kartu.",
+          digital: "Isi nomor HP, nomor pelanggan, atau ID sesuai produk digital."
+        }[category] || "Isi data tujuan sesuai produk.";
+        box.textContent = hint + (productText ? " Produk aktif: " + productText + "." : "");
+        box.classList.add("warn");
+        return;
+      }
+      var numeric = customer.replace(/\D/g, "");
+      var valid = true;
+      var msg = "Format tujuan terlihat siap. Tetap pastikan data benar sebelum membuat invoice.";
+      if (category === "wallet" && !/^08\d{8,12}$/.test(customer)) {
+        valid = false; msg = "Nomor e-wallet biasanya memakai format 08xxxxxxxxxx. Periksa lagi sebelum checkout.";
+      }
+      if (category === "toll" && numeric.length < 8) {
+        valid = false; msg = "Nomor kartu e-toll terlihat terlalu pendek. Periksa nomor kartu fisik.";
+      }
+      if (category === "game" && numeric.length < 4) {
+        valid = false; msg = "User ID game terlihat terlalu pendek. Pastikan ID dan server benar.";
+      }
+      if (category === "digital" && numeric.length < 5) {
+        valid = false; msg = "Nomor pelanggan atau tujuan digital terlihat terlalu pendek.";
+      }
+      box.textContent = msg;
+      box.classList.add(valid ? "good" : "danger");
+    }
+
+    function enhance3DObjectActions() {
+      qa(".premium3d-stage").forEach(function (stage) {
+        if (stage.__v12ObjectActions) return;
+        stage.__v12ObjectActions = true;
+        stage.setAttribute("tabindex", "0");
+        stage.setAttribute("aria-label", "Hero 3D interaktif, geser untuk memutar, tap objek untuk memilih produk");
+        var down = null;
+        stage.addEventListener("pointerdown", function (e) { down = { x: e.clientX, y: e.clientY }; }, { passive: true });
+        stage.addEventListener("pointerup", function (e) {
+          if (!down) return;
+          var dx = Math.abs(e.clientX - down.x), dy = Math.abs(e.clientY - down.y);
+          if (dx + dy < 8) addRipple(e.clientX, e.clientY);
+          down = null;
+        }, { passive: true });
+      });
+      var bind = function (selector, fn, label) {
+        qa(selector).forEach(function (el) {
+          if (el.__v12Bound) return;
+          el.__v12Bound = true;
+          el.setAttribute("role", "button");
+          el.setAttribute("tabindex", "0");
+          el.setAttribute("aria-label", label);
+          el.addEventListener("click", function (e) { e.stopPropagation(); fn(); });
+          el.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fn(); } });
+        });
+      };
+      bind(".premium-card3d.game, .premium-diamond, .premium-mini:first-child", function(){ selectProduct("mlbb", true); toast("MLBB dipilih dari objek 3D"); }, "Pilih produk game MLBB");
+      bind(".premium-card3d.wallet, .premium-mini:nth-child(2)", function(){ selectProduct("dana", true); toast("DANA dipilih dari objek 3D"); }, "Pilih produk e-wallet DANA");
+      bind(".premium-card3d.toll, .premium-mini:nth-child(3)", function(){ selectProduct("emoney", true); toast("E-Toll dipilih dari objek 3D"); }, "Pilih produk e-toll");
+      bind(".premium-mini:nth-child(4)", function(){ selectProduct("pln", true); toast("Token PLN dipilih dari objek 3D"); }, "Pilih produk token PLN");
+      bind(".premium-coin", function(){ var p = q("#paymentSelect"); if (p) { p.value = "QRIS"; p.dispatchEvent(new Event("change", { bubbles: true })); } syncSmartPanel(); toast("Metode QRIS dipilih"); if (q("#checkout")) q("#checkout").scrollIntoView({ behavior: "smooth" }); }, "Pilih metode pembayaran QRIS");
+      bind(".premium-checkout", function(){ if (q("#checkout")) q("#checkout").scrollIntoView({ behavior: "smooth" }); }, "Ke form checkout");
+    }
+
+    function addRipple(x, y) {
+      var r = document.createElement("span");
+      r.className = "premium-tap-ripple";
+      r.style.left = x + "px";
+      r.style.top = y + "px";
+      document.body.appendChild(r);
+      setTimeout(function () { r.remove(); }, 700);
+    }
+
+    function installStickyCta() {
+      if (q(".sticky-mobile-checkout")) return;
+      var cta = document.createElement("div");
+      cta.className = "sticky-mobile-checkout";
+      cta.innerHTML = '<span id="stickyCheckoutText">Siap top up cepat?</span><a href="#checkout">Checkout</a>';
+      document.body.appendChild(cta);
+      function update() {
+        var product = q("#productSelect") && q("#productSelect").selectedOptions[0] ? q("#productSelect").selectedOptions[0].textContent : "";
+        var total = q("#sumTotal") ? q("#sumTotal").textContent : "";
+        var txt = q("#stickyCheckoutText");
+        if (txt) txt.textContent = product && product !== "Pilih produk" ? (product + " • " + total) : "Pilih produk lalu checkout";
+      }
+      ["#categorySelect", "#productSelect", "#customerInput", "#paymentSelect", "#nominalGrid"].forEach(function (sel) {
+        var el = q(sel); if (el) { el.addEventListener("change", update); el.addEventListener("input", update); el.addEventListener("click", update); }
+      });
+      update();
+    }
+
+    function bindButtons() {
+      qa("[data-quick-product]").forEach(function (btn) {
+        if (btn.__v12Quick) return;
+        btn.__v12Quick = true;
+        btn.addEventListener("click", function () { selectProduct(btn.getAttribute("data-quick-product"), true); });
+      });
+      var refresh = q("#refreshHistoryBtn");
+      if (refresh && !refresh.__v12) { refresh.__v12 = true; refresh.addEventListener("click", function(){ syncAdminAndHistory(); toast("Riwayat diperbarui"); }); }
+      var clear = q("#clearHistoryViewBtn");
+      if (clear && !clear.__v12) { clear.__v12 = true; clear.addEventListener("click", function(){ var list=q("#localHistoryList"); if(list) list.innerHTML='<div class="empty-history">Tampilan dikosongkan sementara. Data localStorage tidak dihapus.</div>'; }); }
+      document.addEventListener("click", function (e) {
+        var copy = e.target.closest && e.target.closest("[data-history-copy]");
+        var check = e.target.closest && e.target.closest("[data-history-check]");
+        if (copy) {
+          var code = copy.getAttribute("data-history-copy");
+          if (typeof window.copyInvoice === "function") window.copyInvoice(code);
+        }
+        if (check) {
+          var inv = q("#invoiceInput");
+          if (inv) inv.value = check.getAttribute("data-history-check");
+          if (typeof window.checkInvoice === "function") window.checkInvoice(check.getAttribute("data-history-check"));
+          if (q("#cek")) q("#cek").scrollIntoView({ behavior: "smooth" });
+        }
+      }, { passive: true });
+    }
+
+    function watchCheckout() {
+      ["#categorySelect", "#productSelect", "#customerInput", "#paymentSelect", "#nominalGrid"].forEach(function (sel) {
+        var el = q(sel);
+        if (!el || el.__v12Watch) return;
+        el.__v12Watch = true;
+        ["change", "input", "click"].forEach(function (evt) { el.addEventListener(evt, syncSmartPanel, { passive: true }); });
+      });
+      var form = q("#orderForm");
+      if (form && !form.__v12SubmitWatch) {
+        form.__v12SubmitWatch = true;
+        form.addEventListener("submit", function () {
+          setTimeout(function () { syncAdminAndHistory(); syncSmartPanel(); }, 1100);
+          setTimeout(function () { syncAdminAndHistory(); }, 2500);
+        }, true);
+      }
+    }
+
+    function boot() {
+      enhance3DObjectActions();
+      installStickyCta();
+      bindButtons();
+      watchCheckout();
+      syncSmartPanel();
+      syncAdminAndHistory();
+    }
+
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot, { once: true });
+    else boot();
+    window.addEventListener("load", boot, { passive: true });
+    setInterval(function () { enhance3DObjectActions(); syncAdminAndHistory(); }, 1800);
   })();
 </script>
 
