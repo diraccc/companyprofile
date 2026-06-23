@@ -7842,403 +7842,310 @@
 
 
 
+
+
+
 <!-- ==========================================================
-     V14 ANIMATION POLISH LOCKED SIZE
-     Scope: animation polish only. Size/layout locked from V13.
+     V15 SINGLE 3D NO DOUBLE PATCH
+     Scope: animation stability only. V13 size remains locked.
+     Fix: removes visual double/ghost on iOS Safari by avoiding CSS
+     translate/rotate longhand animation on 3D layers, removing extra
+     duplicated stages, and keeping one visible 3D hero only.
      Protected: endpoint, login, hash, payment gateway, email template,
-     A2F, security, checkout backend flow are untouched.
+     A2F, security, checkout, invoice, products are untouched.
 ========================================================== -->
-<style id="v14-animation-polish-locked-style">
-  html.v14-animation-locked .premium3d-stage {
-    --v14-tap-x: 50%;
-    --v14-tap-y: 50%;
-    isolation: isolate;
+<style id="v15-single-no-double-style">
+  html.v15-single-no-double .premium3d-stage {
+    --v15-tap-x: 50%;
+    --v15-tap-y: 50%;
+    isolation: isolate !important;
+    backface-visibility: hidden !important;
+    -webkit-backface-visibility: hidden !important;
+    contain: layout paint style !important;
   }
 
-  html.v14-animation-locked .premium3d-stage::before {
-    content: "";
-    position: absolute;
-    left: var(--v14-tap-x);
-    top: var(--v14-tap-y);
-    width: 1px;
-    height: 1px;
-    border-radius: 50%;
-    pointer-events: none;
-    opacity: 0;
-    z-index: 8;
-    box-shadow:
-      0 0 0 0 rgba(103,232,249,.0),
-      0 0 0 0 rgba(168,85,247,.0);
+  html.v15-single-no-double .premium3d-world,
+  html.v15-single-no-double .premium-phone,
+  html.v15-single-no-double .premium-screen,
+  html.v15-single-no-double .premium-card3d,
+  html.v15-single-no-double .premium-coin,
+  html.v15-single-no-double .premium-diamond {
+    backface-visibility: hidden !important;
+    -webkit-backface-visibility: hidden !important;
+    transform-style: preserve-3d;
   }
 
-  html.v14-animation-locked .premium3d-stage.v14-hit::before {
-    animation: v14HitRing .62s ease-out forwards;
+  html.v15-single-no-double .premium-phone {
+    animation: v15PhoneClean 8.8s ease-in-out infinite !important;
+    will-change: filter, box-shadow, margin-top !important;
   }
 
-  html.v14-animation-locked .premium-phone {
-    animation: v14PhoneAlive 7.8s cubic-bezier(.45,0,.25,1) infinite !important;
-    will-change: translate, filter, box-shadow;
+  html.v15-single-no-double .premium-screen {
+    position: relative !important;
+    overflow: hidden !important;
   }
 
-  html.v14-animation-locked .premium-screen {
-    position: relative;
-  }
-
-  html.v14-animation-locked .premium-screen > * {
+  html.v15-single-no-double .premium-screen > * {
     position: relative;
     z-index: 2;
   }
 
-  html.v14-animation-locked .premium-screen::before {
+  html.v15-single-no-double .premium-screen::before {
     content: "";
     position: absolute;
-    inset: -35% -60%;
+    inset: -42% -70%;
     z-index: 1;
     pointer-events: none;
-    opacity: .0;
-    background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.20) 49%, transparent 62%);
-    transform: translateX(-46%) rotate(7deg);
-    animation: v14ScreenSheen 6.8s ease-in-out infinite;
+    opacity: 0;
+    background: linear-gradient(108deg, transparent 36%, rgba(255,255,255,.18) 49%, transparent 62%);
+    transform: translateX(-46%) rotate(6deg);
+    animation: v15ScreenSheen 8s ease-in-out infinite;
     mix-blend-mode: screen;
   }
 
-  html.v14-animation-locked .premium-balance {
-    overflow: hidden;
-  }
+  html.v15-single-no-double .premium-balance { overflow: hidden !important; }
 
-  html.v14-animation-locked .premium-balance::after {
+  html.v15-single-no-double .premium-balance::after {
     content: "";
     position: absolute;
     inset: 0;
     pointer-events: none;
-    opacity: .34;
-    background: radial-gradient(circle at var(--v14-tap-x, 50%) var(--v14-tap-y, 50%), rgba(255,255,255,.18), transparent 36%);
-    animation: v14BalanceGlow 4.8s ease-in-out infinite;
+    opacity: .22;
+    background: radial-gradient(circle at var(--v15-tap-x) var(--v15-tap-y), rgba(255,255,255,.18), transparent 38%);
+    animation: v15SoftGlow 5.8s ease-in-out infinite;
   }
 
-  html.v14-animation-locked .premium-mini {
-    animation: v14MiniPulse 5.8s ease-in-out infinite;
+  html.v15-single-no-double .premium-mini {
+    animation: v15MiniLight 7.5s ease-in-out infinite !important;
+  }
+  html.v15-single-no-double .premium-mini:nth-child(2) { animation-delay: -1.2s !important; }
+  html.v15-single-no-double .premium-mini:nth-child(3) { animation-delay: -2.2s !important; }
+  html.v15-single-no-double .premium-mini:nth-child(4) { animation-delay: -3.2s !important; }
+
+  html.v15-single-no-double .premium-checkout {
+    animation: v15CheckoutClean 5.2s ease-in-out infinite !important;
   }
 
-  html.v14-animation-locked .premium-mini:nth-child(2) { animation-delay: -1.2s; }
-  html.v14-animation-locked .premium-mini:nth-child(3) { animation-delay: -2.1s; }
-  html.v14-animation-locked .premium-mini:nth-child(4) { animation-delay: -3.0s; }
+  html.v15-single-no-double .premium-card3d.game,
+  html.v15-single-no-double .premium-card3d.wallet,
+  html.v15-single-no-double .premium-card3d.toll {
+    animation: v15CardClean 8.8s ease-in-out infinite !important;
+    will-change: filter, margin-top !important;
+  }
+  html.v15-single-no-double .premium-card3d.wallet { animation-delay: -1.6s !important; }
+  html.v15-single-no-double .premium-card3d.toll { animation-delay: -2.7s !important; }
 
-  html.v14-animation-locked .premium-checkout {
-    animation: v14CheckoutBreath 4.2s ease-in-out infinite;
+  /* Remove duplicate-looking Tap pills. Click function remains. */
+  html.v15-single-no-double .premium-card3d::after {
+    display: none !important;
+    content: "" !important;
   }
 
-  html.v14-animation-locked .premium-card3d.game {
-    animation: v14CardDriftA 8.2s ease-in-out infinite !important;
+  html.v15-single-no-double .premium-coin {
+    animation: v15CoinClean 8s ease-in-out infinite !important;
+    will-change: filter, margin-top !important;
   }
 
-  html.v14-animation-locked .premium-card3d.wallet {
-    animation: v14CardDriftB 9.1s ease-in-out infinite !important;
-  }
-
-  html.v14-animation-locked .premium-card3d.toll {
-    animation: v14CardDriftC 8.8s ease-in-out infinite !important;
-  }
-
-  html.v14-animation-locked .premium-coin {
-    animation: v14CoinAlive 6.9s ease-in-out infinite !important;
-    will-change: translate, rotate, filter;
-  }
-
-  html.v14-animation-locked .premium-coin::after {
+  html.v15-single-no-double .premium-coin::after {
     content: "";
     position: absolute;
-    inset: -8px;
+    inset: -7px;
     border-radius: 50%;
     pointer-events: none;
-    opacity: .0;
-    background: conic-gradient(from 90deg, transparent, rgba(255,255,255,.70), transparent 22%, transparent 100%);
-    animation: v14CoinGleam 5.6s ease-in-out infinite;
+    opacity: 0;
+    background: conic-gradient(from 90deg, transparent, rgba(255,255,255,.58), transparent 24%, transparent 100%);
+    animation: v15CoinGleam 6.2s ease-in-out infinite;
     mix-blend-mode: screen;
   }
 
-  html.v14-animation-locked .premium-diamond {
-    animation: v14DiamondAlive 7.3s ease-in-out infinite !important;
-    will-change: translate, rotate, filter;
+  html.v15-single-no-double .premium-diamond {
+    animation: v15DiamondClean 8.2s ease-in-out infinite !important;
+    will-change: filter, margin-top !important;
   }
 
-  html.v14-animation-locked .premium-diamond .v14-sparkle {
+  html.v15-single-no-double .premium-diamond .v15-sparkle {
     position: absolute;
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
     border-radius: 50%;
-    background: rgba(255,255,255,.95);
-    box-shadow: 0 0 16px rgba(103,232,249,.9);
+    background: rgba(255,255,255,.96);
+    box-shadow: 0 0 14px rgba(103,232,249,.9);
     pointer-events: none;
-    opacity: .0;
+    opacity: 0;
     transform: rotate(-45deg);
-    animation: v14DiamondSpark 2.8s ease-in-out infinite;
+    animation: v15Sparkle 3.4s ease-in-out infinite;
+  }
+  html.v15-single-no-double .premium-diamond .v15-sparkle.s1 { left: 19%; top: 17%; animation-delay: -.5s; }
+  html.v15-single-no-double .premium-diamond .v15-sparkle.s2 { right: 18%; top: 31%; animation-delay: -1.4s; }
+  html.v15-single-no-double .premium-diamond .v15-sparkle.s3 { left: 50%; bottom: 18%; animation-delay: -2.3s; }
+
+  html.v15-single-no-double .premium3d-orbit {
+    animation: premiumOrbit 42s linear infinite, v15OrbitSoft 9s ease-in-out infinite !important;
+  }
+  html.v15-single-no-double .premium3d-orbit.o2 {
+    animation: premiumOrbit 52s linear infinite reverse, v15OrbitSoft 10.5s ease-in-out infinite !important;
+  }
+  html.v15-single-no-double .premium3d-orbit.o3 {
+    animation: premiumOrbit 64s linear infinite, v15OrbitSoft 12s ease-in-out infinite !important;
   }
 
-  html.v14-animation-locked .premium-diamond .v14-sparkle.s1 { left: 18%; top: 16%; animation-delay: -.4s; }
-  html.v14-animation-locked .premium-diamond .v14-sparkle.s2 { right: 17%; top: 29%; animation-delay: -1.2s; }
-  html.v14-animation-locked .premium-diamond .v14-sparkle.s3 { left: 48%; bottom: 16%; animation-delay: -2.0s; }
-
-  html.v14-animation-locked .premium3d-orbit {
-    animation: premiumOrbit 34s linear infinite, v14OrbitPulse 7.4s ease-in-out infinite !important;
+  html.v15-single-no-double .premium3d-stage.v15-pulse .premium-phone,
+  html.v15-single-no-double .premium3d-stage.v15-pulse .premium-card3d,
+  html.v15-single-no-double .premium3d-stage.v15-pulse .premium-coin,
+  html.v15-single-no-double .premium3d-stage.v15-pulse .premium-diamond {
+    filter: brightness(1.10) saturate(1.12) drop-shadow(0 0 14px rgba(56,189,248,.24));
   }
 
-  html.v14-animation-locked .premium3d-orbit.o2 {
-    animation: premiumOrbit 42s linear infinite reverse, v14OrbitPulse 8.8s ease-in-out infinite !important;
-  }
-
-  html.v14-animation-locked .premium3d-orbit.o3 {
-    animation: premiumOrbit 52s linear infinite, v14OrbitPulse 10s ease-in-out infinite !important;
-  }
-
-  html.v14-animation-locked .premium-glow-dot.d1 {
-    animation: v14DotOrbit 7.4s ease-in-out infinite !important;
-  }
-
-  html.v14-animation-locked .premium-glow-dot.d2,
-  html.v14-animation-locked .premium-glow-dot.d3 {
-    animation: v14DotOrbit 8.2s ease-in-out infinite !important;
-  }
-
-  html.v14-animation-locked .premium3d-stage.v14-pulse .premium-phone,
-  html.v14-animation-locked .premium3d-stage.v14-pulse .premium-card3d,
-  html.v14-animation-locked .premium3d-stage.v14-pulse .premium-coin,
-  html.v14-animation-locked .premium3d-stage.v14-pulse .premium-diamond {
-    filter: brightness(1.13) saturate(1.16) drop-shadow(0 0 18px rgba(56,189,248,.30));
-  }
-
-  html.v14-animation-locked .v14-micro-particle {
+  html.v15-single-no-double .v15-hit-ring {
     position: fixed;
-    width: 4px;
-    height: 4px;
+    z-index: 9997;
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
     pointer-events: none;
-    z-index: 9997;
-    background: rgba(103,232,249,.92);
-    box-shadow: 0 0 12px rgba(56,189,248,.8);
-    transform: translate(-50%, -50%);
-    animation: v14MicroParticle .64s ease-out forwards;
+    background: rgba(103,232,249,.54);
+    box-shadow: 0 0 0 12px rgba(56,189,248,.12), 0 0 28px rgba(56,189,248,.7);
+    transform: translate(-50%, -50%) scale(.55);
+    animation: v15HitRing .48s ease-out forwards;
   }
 
-  html.v14-animation-locked .premium3d-stage.v14-paused .premium3d-orbit,
-  html.v14-animation-locked .premium3d-stage.v14-paused .premium3d-stars,
-  html.v14-animation-locked .premium3d-stage.v14-paused .premium-phone,
-  html.v14-animation-locked .premium3d-stage.v14-paused .premium-card3d,
-  html.v14-animation-locked .premium3d-stage.v14-paused .premium-coin,
-  html.v14-animation-locked .premium3d-stage.v14-paused .premium-diamond,
-  html.v14-animation-locked .premium3d-stage.v14-paused .premium-mini,
-  html.v14-animation-locked .premium3d-stage.v14-paused .premium-checkout,
-  html.v14-animation-locked .premium3d-stage.v14-paused .premium-glow-dot {
+  html.v15-single-no-double .premium3d-stage.v15-paused .premium3d-orbit,
+  html.v15-single-no-double .premium3d-stage.v15-paused .premium3d-stars,
+  html.v15-single-no-double .premium3d-stage.v15-paused .premium-phone,
+  html.v15-single-no-double .premium3d-stage.v15-paused .premium-card3d,
+  html.v15-single-no-double .premium3d-stage.v15-paused .premium-coin,
+  html.v15-single-no-double .premium3d-stage.v15-paused .premium-diamond,
+  html.v15-single-no-double .premium3d-stage.v15-paused .premium-mini,
+  html.v15-single-no-double .premium3d-stage.v15-paused .premium-checkout {
     animation-play-state: paused !important;
   }
 
-  html.v14-animation-locked:not(.v14-ready) .premium3d-stage .premium-phone,
-  html.v14-animation-locked:not(.v14-ready) .premium3d-stage .premium-card3d,
-  html.v14-animation-locked:not(.v14-ready) .premium3d-stage .premium-coin,
-  html.v14-animation-locked:not(.v14-ready) .premium3d-stage .premium-diamond {
-    opacity: 0;
+  @keyframes v15PhoneClean {
+    0%,100% { margin-top: 0; filter: brightness(1) saturate(1); }
+    50% { margin-top: -5px; filter: brightness(1.035) saturate(1.04); }
   }
-
-  html.v14-animation-locked.v14-ready .premium3d-stage .premium-phone,
-  html.v14-animation-locked.v14-ready .premium3d-stage .premium-card3d,
-  html.v14-animation-locked.v14-ready .premium3d-stage .premium-coin,
-  html.v14-animation-locked.v14-ready .premium3d-stage .premium-diamond {
-    transition: opacity .38s ease, filter .22s ease;
+  @keyframes v15ScreenSheen {
+    0%,60%,100% { opacity: 0; transform: translateX(-46%) rotate(6deg); }
+    70% { opacity: .34; }
+    82% { opacity: .08; transform: translateX(46%) rotate(6deg); }
   }
-
-  @keyframes v14PhoneAlive {
-    0%,100% { translate: 0 0; filter: brightness(1) saturate(1); }
-    38% { translate: 0 -5px; filter: brightness(1.045) saturate(1.05); }
-    58% { translate: 0 -8px; filter: brightness(1.06) saturate(1.08); }
-    78% { translate: 0 -3px; filter: brightness(1.025) saturate(1.03); }
-  }
-
-  @keyframes v14ScreenSheen {
-    0%, 56%, 100% { opacity: 0; transform: translateX(-48%) rotate(7deg); }
-    66% { opacity: .42; }
-    78% { opacity: .10; transform: translateX(48%) rotate(7deg); }
-  }
-
-  @keyframes v14BalanceGlow {
-    0%,100% { opacity: .20; }
-    50% { opacity: .42; }
-  }
-
-  @keyframes v14MiniPulse {
-    0%,100% { filter: brightness(1); }
-    44% { filter: brightness(1.10) drop-shadow(0 0 8px rgba(56,189,248,.22)); }
-  }
-
-  @keyframes v14CheckoutBreath {
-    0%,100% { filter: brightness(1); }
-    50% { filter: brightness(1.08) saturate(1.10); }
-  }
-
-  @keyframes v14CardDriftA {
-    0%,100% { translate: 0 0; filter: brightness(1); }
-    50% { translate: 0 -7px; filter: brightness(1.08); }
-  }
-
-  @keyframes v14CardDriftB {
-    0%,100% { translate: 0 0; filter: brightness(1); }
-    48% { translate: 0 -6px; filter: brightness(1.07); }
-  }
-
-  @keyframes v14CardDriftC {
-    0%,100% { translate: 0 0; filter: brightness(1); }
-    52% { translate: 0 -8px; filter: brightness(1.09); }
-  }
-
-  @keyframes v14CoinAlive {
-    0%,100% { translate: 0 0; rotate: 0deg; filter: brightness(1) saturate(1); }
-    33% { translate: 0 -6px; rotate: 6deg; filter: brightness(1.12) saturate(1.12); }
-    66% { translate: 0 -2px; rotate: -4deg; filter: brightness(1.04) saturate(1.08); }
-  }
-
-  @keyframes v14CoinGleam {
-    0%,54%,100% { opacity: 0; transform: rotate(0deg); }
-    62% { opacity: .42; }
-    74% { opacity: .0; transform: rotate(135deg); }
-  }
-
-  @keyframes v14DiamondAlive {
-    0%,100% { translate: 0 0; rotate: 0deg; filter: brightness(1) saturate(1); }
-    45% { translate: 0 -7px; rotate: 3deg; filter: brightness(1.16) saturate(1.15); }
-    72% { translate: 0 -3px; rotate: -2deg; filter: brightness(1.05) saturate(1.10); }
-  }
-
-  @keyframes v14DiamondSpark {
-    0%,100% { opacity: 0; scale: .55; }
-    46% { opacity: .95; scale: 1.18; }
-    58% { opacity: .10; scale: .86; }
-  }
-
-  @keyframes v14OrbitPulse {
-    0%,100% { opacity: .22; }
-    50% { opacity: .42; }
-  }
-
-  @keyframes v14DotOrbit {
-    0%,100% { opacity:.32; translate: 0 0; scale:.85; }
-    50% { opacity:.84; translate: 0 -7px; scale:1.18; }
-  }
-
-  @keyframes v14HitRing {
-    0% { opacity: .9; box-shadow: 0 0 0 0 rgba(103,232,249,.32), 0 0 0 0 rgba(168,85,247,.18); }
-    100% { opacity: 0; box-shadow: 0 0 0 48px rgba(103,232,249,0), 0 0 0 76px rgba(168,85,247,0); }
-  }
-
-  @keyframes v14MicroParticle {
-    0% { opacity: 1; translate: 0 0; scale: 1; }
-    100% { opacity: 0; translate: var(--dx) var(--dy); scale: .3; }
-  }
+  @keyframes v15SoftGlow { 0%,100% { opacity: .16; } 50% { opacity: .34; } }
+  @keyframes v15MiniLight { 0%,100% { filter: brightness(1); } 48% { filter: brightness(1.06) drop-shadow(0 0 7px rgba(56,189,248,.18)); } }
+  @keyframes v15CheckoutClean { 0%,100% { filter: brightness(1); } 50% { filter: brightness(1.055) saturate(1.08); } }
+  @keyframes v15CardClean { 0%,100% { margin-top: 0; filter: brightness(1); } 50% { margin-top: -5px; filter: brightness(1.06); } }
+  @keyframes v15CoinClean { 0%,100% { margin-top: 0; filter: brightness(1) saturate(1); } 50% { margin-top: -5px; filter: brightness(1.10) saturate(1.10); } }
+  @keyframes v15CoinGleam { 0%,55%,100% { opacity: 0; transform: rotate(0deg); } 64% { opacity: .36; } 78% { opacity: 0; transform: rotate(135deg); } }
+  @keyframes v15DiamondClean { 0%,100% { margin-top: 0; filter: brightness(1) saturate(1); } 50% { margin-top: -5px; filter: brightness(1.12) saturate(1.12); } }
+  @keyframes v15Sparkle { 0%,100% { opacity: 0; scale: .55; } 44% { opacity: .9; scale: 1.1; } 58% { opacity: .08; scale: .86; } }
+  @keyframes v15OrbitSoft { 0%,100% { opacity: .18; } 50% { opacity: .32; } }
+  @keyframes v15HitRing { 0% { opacity: 1; transform: translate(-50%, -50%) scale(.55); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(2.55); } }
 
   @media (max-width: 720px) {
-    html.v14-animation-locked .premium-phone { animation-duration: 8.8s !important; }
-    html.v14-animation-locked .premium-card3d.game,
-    html.v14-animation-locked .premium-card3d.wallet,
-    html.v14-animation-locked .premium-card3d.toll { animation-duration: 9.5s !important; }
-    html.v14-animation-locked .premium-coin,
-    html.v14-animation-locked .premium-diamond { animation-duration: 8.4s !important; }
-    html.v14-animation-locked .premium-screen::before { animation-duration: 8.2s !important; }
+    html.v15-single-no-double .premium-phone { animation-duration: 9.5s !important; }
+    html.v15-single-no-double .premium-card3d.game,
+    html.v15-single-no-double .premium-card3d.wallet,
+    html.v15-single-no-double .premium-card3d.toll,
+    html.v15-single-no-double .premium-coin,
+    html.v15-single-no-double .premium-diamond { animation-duration: 9.5s !important; }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    html.v14-animation-locked .premium-screen::before,
-    html.v14-animation-locked .premium-balance::after,
-    html.v14-animation-locked .premium-mini,
-    html.v14-animation-locked .premium-checkout,
-    html.v14-animation-locked .premium-card3d,
-    html.v14-animation-locked .premium-coin,
-    html.v14-animation-locked .premium-diamond,
-    html.v14-animation-locked .premium-diamond .v14-sparkle {
+    html.v15-single-no-double .premium-screen::before,
+    html.v15-single-no-double .premium-balance::after,
+    html.v15-single-no-double .premium-mini,
+    html.v15-single-no-double .premium-checkout,
+    html.v15-single-no-double .premium-card3d,
+    html.v15-single-no-double .premium-coin,
+    html.v15-single-no-double .premium-diamond,
+    html.v15-single-no-double .premium-diamond .v15-sparkle {
       animation: none !important;
     }
   }
 </style>
-<script id="v14-animation-polish-locked-script">
+<script id="v15-single-no-double-script">
   (function () {
     "use strict";
     var root = document.documentElement;
-    root.classList.add("v14-animation-locked");
-    window.__topupverseV14AnimationNotice = "V14 hanya memoles animasi. Ukuran V13 dikunci. Endpoint, login, hash, payment gateway, email template, A2F, keamanan, dan checkout backend tidak diubah.";
+    root.classList.add("v15-single-no-double");
+    root.classList.remove("v14-animation-locked", "v14-ready");
+    window.__topupverseV15Notice = "V15 memperbaiki animasi double/ghost. Ukuran V13 dikunci. Endpoint, login, hash, payment gateway, email template, A2F, keamanan, dan checkout backend tidak diubah.";
 
-    function qsa(sel, ctx) { return Array.prototype.slice.call((ctx || document).querySelectorAll(sel)); }
+    function qa(sel, ctx) { return Array.prototype.slice.call((ctx || document).querySelectorAll(sel)); }
+
+    function removeExtraStages() {
+      [document.querySelector('.scene-zone'), document.querySelector('#real-mobile-3d .real-3d-stage-wrap')].forEach(function (parent) {
+        if (!parent) return;
+        var stages = qa('.premium3d-stage', parent);
+        stages.forEach(function (stage, index) {
+          if (index > 0 && stage.parentNode) stage.parentNode.removeChild(stage);
+        });
+      });
+    }
 
     function addSparkles() {
-      qsa(".premium-diamond").forEach(function (diamond) {
-        if (diamond.__v14Sparkles) return;
-        diamond.__v14Sparkles = true;
+      qa('.premium-diamond').forEach(function (diamond) {
+        qa('.v14-sparkle', diamond).forEach(function (node) { node.remove(); });
+        if (diamond.__v15Sparkles) return;
+        diamond.__v15Sparkles = true;
         for (var i = 1; i <= 3; i += 1) {
-          var s = document.createElement("i");
-          s.className = "v14-sparkle s" + i;
-          s.setAttribute("aria-hidden", "true");
+          var s = document.createElement('i');
+          s.className = 'v15-sparkle s' + i;
+          s.setAttribute('aria-hidden', 'true');
           diamond.appendChild(s);
         }
       });
     }
 
-    function spawnParticles(x, y) {
-      var count = window.matchMedia && window.matchMedia("(max-width: 720px)").matches ? 5 : 7;
-      for (var i = 0; i < count; i += 1) {
-        var p = document.createElement("i");
-        p.className = "v14-micro-particle";
-        var angle = (Math.PI * 2 * i / count) + (Math.random() * .35);
-        var dist = 24 + Math.random() * 30;
-        p.style.left = x + "px";
-        p.style.top = y + "px";
-        p.style.setProperty("--dx", Math.cos(angle) * dist + "px");
-        p.style.setProperty("--dy", Math.sin(angle) * dist + "px");
-        document.body.appendChild(p);
-        setTimeout(function (node) { if (node && node.remove) node.remove(); }, 760, p);
-      }
+    function spawnHit(x, y) {
+      var p = document.createElement('i');
+      p.className = 'v15-hit-ring';
+      p.style.left = x + 'px';
+      p.style.top = y + 'px';
+      document.body.appendChild(p);
+      setTimeout(function () { if (p && p.remove) p.remove(); }, 620);
     }
 
     function bindStage(stage) {
-      if (!stage || stage.__v14Bound) return;
-      stage.__v14Bound = true;
-      stage.addEventListener("pointerdown", function (e) {
+      if (!stage || stage.__v15Bound) return;
+      stage.__v15Bound = true;
+      stage.addEventListener('pointerdown', function (e) {
         var rect = stage.getBoundingClientRect();
         var x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / Math.max(1, rect.width)) * 100));
         var y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / Math.max(1, rect.height)) * 100));
-        stage.style.setProperty("--v14-tap-x", x.toFixed(1) + "%");
-        stage.style.setProperty("--v14-tap-y", y.toFixed(1) + "%");
+        stage.style.setProperty('--v15-tap-x', x.toFixed(1) + '%');
+        stage.style.setProperty('--v15-tap-y', y.toFixed(1) + '%');
       }, { passive: true });
-
-      stage.addEventListener("pointerup", function (e) {
-        stage.classList.remove("v14-hit", "v14-pulse");
-        void stage.offsetWidth;
-        stage.classList.add("v14-hit", "v14-pulse");
-        spawnParticles(e.clientX, e.clientY);
-        setTimeout(function () { stage.classList.remove("v14-pulse"); }, 260);
-        setTimeout(function () { stage.classList.remove("v14-hit"); }, 680);
+      stage.addEventListener('pointerup', function (e) {
+        stage.classList.add('v15-pulse');
+        spawnHit(e.clientX, e.clientY);
+        setTimeout(function () { stage.classList.remove('v15-pulse'); }, 240);
       }, { passive: true });
     }
 
     function installVisibilityPause() {
-      if (!("IntersectionObserver" in window)) return;
-      if (window.__topupverseV14Observer) return;
-      window.__topupverseV14Observer = new IntersectionObserver(function (entries) {
+      if (!('IntersectionObserver' in window)) return;
+      if (window.__topupverseV15Observer) return;
+      window.__topupverseV15Observer = new IntersectionObserver(function (entries) {
         entries.forEach(function (entry) {
-          if (entry.isIntersecting) entry.target.classList.remove("v14-paused");
-          else entry.target.classList.add("v14-paused");
+          if (entry.isIntersecting) entry.target.classList.remove('v15-paused');
+          else entry.target.classList.add('v15-paused');
         });
       }, { threshold: 0.04 });
-      qsa(".premium3d-stage").forEach(function (stage) { window.__topupverseV14Observer.observe(stage); });
+      qa('.premium3d-stage').forEach(function (stage) { window.__topupverseV15Observer.observe(stage); });
     }
 
     function boot() {
+      removeExtraStages();
       addSparkles();
-      qsa(".premium3d-stage").forEach(bindStage);
+      qa('.premium3d-stage').forEach(bindStage);
       installVisibilityPause();
-      setTimeout(function () { root.classList.add("v14-ready"); }, 90);
     }
 
-    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot, { once: true });
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
     else boot();
-    window.addEventListener("load", boot, { passive: true });
-    setTimeout(boot, 350);
-    setTimeout(boot, 1200);
+    window.addEventListener('load', boot, { passive: true });
+    setTimeout(boot, 250);
+    setTimeout(boot, 900);
   })();
 </script>
 
