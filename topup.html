@@ -2192,7 +2192,7 @@
       50% { transform: translateX(100%); opacity: 1; }
     }
 
-    @media (max-width: 1120px) {
+    @media (max-width: 1280px) {
       .product-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .checkout-grid, .showcase { grid-template-columns: 1fr; }
@@ -3015,26 +3015,46 @@
   <div class="noise" aria-hidden="true"></div>
 
   <div class="page">
-    <header class="navbar">
-      <a href="#home" class="brand brand-logo-link" aria-label="TopupID">
-        <span class="brand-mark image-brand"><img src="dnnn.webp" alt="" /></span>
-        <b>Topup<span>ID</span></b>
-      </a>
+    <header class="navbar site-header topupid-dashboard-header" id="siteHeader">
+      <div class="topupid-header-container nav">
+        <a href="#home" class="brand topupid-header-brand" aria-label="TopupID" referrerpolicy="strict-origin-when-cross-origin">
+          <span aria-hidden="true" class="brand-mark image-brand dashboard-brand-mark">
+            <span class="brand-fallback-text">TP</span>
+            <img src="data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%20120%20120%22%3E%3Crect%20width=%22120%22%20height=%22120%22%20rx=%2226%22%20fill=%22#ffffff%22/%3E%3Cdefs%3E%3ClinearGradient%20id=%22g%22%20x1=%2218%22%20y1=%2214%22%20x2=%22104%22%20y2=%22106%22%20gradientUnits=%22userSpaceOnUse%22%3E%3Cstop%20stop-color=%22#67e8f9%22/%3E%3Cstop%20offset=%22.52%22%20stop-color=%22#38bdf8%22/%3E%3Cstop%20offset=%221%22%20stop-color=%22#2563eb%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle%20cx=%2260%22%20cy=%2260%22%20r=%2238%22%20fill=%22url(#g)%22%20opacity=%22.95%22/%3E%3Cpath%20d=%22M60%2024%2091%2051H72v42H55V51H38z%22%20fill=%22#06111d%22/%3E%3Cpath%20d=%22M47%2084h26v12H47z%22%20fill=%22#06111d%22%20opacity=%22.96%22/%3E%3Ctext%20x=%2260%22%20y=%22112%22%20text-anchor=%22middle%22%20font-family=%22Arial,%20Helvetica,%20sans-serif%22%20font-size=%2211%22%20font-weight=%22800%22%20fill=%22#0f172a%22%3ETopupID%3C/text%3E%3C/svg%3E" alt="" class="brand-logo-img" loading="eager" decoding="async" fetchpriority="high" referrerpolicy="no-referrer" />
+          </span>
+          <span aria-label="TopupID" class="brand-name brand-typewriter" data-brand-typewriter data-no-i18n><span aria-hidden="true" class="brand-typewriter-text">TopupID</span></span>
+        </a>
 
-      <nav class="nav-links" aria-label="Navigasi utama">
-        <a href="#premium">Produk</a>
-        <a href="#checkout">Top Up</a>
-        <a href="#checkout" class="nav-cta">Mulai</a>
-      </nav>
+        <nav class="nav-links topupid-header-links" aria-label="Navigasi utama">
+          <a href="#premium" class="active" data-topupid-i18n="navProducts">Produk</a>
+          <a href="#checkout" data-topupid-i18n="navTopup">Top Up</a>
+          <a href="#checkout" class="nav-cta" data-topupid-i18n="navStart">Mulai</a>
+        </nav>
 
-      <button class="menu-btn" id="menuBtn" type="button" aria-label="Buka menu">☰</button>
+        <div class="header-actions topupid-header-actions">
+          <button class="theme-toggle topupid-theme-toggle" data-open-theme type="button" aria-controls="themeModal" aria-haspopup="dialog" aria-label="Buka pengaturan tema">
+            <span aria-hidden="true">🎨</span><span class="label" data-topupid-i18n="theme">Tema</span>
+          </button>
+          <button class="menu-btn menu-toggle" id="menuBtn" type="button" aria-label="Buka menu TopupID" aria-controls="mobileMenu" aria-expanded="false">
+            <span aria-hidden="true" class="hamburger"><span></span><span></span><span></span></span>
+          </button>
+        </div>
+      </div>
     </header>
 
-    <div class="mobile-menu" id="mobileMenu">
-      <a href="#premium">Produk</a>
-      <a href="#checkout">Top Up</a>
+    <div class="mobile-menu topupid-dashboard-menu" id="mobileMenu" aria-label="Menu TopupID">
+      <div class="topupid-menu-head">
+        <div>
+          <strong data-topupid-i18n="menuTitle">Menu TopupID</strong>
+          <small data-topupid-i18n="menuSub">Navigasi layanan top up.</small>
+        </div>
+        <button type="button" class="topupid-menu-theme" data-open-theme data-topupid-i18n="theme">Tema</button>
+      </div>
+      <a href="#home" data-topupid-i18n="menuHome">Beranda</a>
+      <a href="#premium" data-topupid-i18n="navProducts">Produk</a>
+      <a href="#checkout" data-topupid-i18n="navTopup">Top Up</a>
+      <a href="#showcase" data-topupid-i18n="menuShowcase">Banner</a>
     </div>
-
 
     <section class="mobile-cinematic-home" id="mobile-home" aria-label="Mobile cinematic homepage">
       <div class="mobile-cinematic-inner">
@@ -3259,11 +3279,17 @@
 
       <section class="section reveal" id="showcase">
         <div class="tls-visual-shell">
-          <div class="tls-rotator" aria-label="Animasi gambar layanan TopupID berputar">
-            <div class="tls-card tls-card-1"><img src="tls1.webp" alt="Game Top Up" /></div>
-            <div class="tls-card tls-card-2"><img src="tls2.webp" alt="Banner Top Up Game" /></div>
-            <div class="tls-card tls-card-3"><img src="tls3.webp" alt="Banner Produk Digital" /></div>
-            <div class="tls-card tls-card-4"><img src="tls4.webp" alt="Produk Digital" /></div>
+          <div class="tls-rotator" aria-label="Animasi 10 gambar layanan TopupID berputar">
+            <div class="tls-card tls-card-1" style="--i:0"><img src="tls1.webp" alt="Banner TopupID 1" loading="lazy" decoding="async" /></div>
+            <div class="tls-card tls-card-2" style="--i:1"><img src="tls2.webp" alt="Banner TopupID 2" loading="lazy" decoding="async" /></div>
+            <div class="tls-card tls-card-3" style="--i:2"><img src="tls3.webp" alt="Banner TopupID 3" loading="lazy" decoding="async" /></div>
+            <div class="tls-card tls-card-4" style="--i:3"><img src="tls4.webp" alt="Banner TopupID 4" loading="lazy" decoding="async" /></div>
+            <div class="tls-card tls-card-5" style="--i:4"><img src="tls5.webp" alt="Banner TopupID 5" loading="lazy" decoding="async" /></div>
+            <div class="tls-card tls-card-6" style="--i:5"><img src="tls6.webp" alt="Banner TopupID 6" loading="lazy" decoding="async" /></div>
+            <div class="tls-card tls-card-7" style="--i:6"><img src="tls7.webp" alt="Banner TopupID 7" loading="lazy" decoding="async" /></div>
+            <div class="tls-card tls-card-8" style="--i:7"><img src="tls8.webp" alt="Banner TopupID 8" loading="lazy" decoding="async" /></div>
+            <div class="tls-card tls-card-9" style="--i:8"><img src="tls9.webp" alt="Banner TopupID 9" loading="lazy" decoding="async" /></div>
+            <div class="tls-card tls-card-10" style="--i:9"><img src="tls10.webp" alt="Banner TopupID 10" loading="lazy" decoding="async" /></div>
           </div>
         </div>
       </section>
@@ -3534,6 +3560,58 @@
       <p>© 2026 TopupID. Copyright by Dirac Group.</p>
       <p class="footer-sub">TopupID dinaungi Dirac Group.</p>
     </footer>
+  </div>
+
+  <div aria-hidden="true" class="theme-modal topupid-theme-modal" id="themeModal">
+    <div aria-labelledby="themeTitle" aria-modal="true" class="theme-card theme-pro-card" role="dialog" tabindex="-1">
+      <div class="theme-head theme-pro-head">
+        <h2 id="themeTitle" data-topupid-i18n="themeTitle">Pengaturan Tema</h2>
+        <button aria-label="Tutup pengaturan tema" class="icon-btn theme-close-btn" data-close-theme type="button">×</button>
+      </div>
+      <div class="theme-body theme-content">
+        <section aria-label="Mode tema" class="theme-section">
+          <h3 data-topupid-i18n="modeTitle">Mode Tema</h3>
+          <div class="theme-choice-grid theme-mode-grid">
+            <button aria-pressed="false" class="choice theme-choice theme-pro-choice" data-theme-mode="dark" type="button"><span aria-hidden="true" class="choice-symbol">☾</span><span data-topupid-i18n="dark">Gelap</span></button>
+            <button aria-pressed="false" class="choice theme-choice theme-pro-choice" data-theme-mode="auto" type="button"><span aria-hidden="true" class="choice-symbol">⚙</span><span data-topupid-i18n="auto">Otomatis</span></button>
+          </div>
+        </section>
+        <section aria-label="Bahasa tampilan" class="theme-section">
+          <h3 data-topupid-i18n="languageTitle">Bahasa Tampilan</h3>
+          <div aria-label="Pilihan bahasa website" class="theme-language-grid language-grid" data-no-i18n id="themeLanguageOptions">
+            <button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="id" type="button"><span aria-hidden="true" class="lang-badge">ID</span><span>Indonesia</span></button>
+            <button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="en" type="button"><span aria-hidden="true" class="lang-badge">EN</span><span>English</span></button>
+            <button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="zh" type="button"><span aria-hidden="true" class="lang-badge">中</span><span>中文</span></button>
+            <button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="ar" type="button"><span aria-hidden="true" class="lang-badge">ع</span><span>العربية</span></button>
+            <button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="ja" type="button"><span aria-hidden="true" class="lang-badge">日</span><span>日本語</span></button>
+            <button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="ko" type="button"><span aria-hidden="true" class="lang-badge">한</span><span>한국어</span></button>
+            <button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="es" type="button"><span aria-hidden="true" class="lang-badge">ES</span><span>Español</span></button>
+            <button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="fr" type="button"><span aria-hidden="true" class="lang-badge">FR</span><span>Français</span></button>
+          </div>
+        </section>
+        <section aria-label="Warna aksen" class="theme-section">
+          <h3 data-topupid-i18n="accentTitle">Warna Aksen</h3>
+          <div class="custom-theme-grid accent-grid" data-no-i18n>
+            <button class="theme-swatch-choice" data-accent="sky" style="--swatch:#38bdf8" aria-label="Sky" type="button"></button>
+            <button class="theme-swatch-choice" data-accent="gold" style="--swatch:#f3cd70" aria-label="Gold" type="button"></button>
+            <button class="theme-swatch-choice" data-accent="blue" style="--swatch:#4f83ff" aria-label="Blue" type="button"></button>
+            <button class="theme-swatch-choice" data-accent="purple" style="--swatch:#7c3aed" aria-label="Purple" type="button"></button>
+            <button class="theme-swatch-choice" data-accent="pink" style="--swatch:#ec4899" aria-label="Pink" type="button"></button>
+            <button class="theme-swatch-choice" data-accent="red" style="--swatch:#ef4444" aria-label="Red" type="button"></button>
+            <button class="theme-swatch-choice" data-accent="orange" style="--swatch:#f97316" aria-label="Orange" type="button"></button>
+            <button class="theme-swatch-choice" data-accent="emerald" style="--swatch:#10b981" aria-label="Emerald" type="button"></button>
+            <button class="theme-swatch-choice" data-accent="teal" style="--swatch:#2dd4bf" aria-label="Teal" type="button"></button>
+            <button class="theme-swatch-choice" data-accent="cyan" style="--swatch:#67dce5" aria-label="Cyan" type="button"></button>
+            <button class="theme-swatch-choice" data-accent="silver" style="--swatch:#e5e7eb" aria-label="Silver" type="button"></button>
+            <button class="theme-swatch-choice" data-accent="graphite" style="--swatch:#94a3b8" aria-label="Graphite" type="button"></button>
+          </div>
+        </section>
+      </div>
+      <div class="theme-actions">
+        <button class="theme-reset-btn" data-theme-reset type="button" data-topupid-i18n="resetTheme">Reset</button>
+        <button class="theme-save-btn" data-close-theme type="button" data-topupid-i18n="saveTheme">Simpan</button>
+      </div>
+    </div>
   </div>
 
   <div class="modal" id="transactionModal" aria-hidden="true">
@@ -11957,5 +12035,306 @@
   }
 </style>
 
+
+
+<!-- V54 dashboard header sync + 10 sequential showcase images. Protected core scripts are not modified. -->
+<style id="v54-topupid-dashboard-header-ten-showcase-css">
+  :root{
+    --gold: var(--cyan);
+    --gold-2: var(--blue);
+    --gold-3: #075985;
+    --theme-rgb: 56,189,248;
+    --line: rgba(var(--theme-rgb), .18);
+    --line-strong: rgba(var(--theme-rgb), .38);
+    --motion-ease: cubic-bezier(.22,1,.36,1);
+    --motion-soft: cubic-bezier(.16,1,.3,1);
+  }
+  html[data-effective-theme="light"]{color-scheme:light;background:#f8fafc;}
+  html[data-effective-theme="light"] body{color:#111827;background:radial-gradient(circle at top left,rgba(var(--theme-rgb),.14),transparent 28rem),linear-gradient(180deg,#f8fafc 0%,#eef5ff 100%);}
+  html[data-effective-theme="light"] .panel,
+  html[data-effective-theme="light"] .tilt-card,
+  html[data-effective-theme="light"] .fan-carousel-shell,
+  html[data-effective-theme="light"] .carousel-wrap,
+  html[data-effective-theme="light"] .glass-panel{background:rgba(255,255,255,.72)!important;color:#111827!important;border-color:rgba(var(--theme-rgb),.20)!important;}
+  html[data-effective-theme="light"] .section-sub,
+  html[data-effective-theme="light"] .hero-copy,
+  html[data-effective-theme="light"] .product-desc,
+  html[data-effective-theme="light"] .feature span,
+  html[data-effective-theme="light"] .summary-row{color:#475569!important;}
+  .scroll-progress{background:linear-gradient(90deg,var(--gold),var(--gold-2),var(--purple))!important;box-shadow:0 0 24px rgba(var(--theme-rgb),.8)!important;}
+  .topupid-dashboard-header.site-header{position:sticky!important;top:0!important;z-index:9000!important;width:100%!important;padding:8px 0!important;border:0!important;background:transparent!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;display:block!important;}
+  .topupid-dashboard-header.site-header:after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,transparent,rgba(var(--theme-rgb),.34),transparent);opacity:.26;pointer-events:none;}
+  .topupid-header-container.nav{width:min(1240px,calc(100% - 32px))!important;margin:0 auto!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:14px!important;padding:12px 14px!important;border:1px solid rgba(var(--theme-rgb),.20)!important;border-radius:30px!important;background:rgba(5,8,22,.78)!important;box-shadow:0 18px 55px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.08)!important;backdrop-filter:blur(18px)!important;-webkit-backdrop-filter:blur(18px)!important;transition:padding .35s var(--motion-ease),background .35s var(--motion-ease),box-shadow .35s var(--motion-ease)!important;}
+  .site-header.is-scrolled .topupid-header-container.nav{padding:9px 12px!important;background:rgba(5,8,22,.94)!important;box-shadow:0 20px 62px rgba(0,0,0,.36),inset 0 1px 0 rgba(255,255,255,.08)!important;}
+  .topupid-header-brand.brand{display:flex!important;align-items:center!important;gap:12px!important;min-width:0!important;font-weight:900!important;letter-spacing:.02em!important;white-space:nowrap!important;}
+  .dashboard-brand-mark.brand-mark{width:56px!important;height:56px!important;min-width:56px!important;border-radius:18px!important;transform:none!important;background:#fff!important;border:1px solid rgba(255,255,255,.18)!important;box-shadow:0 10px 28px rgba(var(--theme-rgb),.22)!important;overflow:hidden!important;display:grid!important;place-items:center!important;}
+  .dashboard-brand-mark.brand-mark::before{content:none!important;display:none!important;}
+  .dashboard-brand-mark .brand-logo-img{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;object-fit:contain!important;background:#fff!important;z-index:2!important;padding:0!important;}
+  .brand-fallback-text{position:absolute!important;inset:0!important;display:flex!important;align-items:center!important;justify-content:center!important;font-weight:900!important;font-size:1.18rem!important;color:#0f172a!important;background:linear-gradient(135deg,#fff,var(--gold))!important;z-index:1!important;}
+  .brand-name{font-family:Arial,Helvetica,sans-serif!important;font-size:1.26rem!important;color:#fff!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:clip!important;line-height:1!important;}
+  .brand-typewriter{display:inline-flex!important;align-items:center!important;min-width:8.8ch!important;max-width:10.6ch!important;}
+  .brand-typewriter-text{display:inline-block!important;white-space:nowrap!important;}
+  .brand-typewriter:after{content:"";flex:0 0 auto;width:.08em;height:.96em;margin-left:.08em;border-radius:999px;background:linear-gradient(180deg,color-mix(in srgb,var(--gold) 70%,#fff 30%),var(--gold-2));opacity:.72;animation:brandCaretBlink 1.1s steps(2,end) infinite;}
+  @keyframes brandCaretBlink{0%,49%{opacity:.72}50%,100%{opacity:0}}
+  .topupid-header-links.nav-links{display:flex!important;align-items:center!important;gap:6px!important;flex-wrap:wrap!important;justify-content:flex-end!important;margin-left:auto!important;font-size:14px!important;}
+  .topupid-header-links.nav-links a{color:#d7deea!important;font-size:.92rem!important;font-weight:850!important;padding:9px 12px!important;border-radius:999px!important;opacity:1!important;transition:.2s var(--motion-ease)!important;}
+  .topupid-header-links.nav-links a:hover,.topupid-header-links.nav-links a.active{background:rgba(255,255,255,.07)!important;color:#fff!important;transform:translateY(-1px)!important;}
+  .topupid-header-links.nav-links .nav-cta{color:#07111d!important;background:linear-gradient(135deg,#d7f7ff,var(--gold) 52%,var(--gold-2))!important;box-shadow:0 16px 36px rgba(var(--theme-rgb),.22)!important;border:0!important;}
+  .topupid-header-actions.header-actions{display:flex!important;align-items:center!important;gap:10px!important;flex:0 0 auto!important;}
+  .theme-toggle,.menu-toggle,.icon-btn{border:1px solid var(--line-strong)!important;border-radius:999px!important;background:rgba(255,255,255,.07)!important;color:#fff!important;min-height:50px!important;min-width:50px!important;padding:10px 13px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;font-weight:900!important;box-shadow:0 12px 30px rgba(0,0,0,.20),inset 0 1px 0 rgba(255,255,255,.07)!important;transition:transform .22s ease,background .22s ease,border-color .22s ease,box-shadow .22s ease!important;}
+  .theme-toggle:hover,.menu-toggle:hover,.icon-btn:hover{transform:translateY(-2px)!important;background:rgba(var(--theme-rgb),.14)!important;border-color:rgba(var(--theme-rgb),.52)!important;}
+  .menu-toggle{width:50px!important;padding:0!important;}
+  .hamburger{width:20px;height:14px;display:grid;gap:4px;}
+  .hamburger span{height:2px;border-radius:4px;background:currentColor;display:block;transition:.22s var(--motion-ease);}
+  .menu-toggle[aria-expanded="true"] .hamburger span:nth-child(1){transform:translateY(6px) rotate(45deg);}
+  .menu-toggle[aria-expanded="true"] .hamburger span:nth-child(2){opacity:0;}
+  .menu-toggle[aria-expanded="true"] .hamburger span:nth-child(3){transform:translateY(-6px) rotate(-45deg);}
+  .topupid-dashboard-menu.mobile-menu{position:fixed!important;top:92px!important;left:auto!important;right:16px!important;width:min(390px,calc(100vw - 32px))!important;z-index:9100!important;padding:14px!important;border-radius:28px!important;border:1px solid rgba(var(--theme-rgb),.24)!important;background:linear-gradient(180deg,rgba(13,19,29,.98),rgba(5,8,22,.96))!important;backdrop-filter:blur(20px)!important;-webkit-backdrop-filter:blur(20px)!important;box-shadow:0 30px 90px rgba(0,0,0,.45)!important;}
+  .topupid-menu-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;padding:10px;border-radius:20px;background:rgba(var(--theme-rgb),.08);border:1px solid var(--line);}
+  .topupid-menu-head strong{display:block;color:#fff;font-size:1rem;}
+  .topupid-menu-head small{display:block;color:#aeb7c6;font-size:.78rem;line-height:1.35;}
+  .topupid-menu-theme{border:1px solid var(--line-strong);background:rgba(var(--theme-rgb),.10);color:#f7e8c5;border-radius:999px;padding:9px 12px;font-weight:900;}
+  .topupid-dashboard-menu.mobile-menu a{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;padding:14px 13px!important;border-radius:18px!important;color:#d7deea!important;font-weight:850!important;background:transparent!important;}
+  .topupid-dashboard-menu.mobile-menu a:hover,.topupid-dashboard-menu.mobile-menu a:active{background:rgba(255,255,255,.07)!important;color:#fff!important;}
+  .theme-modal{position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.64);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);display:none;place-items:center;padding:18px;}
+  .theme-modal.open{display:grid;}
+  .theme-card{width:min(720px,100%);max-height:calc(100dvh - 48px);overflow:hidden;border-radius:34px;background:linear-gradient(180deg,#0d131d,#050608);border:1px solid rgba(var(--theme-rgb),.24);box-shadow:0 30px 100px rgba(0,0,0,.55);display:flex;flex-direction:column;}
+  .theme-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:24px 26px 18px;border-bottom:1px solid rgba(255,255,255,.08);}
+  .theme-head h2{margin:0;color:var(--gold);font-size:clamp(1.6rem,5vw,2.6rem);letter-spacing:-.04em;}
+  .theme-content{padding:0 26px 16px;overflow:auto;}
+  .theme-section{padding:20px 0;border-bottom:1px solid rgba(255,255,255,.08);}
+  .theme-section h3{margin:0 0 12px;color:#fff;font-size:1rem;}
+  .theme-choice-grid,.theme-language-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+  .choice{min-height:54px;border-radius:18px;border:1px solid rgba(255,255,255,.13);background:rgba(255,255,255,.06);color:#fff;font-weight:900;display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 12px;}
+  .choice.active,.choice.is-selected{border-color:rgba(var(--theme-rgb),.72);background:rgba(var(--theme-rgb),.16);box-shadow:0 0 0 4px rgba(var(--theme-rgb),.09);}
+  .lang-badge{width:34px;height:34px;border-radius:11px;background:rgba(var(--theme-rgb),.16);border:1px solid rgba(var(--theme-rgb),.28);display:grid;place-items:center;font-size:.72rem;color:#e0f7ff;}
+  .custom-theme-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;}
+  .theme-swatch-choice{aspect-ratio:1;border-radius:16px;border:1px solid rgba(255,255,255,.18);background:radial-gradient(circle at 35% 28%,rgba(255,255,255,.48),transparent 32%),var(--swatch);box-shadow:inset 0 2px 2px rgba(255,255,255,.18),inset 0 -7px 12px rgba(0,0,0,.14),0 10px 20px rgba(0,0,0,.16);position:relative;overflow:hidden;padding:0;}
+  .theme-swatch-choice.active,.theme-swatch-choice.is-selected{border-color:rgba(var(--theme-rgb),.92);box-shadow:0 0 0 4px rgba(var(--theme-rgb),.18),0 14px 28px rgba(0,0,0,.22);}
+  .theme-swatch-choice.active:after,.theme-swatch-choice.is-selected:after{content:"✓";position:absolute;inset:0;display:grid;place-items:center;color:#07111d;font-size:1.35rem;font-weight:950;text-shadow:0 1px 12px rgba(255,255,255,.55);}
+  .theme-actions{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:18px 26px 24px;background:linear-gradient(180deg,rgba(7,11,18,0),rgba(7,11,18,.96) 28%);}
+  .theme-reset-btn,.theme-save-btn{min-height:58px;border:0;border-radius:20px;display:flex;align-items:center;justify-content:center;font-weight:950;font-size:1rem;color:#fff;box-shadow:0 18px 36px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.14);}
+  .theme-reset-btn{background:linear-gradient(135deg,#ef4444,#dc2626);}
+  .theme-save-btn{background:linear-gradient(135deg,#d7f7ff,var(--gold) 52%,var(--gold-2));color:#06111d;}
+  .theme-close-btn{font-size:1.45rem;}
+  @media(max-width:760px){.topupid-dashboard-header.site-header{padding-top:8px!important}.topupid-header-container.nav{width:calc(100% - 18px)!important;min-height:76px!important;border-radius:32px!important;padding:10px 12px!important;gap:10px!important}.dashboard-brand-mark.brand-mark{width:52px!important;height:52px!important;min-width:52px!important;border-radius:18px!important}.brand-name{font-size:1.08rem!important;max-width:10.6rem!important}.topupid-header-links{display:none!important}.topupid-theme-toggle{display:none!important}.menu-toggle{width:54px!important;height:54px!important;min-width:54px!important}.topupid-dashboard-menu.mobile-menu{top:98px!important}.theme-card{width:calc(100vw - 36px);max-height:calc(100dvh - 92px);border-radius:30px}.theme-head{padding:21px 22px 18px}.theme-content{padding:0 22px 14px}.custom-theme-grid{grid-template-columns:repeat(4,minmax(0,1fr));}.theme-actions{padding:16px 22px 22px}}
+  @media(max-width:430px){.topupid-header-container.nav{width:calc(100% - 14px)!important;min-height:72px!important;border-radius:30px!important;padding:9px 10px!important}.topupid-header-brand.brand{gap:10px!important}.dashboard-brand-mark.brand-mark{width:46px!important;height:46px!important;min-width:46px!important;border-radius:16px!important}.brand-name{font-size:1rem!important;max-width:10.2rem!important}.brand-typewriter{min-width:8.2ch!important;max-width:10.2ch!important}.menu-toggle{width:52px!important;height:52px!important;min-width:52px!important}.topupid-dashboard-menu.mobile-menu{top:90px!important;right:10px!important;width:calc(100vw - 20px)!important}.theme-choice-grid,.theme-language-grid{grid-template-columns:1fr}.custom-theme-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}.theme-swatch-choice{border-radius:14px}}
+
+  #showcase{padding:8px 7% 16px!important;margin:0!important;overflow:hidden!important;}
+  #showcase .tls-visual-shell{position:relative!important;width:min(100%,1080px)!important;min-height:clamp(248px,35vw,390px)!important;margin:0 auto!important;padding:clamp(8px,1.8vw,18px)!important;display:grid!important;place-items:center!important;overflow:hidden!important;isolation:isolate!important;perspective:1450px!important;border:0!important;outline:0!important;box-shadow:none!important;background:transparent!important;}
+  #showcase .tls-visual-shell::before,#showcase .tls-visual-shell::after{content:none!important;display:none!important;}
+  #showcase .tls-rotator{position:relative!important;z-index:2!important;width:min(940px,100%)!important;height:clamp(214px,30vw,330px)!important;overflow:visible!important;border:0!important;outline:0!important;box-shadow:none!important;background:transparent!important;border-radius:0!important;transform:none!important;transform-style:preserve-3d!important;perspective:1200px!important;animation:none!important;}
+  #showcase .tls-card,#showcase .tls-card-1,#showcase .tls-card-2,#showcase .tls-card-3,#showcase .tls-card-4,#showcase .tls-card-5,#showcase .tls-card-6,#showcase .tls-card-7,#showcase .tls-card-8,#showcase .tls-card-9,#showcase .tls-card-10{position:absolute!important;inset:auto!important;left:50%!important;top:50%!important;width:min(590px,72vw)!important;height:auto!important;aspect-ratio:16/9!important;border-radius:22px!important;overflow:hidden!important;transform-style:preserve-3d!important;backface-visibility:hidden!important;--tls-side:clamp(150px,25vw,280px);--tls-pos:0;--tls-y:0;--tls-z:0;--tls-r:0;--tls-s:1;transform:translate(-50%,-50%) translateX(calc(var(--tls-pos) * var(--tls-side))) translateY(calc(var(--tls-y) * 1px)) translateZ(calc(var(--tls-z) * 1px)) rotateY(calc(var(--tls-r) * 1deg)) scale(var(--tls-s))!important;opacity:1!important;visibility:visible!important;filter:none!important;border:1.5px solid rgba(var(--theme-rgb),.72)!important;outline:1px solid rgba(255,255,255,.10)!important;outline-offset:-2px!important;box-shadow:0 0 0 1px rgba(2,6,23,.74),0 0 24px rgba(var(--theme-rgb),.24),0 20px 58px rgba(0,0,0,.38)!important;will-change:transform,opacity,filter!important;animation:tlsTenSequentialCoverflow 90s cubic-bezier(.45,0,.18,1) infinite both!important;animation-delay:calc(var(--i) * -9s)!important;}
+  #showcase .tls-card img{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;display:block!important;object-fit:cover!important;object-position:center center!important;transform:none!important;opacity:1!important;filter:none!important;background:rgba(2,6,23,.92)!important;}
+  #showcase .tls-card::before{content:""!important;position:absolute!important;inset:0!important;z-index:2!important;pointer-events:none!important;border-radius:inherit!important;border:1px solid rgba(255,255,255,.20)!important;background:linear-gradient(180deg,rgba(255,255,255,.035),transparent 42%,rgba(2,6,23,.14))!important;box-shadow:inset 0 0 0 1px rgba(var(--theme-rgb),.16)!important;opacity:1!important;}
+  #showcase .tls-card::after{content:none!important;display:none!important;}
+  @keyframes tlsTenSequentialCoverflow{0%,8.6%{--tls-pos:0;--tls-y:0;--tls-z:0;--tls-r:0;--tls-s:1;opacity:1;visibility:visible;filter:brightness(1.04) saturate(1.05);z-index:10}10.5%,18.6%{--tls-pos:1;--tls-y:12;--tls-z:-70;--tls-r:-34;--tls-s:.84;opacity:1;visibility:visible;filter:brightness(1) saturate(1.03);z-index:6}20%,50%{--tls-pos:0;--tls-y:32;--tls-z:-180;--tls-r:0;--tls-s:.70;opacity:0;visibility:hidden;filter:brightness(1) saturate(1);z-index:1}72%{--tls-pos:-1;--tls-y:12;--tls-z:-70;--tls-r:34;--tls-s:.84;opacity:1;visibility:visible;filter:brightness(1) saturate(1.03);z-index:5}78%,97.5%{--tls-pos:-1;--tls-y:12;--tls-z:-70;--tls-r:34;--tls-s:.84;opacity:1;visibility:visible;filter:brightness(1) saturate(1.03);z-index:5}100%{--tls-pos:0;--tls-y:0;--tls-z:0;--tls-r:0;--tls-s:1;opacity:1;visibility:visible;filter:brightness(1.04) saturate(1.05);z-index:10}}
+  @media(max-width:780px){#showcase{padding:6px 4.5% 14px!important}#showcase .tls-visual-shell{min-height:250px!important;padding:6px 0!important}#showcase .tls-rotator{height:218px!important}#showcase .tls-card,#showcase .tls-card-1,#showcase .tls-card-2,#showcase .tls-card-3,#showcase .tls-card-4,#showcase .tls-card-5,#showcase .tls-card-6,#showcase .tls-card-7,#showcase .tls-card-8,#showcase .tls-card-9,#showcase .tls-card-10{width:min(390px,calc(100vw - 78px))!important;--tls-side:clamp(90px,25vw,116px);border-radius:20px!important}}
+  @media(max-width:430px){#showcase{padding:4px 4.5% 12px!important}#showcase .tls-visual-shell{min-height:232px!important;padding:5px 0!important}#showcase .tls-rotator{height:208px!important}#showcase .tls-card,#showcase .tls-card-1,#showcase .tls-card-2,#showcase .tls-card-3,#showcase .tls-card-4,#showcase .tls-card-5,#showcase .tls-card-6,#showcase .tls-card-7,#showcase .tls-card-8,#showcase .tls-card-9,#showcase .tls-card-10{width:min(320px,calc(100vw - 70px))!important;--tls-side:clamp(84px,24vw,108px);border-radius:20px!important}}
+</style>
+<script id="v54-topupid-dashboard-header-prefs-i18n-js">
+(function(){
+  'use strict';
+  if(window.__TOPUPID_DASHBOARD_HEADER_PREFS_I18N_V54__) return;
+  window.__TOPUPID_DASHBOARD_HEADER_PREFS_I18N_V54__ = true;
+  var THEME_KEY='dirac_theme_settings_v2', ACCENT_KEY='dirac_global_accent_v1', LANGUAGE_KEY='dirac_global_language_v1';
+  var DEFAULTS={mode:'dark',accent:'sky',language:'id'};
+  var PALETTES={
+    sky:{gold:'#38bdf8',gold2:'#0284c7',gold3:'#075985',rgb:'56,189,248'},gold:{gold:'#f3cd70',gold2:'#d6a642',gold3:'#8e6425',rgb:'243,205,112'},blue:{gold:'#4f83ff',gold2:'#2563eb',gold3:'#1e3a8a',rgb:'79,131,255'},purple:{gold:'#7c3aed',gold2:'#5b21b6',gold3:'#35126d',rgb:'124,58,237'},pink:{gold:'#ec4899',gold2:'#be185d',gold3:'#7f123d',rgb:'236,72,153'},red:{gold:'#ef4444',gold2:'#dc2626',gold3:'#7f1d1d',rgb:'239,68,68'},orange:{gold:'#f97316',gold2:'#ea580c',gold3:'#7c2d12',rgb:'249,115,22'},emerald:{gold:'#10b981',gold2:'#047857',gold3:'#064e3b',rgb:'16,185,129'},teal:{gold:'#2dd4bf',gold2:'#0f766e',gold3:'#134e4a',rgb:'45,212,191'},cyan:{gold:'#67dce5',gold2:'#36c2cc',gold3:'#176b73',rgb:'103,220,229'},silver:{gold:'#e5e7eb',gold2:'#9ca3af',gold3:'#4b5563',rgb:'229,231,235'},graphite:{gold:'#94a3b8',gold2:'#475569',gold3:'#0f172a',rgb:'148,163,184'}
+  };
+  var LANG_META={id:{htmlLang:'id',dir:'ltr'},en:{htmlLang:'en',dir:'ltr'},zh:{htmlLang:'zh-CN',dir:'ltr'},ar:{htmlLang:'ar',dir:'rtl'},ja:{htmlLang:'ja',dir:'ltr'},ko:{htmlLang:'ko',dir:'ltr'},es:{htmlLang:'es',dir:'ltr'},fr:{htmlLang:'fr',dir:'ltr'}};
+  function parse(raw){try{return raw?JSON.parse(raw):null}catch(_){return null}}
+  function safeGet(k){try{return localStorage.getItem(k)}catch(_){return null}}
+  function safeSet(k,v){try{localStorage.setItem(k,v)}catch(_){}}
+  function prefs(){var p=Object.assign({},DEFAULTS,parse(safeGet(THEME_KEY))||{});var a=safeGet(ACCENT_KEY), l=safeGet(LANGUAGE_KEY)||safeGet('dirac_language_v1');if(a) p.accent=a;if(l) p.language=l;if(!PALETTES[p.accent]) p.accent=DEFAULTS.accent;if(!LANG_META[p.language]) p.language=DEFAULTS.language;if(!/^(dark|light|auto)$/.test(p.mode)) p.mode=DEFAULTS.mode;return p;}
+  function writePrefs(patch){var next=Object.assign({},prefs(),patch||{});if(!PALETTES[next.accent]) next.accent=DEFAULTS.accent;if(!LANG_META[next.language]) next.language=DEFAULTS.language;safeSet(THEME_KEY,JSON.stringify({accent:next.accent,language:next.language,mode:next.mode}));safeSet(ACCENT_KEY,next.accent);safeSet(LANGUAGE_KEY,next.language);applyAll('write');}
+  window.diracGetGlobalPrefs=function(){return prefs();};
+  window.diracSetGlobalAccent=function(v){writePrefs({accent:v});};
+  window.diracSetGlobalLanguage=function(v){writePrefs({language:v});};
+  window.diracSetGlobalTheme=function(p){writePrefs(p||{});};
+  var I18N={
+    id:{navProducts:'Produk',navTopup:'Top Up',navStart:'Mulai',theme:'Tema',menuTitle:'Menu TopupID',menuSub:'Navigasi layanan top up.',menuHome:'Beranda',menuShowcase:'Banner',themeTitle:'Pengaturan Tema',modeTitle:'Mode Tema',dark:'Gelap',auto:'Otomatis',languageTitle:'Bahasa Tampilan',accentTitle:'Warna Aksen',resetTheme:'Reset',saveTheme:'Simpan',brandSecond:'Top Up'},
+    en:{navProducts:'Products',navTopup:'Top Up',navStart:'Start',theme:'Theme',menuTitle:'TopupID Menu',menuSub:'Top-up service navigation.',menuHome:'Home',menuShowcase:'Banner',themeTitle:'Theme Settings',modeTitle:'Theme Mode',dark:'Dark',auto:'Auto',languageTitle:'Display Language',accentTitle:'Accent Color',resetTheme:'Reset',saveTheme:'Save',brandSecond:'Top Up'},
+    zh:{navProducts:'产品',navTopup:'充值',navStart:'开始',theme:'主题',menuTitle:'TopupID 菜单',menuSub:'充值服务导航。',menuHome:'首页',menuShowcase:'横幅',themeTitle:'主题设置',modeTitle:'主题模式',dark:'深色',auto:'自动',languageTitle:'显示语言',accentTitle:'强调色',resetTheme:'重置',saveTheme:'保存',brandSecond:'充值'},
+    ar:{navProducts:'المنتجات',navTopup:'الشحن',navStart:'ابدأ',theme:'السمة',menuTitle:'قائمة TopupID',menuSub:'تنقل خدمات الشحن.',menuHome:'الرئيسية',menuShowcase:'البنر',themeTitle:'إعدادات السمة',modeTitle:'وضع السمة',dark:'داكن',auto:'تلقائي',languageTitle:'لغة العرض',accentTitle:'لون التمييز',resetTheme:'إعادة ضبط',saveTheme:'حفظ',brandSecond:'الشحن'},
+    ja:{navProducts:'商品',navTopup:'トップアップ',navStart:'開始',theme:'テーマ',menuTitle:'TopupID メニュー',menuSub:'トップアップサービスのナビゲーション。',menuHome:'ホーム',menuShowcase:'バナー',themeTitle:'テーマ設定',modeTitle:'テーマモード',dark:'ダーク',auto:'自動',languageTitle:'表示言語',accentTitle:'アクセントカラー',resetTheme:'リセット',saveTheme:'保存',brandSecond:'トップアップ'},
+    ko:{navProducts:'상품',navTopup:'충전',navStart:'시작',theme:'테마',menuTitle:'TopupID 메뉴',menuSub:'충전 서비스 탐색.',menuHome:'홈',menuShowcase:'배너',themeTitle:'테마 설정',modeTitle:'테마 모드',dark:'다크',auto:'자동',languageTitle:'표시 언어',accentTitle:'강조 색상',resetTheme:'초기화',saveTheme:'저장',brandSecond:'충전'},
+    es:{navProducts:'Productos',navTopup:'Recarga',navStart:'Empezar',theme:'Tema',menuTitle:'Menú TopupID',menuSub:'Navegación de servicios de recarga.',menuHome:'Inicio',menuShowcase:'Banner',themeTitle:'Ajustes de tema',modeTitle:'Modo de tema',dark:'Oscuro',auto:'Auto',languageTitle:'Idioma',accentTitle:'Color de acento',resetTheme:'Restablecer',saveTheme:'Guardar',brandSecond:'Recarga'},
+    fr:{navProducts:'Produits',navTopup:'Recharge',navStart:'Commencer',theme:'Thème',menuTitle:'Menu TopupID',menuSub:'Navigation des services de recharge.',menuHome:'Accueil',menuShowcase:'Bannière',themeTitle:'Réglages du thème',modeTitle:'Mode du thème',dark:'Sombre',auto:'Auto',languageTitle:'Langue',accentTitle:'Couleur d’accent',resetTheme:'Réinitialiser',saveTheme:'Enregistrer',brandSecond:'Recharge'}
+  };
+  var TEXT={
+    'Top Up Aman':{en:'Safe Top Up'},'Top Up Digital':{en:'Digital Top Up'},'Aman':{en:'Secure'},'dan Praktis':{en:'and Practical'},'Nikmati layanan top up game, pulsa, paket data, token PLN, dan voucher digital dengan tampilan ringan di HP.':{en:'Enjoy game top-ups, mobile credit, data packages, PLN tokens, and digital vouchers with a lightweight mobile display.'},'Mulai Top Up':{en:'Start Top Up'},'Lihat Produk':{en:'View Products'},'Total layanan aktif':{en:'Active services total'},'Game • Pulsa • PLN':{en:'Games • Credit • PLN'},'Payment Ready':{en:'QRIS Ready'},'Produk Digital':{en:'Digital Products'},'Layanan Digital Terpercaya':{en:'Trusted Digital Service'},'Digital':{en:'Digital'},'Cepat dan Mudah':{en:'Fast and Easy'},'Isi game, pulsa, paket data, token PLN, dan voucher digital dalam satu halaman yang ringan, modern, dan nyaman digunakan.':{en:'Top up games, mobile credit, data packages, PLN tokens, and digital vouchers in one lightweight, modern, mobile-friendly page.'},'Geser untuk melihat layanan':{en:'Swipe to view services'},'Website Top Up':{en:'Top Up Website'},'untuk Game, Game, dan Voucher Game':{en:'for Games and Game Vouchers'},'Pilih produk digital favorit, isi data tujuan, lalu lanjutkan pembayaran dengan alur yang sederhana dan nyaman digunakan di HP.':{en:'Choose your favorite digital product, fill in the destination data, then continue payment through a simple mobile-friendly flow.'},'Lihat 3D Premium':{en:'View 3D Premium'},'Mudah Dipakai':{en:'Easy to Use'},'Tampilan interaktif yang tetap ringan di HP.':{en:'Interactive display that stays lightweight on mobile.'},'Produk Populer':{en:'Popular Products'},'Produk favorit mudah dilihat dan dipilih.':{en:'Favorite products are easy to view and select.'},'Siap Terhubung':{en:'Ready to Connect'},'Alur pembayaran dapat terhubung ke sistem utama.':{en:'The payment flow can connect to the main system.'},'Pilih Produk Favorit dengan Lebih Mudah':{en:'Choose Favorite Products More Easily'},'Geser kartu produk di HP, pilih layanan yang dibutuhkan, lalu lanjutkan ke form checkout.':{en:'Swipe product cards on mobile, choose the needed service, then continue to the checkout form.'},'Geser • Pilih • Checkout':{en:'Swipe • Choose • Checkout'},'Geser produk dengan jari':{en:'Swipe products with your finger'},'KATALOG':{en:'CATALOG'},'Katalog Produk Digital Lengkap':{en:'Complete Digital Product Catalog'},'Pilih kategori layanan, lihat nominal yang tersedia, dan lanjutkan pesanan dengan lebih mudah.':{en:'Choose a service category, view available nominal options, and continue the order more easily.'},'Semua':{en:'All'},'FLOW ORDER':{en:'ORDER FLOW'},'Alur Top Up yang Mudah Diikuti':{en:'Easy-to-Follow Top Up Flow'},'Pilih layanan, isi data tujuan, tentukan nominal, lalu lanjutkan pembayaran sesuai metode yang tersedia.':{en:'Choose a service, fill in the destination data, select the nominal, then continue payment through the available method.'},'Pilih Produk':{en:'Choose Product'},'User memilih kategori game, pulsa, data, PLN, atau voucher.':{en:'The user chooses games, mobile credit, data, PLN, or voucher categories.'},'Isi Tujuan':{en:'Fill Destination'},'User mengisi ID game, nomor HP, nomor pelanggan, atau data tujuan lain.':{en:'The user fills in the game ID, phone number, customer number, or other destination data.'},'Proses Pesanan':{en:'Process Order'},'Pesanan diproses melalui sistem yang terhubung dan total pembayaran ditampilkan sebelum dilanjutkan.':{en:'The order is processed through the connected system and the total payment is shown before continuing.'},'Cek Status':{en:'Check Status'},'Status pesanan dapat dipantau setelah pembayaran diproses.':{en:'Order status can be monitored after payment is processed.'},'TRUST & SAFETY':{en:'TRUST & SAFETY'},'Transaksi Aman dan Informasi Pengguna Tetap Terjaga':{en:'Secure Transactions and Protected User Information'},'Alur dibuat untuk membantu pengguna melakukan top up dengan nyaman, jelas, dan tetap aman.':{en:'The flow is designed to help users top up comfortably, clearly, and securely.'},'Data sensitif terlindungi':{en:'Sensitive data protected'},'Informasi penting diproses melalui sistem yang aman dan tidak ditampilkan kepada pengguna.':{en:'Important information is processed through a secure system and is not exposed to users.'},'Alur cepat':{en:'Fast flow'},'Produk, nominal, tujuan, dan pembayaran diringkas langsung agar pembeli tidak bingung saat checkout.':{en:'Products, nominals, destinations, and payment are summarized directly so buyers are not confused during checkout.'},'Status pesanan jelas':{en:'Clear order status'},'Setiap pesanan menampilkan informasi penting seperti produk, total, metode pembayaran, dan status transaksi.':{en:'Each order displays important information such as product, total, payment method, and transaction status.'},'Mobile first':{en:'Mobile first'},'Tombol, kartu produk, dan ringkasan pesanan dibuat nyaman untuk layar HP.':{en:'Buttons, product cards, and order summaries are made comfortable for mobile screens.'},'SMART CHECKOUT':{en:'SMART CHECKOUT'},'Panduan checkout yang lebih pintar':{en:'Smarter checkout guidance'},'Panel ini membantu pengguna mengisi data tujuan, memilih produk, dan memastikan pesanan sebelum pembayaran.':{en:'This panel helps users fill destination data, choose products, and confirm orders before payment.'},'Validasi tujuan':{en:'Destination validation'},'Pilih produk dulu untuk melihat panduan format tujuan.':{en:'Choose a product first to see the destination format guide.'},'Game: User ID':{en:'Game: User ID'},'Digital: nomor pelanggan':{en:'Digital: customer number'},'Preview pembayaran':{en:'Payment preview'},'Metode aktif':{en:'Active method'},'Belum dipilih':{en:'Not selected'},'Metode pembayaran mengikuti sistem yang tersedia.':{en:'The payment method follows the available system.'},'Shortcut produk':{en:'Product shortcuts'},'CHECKOUT':{en:'CHECKOUT'},'Form Top Up Sederhana dan Jelas':{en:'Simple and Clear Top Up Form'},'Lengkapi data pesanan, pilih nominal, lalu lanjutkan pembayaran melalui metode yang tersedia.':{en:'Complete the order data, choose the nominal, then continue payment through the available method.'},'Kategori Produk':{en:'Product Category'},'Pilih kategori':{en:'Choose category'},'Pilih produk':{en:'Choose product'},'User ID / Nomor Tujuan':{en:'User ID / Destination Number'},'Game isi User ID. Produk digital isi nomor tujuan sesuai layanan.':{en:'For games, fill in the User ID. For digital products, fill in the destination number according to the service.'},'Nominal':{en:'Nominal'},'Metode Pembayaran':{en:'Payment Method'},'Pilih metode pembayaran':{en:'Choose payment method'},'Lanjut Pembayaran':{en:'Continue Payment'},'Pastikan data tujuan sudah benar sebelum melanjutkan pembayaran.':{en:'Make sure the destination data is correct before continuing payment.'},'Ringkasan':{en:'Summary'},'Pesanan':{en:'Order'},'Kategori':{en:'Category'},'Tujuan':{en:'Destination'},'Pembayaran':{en:'Payment'},'Total Bayar':{en:'Total Payment'},'Total pembayaran akan menyesuaikan produk, nominal, dan metode pembayaran yang dipilih.':{en:'Total payment will adjust to the selected product, nominal, and payment method.'},'© 2026 TopupID. Copyright by Dirac Group.':{en:'© 2026 TopupID. Copyright by Dirac Group.'},'TopupID dinaungi Dirac Group.':{en:'TopupID is under Dirac Group.'},'Memproses pesanan':{en:'Processing order'},'Sistem sedang menyiapkan pembayaran dan status pesanan.':{en:'The system is preparing payment and order status.'},'Validasi data tujuan':{en:'Validating destination data'},'Mengecek produk dan nominal':{en:'Checking product and nominal'},'Memproses pesanan pembayaran':{en:'Processing payment order'},'Menyiapkan status transaksi':{en:'Preparing transaction status'}
+  };
+  var PLACEHOLDERS={'Contoh: 123456789 atau ID#1234':{en:'Example: 123456789 or ID#1234'},'Contoh: INV-20260622-123456':{en:'Example: INV-20260622-123456'}};
+  var nodeBase=new WeakMap();
+  function trCore(key,lang){var row=(I18N[lang]&&I18N[lang][key])||I18N.en[key]||I18N.id[key]||key;return row;}
+  function trText(base,lang){if(lang==='id') return base;var row=TEXT[base];if(!row) return base;return row[lang]||row.en||base;}
+  function updateMarked(lang){document.querySelectorAll('[data-topupid-i18n]').forEach(function(el){el.textContent=trCore(el.getAttribute('data-topupid-i18n'),lang);});}
+  function updateTextNodes(lang){var walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,{acceptNode:function(n){var p=n.parentElement;if(!p||/^(SCRIPT|STYLE|NOSCRIPT|TITLE)$/.test(p.tagName)) return NodeFilter.FILTER_REJECT;var v=n.nodeValue.replace(/\s+/g,' ').trim();return v?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT;}});var list=[],n;while(n=walker.nextNode()) list.push(n);list.forEach(function(node){var current=node.nodeValue.replace(/\s+/g,' ').trim();var base=nodeBase.get(node);if(!base){if(TEXT[current]) base=current;else{var found=null;Object.keys(TEXT).some(function(k){var r=TEXT[k];if(r.en===current||r.zh===current||r.ar===current||r.ja===current||r.ko===current||r.es===current||r.fr===current){found=k;return true;}return false;});base=found||current;}nodeBase.set(node,base);}if(TEXT[base]){node.nodeValue=node.nodeValue.replace(current,trText(base,lang));}});}
+  function updatePlaceholders(lang){document.querySelectorAll('input[placeholder],textarea[placeholder]').forEach(function(el){var base=el.getAttribute('data-base-placeholder')||el.getAttribute('placeholder');if(!el.hasAttribute('data-base-placeholder')) el.setAttribute('data-base-placeholder',base);var row=PLACEHOLDERS[base];if(row) el.setAttribute('placeholder',lang==='id'?base:(row[lang]||row.en||base));});}
+  function applyTheme(p){var pal=PALETTES[p.accent]||PALETTES[DEFAULTS.accent],root=document.documentElement,meta=LANG_META[p.language]||LANG_META.id;var effective=p.mode==='auto'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches?'light':(p.mode==='light'?'light':'dark');root.lang=meta.htmlLang;root.dir=meta.dir;root.setAttribute('data-language',p.language);root.setAttribute('data-theme',p.mode);root.setAttribute('data-effective-theme',effective);root.style.setProperty('--gold',pal.gold);root.style.setProperty('--gold-2',pal.gold2);root.style.setProperty('--gold2',pal.gold2);root.style.setProperty('--gold-3',pal.gold3);root.style.setProperty('--theme-rgb',pal.rgb);root.style.setProperty('--cyan',pal.gold);root.style.setProperty('--cyan-soft',pal.gold);root.style.setProperty('--blue',pal.gold2);root.style.setProperty('--purple',pal.gold);root.style.setProperty('--pink',pal.gold2);root.style.setProperty('--stroke-strong','rgba('+pal.rgb+',.45)');root.style.setProperty('--line','rgba('+pal.rgb+',.18)');root.style.setProperty('--line-strong','rgba('+pal.rgb+',.38)');var mt=document.querySelector('meta[name="theme-color"]');if(mt) mt.setAttribute('content',effective==='light'?'#f8fafc':'#050816');document.querySelectorAll('[data-accent]').forEach(function(el){var on=el.getAttribute('data-accent')===p.accent;el.classList.toggle('active',on);el.classList.toggle('is-selected',on);el.setAttribute('aria-pressed',on?'true':'false');});document.querySelectorAll('[data-language]').forEach(function(el){var on=el.getAttribute('data-language')===p.language;el.classList.toggle('active',on);el.classList.toggle('is-selected',on);el.setAttribute('aria-pressed',on?'true':'false');});document.querySelectorAll('[data-theme-mode]').forEach(function(el){var on=el.getAttribute('data-theme-mode')===p.mode;el.classList.toggle('active',on);el.classList.toggle('is-selected',on);el.setAttribute('aria-pressed',on?'true':'false');});}
+  function applyAll(source){var p=prefs();applyTheme(p);updateMarked(p.language);updateTextNodes(p.language);updatePlaceholders(p.language);try{window.dispatchEvent(new CustomEvent('dirac:global-prefs-change',{detail:Object.assign({source:source||'topupid'},p)}));}catch(_){}}
+  function setupThemeModal(){var modal=document.getElementById('themeModal');if(!modal) return;function open(){modal.classList.add('open');modal.setAttribute('aria-hidden','false');document.body.classList.add('modal-open');var card=modal.querySelector('[role="dialog"]');if(card) setTimeout(function(){try{card.focus()}catch(_){}});}function close(){modal.classList.remove('open');modal.setAttribute('aria-hidden','true');document.body.classList.remove('modal-open');}document.addEventListener('click',function(e){var t=e.target&&e.target.closest?e.target.closest('[data-open-theme],[data-close-theme],[data-accent],[data-language],[data-theme-mode],[data-theme-reset]'):null;if(!t) return;if(t.hasAttribute('data-open-theme')){e.preventDefault();open();return;}if(t.hasAttribute('data-close-theme')){e.preventDefault();close();return;}if(t.hasAttribute('data-theme-reset')){e.preventDefault();writePrefs(DEFAULTS);return;}if(t.hasAttribute('data-accent')){writePrefs({accent:t.getAttribute('data-accent')});return;}if(t.hasAttribute('data-language')){writePrefs({language:t.getAttribute('data-language')});return;}if(t.hasAttribute('data-theme-mode')){writePrefs({mode:t.getAttribute('data-theme-mode')});return;}},true);modal.addEventListener('click',function(e){if(e.target===modal) close();});document.addEventListener('keydown',function(e){if(e.key==='Escape'&&modal.classList.contains('open')) close();});}
+  function setupHeader(){var header=document.getElementById('siteHeader'),btn=document.getElementById('menuBtn'),menu=document.getElementById('mobileMenu');function onScroll(){if(header) header.classList.toggle('is-scrolled',(window.scrollY||0)>12);}onScroll();window.addEventListener('scroll',onScroll,{passive:true});if(btn&&menu){btn.addEventListener('click',function(){setTimeout(function(){var open=getComputedStyle(menu).display!=='none';btn.setAttribute('aria-expanded',open?'true':'false');},0);});menu.addEventListener('click',function(e){if(e.target&&e.target.closest&&e.target.closest('a')) btn.setAttribute('aria-expanded','false');});}}
+  function startBrandTypewriter(){var wrap=document.querySelector('[data-brand-typewriter]');if(!wrap) return;var target=wrap.querySelector('.brand-typewriter-text')||wrap;var wordIndex=0,charIndex=0,deleting=false,pause=8;function getWords(){var lang=prefs().language;return ['TopupID',trCore('brandSecond',lang)];}target.textContent='TopupID';charIndex=7;function tick(){var words=getWords(),current=words[wordIndex%words.length];if(pause>0){pause--;return setTimeout(tick,90);}if(deleting){charIndex=Math.max(0,charIndex-1);target.textContent=current.slice(0,charIndex);if(charIndex===0){deleting=false;wordIndex=(wordIndex+1)%words.length;pause=3;}}else{charIndex=Math.min(current.length,charIndex+1);target.textContent=current.slice(0,charIndex);if(charIndex===current.length){wrap.setAttribute('aria-label',current);deleting=true;pause=15;}}setTimeout(tick,deleting?70:92);}setTimeout(tick,1050);}
+  function init(){applyAll('init');setupThemeModal();setupHeader();startBrandTypewriter();}
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true}); else init();
+  window.addEventListener('storage',function(e){if(e&&(!e.key||e.key===THEME_KEY||e.key===ACCENT_KEY||e.key===LANGUAGE_KEY||e.key==='dirac_language_v1')) applyAll('storage');});
+})();
+</script>
+
+
+<!-- V55 clean dashboard header mobile override. Only visual layout repair. -->
+<style id="v55-topupid-dashboard-header-clean-css">
+  .topupid-dashboard-header.site-header{
+    padding: clamp(8px, 1.8vw, 14px) 0 !important;
+    background: linear-gradient(180deg, rgba(5,8,22,.86), rgba(5,8,22,.30)) !important;
+  }
+  .topupid-header-container.nav{
+    display:flex !important;
+    align-items:center !important;
+    justify-content:space-between !important;
+    flex-wrap:nowrap !important;
+    overflow:hidden !important;
+    min-width:0 !important;
+  }
+  .topupid-header-brand.brand{
+    flex:1 1 auto !important;
+    min-width:0 !important;
+    overflow:hidden !important;
+  }
+  .topupid-header-actions.header-actions{
+    flex:0 0 auto !important;
+    margin-left:auto !important;
+  }
+  .dashboard-brand-mark.brand-mark{
+    flex:0 0 auto !important;
+    isolation:isolate !important;
+  }
+  .dashboard-brand-mark .brand-logo-img{
+    display:block !important;
+    opacity:1 !important;
+    visibility:visible !important;
+  }
+  .dashboard-brand-mark .brand-fallback-text{
+    font-size:0 !important;
+    color:transparent !important;
+  }
+  .brand-typewriter{
+    min-width:0 !important;
+    max-width:12rem !important;
+    overflow:hidden !important;
+  }
+  .brand-typewriter-text{
+    overflow:hidden !important;
+    text-overflow:ellipsis !important;
+  }
+  @media (max-width: 1120px){
+    .topupid-dashboard-header.site-header{
+      padding-top:max(8px, env(safe-area-inset-top)) !important;
+    }
+    .topupid-header-container.nav{
+      width:calc(100% - 20px) !important;
+      min-height:74px !important;
+      padding:10px 12px !important;
+      border-radius:30px !important;
+      gap:12px !important;
+      background:rgba(5,8,22,.88) !important;
+      border:1px solid rgba(var(--theme-rgb),.28) !important;
+      box-shadow:0 16px 45px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.08) !important;
+    }
+    .topupid-header-links.nav-links,
+    .topupid-header-links,
+    .topupid-theme-toggle{
+      display:none !important;
+      visibility:hidden !important;
+      pointer-events:none !important;
+      width:0 !important;
+      height:0 !important;
+      overflow:hidden !important;
+    }
+    .dashboard-brand-mark.brand-mark{
+      width:54px !important;
+      height:54px !important;
+      min-width:54px !important;
+      border-radius:18px !important;
+      transform:none !important;
+    }
+    .brand-name{
+      font-size:clamp(1.05rem, 4.6vw, 1.42rem) !important;
+      line-height:1.05 !important;
+    }
+    .brand-typewriter{
+      max-width:calc(100vw - 154px) !important;
+    }
+    .menu-toggle{
+      width:56px !important;
+      height:56px !important;
+      min-width:56px !important;
+      min-height:56px !important;
+      border-radius:22px !important;
+      padding:0 !important;
+      background:rgba(255,255,255,.07) !important;
+      border:1px solid rgba(var(--theme-rgb),.38) !important;
+      box-shadow:0 12px 30px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.09) !important;
+    }
+    .topupid-dashboard-menu.mobile-menu{
+      top:96px !important;
+    }
+  }
+  @media (max-width: 520px){
+    .topupid-header-container.nav{
+      width:calc(100% - 16px) !important;
+      min-height:70px !important;
+      padding:9px 10px !important;
+      border-radius:28px !important;
+      gap:9px !important;
+    }
+    .dashboard-brand-mark.brand-mark{
+      width:50px !important;
+      height:50px !important;
+      min-width:50px !important;
+      border-radius:17px !important;
+    }
+    .brand-name{
+      font-size:1.14rem !important;
+    }
+    .brand-typewriter{
+      max-width:calc(100vw - 145px) !important;
+    }
+    .menu-toggle{
+      width:54px !important;
+      height:54px !important;
+      min-width:54px !important;
+      min-height:54px !important;
+      border-radius:21px !important;
+    }
+  }
+  @media (max-width: 380px){
+    .topupid-header-container.nav{
+      width:calc(100% - 12px) !important;
+      padding:8px !important;
+    }
+    .dashboard-brand-mark.brand-mark{
+      width:46px !important;
+      height:46px !important;
+      min-width:46px !important;
+      border-radius:16px !important;
+    }
+    .brand-name{
+      font-size:1rem !important;
+    }
+    .brand-typewriter{
+      max-width:calc(100vw - 132px) !important;
+    }
+    .menu-toggle{
+      width:50px !important;
+      height:50px !important;
+      min-width:50px !important;
+      min-height:50px !important;
+      border-radius:19px !important;
+    }
+  }
+</style>
 </body>
 </html>
