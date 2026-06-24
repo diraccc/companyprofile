@@ -4104,7 +4104,7 @@ html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title 
 </div>
 <div class="product-grid" id="productGrid"></div>
 </section>
-<section class="section reveal" id="showcase">
+<section class="section reveal" id="showcase" aria-label="Showcase gambar layanan TopupID dengan animasi 3D">
 <div class="tls-visual-shell">
 <div aria-label="Animasi 10 gambar layanan TopupID berurutan" class="tls-rotator">
 <div class="tls-card tls-card-1"><img alt="Gambar TopupID 1" src="tls1.webp"/></div>
@@ -4344,12 +4344,6 @@ html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title 
 </article>
 </div>
 </section>
-<section aria-label="Banner visual TopupID" class="topupid-banner-separator bottom-full-visual">
-<div class="topupid-banner-inner">
-<img alt="Banner layanan TopupID" class="topupid-banner-full-image" decoding="async" loading="lazy" src="bbb.webp"/>
-</div>
-</section>
-
 <section aria-label="Kontak support TopupID" class="section topupid-support-section reveal" id="support">
   <div class="section-head">
     <div class="kicker">SUPPORT</div>
@@ -4367,6 +4361,12 @@ html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title 
     </a>
   </div>
 </section>
+<section aria-label="Banner visual TopupID" class="topupid-banner-separator bottom-full-visual" id="banner-layanan-topupid">
+<div class="topupid-banner-inner">
+<img alt="Banner layanan TopupID" class="topupid-banner-full-image" decoding="async" loading="lazy" src="bbb.webp"/>
+</div>
+</section>
+
 </main>
 <footer class="dirac-footer">
 <div class="footer-links">
@@ -14070,58 +14070,191 @@ html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title 
     }
   }
   function protectAllVisualImages(){
-    Array.prototype.slice.call(document.querySelectorAll('#showcase .tls-card img, #fanCarouselLayout img')).forEach(function(img, i){ protectImage(img, i); });
+    Array.prototype.slice.call(document.querySelectorAll('#showcase .tls-card img, #fanCarouselLayout img, .topupid-banner-full-image')).forEach(function(img, i){ protectImage(img, i); });
+  }
+
+  function moveBannerToBottom(){
+    var banner = document.querySelector('.topupid-banner-separator.bottom-full-visual');
+    var support = document.getElementById('support');
+    var footer = document.querySelector('footer.dirac-footer, footer');
+    if (!banner || !support || !support.parentNode) return;
+    var desiredNext = footer || support.nextSibling;
+    if (banner !== desiredNext && banner.previousElementSibling !== support) {
+      support.parentNode.insertBefore(banner, footer || null);
+    }
+    banner.classList.add('v56-banner-bottom');
+    var bannerImg = banner.querySelector('.topupid-banner-full-image');
+    if (bannerImg) protectImage(bannerImg, 90);
   }
 
   function setupSmoothShowcase(){
-    var rotator = document.querySelector('#showcase .tls-rotator');
-    if (!rotator || rotator.dataset.v55SmoothReady === '1') return;
-    rotator.dataset.v55SmoothReady = '1';
+    var section = document.getElementById('showcase');
+    var shell = section ? section.querySelector('.tls-visual-shell') : null;
+    var rotator = section ? section.querySelector('.tls-rotator') : null;
+    if (!section || !shell || !rotator || rotator.dataset.v56UltraReady === '1') return;
+    rotator.dataset.v56UltraReady = '1';
+    rotator.removeAttribute('aria-live');
+    rotator.setAttribute('tabindex', '0');
+    rotator.setAttribute('aria-label', 'Animasi coverflow 3D layanan TopupID');
     var cards = Array.prototype.slice.call(rotator.querySelectorAll('.tls-card'));
     if (!cards.length) return;
-    var active = 0;
-    var paused = false;
+
+    var titleMap = ['Free Fire', 'Mobile Legends', 'FC Mobile', 'PUBG Mobile', 'Valorant', 'Steam Wallet', 'Voucher Digital', 'Produk Instan', 'Layanan Premium', 'TopupID Store'];
+    var state = { active: 0, paused: false, interval: null, startX: 0, dragX: 0, dragging: false };
+
+    var badge = shell.querySelector('.v56-showcase-badge');
+    if (!badge) {
+      badge = document.createElement('div');
+      badge.className = 'v56-showcase-badge';
+      badge.innerHTML = '<span class="v56-badge-dot"></span><strong>SHOWCASE 3D</strong><small>Ultra Smooth</small>';
+      shell.appendChild(badge);
+    }
+
+    var caption = shell.querySelector('.v56-showcase-caption');
+    if (!caption) {
+      caption = document.createElement('div');
+      caption.className = 'v56-showcase-caption';
+      caption.innerHTML = '<strong>TopupID Showcase</strong><span>Animasi premium layanan digital.</span>';
+      shell.appendChild(caption);
+    }
+    var captionTitle = caption.querySelector('strong');
+    var captionText = caption.querySelector('span');
+
+    var controls = shell.querySelector('.v56-showcase-controls');
+    if (!controls) {
+      controls = document.createElement('div');
+      controls.className = 'v56-showcase-controls';
+      controls.innerHTML = '<button class="v56-showcase-btn prev" type="button" aria-label="Gambar sebelumnya">‹</button><div class="v56-showcase-dots" aria-hidden="true"></div><button class="v56-showcase-btn next" type="button" aria-label="Gambar berikutnya">›</button>';
+      shell.appendChild(controls);
+    }
+    var prevBtn = controls.querySelector('.prev');
+    var nextBtn = controls.querySelector('.next');
+    var dotsWrap = controls.querySelector('.v56-showcase-dots');
+    dotsWrap.innerHTML = '';
+
     cards.forEach(function(card, i){
       var img = card.querySelector('img');
-      protectImage(img, i);
-      card.setAttribute('data-smooth-index', String(i));
+      if (img) protectImage(img, i);
+      var title = titleMap[i] || (img && img.getAttribute('alt')) || ('TopupID ' + (i + 1));
+      card.dataset.showcaseTitle = title;
+      card.dataset.showcaseCopy = 'Layanan cepat, aman, dan siap checkout.';
+      card.setAttribute('role', 'button');
+      card.setAttribute('tabindex', '-1');
+      card.setAttribute('aria-label', title + ' - pilih untuk ditampilkan');
+      var dot = document.createElement('button');
+      dot.type = 'button';
+      dot.className = 'v56-dot';
+      dot.setAttribute('aria-label', 'Tampilkan ' + title);
+      dot.addEventListener('click', function(){ goTo(i); });
+      dotsWrap.appendChild(dot);
+      card.addEventListener('click', function(){ if (state.active !== i) { goTo(i); } });
     });
-    function signedDelta(i){
+
+    var dots = Array.prototype.slice.call(dotsWrap.children);
+
+    function signedDelta(index){
       var total = cards.length;
       var half = Math.floor(total / 2);
-      var raw = (i - active + total) % total;
+      var raw = (index - state.active + total) % total;
       return raw > half ? raw - total : raw;
     }
+
+    function syncDots(){
+      dots.forEach(function(dot, i){ dot.classList.toggle('active', i === state.active); });
+    }
+
     function layout(){
-      var isPhone = window.innerWidth <= 560;
-      var side = isPhone ? Math.min(118, Math.max(82, window.innerWidth * 0.26)) : 154;
+      var width = window.innerWidth;
+      var isMobile = width <= 680;
+      var spread = isMobile ? Math.max(72, Math.min(104, width * 0.145)) : 168;
       cards.forEach(function(card, i){
         var d = signedDelta(i);
         var ad = Math.abs(d);
-        var center = d === 0;
-        var visible = ad <= 2;
-        card.classList.toggle('is-smooth-center', center);
-        card.classList.toggle('is-smooth-hidden', !visible);
+        var visible = ad <= 3;
+        var scale = ad === 0 ? 1 : (ad === 1 ? 0.84 : (ad === 2 ? 0.65 : 0.52));
+        var x = d * spread * (ad >= 2 ? 1.06 : 1);
+        var y = ad === 0 ? -6 : (ad === 1 ? 22 : (ad === 2 ? 44 : 68));
+        var z = ad === 0 ? 205 : (ad === 1 ? 76 : (ad === 2 ? -42 : -155));
+        var rotateY = d * (isMobile ? -26 : -33);
+        var skew = d === 0 ? 0 : d * -1.5;
+        var opacity = visible ? (ad === 0 ? 1 : (ad === 1 ? 0.82 : (ad === 2 ? 0.40 : 0.16))) : 0;
+        var blur = ad === 0 ? 0 : (ad === 1 ? 0.2 : (ad === 2 ? 1.05 : 1.9));
+        card.classList.toggle('is-ultra-center', ad === 0);
+        card.classList.toggle('is-ultra-near', ad === 1);
+        card.classList.toggle('is-ultra-side', ad === 2);
+        card.classList.toggle('is-ultra-far', ad === 3);
+        card.classList.toggle('is-ultra-hidden', !visible);
         card.style.pointerEvents = visible ? 'auto' : 'none';
-        card.style.zIndex = String(center ? 20 : (10 - ad));
-        card.style.opacity = visible ? (center ? '1' : (ad === 1 ? '.86' : '.38')) : '0';
-        card.style.filter = center ? 'brightness(1.06) saturate(1.05)' : (ad === 1 ? 'brightness(.94) saturate(.98)' : 'brightness(.72) saturate(.88) blur(.2px)');
-        var x = d * side;
-        var y = center ? 0 : (ad * (isPhone ? 10 : 12));
-        var z = center ? 92 : (ad === 1 ? -52 : -142);
-        var ry = d * (isPhone ? -24 : -28);
-        var sc = center ? 1 : (ad === 1 ? .84 : .68);
-        card.style.transform = 'translate(-50%, -50%) translateX(' + x + 'px) translateY(' + y + 'px) translateZ(' + z + 'px) rotateY(' + ry + 'deg) scale(' + sc + ')';
+        card.style.zIndex = String(50 - ad);
+        card.style.opacity = String(opacity);
+        card.style.filter = 'brightness(' + (ad === 0 ? 1.04 : (ad === 1 ? 0.94 : 0.78)) + ') saturate(' + (ad === 0 ? 1.02 : 0.92) + ') blur(' + blur + 'px)';
+        card.style.transform = 'translate(-50%, -50%) translateX(' + x + 'px) translateY(' + y + 'px) translateZ(' + z + 'px) rotateY(' + rotateY + 'deg) skewY(' + skew + 'deg) scale(' + scale + ')';
       });
+      if (cards[state.active]) {
+        captionTitle.textContent = cards[state.active].dataset.showcaseTitle || 'TopupID Showcase';
+        captionText.textContent = cards[state.active].dataset.showcaseCopy || 'Animasi premium layanan digital.';
+      }
+      syncDots();
     }
-    function next(){ if (!paused) { active = (active + 1) % cards.length; layout(); } }
-    rotator.addEventListener('pointerenter', function(){ paused = true; }, {passive:true});
-    rotator.addEventListener('pointerleave', function(){ paused = false; }, {passive:true});
-    rotator.addEventListener('pointerdown', function(){ paused = true; }, {passive:true});
-    rotator.addEventListener('pointerup', function(){ paused = false; next(); }, {passive:true});
+
+    function restartAuto(){
+      if (state.interval) window.clearInterval(state.interval);
+      state.interval = window.setInterval(function(){ if (!state.paused) go(1, false); }, 3600);
+    }
+
+    function go(step, userTriggered){
+      state.active = (state.active + step + cards.length) % cards.length;
+      layout();
+      if (userTriggered !== false) restartAuto();
+    }
+
+    function goTo(index){
+      if (index === state.active) return;
+      state.active = ((index % cards.length) + cards.length) % cards.length;
+      layout();
+      restartAuto();
+    }
+
+    function handlePointerDown(ev){
+      state.dragging = true;
+      state.paused = true;
+      state.startX = ev.clientX;
+      state.dragX = 0;
+      shell.classList.add('is-dragging');
+      try { rotator.setPointerCapture(ev.pointerId); } catch(_) {}
+    }
+    function handlePointerMove(ev){
+      if (!state.dragging) return;
+      state.dragX = ev.clientX - state.startX;
+    }
+    function handlePointerUp(ev){
+      if (!state.dragging) return;
+      state.dragging = false;
+      state.paused = false;
+      shell.classList.remove('is-dragging');
+      try { rotator.releasePointerCapture(ev.pointerId); } catch(_) {}
+      var delta = state.dragX;
+      state.dragX = 0;
+      if (Math.abs(delta) > 28) go(delta < 0 ? 1 : -1);
+      else layout();
+      restartAuto();
+    }
+
+    prevBtn.addEventListener('click', function(){ go(-1); });
+    nextBtn.addEventListener('click', function(){ go(1); });
+    rotator.addEventListener('pointerdown', handlePointerDown);
+    rotator.addEventListener('pointermove', handlePointerMove);
+    rotator.addEventListener('pointerup', handlePointerUp);
+    rotator.addEventListener('pointercancel', handlePointerUp);
+    rotator.addEventListener('pointerenter', function(){ state.paused = true; }, {passive:true});
+    rotator.addEventListener('pointerleave', function(){ if (!state.dragging) state.paused = false; }, {passive:true});
+    rotator.addEventListener('keydown', function(ev){
+      if (ev.key === 'ArrowLeft') { ev.preventDefault(); go(-1); }
+      if (ev.key === 'ArrowRight') { ev.preventDefault(); go(1); }
+    });
     window.addEventListener('resize', layout, {passive:true});
     layout();
-    setInterval(next, 3300);
+    restartAuto();
   }
 
   function init(){
@@ -14129,13 +14262,1079 @@ html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title 
     updateScrolled();
     updateMenuProgress();
     syncOverlayState();
+    moveBannerToBottom();
     protectAllVisualImages();
     setupSmoothShowcase();
-    setTimeout(function(){ measureHeader(); protectAllVisualImages(); setupSmoothShowcase(); }, 500);
+    setTimeout(function(){ measureHeader(); syncOverlayState(); moveBannerToBottom(); protectAllVisualImages(); setupSmoothShowcase(); }, 500);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, {once:true}); else init();
 })();
 </script>
+
+
+<style id="v56-final-showcase-and-banner-patch">
+  /* V56 final patch: reposisi banner ke bagian paling bawah dan tingkatkan animasi showcase 3D. Tidak mengubah endpoint, login, hash, A2F, keamanan, payment gateway, atau API yang ada. */
+  #showcase {
+    padding: 44px 5.5% 74px !important;
+  }
+  #showcase .tls-visual-shell {
+    position: relative !important;
+    width: min(1040px, 100%) !important;
+    min-height: 500px !important;
+    margin: 0 auto !important;
+    display: grid !important;
+    place-items: center !important;
+    overflow: hidden !important;
+    border-radius: 40px !important;
+    border: 1px solid rgba(34,197,94,0.22) !important;
+    background:
+      radial-gradient(circle at 50% 12%, rgba(34,197,94,0.14), transparent 32%),
+      radial-gradient(circle at 18% 86%, rgba(56,189,248,0.14), transparent 34%),
+      radial-gradient(circle at 84% 78%, rgba(59,130,246,0.12), transparent 28%),
+      linear-gradient(145deg, rgba(4,12,32,0.94), rgba(5,8,22,0.98)) !important;
+    box-shadow: 0 34px 120px rgba(0,0,0,0.34), inset 0 0 0 1px rgba(255,255,255,0.03) !important;
+    backdrop-filter: blur(18px) !important;
+    perspective: 1800px !important;
+    isolation: isolate !important;
+  }
+  #showcase .tls-visual-shell::before {
+    content: "" !important;
+    position: absolute !important;
+    inset: 0 !important;
+    background: linear-gradient(110deg, transparent 0%, rgba(255,255,255,0.03) 42%, rgba(34,197,94,0.08) 50%, transparent 58%) !important;
+    transform: translateX(-110%) !important;
+    animation: v56ShowcaseSweep 9s ease-in-out infinite !important;
+    pointer-events: none !important;
+    z-index: 0 !important;
+  }
+  #showcase .tls-visual-shell::after {
+    content: "" !important;
+    position: absolute !important;
+    left: 8% !important;
+    right: 8% !important;
+    bottom: 40px !important;
+    height: 86px !important;
+    border-radius: 999px !important;
+    background: radial-gradient(circle at 50% 50%, rgba(34,197,94,0.20), rgba(34,197,94,0.02) 65%, transparent 75%) !important;
+    filter: blur(26px) !important;
+    pointer-events: none !important;
+    z-index: 0 !important;
+  }
+  #showcase .tls-rotator {
+    position: relative !important;
+    z-index: 2 !important;
+    width: min(860px, 95vw) !important;
+    height: 330px !important;
+    transform-style: preserve-3d !important;
+    perspective: 1800px !important;
+    animation: none !important;
+    touch-action: pan-y !important;
+    user-select: none !important;
+    outline: none !important;
+  }
+  #showcase .tls-card,
+  #showcase .tls-card-1,
+  #showcase .tls-card-2,
+  #showcase .tls-card-3,
+  #showcase .tls-card-4,
+  #showcase .tls-card-5,
+  #showcase .tls-card-6,
+  #showcase .tls-card-7,
+  #showcase .tls-card-8,
+  #showcase .tls-card-9,
+  #showcase .tls-card-10 {
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
+    width: min(510px, 77vw) !important;
+    aspect-ratio: 16 / 9 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    border-radius: 32px !important;
+    border: 1px solid rgba(255,255,255,0.16) !important;
+    background: linear-gradient(160deg, rgba(2,6,23,0.96), rgba(7,16,36,0.98)) !important;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.38), inset 0 0 0 1px rgba(255,255,255,0.03) !important;
+    transition: transform 780ms cubic-bezier(.2,.88,.26,1), opacity 520ms ease, filter 520ms ease, box-shadow 520ms ease !important;
+    transform-style: preserve-3d !important;
+    backface-visibility: hidden !important;
+    will-change: transform, opacity, filter !important;
+  }
+  #showcase .tls-card::before {
+    content: "" !important;
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 2 !important;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.12), transparent 32%),
+      linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.07) 36%, transparent 52%) !important;
+    pointer-events: none !important;
+  }
+  #showcase .tls-card::after {
+    content: attr(data-showcase-title) !important;
+    position: absolute !important;
+    left: 18px !important;
+    right: 18px !important;
+    bottom: 18px !important;
+    z-index: 3 !important;
+    padding: 12px 16px !important;
+    border-radius: 18px !important;
+    color: #ffffff !important;
+    font-size: 15px !important;
+    font-weight: 800 !important;
+    letter-spacing: .02em !important;
+    background: linear-gradient(135deg, rgba(4,12,32,0.84), rgba(7,16,36,0.58)) !important;
+    border: 1px solid rgba(255,255,255,0.12) !important;
+    backdrop-filter: blur(14px) !important;
+    box-shadow: 0 16px 30px rgba(0,0,0,0.18) !important;
+    text-shadow: 0 2px 16px rgba(0,0,0,0.35) !important;
+  }
+  #showcase .tls-card img {
+    width: 100% !important;
+    height: 100% !important;
+    display: block !important;
+    object-fit: cover !important;
+    transform: scale(1.01) !important;
+    filter: saturate(1.02) contrast(1.02) !important;
+  }
+  #showcase .tls-card.is-ultra-center {
+    box-shadow: 0 38px 110px rgba(34,197,94,0.17), 0 28px 80px rgba(0,0,0,0.42), inset 0 0 0 1px rgba(255,255,255,0.05) !important;
+  }
+  #showcase .tls-card.is-ultra-center::before {
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.14), transparent 34%),
+      linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.10) 40%, transparent 60%) !important;
+  }
+  #showcase .v56-showcase-badge {
+    position: absolute !important;
+    left: 24px !important;
+    top: 24px !important;
+    z-index: 4 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    padding: 12px 16px !important;
+    border-radius: 999px !important;
+    color: #d1fae5 !important;
+    background: rgba(5,18,24,0.68) !important;
+    border: 1px solid rgba(34,197,94,0.26) !important;
+    backdrop-filter: blur(14px) !important;
+    box-shadow: 0 18px 34px rgba(0,0,0,0.18) !important;
+  }
+  #showcase .v56-showcase-badge strong { font-size: 13px !important; line-height: 1 !important; }
+  #showcase .v56-showcase-badge small { color: #86efac !important; font-size: 11px !important; font-weight: 700 !important; }
+  #showcase .v56-badge-dot { width: 10px !important; height: 10px !important; border-radius: 50% !important; background: #22c55e !important; box-shadow: 0 0 18px rgba(34,197,94,0.75) !important; }
+  #showcase .v56-showcase-caption {
+    position: absolute !important;
+    left: 24px !important;
+    right: 24px !important;
+    bottom: 22px !important;
+    z-index: 4 !important;
+    display: flex !important;
+    align-items: end !important;
+    justify-content: space-between !important;
+    gap: 16px !important;
+    padding-right: 194px !important;
+    pointer-events: none !important;
+  }
+  #showcase .v56-showcase-caption strong { display:block !important; font-size: clamp(24px, 3.2vw, 34px) !important; color:#fff !important; letter-spacing: -.02em !important; text-shadow: 0 10px 32px rgba(0,0,0,0.38) !important; }
+  #showcase .v56-showcase-caption span { display:block !important; margin-top: 4px !important; color:#cbd5e1 !important; font-size: 14px !important; line-height: 1.6 !important; text-shadow: 0 6px 18px rgba(0,0,0,0.26) !important; }
+  #showcase .v56-showcase-controls {
+    position: absolute !important;
+    right: 22px !important;
+    bottom: 24px !important;
+    z-index: 5 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    padding: 10px 12px !important;
+    border-radius: 999px !important;
+    background: rgba(5,12,24,0.58) !important;
+    border: 1px solid rgba(255,255,255,0.09) !important;
+    backdrop-filter: blur(14px) !important;
+    box-shadow: 0 18px 38px rgba(0,0,0,0.24) !important;
+  }
+  #showcase .v56-showcase-btn {
+    width: 44px !important;
+    height: 44px !important;
+    border: 1px solid rgba(255,255,255,0.12) !important;
+    border-radius: 50% !important;
+    color: #fff !important;
+    background: rgba(255,255,255,0.07) !important;
+    font-size: 28px !important;
+    line-height: 1 !important;
+    display: grid !important;
+    place-items: center !important;
+    transition: transform .22s ease, background .22s ease, color .22s ease !important;
+  }
+  #showcase .v56-showcase-btn:hover,
+  #showcase .v56-showcase-btn:active {
+    transform: translateY(-2px) !important;
+    background: #22c55e !important;
+    color: #021017 !important;
+    border-color: transparent !important;
+  }
+  #showcase .v56-showcase-dots { display:flex !important; align-items:center !important; gap:8px !important; }
+  #showcase .v56-dot { width: 9px !important; height: 9px !important; padding:0 !important; border:none !important; border-radius:999px !important; background: rgba(255,255,255,0.26) !important; transition: width .24s ease, background .24s ease, box-shadow .24s ease !important; }
+  #showcase .v56-dot.active { width: 30px !important; background: #22c55e !important; box-shadow: 0 0 18px rgba(34,197,94,0.74) !important; }
+  .topupid-banner-separator.bottom-full-visual.v56-banner-bottom {
+    margin-top: 12px !important;
+    padding-top: 18px !important;
+    padding-bottom: 34px !important;
+  }
+  .topupid-banner-separator.bottom-full-visual.v56-banner-bottom .topupid-banner-inner {
+    max-width: 1120px !important;
+    margin: 0 auto !important;
+  }
+  .topupid-banner-separator.bottom-full-visual.v56-banner-bottom .topupid-banner-full-image {
+    display: block !important;
+    width: 100% !important;
+    border-radius: 28px !important;
+    object-fit: cover !important;
+    box-shadow: 0 28px 90px rgba(0,0,0,0.26) !important;
+  }
+  @keyframes v56ShowcaseSweep {
+    0%, 75%, 100% { transform: translateX(-110%); opacity: .15; }
+    88% { transform: translateX(115%); opacity: .45; }
+  }
+  @media (max-width: 860px) {
+    #showcase { padding: 34px 4.5% 64px !important; }
+    #showcase .tls-visual-shell { min-height: 436px !important; border-radius: 32px !important; }
+    #showcase .tls-rotator { width: min(720px, 95vw) !important; height: 285px !important; }
+    #showcase .tls-card, #showcase .tls-card-1, #showcase .tls-card-2, #showcase .tls-card-3, #showcase .tls-card-4, #showcase .tls-card-5, #showcase .tls-card-6, #showcase .tls-card-7, #showcase .tls-card-8, #showcase .tls-card-9, #showcase .tls-card-10 { width: min(438px, 77vw) !important; border-radius: 28px !important; }
+    #showcase .v56-showcase-caption { padding-right: 176px !important; }
+  }
+  @media (max-width: 680px) {
+    #showcase { padding: 24px 4.2% 52px !important; }
+    #showcase .tls-visual-shell { min-height: 385px !important; border-radius: 28px !important; }
+    #showcase .tls-rotator { width: 100% !important; height: 226px !important; }
+    #showcase .tls-card, #showcase .tls-card-1, #showcase .tls-card-2, #showcase .tls-card-3, #showcase .tls-card-4, #showcase .tls-card-5, #showcase .tls-card-6, #showcase .tls-card-7, #showcase .tls-card-8, #showcase .tls-card-9, #showcase .tls-card-10 { width: min(320px, 78vw) !important; border-radius: 22px !important; }
+    #showcase .tls-card::after { left: 12px !important; right: 12px !important; bottom: 12px !important; padding: 10px 12px !important; font-size: 12px !important; border-radius: 14px !important; }
+    #showcase .v56-showcase-badge { left: 14px !important; top: 14px !important; padding: 10px 12px !important; gap: 8px !important; }
+    #showcase .v56-showcase-caption { left: 14px !important; right: 14px !important; bottom: 76px !important; padding-right: 0 !important; display: block !important; }
+    #showcase .v56-showcase-caption strong { font-size: 22px !important; }
+    #showcase .v56-showcase-caption span { margin-top: 3px !important; font-size: 12px !important; }
+    #showcase .v56-showcase-controls { left: 50% !important; right: auto !important; bottom: 14px !important; transform: translateX(-50%) !important; gap: 9px !important; padding: 9px 10px !important; }
+    #showcase .v56-showcase-btn { width: 40px !important; height: 40px !important; font-size: 24px !important; }
+    #showcase .v56-dot.active { width: 22px !important; }
+  }
+</style>
+
+
+
+<style id="v57-html-only-showcase-bottom-banner-fix">
+  /* V57: request owner - showcase dibuat HTML/CSS 3D, banner layanan dipindah ke bawah sendiri. Patch visual terisolasi; sistem inti tetap tidak disentuh. */
+  #showcase.topupid-html3d-section {
+    position: relative !important;
+    z-index: 2 !important;
+    padding: clamp(28px, 5vw, 62px) 7% clamp(56px, 7vw, 92px) !important;
+    margin: 0 !important;
+    overflow: visible !important;
+  }
+  #showcase .topupid-html3d-shell {
+    position: relative !important;
+    width: min(1120px, 100%) !important;
+    min-height: clamp(360px, 52vw, 560px) !important;
+    margin: 0 auto !important;
+    display: grid !important;
+    place-items: center !important;
+    isolation: isolate !important;
+    perspective: 1400px !important;
+    overflow: hidden !important;
+    border-radius: clamp(30px, 4vw, 48px) !important;
+    border: 1px solid rgba(34,197,94,.27) !important;
+    background:
+      radial-gradient(circle at 18% 18%, rgba(34,197,94,.22), transparent 34%),
+      radial-gradient(circle at 84% 20%, rgba(56,189,248,.20), transparent 36%),
+      radial-gradient(circle at 50% 105%, rgba(168,85,247,.16), transparent 42%),
+      linear-gradient(135deg, rgba(2,6,23,.92), rgba(6,19,22,.92) 52%, rgba(2,6,23,.94)) !important;
+    box-shadow:
+      0 34px 110px rgba(0,0,0,.34),
+      inset 0 0 0 1px rgba(255,255,255,.035),
+      inset 0 0 74px rgba(34,197,94,.08) !important;
+  }
+  #showcase .topupid-html3d-ambient,
+  #showcase .topupid-html3d-grid {
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 0 !important;
+    pointer-events: none !important;
+  }
+  #showcase .topupid-html3d-ambient {
+    background:
+      linear-gradient(115deg, transparent 0 36%, rgba(255,255,255,.07) 45%, transparent 58%),
+      radial-gradient(circle at 50% 46%, rgba(34,197,94,.18), transparent 38%) !important;
+    animation: v57AmbientSweep 8.5s ease-in-out infinite !important;
+  }
+  #showcase .topupid-html3d-grid {
+    opacity: .42 !important;
+    background-image:
+      linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px) !important;
+    background-size: 42px 42px !important;
+    transform: translateZ(-80px) rotateX(62deg) translateY(84px) scale(1.22) !important;
+    transform-origin: 50% 78% !important;
+    mask-image: linear-gradient(to bottom, transparent 0%, #000 32%, #000 78%, transparent 100%) !important;
+  }
+  #showcase .topupid-html3d-stage {
+    position: relative !important;
+    z-index: 2 !important;
+    width: min(920px, 92%) !important;
+    min-height: clamp(295px, 44vw, 460px) !important;
+    transform-style: preserve-3d !important;
+    animation: v57StageBreath 7s ease-in-out infinite !important;
+  }
+  #showcase .topupid-html3d-orbit {
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
+    border-radius: 50% !important;
+    border: 1px solid rgba(34,197,94,.24) !important;
+    box-shadow: 0 0 52px rgba(34,197,94,.09), inset 0 0 44px rgba(56,189,248,.05) !important;
+    transform-style: preserve-3d !important;
+    pointer-events: none !important;
+  }
+  #showcase .orbit-a { width: min(760px, 84vw) !important; height: min(280px, 42vw) !important; transform: translate(-50%,-50%) rotateX(66deg) rotateZ(0deg) !important; animation: v57OrbitSpin 18s linear infinite !important; }
+  #showcase .orbit-b { width: min(620px, 72vw) !important; height: min(225px, 36vw) !important; transform: translate(-50%,-50%) rotateX(70deg) rotateZ(56deg) !important; animation: v57OrbitSpin 23s linear infinite reverse !important; border-color: rgba(56,189,248,.22) !important; }
+  #showcase .orbit-c { width: min(470px, 60vw) !important; height: min(176px, 31vw) !important; transform: translate(-50%,-50%) rotateX(74deg) rotateZ(-42deg) !important; animation: v57OrbitSpin 29s linear infinite !important; border-color: rgba(168,85,247,.22) !important; }
+  #showcase .topupid-html3d-card,
+  #showcase .topupid-html3d-side,
+  #showcase .topupid-html3d-chip,
+  #showcase .topupid-html3d-coin,
+  #showcase .topupid-html3d-diamond {
+    position: absolute !important;
+    transform-style: preserve-3d !important;
+    backface-visibility: hidden !important;
+  }
+  #showcase .main-card {
+    left: 50% !important;
+    top: 50% !important;
+    width: min(650px, 82vw) !important;
+    min-height: clamp(220px, 30vw, 315px) !important;
+    padding: clamp(22px, 3vw, 34px) !important;
+    display: grid !important;
+    align-content: space-between !important;
+    gap: 20px !important;
+    border-radius: clamp(24px, 3vw, 38px) !important;
+    border: 1px solid rgba(255,255,255,.16) !important;
+    background:
+      linear-gradient(145deg, rgba(255,255,255,.13), rgba(255,255,255,.045)),
+      linear-gradient(135deg, rgba(4,12,26,.94), rgba(4,28,27,.94)) !important;
+    box-shadow:
+      0 42px 120px rgba(0,0,0,.38),
+      0 0 82px rgba(34,197,94,.18),
+      inset 0 0 0 1px rgba(255,255,255,.045) !important;
+    transform: translate(-50%,-50%) translateZ(120px) rotateX(8deg) rotateY(-9deg) !important;
+    overflow: hidden !important;
+    animation: v57MainFloat 6.8s ease-in-out infinite !important;
+  }
+  #showcase .topupid-html3d-card-glow {
+    position: absolute !important;
+    inset: -40% !important;
+    z-index: -1 !important;
+    background:
+      conic-gradient(from 45deg, transparent, rgba(34,197,94,.28), transparent, rgba(56,189,248,.22), transparent) !important;
+    opacity: .68 !important;
+    animation: v57CoreRotate 10s linear infinite !important;
+  }
+  #showcase .main-card::before {
+    content: "" !important;
+    position: absolute !important;
+    inset: 0 !important;
+    background: linear-gradient(115deg, transparent 0 24%, rgba(255,255,255,.16) 42%, transparent 58%) !important;
+    transform: translateX(-115%) !important;
+    animation: v57GlassPass 5.7s ease-in-out infinite !important;
+    pointer-events: none !important;
+  }
+  #showcase .topupid-html3d-brand-row { display: flex !important; align-items: center !important; gap: 14px !important; position: relative !important; z-index: 2 !important; }
+  #showcase .topupid-html3d-logo,
+  .topupid-banner-html-logo {
+    width: 62px !important;
+    height: 62px !important;
+    display: grid !important;
+    place-items: center !important;
+    border-radius: 22px !important;
+    color: #eaffff !important;
+    font-size: 29px !important;
+    font-weight: 950 !important;
+    line-height: 1 !important;
+    background:
+      radial-gradient(circle at 32% 26%, rgba(255,255,255,.95), rgba(103,232,249,.52) 28%, transparent 48%),
+      conic-gradient(from 140deg, #22c55e, #38bdf8, #a855f7, #22c55e) !important;
+    box-shadow: 0 0 36px rgba(34,197,94,.28), inset 0 0 0 4px rgba(2,6,23,.55) !important;
+    text-shadow: 0 6px 20px rgba(0,0,0,.32) !important;
+  }
+  #showcase .topupid-html3d-brand-copy { display: grid !important; gap: 2px !important; }
+  #showcase .topupid-html3d-brand-copy strong { font-size: clamp(24px, 3vw, 34px) !important; color: #fff !important; letter-spacing: -.02em !important; }
+  #showcase .topupid-html3d-brand-copy small { color: #86efac !important; font-size: 13px !important; font-weight: 800 !important; }
+  #showcase .topupid-html3d-copy { position: relative !important; z-index: 2 !important; max-width: 560px !important; }
+  #showcase .topupid-html3d-label { display: inline-flex !important; margin-bottom: 9px !important; padding: 8px 11px !important; border-radius: 999px !important; color: #d1fae5 !important; background: rgba(34,197,94,.12) !important; border: 1px solid rgba(34,197,94,.22) !important; font-size: 11px !important; font-weight: 900 !important; letter-spacing: .08em !important; }
+  #showcase .topupid-html3d-copy h3 { margin: 0 !important; color: #fff !important; font-size: clamp(30px, 5.2vw, 58px) !important; line-height: .98 !important; letter-spacing: -.045em !important; text-shadow: 0 16px 44px rgba(0,0,0,.38) !important; }
+  #showcase .topupid-html3d-copy p { margin: 12px 0 0 !important; max-width: 520px !important; color: #cbd5e1 !important; font-size: clamp(13px, 1.55vw, 16px) !important; line-height: 1.6 !important; }
+  #showcase .topupid-html3d-feature-row { position: relative !important; z-index: 2 !important; display: flex !important; flex-wrap: wrap !important; gap: 10px !important; }
+  #showcase .topupid-html3d-feature-row span,
+  #showcase .topupid-html3d-chip {
+    padding: 10px 13px !important;
+    border-radius: 999px !important;
+    color: #eaffff !important;
+    font-size: 13px !important;
+    font-weight: 850 !important;
+    background: rgba(255,255,255,.08) !important;
+    border: 1px solid rgba(255,255,255,.11) !important;
+    backdrop-filter: blur(12px) !important;
+    box-shadow: 0 12px 28px rgba(0,0,0,.16) !important;
+  }
+  #showcase .topupid-html3d-side {
+    width: min(210px, 28vw) !important;
+    min-height: 132px !important;
+    display: grid !important;
+    align-content: center !important;
+    justify-items: center !important;
+    gap: 8px !important;
+    padding: 17px !important;
+    border-radius: 25px !important;
+    color: #fff !important;
+    text-align: center !important;
+    background: linear-gradient(145deg, rgba(255,255,255,.12), rgba(255,255,255,.045)) !important;
+    border: 1px solid rgba(255,255,255,.13) !important;
+    box-shadow: 0 26px 70px rgba(0,0,0,.30), inset 0 0 0 1px rgba(255,255,255,.035) !important;
+    backdrop-filter: blur(16px) !important;
+  }
+  #showcase .topupid-html3d-side-icon { font-size: 32px !important; filter: drop-shadow(0 8px 18px rgba(0,0,0,.28)) !important; }
+  #showcase .topupid-html3d-side strong { font-size: 17px !important; }
+  #showcase .topupid-html3d-side small { color: #bae6fd !important; font-size: 12px !important; font-weight: 800 !important; }
+  #showcase .side-left { left: 1% !important; top: 49% !important; transform: translateY(-50%) translateZ(46px) rotateY(18deg) rotateZ(-3deg) !important; animation: v57SideLeft 6s ease-in-out infinite !important; }
+  #showcase .side-right { right: 1% !important; top: 43% !important; transform: translateY(-50%) translateZ(48px) rotateY(-18deg) rotateZ(3deg) !important; animation: v57SideRight 6.4s ease-in-out infinite !important; }
+  #showcase .topupid-html3d-chip { z-index: 4 !important; }
+  #showcase .chip-1 { left: 14% !important; top: 18% !important; transform: translateZ(190px) rotate(-8deg) !important; animation: v57FloatA 5.2s ease-in-out infinite !important; }
+  #showcase .chip-2 { right: 14% !important; top: 18% !important; transform: translateZ(180px) rotate(7deg) !important; animation: v57FloatA 5.8s ease-in-out infinite reverse !important; }
+  #showcase .chip-3 { left: 50% !important; bottom: 8% !important; transform: translateX(-50%) translateZ(200px) rotate(2deg) !important; animation: v57FloatA 5.4s ease-in-out infinite !important; }
+  #showcase .topupid-html3d-coin {
+    width: 58px !important;
+    height: 58px !important;
+    display: grid !important;
+    place-items: center !important;
+    border-radius: 50% !important;
+    color: #422006 !important;
+    font-size: 22px !important;
+    font-weight: 950 !important;
+    background: radial-gradient(circle at 28% 22%, #fff7b8, #facc15 35%, #b7791f 72%) !important;
+    border: 3px solid rgba(255,255,255,.34) !important;
+    box-shadow: 0 0 34px rgba(250,204,21,.34), inset -8px -9px 20px rgba(0,0,0,.19) !important;
+  }
+  #showcase .coin-1 { left: 8% !important; bottom: 18% !important; transform: translateZ(230px) rotate(-12deg) !important; animation: v57CoinFloat 5s ease-in-out infinite !important; }
+  #showcase .coin-2 { right: 8% !important; bottom: 20% !important; transform: translateZ(220px) rotate(13deg) !important; animation: v57CoinFloat 5.6s ease-in-out infinite reverse !important; }
+  #showcase .topupid-html3d-diamond {
+    width: 54px !important;
+    height: 54px !important;
+    border-radius: 15px !important;
+    background:
+      linear-gradient(135deg, rgba(255,255,255,.94), rgba(103,232,249,.76) 28%, rgba(56,189,248,.86) 58%, rgba(37,99,235,.70)) !important;
+    border: 1px solid rgba(255,255,255,.62) !important;
+    box-shadow: 0 0 38px rgba(56,189,248,.62), inset 0 0 20px rgba(255,255,255,.38) !important;
+  }
+  #showcase .topupid-html3d-diamond::after { content:"" !important; position:absolute !important; inset: 18px !important; border-radius: 50% !important; background: rgba(255,255,255,.34) !important; filter: blur(1px) !important; }
+  #showcase .diamond-1 { left: 22% !important; top: 12% !important; transform: translateZ(210px) rotate(45deg) !important; animation: v57DiamondFloat 5.6s ease-in-out infinite !important; }
+  #showcase .diamond-2 { right: 25% !important; top: 11% !important; transform: translateZ(210px) rotate(45deg) scale(.82) !important; animation: v57DiamondFloat 5.1s ease-in-out infinite reverse !important; }
+
+  #banner-layanan-topupid.topupid-bottom-html-banner {
+    position: relative !important;
+    z-index: 2 !important;
+    display: block !important;
+    margin: 12px 0 0 !important;
+    padding: 34px 7% 46px !important;
+    clear: both !important;
+    overflow: visible !important;
+  }
+  #banner-layanan-topupid .topupid-banner-html-inner {
+    position: relative !important;
+    width: min(1120px, 100%) !important;
+    min-height: clamp(160px, 22vw, 230px) !important;
+    height: auto !important;
+    margin: 0 auto !important;
+    padding: clamp(22px, 3vw, 34px) !important;
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr) auto !important;
+    align-items: center !important;
+    gap: 22px !important;
+    border-radius: clamp(26px, 3vw, 40px) !important;
+    border: 1px solid rgba(34,197,94,.28) !important;
+    background:
+      radial-gradient(circle at 10% 20%, rgba(34,197,94,.22), transparent 34%),
+      radial-gradient(circle at 90% 10%, rgba(56,189,248,.20), transparent 38%),
+      linear-gradient(135deg, rgba(2,12,19,.94), rgba(10,24,36,.92)) !important;
+    box-shadow: 0 30px 95px rgba(0,0,0,.27), inset 0 0 0 1px rgba(255,255,255,.035) !important;
+    overflow: hidden !important;
+  }
+  #banner-layanan-topupid .topupid-banner-html-grid,
+  #banner-layanan-topupid .topupid-banner-html-glow { position:absolute !important; inset:0 !important; pointer-events:none !important; }
+  #banner-layanan-topupid .topupid-banner-html-grid {
+    background-image: linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px) !important;
+    background-size: 38px 38px !important;
+    opacity: .34 !important;
+  }
+  #banner-layanan-topupid .topupid-banner-html-glow {
+    background: linear-gradient(115deg, transparent 0 31%, rgba(255,255,255,.12) 45%, transparent 59%) !important;
+    transform: translateX(-115%) !important;
+    animation: v57GlassPass 7.2s ease-in-out infinite !important;
+  }
+  #banner-layanan-topupid .topupid-banner-html-logo { position: relative !important; z-index: 2 !important; width: 74px !important; height: 74px !important; border-radius: 26px !important; font-size: 34px !important; }
+  #banner-layanan-topupid .topupid-banner-html-copy { position: relative !important; z-index: 2 !important; display:grid !important; gap: 7px !important; min-width: 0 !important; }
+  #banner-layanan-topupid .topupid-banner-html-copy span { color: #86efac !important; font-size: 13px !important; font-weight: 950 !important; letter-spacing: .08em !important; text-transform: uppercase !important; }
+  #banner-layanan-topupid .topupid-banner-html-copy strong { color: #fff !important; font-size: clamp(22px, 3vw, 38px) !important; line-height: 1.08 !important; letter-spacing: -.03em !important; }
+  #banner-layanan-topupid .topupid-banner-html-copy small { color: #cbd5e1 !important; font-size: clamp(12px, 1.4vw, 15px) !important; line-height: 1.55 !important; }
+  #banner-layanan-topupid .topupid-banner-html-stack { position: relative !important; z-index: 2 !important; display: grid !important; gap: 9px !important; min-width: 126px !important; }
+  #banner-layanan-topupid .topupid-banner-html-stack span { padding: 10px 12px !important; border-radius: 999px !important; color: #eaffff !important; text-align:center !important; font-size: 12px !important; font-weight: 900 !important; background: rgba(255,255,255,.08) !important; border: 1px solid rgba(255,255,255,.11) !important; backdrop-filter: blur(12px) !important; }
+
+  @keyframes v57AmbientSweep { 0%, 70%, 100% { transform: translateX(-18%); opacity:.45; } 84% { transform: translateX(18%); opacity:.78; } }
+  @keyframes v57StageBreath { 0%,100% { transform: rotateX(0deg) rotateY(0deg); } 50% { transform: rotateX(1.2deg) rotateY(-1.2deg); } }
+  @keyframes v57OrbitSpin { from { rotate: 0deg; } to { rotate: 360deg; } }
+  @keyframes v57MainFloat { 0%,100% { translate: 0 0; } 50% { translate: 0 -12px; } }
+  @keyframes v57CoreRotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes v57GlassPass { 0%, 62%, 100% { transform: translateX(-115%); } 82% { transform: translateX(115%); } }
+  @keyframes v57SideLeft { 0%,100% { translate: 0 0; } 50% { translate: 0 -10px; } }
+  @keyframes v57SideRight { 0%,100% { translate: 0 0; } 50% { translate: 0 10px; } }
+  @keyframes v57FloatA { 0%,100% { margin-top: 0; } 50% { margin-top: -16px; } }
+  @keyframes v57CoinFloat { 0%,100% { margin-top: 0; rotate: 0deg; } 50% { margin-top: -18px; rotate: 9deg; } }
+  @keyframes v57DiamondFloat { 0%,100% { margin-top: 0; } 50% { margin-top: -14px; } }
+
+  @media (max-width: 900px) {
+    #showcase.topupid-html3d-section { padding: 24px 4.5% 54px !important; }
+    #showcase .topupid-html3d-shell { min-height: 470px !important; }
+    #showcase .topupid-html3d-stage { width: 100% !important; min-height: 390px !important; }
+    #showcase .main-card { width: min(560px, 82vw) !important; }
+    #showcase .topupid-html3d-side { width: min(178px, 34vw) !important; min-height: 118px !important; }
+    #showcase .side-left { left: 1% !important; }
+    #showcase .side-right { right: 1% !important; }
+  }
+  @media (max-width: 680px) {
+    #showcase .topupid-html3d-shell { min-height: 475px !important; border-radius: 32px !important; }
+    #showcase .topupid-html3d-stage { min-height: 410px !important; }
+    #showcase .main-card {
+      width: min(355px, 78vw) !important;
+      min-height: 266px !important;
+      transform: translate(-50%,-49%) translateZ(95px) rotateX(7deg) rotateY(-6deg) !important;
+    }
+    #showcase .topupid-html3d-copy h3 { font-size: clamp(30px, 8.2vw, 40px) !important; }
+    #showcase .topupid-html3d-feature-row span { padding: 8px 10px !important; font-size: 11px !important; }
+    #showcase .topupid-html3d-side { width: 126px !important; min-height: 96px !important; padding: 12px !important; border-radius: 19px !important; }
+    #showcase .topupid-html3d-side-icon { font-size: 24px !important; }
+    #showcase .topupid-html3d-side strong { font-size: 12px !important; }
+    #showcase .topupid-html3d-side small { font-size: 10px !important; }
+    #showcase .side-left { left: 3% !important; top: 18% !important; transform: translateZ(105px) rotateY(14deg) rotateZ(-5deg) !important; }
+    #showcase .side-right { right: 3% !important; top: 18% !important; transform: translateZ(104px) rotateY(-14deg) rotateZ(5deg) !important; }
+    #showcase .chip-1 { left: 10% !important; top: auto !important; bottom: 12% !important; }
+    #showcase .chip-2 { right: 10% !important; top: auto !important; bottom: 12% !important; }
+    #showcase .chip-3 { bottom: 4% !important; }
+    #showcase .coin-1, #showcase .coin-2, #showcase .diamond-1, #showcase .diamond-2 { transform: scale(.74) translateZ(175px) !important; }
+    #banner-layanan-topupid { padding: 30px 4.5% 40px !important; }
+    #banner-layanan-topupid .topupid-banner-html-inner { grid-template-columns: 1fr !important; justify-items: start !important; gap: 15px !important; min-height: 240px !important; border-radius: 30px !important; }
+    #banner-layanan-topupid .topupid-banner-html-stack { width: 100% !important; grid-template-columns: repeat(3, minmax(0,1fr)) !important; min-width: 0 !important; }
+    #banner-layanan-topupid .topupid-banner-html-stack span { font-size: 10px !important; padding: 9px 8px !important; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #showcase .topupid-html3d-shell *, #banner-layanan-topupid * { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  }
+</style>
+<!-- V57 html-only guard disabled in V58: requested restoration of full image showcase and bottom full image banner. -->
+
+<style id="v58-restore-full-image-showcase-and-bottom-banner">
+  /* V58: memulihkan showcase sebagai full gambar dengan perpindahan 3D, dan memulihkan banner gambar penuh di bagian paling bawah. */
+  #showcase.topupid-html3d-section,
+  #showcase {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 44px 5.5% 74px !important;
+    overflow: visible !important;
+  }
+  #showcase .tls-visual-shell {
+    position: relative !important;
+    width: min(1040px, 100%) !important;
+    min-height: 500px !important;
+    margin: 0 auto !important;
+    display: grid !important;
+    place-items: center !important;
+    overflow: hidden !important;
+    border-radius: 40px !important;
+    border: 1px solid rgba(34,197,94,0.22) !important;
+    background:
+      radial-gradient(circle at 50% 12%, rgba(34,197,94,0.14), transparent 32%),
+      radial-gradient(circle at 18% 86%, rgba(56,189,248,0.14), transparent 34%),
+      radial-gradient(circle at 84% 78%, rgba(59,130,246,0.12), transparent 28%),
+      linear-gradient(145deg, rgba(4,12,32,0.94), rgba(5,8,22,0.98)) !important;
+    box-shadow: 0 34px 120px rgba(0,0,0,0.34), inset 0 0 0 1px rgba(255,255,255,0.03) !important;
+    backdrop-filter: blur(18px) !important;
+    perspective: 1800px !important;
+    isolation: isolate !important;
+  }
+  #showcase .tls-visual-shell::before {
+    content: "" !important;
+    position: absolute !important;
+    inset: -30% !important;
+    background:
+      linear-gradient(115deg, transparent 0 42%, rgba(255,255,255,0.11) 48%, transparent 56%),
+      radial-gradient(circle at 50% 40%, rgba(34,197,94,0.16), transparent 44%) !important;
+    transform: translateX(-115%) !important;
+    animation: v58ShowcaseSweep 8.8s ease-in-out infinite !important;
+    pointer-events: none !important;
+    z-index: 0 !important;
+  }
+  #showcase .tls-visual-shell::after {
+    content: "" !important;
+    position: absolute !important;
+    left: 9% !important;
+    right: 9% !important;
+    bottom: 42px !important;
+    height: 82px !important;
+    border-radius: 999px !important;
+    background: rgba(34,197,94,0.13) !important;
+    filter: blur(26px) !important;
+    pointer-events: none !important;
+    z-index: 0 !important;
+  }
+  #showcase .tls-rotator {
+    position: relative !important;
+    z-index: 2 !important;
+    width: min(780px, 92vw) !important;
+    height: 390px !important;
+    transform-style: preserve-3d !important;
+    animation: none !important;
+    will-change: transform !important;
+    touch-action: pan-y !important;
+    user-select: none !important;
+    outline: none !important;
+  }
+  #showcase .tls-card,
+  #showcase .tls-card-1,
+  #showcase .tls-card-2,
+  #showcase .tls-card-3,
+  #showcase .tls-card-4,
+  #showcase .tls-card-5,
+  #showcase .tls-card-6,
+  #showcase .tls-card-7,
+  #showcase .tls-card-8,
+  #showcase .tls-card-9,
+  #showcase .tls-card-10 {
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
+    width: min(560px, 78vw) !important;
+    aspect-ratio: 16 / 9 !important;
+    border-radius: 30px !important;
+    overflow: hidden !important;
+    transform-style: preserve-3d !important;
+    backface-visibility: hidden !important;
+    transform-origin: center center !important;
+    border: 1px solid rgba(255,255,255,0.18) !important;
+    box-shadow: 0 32px 92px rgba(0,0,0,0.36) !important;
+    background: rgba(2,6,23,0.9) !important;
+    transition:
+      transform 900ms cubic-bezier(.16,.84,.25,1),
+      opacity 560ms ease,
+      filter 560ms ease,
+      box-shadow 560ms ease !important;
+    animation: none !important;
+    cursor: pointer !important;
+    will-change: transform, opacity, filter !important;
+  }
+  #showcase .tls-card img {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    border-radius: inherit !important;
+    transform: translateZ(1px) scale(1.012) !important;
+    transition: transform 950ms cubic-bezier(.16,.84,.25,1), filter 560ms ease !important;
+  }
+  #showcase .tls-card.is-ultra-center {
+    box-shadow: 0 38px 112px rgba(34,197,94,0.20), 0 26px 86px rgba(0,0,0,0.42) !important;
+  }
+  #showcase .tls-card.is-ultra-center img { transform: translateZ(1px) scale(1.028) !important; }
+  #showcase .tls-card::before {
+    content: "" !important;
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 2 !important;
+    pointer-events: none !important;
+    background:
+      linear-gradient(115deg, transparent 0 32%, rgba(255,255,255,0.20) 45%, transparent 62%),
+      radial-gradient(circle at 50% 0%, rgba(255,255,255,0.10), transparent 38%) !important;
+    opacity: 0.48 !important;
+    transform: translateX(-42%) !important;
+    transition: transform 950ms ease, opacity 560ms ease !important;
+  }
+  #showcase .tls-card.is-ultra-center::before {
+    opacity: 0.82 !important;
+    transform: translateX(34%) !important;
+  }
+  #showcase .tls-card::after {
+    content: "" !important;
+    position: absolute !important;
+    inset: 9px !important;
+    border-radius: 23px !important;
+    z-index: 3 !important;
+    pointer-events: none !important;
+    border: 1px solid rgba(255,255,255,0.10) !important;
+  }
+  .topupid-banner-separator.bottom-full-visual#banner-layanan-topupid {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    z-index: 2 !important;
+    margin: 12px 0 0 !important;
+    padding: 18px 5.5% 34px !important;
+    clear: both !important;
+    overflow: visible !important;
+  }
+  #banner-layanan-topupid .topupid-banner-inner {
+    position: relative !important;
+    width: min(1120px, 100%) !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 auto !important;
+    overflow: visible !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+  #banner-layanan-topupid .topupid-banner-inner::before,
+  #banner-layanan-topupid .topupid-banner-inner::after {
+    display: none !important;
+    content: none !important;
+  }
+  #banner-layanan-topupid .topupid-banner-full-image {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    max-width: 100% !important;
+    object-fit: contain !important;
+    border-radius: 28px !important;
+    box-shadow: 0 28px 90px rgba(0,0,0,0.26) !important;
+  }
+  @keyframes v58ShowcaseSweep {
+    0%, 74%, 100% { transform: translateX(-115%); opacity: .14; }
+    88% { transform: translateX(115%); opacity: .42; }
+  }
+  @media (max-width: 680px) {
+    #showcase { padding: 30px 4.5% 54px !important; }
+    #showcase .tls-visual-shell { min-height: 380px !important; border-radius: 30px !important; }
+    #showcase .tls-rotator { width: min(360px, 92vw) !important; height: 260px !important; }
+    #showcase .tls-card,
+    #showcase .tls-card-1,
+    #showcase .tls-card-2,
+    #showcase .tls-card-3,
+    #showcase .tls-card-4,
+    #showcase .tls-card-5,
+    #showcase .tls-card-6,
+    #showcase .tls-card-7,
+    #showcase .tls-card-8,
+    #showcase .tls-card-9,
+    #showcase .tls-card-10 { width: min(306px, 76vw) !important; border-radius: 22px !important; }
+    #showcase .tls-card::after { border-radius: 17px !important; inset: 7px !important; }
+    #banner-layanan-topupid { padding: 14px 4.5% 30px !important; }
+    #banner-layanan-topupid .topupid-banner-full-image { border-radius: 24px !important; }
+  }
+  @media (max-width: 390px) {
+    #showcase .tls-visual-shell { min-height: 350px !important; }
+    #showcase .tls-rotator { height: 235px !important; }
+    #showcase .tls-card,
+    #showcase .tls-card-1,
+    #showcase .tls-card-2,
+    #showcase .tls-card-3,
+    #showcase .tls-card-4,
+    #showcase .tls-card-5,
+    #showcase .tls-card-6,
+    #showcase .tls-card-7,
+    #showcase .tls-card-8,
+    #showcase .tls-card-9,
+    #showcase .tls-card-10 { width: min(282px, 78vw) !important; }
+  }
+</style>
+<script id="v58-restore-full-image-showcase-and-bottom-banner-guard">
+(function(){
+  'use strict';
+  if (window.__TOPUPID_V58_IMAGE_SHOWCASE_RESTORE__) return;
+  window.__TOPUPID_V58_IMAGE_SHOWCASE_RESTORE__ = true;
+  function run(){
+    var showcase = document.getElementById('showcase');
+    if (showcase) {
+      showcase.classList.remove('topupid-html3d-section');
+      showcase.removeAttribute('data-v57-html-only');
+      var imgs = showcase.querySelectorAll('.tls-card img');
+      imgs.forEach(function(img, index){
+        img.style.display = 'block';
+        img.removeAttribute('aria-hidden');
+        if (!img.getAttribute('src') || img.getAttribute('src').indexOf('data:image/svg+xml') === 0) {
+          img.setAttribute('src', 'tls' + (index + 1) + '.webp');
+        }
+      });
+    }
+    var banner = document.getElementById('banner-layanan-topupid');
+    var support = document.getElementById('support');
+    var footer = document.querySelector('footer.dirac-footer, footer');
+    if (banner) {
+      banner.classList.remove('topupid-bottom-html-banner');
+      banner.classList.add('bottom-full-visual', 'v56-banner-bottom');
+      var img = banner.querySelector('.topupid-banner-full-image');
+      if (img) {
+        img.style.display = 'block';
+        img.removeAttribute('aria-hidden');
+        if (!img.getAttribute('src') || img.getAttribute('src').indexOf('data:image/svg+xml') === 0) img.setAttribute('src', 'bbb.webp');
+      }
+      if (support && support.parentElement && banner.previousElementSibling !== support) {
+        support.parentElement.insertBefore(banner, footer || null);
+      }
+    }
+    if (typeof window.__topupidV58Notice === 'undefined') {
+      window.__topupidV58Notice = 'V58: restored full image showcase with 3D transitions and restored bottom full image banner. Protected endpoints unchanged.';
+    }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run, {once:true}); else run();
+})();
+</script>
+
+
+<style id="v59-final-user-fixes">
+  /* V59 final per user: rapikan showcase full gambar + outline glow, dan banner bawah dibuat proporsional seperti referensi. */
+  #showcase {
+    padding-top: 26px !important;
+    padding-bottom: 52px !important;
+  }
+  #showcase .tls-visual-shell {
+    position: relative !important;
+    width: min(980px, 100%) !important;
+    min-height: clamp(260px, 42vw, 420px) !important;
+    margin: 0 auto !important;
+    padding: clamp(8px, 1.4vw, 14px) 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    isolation: isolate !important;
+  }
+  #showcase .tls-visual-shell::before,
+  #showcase .tls-visual-shell::after,
+  #showcase .tls-rotator::before,
+  #showcase .tls-rotator::after,
+  #showcase .tls-card::before,
+  #showcase .tls-card::after {
+    content: none !important;
+    display: none !important;
+  }
+  #showcase .tls-rotator {
+    position: relative !important;
+    width: min(820px, 90vw) !important;
+    height: clamp(220px, 34vw, 345px) !important;
+    margin: 0 auto !important;
+    overflow: visible !important;
+    transform-style: preserve-3d !important;
+    perspective: 1600px !important;
+    background: transparent !important;
+  }
+  #showcase .tls-card,
+  #showcase .tls-card-1,
+  #showcase .tls-card-2,
+  #showcase .tls-card-3,
+  #showcase .tls-card-4,
+  #showcase .tls-card-5,
+  #showcase .tls-card-6,
+  #showcase .tls-card-7,
+  #showcase .tls-card-8,
+  #showcase .tls-card-9,
+  #showcase .tls-card-10 {
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
+    width: min(760px, 88vw) !important;
+    height: auto !important;
+    aspect-ratio: 16 / 9 !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 32px !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    transform-origin: center center !important;
+    backface-visibility: hidden !important;
+    opacity: 0 !important;
+    filter: none !important;
+    animation: v59ShowcaseDeck 40s cubic-bezier(.22,.75,.18,1) infinite !important;
+  }
+  #showcase .tls-card-1 { animation-delay: 0s !important; }
+  #showcase .tls-card-2 { animation-delay: -4s !important; }
+  #showcase .tls-card-3 { animation-delay: -8s !important; }
+  #showcase .tls-card-4 { animation-delay: -12s !important; }
+  #showcase .tls-card-5 { animation-delay: -16s !important; }
+  #showcase .tls-card-6 { animation-delay: -20s !important; }
+  #showcase .tls-card-7 { animation-delay: -24s !important; }
+  #showcase .tls-card-8 { animation-delay: -28s !important; }
+  #showcase .tls-card-9 { animation-delay: -32s !important; }
+  #showcase .tls-card-10 { animation-delay: -36s !important; }
+  #showcase .tls-card img {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    border-radius: 32px !important;
+    border: 1.5px solid rgba(71, 214, 255, 0.88) !important;
+    box-shadow:
+      0 0 0 1px rgba(34,197,94,0.22),
+      0 0 24px rgba(56,189,248,0.32),
+      0 0 58px rgba(34,197,94,0.16),
+      0 28px 90px rgba(0,0,0,0.42) !important;
+    background:
+      radial-gradient(circle at 50% 50%, rgba(56,189,248,.16), rgba(2,6,23,.96)) !important;
+    color: transparent !important;
+    font-size: 0 !important;
+  }
+  @keyframes v59ShowcaseDeck {
+    0% {
+      opacity: 0;
+      transform: translate(-50%, -50%) translateX(200px) translateZ(-120px) rotateY(-42deg) scale(.84);
+    }
+    6% {
+      opacity: .72;
+      transform: translate(-50%, -50%) translateX(88px) translateZ(-40px) rotateY(-18deg) scale(.93);
+    }
+    10%, 18% {
+      opacity: 1;
+      transform: translate(-50%, -50%) translateX(0) translateZ(0) rotateY(0deg) scale(1);
+    }
+    24% {
+      opacity: .66;
+      transform: translate(-50%, -50%) translateX(-96px) translateZ(-48px) rotateY(18deg) scale(.93);
+    }
+    30% {
+      opacity: 0;
+      transform: translate(-50%, -50%) translateX(-210px) translateZ(-130px) rotateY(40deg) scale(.83);
+    }
+    100% {
+      opacity: 0;
+      transform: translate(-50%, -50%) translateX(-210px) translateZ(-130px) rotateY(40deg) scale(.83);
+    }
+  }
+
+  /* Banner bawah: ukuran panorama seperti referensi gambar 3, bukan kotak tinggi. */
+  .topupid-banner-separator.bottom-full-visual#banner-layanan-topupid {
+    margin: 8px 0 0 !important;
+    padding: 12px 5.5% 32px !important;
+  }
+  #banner-layanan-topupid .topupid-banner-inner {
+    position: relative !important;
+    width: min(1180px, 100%) !important;
+    aspect-ratio: 2048 / 614 !important;
+    height: auto !important;
+    min-height: unset !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 36px !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+  #banner-layanan-topupid .topupid-banner-inner::before,
+  #banner-layanan-topupid .topupid-banner-inner::after {
+    display: none !important;
+    content: none !important;
+  }
+  #banner-layanan-topupid .topupid-banner-full-image {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    border-radius: 36px !important;
+    border: 1.5px solid rgba(71, 214, 255, 0.82) !important;
+    box-shadow:
+      0 0 0 1px rgba(34,197,94,0.24),
+      0 0 24px rgba(56,189,248,0.28),
+      0 0 60px rgba(34,197,94,0.15),
+      0 26px 84px rgba(0,0,0,0.40) !important;
+    background: radial-gradient(circle at 50% 50%, rgba(56,189,248,.15), rgba(2,6,23,.95)) !important;
+    color: transparent !important;
+    font-size: 0 !important;
+  }
+
+  @media (max-width: 680px) {
+    #showcase { padding: 20px 4.5% 48px !important; }
+    #showcase .tls-visual-shell {
+      min-height: 305px !important;
+      padding: 2px 0 !important;
+    }
+    #showcase .tls-rotator {
+      width: min(380px, 92vw) !important;
+      height: 228px !important;
+    }
+    #showcase .tls-card,
+    #showcase .tls-card-1,
+    #showcase .tls-card-2,
+    #showcase .tls-card-3,
+    #showcase .tls-card-4,
+    #showcase .tls-card-5,
+    #showcase .tls-card-6,
+    #showcase .tls-card-7,
+    #showcase .tls-card-8,
+    #showcase .tls-card-9,
+    #showcase .tls-card-10 {
+      width: min(340px, 84vw) !important;
+      border-radius: 24px !important;
+    }
+    #showcase .tls-card img {
+      border-radius: 24px !important;
+      box-shadow:
+        0 0 0 1px rgba(34,197,94,0.24),
+        0 0 20px rgba(56,189,248,0.28),
+        0 0 44px rgba(34,197,94,0.14),
+        0 20px 62px rgba(0,0,0,0.42) !important;
+    }
+    @keyframes v59ShowcaseDeck {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) translateX(120px) translateZ(-84px) rotateY(-34deg) scale(.86);
+      }
+      6% {
+        opacity: .72;
+        transform: translate(-50%, -50%) translateX(56px) translateZ(-28px) rotateY(-15deg) scale(.94);
+      }
+      10%, 18% {
+        opacity: 1;
+        transform: translate(-50%, -50%) translateX(0) translateZ(0) rotateY(0deg) scale(1);
+      }
+      24% {
+        opacity: .62;
+        transform: translate(-50%, -50%) translateX(-58px) translateZ(-32px) rotateY(15deg) scale(.93);
+      }
+      30% {
+        opacity: 0;
+        transform: translate(-50%, -50%) translateX(-126px) translateZ(-90px) rotateY(32deg) scale(.84);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) translateX(-126px) translateZ(-90px) rotateY(32deg) scale(.84);
+      }
+    }
+    .topupid-banner-separator.bottom-full-visual#banner-layanan-topupid {
+      padding: 8px 4.5% 26px !important;
+    }
+    #banner-layanan-topupid .topupid-banner-inner {
+      width: min(390px, 91vw) !important;
+      border-radius: 26px !important;
+    }
+    #banner-layanan-topupid .topupid-banner-full-image {
+      border-radius: 26px !important;
+      box-shadow:
+        0 0 0 1px rgba(34,197,94,0.24),
+        0 0 18px rgba(56,189,248,0.26),
+        0 0 38px rgba(34,197,94,0.12),
+        0 18px 56px rgba(0,0,0,0.36) !important;
+    }
+  }
+</style>
 
 </body>
 </html>
