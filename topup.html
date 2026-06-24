@@ -4349,11 +4349,32 @@ html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title 
 <img alt="Banner layanan TopupID" class="topupid-banner-full-image" decoding="async" loading="lazy" src="bbb.webp"/>
 </div>
 </section>
+
+<section aria-label="Kontak support TopupID" class="section topupid-support-section reveal" id="support">
+  <div class="section-head">
+    <div class="kicker">SUPPORT</div>
+    <h2>Butuh Bantuan TopupID?</h2>
+    <p class="section-sub">Hubungi tim support resmi Dirac Group untuk bantuan pesanan, pembayaran, atau kendala layanan digital.</p>
+  </div>
+  <div class="topupid-support-grid">
+    <a class="topupid-support-card" href="mailto:support@diracgroup.store" aria-label="Kirim email ke support@diracgroup.store">
+      <span class="topupid-support-icon" aria-hidden="true">✉️</span>
+      <span class="topupid-support-copy"><strong>Email Support</strong><small>support@diracgroup.store</small></span>
+    </a>
+    <a class="topupid-support-card" href="https://wa.me/6287892523968" target="_blank" rel="noopener noreferrer" aria-label="Hubungi WhatsApp support TopupID 087892523968">
+      <span class="topupid-support-icon" aria-hidden="true">💬</span>
+      <span class="topupid-support-copy"><strong>WhatsApp Support</strong><small>087892523968</small></span>
+    </a>
+  </div>
+</section>
 </main>
 <footer class="dirac-footer">
 <div class="footer-links">
 <a href="#premium">Produk</a>
 <a href="#checkout">Top Up</a>
+<a href="#support">Support</a>
+<a href="mailto:support@diracgroup.store">Email</a>
+<a href="https://wa.me/6287892523968" target="_blank" rel="noopener noreferrer">WhatsApp</a>
 </div>
 <p>© 2026 TopupID. Copyright by Dirac Group.</p>
 <p class="footer-sub">TopupID dinaungi Dirac Group.</p>
@@ -13749,6 +13770,372 @@ html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title 
     }
   }
 </style>
+
+
+
+<!-- V55: ultra-careful fixes requested by owner. Scope: header/menu scroll, showcase image motion, and support contact only. No endpoint/login/hash/A2F/payment/email-template/security logic is modified. -->
+<style id="v55-owner-requested-stability-fixes">
+  :root { --topupid-fixed-header-space: 104px; }
+  html { scroll-padding-top: calc(var(--topupid-fixed-header-space) + 14px) !important; }
+  body { padding-top: var(--topupid-fixed-header-space) !important; }
+
+  .site-header {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    z-index: 9300 !important;
+    transform: translate3d(0,0,0) !important;
+    will-change: transform, opacity !important;
+    transition: opacity .22s ease, transform .22s ease, padding .22s ease !important;
+  }
+  body.topupid-menu-open .site-header,
+  body.topupid-theme-open .site-header {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transform: translate3d(0,-112%,0) !important;
+  }
+  .site-header .container.nav { transform: translateZ(0) !important; }
+
+  #mobileMenu.dirac-ultra-menu.open { display: grid !important; }
+  #mobileMenu.dirac-ultra-menu .du-menu {
+    max-height: min(calc(100dvh - 18px), 720px) !important;
+    overscroll-behavior: contain !important;
+  }
+  #mobileMenu.dirac-ultra-menu .du-body {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    overscroll-behavior: contain !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-y !important;
+    scroll-behavior: auto !important;
+    contain: content !important;
+  }
+  #mobileMenu.dirac-ultra-menu .du-body.is-user-scrolling { scroll-behavior: auto !important; }
+  #mobileMenu.dirac-ultra-menu .du-scroll-line span { width: var(--topupid-menu-progress, 0%) !important; }
+
+  .topupid-support-section {
+    position: relative !important;
+    padding-top: 66px !important;
+    padding-bottom: 72px !important;
+    overflow: visible !important;
+  }
+  .topupid-support-grid {
+    width: min(920px, 100%) !important;
+    margin: 0 auto !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 16px !important;
+  }
+  .topupid-support-card {
+    position: relative !important;
+    display: grid !important;
+    grid-template-columns: auto minmax(0,1fr) !important;
+    gap: 14px !important;
+    align-items: center !important;
+    padding: 20px !important;
+    min-height: 104px !important;
+    border-radius: 28px !important;
+    border: 1px solid rgba(var(--theme-rgb), .26) !important;
+    background: radial-gradient(circle at 12% 0%, rgba(var(--theme-rgb), .18), transparent 150px), rgba(255,255,255,.075) !important;
+    box-shadow: 0 24px 80px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.06) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    text-decoration: none !important;
+    overflow: hidden !important;
+    transition: transform .22s ease, border-color .22s ease, background .22s ease !important;
+  }
+  .topupid-support-card:hover,
+  .topupid-support-card:focus-visible {
+    transform: translateY(-3px) !important;
+    border-color: rgba(var(--theme-rgb), .55) !important;
+    background: radial-gradient(circle at 12% 0%, rgba(var(--theme-rgb), .24), transparent 150px), rgba(255,255,255,.10) !important;
+    outline: none !important;
+  }
+  .topupid-support-icon {
+    width: 58px !important;
+    height: 58px !important;
+    display: grid !important;
+    place-items: center !important;
+    border-radius: 22px !important;
+    background: rgba(var(--theme-rgb), .16) !important;
+    border: 1px solid rgba(var(--theme-rgb), .22) !important;
+    font-size: 26px !important;
+  }
+  .topupid-support-copy strong {
+    display: block !important;
+    color: #fff !important;
+    font-size: clamp(1.02rem, 2vw, 1.22rem) !important;
+    line-height: 1.15 !important;
+  }
+  .topupid-support-copy small {
+    display: block !important;
+    margin-top: 6px !important;
+    color: var(--soft) !important;
+    font-size: .94rem !important;
+    overflow-wrap: anywhere !important;
+  }
+  html[data-effective-theme="light"] .topupid-support-card { background: rgba(255,255,255,.72) !important; }
+  html[data-effective-theme="light"] .topupid-support-copy strong { color: #151923 !important; }
+
+  #showcase .tls-rotator {
+    transform-style: preserve-3d !important;
+    perspective: 1280px !important;
+    animation: none !important;
+  }
+  #showcase .tls-card,
+  #showcase .tls-card-1,
+  #showcase .tls-card-2,
+  #showcase .tls-card-3,
+  #showcase .tls-card-4,
+  #showcase .tls-card-5,
+  #showcase .tls-card-6,
+  #showcase .tls-card-7,
+  #showcase .tls-card-8,
+  #showcase .tls-card-9,
+  #showcase .tls-card-10 {
+    animation: none !important;
+    visibility: visible !important;
+    transition:
+      transform 920ms cubic-bezier(.18,.82,.22,1),
+      opacity 720ms ease,
+      filter 720ms ease,
+      box-shadow 720ms ease !important;
+    will-change: transform, opacity, filter !important;
+    backface-visibility: hidden !important;
+  }
+  #showcase .tls-card.is-smooth-hidden {
+    pointer-events: none !important;
+  }
+  #showcase .tls-card.is-smooth-center {
+    box-shadow: 0 0 0 1px rgba(2,6,23,.72), 0 0 34px rgba(var(--theme-rgb), .32), 0 26px 72px rgba(0,0,0,.42) !important;
+  }
+  #showcase .tls-card img {
+    background: radial-gradient(circle at 50% 35%, rgba(var(--theme-rgb), .16), transparent 42%), #020617 !important;
+    transition: opacity 300ms ease !important;
+  }
+
+  @media (max-width: 720px) {
+    :root { --topupid-fixed-header-space: 96px; }
+    body { padding-top: var(--topupid-fixed-header-space) !important; }
+    #mobileMenu.dirac-ultra-menu .du-menu { max-height: calc(100dvh - 8px) !important; }
+    .topupid-support-section { padding: 54px 5% 62px !important; }
+    .topupid-support-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
+    .topupid-support-card { min-height: 94px !important; padding: 17px !important; border-radius: 24px !important; }
+    .topupid-support-icon { width: 52px !important; height: 52px !important; border-radius: 19px !important; font-size: 24px !important; }
+  }
+</style>
+<script id="v55-owner-requested-stability-fixes-script">
+(function(){
+  'use strict';
+  if (window.__TOPUPID_V55_OWNER_FIXES__) return;
+  window.__TOPUPID_V55_OWNER_FIXES__ = true;
+
+  var root = document.documentElement;
+  var body = document.body;
+  var locked = false;
+  var savedScrollY = 0;
+  var menu = document.getElementById('mobileMenu');
+  var menuBody = document.getElementById('topupidMenuBody');
+  var themeModal = document.getElementById('themeModal');
+  var siteHeader = document.getElementById('siteHeader');
+  var menuProgress = document.getElementById('topupidMenuProgress');
+
+  function isOpen(el){
+    return !!el && (el.classList.contains('open') || el.getAttribute('aria-hidden') === 'false' || el.style.display === 'block' || el.style.display === 'grid');
+  }
+  function measureHeader(){
+    if (!siteHeader) return;
+    var height = Math.ceil(siteHeader.getBoundingClientRect().height || 92);
+    root.style.setProperty('--topupid-fixed-header-space', Math.max(88, height + 12) + 'px');
+  }
+  function lockPage(){
+    if (locked) return;
+    savedScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+    body.dataset.topupidScrollY = String(savedScrollY);
+    body.style.position = 'fixed';
+    body.style.top = '-' + savedScrollY + 'px';
+    body.style.left = '0';
+    body.style.right = '0';
+    body.style.width = '100%';
+    body.style.overflow = 'hidden';
+    locked = true;
+  }
+  function unlockPage(){
+    if (!locked) return;
+    var y = Number(body.dataset.topupidScrollY || savedScrollY || 0);
+    body.style.position = '';
+    body.style.top = '';
+    body.style.left = '';
+    body.style.right = '';
+    body.style.width = '';
+    body.style.overflow = '';
+    delete body.dataset.topupidScrollY;
+    locked = false;
+    window.scrollTo(0, y);
+  }
+  function syncOverlayState(){
+    var menuOpen = isOpen(menu);
+    var themeOpen = isOpen(themeModal);
+    body.classList.toggle('topupid-menu-open', menuOpen);
+    body.classList.toggle('topupid-theme-open', themeOpen);
+    if (menuOpen || themeOpen) lockPage(); else unlockPage();
+    measureHeader();
+  }
+  function updateScrolled(){
+    if (!siteHeader) return;
+    siteHeader.classList.toggle('is-scrolled', (window.scrollY || document.documentElement.scrollTop || 0) > 8);
+  }
+  function updateMenuProgress(){
+    if (!menuBody || !menuProgress) return;
+    var max = Math.max(1, menuBody.scrollHeight - menuBody.clientHeight);
+    var pct = Math.max(0, Math.min(100, (menuBody.scrollTop / max) * 100));
+    menuProgress.style.width = pct + '%';
+    menuProgress.style.setProperty('--topupid-menu-progress', pct + '%');
+  }
+
+  if (menuBody) {
+    var scrollTimer = 0;
+    menuBody.addEventListener('scroll', function(){
+      menuBody.classList.add('is-user-scrolling');
+      updateMenuProgress();
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(function(){ menuBody.classList.remove('is-user-scrolling'); }, 160);
+    }, {passive:true});
+  }
+
+  if (menu) {
+    menu.addEventListener('touchmove', function(event){
+      if (!event.target.closest('#topupidMenuBody, .du-search, input, button, a')) event.preventDefault();
+    }, {passive:false});
+    menu.addEventListener('wheel', function(event){
+      if (!event.target.closest('#topupidMenuBody, .du-search, input, button, a')) event.preventDefault();
+    }, {passive:false});
+  }
+
+  document.addEventListener('transitionend', function(event){
+    if (event.target && event.target.closest && event.target.closest('#mobileMenu')) {
+      event.stopPropagation();
+    }
+  }, true);
+
+  var searchInput = document.getElementById('topupidMenuSearch');
+  if (searchInput && typeof searchInput.focus === 'function') {
+    var nativeFocus = searchInput.focus.bind(searchInput);
+    var allowProgrammaticFocus = false;
+    searchInput.focus = function(){
+      if (!allowProgrammaticFocus && isOpen(menu)) return;
+      return nativeFocus.apply(searchInput, arguments);
+    };
+    searchInput.addEventListener('pointerdown', function(){ allowProgrammaticFocus = true; setTimeout(function(){ allowProgrammaticFocus = false; }, 700); }, {passive:true});
+    searchInput.addEventListener('keydown', function(){ allowProgrammaticFocus = true; setTimeout(function(){ allowProgrammaticFocus = false; }, 700); }, true);
+  }
+
+  [menu, themeModal].forEach(function(el){
+    if (!el) return;
+    try { new MutationObserver(syncOverlayState).observe(el, {attributes:true, attributeFilter:['class','style','aria-hidden']}); } catch(_) {}
+  });
+  document.addEventListener('click', function(){ setTimeout(syncOverlayState, 0); setTimeout(updateMenuProgress, 80); }, true);
+  window.addEventListener('scroll', function(){ updateScrolled(); }, {passive:true});
+  window.addEventListener('resize', function(){ measureHeader(); updateMenuProgress(); }, {passive:true});
+  window.addEventListener('orientationchange', function(){ setTimeout(function(){ measureHeader(); updateMenuProgress(); syncOverlayState(); }, 120); }, {passive:true});
+
+  function svgFallback(label, idx){
+    var hue = (190 + (idx * 23)) % 360;
+    var safe = String(label || 'TopupID').replace(/[&<>"']/g, function(ch){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]; });
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">' +
+      '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(' + hue + ',85%,42%)"/><stop offset=".55" stop-color="#07111f"/><stop offset="1" stop-color="#020617"/></linearGradient><radialGradient id="r" cx="50%" cy="35%" r="55%"><stop offset="0" stop-color="#67e8f9" stop-opacity=".36"/><stop offset="1" stop-color="#67e8f9" stop-opacity="0"/></radialGradient></defs>' +
+      '<rect width="1280" height="720" rx="54" fill="url(#g)"/><rect width="1280" height="720" rx="54" fill="url(#r)"/>' +
+      '<g opacity=".22" stroke="#fff" stroke-width="2"><path d="M-80 150 C180 40 360 240 720 130 S1130 210 1360 70" fill="none"/><path d="M-70 520 C200 390 430 610 710 470 S1110 575 1360 420" fill="none"/></g>' +
+      '<circle cx="1030" cy="130" r="134" fill="#fff" opacity=".055"/><circle cx="210" cy="610" r="185" fill="#000" opacity=".20"/>' +
+      '<text x="640" y="115" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="34" font-weight="900" fill="#bff4ff" letter-spacing="5">TOPUPID</text>' +
+      '<text x="640" y="365" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="66" font-weight="900" fill="#ffffff">' + safe + '</text>' +
+      '<text x="640" y="430" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="28" font-weight="700" fill="#dbeafe">Dirac Group Digital Service</text>' +
+      '</svg>';
+    return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+  }
+  function protectImage(img, idx){
+    if (!img || img.dataset.v55FallbackReady === '1') return;
+    img.dataset.v55FallbackReady = '1';
+    img.addEventListener('error', function(){
+      var label = img.getAttribute('alt') || 'TopupID';
+      img.removeAttribute('srcset');
+      img.src = svgFallback(label, idx || 0);
+    });
+    if (img.complete && img.naturalWidth === 0) {
+      var label = img.getAttribute('alt') || 'TopupID';
+      img.removeAttribute('srcset');
+      img.src = svgFallback(label, idx || 0);
+    }
+  }
+  function protectAllVisualImages(){
+    Array.prototype.slice.call(document.querySelectorAll('#showcase .tls-card img, #fanCarouselLayout img')).forEach(function(img, i){ protectImage(img, i); });
+  }
+
+  function setupSmoothShowcase(){
+    var rotator = document.querySelector('#showcase .tls-rotator');
+    if (!rotator || rotator.dataset.v55SmoothReady === '1') return;
+    rotator.dataset.v55SmoothReady = '1';
+    var cards = Array.prototype.slice.call(rotator.querySelectorAll('.tls-card'));
+    if (!cards.length) return;
+    var active = 0;
+    var paused = false;
+    cards.forEach(function(card, i){
+      var img = card.querySelector('img');
+      protectImage(img, i);
+      card.setAttribute('data-smooth-index', String(i));
+    });
+    function signedDelta(i){
+      var total = cards.length;
+      var half = Math.floor(total / 2);
+      var raw = (i - active + total) % total;
+      return raw > half ? raw - total : raw;
+    }
+    function layout(){
+      var isPhone = window.innerWidth <= 560;
+      var side = isPhone ? Math.min(118, Math.max(82, window.innerWidth * 0.26)) : 154;
+      cards.forEach(function(card, i){
+        var d = signedDelta(i);
+        var ad = Math.abs(d);
+        var center = d === 0;
+        var visible = ad <= 2;
+        card.classList.toggle('is-smooth-center', center);
+        card.classList.toggle('is-smooth-hidden', !visible);
+        card.style.pointerEvents = visible ? 'auto' : 'none';
+        card.style.zIndex = String(center ? 20 : (10 - ad));
+        card.style.opacity = visible ? (center ? '1' : (ad === 1 ? '.86' : '.38')) : '0';
+        card.style.filter = center ? 'brightness(1.06) saturate(1.05)' : (ad === 1 ? 'brightness(.94) saturate(.98)' : 'brightness(.72) saturate(.88) blur(.2px)');
+        var x = d * side;
+        var y = center ? 0 : (ad * (isPhone ? 10 : 12));
+        var z = center ? 92 : (ad === 1 ? -52 : -142);
+        var ry = d * (isPhone ? -24 : -28);
+        var sc = center ? 1 : (ad === 1 ? .84 : .68);
+        card.style.transform = 'translate(-50%, -50%) translateX(' + x + 'px) translateY(' + y + 'px) translateZ(' + z + 'px) rotateY(' + ry + 'deg) scale(' + sc + ')';
+      });
+    }
+    function next(){ if (!paused) { active = (active + 1) % cards.length; layout(); } }
+    rotator.addEventListener('pointerenter', function(){ paused = true; }, {passive:true});
+    rotator.addEventListener('pointerleave', function(){ paused = false; }, {passive:true});
+    rotator.addEventListener('pointerdown', function(){ paused = true; }, {passive:true});
+    rotator.addEventListener('pointerup', function(){ paused = false; next(); }, {passive:true});
+    window.addEventListener('resize', layout, {passive:true});
+    layout();
+    setInterval(next, 3300);
+  }
+
+  function init(){
+    measureHeader();
+    updateScrolled();
+    updateMenuProgress();
+    syncOverlayState();
+    protectAllVisualImages();
+    setupSmoothShowcase();
+    setTimeout(function(){ measureHeader(); protectAllVisualImages(); setupSmoothShowcase(); }, 500);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, {once:true}); else init();
+})();
+</script>
 
 </body>
 </html>
