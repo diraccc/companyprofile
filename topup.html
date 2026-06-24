@@ -3831,7 +3831,7 @@ html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title 
 <header class="du-top">
 <div aria-hidden="true" class="du-handle"></div>
 <div class="du-top-row">
-<div aria-hidden="true" class="du-brand"><img alt="" class="du-brand-logo" decoding="async" loading="eager" referrerpolicy="no-referrer" src="logo 3.webp"/></div>
+<div aria-hidden="true" class="du-brand"><img alt="" class="du-brand-logo" decoding="async" loading="eager" referrerpolicy="no-referrer" src="dnnn.webp"/></div>
 <div class="du-title">
 <strong id="topupidMenuTitle">Menu Dashboard</strong>
 <small>Navigasi utama pelanggan.</small>
@@ -3842,7 +3842,7 @@ html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title 
 </div>
 <label aria-label="Cari menu dashboard" class="du-search">
 <svg fill="none" viewbox="0 0 24 24"><path d="M11 19a8 8 0 1 1 5.29-14.01A8 8 0 0 1 11 19Zm10 2-4.35-4.35" stroke="currentColor" stroke-linecap="round" stroke-width="2.2"></path></svg>
-<input aria-label="Cari menu" autocapitalize="none" autocomplete="off" autocorrect="off" enterkeyhint="search" id="topupidMenuSearch" inputmode="latin" maxlength="30" minlength="1" name="menu_q" pattern="^[a-z]{0,30}$" placeholder="Cari menu" spellcheck="false" title="Hanya huruf kecil a-z. Angka, huruf besar, spasi, simbol, dan karakter khusus tidak diizinkan." type="search"/>
+<input aria-label="Cari menu" autocapitalize="none" autocomplete="off" autocorrect="off" enterkeyhint="search" id="topupidMenuSearch" inputmode="search" maxlength="40" name="menu_q" placeholder="Cari menu" spellcheck="false" type="search"/>
 <button aria-label="Hapus pencarian" class="du-clear" id="topupidMenuClear" type="button">
 <svg fill="none" viewbox="0 0 24 24"><path d="M7 7l10 10M17 7 7 17" stroke="currentColor" stroke-linecap="round" stroke-width="2.2"></path></svg>
 </button>
@@ -13242,5 +13242,143 @@ html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title 
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire); else wire();
 })();
 </script>
+
+
+<style id="v48-menu-logo-search-footer-fix">
+  /* V48: menu-only visual/search repair. */
+  #mobileMenu.dirac-ultra-menu .du-brand {
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+    border-radius: 15px !important;
+    padding: 0 !important;
+    background: #fff !important;
+    overflow: hidden !important;
+    display: grid !important;
+    place-items: center !important;
+  }
+  #mobileMenu.dirac-ultra-menu .du-brand-logo {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+    object-position: center !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+    background: #fff !important;
+    border-radius: inherit !important;
+  }
+  #mobileMenu.dirac-ultra-menu .du-footer {
+    gap: 10px !important;
+    padding: 10px 15px calc(10px + env(safe-area-inset-bottom)) !important;
+    min-height: 0 !important;
+  }
+  #mobileMenu.dirac-ultra-menu .du-footer-btn {
+    height: 46px !important;
+    min-height: 46px !important;
+    max-height: 46px !important;
+    border-radius: 16px !important;
+    font-size: .92rem !important;
+    line-height: 1 !important;
+    padding: 0 12px !important;
+  }
+  #mobileMenu.dirac-ultra-menu .du-searchable[hidden],
+  #mobileMenu.dirac-ultra-menu .du-group[hidden] {
+    display: none !important;
+  }
+  #mobileMenu.dirac-ultra-menu .du-search.is-active {
+    border-color: rgba(var(--theme-rgb), .42) !important;
+    box-shadow: 0 0 0 4px rgba(var(--theme-rgb), .10) !important;
+  }
+  @media (max-width: 480px) {
+    #mobileMenu.dirac-ultra-menu .du-footer { padding: 9px 14px calc(9px + env(safe-area-inset-bottom)) !important; }
+    #mobileMenu.dirac-ultra-menu .du-footer-btn { height: 44px !important; min-height: 44px !important; max-height: 44px !important; border-radius: 15px !important; font-size: .9rem !important; }
+  }
+</style>
+<script id="v48-menu-search-logo-footer-guard">
+(function(){
+  'use strict';
+  if (window.__TOPUPID_V48_MENU_REPAIR__) return;
+  window.__TOPUPID_V48_MENU_REPAIR__ = true;
+  function qs(sel, root){ return (root || document).querySelector(sel); }
+  function qsa(sel, root){ return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+  function norm(value){
+    return String(value || '')
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+  function ensureLogo(){
+    var logo = qs('#mobileMenu .du-brand-logo');
+    if (logo) {
+      logo.setAttribute('src', 'dnnn.webp');
+      logo.setAttribute('alt', '');
+      logo.setAttribute('decoding', 'async');
+      logo.setAttribute('loading', 'eager');
+    }
+  }
+  function applyMenuSearch(){
+    var menu = qs('#mobileMenu');
+    var input = qs('#topupidMenuSearch');
+    var clear = qs('#topupidMenuClear');
+    var empty = qs('#topupidMenuEmpty');
+    var body = qs('#topupidMenuBody');
+    if (!menu || !input) return;
+    input.removeAttribute('pattern');
+    input.removeAttribute('minlength');
+    input.setAttribute('inputmode', 'search');
+    input.setAttribute('maxlength', '40');
+    function run(){
+      var q = norm(input.value);
+      var hitCount = 0;
+      qsa('.du-group', menu).forEach(function(group){
+        var groupHits = 0;
+        qsa('.du-searchable', group).forEach(function(card){
+          var hay = norm((card.getAttribute('data-keyword') || '') + ' ' + (card.textContent || ''));
+          var show = !q || hay.indexOf(q) !== -1;
+          card.hidden = !show;
+          card.style.display = show ? '' : 'none';
+          card.setAttribute('aria-hidden', show ? 'false' : 'true');
+          if (show) { groupHits++; hitCount++; }
+        });
+        group.hidden = !!q && groupHits === 0;
+        group.style.display = (!q || groupHits > 0) ? '' : 'none';
+      });
+      if (empty) {
+        var noResult = !!q && hitCount === 0;
+        empty.classList.toggle('show', noResult);
+        empty.hidden = !noResult;
+      }
+      var searchWrap = input.closest('.du-search');
+      if (searchWrap) searchWrap.classList.toggle('is-active', !!q);
+      if (body) body.scrollTop = 0;
+      window.__topupidMenuSearchLast = {query:q, hits:hitCount};
+    }
+    input.addEventListener('input', run, true);
+    input.addEventListener('search', run, true);
+    input.addEventListener('keyup', run, true);
+    if (clear) {
+      clear.addEventListener('click', function(ev){
+        ev.preventDefault();
+        ev.stopPropagation();
+        input.value = '';
+        run();
+        try { input.focus(); } catch (_) {}
+      }, true);
+    }
+    var btn = qs('#menuBtn');
+    if (btn) btn.addEventListener('click', function(){ setTimeout(run, 80); }, true);
+    menu.addEventListener('transitionend', run, true);
+    run();
+  }
+  function init(){ ensureLogo(); applyMenuSearch(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, {once:true}); else init();
+})();
+</script>
+
 </body>
 </html>
