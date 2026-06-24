@@ -4104,19 +4104,13 @@ html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title 
 </div>
 <div class="product-grid" id="productGrid"></div>
 </section>
-<section class="section reveal" id="showcase" aria-label="Showcase gambar layanan TopupID dengan animasi 3D">
+<section class="section reveal" id="showcase">
 <div class="tls-visual-shell">
-<div aria-label="Animasi 10 gambar layanan TopupID berurutan" class="tls-rotator">
-<div class="tls-card tls-card-1"><img alt="Gambar TopupID 1" src="tls1.webp"/></div>
-<div class="tls-card tls-card-2"><img alt="Gambar TopupID 2" src="tls2.webp"/></div>
-<div class="tls-card tls-card-3"><img alt="Gambar TopupID 3" src="tls3.webp"/></div>
-<div class="tls-card tls-card-4"><img alt="Gambar TopupID 4" src="tls4.webp"/></div>
-<div class="tls-card tls-card-5"><img alt="Gambar TopupID 5" src="tls5.webp"/></div>
-<div class="tls-card tls-card-6"><img alt="Gambar TopupID 6" src="tls6.webp"/></div>
-<div class="tls-card tls-card-7"><img alt="Gambar TopupID 7" src="tls7.webp"/></div>
-<div class="tls-card tls-card-8"><img alt="Gambar TopupID 8" src="tls8.webp"/></div>
-<div class="tls-card tls-card-9"><img alt="Gambar TopupID 9" src="tls9.webp"/></div>
-<div class="tls-card tls-card-10"><img alt="Gambar TopupID 10" src="tls10.webp"/></div>
+<div class="tls-rotator" aria-label="Animasi gambar layanan TopupID">
+<div class="tls-card tls-card-1"><img src="tls1.webp" alt="Game Top Up" /></div>
+<div class="tls-card tls-card-2"><img src="tls2.webp" alt="Banner Top Up Game" /></div>
+<div class="tls-card tls-card-3"><img src="tls3.webp" alt="Banner Produk Digital" /></div>
+<div class="tls-card tls-card-4"><img src="tls4.webp" alt="Produk Digital" /></div>
 </div>
 </div>
 </section>
@@ -15335,6 +15329,801 @@ html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title 
     }
   }
 </style>
+
+
+<style id="v60-edge-full-image-fix">
+  /* V60: perbaiki showcase kosong dan bikin full image mepet ke sisi website. */
+  #showcase {
+    padding: 18px 1.2% 52px !important;
+    overflow: visible !important;
+  }
+  #showcase .tls-visual-shell {
+    width: 100% !important;
+    max-width: none !important;
+    min-height: clamp(250px, 42vw, 430px) !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+  #showcase .tls-rotator {
+    width: 100% !important;
+    max-width: none !important;
+    height: clamp(220px, 38vw, 360px) !important;
+    margin: 0 auto !important;
+    perspective: 1600px !important;
+    overflow: visible !important;
+  }
+  #showcase .tls-card,
+  #showcase .tls-card-1,
+  #showcase .tls-card-2,
+  #showcase .tls-card-3,
+  #showcase .tls-card-4,
+  #showcase .tls-card-5,
+  #showcase .tls-card-6,
+  #showcase .tls-card-7,
+  #showcase .tls-card-8,
+  #showcase .tls-card-9,
+  #showcase .tls-card-10 {
+    width: min(94vw, 940px) !important;
+    border-radius: 30px !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+  #showcase .tls-card img {
+    width: 100% !important;
+    height: 100% !important;
+    display: block !important;
+    object-fit: cover !important;
+    border-radius: 30px !important;
+    border: 1.4px solid rgba(56,189,248,.85) !important;
+    box-shadow:
+      0 0 0 1px rgba(34,197,94,.18),
+      0 0 20px rgba(56,189,248,.24),
+      0 0 48px rgba(34,197,94,.13),
+      0 24px 70px rgba(0,0,0,.38) !important;
+    background: #07111f !important;
+  }
+  #showcase .tls-card::before,
+  #showcase .tls-card::after {
+    display: none !important;
+    content: none !important;
+  }
+  #showcase .v56-showcase-caption,
+  #showcase .v56-showcase-badge,
+  #showcase .v56-showcase-controls {
+    z-index: 30 !important;
+  }
+  .topupid-banner-separator.bottom-full-visual#banner-layanan-topupid {
+    padding: 10px 1.2% 28px !important;
+    margin-top: 8px !important;
+  }
+  #banner-layanan-topupid .topupid-banner-inner {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 auto !important;
+    aspect-ratio: 2048 / 614 !important;
+    border-radius: 30px !important;
+    overflow: visible !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  #banner-layanan-topupid .topupid-banner-full-image {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    border-radius: 30px !important;
+    border: 1.4px solid rgba(56,189,248,.85) !important;
+    box-shadow:
+      0 0 0 1px rgba(34,197,94,.18),
+      0 0 18px rgba(56,189,248,.24),
+      0 0 44px rgba(34,197,94,.12),
+      0 22px 64px rgba(0,0,0,.36) !important;
+    background: #07111f !important;
+  }
+  @media (max-width: 680px) {
+    #showcase { padding: 14px 0.9% 44px !important; }
+    #showcase .tls-visual-shell { min-height: 270px !important; }
+    #showcase .tls-rotator { height: 228px !important; }
+    #showcase .tls-card,
+    #showcase .tls-card-1,
+    #showcase .tls-card-2,
+    #showcase .tls-card-3,
+    #showcase .tls-card-4,
+    #showcase .tls-card-5,
+    #showcase .tls-card-6,
+    #showcase .tls-card-7,
+    #showcase .tls-card-8,
+    #showcase .tls-card-9,
+    #showcase .tls-card-10 { width: 96.2vw !important; border-radius: 24px !important; }
+    #showcase .tls-card img { border-radius: 24px !important; }
+    #banner-layanan-topupid { padding: 8px 0.9% 22px !important; }
+    #banner-layanan-topupid .topupid-banner-inner,
+    #banner-layanan-topupid .topupid-banner-full-image { border-radius: 24px !important; }
+  }
+</style>
+<script id="v60-force-showcase-slider">
+(function(){
+  'use strict';
+  function fallbackWide(label, idx){
+    var hue = (190 + ((idx||0) * 23)) % 360;
+    var safe = String(label || 'TopupID').replace(/[&<>"']/g, function(ch){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]; });
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(' + hue + ',85%,42%)"/><stop offset=".55" stop-color="#07111f"/><stop offset="1" stop-color="#020617"/></linearGradient><radialGradient id="r" cx="50%" cy="35%" r="55%"><stop offset="0" stop-color="#67e8f9" stop-opacity=".34"/><stop offset="1" stop-color="#67e8f9" stop-opacity="0"/></radialGradient></defs><rect width="1600" height="900" rx="56" fill="url(#g)"/><rect width="1600" height="900" rx="56" fill="url(#r)"/><text x="800" y="140" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="42" font-weight="900" fill="#bff4ff" letter-spacing="5">TOPUPID</text><text x="800" y="470" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="86" font-weight="900" fill="#ffffff">' + safe + '</text><text x="800" y="550" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="34" font-weight="700" fill="#dbeafe">Dirac Group Digital Service</text></svg>';
+    return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+  }
+  function ensureImg(img, idx){
+    if (!img) return;
+    function apply(){ if (!img.naturalWidth) img.src = fallbackWide(img.alt || 'TopupID', idx); }
+    if (img.complete) apply();
+    img.addEventListener('error', apply, { once: true });
+  }
+  function init(){
+    var showcase = document.getElementById('showcase');
+    if (!showcase) return;
+    var rotator = showcase.querySelector('.tls-rotator');
+    if (!rotator) return;
+    var cards = Array.prototype.slice.call(rotator.querySelectorAll('.tls-card'));
+    if (!cards.length) return;
+    cards.forEach(function(card, i){
+      card.style.animation = 'none';
+      card.style.opacity = '0';
+      card.style.pointerEvents = 'none';
+      var img = card.querySelector('img');
+      ensureImg(img, i);
+    });
+    var active = 0;
+    function signedDelta(index){
+      var total = cards.length;
+      var half = Math.floor(total / 2);
+      var raw = (index - active + total) % total;
+      return raw > half ? raw - total : raw;
+    }
+    function layout(){
+      var mobile = window.innerWidth <= 680;
+      var spread = mobile ? 82 : 165;
+      cards.forEach(function(card, i){
+        var d = signedDelta(i), ad = Math.abs(d);
+        var visible = ad <= 2;
+        var x = d * spread;
+        var z = ad === 0 ? 120 : (ad === 1 ? 35 : -60);
+        var y = ad === 0 ? -6 : (ad === 1 ? 16 : 34);
+        var scale = ad === 0 ? 1 : (ad === 1 ? .88 : .74);
+        var rotY = d * (mobile ? -18 : -26);
+        card.style.zIndex = String(20 - ad);
+        card.style.opacity = visible ? (ad === 0 ? '1' : (ad === 1 ? '.65' : '.18')) : '0';
+        card.style.pointerEvents = ad === 0 ? 'auto' : 'none';
+        card.style.transform = 'translate(-50%, -50%) translateX(' + x + 'px) translateY(' + y + 'px) translateZ(' + z + 'px) rotateY(' + rotY + 'deg) scale(' + scale + ')';
+      });
+      var caption = showcase.querySelector('.v56-showcase-caption strong');
+      var copy = showcase.querySelector('.v56-showcase-caption span');
+      var titles = ['Free Fire','Mobile Legends','FC Mobile','PUBG Mobile','Valorant','Steam Wallet','Voucher Digital','Produk Instan','Layanan Premium','TopupID Store'];
+      if (caption) caption.textContent = titles[active] || ('TopupID ' + (active+1));
+      if (copy) copy.textContent = 'Layanan cepat, aman, dan siap checkout.';
+      showcase.querySelectorAll('.v56-showcase-dots .v56-dot').forEach(function(dot, idx){ dot.classList.toggle('active', idx === active); });
+    }
+    var timer = null;
+    function start(){ if (timer) clearInterval(timer); timer = setInterval(function(){ active = (active + 1) % cards.length; layout(); }, 3200); }
+    layout();
+    start();
+    window.addEventListener('resize', layout, { passive: true });
+    var prev = showcase.querySelector('.v56-showcase-btn.prev');
+    var next = showcase.querySelector('.v56-showcase-btn.next');
+    if (prev && !prev.dataset.v60Bound){ prev.dataset.v60Bound='1'; prev.addEventListener('click', function(){ active = (active - 1 + cards.length) % cards.length; layout(); start(); }); }
+    if (next && !next.dataset.v60Bound){ next.dataset.v60Bound='1'; next.addEventListener('click', function(){ active = (active + 1) % cards.length; layout(); start(); }); }
+    showcase.querySelectorAll('.v56-showcase-dots .v56-dot').forEach(function(dot, idx){ if(!dot.dataset.v60Bound){ dot.dataset.v60Bound='1'; dot.addEventListener('click', function(){ active = idx; layout(); start(); }); } });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+  window.addEventListener('load', init);
+})();
+</script>
+
+
+<style id="v60-fix-visible-full-image-edge">
+  /* V60: perbaikan spesifik: foto showcase wajib tampil, frame gambar dibuat penuh, dan banner bawah mepet ke tepi website tanpa mengubah endpoint/API. */
+  html, body { overflow-x: hidden !important; }
+
+  #showcase { padding: 18px 0 48px !important; overflow: visible !important; }
+
+  #showcase .tls-visual-shell {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    min-height: clamp(300px, 64vw, 430px) !important;
+    margin-left: calc(50% - 50vw) !important;
+    margin-right: calc(50% - 50vw) !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  #showcase .tls-visual-shell::before,
+  #showcase .tls-visual-shell::after,
+  #showcase .tls-rotator::before,
+  #showcase .tls-rotator::after,
+  #showcase .tls-card::before,
+  #showcase .tls-card::after {
+    content: none !important;
+    display: none !important;
+  }
+
+  #showcase .tls-rotator {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: clamp(230px, 55vw, 380px) !important;
+    margin: 0 auto !important;
+    overflow: visible !important;
+    perspective: 1600px !important;
+    transform-style: preserve-3d !important;
+  }
+
+  #showcase .tls-card,
+  #showcase .tls-card-1,
+  #showcase .tls-card-2,
+  #showcase .tls-card-3,
+  #showcase .tls-card-4,
+  #showcase .tls-card-5,
+  #showcase .tls-card-6,
+  #showcase .tls-card-7,
+  #showcase .tls-card-8,
+  #showcase .tls-card-9,
+  #showcase .tls-card-10 {
+    width: min(100vw, 720px) !important;
+    max-width: 100vw !important;
+    aspect-ratio: 16 / 9 !important;
+    border-radius: clamp(18px, 4.8vw, 36px) !important;
+    background: transparent !important;
+    border: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  #showcase .tls-card img {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    border-radius: clamp(18px, 4.8vw, 36px) !important;
+    border: 1.5px solid rgba(55, 219, 255, .92) !important;
+    outline: 1px solid rgba(34, 197, 94, .26) !important;
+    outline-offset: -2px !important;
+    box-shadow:
+      0 0 18px rgba(56,189,248,.42),
+      0 0 46px rgba(34,197,94,.18),
+      0 24px 72px rgba(0,0,0,.42) !important;
+    background:
+      radial-gradient(circle at 50% 28%, rgba(56,189,248,.26), transparent 42%),
+      linear-gradient(135deg, #05111f, #020617) !important;
+    color: transparent !important;
+    font-size: 0 !important;
+  }
+
+  /* Caption teks yang membuat area terlihat kosong disembunyikan; yang tampil fokus ke full gambar. */
+  #showcase .v56-showcase-caption {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  #showcase .v56-showcase-badge {
+    left: max(12px, env(safe-area-inset-left)) !important;
+    top: 10px !important;
+    z-index: 70 !important;
+  }
+
+  #showcase .v56-showcase-controls {
+    left: 50% !important;
+    right: auto !important;
+    bottom: 8px !important;
+    transform: translateX(-50%) !important;
+    z-index: 70 !important;
+  }
+
+  /* Banner bawah tetap di HTML dan dirapatkan ke kiri-kanan website. */
+  .topupid-banner-separator.bottom-full-visual#banner-layanan-topupid {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    margin-left: calc(50% - 50vw) !important;
+    margin-right: calc(50% - 50vw) !important;
+    padding: 8px 0 28px !important;
+    overflow: visible !important;
+  }
+
+  #banner-layanan-topupid .topupid-banner-inner {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    aspect-ratio: 2048 / 614 !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  #banner-layanan-topupid .topupid-banner-full-image {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    width: 100vw !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    border-radius: 0 !important;
+    border-top: 1.5px solid rgba(55,219,255,.92) !important;
+    border-bottom: 1.5px solid rgba(55,219,255,.92) !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    outline: 1px solid rgba(34,197,94,.22) !important;
+    outline-offset: -2px !important;
+    box-shadow:
+      0 0 18px rgba(56,189,248,.38),
+      0 0 46px rgba(34,197,94,.16),
+      0 22px 64px rgba(0,0,0,.40) !important;
+    background:
+      radial-gradient(circle at 50% 30%, rgba(56,189,248,.18), transparent 45%),
+      linear-gradient(135deg, #12351e 0%, #05233f 52%, #03101c 100%) !important;
+    color: transparent !important;
+    font-size: 0 !important;
+  }
+
+  @media (max-width: 680px) {
+    #showcase { padding-top: 14px !important; padding-bottom: 44px !important; }
+    #showcase .tls-visual-shell { min-height: 310px !important; }
+    #showcase .tls-rotator { height: 248px !important; }
+    #showcase .tls-card,
+    #showcase .tls-card-1,
+    #showcase .tls-card-2,
+    #showcase .tls-card-3,
+    #showcase .tls-card-4,
+    #showcase .tls-card-5,
+    #showcase .tls-card-6,
+    #showcase .tls-card-7,
+    #showcase .tls-card-8,
+    #showcase .tls-card-9,
+    #showcase .tls-card-10 {
+      width: 100vw !important;
+      border-radius: 0 !important;
+    }
+    #showcase .tls-card img {
+      border-radius: 0 !important;
+      border-left: 0 !important;
+      border-right: 0 !important;
+    }
+    #showcase .v56-showcase-badge { left: 16px !important; top: 8px !important; }
+    #showcase .v56-showcase-controls { bottom: 0 !important; }
+    .topupid-banner-separator.bottom-full-visual#banner-layanan-topupid { padding-top: 6px !important; padding-bottom: 24px !important; }
+  }
+</style>
+
+<script id="v60-showcase-image-fallback">
+(function(){
+  function makeSvg(label, idx){
+    var safe = String(label || 'TopupID').replace(/[&<>"']/g, function(ch){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];
+    });
+    var hue = (188 + (idx || 0) * 19) % 360;
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">' +
+      '<defs>' +
+      '<linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(' + hue + ',86%,44%)"/><stop offset=".44" stop-color="#071827"/><stop offset="1" stop-color="#020617"/></linearGradient>' +
+      '<radialGradient id="r" cx="50%" cy="35%" r="55%"><stop offset="0" stop-color="#67e8f9" stop-opacity=".42"/><stop offset="1" stop-color="#67e8f9" stop-opacity="0"/></radialGradient>' +
+      '<filter id="glow"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>' +
+      '</defs>' +
+      '<rect width="1280" height="720" fill="url(#g)"/><rect width="1280" height="720" fill="url(#r)"/>' +
+      '<path d="M0 570 C250 430 425 625 650 500 S1010 575 1280 410" fill="none" stroke="#38bdf8" stroke-opacity=".34" stroke-width="3"/>' +
+      '<path d="M0 155 C260 55 430 240 700 145 S1030 230 1280 75" fill="none" stroke="#22c55e" stroke-opacity=".28" stroke-width="3"/>' +
+      '<circle cx="1080" cy="140" r="132" fill="#fff" opacity=".06"/><circle cx="220" cy="595" r="175" fill="#000" opacity=".21"/>' +
+      '<text x="640" y="98" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="34" font-weight="900" fill="#bff4ff" letter-spacing="5">TOPUPID</text>' +
+      '<text x="640" y="372" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="74" font-weight="900" fill="#ffffff" filter="url(#glow)">' + safe + '</text>' +
+      '<text x="640" y="438" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="29" font-weight="800" fill="#dbeafe">Dirac Group Digital Service</text>' +
+      '</svg>';
+    return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+  }
+
+  function harden(img, idx){
+    if (!img) return;
+    var label = img.getAttribute('alt') || (idx === 90 ? 'Banner layanan TopupID' : 'TopupID');
+    function setFallback(){
+      if (img.dataset.v60Fixed === '1') return;
+      if (img.naturalWidth && img.naturalHeight) return;
+      img.dataset.v60Fixed = '1';
+      img.removeAttribute('srcset');
+      img.src = makeSvg(label, idx || 0);
+    }
+    img.addEventListener('error', setFallback);
+    setTimeout(setFallback, 700);
+    setTimeout(setFallback, 1800);
+    setTimeout(setFallback, 3200);
+  }
+
+  function run(){
+    Array.prototype.forEach.call(document.querySelectorAll('#showcase .tls-card img'), function(img, i){ harden(img, i); });
+    harden(document.querySelector('#banner-layanan-topupid .topupid-banner-full-image'), 90);
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run, {once:true});
+  else run();
+  window.addEventListener('load', run, {once:true});
+})();
+</script>
+
+
+<style id="v61-match-topup1-showcase-and-edge-banner">
+  /* V61: showcase disamakan ke topup1.html: 4 gambar, coverflow 3D, tanpa badge/caption/control tambahan. */
+  #showcase {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 12px 7% 20px !important;
+    margin: 0 !important;
+    overflow: visible !important;
+  }
+
+  #showcase .v56-showcase-badge,
+  #showcase .v56-showcase-caption,
+  #showcase .v56-showcase-controls {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  #showcase .tls-visual-shell {
+    position: relative !important;
+    width: min(940px, 100%) !important;
+    min-height: clamp(250px, 36vw, 390px) !important;
+    margin: 0 auto !important;
+    padding: clamp(10px, 2vw, 20px) !important;
+    display: grid !important;
+    place-items: center !important;
+    border: 0 !important;
+    outline: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    overflow: hidden !important;
+    perspective: 1400px !important;
+  }
+
+  #showcase .tls-visual-shell::before,
+  #showcase .tls-visual-shell::after,
+  #showcase .tls-rotator::before,
+  #showcase .tls-rotator::after,
+  #showcase .tls-card::after {
+    content: none !important;
+    display: none !important;
+  }
+
+  #showcase .tls-rotator {
+    position: relative !important;
+    width: min(940px, 100%) !important;
+    height: clamp(214px, 30vw, 330px) !important;
+    display: grid !important;
+    place-items: center !important;
+    overflow: visible !important;
+    transform: none !important;
+    transform-style: preserve-3d !important;
+    perspective: 1450px !important;
+    animation: none !important;
+    border: 0 !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+
+  #showcase .tls-card,
+  #showcase .tls-card-1,
+  #showcase .tls-card-2,
+  #showcase .tls-card-3,
+  #showcase .tls-card-4 {
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
+    width: min(590px, 72vw) !important;
+    height: auto !important;
+    aspect-ratio: 16 / 9 !important;
+    padding: 0 !important;
+    border-radius: 24px !important;
+    overflow: hidden !important;
+    background: rgba(2, 6, 23, .92) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    filter: none !important;
+    transform-origin: center center !important;
+    backface-visibility: hidden !important;
+    --tls-side: clamp(158px, 24vw, 276px);
+    --tls-pos: 0;
+    --tls-y: 0;
+    --tls-z: 0;
+    --tls-r: 0;
+    --tls-s: 1;
+    transform: translate(-50%, -50%) translateX(calc(var(--tls-pos) * var(--tls-side))) translateY(calc(var(--tls-y) * 1px)) translateZ(calc(var(--tls-z) * 1px)) rotateY(calc(var(--tls-r) * 1deg)) scale(var(--tls-s)) !important;
+    animation: tlsCenteredSolidCoverflowTopup1 36s cubic-bezier(.45, 0, .18, 1) infinite both !important;
+    border: 1.5px solid rgba(125, 211, 252, .72) !important;
+    outline: 1px solid rgba(255, 255, 255, .10) !important;
+    outline-offset: -2px !important;
+    box-shadow:
+      0 0 0 1px rgba(2, 6, 23, .74),
+      0 0 24px rgba(56, 189, 248, .24),
+      0 20px 58px rgba(0, 0, 0, .38) !important;
+  }
+
+  #showcase .tls-card-5,
+  #showcase .tls-card-6,
+  #showcase .tls-card-7,
+  #showcase .tls-card-8,
+  #showcase .tls-card-9,
+  #showcase .tls-card-10 {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  #showcase .tls-card-1 { animation-delay: 0s !important; }
+  #showcase .tls-card-2 { animation-delay: -9s !important; }
+  #showcase .tls-card-3 { animation-delay: -18s !important; }
+  #showcase .tls-card-4 { animation-delay: -27s !important; }
+
+  #showcase .tls-card img {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    object-fit: contain !important;
+    object-position: center center !important;
+    transform: none !important;
+    filter: none !important;
+    background: rgba(2, 6, 23, .92) !important;
+    border: 0 !important;
+    outline: 0 !important;
+    border-radius: inherit !important;
+    color: transparent !important;
+    font-size: 0 !important;
+  }
+
+  #showcase .tls-card::before {
+    content: "" !important;
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 2 !important;
+    pointer-events: none !important;
+    border-radius: inherit !important;
+    border: 1px solid rgba(255, 255, 255, .20) !important;
+    background: transparent !important;
+    box-shadow: inset 0 0 0 1px rgba(56, 189, 248, .16) !important;
+    opacity: 1 !important;
+  }
+
+  @keyframes tlsCenteredSolidCoverflowTopup1 {
+    0%, 22.5% {
+      --tls-pos: 0;
+      --tls-y: 0;
+      --tls-z: 0;
+      --tls-r: 0;
+      --tls-s: 1;
+      opacity: 1;
+      visibility: visible;
+      filter: brightness(1.04) saturate(1.05);
+      z-index: 5;
+    }
+    28%, 47.5% {
+      --tls-pos: 1;
+      --tls-y: 14;
+      --tls-z: -70;
+      --tls-r: -34;
+      --tls-s: .84;
+      opacity: 1;
+      visibility: visible;
+      filter: brightness(1) saturate(1.03);
+      z-index: 3;
+    }
+    49.9% {
+      --tls-pos: 0;
+      --tls-y: 32;
+      --tls-z: -180;
+      --tls-r: 0;
+      --tls-s: .70;
+      opacity: 1;
+      visibility: visible;
+      filter: brightness(1) saturate(1);
+      z-index: 1;
+    }
+    50%, 72.5% {
+      --tls-pos: 0;
+      --tls-y: 32;
+      --tls-z: -180;
+      --tls-r: 0;
+      --tls-s: .70;
+      opacity: 0;
+      visibility: hidden;
+      filter: brightness(1) saturate(1);
+      z-index: 1;
+    }
+    72.6% {
+      --tls-pos: -1;
+      --tls-y: 14;
+      --tls-z: -70;
+      --tls-r: 34;
+      --tls-s: .84;
+      opacity: 1;
+      visibility: visible;
+      filter: brightness(1) saturate(1.03);
+      z-index: 2;
+    }
+    78%, 97.5% {
+      --tls-pos: -1;
+      --tls-y: 14;
+      --tls-z: -70;
+      --tls-r: 34;
+      --tls-s: .84;
+      opacity: 1;
+      visibility: visible;
+      filter: brightness(1) saturate(1.03);
+      z-index: 2;
+    }
+    100% {
+      --tls-pos: 0;
+      --tls-y: 0;
+      --tls-z: 0;
+      --tls-r: 0;
+      --tls-s: 1;
+      opacity: 1;
+      visibility: visible;
+      filter: brightness(1.04) saturate(1.05);
+      z-index: 5;
+    }
+  }
+
+  /* Full banner dirapatkan ke pojok kiri-kanan website, tetap HTML/CSS dan tetap pakai elemen gambar yang sudah ada. */
+  .topupid-banner-separator.bottom-full-visual#banner-layanan-topupid {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    margin-left: calc(50% - 50vw) !important;
+    margin-right: calc(50% - 50vw) !important;
+    margin-top: 8px !important;
+    padding: 8px 0 28px !important;
+    overflow: visible !important;
+  }
+
+  #banner-layanan-topupid .topupid-banner-inner {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    aspect-ratio: 2048 / 614 !important;
+    height: auto !important;
+    min-height: unset !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  #banner-layanan-topupid .topupid-banner-inner::before,
+  #banner-layanan-topupid .topupid-banner-inner::after {
+    content: none !important;
+    display: none !important;
+  }
+
+  #banner-layanan-topupid .topupid-banner-full-image {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    width: 100vw !important;
+    height: 100% !important;
+    max-width: none !important;
+    object-fit: cover !important;
+    object-position: center center !important;
+    border-radius: 0 !important;
+    border-top: 1.5px solid rgba(55, 219, 255, .92) !important;
+    border-bottom: 1.5px solid rgba(55, 219, 255, .92) !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    outline: 1px solid rgba(34, 197, 94, .22) !important;
+    outline-offset: -2px !important;
+    box-shadow:
+      0 0 18px rgba(56,189,248,.38),
+      0 0 46px rgba(34,197,94,.16),
+      0 22px 64px rgba(0,0,0,.40) !important;
+    background: transparent !important;
+    color: transparent !important;
+    font-size: 0 !important;
+  }
+
+  @media (max-width: 780px) {
+    #showcase {
+      padding: 8px 4.5% 18px !important;
+    }
+    #showcase .tls-visual-shell {
+      min-height: 250px !important;
+      padding: 8px !important;
+    }
+    #showcase .tls-rotator {
+      height: 218px !important;
+    }
+    #showcase .tls-card,
+    #showcase .tls-card-1,
+    #showcase .tls-card-2,
+    #showcase .tls-card-3,
+    #showcase .tls-card-4 {
+      width: min(390px, calc(100vw - 78px)) !important;
+      aspect-ratio: 16 / 9 !important;
+      height: auto !important;
+      --tls-side: clamp(96px, 26vw, 132px);
+    }
+  }
+
+  @media (max-width: 430px) {
+    #showcase {
+      padding: 4px 4.5% 14px !important;
+    }
+    #showcase .tls-visual-shell {
+      min-height: 230px !important;
+      padding: 6px 0 !important;
+    }
+    #showcase .tls-rotator {
+      height: 206px !important;
+    }
+    #showcase .tls-card,
+    #showcase .tls-card-1,
+    #showcase .tls-card-2,
+    #showcase .tls-card-3,
+    #showcase .tls-card-4 {
+      width: min(318px, calc(100vw - 72px)) !important;
+      aspect-ratio: 16 / 9 !important;
+      height: auto !important;
+      border-radius: 20px !important;
+      --tls-side: clamp(88px, 25vw, 114px);
+    }
+    .topupid-banner-separator.bottom-full-visual#banner-layanan-topupid {
+      padding-top: 6px !important;
+      padding-bottom: 24px !important;
+    }
+  }
+</style>
+
+<script id="v61-showcase-match-topup1-cleanup">
+(function(){
+  function cleanShowcase(){
+    var showcase = document.getElementById('showcase');
+    if (!showcase) return;
+    showcase.querySelectorAll('.v56-showcase-badge,.v56-showcase-caption,.v56-showcase-controls').forEach(function(el){ el.remove(); });
+    showcase.querySelectorAll('.tls-card').forEach(function(card, idx){
+      if (idx > 3) { card.remove(); return; }
+      card.style.removeProperty('animation');
+      card.style.removeProperty('transform');
+      card.style.removeProperty('opacity');
+      card.style.removeProperty('pointer-events');
+      card.style.removeProperty('z-index');
+      var img = card.querySelector('img');
+      if (img) {
+        img.removeAttribute('srcset');
+        if (!/^tls[1-4]\.webp$/.test(img.getAttribute('src') || '')) img.setAttribute('src', 'tls' + (idx + 1) + '.webp');
+      }
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', cleanShowcase, {once:true}); else cleanShowcase();
+  window.addEventListener('load', cleanShowcase, {once:true});
+  setTimeout(cleanShowcase, 800);
+  setTimeout(cleanShowcase, 1800);
+})();
+</script>
 
 </body>
 </html>
