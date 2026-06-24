@@ -11787,5 +11787,90 @@
   }
 </style>
 
+
+
+<!-- V50 requested fix: slightly bigger 16:9 showcase cards and remove the box/outline lines around the showcase only. -->
+<style id="v50-topupid-slightly-bigger-no-box-lines-showcase">
+  /* Scope sangat terbatas: hanya area 4 gambar pada section #showcase. Tidak mengubah HTML, script, endpoint, form, login, hash, A2F, payment gateway, email template, API, atau keamanan. */
+  #showcase .tls-visual-shell {
+    border: 0 !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+
+  #showcase .tls-visual-shell::before,
+  #showcase .tls-visual-shell::after {
+    content: none !important;
+    display: none !important;
+    opacity: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+
+  #showcase .tls-rotator {
+    border: 0 !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+
+  #showcase .tls-card,
+  #showcase .tls-card-1,
+  #showcase .tls-card-2,
+  #showcase .tls-card-3,
+  #showcase .tls-card-4 {
+    width: min(590px, 72vw) !important;
+    aspect-ratio: 16 / 9 !important;
+    height: auto !important;
+  }
+
+  @media (max-width: 780px) {
+    #showcase .tls-visual-shell {
+      min-height: 390px !important;
+      padding: 18px !important;
+    }
+
+    #showcase .tls-rotator {
+      height: 292px !important;
+    }
+
+    #showcase .tls-card,
+    #showcase .tls-card-1,
+    #showcase .tls-card-2,
+    #showcase .tls-card-3,
+    #showcase .tls-card-4 {
+      width: min(396px, calc(100vw - 82px)) !important;
+      aspect-ratio: 16 / 9 !important;
+      height: auto !important;
+      --tls-side: clamp(96px, 26vw, 132px);
+    }
+  }
+
+  @media (max-width: 430px) {
+    #showcase .tls-visual-shell {
+      min-height: 360px !important;
+      padding: 15px !important;
+    }
+
+    #showcase .tls-rotator {
+      height: 266px !important;
+    }
+
+    #showcase .tls-card,
+    #showcase .tls-card-1,
+    #showcase .tls-card-2,
+    #showcase .tls-card-3,
+    #showcase .tls-card-4 {
+      width: min(314px, calc(100vw - 76px)) !important;
+      aspect-ratio: 16 / 9 !important;
+      height: auto !important;
+      border-radius: 20px !important;
+      --tls-side: clamp(90px, 25vw, 116px);
+    }
+  }
+</style>
+
 </body>
 </html>
