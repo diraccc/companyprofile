@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" data-theme="dark" data-theme-mode="dark" data-effective-theme="dark" data-language="id" data-motion="full" data-contrast="off">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>TopupID - Top Up Game dan Produk Digital</title>
   <meta name="description" content="Frontend 3D premium satu file HTML untuk website top up game, pulsa, paket data, token PLN, dan produk digital." />
   <meta name="theme-color" content="#050816" />
-  <meta name="x-build" content="threejs-balanced-premium-v7-large-no-shrink" />
+  <meta name="x-build" content="topupid-dashboard-header-v52-ten-showcase" />
   <link rel="icon" href="data:," />
 
   <style>
@@ -3007,6 +3007,215 @@
     }
 
   </style>
+
+
+  <style id="topupid-dashboard-header-system-v52">
+    :root {
+      --gold: var(--cyan);
+      --gold2: var(--blue);
+      --gold3: #075985;
+      --gold-2: var(--blue);
+      --gold-3: #075985;
+      --theme-rgb: 56, 189, 248;
+      --line: rgba(var(--theme-rgb), .18);
+      --line2: rgba(var(--theme-rgb), .36);
+      --line-strong: rgba(var(--theme-rgb), .42);
+      --motion-ease: cubic-bezier(.2,.8,.2,1);
+    }
+
+    body {
+      background:
+        radial-gradient(circle at var(--mx) var(--my), rgba(var(--theme-rgb), 0.12), transparent 22rem),
+        radial-gradient(circle at 10% 0%, rgba(var(--theme-rgb), 0.17), transparent 28rem),
+        radial-gradient(circle at 88% 12%, rgba(var(--theme-rgb), 0.14), transparent 26rem),
+        radial-gradient(circle at 50% 100%, rgba(var(--theme-rgb), 0.10), transparent 32rem),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg-soft) 42%, var(--bg) 100%) !important;
+    }
+
+    html[data-effective-theme="light"] {
+      --bg: #f8fafc;
+      --bg-soft: #eef4ff;
+      --panel: rgba(255, 255, 255, .78);
+      --panel-strong: rgba(255, 255, 255, .92);
+      --stroke: rgba(15, 23, 42, .12);
+      --text: #0f172a;
+      --soft: #334155;
+      --muted: #64748b;
+      --dark: #ffffff;
+    }
+
+    html[data-effective-theme="light"] body::before { opacity: .45; }
+    html[data-effective-theme="light"] .noise { opacity: .025; }
+
+    .scroll-progress,
+    .fan-dot-html.active,
+    .dot.active {
+      background: linear-gradient(90deg, var(--gold), var(--gold2)) !important;
+      box-shadow: 0 0 24px rgba(var(--theme-rgb), .72) !important;
+    }
+
+    .topup-dashboard-header {
+      border-bottom: 1px solid rgba(var(--theme-rgb), .18) !important;
+      background: linear-gradient(180deg, rgba(5, 8, 22, .88), rgba(5, 8, 22, .70)) !important;
+      box-shadow: 0 18px 60px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.05) !important;
+      backdrop-filter: blur(22px) saturate(1.35) !important;
+      -webkit-backdrop-filter: blur(22px) saturate(1.35) !important;
+    }
+
+    html[data-effective-theme="light"] .topup-dashboard-header {
+      background: rgba(255,255,255,.84) !important;
+      box-shadow: 0 16px 46px rgba(15,23,42,.10), inset 0 1px 0 rgba(255,255,255,.7) !important;
+    }
+
+    .topup-dashboard-header .nav-links a:not(.nav-cta) {
+      color: var(--soft) !important;
+      font-weight: 850 !important;
+    }
+    .topup-dashboard-header .nav-links a:not(.nav-cta):hover,
+    .topup-dashboard-header .nav-links a:not(.nav-cta).active {
+      color: var(--gold) !important;
+      text-shadow: 0 0 18px rgba(var(--theme-rgb), .30) !important;
+    }
+    .topup-dashboard-header .nav-cta,
+    .btn-primary,
+    .mobile-cinematic-primary,
+    .real-mobile-primary,
+    .pay-bar,
+    .mobile-pay-strip {
+      color: #020617 !important;
+      background: linear-gradient(135deg, var(--gold), var(--gold2)) !important;
+      box-shadow: 0 18px 45px rgba(var(--theme-rgb), .25) !important;
+    }
+
+    .header-actions { display: flex; align-items: center; gap: 10px; }
+    .theme-toggle,
+    .topup-dashboard-header .menu-toggle.menu-btn {
+      min-height: 44px;
+      border: 1px solid rgba(var(--theme-rgb), .24) !important;
+      background: rgba(255,255,255,.07) !important;
+      color: var(--text) !important;
+      border-radius: 16px !important;
+      padding: 10px 13px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 8px !important;
+      font-weight: 900 !important;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 12px 28px rgba(0,0,0,.16) !important;
+      transition: transform .2s ease, border-color .2s ease, background .2s ease !important;
+    }
+    .theme-toggle:hover,
+    .topup-dashboard-header .menu-toggle.menu-btn:hover { transform: translateY(-2px); border-color: rgba(var(--theme-rgb), .42) !important; background: rgba(var(--theme-rgb), .12) !important; }
+    .topup-dashboard-header .menu-toggle.menu-btn { width: 46px; padding: 0 !important; }
+    .hamburger { width: 20px; display: grid; gap: 4px; }
+    .hamburger span { display: block; height: 2px; border-radius: 999px; background: currentColor; box-shadow: 0 0 12px rgba(var(--theme-rgb), .45); }
+
+    .brand-typewriter { min-width: 92px; display: inline-flex; align-items: center; }
+    .brand-typewriter-text::after { content: ""; display: inline-block; width: 2px; height: 1em; margin-left: 3px; vertical-align: -0.12em; background: var(--gold); box-shadow: 0 0 12px rgba(var(--theme-rgb), .8); animation: topupidCaretBlink 1s steps(2,end) infinite; }
+    @keyframes topupidCaretBlink { 50% { opacity: 0; } }
+
+    .theme-modal,
+    .menu-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(2, 6, 23, .70);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+    .theme-modal.open,
+    .menu-overlay.open { display: flex !important; }
+    .theme-card,
+    .du-menu {
+      width: min(720px, 100%);
+      max-height: min(86vh, 780px);
+      overflow: auto;
+      border: 1px solid rgba(var(--theme-rgb), .26);
+      border-radius: 28px;
+      background: linear-gradient(180deg, rgba(15, 23, 42, .96), rgba(2, 6, 23, .96));
+      box-shadow: 0 34px 100px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.06);
+      color: #f8fafc;
+    }
+    html[data-effective-theme="light"] .theme-card,
+    html[data-effective-theme="light"] .du-menu {
+      background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(241,245,249,.96));
+      color: #0f172a;
+      box-shadow: 0 30px 86px rgba(15,23,42,.18), inset 0 1px 0 rgba(255,255,255,.7);
+    }
+    .theme-head,
+    .du-top { position: sticky; top: 0; z-index: 3; background: inherit; border-bottom: 1px solid rgba(var(--theme-rgb), .16); padding: 18px; }
+    .theme-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+    .theme-head h2 { font-size: clamp(24px, 4vw, 34px); line-height: 1.05; letter-spacing: -.7px; }
+    .theme-body { display: grid; gap: 16px; padding: 18px; }
+    .theme-section { display: grid; gap: 10px; padding: 14px; border: 1px solid rgba(255,255,255,.09); border-radius: 22px; background: rgba(255,255,255,.045); }
+    html[data-effective-theme="light"] .theme-section { background: rgba(255,255,255,.72); border-color: rgba(15,23,42,.08); }
+    .theme-section h3 { font-size: 15px; color: var(--gold); letter-spacing: .04em; text-transform: uppercase; }
+    .theme-choice-grid,
+    .theme-language-grid,
+    .theme-contrast-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+    .theme-language-grid { grid-template-columns: repeat(auto-fit, minmax(126px, 1fr)); }
+    .choice { min-height: 44px; border: 1px solid rgba(255,255,255,.12); border-radius: 16px; background: rgba(255,255,255,.055); color: inherit; padding: 10px 12px; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 900; }
+    .choice.is-selected,
+    .choice.active { border-color: rgba(var(--theme-rgb), .52); background: rgba(var(--theme-rgb), .16); box-shadow: 0 0 0 1px rgba(var(--theme-rgb), .12), 0 10px 28px rgba(var(--theme-rgb), .12); }
+    .custom-theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 9px; max-height: 210px; overflow: auto; padding: 2px; }
+    .accent-swatch { width: 100%; aspect-ratio: 1; min-height: 38px; border-radius: 14px; border: 1px solid rgba(255,255,255,.14); box-shadow: inset 0 1px 0 rgba(255,255,255,.22); }
+    .accent-swatch.is-selected { outline: 2px solid rgba(255,255,255,.86); outline-offset: 2px; }
+    .icon-btn,
+    .du-close,
+    .du-clear { border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.06); color: inherit; border-radius: 14px; min-width: 40px; min-height: 40px; font-size: 22px; font-weight: 900; }
+
+    .topupid-dashboard-menu { justify-content: flex-end; padding: 12px; }
+    .du-menu { width: min(430px, 100%); height: min(92vh, 760px); border-radius: 30px; }
+    .du-handle { width: 46px; height: 5px; border-radius: 999px; background: rgba(var(--theme-rgb), .36); margin: 0 auto 12px; }
+    .du-top-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .du-title { display: grid; gap: 2px; min-width: 0; }
+    .du-title strong { font-size: 18px; }
+    .du-title small { color: var(--soft); }
+    .du-search { margin-top: 14px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; border: 1px solid rgba(var(--theme-rgb), .20); border-radius: 18px; background: rgba(255,255,255,.06); padding: 10px 12px; }
+    .du-search input { width: 100%; border: 0; outline: 0; background: transparent; color: inherit; }
+    .du-body { padding: 16px; display: grid; gap: 16px; }
+    .du-group { display: grid; gap: 10px; }
+    .du-group-title { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; color: var(--gold); }
+    .du-group-title span { color: var(--muted); font-size: 12px; font-weight: 800; }
+    .du-stack { display: grid; gap: 9px; }
+    .du-card { display: grid; grid-template-columns: 42px minmax(0,1fr) auto; align-items: center; gap: 11px; min-height: 66px; padding: 11px; border-radius: 20px; border: 1px solid rgba(255,255,255,.10); background: rgba(255,255,255,.055); transition: .2s ease; }
+    .du-card:hover { transform: translateY(-2px); border-color: rgba(var(--theme-rgb), .36); background: rgba(var(--theme-rgb), .11); }
+    .du-icon { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 15px; background: rgba(var(--theme-rgb), .12); }
+    .du-copy { min-width: 0; display: grid; gap: 2px; }
+    .du-copy strong { color: inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .du-copy small { color: var(--soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
+    .du-arrow { color: var(--gold); font-size: 26px; }
+    .du-empty { display: none; color: var(--muted); text-align: center; padding: 18px; border: 1px dashed rgba(var(--theme-rgb), .24); border-radius: 18px; }
+    .du-empty.show { display: block; }
+
+    .kicker,
+    .mobile-cinematic-kicker,
+    .real-mobile-badge,
+    .badge,
+    .fan-helper { color: var(--gold) !important; border-color: rgba(var(--theme-rgb), .28) !important; }
+    .grad,
+    .real-mobile-title span,
+    .mobile-cinematic-title span,
+    h1 span,
+    h2 span { background: linear-gradient(90deg, var(--gold), #fff, var(--gold2)) !important; -webkit-background-clip: text !important; background-clip: text !important; color: transparent !important; }
+
+    html[data-motion="reduced"] *,
+    html[data-motion="none"] * { animation-duration: .001ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .001ms !important; }
+    html[data-contrast="on"] { filter: contrast(1.08) saturate(1.05); }
+
+    @media (max-width: 820px) {
+      .theme-toggle .label { display: none; }
+      .topup-dashboard-header .nav-links { display: none; }
+      .header-actions { margin-left: auto; }
+      .theme-card { border-radius: 24px; }
+      .theme-choice-grid, .theme-contrast-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+
 </head>
 
 <body>
@@ -3015,24 +3224,63 @@
   <div class="noise" aria-hidden="true"></div>
 
   <div class="page">
-    <header class="navbar">
+<header class="navbar site-header topup-dashboard-header" id="siteHeader">
       <a href="#home" class="brand brand-logo-link" aria-label="TopupID">
-        <span class="brand-mark image-brand"><img src="data:image/webp;base64,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" alt="TopupID" /></span>
-        <b>Topup<span>ID</span></b>
+        <span class="brand-mark image-brand"><img src="dnnn.webp" alt="" /></span>
+        <b class="brand-name brand-typewriter" data-brand-typewriter="" data-no-i18n=""><span aria-hidden="true" class="brand-typewriter-text">TopupID</span></b>
       </a>
 
       <nav class="nav-links" aria-label="Navigasi utama">
-        <a href="#premium">Produk</a>
-        <a href="#checkout">Top Up</a>
-        <a href="#checkout" class="nav-cta">Mulai</a>
+        <a href="#premium" data-i18n="navProducts">Produk</a>
+        <a href="#produk" data-i18n="navCatalog">Katalog</a>
+        <a href="#checkout" data-i18n="navTopup">Top Up</a>
+        <a href="#checkout" class="nav-cta" data-i18n="navStart">Mulai</a>
       </nav>
 
-      <button class="menu-btn" id="menuBtn" type="button" aria-label="Buka menu">☰</button>
+      <div class="header-actions">
+        <button aria-controls="themeModal" aria-haspopup="dialog" aria-label="Buka pengaturan tema" class="theme-toggle" data-open-theme="" type="button"><span aria-hidden="true">🎨</span><span class="label" data-i18n="theme">Tema</span></button>
+        <button aria-controls="mobileMenu" aria-expanded="false" aria-haspopup="dialog" aria-label="Buka menu TopupID" class="menu-toggle menu-btn" id="menuBtn" type="button"><span aria-hidden="true" class="hamburger"><span></span><span></span><span></span></span></button>
+      </div>
     </header>
 
-    <div class="mobile-menu" id="mobileMenu">
-      <a href="#premium">Produk</a>
-      <a href="#checkout">Top Up</a>
+    <div aria-hidden="true" class="menu-overlay dirac-ultra-menu topupid-dashboard-menu" id="mobileMenu">
+      <aside aria-labelledby="topupidMenuTitle" aria-modal="true" class="du-menu" role="dialog" tabindex="-1">
+        <header class="du-top">
+          <div aria-hidden="true" class="du-handle"></div>
+          <div class="du-top-row">
+            <div class="du-title">
+              <strong data-i18n="menuTitle" id="topupidMenuTitle">Menu TopupID</strong>
+              <small data-i18n="menuSub">Navigasi layanan top up dan checkout.</small>
+            </div>
+            <button aria-label="Tutup menu" class="du-close" data-close-menu="" type="button">×</button>
+          </div>
+          <label aria-label="Cari menu TopupID" class="du-search">
+            <span aria-hidden="true">⌕</span>
+            <input aria-label="Cari menu" autocomplete="off" id="topupidMenuSearch" maxlength="40" placeholder="Cari menu" spellcheck="false" type="search" />
+            <button aria-label="Hapus pencarian" class="du-clear" id="topupidMenuClear" type="button">×</button>
+          </label>
+        </header>
+        <main class="du-body">
+          <section class="du-group" data-du-group="">
+            <div class="du-group-title"><strong data-i18n="menuMainGroup">Layanan TopupID</strong><span data-i18n="menuMainSub">Menu utama</span></div>
+            <div class="du-stack">
+              <a class="du-card du-searchable" data-close-menu="" data-keyword="produk popular product carousel" href="#premium"><span class="du-icon">🎮</span><span class="du-copy"><strong data-i18n="menuProducts">Produk Populer</strong><small data-i18n="menuProductsSub">Pilih produk favorit</small></span><span class="du-arrow">›</span></a>
+              <a class="du-card du-searchable" data-close-menu="" data-keyword="katalog produk digital game" href="#produk"><span class="du-icon">🧾</span><span class="du-copy"><strong data-i18n="menuCatalog">Katalog Produk</strong><small data-i18n="menuCatalogSub">Game dan produk digital</small></span><span class="du-arrow">›</span></a>
+              <a class="du-card du-searchable" data-close-menu="" data-keyword="showcase gambar banner visual" href="#showcase"><span class="du-icon">🖼️</span><span class="du-copy"><strong data-i18n="menuShowcase">Showcase Gambar</strong><small data-i18n="menuShowcaseSub">10 gambar berurutan</small></span><span class="du-arrow">›</span></a>
+              <a class="du-card du-searchable" data-close-menu="" data-keyword="checkout top up form pembayaran" href="#checkout"><span class="du-icon">⚡</span><span class="du-copy"><strong data-i18n="menuCheckout">Checkout Top Up</strong><small data-i18n="menuCheckoutSub">Isi data dan nominal</small></span><span class="du-arrow">›</span></a>
+            </div>
+          </section>
+          <section class="du-group" data-du-group="">
+            <div class="du-group-title"><strong data-i18n="menuSupportGroup">Keamanan & Bantuan</strong><span data-i18n="menuSupportSub">Status dan panduan</span></div>
+            <div class="du-stack">
+              <a class="du-card du-searchable" data-close-menu="" data-keyword="trust safety keamanan transaksi" href="#trust"><span class="du-icon">🔒</span><span class="du-copy"><strong data-i18n="menuTrust">Trust & Safety</strong><small data-i18n="menuTrustSub">Keamanan transaksi</small></span><span class="du-arrow">›</span></a>
+              <a class="du-card du-searchable" data-close-menu="" data-keyword="smart checkout panduan" href="#smartflow"><span class="du-icon">💡</span><span class="du-copy"><strong data-i18n="menuSmart">Smart Checkout</strong><small data-i18n="menuSmartSub">Panduan pengisian</small></span><span class="du-arrow">›</span></a>
+              <a class="du-card du-searchable" data-close-menu="" data-keyword="dashboard pelanggan" href="dashboard.html"><span class="du-icon">🏠</span><span class="du-copy"><strong data-i18n="menuDashboard">Dashboard</strong><small data-i18n="menuDashboardSub">Kembali ke client area</small></span><span class="du-arrow">›</span></a>
+            </div>
+          </section>
+          <p class="du-empty" id="topupidMenuEmpty" data-i18n="menuEmpty">Menu tidak ditemukan.</p>
+        </main>
+      </aside>
     </div>
 
 
@@ -3259,11 +3507,17 @@
 
       <section class="section reveal" id="showcase">
         <div class="tls-visual-shell">
-          <div class="tls-rotator" aria-label="Animasi gambar layanan TopupID berputar">
-            <div class="tls-card tls-card-1"><img src="tls1.webp" alt="Game Top Up" /></div>
-            <div class="tls-card tls-card-2"><img src="tls2.webp" alt="Banner Top Up Game" /></div>
-            <div class="tls-card tls-card-3"><img src="tls3.webp" alt="Banner Produk Digital" /></div>
-            <div class="tls-card tls-card-4"><img src="tls4.webp" alt="Produk Digital" /></div>
+          <div class="tls-rotator" aria-label="Animasi 10 gambar layanan TopupID berurutan">
+            <div class="tls-card tls-card-1"><img src="tls1.webp" alt="Gambar TopupID 1" /></div>
+            <div class="tls-card tls-card-2"><img src="tls2.webp" alt="Gambar TopupID 2" /></div>
+            <div class="tls-card tls-card-3"><img src="tls3.webp" alt="Gambar TopupID 3" /></div>
+            <div class="tls-card tls-card-4"><img src="tls4.webp" alt="Gambar TopupID 4" /></div>
+            <div class="tls-card tls-card-5"><img src="tls5.webp" alt="Gambar TopupID 5" /></div>
+            <div class="tls-card tls-card-6"><img src="tls6.webp" alt="Gambar TopupID 6" /></div>
+            <div class="tls-card tls-card-7"><img src="tls7.webp" alt="Gambar TopupID 7" /></div>
+            <div class="tls-card tls-card-8"><img src="tls8.webp" alt="Gambar TopupID 8" /></div>
+            <div class="tls-card tls-card-9"><img src="tls9.webp" alt="Gambar TopupID 9" /></div>
+            <div class="tls-card tls-card-10"><img src="tls10.webp" alt="Gambar TopupID 10" /></div>
           </div>
         </div>
       </section>
@@ -10756,9 +11010,9 @@
 
 
 
-<!-- V44 requested update: four-image showcase changed to premium CSS coverflow animation only. -->
+<!-- V44 requested update: ten-image showcase changed to premium CSS coverflow animation only. -->
 <style id="v44-topupid-coverflow-showcase">
-  /* Scope terbatas: hanya area empat gambar di section #showcase. */
+  /* Scope terbatas: hanya area sepuluh gambar di section #showcase. */
   #showcase {
     display: block !important;
     visibility: visible !important;
@@ -10998,7 +11252,7 @@
 
 <!-- V45 requested update: larger four-image coverflow cards with slower readable rotation only. -->
 <style id="v45-topupid-coverflow-readable-size">
-  /* Scope tetap terbatas: hanya memperbesar dan memperlambat animasi 4 gambar di #showcase. */
+  /* Scope tetap terbatas: hanya memperbesar dan memperlambat animasi 10 gambar di #showcase. */
   #showcase {
     padding: 38px 7% 68px !important;
   }
@@ -11112,7 +11366,7 @@
 
 <!-- V46 requested fix: clean readable four-image slider, no tilted/transparent card state. -->
 <style id="v46-topupid-clean-readable-showcase">
-  /* Scope sangat terbatas: hanya area 4 gambar di section #showcase. Tidak mengubah script, endpoint, login, payment, hash, A2F, API, atau keamanan. */
+  /* Scope sangat terbatas: hanya area 10 gambar di section #showcase. Tidak mengubah script, endpoint, login, payment, hash, A2F, API, atau keamanan. */
   #showcase {
     padding: 38px 7% 70px !important;
   }
@@ -11279,7 +11533,7 @@
 
 <!-- V47 requested fix: restore previous premium coverflow motion, centered active image, no transparent visible cards. -->
 <style id="v47-topupid-centered-solid-coverflow">
-  /* Scope sangat terbatas: hanya 4 gambar pada section #showcase. Override ini tidak mengubah HTML, script, endpoint, form, login, hash, A2F, payment gateway, email template, API, atau keamanan. */
+  /* Scope sangat terbatas: hanya 10 gambar pada section #showcase. Override ini tidak mengubah HTML, script, endpoint, form, login, hash, A2F, payment gateway, email template, API, atau keamanan. */
   @property --tls-pos { syntax: '<number>'; inherits: false; initial-value: 0; }
   @property --tls-y { syntax: '<number>'; inherits: false; initial-value: 0; }
   @property --tls-z { syntax: '<number>'; inherits: false; initial-value: 0; }
@@ -11510,7 +11764,7 @@
 
 <!-- V48 requested fix: keep previous coverflow animation, but force centered 16:9 image fit without transparency/cropping. -->
 <style id="v48-topupid-16x9-fit-showcase">
-  /* Scope sangat terbatas: hanya section #showcase / empat gambar tls. */
+  /* Scope sangat terbatas: hanya section #showcase / sepuluh gambar tls. */
   #showcase .tls-visual-shell {
     display: grid !important;
     place-items: center !important;
@@ -11708,7 +11962,7 @@
 
 <!-- V49 requested fix: slightly smaller centered 16:9 showcase cards, keeping the same coverflow animation. -->
 <style id="v49-topupid-slightly-smaller-16x9-showcase">
-  /* Scope sangat terbatas: hanya ukuran empat gambar tls di section #showcase. */
+  /* Scope sangat terbatas: hanya ukuran sepuluh gambar tls di section #showcase. */
   #showcase .tls-card,
   #showcase .tls-card-1,
   #showcase .tls-card-2,
@@ -11769,7 +12023,7 @@
 
 <!-- V50 requested fix: slightly bigger 16:9 showcase cards and remove the box/outline lines around the showcase only. -->
 <style id="v50-topupid-slightly-bigger-no-box-lines-showcase">
-  /* Scope sangat terbatas: hanya area 4 gambar pada section #showcase. Tidak mengubah HTML, script, endpoint, form, login, hash, A2F, payment gateway, email template, API, atau keamanan. */
+  /* Scope sangat terbatas: hanya area 10 gambar pada section #showcase. Tidak mengubah HTML, script, endpoint, form, login, hash, A2F, payment gateway, email template, API, atau keamanan. */
   #showcase .tls-visual-shell {
     border: 0 !important;
     outline: 0 !important;
@@ -11854,7 +12108,7 @@
 
 <!-- V51 requested fix: precise border around the 4-image video/showcase and remove unused vertical space. -->
 <style id="v51-topupid-precise-frame-compact-showcase">
-  /* Scope sangat terbatas: hanya area empat gambar/video visual pada section #showcase. */
+  /* Scope sangat terbatas: hanya area sepuluh gambar/video visual pada section #showcase. */
   #showcase {
     padding: 12px 7% 20px !important;
     margin: 0 !important;
@@ -11958,72 +12212,553 @@
 </style>
 
 
-<!-- V52 fixed navbar image only: restore the missing dnnn.webp as an embedded image and keep the original TopupID navbar layout. -->
-<style id="v52-topupid-navbar-image-fix-only">
-  .brand-logo-link {
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: flex-start !important;
-    gap: 10px !important;
-    min-width: 0 !important;
-  }
 
-  .brand-mark.image-brand {
-    width: 46px !important;
-    height: 46px !important;
-    min-width: 46px !important;
-    display: grid !important;
-    place-items: center !important;
-    background: transparent !important;
-    box-shadow: none !important;
-    transform: none !important;
-    border: 0 !important;
-    outline: 0 !important;
-    border-radius: 0 !important;
-    overflow: visible !important;
-  }
+  <div aria-hidden="true" class="theme-modal" id="themeModal">
+    <div aria-labelledby="themeTitle" aria-modal="true" class="theme-card theme-pro-card" role="dialog" tabindex="-1">
+      <div class="theme-head theme-pro-head">
+        <h2 data-i18n="themeTitle" id="themeTitle">Pengaturan Tema</h2>
+        <button aria-label="Tutup pengaturan tema" class="icon-btn theme-close-btn" data-close-theme="" type="button">×</button>
+      </div>
+      <div class="theme-body theme-content">
+        <section aria-label="Mode tema" class="theme-section">
+          <h3 data-i18n="modeTitle">Mode Tema</h3>
+          <div class="theme-choice-grid theme-mode-grid">
+            <button aria-pressed="false" class="choice theme-choice theme-pro-choice" data-theme-mode="dark" type="button"><span aria-hidden="true" class="choice-symbol">☾</span><span data-i18n="dark">Gelap</span></button>
+            <button aria-pressed="false" class="choice theme-choice theme-pro-choice" data-theme-mode="auto" type="button"><span aria-hidden="true" class="choice-symbol">⚙</span><span data-i18n="auto">Otomatis</span></button>
+          </div>
+        </section>
+        <section aria-label="Bahasa tampilan" class="theme-section">
+          <h3 data-i18n="languageTitle">Bahasa Tampilan</h3>
+          <div aria-label="Pilihan bahasa website" class="theme-language-grid language-grid" data-no-i18n="" id="themeLanguageOptions">
+            <button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="id" type="button"><span aria-hidden="true" class="lang-badge">ID</span><span>Indonesia</span></button>
+            <button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="en" type="button"><span aria-hidden="true" class="lang-badge">EN</span><span>English</span></button>
+            <button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="zh" type="button"><span aria-hidden="true" class="lang-badge">中</span><span>中文</span></button>
+            <button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="ar" type="button"><span aria-hidden="true" class="lang-badge">ع</span><span>العربية</span></button>
+            <button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="ja" type="button"><span aria-hidden="true" class="lang-badge">日</span><span>日本語</span></button>
+            <button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="ko" type="button"><span aria-hidden="true" class="lang-badge">한</span><span>한국어</span></button>
+            <button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="es" type="button"><span aria-hidden="true" class="lang-badge">ES</span><span>Español</span></button>
+            <button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="fr" type="button"><span aria-hidden="true" class="lang-badge">FR</span><span>Français</span></button>
+          </div>
+        </section>
+        <section aria-label="Kontras tema" class="theme-section">
+          <h3 data-i18n="contrastTitle">Kontras Tema</h3>
+          <div class="theme-contrast-grid contrast-grid">
+            <button aria-pressed="false" class="choice theme-choice theme-pro-choice" data-contrast="on" type="button"><span aria-hidden="true" class="choice-symbol">◐</span><span data-i18n="contrastOn">Aktif</span></button>
+            <button aria-pressed="false" class="choice theme-choice theme-pro-choice" data-contrast="off" type="button"><span aria-hidden="true" class="choice-symbol">◌</span><span data-i18n="contrastOff">Nonaktif</span></button>
+          </div>
+        </section>
+        <section aria-label="Kustom warna utama" class="theme-section">
+          <h3 data-i18n="accentTitle">Kustom Tema</h3>
+          <div aria-label="Pilihan warna utama" class="theme-swatches custom-theme-grid" id="accentChoices"></div>
+        </section>
+        <section aria-label="Gerak website" class="theme-section">
+          <h3 data-i18n="motionTitle">Gerak Website</h3>
+          <div class="theme-contrast-grid motion-grid">
+            <button aria-pressed="false" class="choice theme-choice theme-pro-choice" data-motion-choice="full" type="button"><span aria-hidden="true" class="choice-symbol">✨</span><span data-i18n="motionFull">Full animasi</span></button>
+            <button aria-pressed="false" class="choice theme-choice theme-pro-choice" data-motion-choice="reduced" type="button"><span aria-hidden="true" class="choice-symbol">🪶</span><span data-i18n="motionReduced">Gerak ringan</span></button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
 
-  .brand-mark.image-brand::before,
-  .brand-mark.image-brand::after {
-    content: none !important;
-    display: none !important;
-  }
 
-  .brand-mark.image-brand img {
-    width: 46px !important;
-    height: 46px !important;
-    display: block !important;
-    object-fit: contain !important;
-    object-position: center !important;
-    border: 0 !important;
-    outline: 0 !important;
-    border-radius: 0 !important;
-    background: transparent !important;
-    filter: drop-shadow(0 0 12px rgba(56, 189, 248, .24)) !important;
+<!-- V52 requested update: 10 sequential showcase images + dashboard header/theme/language integration. -->
+<style id="v52-topupid-ten-image-showcase-dashboard-sync">
+  /* Scope sangat terbatas: hanya section #showcase dan header/menu/tema. Endpoint, login, hash, A2F, payment gateway, email template, API, dan keamanan backend tidak diubah. */
+  #showcase { padding: 12px 7% 20px !important; margin: 0 !important; }
+  #showcase .tls-visual-shell { min-height: clamp(250px, 36vw, 390px) !important; padding: clamp(10px, 2vw, 20px) !important; border: 0 !important; outline: 0 !important; box-shadow: none !important; background: transparent !important; }
+  #showcase .tls-rotator { position: relative !important; height: clamp(214px, 30vw, 330px) !important; width: min(940px, 100%) !important; overflow: visible !important; border: 0 !important; outline: 0 !important; box-shadow: none !important; background: transparent !important; transform-style: preserve-3d !important; perspective: 1200px !important; animation: none !important; }
+  #showcase .tls-card,
+  #showcase .tls-card-1,
+  #showcase .tls-card-2,
+  #showcase .tls-card-3,
+  #showcase .tls-card-4,
+  #showcase .tls-card-5,
+  #showcase .tls-card-6,
+  #showcase .tls-card-7,
+  #showcase .tls-card-8,
+  #showcase .tls-card-9,
+  #showcase .tls-card-10 {
+    position: absolute !important;
+    inset: auto !important;
+    left: 50% !important;
+    top: 50% !important;
+    width: min(590px, 72vw) !important;
+    height: auto !important;
+    aspect-ratio: 16 / 9 !important;
+    border-radius: 22px !important;
+    overflow: hidden !important;
+    background: rgba(2, 6, 23, .92) !important;
+    border: 1.5px solid rgba(var(--theme-rgb), .72) !important;
+    outline: 1px solid rgba(255, 255, 255, .10) !important;
+    outline-offset: -2px !important;
+    box-shadow: 0 0 0 1px rgba(2, 6, 23, .74), 0 0 24px rgba(var(--theme-rgb), .24), 0 20px 58px rgba(0, 0, 0, .38) !important;
+    transform-origin: center center !important;
+    backface-visibility: hidden !important;
+    --tls-side: clamp(90px, 25vw, 116px);
+    --tls-pos: 0;
+    --tls-y: 0;
+    --tls-z: 0;
+    --tls-r: 0;
+    --tls-s: 1;
+    transform: translate(-50%, -50%) translateX(calc(var(--tls-pos) * var(--tls-side))) translateY(calc(var(--tls-y) * 1px)) translateZ(calc(var(--tls-z) * 1px)) rotateY(calc(var(--tls-r) * 1deg)) scale(var(--tls-s)) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    filter: none !important;
+    will-change: transform, opacity, filter !important;
+    animation: tlsTopupIDTenShowcase 60s cubic-bezier(.45, 0, .18, 1) infinite both !important;
   }
-
-  .brand-logo-link b {
-    display: inline-block !important;
-    font-size: 21px !important;
-    letter-spacing: .2px !important;
-    line-height: 1 !important;
+  #showcase .tls-card-1 { animation-delay: 0s !important; }
+  #showcase .tls-card-2 { animation-delay: -6s !important; }
+  #showcase .tls-card-3 { animation-delay: -12s !important; }
+  #showcase .tls-card-4 { animation-delay: -18s !important; }
+  #showcase .tls-card-5 { animation-delay: -24s !important; }
+  #showcase .tls-card-6 { animation-delay: -30s !important; }
+  #showcase .tls-card-7 { animation-delay: -36s !important; }
+  #showcase .tls-card-8 { animation-delay: -42s !important; }
+  #showcase .tls-card-9 { animation-delay: -48s !important; }
+  #showcase .tls-card-10 { animation-delay: -54s !important; }
+  #showcase .tls-card img { position: absolute !important; inset: 0 !important; width: 100% !important; height: 100% !important; display: block !important; object-fit: cover !important; object-position: center center !important; transform: none !important; opacity: 1 !important; filter: none !important; }
+  #showcase .tls-card::before { content: "" !important; position: absolute !important; inset: 0 !important; z-index: 2 !important; pointer-events: none !important; border-radius: inherit !important; border: 1px solid rgba(255, 255, 255, .20) !important; background: transparent !important; box-shadow: inset 0 0 0 1px rgba(var(--theme-rgb), .16) !important; opacity: 1 !important; }
+  #showcase .tls-card::after { content: none !important; display: none !important; }
+  @keyframes tlsTopupIDTenShowcase {
+    0%, 7.4% { --tls-pos: 0; --tls-y: 0; --tls-z: 0; --tls-r: 0; --tls-s: 1; opacity: 1; visibility: visible; filter: brightness(1.04) saturate(1.05); z-index: 10; }
+    10%, 17.4% { --tls-pos: 1; --tls-y: 12; --tls-z: -70; --tls-r: -32; --tls-s: .84; opacity: 1; visibility: visible; filter: brightness(.94) saturate(1.02); z-index: 4; }
+    20%, 77.4% { --tls-pos: 0; --tls-y: 32; --tls-z: -190; --tls-r: 0; --tls-s: .70; opacity: 0; visibility: hidden; filter: brightness(.9) saturate(1); z-index: 1; }
+    80%, 87.4% { --tls-pos: -1; --tls-y: 12; --tls-z: -70; --tls-r: 32; --tls-s: .84; opacity: 1; visibility: visible; filter: brightness(.94) saturate(1.02); z-index: 4; }
+    90%, 100% { --tls-pos: 0; --tls-y: 0; --tls-z: 0; --tls-r: 0; --tls-s: 1; opacity: 1; visibility: visible; filter: brightness(1.04) saturate(1.05); z-index: 10; }
   }
-
-  .brand-logo-link b span {
-    color: var(--cyan) !important;
+  @media (max-width: 780px) {
+    #showcase { padding: 8px 4.5% 18px !important; }
+    #showcase .tls-visual-shell { min-height: 250px !important; padding: 8px !important; }
+    #showcase .tls-rotator { height: 218px !important; }
+    #showcase .tls-card { width: min(390px, calc(100vw - 78px)) !important; aspect-ratio: 16 / 9 !important; height: auto !important; }
   }
-
-  @media (max-width: 580px) {
-    .brand-logo-link { gap: 8px !important; }
-    .brand-mark.image-brand,
-    .brand-mark.image-brand img {
-      width: 42px !important;
-      height: 42px !important;
-      min-width: 42px !important;
-    }
-    .brand-logo-link b { font-size: 19px !important; }
+  @media (max-width: 430px) {
+    #showcase { padding: 4px 4.5% 14px !important; }
+    #showcase .tls-visual-shell { min-height: 230px !important; padding: 6px 0 !important; }
+    #showcase .tls-rotator { height: 206px !important; }
+    #showcase .tls-card { width: min(318px, calc(100vw - 72px)) !important; aspect-ratio: 16 / 9 !important; height: auto !important; border-radius: 20px !important; --tls-side: clamp(88px, 25vw, 114px); }
   }
 </style>
+
+
+<script id="topupid-dashboard-header-sync-v52">
+(function(){
+  'use strict';
+  var THEME_KEY = 'dirac_theme_settings_v2';
+  var LEGACY_ACCENT_KEY = 'dirac_global_accent_v1';
+  var LEGACY_LANGUAGE_KEY = 'dirac_global_language_v1';
+  var LEGACY_LANGUAGE_KEY_2 = 'dirac_language_v1';
+  var DEFAULTS = {mode:'dark', accent:'sky', language:'id', motion:'full', contrast:'off'};
+  var PALETTES = {
+    gold:{gold:'#f3cd70',gold2:'#d6a642',gold3:'#8e6425',rgb:'243,205,112'}, champagne:{gold:'#fde68a',gold2:'#f59e0b',gold3:'#92400e',rgb:'253,230,138'}, sand:{gold:'#d6b076',gold2:'#b88943',gold3:'#6b4a23',rgb:'214,176,118'}, bronze:{gold:'#d97706',gold2:'#92400e',gold3:'#451a03',rgb:'217,119,6'}, blue:{gold:'#4f83ff',gold2:'#2563eb',gold3:'#1e3a8a',rgb:'79,131,255'}, sky:{gold:'#38bdf8',gold2:'#0284c7',gold3:'#075985',rgb:'56,189,248'}, indigo:{gold:'#6366f1',gold2:'#4f46e5',gold3:'#312e81',rgb:'99,102,241'}, purple:{gold:'#7c3aed',gold2:'#5b21b6',gold3:'#35126d',rgb:'124,58,237'}, violet:{gold:'#8b5cf6',gold2:'#6d28d9',gold3:'#432076',rgb:'139,92,246'}, lilac:{gold:'#a78bfa',gold2:'#8b5cf6',gold3:'#4c1d95',rgb:'167,139,250'}, amethyst:{gold:'#a855f7',gold2:'#9333ea',gold3:'#581c87',rgb:'168,85,247'}, lavender:{gold:'#c4b5fd',gold2:'#8b5cf6',gold3:'#4c1d95',rgb:'196,181,253'}, magenta:{gold:'#d946ef',gold2:'#a21caf',gold3:'#701a75',rgb:'217,70,239'}, fuchsia:{gold:'#d946ef',gold2:'#c026d3',gold3:'#701a75',rgb:'217,70,239'}, pink:{gold:'#ec4899',gold2:'#be185d',gold3:'#7f123d',rgb:'236,72,153'}, rose:{gold:'#fb7185',gold2:'#e11d48',gold3:'#881337',rgb:'251,113,133'}, red:{gold:'#ef4444',gold2:'#dc2626',gold3:'#7f1d1d',rgb:'239,68,68'}, coral:{gold:'#fb6a4a',gold2:'#ea3d25',gold3:'#8f1d16',rgb:'251,106,74'}, orange:{gold:'#f97316',gold2:'#ea580c',gold3:'#7c2d12',rgb:'249,115,22'}, peach:{gold:'#fdba74',gold2:'#f97316',gold3:'#9a3412',rgb:'253,186,116'}, amber:{gold:'#f59e0b',gold2:'#d97706',gold3:'#78350f',rgb:'245,158,11'}, lemon:{gold:'#facc15',gold2:'#ca8a04',gold3:'#713f12',rgb:'250,204,21'}, lime:{gold:'#84cc16',gold2:'#65a30d',gold3:'#365314',rgb:'132,204,22'}, neon:{gold:'#22c55e',gold2:'#a3e635',gold3:'#365314',rgb:'34,197,94'}, green:{gold:'#34d399',gold2:'#059669',gold3:'#065f46',rgb:'52,211,153'}, emerald:{gold:'#10b981',gold2:'#047857',gold3:'#064e3b',rgb:'16,185,129'}, forest:{gold:'#22c55e',gold2:'#15803d',gold3:'#052e16',rgb:'34,197,94'}, mint:{gold:'#2dd4bf',gold2:'#0d9488',gold3:'#134e4a',rgb:'45,212,191'}, jade:{gold:'#2dd4bf',gold2:'#0f766e',gold3:'#134e4a',rgb:'45,212,191'}, seafoam:{gold:'#5eead4',gold2:'#14b8a6',gold3:'#134e4a',rgb:'94,234,212'}, teal:{gold:'#0f8b8d',gold2:'#0f766e',gold3:'#134e4a',rgb:'15,139,141'}, aqua:{gold:'#22d3ee',gold2:'#0891b2',gold3:'#164e63',rgb:'34,211,238'}, cyan:{gold:'#67dce5',gold2:'#36c2cc',gold3:'#176b73',rgb:'103,220,229'}, lagoon:{gold:'#06b6d4',gold2:'#0e7490',gold3:'#164e63',rgb:'6,182,212'}, turquoise:{gold:'#2dd4bf',gold2:'#0891b2',gold3:'#164e63',rgb:'45,212,191'}, ocean:{gold:'#0ea5e9',gold2:'#0369a1',gold3:'#0c4a6e',rgb:'14,165,233'}, royal:{gold:'#2563eb',gold2:'#1d4ed8',gold3:'#1e3a8a',rgb:'37,99,235'}, navy:{gold:'#1e40af',gold2:'#1e3a8a',gold3:'#111827',rgb:'30,64,175'}, sapphire:{gold:'#3b82f6',gold2:'#1d4ed8',gold3:'#172554',rgb:'59,130,246'}, periwinkle:{gold:'#818cf8',gold2:'#6366f1',gold3:'#312e81',rgb:'129,140,248'}, orchid:{gold:'#c084fc',gold2:'#a855f7',gold3:'#581c87',rgb:'192,132,252'}, plum:{gold:'#a21caf',gold2:'#86198f',gold3:'#4a044e',rgb:'162,28,175'}, copper:{gold:'#c08457',gold2:'#9a5f36',gold3:'#5c341f',rgb:'192,132,87'}, coffee:{gold:'#c08457',gold2:'#92400e',gold3:'#451a03',rgb:'192,132,87'}, ruby:{gold:'#e11d48',gold2:'#be123c',gold3:'#4c0519',rgb:'225,29,72'}, wine:{gold:'#9f1239',gold2:'#881337',gold3:'#4c0519',rgb:'159,18,57'}, burgundy:{gold:'#7f1d1d',gold2:'#5f1212',gold3:'#2f0909',rgb:'127,29,29'}, maroon:{gold:'#b91c1c',gold2:'#7f1d1d',gold3:'#450a0a',rgb:'185,28,28'}, blush:{gold:'#f9a8d4',gold2:'#ec4899',gold3:'#831843',rgb:'249,168,212'}, salmon:{gold:'#fb7185',gold2:'#f43f5e',gold3:'#9f1239',rgb:'251,113,133'}, sunset:{gold:'#fb923c',gold2:'#f43f5e',gold3:'#7f1d1d',rgb:'251,146,60'}, tangerine:{gold:'#f97316',gold2:'#c2410c',gold3:'#7c2d12',rgb:'249,115,22'}, apricot:{gold:'#fdba74',gold2:'#fb923c',gold3:'#9a3412',rgb:'253,186,116'}, honey:{gold:'#fbbf24',gold2:'#d97706',gold3:'#78350f',rgb:'251,191,36'}, olive:{gold:'#a3a33a',gold2:'#71717a',gold3:'#3f3f1f',rgb:'163,163,58'}, graphite:{gold:'#94a3b8',gold2:'#475569',gold3:'#0f172a',rgb:'148,163,184'}, slate:{gold:'#64748b',gold2:'#334155',gold3:'#0f172a',rgb:'100,116,139'}, pearl:{gold:'#f8fafc',gold2:'#cbd5e1',gold3:'#64748b',rgb:'248,250,252'}, white:{gold:'#f8fafc',gold2:'#cbd5e1',gold3:'#64748b',rgb:'248,250,252'}, silver:{gold:'#e5e7eb',gold2:'#9ca3af',gold3:'#4b5563',rgb:'229,231,235'}, midnight:{gold:'#0f172a',gold2:'#020617',gold3:'#000000',rgb:'15,23,42'}, mocha:{gold:'#a16207',gold2:'#854d0e',gold3:'#422006',rgb:'161,98,7'}, espresso:{gold:'#92400e',gold2:'#78350f',gold3:'#431407',rgb:'146,64,14'}
+  };
+  var LANG_META = {id:{htmlLang:'id',dir:'ltr'},en:{htmlLang:'en',dir:'ltr'},zh:{htmlLang:'zh-CN',dir:'ltr'},ar:{htmlLang:'ar',dir:'rtl'},ja:{htmlLang:'ja',dir:'ltr'},ko:{htmlLang:'ko',dir:'ltr'},es:{htmlLang:'es',dir:'ltr'},fr:{htmlLang:'fr',dir:'ltr'}};
+  var I18N = {
+    id: {},
+    en: {
+      "Produk": "Products",
+      "Katalog": "Catalog",
+      "Top Up": "Top Up",
+      "Mulai": "Start",
+      "Tema": "Theme",
+      "Top Up Aman": "Safe Top Up",
+      "Top Up Digital": "Digital Top Up",
+      "Aman": "Safe",
+      "dan Praktis": "and Practical",
+      "Nikmati layanan top up game, pulsa, paket data, token PLN, dan voucher digital dengan tampilan ringan di HP.": "Enjoy game top ups, phone credit, data packages, PLN tokens, and digital vouchers with a lightweight mobile display.",
+      "Mulai Top Up": "Start Top Up",
+      "Lihat Produk": "View Products",
+      "Total layanan aktif": "Active services total",
+      "Game • Pulsa • PLN": "Games • Credit • PLN",
+      "Payment Ready": "Payment Ready",
+      "Produk Digital": "Digital Products",
+      "Instant Checkout": "Instant Checkout",
+      "Layanan Digital Terpercaya": "Trusted Digital Service",
+      "Digital": "Digital",
+      "Cepat dan Mudah": "Fast and Easy",
+      "Isi game, pulsa, paket data, token PLN, dan voucher digital dalam satu halaman yang ringan, modern, dan nyaman digunakan.": "Fill games, phone credit, data packages, PLN tokens, and digital vouchers on one lightweight, modern, and comfortable page.",
+      "Order aktif": "Active orders",
+      "Voucher Game": "Game Voucher",
+      "Geser untuk melihat layanan": "Swipe to view services",
+      "Website Top Up": "Top Up Website",
+      "3D Premium": "Premium 3D",
+      "untuk Game, Game, dan Voucher Game": "for Games and Game Vouchers",
+      "Pilih produk digital favorit, isi data tujuan, lalu lanjutkan pembayaran dengan alur yang sederhana dan nyaman digunakan di HP.": "Choose your favorite digital product, enter destination data, then continue payment through a simple mobile-friendly flow.",
+      "Lihat 3D Premium": "View Premium 3D",
+      "Mudah Dipakai": "Easy to Use",
+      "Tampilan interaktif yang tetap ringan di HP.": "Interactive display that stays light on mobile.",
+      "Produk Populer": "Popular Products",
+      "Produk favorit mudah dilihat dan dipilih.": "Favorite products are easy to view and choose.",
+      "Siap Terhubung": "Ready to Connect",
+      "Alur pembayaran dapat terhubung ke sistem utama.": "The payment flow can connect to the main system.",
+      "Total order aktif": "Active order total",
+      "PRODUK POPULER": "POPULAR PRODUCTS",
+      "Pilih Produk Favorit dengan Lebih Mudah": "Choose Favorite Products More Easily",
+      "Geser kartu produk di HP, pilih layanan yang dibutuhkan, lalu lanjutkan ke form checkout.": "Swipe product cards on mobile, choose the needed service, then continue to checkout.",
+      "Geser • Pilih • Checkout": "Swipe • Choose • Checkout",
+      "Geser produk dengan jari": "Swipe products with your finger",
+      "KATALOG": "CATALOG",
+      "Katalog Produk Digital Lengkap": "Complete Digital Product Catalog",
+      "Pilih kategori layanan, lihat nominal yang tersedia, dan lanjutkan pesanan dengan lebih mudah.": "Choose a service category, view available amounts, and continue the order more easily.",
+      "Semua": "All",
+      "Game": "Game",
+      "FLOW ORDER": "ORDER FLOW",
+      "Alur Top Up yang Mudah Diikuti": "Easy-to-Follow Top Up Flow",
+      "Pilih layanan, isi data tujuan, tentukan nominal, lalu lanjutkan pembayaran sesuai metode yang tersedia.": "Choose a service, enter destination data, set the amount, then continue payment with the available method.",
+      "Pilih Produk": "Choose Product",
+      "User memilih kategori game, pulsa, data, PLN, atau voucher.": "The user chooses a game, phone credit, data, PLN, or voucher category.",
+      "Isi Tujuan": "Enter Destination",
+      "User mengisi ID game, nomor HP, nomor pelanggan, atau data tujuan lain.": "The user enters a game ID, phone number, customer number, or other destination data.",
+      "Proses Pesanan": "Process Order",
+      "Pesanan diproses melalui sistem yang terhubung dan total pembayaran ditampilkan sebelum dilanjutkan.": "Orders are processed through the connected system and the payment total is shown before continuing.",
+      "Cek Status": "Check Status",
+      "Status pesanan dapat dipantau setelah pembayaran diproses.": "Order status can be monitored after payment is processed.",
+      "TRUST & SAFETY": "TRUST & SAFETY",
+      "Transaksi Aman dan Informasi Pengguna Tetap Terjaga": "Secure Transactions and Protected User Information",
+      "Alur dibuat untuk membantu pengguna melakukan top up dengan nyaman, jelas, dan tetap aman.": "The flow is designed to help users top up comfortably, clearly, and securely.",
+      "Data sensitif terlindungi": "Sensitive data is protected",
+      "Informasi penting diproses melalui sistem yang aman dan tidak ditampilkan kepada pengguna.": "Important information is processed through a secure system and is not displayed to users.",
+      "Alur cepat": "Fast flow",
+      "Produk, nominal, tujuan, dan pembayaran diringkas langsung agar pembeli tidak bingung saat checkout.": "Products, amounts, destination, and payment are summarized directly so buyers do not get confused at checkout.",
+      "Status pesanan jelas": "Clear order status",
+      "Setiap pesanan menampilkan informasi penting seperti produk, total, metode pembayaran, dan status transaksi.": "Each order displays important information such as product, total, payment method, and transaction status.",
+      "Mobile first": "Mobile first",
+      "Tombol, kartu produk, dan ringkasan pesanan dibuat nyaman untuk layar HP.": "Buttons, product cards, and order summaries are designed to be comfortable on mobile screens.",
+      "SMART CHECKOUT": "SMART CHECKOUT",
+      "Panduan checkout yang lebih pintar": "Smarter checkout guidance",
+      "Panel ini membantu pengguna mengisi data tujuan, memilih produk, dan memastikan pesanan sebelum pembayaran.": "This panel helps users fill destination data, choose products, and confirm orders before payment.",
+      "Validasi tujuan": "Destination validation",
+      "Pilih produk dulu untuk melihat panduan format tujuan.": "Choose a product first to see destination format guidance.",
+      "Game: User ID": "Game: User ID",
+      "Digital: nomor pelanggan": "Digital: customer number",
+      "Preview pembayaran": "Payment preview",
+      "Metode aktif": "Active method",
+      "Belum dipilih": "Not selected",
+      "Metode pembayaran mengikuti sistem yang tersedia.": "Payment methods follow the available system.",
+      "Shortcut produk": "Product shortcuts",
+      "CHECKOUT": "CHECKOUT",
+      "Form Top Up Sederhana dan Jelas": "Simple and Clear Top Up Form",
+      "Lengkapi data pesanan, pilih nominal, lalu lanjutkan pembayaran melalui metode yang tersedia.": "Complete order data, choose an amount, then continue payment through the available method.",
+      "Kategori Produk": "Product Category",
+      "Pilih kategori": "Choose category",
+      "Pilih produk": "Choose product",
+      "User ID / Nomor Tujuan": "User ID / Destination Number",
+      "Game isi User ID. Produk digital isi nomor tujuan sesuai layanan.": "For games, enter the User ID. For digital products, enter the destination number according to the service.",
+      "Nominal": "Amount",
+      "Metode Pembayaran": "Payment Method",
+      "Pilih metode pembayaran": "Choose payment method",
+      "Lanjut Pembayaran": "Continue Payment",
+      "Pastikan data tujuan sudah benar sebelum melanjutkan pembayaran.": "Make sure the destination data is correct before continuing payment.",
+      "Ringkasan": "Summary",
+      "Pesanan": "Order",
+      "Kategori": "Category",
+      "Tujuan": "Destination",
+      "Pembayaran": "Payment",
+      "Total Bayar": "Total Payment",
+      "Total pembayaran akan menyesuaikan produk, nominal, dan metode pembayaran yang dipilih.": "The payment total will adjust to the selected product, amount, and payment method.",
+      "INVOICE": "INVOICE",
+      "Cek Status Pesanan": "Check Order Status",
+      "Masukkan kode pesanan untuk melihat status transaksi.": "Enter the order code to view transaction status.",
+      "Cek": "Check",
+      "RIWAYAT PESANAN": "ORDER HISTORY",
+      "Riwayat Pesanan": "Order History",
+      "Riwayat pesanan akan mengikuti sistem yang digunakan pada website.": "Order history will follow the system used on the website.",
+      "Refresh Riwayat": "Refresh History",
+      "Kosongkan Tampilan": "Clear Display",
+      "Belum ada riwayat pesanan.": "No order history yet.",
+      "RINGKASAN": "SUMMARY",
+      "Ringkasan Layanan": "Service Summary",
+      "Ringkasan ini menampilkan status layanan tanpa mengubah sistem utama.": "This summary displays service status without changing the main system.",
+      "Total Pesanan": "Total Orders",
+      "Menunggu pembayaran": "Waiting for payment",
+      "Menunggu Pembayaran": "Waiting for Payment",
+      "Selesai": "Completed",
+      "Estimasi Omzet": "Estimated Revenue",
+      "TopupID dinaungi Dirac Group.": "TopupID is under Dirac Group.",
+      "Memproses pesanan": "Processing order",
+      "Sistem sedang menyiapkan pembayaran dan status pesanan.": "The system is preparing payment and order status.",
+      "Validasi data tujuan": "Validating destination data",
+      "Mengecek produk dan nominal": "Checking product and amount",
+      "Memproses pesanan pembayaran": "Processing payment order",
+      "Menyiapkan status transaksi": "Preparing transaction status",
+      "Cari menu": "Search menu",
+      "Menu tidak ditemukan.": "Menu not found.",
+      "Pengaturan Tema": "Theme Settings",
+      "Mode Tema": "Theme Mode",
+      "Gelap": "Dark",
+      "Otomatis": "Automatic",
+      "Bahasa Tampilan": "Display Language",
+      "Kontras Tema": "Theme Contrast",
+      "Aktif": "On",
+      "Nonaktif": "Off",
+      "Kustom Tema": "Custom Theme",
+      "Gerak Website": "Website Motion",
+      "Full animasi": "Full animation",
+      "Gerak ringan": "Light motion",
+      "Menu TopupID": "TopupID Menu",
+      "Navigasi layanan top up dan checkout.": "Top up and checkout service navigation.",
+      "Layanan TopupID": "TopupID Services",
+      "Menu utama": "Main menu",
+      "Pilih produk favorit": "Choose favorite products",
+      "Katalog Produk": "Product Catalog",
+      "Game dan produk digital": "Games and digital products",
+      "Showcase Gambar": "Image Showcase",
+      "10 gambar berurutan": "10 sequential images",
+      "Checkout Top Up": "Top Up Checkout",
+      "Isi data dan nominal": "Enter data and amount",
+      "Keamanan & Bantuan": "Security & Help",
+      "Status dan panduan": "Status and guidance",
+      "Keamanan transaksi": "Transaction security",
+      "Smart Checkout": "Smart Checkout",
+      "Panduan pengisian": "Filling guide",
+      "Dashboard": "Dashboard",
+      "Kembali ke client area": "Return to client area",
+      "Diamond Mobile Legends untuk akun game pembeli.": "Mobile Legends diamonds for the buyer's game account.",
+      "Diamond Free Fire cepat untuk akun game pembeli.": "Fast Free Fire diamonds for the buyer's game account.",
+      "UC PUBG Mobile untuk item premium.": "PUBG Mobile UC for premium items.",
+      "FC Points untuk akun FC Mobile.": "FC Points for FC Mobile accounts.",
+      "Token Honor of Kings untuk akun game pembeli.": "Honor of Kings tokens for the buyer's game account.",
+      "Valorant Points untuk akun Valorant.": "Valorant Points for Valorant accounts.",
+      "Genesis Crystals untuk akun Genshin Impact.": "Genesis Crystals for Genshin Impact accounts.",
+      "Robux untuk akun Roblox.": "Robux for Roblox accounts.",
+      "Coins eFootball untuk akun game pembeli.": "eFootball coins for the buyer's game account.",
+      "CP Call of Duty Mobile untuk akun game pembeli.": "Call of Duty Mobile CP for the buyer's game account.",
+      "Pulsa reguler untuk semua operator.": "Regular phone credit for all operators.",
+      "Paket internet berbagai operator.": "Internet packages from various operators.",
+      "Token listrik prabayar pelanggan PLN.": "Prepaid electricity tokens for PLN customers.",
+      "Voucher game dan produk digital pendukung.": "Game vouchers and supporting digital products.",
+      "Top Up Game": "Game Top Up",
+      "Lengkapi semua data pesanan dulu": "Complete all order data first",
+      "Order berhasil dibuat": "Order created successfully",
+      "Gagal membuat pesanan": "Failed to create order",
+      "Masukkan kode invoice": "Enter invoice code",
+      "Invoice tidak ditemukan.": "Invoice not found.",
+      "Invoice tidak dibuat secara lokal. Status harus dicek melalui backend/database production.": "The invoice was not created locally. Status must be checked through the production backend/database.",
+      "Invoice berhasil disalin": "Invoice copied successfully",
+      "Tidak bisa menyalin otomatis": "Unable to copy automatically",
+      "Salin Invoice": "Copy Invoice",
+      "Simulasi Lunas": "Simulate Paid",
+      "Simulasi Selesai": "Simulate Completed",
+      "Kode Invoice": "Invoice Code",
+      "Produk:": "Product:",
+      "Kategori:": "Category:",
+      "Tujuan:": "Destination:",
+      "Metode Bayar:": "Payment Method:",
+      "Total:": "Total:",
+      "Status:": "Status:",
+      "Waktu:": "Time:",
+      "Diproses": "Processed"
+},
+    zh: {}, ar: {}, ja: {}, ko: {}, es: {}, fr: {}
+  };
+  var UI = {
+    id: {navProducts:'Produk',navCatalog:'Katalog',navTopup:'Top Up',navStart:'Mulai',theme:'Tema',themeTitle:'Pengaturan Tema',modeTitle:'Mode Tema',dark:'Gelap',auto:'Otomatis',languageTitle:'Bahasa Tampilan',contrastTitle:'Kontras Tema',contrastOn:'Aktif',contrastOff:'Nonaktif',accentTitle:'Kustom Tema',motionTitle:'Gerak Website',motionFull:'Full animasi',motionReduced:'Gerak ringan',menuTitle:'Menu TopupID',menuSub:'Navigasi layanan top up dan checkout.',menuMainGroup:'Layanan TopupID',menuMainSub:'Menu utama',menuProducts:'Produk Populer',menuProductsSub:'Pilih produk favorit',menuCatalog:'Katalog Produk',menuCatalogSub:'Game dan produk digital',menuShowcase:'Showcase Gambar',menuShowcaseSub:'10 gambar berurutan',menuCheckout:'Checkout Top Up',menuCheckoutSub:'Isi data dan nominal',menuSupportGroup:'Keamanan & Bantuan',menuSupportSub:'Status dan panduan',menuTrust:'Trust & Safety',menuTrustSub:'Keamanan transaksi',menuSmart:'Smart Checkout',menuSmartSub:'Panduan pengisian',menuDashboard:'Dashboard',menuDashboardSub:'Kembali ke client area',menuEmpty:'Menu tidak ditemukan.'},
+    en: {navProducts:'Products',navCatalog:'Catalog',navTopup:'Top Up',navStart:'Start',theme:'Theme',themeTitle:'Theme Settings',modeTitle:'Theme Mode',dark:'Dark',auto:'Automatic',languageTitle:'Display Language',contrastTitle:'Theme Contrast',contrastOn:'On',contrastOff:'Off',accentTitle:'Custom Theme',motionTitle:'Website Motion',motionFull:'Full animation',motionReduced:'Light motion',menuTitle:'TopupID Menu',menuSub:'Top up and checkout service navigation.',menuMainGroup:'TopupID Services',menuMainSub:'Main menu',menuProducts:'Popular Products',menuProductsSub:'Choose favorite products',menuCatalog:'Product Catalog',menuCatalogSub:'Games and digital products',menuShowcase:'Image Showcase',menuShowcaseSub:'10 sequential images',menuCheckout:'Top Up Checkout',menuCheckoutSub:'Enter data and amount',menuSupportGroup:'Security & Help',menuSupportSub:'Status and guidance',menuTrust:'Trust & Safety',menuTrustSub:'Transaction security',menuSmart:'Smart Checkout',menuSmartSub:'Filling guide',menuDashboard:'Dashboard',menuDashboardSub:'Return to client area',menuEmpty:'Menu not found.'}
+  };
+  ['zh','ar','ja','ko','es','fr'].forEach(function(code){ UI[code] = UI.en; I18N[code] = I18N.en; });
+
+  function $(sel, root){ return (root || document).querySelector(sel); }
+  function $$(sel, root){ return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+  function readJson(raw){ try{ return raw ? JSON.parse(raw) : null; }catch(_){ return null; } }
+  function validAccent(v){ v = String(v || '').trim(); return PALETTES[v] ? v : DEFAULTS.accent; }
+  function validLanguage(v){ v = String(v || '').trim(); return LANG_META[v] ? v : DEFAULTS.language; }
+  function validMode(v){ v = String(v || '').trim(); return /^(dark|light|auto)$/.test(v) ? v : DEFAULTS.mode; }
+  function validMotion(v){ v = String(v || '').trim(); return /^(full|reduced|none|normal|hemat)$/.test(v) ? (v === 'normal' ? 'full' : (v === 'hemat' ? 'reduced' : v)) : DEFAULTS.motion; }
+  function validContrast(v){ v = String(v || '').trim(); return /^(on|off)$/.test(v) ? v : DEFAULTS.contrast; }
+  function readPrefs(){
+    var stored = {};
+    try{ stored = readJson(localStorage.getItem(THEME_KEY)) || {}; }catch(_){ stored = {}; }
+    try{ if(!stored.accent && localStorage.getItem(LEGACY_ACCENT_KEY)) stored.accent = localStorage.getItem(LEGACY_ACCENT_KEY); }catch(_){}
+    try{ if(!stored.language && localStorage.getItem(LEGACY_LANGUAGE_KEY)) stored.language = localStorage.getItem(LEGACY_LANGUAGE_KEY); }catch(_){}
+    try{ if(!stored.language && localStorage.getItem(LEGACY_LANGUAGE_KEY_2)) stored.language = localStorage.getItem(LEGACY_LANGUAGE_KEY_2); }catch(_){}
+    return {mode: validMode(stored.mode), accent: validAccent(stored.accent), language: validLanguage(stored.language), motion: validMotion(stored.motion), contrast: validContrast(stored.contrast)};
+  }
+  function writePrefs(patch){
+    var next = Object.assign({}, readPrefs(), patch || {});
+    next = {mode:validMode(next.mode), accent:validAccent(next.accent), language:validLanguage(next.language), motion:validMotion(next.motion), contrast:validContrast(next.contrast)};
+    try{ localStorage.setItem(THEME_KEY, JSON.stringify(next)); }catch(_){}
+    applyPrefs(next, true);
+  }
+  function rgba(rgb, alpha){ return 'rgba(' + rgb + ',' + alpha + ')'; }
+  function applyPrefs(p, emit){
+    p = p || readPrefs();
+    var pal = PALETTES[p.accent] || PALETTES[DEFAULTS.accent];
+    var meta = LANG_META[p.language] || LANG_META.id;
+    var effective = p.mode === 'auto' ? ((window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark') : p.mode;
+    var root = document.documentElement;
+    root.lang = meta.htmlLang || p.language;
+    root.dir = meta.dir || 'ltr';
+    root.setAttribute('data-language', p.language);
+    root.setAttribute('data-theme', p.mode);
+    root.setAttribute('data-theme-mode', p.mode);
+    root.setAttribute('data-effective-theme', effective);
+    root.setAttribute('data-motion', p.motion);
+    root.setAttribute('data-contrast', p.contrast);
+    root.style.setProperty('--gold', pal.gold);
+    root.style.setProperty('--gold2', pal.gold2);
+    root.style.setProperty('--gold3', pal.gold3);
+    root.style.setProperty('--gold-2', pal.gold2);
+    root.style.setProperty('--gold-3', pal.gold3);
+    root.style.setProperty('--theme-rgb', pal.rgb);
+    root.style.setProperty('--cyan', pal.gold);
+    root.style.setProperty('--cyan-soft', pal.gold);
+    root.style.setProperty('--blue', pal.gold2);
+    root.style.setProperty('--purple', pal.gold2);
+    root.style.setProperty('--pink', pal.gold2);
+    root.style.setProperty('--stroke-strong', rgba(pal.rgb, .45));
+    root.style.setProperty('--line', rgba(pal.rgb, .18));
+    root.style.setProperty('--line2', rgba(pal.rgb, .36));
+    root.style.setProperty('--line-strong', rgba(pal.rgb, .42));
+    try{ var mt = $('meta[name="theme-color"]'); if(mt) mt.setAttribute('content', effective === 'light' ? '#f8fafc' : '#050816'); }catch(_){}
+    updateActiveChoices(p);
+    translatePage(p.language);
+    if(emit){ try{ window.dispatchEvent(new CustomEvent('dirac:global-prefs-change', {detail:p})); }catch(_){} }
+  }
+  function updateActiveChoices(p){
+    $$('[data-accent]').forEach(function(el){ var on = el.getAttribute('data-accent') === p.accent; el.classList.toggle('is-selected', on); el.classList.toggle('active', on); el.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+    $$('[data-language]').forEach(function(el){ if(!el.matches('button,[role="button"]')) return; var on = el.getAttribute('data-language') === p.language; el.classList.toggle('is-selected', on); el.classList.toggle('active', on); el.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+    $$('[data-theme-mode]').forEach(function(el){ var on = el.getAttribute('data-theme-mode') === p.mode; el.classList.toggle('is-selected', on); el.classList.toggle('active', on); el.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+    $$('[data-motion-choice]').forEach(function(el){ var on = el.getAttribute('data-motion-choice') === p.motion; el.classList.toggle('is-selected', on); el.classList.toggle('active', on); el.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+    $$('#themeModal [data-contrast]').forEach(function(el){ var on = el.getAttribute('data-contrast') === p.contrast; el.classList.toggle('is-selected', on); el.classList.toggle('active', on); el.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+  }
+  function buildAccentChoices(){
+    var wrap = $('#accentChoices');
+    if(!wrap || wrap.dataset.ready === '1') return;
+    wrap.dataset.ready = '1';
+    var names = Object.keys(PALETTES);
+    wrap.innerHTML = names.map(function(name){ var pal = PALETTES[name]; return '<button class="accent-swatch" type="button" data-accent="' + name + '" aria-label="' + name + '" title="' + name + '" style="background:linear-gradient(135deg,' + pal.gold + ',' + pal.gold2 + ')"></button>'; }).join('');
+  }
+  function openModal(sel){ var el = $(sel); if(!el) return; el.classList.add('open'); el.setAttribute('aria-hidden','false'); var dlg = $('[role="dialog"]', el); if(dlg) setTimeout(function(){ try{ dlg.focus(); }catch(_){} }, 30); }
+  function closeModal(sel){ var el = $(sel); if(!el) return; el.classList.remove('open'); el.setAttribute('aria-hidden','true'); }
+  function toggleMenu(force){ var el = $('#mobileMenu'); var btn = $('#menuBtn'); if(!el) return; var open = typeof force === 'boolean' ? force : !el.classList.contains('open'); el.classList.toggle('open', open); el.setAttribute('aria-hidden', open ? 'false' : 'true'); if(btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false'); if(open){ var input = $('#topupidMenuSearch'); setTimeout(function(){ try{ if(input) input.focus(); }catch(_){} }, 40); } }
+  var translating = false;
+  function sourceForTextNode(node){ if(!node.__topupidSourceText) node.__topupidSourceText = node.nodeValue; return node.__topupidSourceText; }
+  function translateTextNode(node, lang){
+    var src = sourceForTextNode(node);
+    var trimmed = src.replace(/\s+/g, ' ').trim();
+    if(!trimmed) return;
+    var dict = I18N[lang] || I18N.en;
+    var ui = UI[lang] || UI.en;
+    var trans = dict[trimmed] || ui[trimmed];
+    if(!trans && lang !== 'id') return;
+    if(lang === 'id') { node.nodeValue = src; return; }
+    var lead = (src.match(/^\s*/) || [''])[0];
+    var trail = (src.match(/\s*$/) || [''])[0];
+    node.nodeValue = lead + trans + trail;
+  }
+  function translateAttrs(el, lang){
+    ['placeholder','aria-label','title','alt'].forEach(function(attr){
+      if(!el.hasAttribute || !el.hasAttribute(attr)) return;
+      var key = '__topupidSrc_' + attr.replace('-', '_');
+      if(!el[key]) el[key] = el.getAttribute(attr);
+      var src = el[key];
+      var dict = I18N[lang] || I18N.en;
+      var ui = UI[lang] || UI.en;
+      if(lang === 'id') { el.setAttribute(attr, src); return; }
+      var trans = dict[src] || ui[src];
+      if(trans) el.setAttribute(attr, trans);
+    });
+  }
+  function translatePage(lang){
+    if(translating) return;
+    translating = true;
+    try{
+      $$('[data-i18n]').forEach(function(el){
+        var key = el.getAttribute('data-i18n');
+        var val = (UI[lang] && UI[lang][key]) || (lang !== 'id' && UI.en[key]) || (UI.id && UI.id[key]);
+        if(val) el.textContent = val;
+      });
+      var walker = document.createTreeWalker(document.body || document.documentElement, NodeFilter.SHOW_TEXT, {acceptNode:function(node){
+        var p = node.parentElement;
+        if(!p) return NodeFilter.FILTER_REJECT;
+        if(p.closest('script,style,svg,canvas,[data-no-i18n]')) return NodeFilter.FILTER_REJECT;
+        if(!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;
+      }});
+      var nodes = [];
+      while(walker.nextNode()) nodes.push(walker.currentNode);
+      nodes.forEach(function(node){ translateTextNode(node, lang); });
+      $$('input,textarea,img,a,button,[aria-label],[title],[placeholder],[alt]').forEach(function(el){ if(!el.closest('script,style,svg,canvas,[data-no-i18n]')) translateAttrs(el, lang); });
+    }catch(_){}
+    translating = false;
+  }
+  function startTypewriter(){
+    var wrap = $('[data-brand-typewriter]');
+    if(!wrap || wrap.dataset.typewriterReady === '1') return;
+    wrap.dataset.typewriterReady = '1';
+    var target = $('.brand-typewriter-text', wrap);
+    if(!target) return;
+    var words = ['TopupID', 'Top Up Game', 'Produk Digital', 'Instant Checkout'];
+    var wi = 0, ci = 0, del = false, pause = 8;
+    function tick(){
+      var word = words[wi % words.length];
+      if(pause > 0){ pause--; setTimeout(tick, 85); return; }
+      if(del){
+        ci = Math.max(0, ci - 1);
+        target.textContent = word.slice(0, ci);
+        if(ci === 0){ del = false; wi++; pause = 3; }
+      } else {
+        ci = Math.min(word.length, ci + 1);
+        target.textContent = word.slice(0, ci);
+        if(ci === word.length){ wrap.setAttribute('aria-label', word); del = true; pause = 12; }
+      }
+      setTimeout(tick, del ? 64 : 90);
+    }
+    setTimeout(tick, 900);
+  }
+  function wireMenuSearch(){
+    var input = $('#topupidMenuSearch');
+    var clear = $('#topupidMenuClear');
+    var empty = $('#topupidMenuEmpty');
+    function run(){
+      var q = (input && input.value || '').toLowerCase().trim();
+      var hits = 0;
+      $$('.du-searchable').forEach(function(card){
+        var hay = ((card.getAttribute('data-keyword') || '') + ' ' + card.textContent).toLowerCase();
+        var show = !q || hay.indexOf(q) !== -1;
+        card.style.display = show ? '' : 'none';
+        if(show) hits++;
+      });
+      if(empty) empty.classList.toggle('show', !!q && hits === 0);
+    }
+    if(input) input.addEventListener('input', run);
+    if(clear) clear.addEventListener('click', function(){ if(input) input.value=''; run(); if(input) input.focus(); });
+  }
+  function wire(){
+    buildAccentChoices();
+    $$('[data-open-theme]').forEach(function(btn){ btn.addEventListener('click', function(){ openModal('#themeModal'); }); });
+    $$('[data-close-theme]').forEach(function(btn){ btn.addEventListener('click', function(){ closeModal('#themeModal'); }); });
+    var themeModal = $('#themeModal');
+    if(themeModal) themeModal.addEventListener('click', function(e){ if(e.target === themeModal) closeModal('#themeModal'); });
+    $$('#accentChoices [data-accent]').forEach(function(btn){ btn.addEventListener('click', function(){ writePrefs({accent: btn.getAttribute('data-accent')}); }); });
+    $$('#themeModal [data-language]').forEach(function(btn){ btn.addEventListener('click', function(){ writePrefs({language: btn.getAttribute('data-language')}); }); });
+    $$('#themeModal [data-theme-mode]').forEach(function(btn){ btn.addEventListener('click', function(){ writePrefs({mode: btn.getAttribute('data-theme-mode')}); }); });
+    $$('#themeModal [data-motion-choice]').forEach(function(btn){ btn.addEventListener('click', function(){ writePrefs({motion: btn.getAttribute('data-motion-choice')}); }); });
+    $$('#themeModal [data-contrast]').forEach(function(btn){ btn.addEventListener('click', function(){ writePrefs({contrast: btn.getAttribute('data-contrast')}); }); });
+    var menuBtn = $('#menuBtn');
+    if(menuBtn) menuBtn.addEventListener('click', function(e){ e.preventDefault(); e.stopImmediatePropagation(); toggleMenu(); }, true);
+    $$('[data-close-menu]').forEach(function(el){ el.addEventListener('click', function(){ toggleMenu(false); }); });
+    var menu = $('#mobileMenu');
+    if(menu) menu.addEventListener('click', function(e){ if(e.target === menu) toggleMenu(false); });
+    document.addEventListener('keydown', function(e){ if(e.key === 'Escape'){ closeModal('#themeModal'); toggleMenu(false); } });
+    wireMenuSearch();
+    startTypewriter();
+    applyPrefs(readPrefs(), false);
+    setTimeout(function(){ applyPrefs(readPrefs(), false); }, 600);
+    try{
+      var mo = new MutationObserver(function(){ if(translating) return; clearTimeout(window.__topupidTranslateTimer); window.__topupidTranslateTimer = setTimeout(function(){ translatePage(readPrefs().language); }, 80); });
+      mo.observe(document.body, {childList:true, subtree:true, characterData:true});
+    }catch(_){}
+  }
+  window.addEventListener('storage', function(e){ if(!e || e.key === THEME_KEY || e.key === LEGACY_ACCENT_KEY || e.key === LEGACY_LANGUAGE_KEY || e.key === LEGACY_LANGUAGE_KEY_2) applyPrefs(readPrefs(), false); });
+  window.addEventListener('dirac:global-prefs-change', function(e){ if(e && e.detail) applyPrefs(Object.assign(readPrefs(), e.detail), false); });
+  if(window.matchMedia){ try{ window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', function(){ applyPrefs(readPrefs(), false); }); }catch(_){} }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire); else wire();
+})();
+</script>
 
 </body>
 </html>
