@@ -7,7 +7,7 @@
 <title>TopupID - Top Up Game dan Produk Digital</title>
 <meta content="Frontend 3D premium satu file HTML untuk website top up game, pulsa, paket data, token PLN, dan produk digital." name="description"/>
 <meta content="#050816" name="theme-color"/>
-<meta content="topupid-dashboard-header-v53-search-layout-fix" name="x-build"/>
+<meta content="topupid-dashboard-header-v54-search-no-shift" name="x-build"/>
 <link href="data:," rel="icon"/>
 <style>
     :root {
@@ -13712,6 +13712,43 @@ html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply, {once:true}); else apply();
 })();
 </script>
+
+
+<style id="v51-menu-search-no-horizontal-shift">
+  /* V51: kunci lebar sheet menu saat search. Pada CSS grid mobile, item grid bisa shrink mengikuti hasil search yang tinggal satu kartu. Patch ini hanya mengunci ukuran overlay/menu agar tidak bergeser saat input pencarian diisi. */
+  @media (max-width:480px) {
+    #mobileMenu.dirac-ultra-menu {
+      width: 100vw !important;
+      min-width: 100vw !important;
+      max-width: 100vw !important;
+      grid-template-columns: minmax(0,100vw) !important;
+      justify-content: stretch !important;
+      justify-items: stretch !important;
+      align-items: end !important;
+      place-items: end stretch !important;
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+    }
+    #mobileMenu.dirac-ultra-menu .du-menu {
+      width: 100vw !important;
+      min-width: 100vw !important;
+      max-width: 100vw !important;
+      justify-self: stretch !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+      transform-origin: bottom center !important;
+    }
+    #mobileMenu.dirac-ultra-menu.is-searching .du-menu {
+      width: 100vw !important;
+      min-width: 100vw !important;
+      max-width: 100vw !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+    }
+  }
+</style>
 
 </body>
 </html>
