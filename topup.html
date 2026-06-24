@@ -7,7 +7,7 @@
 <title>TopupID - Top Up Game dan Produk Digital</title>
 <meta content="Frontend 3D premium satu file HTML untuk website top up game, pulsa, paket data, token PLN, dan produk digital." name="description"/>
 <meta content="#050816" name="theme-color"/>
-<meta content="topupid-dashboard-header-v52-ten-showcase" name="x-build"/>
+<meta content="topupid-dashboard-header-v53-search-layout-fix" name="x-build"/>
 <link href="data:," rel="icon"/>
 <style>
     :root {
@@ -13583,6 +13583,133 @@ html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title 
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', syncMenuLogo, {once:true}); else syncMenuLogo();
   window.addEventListener('dirac:global-prefs-change', syncMenuLogo);
+})();
+</script>
+
+
+
+<style id="v50-menu-search-layout-fix">
+  /* V50: rapikan hasil pencarian menu. Penyebab utama: .du-body lama masih display:grid, sehingga ketika hanya 1 hasil, section/card ikut meregang. Patch ini hanya mengunci layout menu/search; endpoint, login, hash, A2F, payment, email, dan order tidak disentuh. */
+  #mobileMenu.dirac-ultra-menu .du-body {
+    display: block !important;
+    align-content: start !important;
+    align-items: start !important;
+    justify-content: start !important;
+    gap: 0 !important;
+    min-height: 0 !important;
+  }
+  #mobileMenu.dirac-ultra-menu .du-group {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    align-self: start !important;
+  }
+  #mobileMenu.dirac-ultra-menu .du-stack {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    align-content: flex-start !important;
+    gap: 9px !important;
+    height: auto !important;
+    min-height: 0 !important;
+  }
+  #mobileMenu.dirac-ultra-menu .du-card {
+    flex: 0 0 auto !important;
+    align-self: stretch !important;
+    height: auto !important;
+    min-height: 80px !important;
+    max-height: none !important;
+  }
+  #mobileMenu.dirac-ultra-menu.is-searching .du-body {
+    display: block !important;
+    padding-top: 14px !important;
+  }
+  #mobileMenu.dirac-ultra-menu.is-searching .du-group {
+    margin-top: 0 !important;
+    margin-bottom: 14px !important;
+  }
+  #mobileMenu.dirac-ultra-menu.is-searching .du-stack {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    gap: 9px !important;
+  }
+  #mobileMenu.dirac-ultra-menu.is-searching .du-card:not([hidden]) {
+    display: grid !important;
+    height: auto !important;
+    min-height: 80px !important;
+    max-height: 92px !important;
+    align-self: stretch !important;
+    animation: none !important;
+  }
+  #mobileMenu.dirac-ultra-menu .du-searchable[hidden],
+  #mobileMenu.dirac-ultra-menu .du-group[hidden],
+  #mobileMenu.dirac-ultra-menu .du-card[hidden] {
+    display: none !important;
+  }
+  @media (max-width: 360px) {
+    #mobileMenu.dirac-ultra-menu.is-searching .du-card:not([hidden]),
+    #mobileMenu.dirac-ultra-menu .du-card {
+      min-height: 78px !important;
+      max-height: 90px !important;
+    }
+  }
+</style>
+<script id="v50-menu-search-layout-guard">
+(function(){
+  'use strict';
+  if (window.__TOPUPID_V50_SEARCH_LAYOUT_GUARD__) return;
+  window.__TOPUPID_V50_SEARCH_LAYOUT_GUARD__ = true;
+  function qs(sel, root){ return (root || document).querySelector(sel); }
+  function qsa(sel, root){ return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+  function norm(value){
+    return String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+  function apply(){
+    var menu = qs('#mobileMenu');
+    var input = qs('#topupidMenuSearch');
+    var body = qs('#topupidMenuBody');
+    var empty = qs('#topupidMenuEmpty');
+    if (!menu || !input) return;
+    function run(){
+      var q = norm(input.value);
+      var hits = 0;
+      menu.classList.toggle('is-searching', !!q);
+      qsa('.du-group', menu).forEach(function(group){
+        var groupHits = 0;
+        qsa('.du-searchable', group).forEach(function(card){
+          var hay = norm((card.getAttribute('data-keyword') || '') + ' ' + (card.textContent || ''));
+          var show = !q || hay.indexOf(q) !== -1;
+          card.hidden = !show;
+          card.style.setProperty('display', show ? '' : 'none', show ? '' : 'important');
+          card.setAttribute('aria-hidden', show ? 'false' : 'true');
+          if (show) { groupHits++; hits++; }
+        });
+        var groupShow = !q || groupHits > 0;
+        group.hidden = !groupShow;
+        group.style.setProperty('display', groupShow ? 'block' : 'none', 'important');
+      });
+      if (empty) {
+        var noResult = !!q && hits === 0;
+        empty.hidden = !noResult;
+        empty.classList.toggle('show', noResult);
+      }
+      if (body) body.scrollTop = 0;
+      window.__topupidMenuSearchLast = {query:q, hits:hits, layoutFixed:true};
+    }
+    input.addEventListener('input', run, true);
+    input.addEventListener('keyup', run, true);
+    input.addEventListener('search', run, true);
+    var clear = qs('#topupidMenuClear');
+    if (clear) clear.addEventListener('click', function(){ setTimeout(run, 0); }, true);
+    var btn = qs('#menuBtn');
+    if (btn) btn.addEventListener('click', function(){ setTimeout(run, 100); }, true);
+    run();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply, {once:true}); else apply();
 })();
 </script>
 
