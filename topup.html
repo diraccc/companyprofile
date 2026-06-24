@@ -3018,9 +3018,10 @@
     <header class="navbar site-header topupid-dashboard-header" id="siteHeader">
       <div class="topupid-header-container nav">
         <a href="#home" class="brand topupid-header-brand" aria-label="TopupID" referrerpolicy="strict-origin-when-cross-origin">
-          <span aria-hidden="true" class="brand-mark image-brand dashboard-brand-mark">
-            <span class="brand-fallback-text">TP</span>
-            <img src="data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%20120%20120%22%3E%3Crect%20width=%22120%22%20height=%22120%22%20rx=%2226%22%20fill=%22#ffffff%22/%3E%3Cdefs%3E%3ClinearGradient%20id=%22g%22%20x1=%2218%22%20y1=%2214%22%20x2=%22104%22%20y2=%22106%22%20gradientUnits=%22userSpaceOnUse%22%3E%3Cstop%20stop-color=%22#67e8f9%22/%3E%3Cstop%20offset=%22.52%22%20stop-color=%22#38bdf8%22/%3E%3Cstop%20offset=%221%22%20stop-color=%22#2563eb%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle%20cx=%2260%22%20cy=%2260%22%20r=%2238%22%20fill=%22url(#g)%22%20opacity=%22.95%22/%3E%3Cpath%20d=%22M60%2024%2091%2051H72v42H55V51H38z%22%20fill=%22#06111d%22/%3E%3Cpath%20d=%22M47%2084h26v12H47z%22%20fill=%22#06111d%22%20opacity=%22.96%22/%3E%3Ctext%20x=%2260%22%20y=%22112%22%20text-anchor=%22middle%22%20font-family=%22Arial,%20Helvetica,%20sans-serif%22%20font-size=%2211%22%20font-weight=%22800%22%20fill=%22#0f172a%22%3ETopupID%3C/text%3E%3C/svg%3E" alt="" class="brand-logo-img" loading="eager" decoding="async" fetchpriority="high" referrerpolicy="no-referrer" />
+          <span aria-hidden="true" class="brand-mark image-brand dashboard-brand-mark topupid-logo-safe">
+            <span class="topupid-logo-canvas">
+              <span class="topupid-logo-arrow"></span>
+            </span>
           </span>
           <span aria-label="TopupID" class="brand-name brand-typewriter" data-brand-typewriter data-no-i18n><span aria-hidden="true" class="brand-typewriter-text">TopupID</span></span>
         </a>
@@ -3048,7 +3049,7 @@
           <strong data-topupid-i18n="menuTitle">Menu TopupID</strong>
           <small data-topupid-i18n="menuSub">Navigasi layanan top up.</small>
         </div>
-        <button type="button" class="topupid-menu-theme" data-open-theme data-topupid-i18n="theme">Tema</button>
+        <button type="button" class="topupid-menu-theme" data-open-theme data-topupid-i18n="themeTitle">Pengaturan Tema</button>
       </div>
       <a href="#home" data-topupid-i18n="menuHome">Beranda</a>
       <a href="#premium" data-topupid-i18n="navProducts">Produk</a>
@@ -3565,13 +3566,17 @@
   <div aria-hidden="true" class="theme-modal topupid-theme-modal" id="themeModal">
     <div aria-labelledby="themeTitle" aria-modal="true" class="theme-card theme-pro-card" role="dialog" tabindex="-1">
       <div class="theme-head theme-pro-head">
-        <h2 id="themeTitle" data-topupid-i18n="themeTitle">Pengaturan Tema</h2>
+        <div>
+          <h2 id="themeTitle" data-topupid-i18n="themeTitle">Pengaturan Tema</h2>
+          <p data-topupid-i18n="themeSubtitle">Fitur tema mengikuti dashboard: warna, bahasa, kontras, dan gerak website.</p>
+        </div>
         <button aria-label="Tutup pengaturan tema" class="icon-btn theme-close-btn" data-close-theme type="button">×</button>
       </div>
       <div class="theme-body theme-content">
         <section aria-label="Mode tema" class="theme-section">
           <h3 data-topupid-i18n="modeTitle">Mode Tema</h3>
           <div class="theme-choice-grid theme-mode-grid">
+            <button aria-pressed="false" class="choice theme-choice theme-pro-choice" data-theme-mode="light" type="button"><span aria-hidden="true" class="choice-symbol">☀</span><span data-topupid-i18n="light">Terang</span></button>
             <button aria-pressed="false" class="choice theme-choice theme-pro-choice" data-theme-mode="dark" type="button"><span aria-hidden="true" class="choice-symbol">☾</span><span data-topupid-i18n="dark">Gelap</span></button>
             <button aria-pressed="false" class="choice theme-choice theme-pro-choice" data-theme-mode="auto" type="button"><span aria-hidden="true" class="choice-symbol">⚙</span><span data-topupid-i18n="auto">Otomatis</span></button>
           </div>
@@ -3589,27 +3594,58 @@
             <button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="fr" type="button"><span aria-hidden="true" class="lang-badge">FR</span><span>Français</span></button>
           </div>
         </section>
-        <section aria-label="Warna aksen" class="theme-section">
-          <h3 data-topupid-i18n="accentTitle">Warna Aksen</h3>
-          <div class="custom-theme-grid accent-grid" data-no-i18n>
+        <section aria-label="Kontras tema" class="theme-section">
+          <h3 data-topupid-i18n="contrastTitle">Kontras Tema</h3>
+          <div class="theme-contrast-grid contrast-grid">
+            <button aria-pressed="false" class="choice theme-choice theme-pro-choice" data-contrast="on" type="button"><span aria-hidden="true" class="choice-symbol">◐</span><span data-topupid-i18n="contrastOn">Aktif</span></button>
+            <button aria-pressed="false" class="choice theme-choice theme-pro-choice" data-contrast="off" type="button"><span aria-hidden="true" class="choice-symbol">◌</span><span data-topupid-i18n="contrastOff">Nonaktif</span></button>
+          </div>
+        </section>
+        <section aria-label="Kustom tema" class="theme-section">
+          <h3 data-topupid-i18n="customThemeTitle">Kustom Tema</h3>
+          <div class="theme-swatches custom-theme-grid accent-grid" data-no-i18n>
             <button class="theme-swatch-choice" data-accent="sky" style="--swatch:#38bdf8" aria-label="Sky" type="button"></button>
             <button class="theme-swatch-choice" data-accent="gold" style="--swatch:#f3cd70" aria-label="Gold" type="button"></button>
-            <button class="theme-swatch-choice" data-accent="blue" style="--swatch:#4f83ff" aria-label="Blue" type="button"></button>
-            <button class="theme-swatch-choice" data-accent="purple" style="--swatch:#7c3aed" aria-label="Purple" type="button"></button>
-            <button class="theme-swatch-choice" data-accent="pink" style="--swatch:#ec4899" aria-label="Pink" type="button"></button>
-            <button class="theme-swatch-choice" data-accent="red" style="--swatch:#ef4444" aria-label="Red" type="button"></button>
+            <button class="theme-swatch-choice" data-accent="amber" style="--swatch:#f59e0b" aria-label="Amber" type="button"></button>
             <button class="theme-swatch-choice" data-accent="orange" style="--swatch:#f97316" aria-label="Orange" type="button"></button>
-            <button class="theme-swatch-choice" data-accent="emerald" style="--swatch:#10b981" aria-label="Emerald" type="button"></button>
-            <button class="theme-swatch-choice" data-accent="teal" style="--swatch:#2dd4bf" aria-label="Teal" type="button"></button>
+            <button class="theme-swatch-choice" data-accent="coral" style="--swatch:#fb6a4a" aria-label="Coral" type="button"></button>
+            <button class="theme-swatch-choice" data-accent="red" style="--swatch:#ef4444" aria-label="Red" type="button"></button>
+            <button class="theme-swatch-choice" data-accent="rose" style="--swatch:#fb7185" aria-label="Rose" type="button"></button>
+            <button class="theme-swatch-choice" data-accent="pink" style="--swatch:#ec4899" aria-label="Pink" type="button"></button>
+            <button class="theme-swatch-choice" data-accent="purple" style="--swatch:#7c3aed" aria-label="Purple" type="button"></button>
+            <button class="theme-swatch-choice" data-accent="violet" style="--swatch:#8b5cf6" aria-label="Violet" type="button"></button>
+            <button class="theme-swatch-choice" data-accent="indigo" style="--swatch:#6366f1" aria-label="Indigo" type="button"></button>
+            <button class="theme-swatch-choice" data-accent="blue" style="--swatch:#4f83ff" aria-label="Blue" type="button"></button>
+            <button class="theme-swatch-choice" data-accent="sapphire" style="--swatch:#3b82f6" aria-label="Sapphire" type="button"></button>
+            <button class="theme-swatch-choice" data-accent="navy" style="--swatch:#1e40af" aria-label="Navy" type="button"></button>
             <button class="theme-swatch-choice" data-accent="cyan" style="--swatch:#67dce5" aria-label="Cyan" type="button"></button>
+            <button class="theme-swatch-choice" data-accent="teal" style="--swatch:#2dd4bf" aria-label="Teal" type="button"></button>
+            <button class="theme-swatch-choice" data-accent="mint" style="--swatch:#2dd4bf" aria-label="Mint" type="button"></button>
+            <button class="theme-swatch-choice" data-accent="emerald" style="--swatch:#10b981" aria-label="Emerald" type="button"></button>
+            <button class="theme-swatch-choice" data-accent="green" style="--swatch:#34d399" aria-label="Green" type="button"></button>
+            <button class="theme-swatch-choice" data-accent="lime" style="--swatch:#84cc16" aria-label="Lime" type="button"></button>
             <button class="theme-swatch-choice" data-accent="silver" style="--swatch:#e5e7eb" aria-label="Silver" type="button"></button>
+            <button class="theme-swatch-choice" data-accent="pearl" style="--swatch:#f8fafc" aria-label="Pearl" type="button"></button>
             <button class="theme-swatch-choice" data-accent="graphite" style="--swatch:#94a3b8" aria-label="Graphite" type="button"></button>
+            <button class="theme-swatch-choice" data-accent="slate" style="--swatch:#64748b" aria-label="Slate" type="button"></button>
+            <button class="theme-swatch-choice" data-accent="mocha" style="--swatch:#a16207" aria-label="Mocha" type="button"></button>
+            <button class="theme-swatch-choice" data-accent="espresso" style="--swatch:#92400e" aria-label="Espresso" type="button"></button>
+            <button class="theme-swatch-choice" data-accent="lavender" style="--swatch:#c4b5fd" aria-label="Lavender" type="button"></button>
+            <button class="theme-swatch-choice" data-accent="ocean" style="--swatch:#0ea5e9" aria-label="Ocean" type="button"></button>
           </div>
+        </section>
+        <section aria-label="Gerak website" class="theme-section">
+          <h3 data-topupid-i18n="motionTitle">Gerak Website</h3>
+          <div class="theme-motion-grid motion-grid">
+            <button aria-pressed="false" class="choice theme-choice theme-pro-choice" data-motion-choice="full" type="button"><span aria-hidden="true" class="choice-symbol">∿</span><span data-topupid-i18n="motionNormal">Normal</span></button>
+            <button aria-pressed="false" class="choice theme-choice theme-pro-choice" data-motion-choice="reduced" type="button"><span aria-hidden="true" class="choice-symbol">−</span><span data-topupid-i18n="motionReduced">Hemat</span></button>
+          </div>
+          <p class="theme-help" data-topupid-i18n="motionHelp">Mode Hemat mengurangi animasi non-esensial tanpa mengubah login, A2F, recovery, atau tampilan utama.</p>
         </section>
       </div>
       <div class="theme-actions">
-        <button class="theme-reset-btn" data-theme-reset type="button" data-topupid-i18n="resetTheme">Reset</button>
-        <button class="theme-save-btn" data-close-theme type="button" data-topupid-i18n="saveTheme">Simpan</button>
+        <button class="theme-reset-btn theme-reset" data-theme-reset type="button"><span aria-hidden="true">↻</span><span data-topupid-i18n="resetTheme">Reset</span></button>
+        <button class="theme-save-btn theme-save" data-close-theme type="button"><span aria-hidden="true">✓</span><span data-topupid-i18n="saveTheme">Simpan</span></button>
       </div>
     </div>
   </div>
@@ -12135,51 +12171,63 @@
 <script id="v54-topupid-dashboard-header-prefs-i18n-js">
 (function(){
   'use strict';
-  if(window.__TOPUPID_DASHBOARD_HEADER_PREFS_I18N_V54__) return;
-  window.__TOPUPID_DASHBOARD_HEADER_PREFS_I18N_V54__ = true;
-  var THEME_KEY='dirac_theme_settings_v2', ACCENT_KEY='dirac_global_accent_v1', LANGUAGE_KEY='dirac_global_language_v1';
-  var DEFAULTS={mode:'dark',accent:'sky',language:'id'};
+  if(window.__TOPUPID_DASHBOARD_THEME_V56__) return;
+  window.__TOPUPID_DASHBOARD_THEME_V56__ = true;
+  var THEME_KEY='dirac_theme_settings_v2', ACCENT_KEY='dirac_global_accent_v1', LANGUAGE_KEY='dirac_global_language_v1', MOTION_KEY='dirac_motion_mode_v1';
+  var DEFAULTS={mode:'dark',accent:'sky',language:'id',contrast:'off',motion:'full'};
   var PALETTES={
-    sky:{gold:'#38bdf8',gold2:'#0284c7',gold3:'#075985',rgb:'56,189,248'},gold:{gold:'#f3cd70',gold2:'#d6a642',gold3:'#8e6425',rgb:'243,205,112'},blue:{gold:'#4f83ff',gold2:'#2563eb',gold3:'#1e3a8a',rgb:'79,131,255'},purple:{gold:'#7c3aed',gold2:'#5b21b6',gold3:'#35126d',rgb:'124,58,237'},pink:{gold:'#ec4899',gold2:'#be185d',gold3:'#7f123d',rgb:'236,72,153'},red:{gold:'#ef4444',gold2:'#dc2626',gold3:'#7f1d1d',rgb:'239,68,68'},orange:{gold:'#f97316',gold2:'#ea580c',gold3:'#7c2d12',rgb:'249,115,22'},emerald:{gold:'#10b981',gold2:'#047857',gold3:'#064e3b',rgb:'16,185,129'},teal:{gold:'#2dd4bf',gold2:'#0f766e',gold3:'#134e4a',rgb:'45,212,191'},cyan:{gold:'#67dce5',gold2:'#36c2cc',gold3:'#176b73',rgb:'103,220,229'},silver:{gold:'#e5e7eb',gold2:'#9ca3af',gold3:'#4b5563',rgb:'229,231,235'},graphite:{gold:'#94a3b8',gold2:'#475569',gold3:'#0f172a',rgb:'148,163,184'}
+    sky:{gold:'#38bdf8',gold2:'#0284c7',gold3:'#075985',rgb:'56,189,248'}, gold:{gold:'#f3cd70',gold2:'#d6a642',gold3:'#8e6425',rgb:'243,205,112'}, amber:{gold:'#f59e0b',gold2:'#d97706',gold3:'#78350f',rgb:'245,158,11'}, orange:{gold:'#f97316',gold2:'#ea580c',gold3:'#7c2d12',rgb:'249,115,22'}, coral:{gold:'#fb6a4a',gold2:'#ea3d25',gold3:'#8f1d16',rgb:'251,106,74'}, red:{gold:'#ef4444',gold2:'#dc2626',gold3:'#7f1d1d',rgb:'239,68,68'}, rose:{gold:'#fb7185',gold2:'#e11d48',gold3:'#881337',rgb:'251,113,133'}, pink:{gold:'#ec4899',gold2:'#be185d',gold3:'#7f123d',rgb:'236,72,153'}, purple:{gold:'#7c3aed',gold2:'#5b21b6',gold3:'#35126d',rgb:'124,58,237'}, violet:{gold:'#8b5cf6',gold2:'#6d28d9',gold3:'#432076',rgb:'139,92,246'}, indigo:{gold:'#6366f1',gold2:'#4f46e5',gold3:'#312e81',rgb:'99,102,241'}, blue:{gold:'#4f83ff',gold2:'#2563eb',gold3:'#1e3a8a',rgb:'79,131,255'}, sapphire:{gold:'#3b82f6',gold2:'#1d4ed8',gold3:'#172554',rgb:'59,130,246'}, navy:{gold:'#1e40af',gold2:'#1e3a8a',gold3:'#111827',rgb:'30,64,175'}, cyan:{gold:'#67dce5',gold2:'#36c2cc',gold3:'#176b73',rgb:'103,220,229'}, teal:{gold:'#2dd4bf',gold2:'#0f766e',gold3:'#134e4a',rgb:'45,212,191'}, mint:{gold:'#2dd4bf',gold2:'#0d9488',gold3:'#134e4a',rgb:'45,212,191'}, emerald:{gold:'#10b981',gold2:'#047857',gold3:'#064e3b',rgb:'16,185,129'}, green:{gold:'#34d399',gold2:'#059669',gold3:'#065f46',rgb:'52,211,153'}, lime:{gold:'#84cc16',gold2:'#65a30d',gold3:'#365314',rgb:'132,204,22'}, silver:{gold:'#e5e7eb',gold2:'#9ca3af',gold3:'#4b5563',rgb:'229,231,235'}, pearl:{gold:'#f8fafc',gold2:'#cbd5e1',gold3:'#64748b',rgb:'248,250,252'}, graphite:{gold:'#94a3b8',gold2:'#475569',gold3:'#0f172a',rgb:'148,163,184'}, slate:{gold:'#64748b',gold2:'#334155',gold3:'#0f172a',rgb:'100,116,139'}, mocha:{gold:'#a16207',gold2:'#854d0e',gold3:'#422006',rgb:'161,98,7'}, espresso:{gold:'#92400e',gold2:'#78350f',gold3:'#431407',rgb:'146,64,14'}, lavender:{gold:'#c4b5fd',gold2:'#8b5cf6',gold3:'#4c1d95',rgb:'196,181,253'}, ocean:{gold:'#0ea5e9',gold2:'#0369a1',gold3:'#0c4a6e',rgb:'14,165,233'}
   };
   var LANG_META={id:{htmlLang:'id',dir:'ltr'},en:{htmlLang:'en',dir:'ltr'},zh:{htmlLang:'zh-CN',dir:'ltr'},ar:{htmlLang:'ar',dir:'rtl'},ja:{htmlLang:'ja',dir:'ltr'},ko:{htmlLang:'ko',dir:'ltr'},es:{htmlLang:'es',dir:'ltr'},fr:{htmlLang:'fr',dir:'ltr'}};
   function parse(raw){try{return raw?JSON.parse(raw):null}catch(_){return null}}
   function safeGet(k){try{return localStorage.getItem(k)}catch(_){return null}}
-  function safeSet(k,v){try{localStorage.setItem(k,v)}catch(_){}}
-  function prefs(){var p=Object.assign({},DEFAULTS,parse(safeGet(THEME_KEY))||{});var a=safeGet(ACCENT_KEY), l=safeGet(LANGUAGE_KEY)||safeGet('dirac_language_v1');if(a) p.accent=a;if(l) p.language=l;if(!PALETTES[p.accent]) p.accent=DEFAULTS.accent;if(!LANG_META[p.language]) p.language=DEFAULTS.language;if(!/^(dark|light|auto)$/.test(p.mode)) p.mode=DEFAULTS.mode;return p;}
-  function writePrefs(patch){var next=Object.assign({},prefs(),patch||{});if(!PALETTES[next.accent]) next.accent=DEFAULTS.accent;if(!LANG_META[next.language]) next.language=DEFAULTS.language;safeSet(THEME_KEY,JSON.stringify({accent:next.accent,language:next.language,mode:next.mode}));safeSet(ACCENT_KEY,next.accent);safeSet(LANGUAGE_KEY,next.language);applyAll('write');}
+  function safeSet(k,v){try{localStorage.setItem(k,String(v))}catch(_){}}
+  function validMode(v){v=String(v||'').trim();return /^(light|dark|auto)$/.test(v)?v:DEFAULTS.mode;}
+  function validAccent(v){v=String(v||'').trim();return PALETTES[v]?v:DEFAULTS.accent;}
+  function validLanguage(v){v=String(v||'').trim();return LANG_META[v]?v:DEFAULTS.language;}
+  function validContrast(v){v=String(v||'').trim();return /^(on|off)$/.test(v)?v:DEFAULTS.contrast;}
+  function validMotion(v){v=String(v||'').trim();return /^(full|reduced|none|normal|hemat)$/.test(v)?(v==='normal'?'full':(v==='hemat'?'reduced':v)):DEFAULTS.motion;}
+  function prefs(){var base=parse(safeGet(THEME_KEY))||{};var p=Object.assign({},DEFAULTS,base);var a=safeGet(ACCENT_KEY),l=safeGet(LANGUAGE_KEY)||safeGet('dirac_language_v1'),m=safeGet(MOTION_KEY);if(a)p.accent=a;if(l)p.language=l;if(m)p.motion=m;return {mode:validMode(p.mode),accent:validAccent(p.accent),language:validLanguage(p.language),contrast:validContrast(p.contrast),motion:validMotion(p.motion)};}
+  function writePrefs(patch){var next=Object.assign({},prefs(),patch||{});next.mode=validMode(next.mode);next.accent=validAccent(next.accent);next.language=validLanguage(next.language);next.contrast=validContrast(next.contrast);next.motion=validMotion(next.motion);safeSet(THEME_KEY,JSON.stringify(next));safeSet(ACCENT_KEY,next.accent);safeSet(LANGUAGE_KEY,next.language);safeSet(MOTION_KEY,next.motion);applyAll('write');}
   window.diracGetGlobalPrefs=function(){return prefs();};
   window.diracSetGlobalAccent=function(v){writePrefs({accent:v});};
   window.diracSetGlobalLanguage=function(v){writePrefs({language:v});};
   window.diracSetGlobalTheme=function(p){writePrefs(p||{});};
   var I18N={
-    id:{navProducts:'Produk',navTopup:'Top Up',navStart:'Mulai',theme:'Tema',menuTitle:'Menu TopupID',menuSub:'Navigasi layanan top up.',menuHome:'Beranda',menuShowcase:'Banner',themeTitle:'Pengaturan Tema',modeTitle:'Mode Tema',dark:'Gelap',auto:'Otomatis',languageTitle:'Bahasa Tampilan',accentTitle:'Warna Aksen',resetTheme:'Reset',saveTheme:'Simpan',brandSecond:'Top Up'},
-    en:{navProducts:'Products',navTopup:'Top Up',navStart:'Start',theme:'Theme',menuTitle:'TopupID Menu',menuSub:'Top-up service navigation.',menuHome:'Home',menuShowcase:'Banner',themeTitle:'Theme Settings',modeTitle:'Theme Mode',dark:'Dark',auto:'Auto',languageTitle:'Display Language',accentTitle:'Accent Color',resetTheme:'Reset',saveTheme:'Save',brandSecond:'Top Up'},
-    zh:{navProducts:'产品',navTopup:'充值',navStart:'开始',theme:'主题',menuTitle:'TopupID 菜单',menuSub:'充值服务导航。',menuHome:'首页',menuShowcase:'横幅',themeTitle:'主题设置',modeTitle:'主题模式',dark:'深色',auto:'自动',languageTitle:'显示语言',accentTitle:'强调色',resetTheme:'重置',saveTheme:'保存',brandSecond:'充值'},
-    ar:{navProducts:'المنتجات',navTopup:'الشحن',navStart:'ابدأ',theme:'السمة',menuTitle:'قائمة TopupID',menuSub:'تنقل خدمات الشحن.',menuHome:'الرئيسية',menuShowcase:'البنر',themeTitle:'إعدادات السمة',modeTitle:'وضع السمة',dark:'داكن',auto:'تلقائي',languageTitle:'لغة العرض',accentTitle:'لون التمييز',resetTheme:'إعادة ضبط',saveTheme:'حفظ',brandSecond:'الشحن'},
-    ja:{navProducts:'商品',navTopup:'トップアップ',navStart:'開始',theme:'テーマ',menuTitle:'TopupID メニュー',menuSub:'トップアップサービスのナビゲーション。',menuHome:'ホーム',menuShowcase:'バナー',themeTitle:'テーマ設定',modeTitle:'テーマモード',dark:'ダーク',auto:'自動',languageTitle:'表示言語',accentTitle:'アクセントカラー',resetTheme:'リセット',saveTheme:'保存',brandSecond:'トップアップ'},
-    ko:{navProducts:'상품',navTopup:'충전',navStart:'시작',theme:'테마',menuTitle:'TopupID 메뉴',menuSub:'충전 서비스 탐색.',menuHome:'홈',menuShowcase:'배너',themeTitle:'테마 설정',modeTitle:'테마 모드',dark:'다크',auto:'자동',languageTitle:'표시 언어',accentTitle:'강조 색상',resetTheme:'초기화',saveTheme:'저장',brandSecond:'충전'},
-    es:{navProducts:'Productos',navTopup:'Recarga',navStart:'Empezar',theme:'Tema',menuTitle:'Menú TopupID',menuSub:'Navegación de servicios de recarga.',menuHome:'Inicio',menuShowcase:'Banner',themeTitle:'Ajustes de tema',modeTitle:'Modo de tema',dark:'Oscuro',auto:'Auto',languageTitle:'Idioma',accentTitle:'Color de acento',resetTheme:'Restablecer',saveTheme:'Guardar',brandSecond:'Recarga'},
-    fr:{navProducts:'Produits',navTopup:'Recharge',navStart:'Commencer',theme:'Thème',menuTitle:'Menu TopupID',menuSub:'Navigation des services de recharge.',menuHome:'Accueil',menuShowcase:'Bannière',themeTitle:'Réglages du thème',modeTitle:'Mode du thème',dark:'Sombre',auto:'Auto',languageTitle:'Langue',accentTitle:'Couleur d’accent',resetTheme:'Réinitialiser',saveTheme:'Enregistrer',brandSecond:'Recharge'}
+    id:{navProducts:'Produk',navTopup:'Top Up',navStart:'Mulai',theme:'Tema',menuTitle:'Menu TopupID',menuSub:'Navigasi layanan top up.',menuHome:'Beranda',menuShowcase:'Banner',themeTitle:'Pengaturan Tema',themeSubtitle:'Fitur tema mengikuti dashboard: warna, bahasa, kontras, dan gerak website.',modeTitle:'Mode Tema',light:'Terang',dark:'Gelap',auto:'Otomatis',languageTitle:'Bahasa Tampilan',contrastTitle:'Kontras Tema',contrastOn:'Aktif',contrastOff:'Nonaktif',customThemeTitle:'Kustom Tema',motionTitle:'Gerak Website',motionNormal:'Normal',motionReduced:'Hemat',motionHelp:'Mode Hemat mengurangi animasi non-esensial tanpa mengubah login, A2F, recovery, atau tampilan utama.',accentTitle:'Warna Aksen',resetTheme:'Reset',saveTheme:'Simpan',brandSecond:'Top Up'},
+    en:{navProducts:'Products',navTopup:'Top Up',navStart:'Start',theme:'Theme',menuTitle:'TopupID Menu',menuSub:'Top-up service navigation.',menuHome:'Home',menuShowcase:'Banner',themeTitle:'Theme Settings',themeSubtitle:'Theme features follow the dashboard: color, language, contrast, and website motion.',modeTitle:'Theme Mode',light:'Light',dark:'Dark',auto:'Auto',languageTitle:'Display Language',contrastTitle:'Theme Contrast',contrastOn:'Active',contrastOff:'Inactive',customThemeTitle:'Custom Theme',motionTitle:'Website Motion',motionNormal:'Normal',motionReduced:'Reduced',motionHelp:'Reduced mode lowers non-essential animation without changing login, A2F, recovery, or the main display.',accentTitle:'Accent Color',resetTheme:'Reset',saveTheme:'Save',brandSecond:'Top Up'},
+    zh:{navProducts:'产品',navTopup:'充值',navStart:'开始',theme:'主题',menuTitle:'TopupID 菜单',menuSub:'充值服务导航。',menuHome:'首页',menuShowcase:'横幅',themeTitle:'主题设置',themeSubtitle:'主题功能与仪表板一致：颜色、语言、对比度和网站动效。',modeTitle:'主题模式',light:'浅色',dark:'深色',auto:'自动',languageTitle:'显示语言',contrastTitle:'主题对比度',contrastOn:'启用',contrastOff:'关闭',customThemeTitle:'自定义主题',motionTitle:'网站动效',motionNormal:'正常',motionReduced:'减少',motionHelp:'减少模式会降低非必要动画，不改变登录、A2F、恢复或主要显示。',accentTitle:'强调色',resetTheme:'重置',saveTheme:'保存',brandSecond:'充值'},
+    ar:{navProducts:'المنتجات',navTopup:'الشحن',navStart:'ابدأ',theme:'السمة',menuTitle:'قائمة TopupID',menuSub:'تنقل خدمات الشحن.',menuHome:'الرئيسية',menuShowcase:'البنر',themeTitle:'إعدادات السمة',themeSubtitle:'تتبع ميزات السمة لوحة التحكم: اللون واللغة والتباين وحركة الموقع.',modeTitle:'وضع السمة',light:'فاتح',dark:'داكن',auto:'تلقائي',languageTitle:'لغة العرض',contrastTitle:'تباين السمة',contrastOn:'نشط',contrastOff:'غير نشط',customThemeTitle:'تخصيص السمة',motionTitle:'حركة الموقع',motionNormal:'عادي',motionReduced:'مخفض',motionHelp:'يقلل وضع التوفير الحركات غير الأساسية دون تغيير تسجيل الدخول أو A2F أو الاسترداد أو العرض الرئيسي.',accentTitle:'لون التمييز',resetTheme:'إعادة ضبط',saveTheme:'حفظ',brandSecond:'شحن'},
+    ja:{navProducts:'商品',navTopup:'トップアップ',navStart:'開始',theme:'テーマ',menuTitle:'TopupID メニュー',menuSub:'トップアップサービスのナビゲーション。',menuHome:'ホーム',menuShowcase:'バナー',themeTitle:'テーマ設定',themeSubtitle:'テーマ機能はダッシュボードに合わせ、色・言語・コントラスト・サイト動作を反映します。',modeTitle:'テーマモード',light:'ライト',dark:'ダーク',auto:'自動',languageTitle:'表示言語',contrastTitle:'テーマコントラスト',contrastOn:'有効',contrastOff:'無効',customThemeTitle:'カスタムテーマ',motionTitle:'サイトの動き',motionNormal:'通常',motionReduced:'軽量',motionHelp:'軽量モードは、ログイン、A2F、復元、主要表示を変更せずに不要なアニメーションを減らします。',accentTitle:'アクセントカラー',resetTheme:'リセット',saveTheme:'保存',brandSecond:'トップアップ'},
+    ko:{navProducts:'상품',navTopup:'충전',navStart:'시작',theme:'테마',menuTitle:'TopupID 메뉴',menuSub:'충전 서비스 탐색.',menuHome:'홈',menuShowcase:'배너',themeTitle:'테마 설정',themeSubtitle:'테마 기능은 대시보드처럼 색상, 언어, 대비, 웹사이트 움직임을 따릅니다.',modeTitle:'테마 모드',light:'라이트',dark:'다크',auto:'자동',languageTitle:'표시 언어',contrastTitle:'테마 대비',contrastOn:'활성',contrastOff:'비활성',customThemeTitle:'사용자 테마',motionTitle:'웹사이트 모션',motionNormal:'일반',motionReduced:'절약',motionHelp:'절약 모드는 로그인, A2F, 복구 또는 기본 화면을 바꾸지 않고 불필요한 애니메이션을 줄입니다.',accentTitle:'강조 색상',resetTheme:'초기화',saveTheme:'저장',brandSecond:'충전'},
+    es:{navProducts:'Productos',navTopup:'Recarga',navStart:'Empezar',theme:'Tema',menuTitle:'Menú TopupID',menuSub:'Navegación de servicios de recarga.',menuHome:'Inicio',menuShowcase:'Banner',themeTitle:'Ajustes de tema',themeSubtitle:'Las funciones de tema siguen el panel: color, idioma, contraste y movimiento del sitio.',modeTitle:'Modo de tema',light:'Claro',dark:'Oscuro',auto:'Auto',languageTitle:'Idioma',contrastTitle:'Contraste del tema',contrastOn:'Activo',contrastOff:'Inactivo',customThemeTitle:'Tema personalizado',motionTitle:'Movimiento del sitio',motionNormal:'Normal',motionReduced:'Reducido',motionHelp:'El modo reducido baja animaciones no esenciales sin cambiar login, A2F, recuperación ni la pantalla principal.',accentTitle:'Color de acento',resetTheme:'Reset',saveTheme:'Guardar',brandSecond:'Recarga'},
+    fr:{navProducts:'Produits',navTopup:'Recharge',navStart:'Commencer',theme:'Thème',menuTitle:'Menu TopupID',menuSub:'Navigation des services de recharge.',menuHome:'Accueil',menuShowcase:'Bannière',themeTitle:'Réglages du thème',themeSubtitle:'Les fonctions de thème suivent le tableau de bord : couleur, langue, contraste et animation du site.',modeTitle:'Mode du thème',light:'Clair',dark:'Sombre',auto:'Auto',languageTitle:'Langue',contrastTitle:'Contraste du thème',contrastOn:'Actif',contrastOff:'Inactif',customThemeTitle:'Thème personnalisé',motionTitle:'Animations du site',motionNormal:'Normal',motionReduced:'Réduit',motionHelp:'Le mode réduit diminue les animations non essentielles sans modifier la connexion, A2F, la récupération ni l’affichage principal.',accentTitle:'Couleur d’accent',resetTheme:'Réinitialiser',saveTheme:'Enregistrer',brandSecond:'Recharge'}
   };
   var TEXT={
-    'Top Up Aman':{en:'Safe Top Up'},'Top Up Digital':{en:'Digital Top Up'},'Aman':{en:'Secure'},'dan Praktis':{en:'and Practical'},'Nikmati layanan top up game, pulsa, paket data, token PLN, dan voucher digital dengan tampilan ringan di HP.':{en:'Enjoy game top-ups, mobile credit, data packages, PLN tokens, and digital vouchers with a lightweight mobile display.'},'Mulai Top Up':{en:'Start Top Up'},'Lihat Produk':{en:'View Products'},'Total layanan aktif':{en:'Active services total'},'Game • Pulsa • PLN':{en:'Games • Credit • PLN'},'Payment Ready':{en:'QRIS Ready'},'Produk Digital':{en:'Digital Products'},'Layanan Digital Terpercaya':{en:'Trusted Digital Service'},'Digital':{en:'Digital'},'Cepat dan Mudah':{en:'Fast and Easy'},'Isi game, pulsa, paket data, token PLN, dan voucher digital dalam satu halaman yang ringan, modern, dan nyaman digunakan.':{en:'Top up games, mobile credit, data packages, PLN tokens, and digital vouchers in one lightweight, modern, mobile-friendly page.'},'Geser untuk melihat layanan':{en:'Swipe to view services'},'Website Top Up':{en:'Top Up Website'},'untuk Game, Game, dan Voucher Game':{en:'for Games and Game Vouchers'},'Pilih produk digital favorit, isi data tujuan, lalu lanjutkan pembayaran dengan alur yang sederhana dan nyaman digunakan di HP.':{en:'Choose your favorite digital product, fill in the destination data, then continue payment through a simple mobile-friendly flow.'},'Lihat 3D Premium':{en:'View 3D Premium'},'Mudah Dipakai':{en:'Easy to Use'},'Tampilan interaktif yang tetap ringan di HP.':{en:'Interactive display that stays lightweight on mobile.'},'Produk Populer':{en:'Popular Products'},'Produk favorit mudah dilihat dan dipilih.':{en:'Favorite products are easy to view and select.'},'Siap Terhubung':{en:'Ready to Connect'},'Alur pembayaran dapat terhubung ke sistem utama.':{en:'The payment flow can connect to the main system.'},'Pilih Produk Favorit dengan Lebih Mudah':{en:'Choose Favorite Products More Easily'},'Geser kartu produk di HP, pilih layanan yang dibutuhkan, lalu lanjutkan ke form checkout.':{en:'Swipe product cards on mobile, choose the needed service, then continue to the checkout form.'},'Geser • Pilih • Checkout':{en:'Swipe • Choose • Checkout'},'Geser produk dengan jari':{en:'Swipe products with your finger'},'KATALOG':{en:'CATALOG'},'Katalog Produk Digital Lengkap':{en:'Complete Digital Product Catalog'},'Pilih kategori layanan, lihat nominal yang tersedia, dan lanjutkan pesanan dengan lebih mudah.':{en:'Choose a service category, view available nominal options, and continue the order more easily.'},'Semua':{en:'All'},'FLOW ORDER':{en:'ORDER FLOW'},'Alur Top Up yang Mudah Diikuti':{en:'Easy-to-Follow Top Up Flow'},'Pilih layanan, isi data tujuan, tentukan nominal, lalu lanjutkan pembayaran sesuai metode yang tersedia.':{en:'Choose a service, fill in the destination data, select the nominal, then continue payment through the available method.'},'Pilih Produk':{en:'Choose Product'},'User memilih kategori game, pulsa, data, PLN, atau voucher.':{en:'The user chooses games, mobile credit, data, PLN, or voucher categories.'},'Isi Tujuan':{en:'Fill Destination'},'User mengisi ID game, nomor HP, nomor pelanggan, atau data tujuan lain.':{en:'The user fills in the game ID, phone number, customer number, or other destination data.'},'Proses Pesanan':{en:'Process Order'},'Pesanan diproses melalui sistem yang terhubung dan total pembayaran ditampilkan sebelum dilanjutkan.':{en:'The order is processed through the connected system and the total payment is shown before continuing.'},'Cek Status':{en:'Check Status'},'Status pesanan dapat dipantau setelah pembayaran diproses.':{en:'Order status can be monitored after payment is processed.'},'TRUST & SAFETY':{en:'TRUST & SAFETY'},'Transaksi Aman dan Informasi Pengguna Tetap Terjaga':{en:'Secure Transactions and Protected User Information'},'Alur dibuat untuk membantu pengguna melakukan top up dengan nyaman, jelas, dan tetap aman.':{en:'The flow is designed to help users top up comfortably, clearly, and securely.'},'Data sensitif terlindungi':{en:'Sensitive data protected'},'Informasi penting diproses melalui sistem yang aman dan tidak ditampilkan kepada pengguna.':{en:'Important information is processed through a secure system and is not exposed to users.'},'Alur cepat':{en:'Fast flow'},'Produk, nominal, tujuan, dan pembayaran diringkas langsung agar pembeli tidak bingung saat checkout.':{en:'Products, nominals, destinations, and payment are summarized directly so buyers are not confused during checkout.'},'Status pesanan jelas':{en:'Clear order status'},'Setiap pesanan menampilkan informasi penting seperti produk, total, metode pembayaran, dan status transaksi.':{en:'Each order displays important information such as product, total, payment method, and transaction status.'},'Mobile first':{en:'Mobile first'},'Tombol, kartu produk, dan ringkasan pesanan dibuat nyaman untuk layar HP.':{en:'Buttons, product cards, and order summaries are made comfortable for mobile screens.'},'SMART CHECKOUT':{en:'SMART CHECKOUT'},'Panduan checkout yang lebih pintar':{en:'Smarter checkout guidance'},'Panel ini membantu pengguna mengisi data tujuan, memilih produk, dan memastikan pesanan sebelum pembayaran.':{en:'This panel helps users fill destination data, choose products, and confirm orders before payment.'},'Validasi tujuan':{en:'Destination validation'},'Pilih produk dulu untuk melihat panduan format tujuan.':{en:'Choose a product first to see the destination format guide.'},'Game: User ID':{en:'Game: User ID'},'Digital: nomor pelanggan':{en:'Digital: customer number'},'Preview pembayaran':{en:'Payment preview'},'Metode aktif':{en:'Active method'},'Belum dipilih':{en:'Not selected'},'Metode pembayaran mengikuti sistem yang tersedia.':{en:'The payment method follows the available system.'},'Shortcut produk':{en:'Product shortcuts'},'CHECKOUT':{en:'CHECKOUT'},'Form Top Up Sederhana dan Jelas':{en:'Simple and Clear Top Up Form'},'Lengkapi data pesanan, pilih nominal, lalu lanjutkan pembayaran melalui metode yang tersedia.':{en:'Complete the order data, choose the nominal, then continue payment through the available method.'},'Kategori Produk':{en:'Product Category'},'Pilih kategori':{en:'Choose category'},'Pilih produk':{en:'Choose product'},'User ID / Nomor Tujuan':{en:'User ID / Destination Number'},'Game isi User ID. Produk digital isi nomor tujuan sesuai layanan.':{en:'For games, fill in the User ID. For digital products, fill in the destination number according to the service.'},'Nominal':{en:'Nominal'},'Metode Pembayaran':{en:'Payment Method'},'Pilih metode pembayaran':{en:'Choose payment method'},'Lanjut Pembayaran':{en:'Continue Payment'},'Pastikan data tujuan sudah benar sebelum melanjutkan pembayaran.':{en:'Make sure the destination data is correct before continuing payment.'},'Ringkasan':{en:'Summary'},'Pesanan':{en:'Order'},'Kategori':{en:'Category'},'Tujuan':{en:'Destination'},'Pembayaran':{en:'Payment'},'Total Bayar':{en:'Total Payment'},'Total pembayaran akan menyesuaikan produk, nominal, dan metode pembayaran yang dipilih.':{en:'Total payment will adjust to the selected product, nominal, and payment method.'},'© 2026 TopupID. Copyright by Dirac Group.':{en:'© 2026 TopupID. Copyright by Dirac Group.'},'TopupID dinaungi Dirac Group.':{en:'TopupID is under Dirac Group.'},'Memproses pesanan':{en:'Processing order'},'Sistem sedang menyiapkan pembayaran dan status pesanan.':{en:'The system is preparing payment and order status.'},'Validasi data tujuan':{en:'Validating destination data'},'Mengecek produk dan nominal':{en:'Checking product and nominal'},'Memproses pesanan pembayaran':{en:'Processing payment order'},'Menyiapkan status transaksi':{en:'Preparing transaction status'}
+    'Layanan Mobile Aktif':{en:'Active Mobile Service',zh:'移动服务已启用',ar:'خدمة الجوال نشطة',ja:'モバイルサービス稼働中',ko:'모바일 서비스 활성화',es:'Servicio móvil activo',fr:'Service mobile actif'},
+    'Layanan Digital Terpercaya':{en:'Trusted Digital Service',zh:'可信数字服务',ar:'خدمة رقمية موثوقة',ja:'信頼できるデジタルサービス',ko:'신뢰할 수 있는 디지털 서비스',es:'Servicio digital confiable',fr:'Service numérique fiable'},
+    'Top Up Digital Cepat dan Mudah':{en:'Fast and Easy Digital Top Up',zh:'快速便捷的数字充值',ar:'شحن رقمي سريع وسهل',ja:'速くて簡単なデジタルトップアップ',ko:'빠르고 쉬운 디지털 충전',es:'Recarga digital rápida y fácil',fr:'Recharge numérique rapide et facile'},
+    'Isi game, pulsa, paket data, token PLN, dan voucher digital dalam satu halaman yang ringan, modern, dan nyaman digunakan.':{en:'Top up games, mobile credit, data packages, PLN tokens, and digital vouchers in one light, modern, comfortable page.',zh:'在一个轻量、现代且易用的页面中充值游戏、话费、流量、PLN 代币和数字券。',ar:'اشحن الألعاب والرصيد وباقات البيانات ورموز PLN والقسائم الرقمية في صفحة واحدة خفيفة وحديثة ومريحة.',ja:'ゲーム、携帯クレジット、データパック、PLNトークン、デジタルバウチャーを軽量で使いやすい1ページで利用できます。',ko:'게임, 휴대폰 충전, 데이터 패키지, PLN 토큰, 디지털 바우처를 가볍고 현대적인 한 페이지에서 이용하세요.',es:'Recarga juegos, saldo móvil, paquetes de datos, tokens PLN y vouchers digitales en una sola página ligera, moderna y cómoda.',fr:'Rechargez jeux, crédit mobile, forfaits data, jetons PLN et bons numériques sur une page légère, moderne et confortable.'},
+    'Top Up 3D Premium yang Ringan di HP':{en:'Premium 3D Top Up That Stays Light on Mobile',zh:'适合手机的轻量高级 3D 充值',ar:'شحن ثلاثي الأبعاد فاخر وخفيف على الهاتف',ja:'スマホでも軽いプレミアム3Dトップアップ',ko:'모바일에서도 가벼운 프리미엄 3D 충전',es:'Recarga 3D premium ligera en el móvil',fr:'Recharge 3D premium légère sur mobile'},
+    'Mulai Top Up':{en:'Start Top Up',zh:'开始充值',ar:'ابدأ الشحن',ja:'トップアップ開始',ko:'충전 시작',es:'Empezar recarga',fr:'Commencer la recharge'},
+    'Produk':{en:'Products',zh:'产品',ar:'المنتجات',ja:'商品',ko:'상품',es:'Productos',fr:'Produits'},
+    'Checkout':{en:'Checkout',zh:'结账',ar:'الدفع',ja:'チェックアウト',ko:'체크아웃',es:'Checkout',fr:'Paiement'},
+    'Form Top Up Sederhana dan Jelas':{en:'Simple and Clear Top Up Form',zh:'简单清晰的充值表单',ar:'نموذج شحن بسيط وواضح',ja:'シンプルで分かりやすいトップアップフォーム',ko:'간단하고 명확한 충전 양식',es:'Formulario de recarga simple y claro',fr:'Formulaire de recharge simple et clair'},
+    'Total Bayar':{en:'Total Payment',zh:'支付总额',ar:'إجمالي الدفع',ja:'支払合計',ko:'총 결제액',es:'Total a pagar',fr:'Total à payer'},
+    'Total pembayaran akan menyesuaikan produk, nominal, dan metode pembayaran yang dipilih.':{en:'The total payment adjusts to the selected product, amount, and payment method.',zh:'支付总额会根据所选产品、面额和付款方式调整。',ar:'يتغير إجمالي الدفع حسب المنتج والقيمة وطريقة الدفع المختارة.',ja:'支払合計は選択した商品、金額、支払い方法に応じて調整されます。',ko:'총 결제액은 선택한 상품, 금액, 결제 방식에 따라 조정됩니다.',es:'El total se ajusta al producto, nominal y método de pago elegido.',fr:'Le total s’ajuste au produit, au montant et au mode de paiement choisis.'}
   };
-  var PLACEHOLDERS={'Contoh: 123456789 atau ID#1234':{en:'Example: 123456789 or ID#1234'},'Contoh: INV-20260622-123456':{en:'Example: INV-20260622-123456'}};
   var nodeBase=new WeakMap();
-  function trCore(key,lang){var row=(I18N[lang]&&I18N[lang][key])||I18N.en[key]||I18N.id[key]||key;return row;}
-  function trText(base,lang){if(lang==='id') return base;var row=TEXT[base];if(!row) return base;return row[lang]||row.en||base;}
-  function updateMarked(lang){document.querySelectorAll('[data-topupid-i18n]').forEach(function(el){el.textContent=trCore(el.getAttribute('data-topupid-i18n'),lang);});}
-  function updateTextNodes(lang){var walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,{acceptNode:function(n){var p=n.parentElement;if(!p||/^(SCRIPT|STYLE|NOSCRIPT|TITLE)$/.test(p.tagName)) return NodeFilter.FILTER_REJECT;var v=n.nodeValue.replace(/\s+/g,' ').trim();return v?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT;}});var list=[],n;while(n=walker.nextNode()) list.push(n);list.forEach(function(node){var current=node.nodeValue.replace(/\s+/g,' ').trim();var base=nodeBase.get(node);if(!base){if(TEXT[current]) base=current;else{var found=null;Object.keys(TEXT).some(function(k){var r=TEXT[k];if(r.en===current||r.zh===current||r.ar===current||r.ja===current||r.ko===current||r.es===current||r.fr===current){found=k;return true;}return false;});base=found||current;}nodeBase.set(node,base);}if(TEXT[base]){node.nodeValue=node.nodeValue.replace(current,trText(base,lang));}});}
-  function updatePlaceholders(lang){document.querySelectorAll('input[placeholder],textarea[placeholder]').forEach(function(el){var base=el.getAttribute('data-base-placeholder')||el.getAttribute('placeholder');if(!el.hasAttribute('data-base-placeholder')) el.setAttribute('data-base-placeholder',base);var row=PLACEHOLDERS[base];if(row) el.setAttribute('placeholder',lang==='id'?base:(row[lang]||row.en||base));});}
-  function applyTheme(p){var pal=PALETTES[p.accent]||PALETTES[DEFAULTS.accent],root=document.documentElement,meta=LANG_META[p.language]||LANG_META.id;var effective=p.mode==='auto'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches?'light':(p.mode==='light'?'light':'dark');root.lang=meta.htmlLang;root.dir=meta.dir;root.setAttribute('data-language',p.language);root.setAttribute('data-theme',p.mode);root.setAttribute('data-effective-theme',effective);root.style.setProperty('--gold',pal.gold);root.style.setProperty('--gold-2',pal.gold2);root.style.setProperty('--gold2',pal.gold2);root.style.setProperty('--gold-3',pal.gold3);root.style.setProperty('--theme-rgb',pal.rgb);root.style.setProperty('--cyan',pal.gold);root.style.setProperty('--cyan-soft',pal.gold);root.style.setProperty('--blue',pal.gold2);root.style.setProperty('--purple',pal.gold);root.style.setProperty('--pink',pal.gold2);root.style.setProperty('--stroke-strong','rgba('+pal.rgb+',.45)');root.style.setProperty('--line','rgba('+pal.rgb+',.18)');root.style.setProperty('--line-strong','rgba('+pal.rgb+',.38)');var mt=document.querySelector('meta[name="theme-color"]');if(mt) mt.setAttribute('content',effective==='light'?'#f8fafc':'#050816');document.querySelectorAll('[data-accent]').forEach(function(el){var on=el.getAttribute('data-accent')===p.accent;el.classList.toggle('active',on);el.classList.toggle('is-selected',on);el.setAttribute('aria-pressed',on?'true':'false');});document.querySelectorAll('[data-language]').forEach(function(el){var on=el.getAttribute('data-language')===p.language;el.classList.toggle('active',on);el.classList.toggle('is-selected',on);el.setAttribute('aria-pressed',on?'true':'false');});document.querySelectorAll('[data-theme-mode]').forEach(function(el){var on=el.getAttribute('data-theme-mode')===p.mode;el.classList.toggle('active',on);el.classList.toggle('is-selected',on);el.setAttribute('aria-pressed',on?'true':'false');});}
-  function applyAll(source){var p=prefs();applyTheme(p);updateMarked(p.language);updateTextNodes(p.language);updatePlaceholders(p.language);try{window.dispatchEvent(new CustomEvent('dirac:global-prefs-change',{detail:Object.assign({source:source||'topupid'},p)}));}catch(_){}}
-  function setupThemeModal(){var modal=document.getElementById('themeModal');if(!modal) return;function open(){modal.classList.add('open');modal.setAttribute('aria-hidden','false');document.body.classList.add('modal-open');var card=modal.querySelector('[role="dialog"]');if(card) setTimeout(function(){try{card.focus()}catch(_){}});}function close(){modal.classList.remove('open');modal.setAttribute('aria-hidden','true');document.body.classList.remove('modal-open');}document.addEventListener('click',function(e){var t=e.target&&e.target.closest?e.target.closest('[data-open-theme],[data-close-theme],[data-accent],[data-language],[data-theme-mode],[data-theme-reset]'):null;if(!t) return;if(t.hasAttribute('data-open-theme')){e.preventDefault();open();return;}if(t.hasAttribute('data-close-theme')){e.preventDefault();close();return;}if(t.hasAttribute('data-theme-reset')){e.preventDefault();writePrefs(DEFAULTS);return;}if(t.hasAttribute('data-accent')){writePrefs({accent:t.getAttribute('data-accent')});return;}if(t.hasAttribute('data-language')){writePrefs({language:t.getAttribute('data-language')});return;}if(t.hasAttribute('data-theme-mode')){writePrefs({mode:t.getAttribute('data-theme-mode')});return;}},true);modal.addEventListener('click',function(e){if(e.target===modal) close();});document.addEventListener('keydown',function(e){if(e.key==='Escape'&&modal.classList.contains('open')) close();});}
-  function setupHeader(){var header=document.getElementById('siteHeader'),btn=document.getElementById('menuBtn'),menu=document.getElementById('mobileMenu');function onScroll(){if(header) header.classList.toggle('is-scrolled',(window.scrollY||0)>12);}onScroll();window.addEventListener('scroll',onScroll,{passive:true});if(btn&&menu){btn.addEventListener('click',function(){setTimeout(function(){var open=getComputedStyle(menu).display!=='none';btn.setAttribute('aria-expanded',open?'true':'false');},0);});menu.addEventListener('click',function(e){if(e.target&&e.target.closest&&e.target.closest('a')) btn.setAttribute('aria-expanded','false');});}}
-  function startBrandTypewriter(){var wrap=document.querySelector('[data-brand-typewriter]');if(!wrap) return;var target=wrap.querySelector('.brand-typewriter-text')||wrap;var wordIndex=0,charIndex=0,deleting=false,pause=8;function getWords(){var lang=prefs().language;return ['TopupID',trCore('brandSecond',lang)];}target.textContent='TopupID';charIndex=7;function tick(){var words=getWords(),current=words[wordIndex%words.length];if(pause>0){pause--;return setTimeout(tick,90);}if(deleting){charIndex=Math.max(0,charIndex-1);target.textContent=current.slice(0,charIndex);if(charIndex===0){deleting=false;wordIndex=(wordIndex+1)%words.length;pause=3;}}else{charIndex=Math.min(current.length,charIndex+1);target.textContent=current.slice(0,charIndex);if(charIndex===current.length){wrap.setAttribute('aria-label',current);deleting=true;pause=15;}}setTimeout(tick,deleting?70:92);}setTimeout(tick,1050);}
+  function trCore(k,lang){var row=(I18N[lang]&&I18N[lang][k])||(I18N.en&&I18N.en[k])||(I18N.id&&I18N.id[k])||k;return row;}
+  function trText(base,lang){if(lang==='id')return base;var row=TEXT[base];return row?(row[lang]||row.en||base):base;}
+  function applyTranslations(lang){document.querySelectorAll('[data-topupid-i18n]').forEach(function(el){el.textContent=trCore(el.getAttribute('data-topupid-i18n'),lang);});var walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,{acceptNode:function(n){var p=n.parentElement;if(!p||/^(SCRIPT|STYLE|NOSCRIPT|TITLE|TEXTAREA)$/.test(p.tagName)||p.closest('[data-no-i18n]'))return NodeFilter.FILTER_REJECT;var v=n.nodeValue.replace(/\s+/g,' ').trim();return v?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT;}});var list=[],n;while((n=walker.nextNode()))list.push(n);list.forEach(function(node){var current=node.nodeValue.replace(/\s+/g,' ').trim();var base=nodeBase.get(node);if(!base){base=TEXT[current]?current:current;nodeBase.set(node,base);}if(TEXT[base])node.nodeValue=node.nodeValue.replace(current,trText(base,lang));});}
+  function applyTheme(p){var pal=PALETTES[p.accent]||PALETTES[DEFAULTS.accent],root=document.documentElement,meta=LANG_META[p.language]||LANG_META.id;var effective=p.mode==='auto'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches?'light':(p.mode==='light'?'light':'dark');root.lang=meta.htmlLang;root.dir=meta.dir;root.setAttribute('data-language',p.language);root.setAttribute('data-theme',p.mode);root.setAttribute('data-theme-mode',p.mode);root.setAttribute('data-effective-theme',effective);root.setAttribute('data-contrast',p.contrast);root.setAttribute('data-motion',p.motion);root.style.setProperty('--gold',pal.gold);root.style.setProperty('--gold-2',pal.gold2);root.style.setProperty('--gold2',pal.gold2);root.style.setProperty('--gold-3',pal.gold3);root.style.setProperty('--gold3',pal.gold3);root.style.setProperty('--theme-rgb',pal.rgb);root.style.setProperty('--cyan',pal.gold);root.style.setProperty('--cyan-soft',pal.gold);root.style.setProperty('--blue',pal.gold2);root.style.setProperty('--purple',pal.gold);root.style.setProperty('--pink',pal.gold2);root.style.setProperty('--stroke-strong','rgba('+pal.rgb+',.45)');root.style.setProperty('--line','rgba('+pal.rgb+',.18)');root.style.setProperty('--line-strong','rgba('+pal.rgb+',.38)');var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content',effective==='light'?'#f8fafc':'#050816');['accent','language','themeMode','contrast','motionChoice'].forEach(function(type){var sel=type==='accent'?'[data-accent]':type==='language'?'[data-language]':type==='themeMode'?'[data-theme-mode]':type==='contrast'?'[data-contrast]':'[data-motion-choice]';document.querySelectorAll(sel).forEach(function(el){var v=el.getAttribute(type==='themeMode'?'data-theme-mode':type==='motionChoice'?'data-motion-choice':'data-'+type);var target=type==='accent'?p.accent:type==='language'?p.language:type==='themeMode'?p.mode:type==='contrast'?p.contrast:p.motion;var on=v===target;el.classList.toggle('active',on);el.classList.toggle('is-selected',on);el.setAttribute('aria-pressed',on?'true':'false');});});}
+  function applyAll(source){var p=prefs();applyTheme(p);applyTranslations(p.language);try{window.dispatchEvent(new CustomEvent('dirac:global-prefs-change',{detail:Object.assign({source:source||'topupid'},p)}));}catch(_){}}
+  function setupThemeModal(){var modal=document.getElementById('themeModal');if(!modal)return;function open(){modal.classList.add('open');modal.setAttribute('aria-hidden','false');document.body.classList.add('modal-open');var card=modal.querySelector('[role="dialog"]');if(card)setTimeout(function(){try{card.focus()}catch(_){}},30);}function close(){modal.classList.remove('open');modal.setAttribute('aria-hidden','true');document.body.classList.remove('modal-open');}document.addEventListener('click',function(e){var t=e.target&&e.target.closest?e.target.closest('[data-open-theme],[data-close-theme],[data-theme-reset],[data-accent],[data-language],[data-theme-mode],[data-contrast],[data-motion-choice]'):null;if(!t)return;if(t.hasAttribute('data-open-theme')){e.preventDefault();open();return;}if(t.hasAttribute('data-close-theme')){e.preventDefault();close();return;}if(t.hasAttribute('data-theme-reset')){e.preventDefault();writePrefs(DEFAULTS);return;}if(t.hasAttribute('data-accent')){writePrefs({accent:t.getAttribute('data-accent')});return;}if(t.hasAttribute('data-language')){writePrefs({language:t.getAttribute('data-language')});return;}if(t.hasAttribute('data-theme-mode')){writePrefs({mode:t.getAttribute('data-theme-mode')});return;}if(t.hasAttribute('data-contrast')){writePrefs({contrast:t.getAttribute('data-contrast')});return;}if(t.hasAttribute('data-motion-choice')){writePrefs({motion:t.getAttribute('data-motion-choice')});return;}},true);modal.addEventListener('click',function(e){if(e.target===modal)close();});document.addEventListener('keydown',function(e){if(e.key==='Escape'&&modal.classList.contains('open'))close();});}
+  function setupHeader(){var header=document.getElementById('siteHeader'),btn=document.getElementById('menuBtn'),menu=document.getElementById('mobileMenu');function onScroll(){if(header)header.classList.toggle('is-scrolled',(window.scrollY||0)>12);}onScroll();window.addEventListener('scroll',onScroll,{passive:true});if(btn&&menu){btn.addEventListener('click',function(){setTimeout(function(){var open=getComputedStyle(menu).display!=='none';btn.setAttribute('aria-expanded',open?'true':'false');},0);});menu.addEventListener('click',function(e){if(e.target&&e.target.closest&&e.target.closest('a'))btn.setAttribute('aria-expanded','false');});}}
+  function startBrandTypewriter(){var wrap=document.querySelector('[data-brand-typewriter]');if(!wrap)return;var target=wrap.querySelector('.brand-typewriter-text')||wrap;var wordIndex=0,charIndex=0,deleting=false,pause=12;function words(){var lang=prefs().language;return ['TopupID',trCore('brandSecond',lang)];}target.textContent='TopupID';charIndex=7;function tick(){var arr=words(),current=arr[wordIndex%arr.length];if(pause>0){pause--;return setTimeout(tick,90);}if(deleting){charIndex=Math.max(0,charIndex-1);target.textContent=current.slice(0,charIndex);if(charIndex===0){deleting=false;wordIndex=(wordIndex+1)%arr.length;pause=4;}}else{charIndex=Math.min(current.length,charIndex+1);target.textContent=current.slice(0,charIndex);if(charIndex===current.length){wrap.setAttribute('aria-label',current);deleting=true;pause=18;}}setTimeout(tick,deleting?72:94);}setTimeout(tick,950);}
   function init(){applyAll('init');setupThemeModal();setupHeader();startBrandTypewriter();}
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true}); else init();
-  window.addEventListener('storage',function(e){if(e&&(!e.key||e.key===THEME_KEY||e.key===ACCENT_KEY||e.key===LANGUAGE_KEY||e.key==='dirac_language_v1')) applyAll('storage');});
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
+  window.addEventListener('storage',function(e){if(e&&(!e.key||e.key===THEME_KEY||e.key===ACCENT_KEY||e.key===LANGUAGE_KEY||e.key==='dirac_language_v1'||e.key===MOTION_KEY))applyAll('storage');});
 })();
 </script>
 
@@ -12336,5 +12384,312 @@
     }
   }
 </style>
+
+
+<!-- V56 logo precision + full dashboard-style theme settings. Visual/prefs only; protected API/login/payment scripts untouched. -->
+<style id="v56-topupid-logo-theme-precision-css">
+  .dashboard-brand-mark.brand-mark{display:grid!important;place-items:center!important;background:#fff!important;overflow:hidden!important;padding:0!important;box-shadow:0 12px 28px rgba(var(--theme-rgb),.24), inset 0 0 0 1px rgba(15,23,42,.04)!important;border:1px solid rgba(255,255,255,.22)!important;}
+  .dashboard-brand-mark .brand-logo-img,.dashboard-brand-mark .brand-fallback-text{display:none!important;visibility:hidden!important;opacity:0!important;}
+  .topupid-inline-logo{width:100%!important;height:100%!important;display:block!important;object-fit:contain!important;transform:none!important;}
+  .topupid-header-brand.brand{align-items:center!important;min-width:0!important;}
+  .brand-name{display:inline-flex!important;align-items:center!important;height:auto!important;line-height:1.05!important;}
+  .brand-typewriter:after{height:1em!important;margin-left:.10em!important;background:linear-gradient(180deg,var(--gold),var(--gold-2))!important;}
+  @media(max-width:520px){.dashboard-brand-mark.brand-mark{width:52px!important;height:52px!important;min-width:52px!important;border-radius:17px!important}.brand-name{font-size:1.2rem!important;}.topupid-header-container.nav{padding-left:12px!important;padding-right:12px!important;}}
+  @media(max-width:380px){.dashboard-brand-mark.brand-mark{width:48px!important;height:48px!important;min-width:48px!important}.brand-name{font-size:1.04rem!important;}}
+
+  .theme-modal.topupid-theme-modal{position:fixed!important;inset:0!important;z-index:11500!important;display:none!important;place-items:center!important;background:rgba(0,0,0,.68)!important;backdrop-filter:blur(10px)!important;-webkit-backdrop-filter:blur(10px)!important;padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom))!important;}
+  .theme-modal.topupid-theme-modal.open{display:grid!important;}
+  .theme-card.theme-pro-card{width:min(690px,calc(100vw - 32px))!important;max-height:min(88dvh,820px)!important;overflow:hidden!important;border-radius:30px!important;background:linear-gradient(180deg,rgba(15,23,42,.98),rgba(3,7,18,.98))!important;border:1px solid rgba(var(--theme-rgb),.32)!important;box-shadow:0 30px 110px rgba(0,0,0,.56),0 0 0 1px rgba(255,255,255,.06) inset!important;padding:0!important;display:flex!important;flex-direction:column!important;color:#fff!important;}
+  html[data-effective-theme="light"] .theme-card.theme-pro-card{background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(241,245,249,.98))!important;color:#111827!important;box-shadow:0 30px 90px rgba(15,23,42,.20),0 0 0 1px rgba(15,23,42,.05) inset!important;}
+  .theme-head.theme-pro-head{display:flex!important;align-items:flex-start!important;justify-content:space-between!important;gap:14px!important;margin:0!important;padding:24px 26px 16px!important;border-bottom:1px solid rgba(255,255,255,.08)!important;background:radial-gradient(circle at 18% 0%,rgba(var(--theme-rgb),.16),transparent 16rem)!important;}
+  .theme-head h2{margin:0!important;color:#fff!important;font-family:Arial,Helvetica,sans-serif!important;font-size:clamp(1.72rem,5vw,2.3rem)!important;font-weight:900!important;letter-spacing:-.04em!important;line-height:1.02!important;}
+  html[data-effective-theme="light"] .theme-head h2{color:#111827!important;}
+  .theme-head p{display:block!important;margin:8px 0 0!important;color:#aeb7c6!important;font-size:.94rem!important;line-height:1.45!important;max-width:520px!important;}
+  html[data-effective-theme="light"] .theme-head p{color:#475569!important;}
+  .theme-close-btn.icon-btn{width:46px!important;height:46px!important;min-width:46px!important;border-radius:18px!important;background:rgba(255,255,255,.08)!important;border:1px solid rgba(var(--theme-rgb),.24)!important;color:#fff!important;font-size:1.55rem!important;line-height:1!important;padding:0!important;}
+  html[data-effective-theme="light"] .theme-close-btn.icon-btn{color:#111827!important;background:rgba(15,23,42,.06)!important;}
+  .theme-body.theme-content{padding:0 26px 22px!important;overflow:auto!important;overscroll-behavior:contain!important;}
+  .theme-section{padding:22px 0!important;margin:0!important;border-top:0!important;border-bottom:1px solid rgba(255,255,255,.08)!important;}
+  html[data-effective-theme="light"] .theme-section{border-bottom-color:rgba(15,23,42,.10)!important;}
+  .theme-section:last-child{border-bottom:0!important;}
+  .theme-section h3{margin:0 0 14px!important;color:#fff!important;font-size:1.18rem!important;font-weight:900!important;line-height:1.15!important;letter-spacing:-.02em!important;}
+  html[data-effective-theme="light"] .theme-section h3{color:#111827!important;}
+  .theme-choice-grid,.theme-language-grid,.theme-contrast-grid,.theme-motion-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important;}
+  .theme-mode-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;}
+  .theme-choice{min-height:72px!important;border-radius:22px!important;border:1px solid rgba(255,255,255,.12)!important;background:linear-gradient(180deg,rgba(255,255,255,.085),rgba(255,255,255,.045))!important;color:#eef2f8!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:10px!important;font-weight:900!important;font-size:1rem!important;padding:10px 12px!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.06)!important;transition:transform .22s ease,border-color .22s ease,box-shadow .22s ease,background .22s ease!important;}
+  html[data-effective-theme="light"] .theme-choice{color:#111827!important;background:linear-gradient(180deg,rgba(255,255,255,.82),rgba(241,245,249,.76))!important;border-color:rgba(15,23,42,.12)!important;}
+  .theme-choice:hover{transform:translateY(-2px)!important;border-color:rgba(var(--theme-rgb),.45)!important;}
+  .theme-choice.active,.theme-choice.is-selected{border-color:rgba(var(--theme-rgb),.80)!important;background:rgba(var(--theme-rgb),.14)!important;box-shadow:0 0 0 3px rgba(var(--theme-rgb),.16),0 18px 36px rgba(0,0,0,.20)!important;color:#fff!important;}
+  html[data-effective-theme="light"] .theme-choice.active,html[data-effective-theme="light"] .theme-choice.is-selected{color:#111827!important;background:rgba(var(--theme-rgb),.16)!important;}
+  .choice-symbol,.lang-badge{width:38px!important;height:38px!important;min-width:38px!important;border-radius:14px!important;display:grid!important;place-items:center!important;background:rgba(255,255,255,.10)!important;border:1px solid rgba(255,255,255,.08)!important;font-size:1.1rem!important;font-weight:900!important;}
+  html[data-effective-theme="light"] .choice-symbol,html[data-effective-theme="light"] .lang-badge{background:rgba(15,23,42,.07)!important;border-color:rgba(15,23,42,.08)!important;}
+  .theme-swatches.custom-theme-grid{display:grid!important;grid-template-columns:repeat(7,minmax(0,1fr))!important;gap:10px!important;}
+  .theme-swatch-choice{position:relative!important;width:100%!important;aspect-ratio:1/1!important;min-height:0!important;border:0!important;border-radius:16px!important;background:radial-gradient(circle at 28% 22%,rgba(255,255,255,.72),transparent 31%),var(--swatch)!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.22),0 14px 28px rgba(0,0,0,.20)!important;transition:transform .2s ease, box-shadow .2s ease!important;}
+  .theme-swatch-choice:hover{transform:translateY(-2px) scale(1.03)!important;}
+  .theme-swatch-choice.active,.theme-swatch-choice.is-selected{box-shadow:inset 0 0 0 2px rgba(255,255,255,.75),0 0 0 3px rgba(var(--theme-rgb),.32),0 18px 32px rgba(0,0,0,.25)!important;}
+  .theme-swatch-choice.active:after,.theme-swatch-choice.is-selected:after{content:'✓'!important;position:absolute!important;inset:0!important;display:grid!important;place-items:center!important;color:#07111d!important;font-weight:900!important;font-size:1.25rem!important;text-shadow:0 1px 0 rgba(255,255,255,.40)!important;}
+  .theme-help{margin:14px 0 0!important;color:#aeb7c6!important;font-size:.95rem!important;line-height:1.55!important;}
+  html[data-effective-theme="light"] .theme-help{color:#475569!important;}
+  .theme-actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:14px!important;padding:18px 26px 24px!important;border-top:1px solid rgba(255,255,255,.08)!important;background:rgba(2,6,23,.30)!important;}
+  html[data-effective-theme="light"] .theme-actions{background:rgba(248,250,252,.62)!important;border-top-color:rgba(15,23,42,.10)!important;}
+  .theme-reset,.theme-save,.theme-reset-btn,.theme-save-btn{min-height:58px!important;border:0!important;border-radius:22px!important;font-weight:900!important;font-size:1.05rem!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:10px!important;}
+  .theme-reset,.theme-reset-btn{background:linear-gradient(135deg,#fb7a63,#ef4444)!important;color:#fff!important;}
+  .theme-save,.theme-save-btn{background:linear-gradient(135deg,#bff4ff,var(--gold),var(--gold-2))!important;color:#07111d!important;}
+  html[data-contrast="on"] body{filter:contrast(1.06) saturate(1.05);}
+  html[data-contrast="on"] .theme-choice,html[data-contrast="on"] .panel,html[data-contrast="on"] .tilt-card{border-color:rgba(var(--theme-rgb),.42)!important;}
+  html[data-motion="reduced"] .phone3d,html[data-motion="reduced"] .float-object,html[data-motion="reduced"] .holo-stack,html[data-motion="reduced"] .real-3d-stage,html[data-motion="reduced"] .mobile-device-stage{animation:none!important;transition:none!important;}
+  @media(max-width:760px){.theme-modal.topupid-theme-modal{align-items:start!important;padding:calc(12px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom))!important}.theme-card.theme-pro-card{width:calc(100vw - 24px)!important;max-height:calc(100dvh - 28px)!important;border-radius:28px!important}.theme-head.theme-pro-head{padding:22px 20px 14px!important}.theme-body.theme-content{padding:0 20px 18px!important}.theme-mode-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}.theme-language-grid,.theme-contrast-grid,.theme-motion-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.theme-choice{min-height:62px!important;border-radius:18px!important;font-size:.92rem!important;padding:9px!important}.choice-symbol,.lang-badge{width:34px!important;height:34px!important;min-width:34px!important;border-radius:12px!important}.theme-swatches.custom-theme-grid{grid-template-columns:repeat(7,minmax(0,1fr))!important;gap:8px!important}.theme-swatch-choice{border-radius:14px!important}.theme-actions{padding:16px 20px 20px!important;gap:10px!important}.theme-reset,.theme-save,.theme-reset-btn,.theme-save-btn{min-height:54px!important;border-radius:20px!important;font-size:.98rem!important}}
+  @media(max-width:430px){.theme-card.theme-pro-card{width:calc(100vw - 20px)!important;border-radius:26px!important}.theme-head.theme-pro-head{padding:20px 18px 12px!important}.theme-head p{font-size:.86rem!important}.theme-body.theme-content{padding:0 18px 16px!important}.theme-section{padding:19px 0!important}.theme-section h3{font-size:1.08rem!important}.theme-choice{min-height:56px!important;font-size:.82rem!important;gap:7px!important}.theme-mode-grid{gap:8px!important}.choice-symbol,.lang-badge{width:30px!important;height:30px!important;min-width:30px!important;border-radius:10px!important;font-size:.86rem!important}.theme-swatches.custom-theme-grid{grid-template-columns:repeat(7,minmax(0,1fr))!important;gap:7px!important}.theme-actions{padding:14px 18px 18px!important}.theme-reset,.theme-save,.theme-reset-btn,.theme-save-btn{font-size:.92rem!important;min-height:52px!important}}
+</style>
+
+
+
+<!-- V57 fixed logo + dashboard-precise settings polish. Visual only; protected core logic untouched. -->
+<style id="v57-topupid-logo-theme-dashboard-precision-css">
+  /* Header precision */
+  .topupid-dashboard-header.site-header{
+    position:sticky!important;
+    top:0!important;
+    z-index:9000!important;
+    padding:max(8px, env(safe-area-inset-top)) 0 8px!important;
+    background:linear-gradient(180deg,rgba(5,8,22,.92),rgba(5,8,22,.44))!important;
+    border:0!important;
+    box-shadow:none!important;
+    backdrop-filter:none!important;
+    -webkit-backdrop-filter:none!important;
+  }
+  .topupid-header-container.nav{
+    width:min(1240px,calc(100% - 32px))!important;
+    margin:0 auto!important;
+    min-height:74px!important;
+    padding:10px 14px!important;
+    border-radius:32px!important;
+    border:1px solid rgba(var(--theme-rgb),.30)!important;
+    background:linear-gradient(180deg,rgba(7,12,30,.92),rgba(5,8,22,.88))!important;
+    box-shadow:0 18px 48px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.08)!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:space-between!important;
+    gap:12px!important;
+    overflow:hidden!important;
+    flex-wrap:nowrap!important;
+    backdrop-filter:blur(18px)!important;
+    -webkit-backdrop-filter:blur(18px)!important;
+  }
+  html[data-effective-theme="light"] .topupid-header-container.nav{
+    background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(241,245,249,.88))!important;
+    border-color:rgba(var(--theme-rgb),.28)!important;
+    box-shadow:0 18px 45px rgba(15,23,42,.16), inset 0 1px 0 rgba(255,255,255,.72)!important;
+  }
+  .topupid-header-brand.brand{
+    display:flex!important;
+    align-items:center!important;
+    gap:12px!important;
+    flex:1 1 auto!important;
+    min-width:0!important;
+    overflow:hidden!important;
+  }
+  .topupid-logo-safe.dashboard-brand-mark.brand-mark{
+    position:relative!important;
+    width:58px!important;
+    height:58px!important;
+    min-width:58px!important;
+    border-radius:18px!important;
+    padding:0!important;
+    overflow:hidden!important;
+    display:grid!important;
+    place-items:center!important;
+    background:#ffffff!important;
+    border:1px solid rgba(255,255,255,.42)!important;
+    box-shadow:0 13px 30px rgba(var(--theme-rgb),.25), inset 0 0 0 1px rgba(15,23,42,.04)!important;
+    transform:none!important;
+    isolation:isolate!important;
+  }
+  .topupid-logo-safe.dashboard-brand-mark.brand-mark::before,
+  .topupid-logo-safe.dashboard-brand-mark.brand-mark::after{content:none!important;display:none!important;}
+  .topupid-logo-canvas{
+    position:relative!important;
+    width:100%!important;
+    height:100%!important;
+    display:block!important;
+    border-radius:inherit!important;
+    background:#fff!important;
+  }
+  .topupid-logo-canvas::before{
+    content:""!important;
+    position:absolute!important;
+    left:50%!important;
+    top:50%!important;
+    width:74%!important;
+    height:74%!important;
+    transform:translate(-50%,-50%)!important;
+    border-radius:50%!important;
+    background:radial-gradient(circle at 30% 22%,#e8fbff 0 18%,var(--gold) 19% 58%,var(--gold-2) 59% 100%)!important;
+    box-shadow:0 0 18px rgba(var(--theme-rgb),.36)!important;
+  }
+  .topupid-logo-arrow{
+    position:absolute!important;
+    inset:18% 17% 16%!important;
+    z-index:2!important;
+    display:block!important;
+    background:#06111d!important;
+    clip-path:polygon(50% 0%,96% 42%,72% 42%,72% 88%,57% 88%,57% 42%,43% 42%,43% 88%,28% 88%,28% 42%,4% 42%)!important;
+    filter:drop-shadow(0 1px 0 rgba(255,255,255,.20))!important;
+  }
+  .topupid-logo-arrow::after{
+    content:""!important;
+    position:absolute!important;
+    inset:20% 24% 22%!important;
+    background:#ffffff!important;
+    clip-path:polygon(50% 0%,94% 44%,70% 44%,70% 100%,56% 100%,56% 44%,44% 44%,44% 100%,30% 100%,30% 44%,6% 44%)!important;
+    opacity:.92!important;
+  }
+  .brand-name.brand-typewriter{
+    min-width:0!important;
+    max-width:calc(100vw - 154px)!important;
+    font-size:clamp(1.12rem,4.8vw,1.48rem)!important;
+    line-height:1!important;
+    font-weight:900!important;
+    color:#fff!important;
+    overflow:hidden!important;
+  }
+  html[data-effective-theme="light"] .brand-name.brand-typewriter{color:#111827!important;}
+  .brand-typewriter-text{overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;}
+  .topupid-header-actions.header-actions{flex:0 0 auto!important;margin-left:auto!important;display:flex!important;align-items:center!important;gap:10px!important;}
+  .menu-toggle{
+    width:58px!important;
+    height:58px!important;
+    min-width:58px!important;
+    min-height:58px!important;
+    border-radius:22px!important;
+    padding:0!important;
+    background:rgba(255,255,255,.075)!important;
+    border:1px solid rgba(var(--theme-rgb),.42)!important;
+    color:#fff!important;
+    box-shadow:0 12px 30px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.10)!important;
+  }
+  html[data-effective-theme="light"] .menu-toggle{color:#111827!important;background:rgba(255,255,255,.70)!important;}
+  .topupid-theme-toggle{border-color:rgba(var(--theme-rgb),.42)!important;}
+  @media(max-width:1120px){
+    .topupid-header-links.nav-links,.topupid-theme-toggle{display:none!important;visibility:hidden!important;pointer-events:none!important;width:0!important;height:0!important;overflow:hidden!important;}
+  }
+  @media(max-width:520px){
+    .topupid-header-container.nav{width:calc(100% - 16px)!important;min-height:76px!important;padding:10px 12px!important;border-radius:30px!important;gap:10px!important;}
+    .topupid-logo-safe.dashboard-brand-mark.brand-mark{width:56px!important;height:56px!important;min-width:56px!important;border-radius:18px!important;}
+    .menu-toggle{width:56px!important;height:56px!important;min-width:56px!important;min-height:56px!important;border-radius:22px!important;}
+    .brand-name.brand-typewriter{max-width:calc(100vw - 150px)!important;font-size:1.2rem!important;}
+  }
+  @media(max-width:380px){
+    .topupid-header-container.nav{width:calc(100% - 12px)!important;min-height:70px!important;padding:8px 9px!important;border-radius:27px!important;}
+    .topupid-logo-safe.dashboard-brand-mark.brand-mark{width:50px!important;height:50px!important;min-width:50px!important;border-radius:16px!important;}
+    .menu-toggle{width:52px!important;height:52px!important;min-width:52px!important;min-height:52px!important;border-radius:20px!important;}
+    .brand-name.brand-typewriter{max-width:calc(100vw - 137px)!important;font-size:1.06rem!important;}
+  }
+
+  /* Mobile menu: clear route to dashboard-like settings. */
+  .topupid-dashboard-menu.mobile-menu{right:16px!important;left:auto!important;top:calc(92px + env(safe-area-inset-top))!important;border-radius:28px!important;}
+  .topupid-menu-theme{white-space:nowrap!important;background:linear-gradient(135deg,#d7f7ff,var(--gold),var(--gold-2))!important;color:#07111d!important;border:0!important;box-shadow:0 14px 32px rgba(var(--theme-rgb),.22)!important;}
+
+  /* Dashboard-like settings modal precision. */
+  .theme-modal.topupid-theme-modal{
+    position:fixed!important;
+    inset:0!important;
+    z-index:11500!important;
+    display:none!important;
+    place-items:center!important;
+    padding:max(18px,env(safe-area-inset-top)) 18px max(18px,env(safe-area-inset-bottom))!important;
+    background:rgba(0,0,0,.66)!important;
+    backdrop-filter:blur(10px)!important;
+    -webkit-backdrop-filter:blur(10px)!important;
+  }
+  .theme-modal.topupid-theme-modal.open{display:grid!important;}
+  .theme-card.theme-pro-card{
+    width:min(690px,calc(100vw - 36px))!important;
+    max-height:min(90dvh,820px)!important;
+    display:flex!important;
+    flex-direction:column!important;
+    overflow:hidden!important;
+    border-radius:30px!important;
+    background:linear-gradient(180deg,#101722,#07090d)!important;
+    border:1px solid rgba(var(--theme-rgb),.35)!important;
+    box-shadow:0 30px 110px rgba(0,0,0,.58), inset 0 1px 0 rgba(255,255,255,.06)!important;
+    color:#fff!important;
+  }
+  html[data-effective-theme="light"] .theme-card.theme-pro-card{background:linear-gradient(180deg,#ffffff,#f1f5f9)!important;color:#111827!important;box-shadow:0 30px 90px rgba(15,23,42,.20)!important;}
+  .theme-head.theme-pro-head{
+    flex:0 0 auto!important;
+    padding:24px 26px 18px!important;
+    margin:0!important;
+    border-bottom:1px solid rgba(255,255,255,.08)!important;
+    display:flex!important;
+    align-items:flex-start!important;
+    justify-content:space-between!important;
+    gap:14px!important;
+    background:radial-gradient(circle at 18% 0%,rgba(var(--theme-rgb),.20),transparent 18rem)!important;
+  }
+  .theme-head.theme-pro-head h2{font-size:clamp(1.82rem,5vw,2.55rem)!important;font-weight:900!important;letter-spacing:-.055em!important;line-height:1!important;color:#fff!important;margin:0!important;}
+  html[data-effective-theme="light"] .theme-head.theme-pro-head h2{color:#111827!important;}
+  .theme-head.theme-pro-head p{display:block!important;margin:8px 0 0!important;color:#aeb7c6!important;font-size:.94rem!important;line-height:1.45!important;max-width:500px!important;}
+  html[data-effective-theme="light"] .theme-head.theme-pro-head p{color:#526071!important;}
+  .theme-close-btn.icon-btn{width:48px!important;height:48px!important;min-width:48px!important;border-radius:18px!important;font-size:1.65rem!important;background:rgba(255,255,255,.08)!important;border:1px solid rgba(var(--theme-rgb),.30)!important;}
+  .theme-body.theme-content{flex:1 1 auto!important;min-height:0!important;overflow:auto!important;overscroll-behavior:contain!important;padding:0 26px 22px!important;}
+  .theme-section{margin:0!important;padding:22px 0!important;border-top:0!important;border-bottom:1px solid rgba(255,255,255,.08)!important;}
+  .theme-section:last-child{border-bottom:0!important;}
+  html[data-effective-theme="light"] .theme-section{border-bottom-color:rgba(15,23,42,.10)!important;}
+  .theme-section h3{font-size:1.12rem!important;margin:0 0 14px!important;font-weight:900!important;color:#fff!important;letter-spacing:-.02em!important;}
+  html[data-effective-theme="light"] .theme-section h3{color:#111827!important;}
+  .theme-mode-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;}
+  .theme-language-grid,.theme-contrast-grid,.theme-motion-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+  .theme-choice-grid,.theme-language-grid,.theme-contrast-grid,.theme-motion-grid{display:grid!important;gap:12px!important;}
+  .theme-choice{
+    min-height:72px!important;
+    border-radius:22px!important;
+    border:1px solid rgba(255,255,255,.12)!important;
+    background:linear-gradient(180deg,rgba(255,255,255,.085),rgba(255,255,255,.045))!important;
+    color:#eef2f8!important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06)!important;
+    font-weight:900!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    gap:10px!important;
+    text-align:center!important;
+  }
+  html[data-effective-theme="light"] .theme-choice{background:linear-gradient(180deg,rgba(255,255,255,.84),rgba(241,245,249,.78))!important;color:#111827!important;border-color:rgba(15,23,42,.12)!important;}
+  .theme-choice.active,.theme-choice.is-selected{border-color:rgba(var(--theme-rgb),.85)!important;background:rgba(var(--theme-rgb),.15)!important;box-shadow:0 0 0 3px rgba(var(--theme-rgb),.17),0 18px 36px rgba(0,0,0,.20)!important;}
+  .choice-symbol,.lang-badge{width:38px!important;height:38px!important;min-width:38px!important;border-radius:14px!important;display:grid!important;place-items:center!important;background:rgba(255,255,255,.10)!important;border:1px solid rgba(255,255,255,.08)!important;font-weight:900!important;}
+  .theme-swatches.custom-theme-grid{display:grid!important;grid-template-columns:repeat(7,minmax(0,1fr))!important;gap:10px!important;}
+  .theme-swatch-choice{width:100%!important;aspect-ratio:1/1!important;border-radius:16px!important;border:0!important;background:radial-gradient(circle at 28% 20%,rgba(255,255,255,.78),transparent 31%),var(--swatch)!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.22),0 14px 28px rgba(0,0,0,.20)!important;position:relative!important;}
+  .theme-swatch-choice.active:after,.theme-swatch-choice.is-selected:after{content:'✓'!important;position:absolute!important;inset:0!important;display:grid!important;place-items:center!important;color:#07111d!important;font-weight:900!important;font-size:1.22rem!important;}
+  .theme-help{margin:14px 0 0!important;color:#aeb7c6!important;font-size:.94rem!important;line-height:1.55!important;}
+  .theme-actions{flex:0 0 auto!important;display:grid!important;grid-template-columns:1fr 1fr!important;gap:14px!important;padding:18px 26px 24px!important;border-top:1px solid rgba(255,255,255,.08)!important;background:rgba(2,6,23,.42)!important;}
+  .theme-reset,.theme-save,.theme-reset-btn,.theme-save-btn{min-height:58px!important;border-radius:22px!important;border:0!important;font-size:1.05rem!important;font-weight:900!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:10px!important;}
+  .theme-reset,.theme-reset-btn{background:linear-gradient(135deg,#fb7a63,#ef4444)!important;color:#fff!important;}
+  .theme-save,.theme-save-btn{background:linear-gradient(135deg,#bff4ff,var(--gold),var(--gold-2))!important;color:#07111d!important;}
+  @media(max-width:760px){
+    .theme-modal.topupid-theme-modal{place-items:start center!important;padding:calc(12px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom))!important;}
+    .theme-card.theme-pro-card{width:calc(100vw - 24px)!important;max-height:calc(100dvh - 28px)!important;border-radius:28px!important;}
+    .theme-head.theme-pro-head{padding:22px 20px 14px!important;}
+    .theme-body.theme-content{padding:0 20px 18px!important;}
+    .theme-choice{min-height:62px!important;border-radius:18px!important;font-size:.92rem!important;}
+    .choice-symbol,.lang-badge{width:34px!important;height:34px!important;min-width:34px!important;border-radius:12px!important;}
+    .theme-swatches.custom-theme-grid{grid-template-columns:repeat(7,minmax(0,1fr))!important;gap:8px!important;}
+    .theme-actions{padding:16px 20px 20px!important;}
+  }
+  @media(max-width:430px){
+    .theme-card.theme-pro-card{width:calc(100vw - 20px)!important;border-radius:26px!important;}
+    .theme-head.theme-pro-head{padding:20px 18px 12px!important;}
+    .theme-head.theme-pro-head p{font-size:.84rem!important;}
+    .theme-body.theme-content{padding:0 18px 16px!important;}
+    .theme-section{padding:19px 0!important;}
+    .theme-choice{min-height:56px!important;border-radius:17px!important;font-size:.82rem!important;gap:7px!important;padding:9px 8px!important;}
+    .theme-mode-grid{gap:8px!important;}
+    .choice-symbol,.lang-badge{width:30px!important;height:30px!important;min-width:30px!important;border-radius:10px!important;font-size:.86rem!important;}
+    .theme-swatches.custom-theme-grid{grid-template-columns:repeat(7,minmax(0,1fr))!important;gap:7px!important;}
+    .theme-actions{padding:14px 18px 18px!important;gap:10px!important;}
+    .theme-reset,.theme-save,.theme-reset-btn,.theme-save-btn{font-size:.92rem!important;min-height:52px!important;border-radius:20px!important;}
+  }
+</style>
+
 </body>
 </html>
