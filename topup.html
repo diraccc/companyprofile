@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="id" data-theme="dark" data-theme-mode="dark" data-effective-theme="dark" data-language="id" data-motion="full" data-contrast="off">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>TopupID - Top Up Game dan Produk Digital</title>
-  <meta name="description" content="Frontend 3D premium satu file HTML untuk website top up game, pulsa, paket data, token PLN, dan produk digital." />
-  <meta name="theme-color" content="#050816" />
-  <meta name="x-build" content="topupid-dashboard-header-v52-ten-showcase" />
-  <link rel="icon" href="data:," />
 
-  <style>
+<html data-contrast="off" data-effective-theme="dark" data-language="id" data-motion="full" data-theme="dark" data-theme-mode="dark" lang="id">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>TopupID - Top Up Game dan Produk Digital</title>
+<meta content="Frontend 3D premium satu file HTML untuk website top up game, pulsa, paket data, token PLN, dan produk digital." name="description"/>
+<meta content="#050816" name="theme-color"/>
+<meta content="topupid-dashboard-header-v52-ten-showcase" name="x-build"/>
+<link href="data:," rel="icon"/>
+<style>
     :root {
       --bg: #050816;
       --bg-soft: #080d21;
@@ -3007,9 +3007,7 @@
     }
 
   </style>
-
-
-  <style id="topupid-dashboard-header-system-v52">
+<style id="topupid-dashboard-header-system-v52">
     :root {
       --gold: var(--cyan);
       --gold2: var(--blue);
@@ -3215,598 +3213,917 @@
       .theme-choice-grid, .theme-contrast-grid { grid-template-columns: 1fr; }
     }
   </style>
+<style id="topup-dashboard-header-precision-v2">
+/* Precision patch: make topup header/menu match dashboard shell closely without touching backend endpoints. */
+.topup-dashboard-header{position:sticky!important;top:0!important;z-index:9000!important;background:transparent!important;border:0!important;box-shadow:none!important;padding:10px 0 0!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+.topup-dashboard-header::after{display:none!important}
+.topup-dashboard-navshell{width:min(var(--max,1200px),calc(100% - 28px))!important;margin-inline:auto!important;min-height:82px!important;padding:12px 16px!important;border-radius:34px!important;background:radial-gradient(circle at 14% 0%,rgba(var(--theme-rgb),.13),transparent 10rem),linear-gradient(145deg,rgba(7,12,19,.94),rgba(12,20,31,.88))!important;border:1px solid rgba(var(--theme-rgb),.25)!important;box-shadow:0 18px 54px rgba(0,0,0,.36),inset 0 1px 0 rgba(255,255,255,.07),0 0 0 1px rgba(var(--theme-rgb),.07)!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:14px!important;pointer-events:auto!important}
+.site-header.is-scrolled .topup-dashboard-navshell{min-height:76px!important;padding:10px 16px!important;background:radial-gradient(circle at 14% 0%,rgba(var(--theme-rgb),.14),transparent 10rem),linear-gradient(145deg,rgba(6,10,17,.97),rgba(10,17,28,.94))!important;border-color:rgba(var(--theme-rgb),.32)!important}
+.topup-dashboard-header .brand{flex:1 1 auto!important;min-width:0!important;gap:14px!important;pointer-events:auto!important}
+.topup-dashboard-header .brand-mark{width:62px!important;height:62px!important;border-radius:22px!important;position:relative!important;overflow:hidden!important;display:grid!important;place-items:center!important;background:#fff!important;border:1px solid rgba(255,255,255,.18)!important;box-shadow:0 14px 30px rgba(var(--theme-rgb),.18)!important;flex:0 0 auto!important}
+.topup-dashboard-header .brand-logo-img,.topup-dashboard-header .brand-mark img{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;object-fit:contain!important;background:#fff!important;z-index:2!important;padding:10px!important}
+.topup-dashboard-header .brand-fallback-text{display:flex!important;position:absolute!important;inset:0!important;z-index:1!important;align-items:center!important;justify-content:center!important;font-weight:900!important;font-size:1.35rem!important;line-height:1!important;color:#111!important;background:linear-gradient(135deg,#fff2b6,var(--gold-2))!important}
+.topup-dashboard-header .brand-name{font-family:"Playfair Display",serif!important;font-size:clamp(1.1rem,2.6vw,1.38rem)!important;max-width:100%!important;color:#fff!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.topup-dashboard-header .brand-typewriter{display:inline-flex!important;align-items:center!important;min-width:9.5ch!important;max-width:100%!important;white-space:nowrap!important}
+.topup-dashboard-header .brand-typewriter-text{display:inline-block!important;white-space:nowrap!important}
+.topup-dashboard-header .brand-typewriter-text::after{display:none!important}
+.topup-dashboard-header .brand-typewriter::after{content:""!important;flex:0 0 auto!important;width:.08em!important;height:.96em!important;margin-left:.08em!important;border-radius:999px!important;background:linear-gradient(180deg,color-mix(in srgb,var(--gold) 70%,#fff 30%),var(--gold-2))!important;opacity:.72!important;animation:brandCaretBlink 1.1s steps(2,end) infinite!important}
+.topup-dashboard-header .nav-links{display:flex!important;align-items:center!important;gap:6px!important;flex-wrap:wrap!important;justify-content:flex-end!important}
+.topup-dashboard-header .nav-links a{color:#d7deea!important;font-size:.92rem!important;padding:9px 12px!important;border-radius:999px!important;transition:.2s var(--motion-ease)!important}
+.topup-dashboard-header .nav-links a:hover,.topup-dashboard-header .nav-links a.active{background:rgba(255,255,255,.07)!important;color:#fff!important}
+.topup-dashboard-header .header-actions{gap:12px!important;flex:0 0 auto!important;pointer-events:auto!important;display:flex!important;align-items:center!important}
+.topup-dashboard-header .theme-toggle,.topup-dashboard-header .menu-toggle{width:58px!important;height:58px!important;min-width:58px!important;min-height:58px!important;border-radius:999px!important;padding:0!important;background:rgba(255,255,255,.055)!important;color:#fff!important;border:1px solid rgba(var(--theme-rgb),.24)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 12px 24px rgba(0,0,0,.18)!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;font-weight:900!important;overflow:hidden!important;isolation:isolate!important}
+.topup-dashboard-header .theme-toggle .label{display:none!important}
+.topup-dashboard-header .theme-toggle:hover,.topup-dashboard-header .menu-toggle:hover{transform:translateY(-2px)!important;background:rgba(var(--theme-rgb),.13)!important;border-color:rgba(var(--theme-rgb),.52)!important}
+.topup-dashboard-header .menu-toggle .hamburger{width:23px!important;height:16px!important;display:grid!important;gap:5px!important}
+.topup-dashboard-header .menu-toggle .hamburger span{height:2px!important;border-radius:99px!important;background:currentColor!important;display:block!important;transform-origin:center!important;transition:transform .32s var(--motion-ease),opacity .22s ease,width .32s var(--motion-ease)!important;box-shadow:none!important}
+.topup-dashboard-header .menu-toggle .hamburger span:nth-child(2){width:72%!important;justify-self:end!important}
+.topup-dashboard-header .menu-toggle:hover .hamburger span:nth-child(2){width:100%!important}
+.topup-dashboard-header .menu-toggle[aria-expanded="true"] .hamburger span:nth-child(1){transform:translateY(7px) rotate(45deg)!important}
+.topup-dashboard-header .menu-toggle[aria-expanded="true"] .hamburger span:nth-child(2){opacity:0!important;transform:scaleX(.4)!important}
+.topup-dashboard-header .menu-toggle[aria-expanded="true"] .hamburger span:nth-child(3){transform:translateY(-7px) rotate(-45deg)!important}
+html[data-effective-theme="light"] .topup-dashboard-navshell{background:radial-gradient(circle at 14% 0%,rgba(var(--theme-rgb),.12),transparent 10rem),linear-gradient(145deg,rgba(255,255,255,.96),rgba(244,247,251,.92))!important;border-color:rgba(var(--theme-rgb),.27)!important;box-shadow:0 18px 46px rgba(15,23,42,.14),inset 0 1px 0 rgba(255,255,255,.72),0 0 0 1px rgba(var(--theme-rgb),.08)!important}
+html[data-effective-theme="light"] .topup-dashboard-header .brand-name{color:#151923!important}
+html[data-effective-theme="light"] .topup-dashboard-header .theme-toggle,html[data-effective-theme="light"] .topup-dashboard-header .menu-toggle{color:#151923!important;background:rgba(255,255,255,.86)!important}
+#mobileMenu.dirac-ultra-menu{position:fixed!important;inset:0!important;z-index:10000!important;display:none!important;place-items:center!important;padding:14px!important;background:rgba(0,0,0,.68)!important;backdrop-filter:blur(22px)!important;-webkit-backdrop-filter:blur(22px)!important;opacity:1!important;transition:opacity .34s cubic-bezier(.16,1,.3,1)!important}
+#mobileMenu.dirac-ultra-menu.open{display:grid!important}
+#mobileMenu.dirac-ultra-menu[aria-hidden="true"]{pointer-events:none!important}
+#mobileMenu.dirac-ultra-menu .du-menu{--du-accent:var(--gold,#f3cd70);--du-accent-2:var(--gold-2,#d6a642);--du-accent-3:var(--gold-3,#8e6425);--du-rgb:var(--theme-rgb,243,205,112);--du-text:#f8fafc;--du-muted:#aeb7c6;--du-muted-2:#738195;--du-card:rgba(255,255,255,.052);--du-card-hover:rgba(255,255,255,.086);--du-line:rgba(var(--du-rgb),.20);--du-line-soft:rgba(255,255,255,.075);position:relative!important;width:min(440px,100%)!important;max-height:calc(100dvh - 28px)!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;border-radius:34px!important;color:var(--du-text)!important;background:radial-gradient(circle at 18% 0,rgba(var(--du-rgb),.17),transparent 245px),radial-gradient(circle at 90% 8%,rgba(255,255,255,.055),transparent 235px),linear-gradient(180deg,rgba(15,23,42,.992),rgba(5,8,14,.998))!important;border:1px solid rgba(var(--du-rgb),.22)!important;box-shadow:0 48px 170px rgba(0,0,0,.84),inset 0 1px 0 rgba(255,255,255,.075)!important;transform-origin:bottom center!important;animation:duSheetIn .46s cubic-bezier(.16,1,.3,1) both!important;will-change:transform!important}
+#mobileMenu.dirac-ultra-menu .du-menu::before{content:"";position:absolute;inset:-1px;pointer-events:none;border-radius:inherit;padding:1px;background:linear-gradient(135deg,rgba(255,255,255,.20),transparent 32%,rgba(var(--du-rgb),.28),transparent 70%);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:.64}
+#mobileMenu.dirac-ultra-menu .du-menu::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;background:linear-gradient(115deg,transparent 0%,transparent 32%,rgba(255,255,255,.052) 45%,transparent 58%,transparent 100%);transform:translateX(-130%);animation:duShellShine 6.8s ease-in-out infinite;opacity:.58}
+@keyframes duSheetIn{from{opacity:0;transform:translateY(32px) scale(.95);filter:blur(12px)}to{opacity:1;transform:none;filter:blur(0)}}
+@keyframes duShellShine{0%,58%{transform:translateX(-130%)}80%,100%{transform:translateX(130%)}}
+#mobileMenu.dirac-ultra-menu .du-top{position:relative!important;z-index:2!important;padding:14px 16px 12px!important;border-bottom:1px solid rgba(255,255,255,.06)!important;background:linear-gradient(180deg,rgba(255,255,255,.028),rgba(255,255,255,0))!important}
+#mobileMenu.dirac-ultra-menu .du-handle{width:44px!important;height:5px!important;border-radius:999px!important;background:rgba(255,255,255,.16)!important;margin:0 auto 13px!important;position:relative!important;overflow:hidden!important}
+#mobileMenu.dirac-ultra-menu .du-handle::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.58),transparent);animation:duHandleShine 2.8s ease-in-out infinite}
+@keyframes duHandleShine{0%,45%{transform:translateX(-100%)}70%,100%{transform:translateX(100%)}}
+#mobileMenu.dirac-ultra-menu .du-top-row{display:grid!important;grid-template-columns:auto 1fr auto!important;align-items:center!important;gap:11px!important}
+#mobileMenu.dirac-ultra-menu .du-brand{width:42px!important;height:42px!important;display:grid!important;place-items:center!important;border-radius:15px!important;background:rgba(255,255,255,.95)!important;box-shadow:0 10px 22px rgba(0,0,0,.20)!important;overflow:hidden!important}
+#mobileMenu.dirac-ultra-menu .du-brand-logo{width:100%!important;height:100%!important;object-fit:contain!important;padding:6px!important}
+#mobileMenu.dirac-ultra-menu .du-title{min-width:0!important}
+#mobileMenu.dirac-ultra-menu .du-title strong{display:block!important;font-size:clamp(1.6rem,4vw,2rem)!important;line-height:1!important;font-weight:900!important;color:#fff!important;letter-spacing:-.03em!important}
+#mobileMenu.dirac-ultra-menu .du-title small{display:block!important;margin-top:5px!important;color:var(--du-muted)!important;font-size:.88rem!important}
+#mobileMenu.dirac-ultra-menu .du-close{appearance:none!important;-webkit-appearance:none!important;border:1px solid rgba(var(--du-rgb),.20)!important;background:rgba(255,255,255,.05)!important;color:#fff!important;width:58px!important;height:58px!important;min-width:58px!important;border-radius:20px!important;display:grid!important;place-items:center!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.05)!important;transition:transform .22s ease,background .22s ease,border-color .22s ease!important}
+#mobileMenu.dirac-ultra-menu .du-close:hover{transform:translateY(-2px)!important;background:rgba(var(--du-rgb),.12)!important;border-color:rgba(var(--du-rgb),.44)!important}
+#mobileMenu.dirac-ultra-menu .du-close svg{width:24px!important;height:24px!important}
+#mobileMenu.dirac-ultra-menu .du-search{position:relative!important;display:grid!important;grid-template-columns:24px 1fr auto!important;align-items:center!important;gap:10px!important;margin-top:14px!important;padding:0 14px!important;height:60px!important;border-radius:24px!important;border:1px solid rgba(255,255,255,.08)!important;background:rgba(255,255,255,.05)!important;color:var(--du-muted)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.04)!important}
+#mobileMenu.dirac-ultra-menu .du-search svg{width:24px!important;height:24px!important}
+#mobileMenu.dirac-ultra-menu .du-search input{border:0!important;outline:0!important;background:transparent!important;color:#fff!important;width:100%!important;font-size:1rem!important;min-width:0!important;padding:0!important}
+#mobileMenu.dirac-ultra-menu .du-search input::placeholder{color:#8a95a5!important}
+#mobileMenu.dirac-ultra-menu .du-clear{appearance:none!important;-webkit-appearance:none!important;border:0!important;background:transparent!important;color:#8a95a5!important;width:28px!important;height:28px!important;display:grid!important;place-items:center!important;padding:0!important}
+#mobileMenu.dirac-ultra-menu .du-scroll-line{margin-top:14px!important;height:2px!important;background:rgba(255,255,255,.06)!important;border-radius:999px!important;overflow:hidden!important}
+#mobileMenu.dirac-ultra-menu .du-scroll-line span{display:block!important;height:100%!important;width:46%!important;background:linear-gradient(90deg,rgba(var(--du-rgb),1),rgba(255,255,255,.85))!important;box-shadow:0 0 18px rgba(var(--du-rgb),.35)!important;border-radius:inherit!important}
+#mobileMenu.dirac-ultra-menu .du-body{position:relative!important;z-index:1!important;flex:1 1 auto!important;overflow:auto!important;padding:0 16px 12px!important}
+#mobileMenu.dirac-ultra-menu .du-group{padding:14px 0 2px!important}
+#mobileMenu.dirac-ultra-menu .du-group-title{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;margin-bottom:12px!important}
+#mobileMenu.dirac-ultra-menu .du-group-title strong{font-size:1rem!important;letter-spacing:.08em!important;text-transform:uppercase!important;color:#eef3fb!important}
+#mobileMenu.dirac-ultra-menu .du-group-title span{font-size:.8rem!important;color:#909db1!important}
+#mobileMenu.dirac-ultra-menu .du-stack{display:grid!important;gap:12px!important}
+#mobileMenu.dirac-ultra-menu .du-card{position:relative!important;display:grid!important;grid-template-columns:74px minmax(0,1fr) auto!important;align-items:center!important;gap:14px!important;padding:18px 18px 18px 16px!important;border-radius:28px!important;border:1px solid rgba(255,255,255,.06)!important;background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.03))!important;color:#fff!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 16px 36px rgba(0,0,0,.20)!important;text-align:left!important;transition:transform .22s ease,border-color .22s ease,background .22s ease,box-shadow .22s ease!important}
+#mobileMenu.dirac-ultra-menu .du-card:hover{transform:translateY(-2px)!important;border-color:rgba(var(--du-rgb),.26)!important;background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.04))!important}
+#mobileMenu.dirac-ultra-menu .du-icon{width:54px!important;height:54px!important;border-radius:18px!important;display:grid!important;place-items:center!important;background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.03))!important;color:#6ec3ff!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.04)!important}
+#mobileMenu.dirac-ultra-menu .du-icon svg{width:28px!important;height:28px!important}
+#mobileMenu.dirac-ultra-menu .du-copy{min-width:0!important;display:block!important}
+#mobileMenu.dirac-ultra-menu .du-copy strong{display:block!important;font-size:1.05rem!important;line-height:1.1!important;font-weight:900!important;color:#fff!important}
+#mobileMenu.dirac-ultra-menu .du-copy small{display:block!important;margin-top:6px!important;font-size:.86rem!important;color:var(--du-muted)!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+#mobileMenu.dirac-ultra-menu .du-arrow{color:#82cfff!important;display:grid!important;place-items:center!important}
+#mobileMenu.dirac-ultra-menu .du-arrow svg{width:22px!important;height:22px!important}
+#mobileMenu.dirac-ultra-menu .du-empty{display:none!important;margin:18px 0 6px!important;padding:14px 16px!important;border-radius:18px!important;background:rgba(255,255,255,.05)!important;border:1px solid rgba(255,255,255,.06)!important;color:var(--du-muted)!important}
+#mobileMenu.dirac-ultra-menu .du-empty.show{display:block!important}
+#mobileMenu.dirac-ultra-menu .du-footer{display:grid!important;grid-template-columns:1fr 1fr!important;gap:14px!important;padding:14px 16px 16px!important;border-top:1px solid rgba(255,255,255,.06)!important;background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,0))!important;position:relative!important;z-index:2!important}
+#mobileMenu.dirac-ultra-menu .du-footer-btn{appearance:none!important;-webkit-appearance:none!important;border-radius:24px!important;min-height:84px!important;padding:0 18px!important;font-weight:900!important;font-size:1.05rem!important;display:grid!important;place-items:center!important;text-decoration:none!important}
+#mobileMenu.dirac-ultra-menu .du-footer-btn.secondary{background:rgba(255,255,255,.04)!important;border:1px solid rgba(255,255,255,.10)!important;color:#fff!important}
+#mobileMenu.dirac-ultra-menu .du-footer-btn.primary{background:#58b9ff!important;border:1px solid rgba(88,185,255,.92)!important;color:#08111d!important;box-shadow:0 18px 36px rgba(88,185,255,.26)!important}
+html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-menu{background:radial-gradient(circle at 18% 0,rgba(var(--du-rgb),.12),transparent 245px),radial-gradient(circle at 90% 8%,rgba(15,23,42,.04),transparent 235px),linear-gradient(180deg,rgba(255,255,255,.99),rgba(244,247,251,.98))!important;color:#151923!important;box-shadow:0 36px 110px rgba(15,23,42,.20),inset 0 1px 0 rgba(255,255,255,.76)!important}
+html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-title strong,html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-copy strong{color:#151923!important}
+html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-title small,html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-copy small,html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title span,html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-empty{color:#5f6b7b!important}
+html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-search{background:rgba(255,255,255,.72)!important;border-color:rgba(15,23,42,.08)!important;color:#667085!important}
+html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-search input{color:#111827!important}
+html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-search input::placeholder{color:#8691a2!important}
+html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-card{border-color:rgba(15,23,42,.06)!important;background:linear-gradient(180deg,rgba(255,255,255,.84),rgba(248,250,252,.70))!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.72),0 16px 30px rgba(15,23,42,.10)!important}
+html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-icon{background:linear-gradient(180deg,rgba(var(--du-rgb),.12),rgba(255,255,255,.72))!important}
+html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title strong{color:#1e293b!important}
+@media(max-width:900px){.topup-dashboard-header .nav-links{display:none!important}}
+@media(max-width:760px){.topup-dashboard-header{padding-top:8px!important}.topup-dashboard-navshell{width:min(calc(100% - 20px),var(--max,1200px))!important;min-height:78px!important;padding:10px 14px!important;border-radius:30px!important}.topup-dashboard-header .brand{gap:12px!important}.topup-dashboard-header .brand-mark{width:56px!important;height:56px!important;border-radius:20px!important}.topup-dashboard-header .theme-toggle,.topup-dashboard-header .menu-toggle{width:54px!important;height:54px!important;min-width:54px!important;min-height:54px!important}.topup-dashboard-header .brand-name{font-size:clamp(1.06rem,5vw,1.28rem)!important}#mobileMenu.dirac-ultra-menu{padding:12px!important}#mobileMenu.dirac-ultra-menu .du-menu{width:min(100%,430px)!important;border-radius:30px!important}#mobileMenu.dirac-ultra-menu .du-top{padding:14px 14px 12px!important}#mobileMenu.dirac-ultra-menu .du-body{padding:0 14px 10px!important}#mobileMenu.dirac-ultra-menu .du-footer{padding:12px 14px 14px!important}#mobileMenu.dirac-ultra-menu .du-card{grid-template-columns:64px minmax(0,1fr) auto!important;padding:16px 16px 16px 14px!important;border-radius:26px!important}#mobileMenu.dirac-ultra-menu .du-icon{width:48px!important;height:48px!important}}
+</style>
+<style id="v46-dashboard-exact-header-logo-menu-lock">
+  /* V46: dashboard-exact header shell for TopupID page. Only visual/header/menu CSS is locked here; backend, login, A2F, hash, payment, email, and order endpoints are untouched. */
+  :root { --max: 1200px; --motion-ease: cubic-bezier(.2,.8,.2,1); }
+  .container { width: min(var(--max), calc(100% - 32px)); margin-inline: auto; }
+
+  .site-header {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 9000 !important;
+    background: transparent !important;
+    border-bottom: 0 !important;
+    box-shadow: none !important;
+    padding: 10px 0 8px !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .site-header::after { display: none !important; }
+  .site-header .container.nav {
+    position: relative !important;
+    isolation: isolate !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 16px !important;
+    min-height: 82px !important;
+    border-radius: 34px !important;
+    padding: 14px 16px !important;
+    background: linear-gradient(135deg, rgba(8,18,22,.86), rgba(5,8,13,.90)) !important;
+    border: 1px solid rgba(var(--theme-rgb), .28) !important;
+    box-shadow: 0 22px 58px rgba(0,0,0,.38), 0 0 0 1px rgba(255,255,255,.055) inset, 0 0 38px rgba(var(--theme-rgb),.075) !important;
+    backdrop-filter: blur(22px) !important;
+    -webkit-backdrop-filter: blur(22px) !important;
+    overflow: hidden !important;
+  }
+  .site-header .container.nav::before {
+    content: "" !important;
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: -1 !important;
+    pointer-events: none !important;
+    background: radial-gradient(circle at 18% 35%, rgba(var(--theme-rgb),.10), transparent 34%), linear-gradient(90deg, rgba(255,255,255,.05), transparent 48%, rgba(var(--theme-rgb),.065)) !important;
+    opacity: .95 !important;
+  }
+  .site-header .container.nav::after {
+    content: "" !important;
+    position: absolute !important;
+    left: 18px !important;
+    right: 18px !important;
+    bottom: 0 !important;
+    height: 1px !important;
+    background: linear-gradient(90deg, transparent, rgba(var(--theme-rgb),.32), transparent) !important;
+    opacity: .9 !important;
+  }
+  .site-header.is-scrolled .container.nav {
+    padding: 10px 14px !important;
+    min-height: 74px !important;
+    background: linear-gradient(135deg, rgba(8,18,22,.94), rgba(5,8,13,.96)) !important;
+    box-shadow: 0 18px 48px rgba(0,0,0,.42), 0 0 0 1px rgba(255,255,255,.05) inset !important;
+  }
+  .site-header .brand {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    font-weight: 900 !important;
+    letter-spacing: .02em !important;
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+    color: inherit !important;
+    text-decoration: none !important;
+  }
+  .site-header .brand-mark {
+    width: 64px !important;
+    height: 64px !important;
+    min-width: 64px !important;
+    border-radius: 22px !important;
+    position: relative !important;
+    overflow: hidden !important;
+    flex: 0 0 auto !important;
+    display: grid !important;
+    place-items: center !important;
+    color: #111 !important;
+    font-weight: 900 !important;
+    background: #fff !important;
+    box-shadow: 0 10px 28px rgba(var(--theme-rgb),.22) !important;
+    border: 1px solid rgba(255,255,255,.18) !important;
+    transform: none !important;
+    transition: .35s var(--motion-ease) !important;
+  }
+  .site-header.is-scrolled .brand-mark { width: 50px !important; height: 50px !important; min-width: 50px !important; border-radius: 18px !important; }
+  .site-header .brand-mark::before { display: none !important; }
+  .site-header .brand-mark img,
+  .site-header .brand-logo-img {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+    background: #fff !important;
+    z-index: 2 !important;
+    padding: 0 !important;
+    border-radius: inherit !important;
+    clip-path: inset(0 round 22px) !important;
+    filter: none !important;
+  }
+  .site-header.is-scrolled .brand-mark img,
+  .site-header.is-scrolled .brand-logo-img { clip-path: inset(0 round 18px) !important; }
+  .site-header .brand-fallback-text {
+    display: flex !important;
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 1 !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-weight: 900 !important;
+    font-size: 1.45rem !important;
+    line-height: 1 !important;
+    color: #111 !important;
+    background: linear-gradient(135deg, #fff2b6, var(--gold-2)) !important;
+  }
+  .site-header .brand-name {
+    font-family: "Playfair Display", serif !important;
+    font-size: 1.25rem !important;
+    color: #fff !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 12rem !important;
+    transition: filter .35s var(--motion-ease) !important;
+    line-height: 1.08 !important;
+  }
+  .site-header.is-scrolled .brand-name { filter: drop-shadow(0 0 8px rgba(var(--theme-rgb),.18)) !important; }
+  .site-header .brand-typewriter { display: inline-flex !important; align-items: center !important; min-width: 0 !important; }
+  .site-header .brand-typewriter-text { display: inline-block !important; color: inherit !important; }
+  .site-header .brand-typewriter-text::after {
+    content: "" !important;
+    display: inline-block !important;
+    width: .08em !important;
+    height: .92em !important;
+    margin-left: .10em !important;
+    vertical-align: -.06em !important;
+    background: var(--gold) !important;
+    border-radius: 99px !important;
+    box-shadow: 0 0 12px rgba(var(--theme-rgb), .8) !important;
+    animation: topupidCaretBlink 1s steps(2,end) infinite !important;
+  }
+  .site-header .nav-links { display: flex !important; align-items: center !important; gap: 6px !important; flex-wrap: wrap !important; justify-content: flex-end !important; }
+  .site-header .nav-links a {
+    color: #d7deea !important;
+    font-size: .92rem !important;
+    padding: 9px 12px !important;
+    border-radius: 999px !important;
+    transition: .2s var(--motion-ease) !important;
+    opacity: 1 !important;
+    transform: none !important;
+    text-decoration: none !important;
+  }
+  .site-header .nav-links a:hover,
+  .site-header .nav-links a.active { background: rgba(255,255,255,.07) !important; color: #fff !important; }
+  .site-header .header-actions { display: flex !important; align-items: center !important; gap: 10px !important; flex: 0 0 auto !important; margin-left: 0 !important; }
+  .site-header .theme-toggle,
+  .site-header .menu-toggle,
+  .site-header .menu-btn {
+    width: 50px !important;
+    height: 50px !important;
+    min-width: 50px !important;
+    min-height: 50px !important;
+    padding: 0 14px !important;
+    border-radius: 999px !important;
+    background: linear-gradient(145deg, rgba(14,24,30,.94), rgba(8,10,16,.88)) !important;
+    border: 1px solid rgba(var(--theme-rgb), .30) !important;
+    box-shadow: 0 14px 30px rgba(0,0,0,.28), 0 0 0 1px rgba(255,255,255,.07) inset !important;
+    color: #fff !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 9px !important;
+    font-weight: 900 !important;
+    transition: .22s var(--motion-ease) !important;
+    position: relative !important;
+    overflow: hidden !important;
+    isolation: isolate !important;
+  }
+  .site-header .theme-toggle:hover,
+  .site-header .menu-toggle:hover,
+  .site-header .menu-btn:hover { transform: translateY(-2px) !important; border-color: rgba(var(--theme-rgb),.52) !important; box-shadow: 0 18px 38px rgba(0,0,0,.34), 0 0 22px rgba(var(--theme-rgb),.13) !important; }
+  .site-header .theme-toggle .label { display: none !important; }
+  .site-header .menu-toggle[aria-expanded="true"] { background: rgba(var(--theme-rgb),.13) !important; }
+  .site-header .hamburger { width: 20px !important; height: 14px !important; display: grid !important; gap: 4px !important; }
+  .site-header .hamburger span { display: block !important; height: 2px !important; border-radius: 4px !important; background: currentColor !important; box-shadow: none !important; transition: .22s var(--motion-ease) !important; width: 100% !important; }
+  .site-header .menu-toggle[aria-expanded="true"] .hamburger span:nth-child(1) { transform: translateY(6px) rotate(45deg) !important; }
+  .site-header .menu-toggle[aria-expanded="true"] .hamburger span:nth-child(2) { opacity: 0 !important; }
+  .site-header .menu-toggle[aria-expanded="true"] .hamburger span:nth-child(3) { transform: translateY(-6px) rotate(-45deg) !important; }
+
+  #mobileMenu.dirac-ultra-menu .du-brand-logo { border-radius: 20px !important; object-fit: cover !important; background: #fff !important; }
+  #mobileMenu.dirac-ultra-menu .du-title strong { font-size: 1.18rem !important; }
+  #mobileMenu.dirac-ultra-menu .du-copy strong { font-size: 1.03rem !important; }
+
+  html[data-effective-theme="light"] .site-header .container.nav {
+    background: linear-gradient(135deg, rgba(255,255,255,.94), rgba(244,247,251,.88)) !important;
+    border-color: rgba(var(--theme-rgb), .24) !important;
+    box-shadow: 0 18px 46px rgba(15,23,42,.14), inset 0 1px 0 rgba(255,255,255,.72), 0 0 0 1px rgba(var(--theme-rgb),.08) !important;
+  }
+  html[data-effective-theme="light"] .site-header .brand-name { color: #151923 !important; }
+  html[data-effective-theme="light"] .site-header .theme-toggle,
+  html[data-effective-theme="light"] .site-header .menu-toggle,
+  html[data-effective-theme="light"] .site-header .menu-btn { color: #151923 !important; background: rgba(255,255,255,.86) !important; }
+  html[data-effective-theme="light"] .site-header .nav-links a { color: #334155 !important; }
+  html[data-effective-theme="light"] .site-header .nav-links a:hover,
+  html[data-effective-theme="light"] .site-header .nav-links a.active { color: #0f172a !important; background: rgba(var(--theme-rgb),.10) !important; }
+
+  @media (max-width: 760px) {
+    .site-header { padding-top: 8px !important; padding-bottom: 8px !important; }
+    .site-header .container.nav { width: calc(100% - 18px) !important; min-height: 76px !important; border-radius: 32px !important; padding: 10px 12px !important; gap: 10px !important; }
+    .site-header .brand-mark { width: 52px !important; height: 52px !important; min-width: 52px !important; border-radius: 18px !important; }
+    .site-header .brand-mark img,
+    .site-header .brand-logo-img { clip-path: inset(0 round 18px) !important; }
+    .site-header .brand-name { font-size: 1.08rem !important; max-width: 10rem !important; }
+    .site-header .nav-links { display: none !important; }
+    .site-header .theme-toggle,
+    .site-header .menu-toggle,
+    .site-header .menu-btn { width: 50px !important; height: 50px !important; min-width: 50px !important; padding: 0 !important; }
+    .site-header .header-actions { gap: 10px !important; margin-left: auto !important; }
+  }
+  @media (max-width: 430px) {
+    .container { width: min(var(--max), calc(100% - 22px)) !important; }
+    .site-header .container.nav { gap: 8px !important; }
+    .site-header .brand-name { max-width: 7.2rem !important; }
+    .site-header .header-actions { gap: 6px !important; }
+    .site-header .theme-toggle,
+    .site-header .menu-toggle,
+    .site-header .menu-btn { width: 42px !important; height: 42px !important; min-width: 42px !important; }
+    .site-header .brand-mark { width: 44px !important; height: 44px !important; min-width: 44px !important; border-radius: 15px !important; }
+    .site-header .brand-mark img,
+    .site-header .brand-logo-img { clip-path: inset(0 round 15px) !important; }
+  }
+</style>
+<script id="v46-dashboard-exact-menu-compatibility-guard">
+  (function(){
+    'use strict';
+    window.__topupidV46Notice = 'V46: dashboard-exact header/logo/menu visual lock applied. Backend endpoints, login, A2F, hash, payment, gateway, email template, and order code are not modified.';
+  })();
+</script>
 
 </head>
-
 <body>
-  <canvas id="particleCanvas" aria-hidden="true"></canvas>
-  <div class="scroll-progress" id="progress"></div>
-  <div class="noise" aria-hidden="true"></div>
+<canvas aria-hidden="true" id="particleCanvas"></canvas>
+<div class="scroll-progress" id="progress"></div>
+<div aria-hidden="true" class="noise"></div>
+<div class="page">
 
-  <div class="page">
-<header class="navbar site-header topup-dashboard-header" id="siteHeader">
-      <a href="#home" class="brand brand-logo-link" aria-label="TopupID">
-        <span class="brand-mark image-brand"><img src="dnnn.webp" alt="" /></span>
-        <b class="brand-name brand-typewriter" data-brand-typewriter="" data-no-i18n=""><span aria-hidden="true" class="brand-typewriter-text">TopupID</span></b>
-      </a>
-
-      <nav class="nav-links" aria-label="Navigasi utama">
-        <a href="#premium" data-i18n="navProducts">Produk</a>
-        <a href="#produk" data-i18n="navCatalog">Katalog</a>
-        <a href="#checkout" data-i18n="navTopup">Top Up</a>
-        <a href="#checkout" class="nav-cta" data-i18n="navStart">Mulai</a>
-      </nav>
-
-      <div class="header-actions">
-        <button aria-controls="themeModal" aria-haspopup="dialog" aria-label="Buka pengaturan tema" class="theme-toggle" data-open-theme="" type="button"><span aria-hidden="true">🎨</span><span class="label" data-i18n="theme">Tema</span></button>
-        <button aria-controls="mobileMenu" aria-expanded="false" aria-haspopup="dialog" aria-label="Buka menu TopupID" class="menu-toggle menu-btn" id="menuBtn" type="button"><span aria-hidden="true" class="hamburger"><span></span><span></span><span></span></span></button>
-      </div>
-    </header>
-
-    <div aria-hidden="true" class="menu-overlay dirac-ultra-menu topupid-dashboard-menu" id="mobileMenu">
-      <aside aria-labelledby="topupidMenuTitle" aria-modal="true" class="du-menu" role="dialog" tabindex="-1">
-        <header class="du-top">
-          <div aria-hidden="true" class="du-handle"></div>
-          <div class="du-top-row">
-            <div class="du-title">
-              <strong data-i18n="menuTitle" id="topupidMenuTitle">Menu TopupID</strong>
-              <small data-i18n="menuSub">Navigasi layanan top up dan checkout.</small>
-            </div>
-            <button aria-label="Tutup menu" class="du-close" data-close-menu="" type="button">×</button>
-          </div>
-          <label aria-label="Cari menu TopupID" class="du-search">
-            <span aria-hidden="true">⌕</span>
-            <input aria-label="Cari menu" autocomplete="off" id="topupidMenuSearch" maxlength="40" placeholder="Cari menu" spellcheck="false" type="search" />
-            <button aria-label="Hapus pencarian" class="du-clear" id="topupidMenuClear" type="button">×</button>
-          </label>
-        </header>
-        <main class="du-body">
-          <section class="du-group" data-du-group="">
-            <div class="du-group-title"><strong data-i18n="menuMainGroup">Layanan TopupID</strong><span data-i18n="menuMainSub">Menu utama</span></div>
-            <div class="du-stack">
-              <a class="du-card du-searchable" data-close-menu="" data-keyword="produk popular product carousel" href="#premium"><span class="du-icon">🎮</span><span class="du-copy"><strong data-i18n="menuProducts">Produk Populer</strong><small data-i18n="menuProductsSub">Pilih produk favorit</small></span><span class="du-arrow">›</span></a>
-              <a class="du-card du-searchable" data-close-menu="" data-keyword="katalog produk digital game" href="#produk"><span class="du-icon">🧾</span><span class="du-copy"><strong data-i18n="menuCatalog">Katalog Produk</strong><small data-i18n="menuCatalogSub">Game dan produk digital</small></span><span class="du-arrow">›</span></a>
-              <a class="du-card du-searchable" data-close-menu="" data-keyword="showcase gambar banner visual" href="#showcase"><span class="du-icon">🖼️</span><span class="du-copy"><strong data-i18n="menuShowcase">Showcase Gambar</strong><small data-i18n="menuShowcaseSub">10 gambar berurutan</small></span><span class="du-arrow">›</span></a>
-              <a class="du-card du-searchable" data-close-menu="" data-keyword="checkout top up form pembayaran" href="#checkout"><span class="du-icon">⚡</span><span class="du-copy"><strong data-i18n="menuCheckout">Checkout Top Up</strong><small data-i18n="menuCheckoutSub">Isi data dan nominal</small></span><span class="du-arrow">›</span></a>
-            </div>
-          </section>
-          <section class="du-group" data-du-group="">
-            <div class="du-group-title"><strong data-i18n="menuSupportGroup">Keamanan & Bantuan</strong><span data-i18n="menuSupportSub">Status dan panduan</span></div>
-            <div class="du-stack">
-              <a class="du-card du-searchable" data-close-menu="" data-keyword="trust safety keamanan transaksi" href="#trust"><span class="du-icon">🔒</span><span class="du-copy"><strong data-i18n="menuTrust">Trust & Safety</strong><small data-i18n="menuTrustSub">Keamanan transaksi</small></span><span class="du-arrow">›</span></a>
-              <a class="du-card du-searchable" data-close-menu="" data-keyword="smart checkout panduan" href="#smartflow"><span class="du-icon">💡</span><span class="du-copy"><strong data-i18n="menuSmart">Smart Checkout</strong><small data-i18n="menuSmartSub">Panduan pengisian</small></span><span class="du-arrow">›</span></a>
-              <a class="du-card du-searchable" data-close-menu="" data-keyword="dashboard pelanggan" href="dashboard.html"><span class="du-icon">🏠</span><span class="du-copy"><strong data-i18n="menuDashboard">Dashboard</strong><small data-i18n="menuDashboardSub">Kembali ke client area</small></span><span class="du-arrow">›</span></a>
-            </div>
-          </section>
-          <p class="du-empty" id="topupidMenuEmpty" data-i18n="menuEmpty">Menu tidak ditemukan.</p>
-        </main>
-      </aside>
-    </div>
+<header class="site-header" id="siteHeader">
+<div class="container nav">
+<a aria-label="Dirac Group Dashboard" class="brand brand-logo-link" href="dashboard.html" referrerpolicy="strict-origin-when-cross-origin">
+<span aria-hidden="true" class="brand-mark">
+<span class="brand-fallback-text">DG</span>
+<img alt="" class="brand-logo-img" data-dirac-logo-img="" decoding="async" fetchpriority="high" loading="eager" referrerpolicy="no-referrer" src="logo1.webp"/>
+</span>
+<span aria-label="Dirac Group" class="brand-name brand-typewriter" data-brand-typewriter="" data-no-i18n=""><span aria-hidden="true" class="brand-typewriter-text">Dirac Group</span></span>
+</a>
+<nav aria-label="Navigasi utama" class="nav-links">
+<a class="active" data-nav-link="" href="dashboard.html" referrerpolicy="strict-origin-when-cross-origin">Dashboard</a>
+</nav>
+<div class="header-actions">
+<button aria-controls="themeModal" aria-haspopup="dialog" aria-label="Buka pengaturan tema" class="theme-toggle" data-open-theme="" type="button"><span aria-hidden="true">🎨</span><span class="label" data-i18n="theme">Tema</span></button>
+<button aria-controls="mobileMenu" aria-expanded="false" aria-haspopup="dialog" aria-label="Buka menu dashboard" class="menu-toggle menu-btn" id="menuBtn" type="button"><span aria-hidden="true" class="hamburger"><span></span><span></span><span></span></span></button>
+</div>
+</div>
+</header>
 
 
-    <section class="mobile-cinematic-home" id="mobile-home" aria-label="Mobile cinematic homepage">
-      <div class="mobile-cinematic-inner">
-        <div class="mobile-cinematic-kicker"><span></span> Top Up Aman</div>
-        <h1 class="mobile-cinematic-title">Top Up Digital <span>Aman</span> dan Praktis</h1>
-        <p class="mobile-cinematic-copy">
+<div aria-hidden="true" class="menu-overlay dirac-ultra-menu topupid-dashboard-menu" id="mobileMenu">
+<aside aria-labelledby="topupidMenuTitle" aria-modal="true" class="du-menu" id="topupidDashboardMenu" role="dialog" tabindex="-1">
+<header class="du-top">
+<div aria-hidden="true" class="du-handle"></div>
+<div class="du-top-row">
+<div aria-hidden="true" class="du-brand"><img alt="" class="du-brand-logo" decoding="async" loading="eager" referrerpolicy="no-referrer" src="logo 3.webp"/></div>
+<div class="du-title">
+<strong id="topupidMenuTitle">Menu Dashboard</strong>
+<small>Navigasi utama pelanggan.</small>
+</div>
+<button aria-label="Tutup menu" class="du-close" data-close-menu="" type="button">
+<svg fill="none" viewbox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-linecap="round" stroke-width="2.4"></path></svg>
+</button>
+</div>
+<label aria-label="Cari menu dashboard" class="du-search">
+<svg fill="none" viewbox="0 0 24 24"><path d="M11 19a8 8 0 1 1 5.29-14.01A8 8 0 0 1 11 19Zm10 2-4.35-4.35" stroke="currentColor" stroke-linecap="round" stroke-width="2.2"></path></svg>
+<input aria-label="Cari menu" autocapitalize="none" autocomplete="off" autocorrect="off" enterkeyhint="search" id="topupidMenuSearch" inputmode="latin" maxlength="30" minlength="1" name="menu_q" pattern="^[a-z]{0,30}$" placeholder="Cari menu" spellcheck="false" title="Hanya huruf kecil a-z. Angka, huruf besar, spasi, simbol, dan karakter khusus tidak diizinkan." type="search"/>
+<button aria-label="Hapus pencarian" class="du-clear" id="topupidMenuClear" type="button">
+<svg fill="none" viewbox="0 0 24 24"><path d="M7 7l10 10M17 7 7 17" stroke="currentColor" stroke-linecap="round" stroke-width="2.2"></path></svg>
+</button>
+</label>
+<div aria-hidden="true" class="du-scroll-line"><span id="topupidMenuProgress"></span></div>
+</header>
+<main class="du-body" id="topupidMenuBody">
+<section class="du-group" data-du-group="">
+<div class="du-group-title"><strong>Ekosistem Dirac</strong><span>Menu utama</span></div>
+<div class="du-stack">
+<a class="du-card du-searchable du-card-i-1" data-close-menu="" data-keyword="dashboard ringkasan semua layanan pelanggan" href="dashboard.html" referrerpolicy="strict-origin-when-cross-origin">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-9.5Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Dashboard</strong><small>Ringkasan semua layanan pelanggan</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable du-card-i-2" data-close-menu="" data-keyword="parfum katalog produk utama" href="parfum.html" referrerpolicy="strict-origin-when-cross-origin">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M12 21s6-4.2 6-10a6 6 0 0 0-12 0c0 5.8 6 10 6 10Z" stroke="currentColor" stroke-width="2"></path><path d="M12 13a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Parfum</strong><small>Buka katalog parfum</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable du-card-i-3" data-close-menu="" data-keyword="domain saya daftar domain pelanggan" href="domain.html" referrerpolicy="strict-origin-when-cross-origin">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" stroke="currentColor" stroke-width="2"></path><path d="M3.6 9h16.8M3.6 15h16.8M12 3c2.2 2.4 3.2 5.4 3.2 9S14.2 18.6 12 21c-2.2-2.4-3.2-5.4-3.2-9S9.8 5.4 12 3Z" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Domain Saya</strong><small>Daftar domain pelanggan</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable du-card-i-4" data-close-menu="" data-keyword="project website daftar project website" href="project-website.html" referrerpolicy="strict-origin-when-cross-origin">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M4 5h16v11H4V5Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M8 20h8M10 16v4M14 16v4" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Project Website</strong><small>Daftar project website</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<button class="du-card du-searchable du-card-i-5" data-close-menu="" data-keyword="cek resi lacak pengiriman" type="button">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M3 7h11v10H3V7ZM14 11h3l4 4v2h-7v-6Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M7 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Cek Resi</strong><small>Lacak pengiriman</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</button>
+</div>
+</section>
+<section class="du-group" data-du-group="">
+<div class="du-group-title"><strong>Transaksi &amp; Detail</strong><span>Riwayat &amp; tagihan</span></div>
+<div class="du-stack">
+<a class="du-card du-searchable du-card-i-7" data-close-menu="" data-keyword="pesanan order transaksi pelanggan" href="pesanan.html" referrerpolicy="strict-origin-when-cross-origin"><span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M7 4h10a2 2 0 0 1 2 2v14l-3-2-3 2-3-2-3 2-3-2V6a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M8 9h8M8 13h6" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span><span class="du-copy"><strong>Pesanan</strong><small>Buka halaman pesanan</small></span><span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span></a>
+<a class="du-card du-searchable du-card-i-9" data-close-menu="" data-keyword="detail parfum detail pengiriman parfum" href="detail-parfum.html" referrerpolicy="strict-origin-when-cross-origin"><span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M3 7h11v10H3V7ZM14 11h3l4 4v2h-7v-6Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M7 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" stroke-width="2"></path></svg></span><span class="du-copy"><strong>Detail Parfum</strong><small>Detail pengiriman parfum</small></span><span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span></a>
+<a class="du-card du-searchable du-card-i-10" data-close-menu="" data-keyword="detail domain kelola domain, dns, nameserver" href="detail-domain.html" referrerpolicy="strict-origin-when-cross-origin"><span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.1 5.1L4 17v3h3l5.6-5.6a4 4 0 0 0 5.1-5.1l-2.5 2.5-2-2 2.5-2.5Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="du-copy"><strong>Detail Domain</strong><small>Kelola domain, DNS, nameserver</small></span><span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span></a>
+<a class="du-card du-searchable du-card-i-11" data-close-menu="" data-keyword="detail project progress, revisi, file, approval" href="detail-project.html" referrerpolicy="strict-origin-when-cross-origin"><span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span><span class="du-copy"><strong>Detail Project</strong><small>Progress, revisi, file, approval</small></span><span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span></a>
+<a class="du-card du-searchable du-card-i-12" data-close-menu="" data-keyword="invoice semua tagihan" href="pesanan.html" referrerpolicy="strict-origin-when-cross-origin"><span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M4 7h16v10H4V7Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M7 11h4M7 15h2M15 15h2" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span><span class="du-copy"><strong>Invoice</strong><small>Semua tagihan</small></span><span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span></a>
+</div>
+</section>
+<section class="du-group" data-du-group="">
+<div class="du-group-title"><strong>Akun &amp; Bantuan</strong><span>Keamanan</span></div>
+<div class="du-stack">
+<a class="du-card du-searchable du-card-i-14" data-close-menu="" data-keyword="tiket bantuan daftar komplain dan bantuan" href="tiket-bantuan.html" referrerpolicy="strict-origin-when-cross-origin"><span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-5 4v-4H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M8 10h8M8 13h5" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span><span class="du-copy"><strong>Tiket Bantuan</strong><small>Daftar komplain dan bantuan</small></span><span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span></a>
+<a class="du-card du-searchable du-card-i-15" data-close-menu="" data-keyword="detail tiket percakapan support" href="detail-tiket.html" referrerpolicy="strict-origin-when-cross-origin"><span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-5 4v-4H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M8 10h8M8 13h5" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span><span class="du-copy"><strong>Detail Tiket</strong><small>Percakapan support</small></span><span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span></a>
+<a class="du-card du-searchable du-card-i-16" data-close-menu="" data-keyword="notifikasi semua pemberitahuan" href="notifikasi.html" referrerpolicy="strict-origin-when-cross-origin"><span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M18 9a6 6 0 1 0-12 0c0 7-2 7-2 9h16c0-2-2-2-2-9Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M10 21h4" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span><span class="du-copy"><strong>Notifikasi</strong><small>Semua pemberitahuan</small></span><span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span></a>
+<a class="du-card du-searchable du-card-i-17" data-close-menu="" data-keyword="profil data pelanggan" href="profil.html" referrerpolicy="strict-origin-when-cross-origin"><span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4 21a8 8 0 0 1 16 0" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span><span class="du-copy"><strong>Profil</strong><small>Data pelanggan</small></span><span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span></a>
+<a class="du-card du-searchable du-card-i-18" data-close-menu="" data-keyword="keamanan password, verifikasi, riwayat login" href="keamanan.html" referrerpolicy="strict-origin-when-cross-origin"><span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M7 10V8a5 5 0 0 1 10 0v2" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path><path d="M6 10h12v10H6V10Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M12 14v2" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span><span class="du-copy"><strong>Keamanan</strong><small>Password, verifikasi, riwayat login</small></span><span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span></a>
+<button class="du-card du-searchable logout-drawer-btn du-card-i-19" data-close-menu="" data-keyword="keluar sesi backend dan cookie httponly dibersihkan" id="logoutBtn" type="button"><span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M10 7V5a2 2 0 0 1 2-2h7v18h-7a2 2 0 0 1-2-2v-2" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path><path d="M15 12H3m0 0 4-4m-4 4 4 4" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><span class="du-copy"><strong>Keluar</strong><small>Sesi backend dan cookie HttpOnly dibersihkan</small></span><span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span></button>
+</div>
+</section>
+<div class="du-empty" id="topupidMenuEmpty">Menu tidak ditemukan.</div>
+</main>
+<footer class="du-footer">
+<button class="du-footer-btn secondary" data-close-menu="" type="button">Tutup</button>
+<a class="du-footer-btn primary" href="dashboard.html" referrerpolicy="strict-origin-when-cross-origin">Admin</a>
+</footer>
+</aside>
+</div>
+
+<section aria-label="Mobile cinematic homepage" class="mobile-cinematic-home" id="mobile-home">
+<div class="mobile-cinematic-inner">
+<div class="mobile-cinematic-kicker"><span></span> Top Up Aman</div>
+<h1 class="mobile-cinematic-title">Top Up Digital <span>Aman</span> dan Praktis</h1>
+<p class="mobile-cinematic-copy">
           Nikmati layanan top up game, pulsa, paket data, token PLN, dan voucher digital dengan tampilan ringan di HP.
         </p>
-        <div class="mobile-cinematic-actions">
-          <a class="mobile-cinematic-primary" href="#checkout">Mulai Top Up</a>
-          <a class="mobile-cinematic-secondary" href="#premium">Lihat Produk</a>
-        </div>
-        <div class="mobile-device-stage">
-          <div class="mobile-float-card a">GAME</div>
-          <div class="mobile-float-card b">ID</div>
-          <div class="mobile-float-card c">VOUCHER</div>
-          <div class="mobile-device-shell">
-            <div class="mobile-device-screen">
-              <div class="mobile-device-bar"></div>
-              <div class="mobile-balance-card">
-                <small>Total layanan aktif</small>
-                <strong>Game • Pulsa • PLN</strong>
-              </div>
-              <div class="mobile-service-grid">
-                <div class="mobile-service-card"><b>MLBB</b><span>Top Up Game</span></div>
-                <div class="mobile-service-card"><b>QRIS</b><span>Payment Ready</span></div>
-                <div class="mobile-service-card"><b>FC</b><span>FC Mobile</span></div>
-                <div class="mobile-service-card"><b>PLN</b><span>Produk Digital</span></div>
-              </div>
-              <div class="mobile-pay-strip">Instant Checkout</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-
-    <section class="real-mobile-3d" id="real-mobile-3d" aria-label="Real mobile 3D homepage">
-      <div class="real-mobile-copy">
-        <div class="real-mobile-badge">Layanan Digital Terpercaya</div>
-        <h1 class="real-mobile-title">Top Up <span>Digital</span> Cepat dan Mudah</h1>
-        <p class="real-mobile-sub">
+<div class="mobile-cinematic-actions">
+<a class="mobile-cinematic-primary" href="#checkout">Mulai Top Up</a>
+<a class="mobile-cinematic-secondary" href="#premium">Lihat Produk</a>
+</div>
+<div class="mobile-device-stage">
+<div class="mobile-float-card a">GAME</div>
+<div class="mobile-float-card b">ID</div>
+<div class="mobile-float-card c">VOUCHER</div>
+<div class="mobile-device-shell">
+<div class="mobile-device-screen">
+<div class="mobile-device-bar"></div>
+<div class="mobile-balance-card">
+<small>Total layanan aktif</small>
+<strong>Game • Pulsa • PLN</strong>
+</div>
+<div class="mobile-service-grid">
+<div class="mobile-service-card"><b>MLBB</b><span>Top Up Game</span></div>
+<div class="mobile-service-card"><b>QRIS</b><span>Payment Ready</span></div>
+<div class="mobile-service-card"><b>FC</b><span>FC Mobile</span></div>
+<div class="mobile-service-card"><b>PLN</b><span>Produk Digital</span></div>
+</div>
+<div class="mobile-pay-strip">Instant Checkout</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section aria-label="Real mobile 3D homepage" class="real-mobile-3d" id="real-mobile-3d">
+<div class="real-mobile-copy">
+<div class="real-mobile-badge">Layanan Digital Terpercaya</div>
+<h1 class="real-mobile-title">Top Up <span>Digital</span> Cepat dan Mudah</h1>
+<p class="real-mobile-sub">
           Isi game, pulsa, paket data, token PLN, dan voucher digital dalam satu halaman yang ringan, modern, dan nyaman digunakan.
         </p>
-
-        <div class="real-mobile-actions">
-          <a class="real-mobile-primary" href="#checkout">Mulai Top Up</a>
-          <a class="real-mobile-secondary" href="#premium">Produk</a>
-        </div>
-      </div>
-
-      <div class="real-3d-stage-wrap">
-        <div class="real-3d-stage" id="realMobile3DStage">
-          <div class="real-shadow"></div>
-          <div class="real-3d-orbit"></div>
-          <div class="real-3d-orbit two"></div>
-
-          <div class="real-card-3d real-card-game"><b>GAME</b><span></span></div>
-          <div class="real-card-3d real-card-wallet"><b>FC</b><span></span></div>
-          <div class="real-card-3d real-card-toll"><b>PLN</b><span></span></div>
-
-          <div class="real-cube" aria-hidden="true">
-            <span class="front">3D</span>
-            <span class="back">PAY</span>
-            <span class="right">ID</span>
-            <span class="left">TOP</span>
-            <span class="top">VIP</span>
-            <span class="bottom">GO</span>
-          </div>
-
-          <div class="real-phone">
-            <div class="real-phone-screen">
-              <div class="real-speaker"></div>
-              <div class="real-screen-card">
-                <small>Order aktif</small>
-                <strong>Rp1.250.000</strong>
-              </div>
-
-              <div class="real-mini-grid">
-                <div class="real-mini"><b>ML</b><span>Game</span></div>
-                <div class="real-mini"><b>QR</b><span>Game</span></div>
-                <div class="real-mini"><b>TOL</b><span>Voucher Game</span></div>
-                <div class="real-mini"><b>PLN</b><span>Digital</span></div>
-              </div>
-
-              <div class="real-pay">Instant Checkout</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="real-3d-note">Geser untuk melihat layanan</div>
-      </div>
-    </section>
-
-    <main>
-      <section class="hero" id="home">
-        <div class="hero-text reveal">
-          <div class="badge"><span class="badge-dot"></span> Layanan Digital Terpercaya</div>
-          <h1>Website Top Up <span class="grad">3D Premium</span> untuk Game, Game, dan Voucher Game</h1>
-          <p class="hero-copy">
+<div class="real-mobile-actions">
+<a class="real-mobile-primary" href="#checkout">Mulai Top Up</a>
+<a class="real-mobile-secondary" href="#premium">Produk</a>
+</div>
+</div>
+<div class="real-3d-stage-wrap">
+<div class="real-3d-stage" id="realMobile3DStage">
+<div class="real-shadow"></div>
+<div class="real-3d-orbit"></div>
+<div class="real-3d-orbit two"></div>
+<div class="real-card-3d real-card-game"><b>GAME</b><span></span></div>
+<div class="real-card-3d real-card-wallet"><b>FC</b><span></span></div>
+<div class="real-card-3d real-card-toll"><b>PLN</b><span></span></div>
+<div aria-hidden="true" class="real-cube">
+<span class="front">3D</span>
+<span class="back">PAY</span>
+<span class="right">ID</span>
+<span class="left">TOP</span>
+<span class="top">VIP</span>
+<span class="bottom">GO</span>
+</div>
+<div class="real-phone">
+<div class="real-phone-screen">
+<div class="real-speaker"></div>
+<div class="real-screen-card">
+<small>Order aktif</small>
+<strong>Rp1.250.000</strong>
+</div>
+<div class="real-mini-grid">
+<div class="real-mini"><b>ML</b><span>Game</span></div>
+<div class="real-mini"><b>QR</b><span>Game</span></div>
+<div class="real-mini"><b>TOL</b><span>Voucher Game</span></div>
+<div class="real-mini"><b>PLN</b><span>Digital</span></div>
+</div>
+<div class="real-pay">Instant Checkout</div>
+</div>
+</div>
+</div>
+<div class="real-3d-note">Geser untuk melihat layanan</div>
+</div>
+</section>
+<main>
+<section class="hero" id="home">
+<div class="hero-text reveal">
+<div class="badge"><span class="badge-dot"></span> Layanan Digital Terpercaya</div>
+<h1>Website Top Up <span class="grad">3D Premium</span> untuk Game, Game, dan Voucher Game</h1>
+<p class="hero-copy">
             Pilih produk digital favorit, isi data tujuan, lalu lanjutkan pembayaran dengan alur yang sederhana dan nyaman digunakan di HP.
           </p>
-
-          <div class="hero-actions">
-            <a href="#checkout" class="btn btn-primary">Mulai Top Up</a>
-            <a href="#premium" class="btn btn-ghost">Lihat 3D Premium</a>
-          </div>
-
-          <div class="hero-metrics">
-            <div class="metric">
-              <strong>Mudah Dipakai</strong>
-              <span>Tampilan interaktif yang tetap ringan di HP.</span>
-            </div>
-            <div class="metric">
-              <strong>Produk Populer</strong>
-              <span>Produk favorit mudah dilihat dan dipilih.</span>
-            </div>
-            <div class="metric">
-              <strong>Siap Terhubung</strong>
-              <span>Alur pembayaran dapat terhubung ke sistem utama.</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="scene-zone reveal">
-          <div class="scene" id="mainScene">
-            <div class="orbit o1"></div>
-            <div class="orbit o2"></div>
-            <div class="orbit o3"></div>
-            <div class="energy-line l1"></div>
-            <div class="energy-line l2"></div>
-            <div class="energy-line l3"></div>
-
-            <div class="float-object obj-diamond"><div class="diamond3d"></div></div>
-            <div class="float-object obj-coin"><div class="coin3d">ID</div></div>
-            <div class="float-object obj-game"><div class="game-card3d"><span class="card-label">FC MOBILE</span><span class="card-bar"></span></div></div>
-            <div class="float-object obj-voucher"><div class="voucher-card3d"><span class="card-label">VOUCHER</span><span class="card-bar"></span></div></div>
-            <div class="float-object obj-small"><div class="coin3d">24H</div></div>
-
-            <div class="phone3d">
-              <div class="phone-top">
-                <span>TopupID</span>
-                <span class="speaker"></span>
-                <span>5G</span>
-              </div>
-
-              <div class="screen">
-                <div class="scan-line"></div>
-                <div class="screen-line"></div>
-                <div class="screen-line s2"></div>
-
-                <div class="balance-card">
-                  <small>Total order aktif</small>
-                  <h3>Rp1.250.000</h3>
-                </div>
-
-                <div class="mini-apps">
-                  <div class="mini-app"><b>🎮</b><span>Game</span></div>
-                  <div class="mini-app"><b>💳</b><span>Game</span></div>
-                  <div class="mini-app"><b>🚗</b><span>Voucher Game</span></div>
-                  <div class="mini-app"><b>⚡</b><span>Digital</span></div>
-                </div>
-
-                <div class="pay-bar">Instant Checkout</div>
-              </div>
-            </div>
-          </div>
-          <div class="scene-hint">Geser untuk melihat layanan</div>
-        </div>
-      </section>
-
-      <section class="section reveal" id="premium">
-        <div class="section-head">
-          <div class="kicker">PRODUK POPULER</div>
-          <h2>Pilih Produk Favorit dengan Lebih Mudah</h2>
-          <p class="section-sub">
+<div class="hero-actions">
+<a class="btn btn-primary" href="#checkout">Mulai Top Up</a>
+<a class="btn btn-ghost" href="#premium">Lihat 3D Premium</a>
+</div>
+<div class="hero-metrics">
+<div class="metric">
+<strong>Mudah Dipakai</strong>
+<span>Tampilan interaktif yang tetap ringan di HP.</span>
+</div>
+<div class="metric">
+<strong>Produk Populer</strong>
+<span>Produk favorit mudah dilihat dan dipilih.</span>
+</div>
+<div class="metric">
+<strong>Siap Terhubung</strong>
+<span>Alur pembayaran dapat terhubung ke sistem utama.</span>
+</div>
+</div>
+</div>
+<div class="scene-zone reveal">
+<div class="scene" id="mainScene">
+<div class="orbit o1"></div>
+<div class="orbit o2"></div>
+<div class="orbit o3"></div>
+<div class="energy-line l1"></div>
+<div class="energy-line l2"></div>
+<div class="energy-line l3"></div>
+<div class="float-object obj-diamond"><div class="diamond3d"></div></div>
+<div class="float-object obj-coin"><div class="coin3d">ID</div></div>
+<div class="float-object obj-game"><div class="game-card3d"><span class="card-label">FC MOBILE</span><span class="card-bar"></span></div></div>
+<div class="float-object obj-voucher"><div class="voucher-card3d"><span class="card-label">VOUCHER</span><span class="card-bar"></span></div></div>
+<div class="float-object obj-small"><div class="coin3d">24H</div></div>
+<div class="phone3d">
+<div class="phone-top">
+<span>TopupID</span>
+<span class="speaker"></span>
+<span>5G</span>
+</div>
+<div class="screen">
+<div class="scan-line"></div>
+<div class="screen-line"></div>
+<div class="screen-line s2"></div>
+<div class="balance-card">
+<small>Total order aktif</small>
+<h3>Rp1.250.000</h3>
+</div>
+<div class="mini-apps">
+<div class="mini-app"><b>🎮</b><span>Game</span></div>
+<div class="mini-app"><b>💳</b><span>Game</span></div>
+<div class="mini-app"><b>🚗</b><span>Voucher Game</span></div>
+<div class="mini-app"><b>⚡</b><span>Digital</span></div>
+</div>
+<div class="pay-bar">Instant Checkout</div>
+</div>
+</div>
+</div>
+<div class="scene-hint">Geser untuk melihat layanan</div>
+</div>
+</section>
+<section class="section reveal" id="premium">
+<div class="section-head">
+<div class="kicker">PRODUK POPULER</div>
+<h2>Pilih Produk Favorit dengan Lebih Mudah</h2>
+<p class="section-sub">
             Geser kartu produk di HP, pilih layanan yang dibutuhkan, lalu lanjutkan ke form checkout.
           </p>
-        </div>
-
-        <div class="fan-carousel-shell" id="fanCarouselWrap">
-          <div class="fan-copy">
-            <span><b>Produk Populer</b></span>
-            <span>Geser • Pilih • Checkout</span>
-          </div>
-          <div class="fan-helper">Geser produk dengan jari</div>
-          <div class="fan-layout-html" id="fanCarouselLayout" aria-label="Carousel produk populer"></div>
-          <div class="fan-controls-html">
-            <button class="fan-arrow-html" id="fanPrev" type="button" aria-label="Produk sebelumnya">‹</button>
-            <div class="fan-dots-html" id="fanDots" aria-hidden="true"></div>
-            <button class="fan-arrow-html" id="fanNext" type="button" aria-label="Produk berikutnya">›</button>
-          </div>
-        </div>
-
-        <div class="carousel-wrap" id="carouselWrap">
-          <div class="carousel-stage" id="carouselStage"></div>
-          <div class="carousel-actions">
-            <button class="round-btn" id="prevCarousel" type="button" aria-label="Produk sebelumnya">‹</button>
-            <div class="carousel-dots" id="carouselDots"></div>
-            <button class="round-btn" id="nextCarousel" type="button" aria-label="Produk berikutnya">›</button>
-          </div>
-        </div>
-      </section>
-
-      <section class="section reveal" id="produk">
-        <div class="section-head">
-          <div class="kicker">KATALOG</div>
-          <h2>Katalog Produk Digital Lengkap</h2>
-          <p class="section-sub">
+</div>
+<div class="fan-carousel-shell" id="fanCarouselWrap">
+<div class="fan-copy">
+<span><b>Produk Populer</b></span>
+<span>Geser • Pilih • Checkout</span>
+</div>
+<div class="fan-helper">Geser produk dengan jari</div>
+<div aria-label="Carousel produk populer" class="fan-layout-html" id="fanCarouselLayout"></div>
+<div class="fan-controls-html">
+<button aria-label="Produk sebelumnya" class="fan-arrow-html" id="fanPrev" type="button">‹</button>
+<div aria-hidden="true" class="fan-dots-html" id="fanDots"></div>
+<button aria-label="Produk berikutnya" class="fan-arrow-html" id="fanNext" type="button">›</button>
+</div>
+</div>
+<div class="carousel-wrap" id="carouselWrap">
+<div class="carousel-stage" id="carouselStage"></div>
+<div class="carousel-actions">
+<button aria-label="Produk sebelumnya" class="round-btn" id="prevCarousel" type="button">‹</button>
+<div class="carousel-dots" id="carouselDots"></div>
+<button aria-label="Produk berikutnya" class="round-btn" id="nextCarousel" type="button">›</button>
+</div>
+</div>
+</section>
+<section class="section reveal" id="produk">
+<div class="section-head">
+<div class="kicker">KATALOG</div>
+<h2>Katalog Produk Digital Lengkap</h2>
+<p class="section-sub">
             Pilih kategori layanan, lihat nominal yang tersedia, dan lanjutkan pesanan dengan lebih mudah.
           </p>
-        </div>
-
-        <div class="tabs" id="tabs">
-          <button class="tab active" data-filter="all" type="button">Semua</button>
-          <button class="tab" data-filter="game" type="button">Game</button>
-          <button class="tab" data-filter="digital" type="button">Digital</button>
-        </div>
-
-        <div class="product-grid" id="productGrid"></div>
-      </section>
-
-      <section class="section reveal" id="showcase">
-        <div class="tls-visual-shell">
-          <div class="tls-rotator" aria-label="Animasi 10 gambar layanan TopupID berurutan">
-            <div class="tls-card tls-card-1"><img src="tls1.webp" alt="Gambar TopupID 1" /></div>
-            <div class="tls-card tls-card-2"><img src="tls2.webp" alt="Gambar TopupID 2" /></div>
-            <div class="tls-card tls-card-3"><img src="tls3.webp" alt="Gambar TopupID 3" /></div>
-            <div class="tls-card tls-card-4"><img src="tls4.webp" alt="Gambar TopupID 4" /></div>
-            <div class="tls-card tls-card-5"><img src="tls5.webp" alt="Gambar TopupID 5" /></div>
-            <div class="tls-card tls-card-6"><img src="tls6.webp" alt="Gambar TopupID 6" /></div>
-            <div class="tls-card tls-card-7"><img src="tls7.webp" alt="Gambar TopupID 7" /></div>
-            <div class="tls-card tls-card-8"><img src="tls8.webp" alt="Gambar TopupID 8" /></div>
-            <div class="tls-card tls-card-9"><img src="tls9.webp" alt="Gambar TopupID 9" /></div>
-            <div class="tls-card tls-card-10"><img src="tls10.webp" alt="Gambar TopupID 10" /></div>
-          </div>
-        </div>
-      </section>
-      <section class="section reveal" id="cara">
-        <div class="section-head">
-          <div class="kicker">FLOW ORDER</div>
-          <h2>Alur Top Up yang Mudah Diikuti</h2>
-          <p class="section-sub">
+</div>
+<div class="tabs" id="tabs">
+<button class="tab active" data-filter="all" type="button">Semua</button>
+<button class="tab" data-filter="game" type="button">Game</button>
+<button class="tab" data-filter="digital" type="button">Digital</button>
+</div>
+<div class="product-grid" id="productGrid"></div>
+</section>
+<section class="section reveal" id="showcase">
+<div class="tls-visual-shell">
+<div aria-label="Animasi 10 gambar layanan TopupID berurutan" class="tls-rotator">
+<div class="tls-card tls-card-1"><img alt="Gambar TopupID 1" src="tls1.webp"/></div>
+<div class="tls-card tls-card-2"><img alt="Gambar TopupID 2" src="tls2.webp"/></div>
+<div class="tls-card tls-card-3"><img alt="Gambar TopupID 3" src="tls3.webp"/></div>
+<div class="tls-card tls-card-4"><img alt="Gambar TopupID 4" src="tls4.webp"/></div>
+<div class="tls-card tls-card-5"><img alt="Gambar TopupID 5" src="tls5.webp"/></div>
+<div class="tls-card tls-card-6"><img alt="Gambar TopupID 6" src="tls6.webp"/></div>
+<div class="tls-card tls-card-7"><img alt="Gambar TopupID 7" src="tls7.webp"/></div>
+<div class="tls-card tls-card-8"><img alt="Gambar TopupID 8" src="tls8.webp"/></div>
+<div class="tls-card tls-card-9"><img alt="Gambar TopupID 9" src="tls9.webp"/></div>
+<div class="tls-card tls-card-10"><img alt="Gambar TopupID 10" src="tls10.webp"/></div>
+</div>
+</div>
+</section>
+<section class="section reveal" id="cara">
+<div class="section-head">
+<div class="kicker">FLOW ORDER</div>
+<h2>Alur Top Up yang Mudah Diikuti</h2>
+<p class="section-sub">
             Pilih layanan, isi data tujuan, tentukan nominal, lalu lanjutkan pembayaran sesuai metode yang tersedia.
           </p>
-        </div>
-
-        <div class="steps">
-          <article class="tilt-card step-card"><div class="step-num">1</div><h3>Pilih Produk</h3><p>User memilih kategori game, pulsa, data, PLN, atau voucher.</p></article>
-          <article class="tilt-card step-card"><div class="step-num">2</div><h3>Isi Tujuan</h3><p>User mengisi ID game, nomor HP, nomor pelanggan, atau data tujuan lain.</p></article>
-          <article class="tilt-card step-card"><div class="step-num">3</div><h3>Proses Pesanan</h3><p>Pesanan diproses melalui sistem yang terhubung dan total pembayaran ditampilkan sebelum dilanjutkan.</p></article>
-          <article class="tilt-card step-card"><div class="step-num">4</div><h3>Cek Status</h3><p>Status pesanan dapat dipantau setelah pembayaran diproses.</p></article>
-        </div>
-      </section>
-
-
-
-      <section class="section reveal production-polish" id="trust">
-        <div class="section-head">
-          <div class="kicker">TRUST & SAFETY</div>
-          <h2>Transaksi Aman dan Informasi Pengguna Tetap Terjaga</h2>
-          <p class="section-sub">
+</div>
+<div class="steps">
+<article class="tilt-card step-card"><div class="step-num">1</div><h3>Pilih Produk</h3><p>User memilih kategori game, pulsa, data, PLN, atau voucher.</p></article>
+<article class="tilt-card step-card"><div class="step-num">2</div><h3>Isi Tujuan</h3><p>User mengisi ID game, nomor HP, nomor pelanggan, atau data tujuan lain.</p></article>
+<article class="tilt-card step-card"><div class="step-num">3</div><h3>Proses Pesanan</h3><p>Pesanan diproses melalui sistem yang terhubung dan total pembayaran ditampilkan sebelum dilanjutkan.</p></article>
+<article class="tilt-card step-card"><div class="step-num">4</div><h3>Cek Status</h3><p>Status pesanan dapat dipantau setelah pembayaran diproses.</p></article>
+</div>
+</section>
+<section class="section reveal production-polish" id="trust">
+<div class="section-head">
+<div class="kicker">TRUST &amp; SAFETY</div>
+<h2>Transaksi Aman dan Informasi Pengguna Tetap Terjaga</h2>
+<p class="section-sub">
             Alur dibuat untuk membantu pengguna melakukan top up dengan nyaman, jelas, dan tetap aman.
           </p>
-        </div>
-
-        <div class="trust-grid">
-          <article class="trust-card tilt-card">
-            <div class="trust-icon">🔒</div>
-            <h3>Data sensitif terlindungi</h3>
-            <p>Informasi penting diproses melalui sistem yang aman dan tidak ditampilkan kepada pengguna.</p>
-          </article>
-          <article class="trust-card tilt-card">
-            <div class="trust-icon">⚡</div>
-            <h3>Alur cepat</h3>
-            <p>Produk, nominal, tujuan, dan pembayaran diringkas langsung agar pembeli tidak bingung saat checkout.</p>
-          </article>
-          <article class="trust-card tilt-card">
-            <div class="trust-icon">🧾</div>
-            <h3>Status pesanan jelas</h3>
-            <p>Setiap pesanan menampilkan informasi penting seperti produk, total, metode pembayaran, dan status transaksi.</p>
-          </article>
-          <article class="trust-card tilt-card">
-            <div class="trust-icon">📱</div>
-            <h3>Mobile first</h3>
-            <p>Tombol, kartu produk, dan ringkasan pesanan dibuat nyaman untuk layar HP.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="section reveal production-polish" id="smartflow">
-        <div class="section-head">
-          <div class="kicker">SMART CHECKOUT</div>
-          <h2>Panduan checkout yang lebih pintar</h2>
-          <p class="section-sub">
+</div>
+<div class="trust-grid">
+<article class="trust-card tilt-card">
+<div class="trust-icon">🔒</div>
+<h3>Data sensitif terlindungi</h3>
+<p>Informasi penting diproses melalui sistem yang aman dan tidak ditampilkan kepada pengguna.</p>
+</article>
+<article class="trust-card tilt-card">
+<div class="trust-icon">⚡</div>
+<h3>Alur cepat</h3>
+<p>Produk, nominal, tujuan, dan pembayaran diringkas langsung agar pembeli tidak bingung saat checkout.</p>
+</article>
+<article class="trust-card tilt-card">
+<div class="trust-icon">🧾</div>
+<h3>Status pesanan jelas</h3>
+<p>Setiap pesanan menampilkan informasi penting seperti produk, total, metode pembayaran, dan status transaksi.</p>
+</article>
+<article class="trust-card tilt-card">
+<div class="trust-icon">📱</div>
+<h3>Mobile first</h3>
+<p>Tombol, kartu produk, dan ringkasan pesanan dibuat nyaman untuk layar HP.</p>
+</article>
+</div>
+</section>
+<section class="section reveal production-polish" id="smartflow">
+<div class="section-head">
+<div class="kicker">SMART CHECKOUT</div>
+<h2>Panduan checkout yang lebih pintar</h2>
+<p class="section-sub">
             Panel ini membantu pengguna mengisi data tujuan, memilih produk, dan memastikan pesanan sebelum pembayaran.
           </p>
-        </div>
-
-        <div class="smart-grid">
-          <article class="smart-panel panel">
-            <div class="smart-panel-head">
-              <span class="smart-step-num">01</span>
-              <h3>Validasi tujuan</h3>
-            </div>
-            <div class="ux-validator" id="smartValidator">
+</div>
+<div class="smart-grid">
+<article class="smart-panel panel">
+<div class="smart-panel-head">
+<span class="smart-step-num">01</span>
+<h3>Validasi tujuan</h3>
+</div>
+<div class="ux-validator" id="smartValidator">
               Pilih produk dulu untuk melihat panduan format tujuan.
             </div>
-            <div class="smart-tips" id="smartTips">
-              <span>Game: User ID</span>
-              <span>Digital: nomor pelanggan</span>
-            </div>
-          </article>
-
-          <article class="smart-panel panel payment-preview-card">
-            <div class="smart-panel-head">
-              <span class="smart-step-num">02</span>
-              <h3>Preview pembayaran</h3>
-            </div>
-            <div class="payment-preview">
-              <div class="preview-qr" aria-hidden="true"></div>
-              <div>
-                <span>Metode aktif</span>
-                <strong id="smartPaymentName">Belum dipilih</strong>
-                <p id="smartPaymentNote">Metode pembayaran mengikuti sistem yang tersedia.</p>
-              </div>
-            </div>
-          </article>
-
-          <article class="smart-panel panel">
-            <div class="smart-panel-head">
-              <span class="smart-step-num">03</span>
-              <h3>Shortcut produk</h3>
-            </div>
-            <div class="shortcut-grid" id="quickProductShortcuts">
-              <button type="button" data-quick-product="mlbb">MLBB</button>
-              <button type="button" data-quick-product="fcmobile">FC Mobile</button>
-              <button type="button" data-quick-product="valorant">Valorant</button>
-              <button type="button" data-quick-product="pln">PLN</button>
-            </div>
-          </article>
-        </div>
-      </section>
-
-      <section class="section reveal" id="checkout">
-        <div class="section-head">
-          <div class="kicker">CHECKOUT</div>
-          <h2>Form Top Up Sederhana dan Jelas</h2>
-          <p class="section-sub">
+<div class="smart-tips" id="smartTips">
+<span>Game: User ID</span>
+<span>Digital: nomor pelanggan</span>
+</div>
+</article>
+<article class="smart-panel panel payment-preview-card">
+<div class="smart-panel-head">
+<span class="smart-step-num">02</span>
+<h3>Preview pembayaran</h3>
+</div>
+<div class="payment-preview">
+<div aria-hidden="true" class="preview-qr"></div>
+<div>
+<span>Metode aktif</span>
+<strong id="smartPaymentName">Belum dipilih</strong>
+<p id="smartPaymentNote">Metode pembayaran mengikuti sistem yang tersedia.</p>
+</div>
+</div>
+</article>
+<article class="smart-panel panel">
+<div class="smart-panel-head">
+<span class="smart-step-num">03</span>
+<h3>Shortcut produk</h3>
+</div>
+<div class="shortcut-grid" id="quickProductShortcuts">
+<button data-quick-product="mlbb" type="button">MLBB</button>
+<button data-quick-product="fcmobile" type="button">FC Mobile</button>
+<button data-quick-product="valorant" type="button">Valorant</button>
+<button data-quick-product="pln" type="button">PLN</button>
+</div>
+</article>
+</div>
+</section>
+<section class="section reveal" id="checkout">
+<div class="section-head">
+<div class="kicker">CHECKOUT</div>
+<h2>Form Top Up Sederhana dan Jelas</h2>
+<p class="section-sub">
             Lengkapi data pesanan, pilih nominal, lalu lanjutkan pembayaran melalui metode yang tersedia.
           </p>
-        </div>
-
-        <div class="checkout-grid">
-          <div class="panel">
-            <form class="form-grid" id="orderForm">
-              <label>
+</div>
+<div class="checkout-grid">
+<div class="panel">
+<form class="form-grid" id="orderForm">
+<label>
                 Kategori Produk
-                <select id="categorySelect" required>
-                  <option value="">Pilih kategori</option>
-                  <option value="game">Top Up Game</option>
-                  <option value="digital">Produk Digital</option>
-                </select>
-              </label>
-
-              <label>
+                <select id="categorySelect" required="">
+<option value="">Pilih kategori</option>
+<option value="game">Top Up Game</option>
+<option value="digital">Produk Digital</option>
+</select>
+</label>
+<label>
                 Produk
-                <select id="productSelect" required>
-                  <option value="">Pilih produk</option>
-                </select>
-              </label>
-
-              <label>
+                <select id="productSelect" required="">
+<option value="">Pilih produk</option>
+</select>
+</label>
+<label>
                 User ID / Nomor Tujuan
-                <input id="customerInput" type="text" placeholder="Contoh: 123456789 atau ID#1234" required />
-                <span class="field-hint">Game isi User ID. Produk digital isi nomor tujuan sesuai layanan.</span>
-              </label>
-
-              <label>
+                <input id="customerInput" placeholder="Contoh: 123456789 atau ID#1234" required="" type="text"/>
+<span class="field-hint">Game isi User ID. Produk digital isi nomor tujuan sesuai layanan.</span>
+</label>
+<label>
                 Nominal
                 <div class="nominal-grid" id="nominalGrid"></div>
-                <input type="hidden" id="nominalValue" required />
-              </label>
-
-              <label>
+<input id="nominalValue" required="" type="hidden"/>
+</label>
+<label>
                 Metode Pembayaran
-                <select id="paymentSelect" required>
-                  <option value="">Pilih metode pembayaran</option>
-                  <option value="QRIS">QRIS</option>
-                </select>
-              </label>
-
-              <button class="btn btn-primary submit-btn" type="submit">Lanjut Pembayaran</button>
-            </form>
-
-            <div class="api-box">
+                <select id="paymentSelect" required="">
+<option value="">Pilih metode pembayaran</option>
+<option value="QRIS">QRIS</option>
+</select>
+</label>
+<button class="btn btn-primary submit-btn" type="submit">Lanjut Pembayaran</button>
+</form>
+<div class="api-box">
               Pastikan data tujuan sudah benar sebelum melanjutkan pembayaran.
             </div>
-          </div>
-
-          <aside class="panel tilt-card">
-            <div class="summary-title">
-              <h3>Ringkasan</h3>
-              <span class="pill">Pesanan</span>
-            </div>
-
-            <div class="summary-list">
-              <div class="summary-row"><span>Kategori</span><b id="sumCategory">-</b></div>
-              <div class="summary-row"><span>Produk</span><b id="sumProduct">-</b></div>
-              <div class="summary-row"><span>Tujuan</span><b id="sumCustomer">-</b></div>
-              <div class="summary-row"><span>Pembayaran</span><b id="sumPayment">-</b></div>
-            </div>
-
-            <div class="total-box">
-              <span>Total Bayar</span>
-              <strong id="sumTotal">Rp0</strong>
-            </div>
-
-            <div class="api-box">
+</div>
+<aside class="panel tilt-card">
+<div class="summary-title">
+<h3>Ringkasan</h3>
+<span class="pill">Pesanan</span>
+</div>
+<div class="summary-list">
+<div class="summary-row"><span>Kategori</span><b id="sumCategory">-</b></div>
+<div class="summary-row"><span>Produk</span><b id="sumProduct">-</b></div>
+<div class="summary-row"><span>Tujuan</span><b id="sumCustomer">-</b></div>
+<div class="summary-row"><span>Pembayaran</span><b id="sumPayment">-</b></div>
+</div>
+<div class="total-box">
+<span>Total Bayar</span>
+<strong id="sumTotal">Rp0</strong>
+</div>
+<div class="api-box">
               Total pembayaran akan menyesuaikan produk, nominal, dan metode pembayaran yang dipilih.
             </div>
-          </aside>
-        </div>
-      </section>
-
-      <section class="section reveal" id="cek">
-        <div class="section-head">
-          <div class="kicker">INVOICE</div>
-          <h2>Cek Status Pesanan</h2>
-          <p class="section-sub">
+</aside>
+</div>
+</section>
+<section class="section reveal" id="cek">
+<div class="section-head">
+<div class="kicker">INVOICE</div>
+<h2>Cek Status Pesanan</h2>
+<p class="section-sub">
             Masukkan kode pesanan untuk melihat status transaksi.
           </p>
-        </div>
-
-        <div class="check-area">
-          <input id="invoiceInput" type="text" placeholder="Contoh: INV-20260622-123456" />
-          <button class="btn btn-primary" id="checkBtn" type="button">Cek</button>
-        </div>
-
-        <div class="result-box" id="invoiceResult"></div>
-      </section>
-
-      <section class="section reveal production-polish" id="history">
-        <div class="section-head">
-          <div class="kicker">RIWAYAT PESANAN</div>
-          <h2>Riwayat Pesanan</h2>
-          <p class="section-sub">
+</div>
+<div class="check-area">
+<input id="invoiceInput" placeholder="Contoh: INV-20260622-123456" type="text"/>
+<button class="btn btn-primary" id="checkBtn" type="button">Cek</button>
+</div>
+<div class="result-box" id="invoiceResult"></div>
+</section>
+<section class="section reveal production-polish" id="history">
+<div class="section-head">
+<div class="kicker">RIWAYAT PESANAN</div>
+<h2>Riwayat Pesanan</h2>
+<p class="section-sub">
             Riwayat pesanan akan mengikuti sistem yang digunakan pada website.
           </p>
-        </div>
-        <div class="history-shell panel">
-          <div class="history-toolbar">
-            <button class="small-btn" type="button" id="refreshHistoryBtn">Refresh Riwayat</button>
-            <button class="small-btn" type="button" id="clearHistoryViewBtn">Kosongkan Tampilan</button>
-          </div>
-          <div class="history-list" id="localHistoryList">
-            <div class="empty-history">Belum ada riwayat pesanan.</div>
-          </div>
-        </div>
-      </section>
-
-      <section class="section reveal production-polish" id="admin-preview">
-        <div class="section-head">
-          <div class="kicker">RINGKASAN</div>
-          <h2>Ringkasan Layanan</h2>
-          <p class="section-sub">
+</div>
+<div class="history-shell panel">
+<div class="history-toolbar">
+<button class="small-btn" id="refreshHistoryBtn" type="button">Refresh Riwayat</button>
+<button class="small-btn" id="clearHistoryViewBtn" type="button">Kosongkan Tampilan</button>
+</div>
+<div class="history-list" id="localHistoryList">
+<div class="empty-history">Belum ada riwayat pesanan.</div>
+</div>
+</div>
+</section>
+<section class="section reveal production-polish" id="admin-preview">
+<div class="section-head">
+<div class="kicker">RINGKASAN</div>
+<h2>Ringkasan Layanan</h2>
+<p class="section-sub">
             Ringkasan ini menampilkan status layanan tanpa mengubah sistem utama.
           </p>
-        </div>
-        <div class="admin-grid">
-          <article class="admin-card panel">
-            <span>Total Pesanan</span>
-            <strong id="adminTotalOrders">0</strong>
-          </article>
-          <article class="admin-card panel">
-            <span>Menunggu pembayaran</span>
-            <strong id="adminPendingOrders">0</strong>
-          </article>
-          <article class="admin-card panel">
-            <span>Selesai</span>
-            <strong id="adminDoneOrders">0</strong>
-          </article>
-          <article class="admin-card panel">
-            <span>Estimasi Omzet</span>
-            <strong id="adminLocalRevenue">Rp0</strong>
-          </article>
-        </div>
-      </section>
-
-      <section class="topupid-banner-separator bottom-full-visual" aria-label="Banner visual TopupID">
-        <div class="topupid-banner-inner">
-          <img src="bbb.webp" alt="Banner layanan TopupID" class="topupid-banner-full-image" loading="lazy" decoding="async" />
-        </div>
-      </section>
-
-    </main>
-
-    <footer class="dirac-footer">
-      <div class="footer-links">
-        <a href="#premium">Produk</a>
-        <a href="#checkout">Top Up</a>
-      </div>
-      <p>© 2026 TopupID. Copyright by Dirac Group.</p>
-      <p class="footer-sub">TopupID dinaungi Dirac Group.</p>
-    </footer>
-  </div>
-
-  <div class="modal" id="transactionModal" aria-hidden="true">
-    <div class="transaction-loader">
-      <div class="loader-core"><div class="diamond3d"></div></div>
-      <div class="loader-title" id="loaderTitle">Memproses pesanan</div>
-      <div class="loader-sub">Sistem sedang menyiapkan pembayaran dan status pesanan.</div>
-      <div class="loader-steps">
-        <div class="loader-step" data-loader-step="0"><span class="check">1</span>Validasi data tujuan</div>
-        <div class="loader-step" data-loader-step="1"><span class="check">2</span>Mengecek produk dan nominal</div>
-        <div class="loader-step" data-loader-step="2"><span class="check">3</span>Memproses pesanan pembayaran</div>
-        <div class="loader-step" data-loader-step="3"><span class="check">4</span>Menyiapkan status transaksi</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="toast" id="toast"></div>
-
-  <script>
+</div>
+<div class="admin-grid">
+<article class="admin-card panel">
+<span>Total Pesanan</span>
+<strong id="adminTotalOrders">0</strong>
+</article>
+<article class="admin-card panel">
+<span>Menunggu pembayaran</span>
+<strong id="adminPendingOrders">0</strong>
+</article>
+<article class="admin-card panel">
+<span>Selesai</span>
+<strong id="adminDoneOrders">0</strong>
+</article>
+<article class="admin-card panel">
+<span>Estimasi Omzet</span>
+<strong id="adminLocalRevenue">Rp0</strong>
+</article>
+</div>
+</section>
+<section aria-label="Banner visual TopupID" class="topupid-banner-separator bottom-full-visual">
+<div class="topupid-banner-inner">
+<img alt="Banner layanan TopupID" class="topupid-banner-full-image" decoding="async" loading="lazy" src="bbb.webp"/>
+</div>
+</section>
+</main>
+<footer class="dirac-footer">
+<div class="footer-links">
+<a href="#premium">Produk</a>
+<a href="#checkout">Top Up</a>
+</div>
+<p>© 2026 TopupID. Copyright by Dirac Group.</p>
+<p class="footer-sub">TopupID dinaungi Dirac Group.</p>
+</footer>
+</div>
+<div aria-hidden="true" class="modal" id="transactionModal">
+<div class="transaction-loader">
+<div class="loader-core"><div class="diamond3d"></div></div>
+<div class="loader-title" id="loaderTitle">Memproses pesanan</div>
+<div class="loader-sub">Sistem sedang menyiapkan pembayaran dan status pesanan.</div>
+<div class="loader-steps">
+<div class="loader-step" data-loader-step="0"><span class="check">1</span>Validasi data tujuan</div>
+<div class="loader-step" data-loader-step="1"><span class="check">2</span>Mengecek produk dan nominal</div>
+<div class="loader-step" data-loader-step="2"><span class="check">3</span>Memproses pesanan pembayaran</div>
+<div class="loader-step" data-loader-step="3"><span class="check">4</span>Menyiapkan status transaksi</div>
+</div>
+</div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
     /*
       ==========================================================
       BACKEND/API CONFIG
@@ -5022,8 +5339,7 @@
     window.simulatePaid = simulatePaid;
     window.simulateDone = simulateDone;
   </script>
-
-  <script>
+<script>
     (function () {
       function bootMobileFullstackSafe() {
         var isMobile = window.innerWidth <= 720;
@@ -5053,9 +5369,7 @@
       window.addEventListener("orientationchange", bootMobileFullstackSafe, { passive: true });
     })();
   </script>
-
-
-  <script>
+<script>
     (function () {
       function setupRealMobile3D() {
         var stage = document.getElementById("realMobile3DStage");
@@ -5164,14 +5478,11 @@
       window.addEventListener("orientationchange", applyReal3DMode, { passive: true });
     })();
   </script>
-
-
-
-  <!-- ==========================================================
+<!-- ==========================================================
        THREE.JS ONLY 3D REPLACEMENT
        CSS 3D hero/mobile animation is hidden. Login/hash/checkout logic is untouched.
        ========================================================== -->
-  <style id="threejs-only-replacement-style">
+<style id="threejs-only-replacement-style">
     html.threejs-only-active #mainScene,
     html.threejs-only-active .scene-hint,
     html.threejs-only-active #mobile-home,
@@ -5323,8 +5634,7 @@
       .threejs-only-badge { bottom: 14px !important; font-size: 11px !important; }
     }
   </style>
-
-  <script id="threejs-only-replacement-script">
+<script id="threejs-only-replacement-script">
     (function () {
       "use strict";
       document.documentElement.classList.add("threejs-only-active");
@@ -6085,15 +6395,12 @@
       }
     })();
   </script>
-
-
-
-  <!-- =========================================================
+<!-- =========================================================
        OFFLINE 3D EMERGENCY FIX
        Menjaga Three.js CDN loader tetap ada, tetapi jika CDN hosting gagal,
        animasi tidak kosong lagi. Renderer 3D internal ini tidak memakai CSS 3D lama.
        ========================================================= -->
-  <style id="offline-3d-emergency-style">
+<style id="offline-3d-emergency-style">
     .threejs-only-mount.offline-3d-ready .threejs-only-loader,
     .threejs-only-mount.offline-3d-ready.is-error .threejs-only-loader {
       display: none !important;
@@ -6131,7 +6438,7 @@
       z-index: 1;
     }
   </style>
-  <style id="balanced-premium-mobile-polish">
+<style id="balanced-premium-mobile-polish">
     @media (max-width: 720px) {
       html.threejs-only-active .real-3d-stage-wrap {
         margin-top: 10px !important;
@@ -6143,8 +6450,7 @@
       background: radial-gradient(circle at 50% 42%, rgba(56,189,248,.10), transparent 34%), linear-gradient(180deg, transparent 0%, rgba(2,6,23,.14) 100%);
     }
   </style>
-
-  <script id="offline-3d-emergency-script">
+<script id="offline-3d-emergency-script">
     (function () {
       "use strict";
 
@@ -6781,9 +7087,6 @@
       }
     })();
   </script>
-
-
-
 <!-- ==========================================================
      FINAL PREMIUM 3D HERO 100 UPGRADE
      Self-contained. No CDN dependency. No scale-on-tap.
@@ -7463,9 +7766,6 @@
     setTimeout(activate, 900);
   })();
 </script>
-
-
-
 <!-- ==========================================================
      COMPLETE V12 FRONTEND UPGRADE
      Scope: visual 3D polish, smart checkout helper, trust section,
@@ -7913,7 +8213,6 @@
     }
   }
 </style>
-
 <script id="complete-v12-polish-script">
   (function () {
     "use strict";
@@ -8169,8 +8468,6 @@
     setInterval(function () { enhance3DObjectActions(); syncAdminAndHistory(); }, 3600);
   })();
 </script>
-
-
 <!-- ==========================================================
      V13 LIGHT BALANCED PATCH
      Scope: compact mobile hero, lower visual weight, lower CPU/GPU load.
@@ -8531,12 +8828,6 @@
     window.addEventListener("resize", toggleSticky, { passive: true });
   })();
 </script>
-
-
-
-
-
-
 <!-- ==========================================================
      V15 SINGLE 3D NO DOUBLE PATCH
      Scope: animation stability only. V13 size remains locked.
@@ -8840,8 +9131,6 @@
     setTimeout(boot, 900);
   })();
 </script>
-
-
 <!-- ==========================================================
      V16 PRODUCTION 3D MOTION POLISH
      Scope: only visual 3D depth, motion, and mobile composition polish.
@@ -9236,15 +9525,11 @@
     setTimeout(boot, 900);
   })();
 </script>
-
-
 <!-- V18 note: objek samping diganti dari kotak menjadi ikon/orb visual; fallback offline juga tidak lagi memakai card/kubus lama. -->
 <!-- V17 note: objek hero 3D telah diarahkan ke Three.js murni pada mode threejs-only-active. Perubahan hanya visual; checkout, invoice, localStorage, API, login, hash, payment gateway, dan keamanan backend tidak diubah. -->
 <!-- V19 note: Minimal Premium Top-Up Hub. Perubahan hanya pada visual hero/offline renderer agar desain tidak kotak, lebih bersih, dan lebih fokus. Endpoint, login, hash, payment gateway, email template, A2F, keamanan, checkout, invoice, dan localStorage tidak diubah. -->
 <!-- V20 note: phone canvas dan semua UI di dalam phone ikut transform yaw/pitch saat digeser, sehingga kotak tengah tidak diam lagi. Perubahan tetap visual-only; endpoint/login/hash/payment/email/A2F/security tidak diubah. -->
 <!-- V21 note: phone tengah dikembalikan ke sistem face-projection 3D seperti V18, sehingga body phone dan semua kotak UI di dalamnya benar-benar ikut rotasi penuh saat digeser. Visual-only; endpoint/login/hash/payment/email/A2F/security tidak diubah. -->
-
-
 <!-- ==========================================================
      V22 REALISTIC HTML 3D OBJECT PATCH
      Visual-only patch. Tidak mengubah login, hash, API, checkout,
@@ -10069,9 +10354,6 @@
   })();
 </script>
 <!-- End V22 realistic HTML 3D object patch -->
-
-
-
 <!-- ==========================================================
      V23 COMPACT 360 + DYNAMIC TOTAL PATCH
      Visual-only + frontend dynamic text. Tidak mengubah endpoint,
@@ -10455,9 +10737,6 @@
   })();
 </script>
 <!-- End V23 compact 360 dynamic patch -->
-
-
-
 <!-- ==========================================================
      V24 FAN CARDS TO WEBP + REMOVE LOWER CAROUSEL
      Visual/UI-only. Fan carousel now uses local tng1.webp ... tng10.webp.
@@ -10506,9 +10785,6 @@
   })();
 </script>
 <!-- End V24 fan cards to WEBP cleanup -->
-
-
-
 <!-- ==========================================================
      V25 PRODUCTION-SAFE CHECKOUT GUARD
      Tujuan: tidak membuat invoice demo/localStorage. Checkout hanya jalan
@@ -10643,9 +10919,6 @@
   })();
 </script>
 <!-- End V25 production-safe checkout guard -->
-
-
-
 <!-- ==========================================================
      V26 MINIMAL MODERN CARD DESIGN
      Scope: visual card styling only. Endpoint, login, hash, payment gateway,
@@ -10706,9 +10979,6 @@
   })();
 </script>
 <!-- End V26 minimal modern card design -->
-
-
-
 <!-- ==========================================================
      V27 REMOVE CHECK/HISTORY/ADMIN SECTIONS + TOPUPID FOOTER
      Scope: visual/navigation/footer cleanup only. Endpoint, login, hash,
@@ -10772,10 +11042,7 @@
   })();
 </script>
 <!-- End V27 footer cleanup -->
-
-
 <!-- V28 correction: file is named topup.html only. Existing brand name is preserved; only lower check/history/admin sections remain hidden and footer copyright remains Dirac Group. -->
-
 <style id="v35-topupid-focus-topup-cleanup">
   .brand-logo-link { display:inline-flex !important; align-items:center !important; justify-content:flex-start !important; gap:10px !important; min-width:0 !important; }
   .brand-mark.image-brand { width:46px !important; height:46px !important; min-width:46px !important; display:grid !important; place-items:center !important; background:transparent !important; box-shadow:none !important; transform:none !important; border-radius:0 !important; overflow:visible !important; }
@@ -10788,9 +11055,6 @@
 <script id="v35-topupid-focus-topup-cleanup-script">
   (function(){ document.documentElement.classList.add('v35-topupid-focus-topup-cleanup'); window.__topupidV35Notice='V35: transparent icon logo plus TopupID text; non-essential card/explanation sections hidden; focus on products and top-up checkout. Protected systems unchanged.'; })();
 </script>
-
-
-
 <style id="v41-tls-image-rotator">
   #showcase { display:block!important; visibility:visible!important; opacity:1!important; height:auto!important; min-height:0!important; padding:42px 7% 68px!important; overflow:visible!important; }
   .tls-visual-shell { position:relative!important; width:min(760px,100%)!important; min-height:430px!important; margin:0 auto!important; display:grid!important; place-items:center!important; perspective:1300px!important; overflow:visible!important; border-radius:34px!important; border:1px solid rgba(148,163,184,.18)!important; background:radial-gradient(circle at 50% 42%, rgba(56,189,248,.13), transparent 42%), rgba(255,255,255,.045)!important; backdrop-filter:blur(15px)!important; }
@@ -10808,8 +11072,6 @@
 <script id="v41-tls-image-rotator-script">
   (function(){ document.documentElement.classList.add('v41-tls-image-rotator'); window.__topupidV41Notice='V41: tls1.webp to tls4.webp rotate in HTML/CSS 3D. HTML edited only.'; })();
 </script>
-
-
 <style id="v42-topupid-banner-separator">
   /* V42: only the requested banner/separator, built in HTML/CSS. */
   .topupid-banner-separator {
@@ -10906,9 +11168,6 @@
     window.__topupidV42Notice = 'V42: added only the requested decorative banner/separator in HTML/CSS. Protected systems unchanged.';
   })();
 </script>
-
-
-
 <!-- V43 precision layout fix: contained 3D rotator + bottom full-width visual banner. No JS/function/endpoints changed. -->
 <style id="v43-topupid-precision-layout-fix">
   /* Rapikan animasi 3D showcase agar tidak keluar dari frame website, terutama di layar HP. */
@@ -11007,9 +11266,6 @@
     .topupid-banner-separator.bottom-full-visual .topupid-banner-inner { height: 180px !important; }
   }
 </style>
-
-
-
 <!-- V44 requested update: ten-image showcase changed to premium CSS coverflow animation only. -->
 <style id="v44-topupid-coverflow-showcase">
   /* Scope terbatas: hanya area sepuluh gambar di section #showcase. */
@@ -11248,8 +11504,6 @@
     }
   }
 </style>
-
-
 <!-- V45 requested update: larger four-image coverflow cards with slower readable rotation only. -->
 <style id="v45-topupid-coverflow-readable-size">
   /* Scope tetap terbatas: hanya memperbesar dan memperlambat animasi 10 gambar di #showcase. */
@@ -11361,9 +11615,6 @@
     #showcase .tls-card { width: min(312px, 84vw) !important; border-radius: 21px !important; }
   }
 </style>
-
-
-
 <!-- V46 requested fix: clean readable four-image slider, no tilted/transparent card state. -->
 <style id="v46-topupid-clean-readable-showcase">
   /* Scope sangat terbatas: hanya area 10 gambar di section #showcase. Tidak mengubah script, endpoint, login, payment, hash, A2F, API, atau keamanan. */
@@ -11530,7 +11781,6 @@
     }
   }
 </style>
-
 <!-- V47 requested fix: restore previous premium coverflow motion, centered active image, no transparent visible cards. -->
 <style id="v47-topupid-centered-solid-coverflow">
   /* Scope sangat terbatas: hanya 10 gambar pada section #showcase. Override ini tidak mengubah HTML, script, endpoint, form, login, hash, A2F, payment gateway, email template, API, atau keamanan. */
@@ -11760,8 +12010,6 @@
     }
   }
 </style>
-
-
 <!-- V48 requested fix: keep previous coverflow animation, but force centered 16:9 image fit without transparency/cropping. -->
 <style id="v48-topupid-16x9-fit-showcase">
   /* Scope sangat terbatas: hanya section #showcase / sepuluh gambar tls. */
@@ -11958,8 +12206,6 @@
     }
   }
 </style>
-
-
 <!-- V49 requested fix: slightly smaller centered 16:9 showcase cards, keeping the same coverflow animation. -->
 <style id="v49-topupid-slightly-smaller-16x9-showcase">
   /* Scope sangat terbatas: hanya ukuran sepuluh gambar tls di section #showcase. */
@@ -12018,9 +12264,6 @@
     }
   }
 </style>
-
-
-
 <!-- V50 requested fix: slightly bigger 16:9 showcase cards and remove the box/outline lines around the showcase only. -->
 <style id="v50-topupid-slightly-bigger-no-box-lines-showcase">
   /* Scope sangat terbatas: hanya area 10 gambar pada section #showcase. Tidak mengubah HTML, script, endpoint, form, login, hash, A2F, payment gateway, email template, API, atau keamanan. */
@@ -12103,9 +12346,6 @@
     }
   }
 </style>
-
-
-
 <!-- V51 requested fix: precise border around the 4-image video/showcase and remove unused vertical space. -->
 <style id="v51-topupid-precise-frame-compact-showcase">
   /* Scope sangat terbatas: hanya area sepuluh gambar/video visual pada section #showcase. */
@@ -12210,59 +12450,54 @@
     }
   }
 </style>
-
-
-
-  <div aria-hidden="true" class="theme-modal" id="themeModal">
-    <div aria-labelledby="themeTitle" aria-modal="true" class="theme-card theme-pro-card" role="dialog" tabindex="-1">
-      <div class="theme-head theme-pro-head">
-        <h2 data-i18n="themeTitle" id="themeTitle">Pengaturan Tema</h2>
-        <button aria-label="Tutup pengaturan tema" class="icon-btn theme-close-btn" data-close-theme="" type="button">×</button>
-      </div>
-      <div class="theme-body theme-content">
-        <section aria-label="Mode tema" class="theme-section">
-          <h3 data-i18n="modeTitle">Mode Tema</h3>
-          <div class="theme-choice-grid theme-mode-grid">
-            <button aria-pressed="false" class="choice theme-choice theme-pro-choice" data-theme-mode="dark" type="button"><span aria-hidden="true" class="choice-symbol">☾</span><span data-i18n="dark">Gelap</span></button>
-            <button aria-pressed="false" class="choice theme-choice theme-pro-choice" data-theme-mode="auto" type="button"><span aria-hidden="true" class="choice-symbol">⚙</span><span data-i18n="auto">Otomatis</span></button>
-          </div>
-        </section>
-        <section aria-label="Bahasa tampilan" class="theme-section">
-          <h3 data-i18n="languageTitle">Bahasa Tampilan</h3>
-          <div aria-label="Pilihan bahasa website" class="theme-language-grid language-grid" data-no-i18n="" id="themeLanguageOptions">
-            <button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="id" type="button"><span aria-hidden="true" class="lang-badge">ID</span><span>Indonesia</span></button>
-            <button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="en" type="button"><span aria-hidden="true" class="lang-badge">EN</span><span>English</span></button>
-            <button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="zh" type="button"><span aria-hidden="true" class="lang-badge">中</span><span>中文</span></button>
-            <button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="ar" type="button"><span aria-hidden="true" class="lang-badge">ع</span><span>العربية</span></button>
-            <button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="ja" type="button"><span aria-hidden="true" class="lang-badge">日</span><span>日本語</span></button>
-            <button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="ko" type="button"><span aria-hidden="true" class="lang-badge">한</span><span>한국어</span></button>
-            <button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="es" type="button"><span aria-hidden="true" class="lang-badge">ES</span><span>Español</span></button>
-            <button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="fr" type="button"><span aria-hidden="true" class="lang-badge">FR</span><span>Français</span></button>
-          </div>
-        </section>
-        <section aria-label="Kontras tema" class="theme-section">
-          <h3 data-i18n="contrastTitle">Kontras Tema</h3>
-          <div class="theme-contrast-grid contrast-grid">
-            <button aria-pressed="false" class="choice theme-choice theme-pro-choice" data-contrast="on" type="button"><span aria-hidden="true" class="choice-symbol">◐</span><span data-i18n="contrastOn">Aktif</span></button>
-            <button aria-pressed="false" class="choice theme-choice theme-pro-choice" data-contrast="off" type="button"><span aria-hidden="true" class="choice-symbol">◌</span><span data-i18n="contrastOff">Nonaktif</span></button>
-          </div>
-        </section>
-        <section aria-label="Kustom warna utama" class="theme-section">
-          <h3 data-i18n="accentTitle">Kustom Tema</h3>
-          <div aria-label="Pilihan warna utama" class="theme-swatches custom-theme-grid" id="accentChoices"></div>
-        </section>
-        <section aria-label="Gerak website" class="theme-section">
-          <h3 data-i18n="motionTitle">Gerak Website</h3>
-          <div class="theme-contrast-grid motion-grid">
-            <button aria-pressed="false" class="choice theme-choice theme-pro-choice" data-motion-choice="full" type="button"><span aria-hidden="true" class="choice-symbol">✨</span><span data-i18n="motionFull">Full animasi</span></button>
-            <button aria-pressed="false" class="choice theme-choice theme-pro-choice" data-motion-choice="reduced" type="button"><span aria-hidden="true" class="choice-symbol">🪶</span><span data-i18n="motionReduced">Gerak ringan</span></button>
-          </div>
-        </section>
-      </div>
-    </div>
-  </div>
-
-
+<div aria-hidden="true" class="theme-modal" id="themeModal">
+<div aria-labelledby="themeTitle" aria-modal="true" class="theme-card theme-pro-card" role="dialog" tabindex="-1">
+<div class="theme-head theme-pro-head">
+<h2 data-i18n="themeTitle" id="themeTitle">Pengaturan Tema</h2>
+<button aria-label="Tutup pengaturan tema" class="icon-btn theme-close-btn" data-close-theme="" type="button">×</button>
+</div>
+<div class="theme-body theme-content">
+<section aria-label="Mode tema" class="theme-section">
+<h3 data-i18n="modeTitle">Mode Tema</h3>
+<div class="theme-choice-grid theme-mode-grid">
+<button aria-pressed="false" class="choice theme-choice theme-pro-choice" data-theme-mode="dark" type="button"><span aria-hidden="true" class="choice-symbol">☾</span><span data-i18n="dark">Gelap</span></button>
+<button aria-pressed="false" class="choice theme-choice theme-pro-choice" data-theme-mode="auto" type="button"><span aria-hidden="true" class="choice-symbol">⚙</span><span data-i18n="auto">Otomatis</span></button>
+</div>
+</section>
+<section aria-label="Bahasa tampilan" class="theme-section">
+<h3 data-i18n="languageTitle">Bahasa Tampilan</h3>
+<div aria-label="Pilihan bahasa website" class="theme-language-grid language-grid" data-no-i18n="" id="themeLanguageOptions">
+<button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="id" type="button"><span aria-hidden="true" class="lang-badge">ID</span><span>Indonesia</span></button>
+<button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="en" type="button"><span aria-hidden="true" class="lang-badge">EN</span><span>English</span></button>
+<button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="zh" type="button"><span aria-hidden="true" class="lang-badge">中</span><span>中文</span></button>
+<button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="ar" type="button"><span aria-hidden="true" class="lang-badge">ع</span><span>العربية</span></button>
+<button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="ja" type="button"><span aria-hidden="true" class="lang-badge">日</span><span>日本語</span></button>
+<button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="ko" type="button"><span aria-hidden="true" class="lang-badge">한</span><span>한국어</span></button>
+<button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="es" type="button"><span aria-hidden="true" class="lang-badge">ES</span><span>Español</span></button>
+<button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="fr" type="button"><span aria-hidden="true" class="lang-badge">FR</span><span>Français</span></button>
+</div>
+</section>
+<section aria-label="Kontras tema" class="theme-section">
+<h3 data-i18n="contrastTitle">Kontras Tema</h3>
+<div class="theme-contrast-grid contrast-grid">
+<button aria-pressed="false" class="choice theme-choice theme-pro-choice" data-contrast="on" type="button"><span aria-hidden="true" class="choice-symbol">◐</span><span data-i18n="contrastOn">Aktif</span></button>
+<button aria-pressed="false" class="choice theme-choice theme-pro-choice" data-contrast="off" type="button"><span aria-hidden="true" class="choice-symbol">◌</span><span data-i18n="contrastOff">Nonaktif</span></button>
+</div>
+</section>
+<section aria-label="Kustom warna utama" class="theme-section">
+<h3 data-i18n="accentTitle">Kustom Tema</h3>
+<div aria-label="Pilihan warna utama" class="theme-swatches custom-theme-grid" id="accentChoices"></div>
+</section>
+<section aria-label="Gerak website" class="theme-section">
+<h3 data-i18n="motionTitle">Gerak Website</h3>
+<div class="theme-contrast-grid motion-grid">
+<button aria-pressed="false" class="choice theme-choice theme-pro-choice" data-motion-choice="full" type="button"><span aria-hidden="true" class="choice-symbol">✨</span><span data-i18n="motionFull">Full animasi</span></button>
+<button aria-pressed="false" class="choice theme-choice theme-pro-choice" data-motion-choice="reduced" type="button"><span aria-hidden="true" class="choice-symbol">🪶</span><span data-i18n="motionReduced">Gerak ringan</span></button>
+</div>
+</section>
+</div>
+</div>
+</div>
 <!-- V52 requested update: 10 sequential showcase images + dashboard header/theme/language integration. -->
 <style id="v52-topupid-ten-image-showcase-dashboard-sync">
   /* Scope sangat terbatas: hanya section #showcase dan header/menu/tema. Endpoint, login, hash, A2F, payment gateway, email template, API, dan keamanan backend tidak diubah. */
@@ -12342,8 +12577,6 @@
     #showcase .tls-card { width: min(318px, calc(100vw - 72px)) !important; aspect-ratio: 16 / 9 !important; height: auto !important; border-radius: 20px !important; --tls-side: clamp(88px, 25vw, 114px); }
   }
 </style>
-
-
 <script id="topupid-dashboard-header-sync-v52">
 (function(){
   'use strict';
@@ -12691,7 +12924,7 @@
     wrap.dataset.typewriterReady = '1';
     var target = $('.brand-typewriter-text', wrap);
     if(!target) return;
-    var words = ['TopupID', 'Top Up Game', 'Produk Digital', 'Instant Checkout'];
+    var words = ['Dirac Group','Dashboard Pelanggan','Client Area','Layanan Dirac'];
     var wi = 0, ci = 0, del = false, pause = 8;
     function tick(){
       var word = words[wi % words.length];
@@ -12759,6 +12992,5 @@
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire); else wire();
 })();
 </script>
-
 </body>
 </html>
