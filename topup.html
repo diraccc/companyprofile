@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>TopupID - Top Up Game, E-Wallet, dan Produk Digital</title>
-  <meta name="description" content="Frontend 3D premium satu file HTML untuk website top up game, e-wallet, e-toll, pulsa, paket data, token PLN, dan produk digital." />
+  <title>TopupID - Top Up Game dan Produk Digital</title>
+  <meta name="description" content="Frontend 3D premium satu file HTML untuk website top up game, pulsa, paket data, token PLN, dan produk digital." />
   <meta name="theme-color" content="#050816" />
   <meta name="x-build" content="threejs-balanced-premium-v7-large-no-shrink" />
   <link rel="icon" href="data:," />
@@ -755,8 +755,8 @@
       box-shadow: 0 0 34px rgba(250,204,21,0.35), inset -10px -10px 24px rgba(0,0,0,0.18);
     }
 
-    .wallet-card3d,
-    .toll-card3d {
+    .game-card3d,
+    .voucher-card3d {
       width: 120px;
       height: 78px;
       border-radius: 20px;
@@ -767,16 +767,16 @@
       overflow: hidden;
     }
 
-    .wallet-card3d {
+    .game-card3d {
       background: linear-gradient(135deg, rgba(56,189,248,0.92), rgba(168,85,247,0.74));
     }
 
-    .toll-card3d {
+    .voucher-card3d {
       background: linear-gradient(135deg, rgba(34,197,94,0.86), rgba(56,189,248,0.78));
     }
 
-    .wallet-card3d::before,
-    .toll-card3d::before {
+    .game-card3d::before,
+    .voucher-card3d::before {
       content: "";
       position: absolute;
       width: 38px;
@@ -821,14 +821,14 @@
       animation-delay: -1.2s;
     }
 
-    .obj-wallet {
+    .obj-game {
       left: 0;
       bottom: 94px;
       transform: translateZ(205px) rotate(9deg);
       animation-delay: -2.3s;
     }
 
-    .obj-toll {
+    .obj-voucher {
       right: 28px;
       bottom: 24px;
       transform: translateZ(170px) rotate(-10deg);
@@ -2235,12 +2235,12 @@
       .pay-bar { left: 14px; right: 14px; bottom: 14px; min-height: 42px; }
       .diamond3d { width: 68px; height: 68px; border-radius: 14px; }
       .coin3d { width: 62px; height: 62px; }
-      .wallet-card3d, .toll-card3d { width: 96px; height: 65px; border-radius: 17px; padding: 10px; }
+      .game-card3d, .voucher-card3d { width: 96px; height: 65px; border-radius: 17px; padding: 10px; }
       .card-label { font-size: 10px; }
       .obj-diamond { left: -1px; top: 36px; }
       .obj-coin { right: -2px; top: 104px; }
-      .obj-wallet { left: -1px; bottom: 80px; }
-      .obj-toll { right: 8px; bottom: 20px; }
+      .obj-game { left: -1px; bottom: 80px; }
+      .obj-voucher { right: 8px; bottom: 20px; }
       .obj-small { right: 100px; }
       .obj-small .coin3d { width: 50px; height: 50px; }
       .carousel-wrap { min-height: 390px; }
@@ -2753,14 +2753,14 @@
         transform: translateZ(182px) rotateY(20deg) rotateZ(-12deg) !important;
       }
 
-      .real-card-wallet {
+      .real-card-game {
         right: 0 !important;
         top: 128px !important;
         transform: translateZ(205px) rotateY(-22deg) rotateZ(13deg) !important;
         animation-delay: -1.1s !important;
       }
 
-      .real-card-toll {
+      .real-card-voucher {
         left: 8px !important;
         bottom: 70px !important;
         transform: translateZ(172px) rotateY(18deg) rotateZ(10deg) !important;
@@ -3041,27 +3041,27 @@
         <div class="mobile-cinematic-kicker"><span></span> Top Up Aman</div>
         <h1 class="mobile-cinematic-title">Top Up Digital <span>Aman</span> dan Praktis</h1>
         <p class="mobile-cinematic-copy">
-          Nikmati layanan top up game, e-wallet, e-toll, pulsa, paket data, dan token PLN dengan tampilan ringan di HP.
+          Nikmati layanan top up game, pulsa, paket data, token PLN, dan voucher digital dengan tampilan ringan di HP.
         </p>
         <div class="mobile-cinematic-actions">
           <a class="mobile-cinematic-primary" href="#checkout">Mulai Top Up</a>
           <a class="mobile-cinematic-secondary" href="#premium">Lihat Produk</a>
         </div>
         <div class="mobile-device-stage">
-          <div class="mobile-float-card a">E-WALLET</div>
+          <div class="mobile-float-card a">GAME</div>
           <div class="mobile-float-card b">ID</div>
-          <div class="mobile-float-card c">E-TOLL</div>
+          <div class="mobile-float-card c">VOUCHER</div>
           <div class="mobile-device-shell">
             <div class="mobile-device-screen">
               <div class="mobile-device-bar"></div>
               <div class="mobile-balance-card">
                 <small>Total layanan aktif</small>
-                <strong>Game • Wallet • Toll</strong>
+                <strong>Game • Pulsa • PLN</strong>
               </div>
               <div class="mobile-service-grid">
                 <div class="mobile-service-card"><b>MLBB</b><span>Top Up Game</span></div>
                 <div class="mobile-service-card"><b>QRIS</b><span>Payment Ready</span></div>
-                <div class="mobile-service-card"><b>DANA</b><span>E-Wallet</span></div>
+                <div class="mobile-service-card"><b>FC</b><span>FC Mobile</span></div>
                 <div class="mobile-service-card"><b>PLN</b><span>Produk Digital</span></div>
               </div>
               <div class="mobile-pay-strip">Instant Checkout</div>
@@ -3077,7 +3077,7 @@
         <div class="real-mobile-badge">Layanan Digital Terpercaya</div>
         <h1 class="real-mobile-title">Top Up <span>Digital</span> Cepat dan Mudah</h1>
         <p class="real-mobile-sub">
-          Isi game, e-wallet, pulsa, paket data, token PLN, dan e-toll dalam satu halaman yang ringan, modern, dan nyaman digunakan.
+          Isi game, pulsa, paket data, token PLN, dan voucher digital dalam satu halaman yang ringan, modern, dan nyaman digunakan.
         </p>
 
         <div class="real-mobile-actions">
@@ -3093,8 +3093,8 @@
           <div class="real-3d-orbit two"></div>
 
           <div class="real-card-3d real-card-game"><b>GAME</b><span></span></div>
-          <div class="real-card-3d real-card-wallet"><b>WALLET</b><span></span></div>
-          <div class="real-card-3d real-card-toll"><b>E-TOLL</b><span></span></div>
+          <div class="real-card-3d real-card-wallet"><b>FC</b><span></span></div>
+          <div class="real-card-3d real-card-toll"><b>PLN</b><span></span></div>
 
           <div class="real-cube" aria-hidden="true">
             <span class="front">3D</span>
@@ -3115,8 +3115,8 @@
 
               <div class="real-mini-grid">
                 <div class="real-mini"><b>ML</b><span>Game</span></div>
-                <div class="real-mini"><b>QR</b><span>Wallet</span></div>
-                <div class="real-mini"><b>TOL</b><span>E-Toll</span></div>
+                <div class="real-mini"><b>QR</b><span>Game</span></div>
+                <div class="real-mini"><b>TOL</b><span>Voucher Game</span></div>
                 <div class="real-mini"><b>PLN</b><span>Digital</span></div>
               </div>
 
@@ -3133,7 +3133,7 @@
       <section class="hero" id="home">
         <div class="hero-text reveal">
           <div class="badge"><span class="badge-dot"></span> Layanan Digital Terpercaya</div>
-          <h1>Website Top Up <span class="grad">3D Premium</span> untuk Game, Wallet, dan E-Toll</h1>
+          <h1>Website Top Up <span class="grad">3D Premium</span> untuk Game, Game, dan Voucher Game</h1>
           <p class="hero-copy">
             Pilih produk digital favorit, isi data tujuan, lalu lanjutkan pembayaran dengan alur yang sederhana dan nyaman digunakan di HP.
           </p>
@@ -3170,8 +3170,8 @@
 
             <div class="float-object obj-diamond"><div class="diamond3d"></div></div>
             <div class="float-object obj-coin"><div class="coin3d">ID</div></div>
-            <div class="float-object obj-wallet"><div class="wallet-card3d"><span class="card-label">E-WALLET</span><span class="card-bar"></span></div></div>
-            <div class="float-object obj-toll"><div class="toll-card3d"><span class="card-label">E-TOLL</span><span class="card-bar"></span></div></div>
+            <div class="float-object obj-game"><div class="game-card3d"><span class="card-label">FC MOBILE</span><span class="card-bar"></span></div></div>
+            <div class="float-object obj-voucher"><div class="voucher-card3d"><span class="card-label">VOUCHER</span><span class="card-bar"></span></div></div>
             <div class="float-object obj-small"><div class="coin3d">24H</div></div>
 
             <div class="phone3d">
@@ -3193,8 +3193,8 @@
 
                 <div class="mini-apps">
                   <div class="mini-app"><b>🎮</b><span>Game</span></div>
-                  <div class="mini-app"><b>💳</b><span>Wallet</span></div>
-                  <div class="mini-app"><b>🚗</b><span>E-Toll</span></div>
+                  <div class="mini-app"><b>💳</b><span>Game</span></div>
+                  <div class="mini-app"><b>🚗</b><span>Voucher Game</span></div>
                   <div class="mini-app"><b>⚡</b><span>Digital</span></div>
                 </div>
 
@@ -3251,8 +3251,6 @@
         <div class="tabs" id="tabs">
           <button class="tab active" data-filter="all" type="button">Semua</button>
           <button class="tab" data-filter="game" type="button">Game</button>
-          <button class="tab" data-filter="wallet" type="button">E-Wallet</button>
-          <button class="tab" data-filter="toll" type="button">E-Toll</button>
           <button class="tab" data-filter="digital" type="button">Digital</button>
         </div>
 
@@ -3263,8 +3261,8 @@
         <div class="tls-visual-shell">
           <div class="tls-rotator" aria-label="Animasi gambar layanan TopupID berputar">
             <div class="tls-card tls-card-1"><img src="tls1.webp" alt="Game Top Up" /></div>
-            <div class="tls-card tls-card-2"><img src="tls2.webp" alt="E-Wallet" /></div>
-            <div class="tls-card tls-card-3"><img src="tls3.webp" alt="E-Toll" /></div>
+            <div class="tls-card tls-card-2"><img src="tls2.webp" alt="Banner Top Up Game" /></div>
+            <div class="tls-card tls-card-3"><img src="tls3.webp" alt="Banner Produk Digital" /></div>
             <div class="tls-card tls-card-4"><img src="tls4.webp" alt="Produk Digital" /></div>
           </div>
         </div>
@@ -3279,8 +3277,8 @@
         </div>
 
         <div class="steps">
-          <article class="tilt-card step-card"><div class="step-num">1</div><h3>Pilih Produk</h3><p>User memilih kategori game, e-wallet, e-toll, pulsa, data, PLN, atau voucher.</p></article>
-          <article class="tilt-card step-card"><div class="step-num">2</div><h3>Isi Tujuan</h3><p>User mengisi ID game, nomor HP, nomor kartu, atau data tujuan lain.</p></article>
+          <article class="tilt-card step-card"><div class="step-num">1</div><h3>Pilih Produk</h3><p>User memilih kategori game, pulsa, data, PLN, atau voucher.</p></article>
+          <article class="tilt-card step-card"><div class="step-num">2</div><h3>Isi Tujuan</h3><p>User mengisi ID game, nomor HP, nomor pelanggan, atau data tujuan lain.</p></article>
           <article class="tilt-card step-card"><div class="step-num">3</div><h3>Proses Pesanan</h3><p>Pesanan diproses melalui sistem yang terhubung dan total pembayaran ditampilkan sebelum dilanjutkan.</p></article>
           <article class="tilt-card step-card"><div class="step-num">4</div><h3>Cek Status</h3><p>Status pesanan dapat dipantau setelah pembayaran diproses.</p></article>
         </div>
@@ -3341,8 +3339,6 @@
             </div>
             <div class="smart-tips" id="smartTips">
               <span>Game: User ID</span>
-              <span>E-Wallet: nomor HP</span>
-              <span>E-Toll: nomor kartu</span>
               <span>Digital: nomor pelanggan</span>
             </div>
           </article>
@@ -3369,8 +3365,8 @@
             </div>
             <div class="shortcut-grid" id="quickProductShortcuts">
               <button type="button" data-quick-product="mlbb">MLBB</button>
-              <button type="button" data-quick-product="dana">DANA</button>
-              <button type="button" data-quick-product="emoney">E-Toll</button>
+              <button type="button" data-quick-product="fcmobile">FC Mobile</button>
+              <button type="button" data-quick-product="valorant">Valorant</button>
               <button type="button" data-quick-product="pln">PLN</button>
             </div>
           </article>
@@ -3394,8 +3390,6 @@
                 <select id="categorySelect" required>
                   <option value="">Pilih kategori</option>
                   <option value="game">Top Up Game</option>
-                  <option value="wallet">E-Wallet</option>
-                  <option value="toll">E-Toll</option>
                   <option value="digital">Produk Digital</option>
                 </select>
               </label>
@@ -3408,9 +3402,9 @@
               </label>
 
               <label>
-                User ID / Nomor HP / Nomor Kartu
-                <input id="customerInput" type="text" placeholder="Contoh: 123456789 atau 08xxxxxxxxxx" required />
-                <span class="field-hint">Game isi User ID. E-wallet isi nomor HP. E-toll isi nomor kartu.</span>
+                User ID / Nomor Tujuan
+                <input id="customerInput" type="text" placeholder="Contoh: 123456789 atau ID#1234" required />
+                <span class="field-hint">Game isi User ID. Produk digital isi nomor tujuan sesuai layanan.</span>
               </label>
 
               <label>
@@ -3424,10 +3418,6 @@
                 <select id="paymentSelect" required>
                   <option value="">Pilih metode pembayaran</option>
                   <option value="QRIS">QRIS</option>
-                  <option value="Transfer Bank">Transfer Bank</option>
-                  <option value="DANA">DANA</option>
-                  <option value="OVO">OVO</option>
-                  <option value="GoPay">GoPay</option>
                 </select>
               </label>
 
@@ -3577,28 +3567,24 @@
     const API_BASE_URL = "";
 
     const products = [
-      { id: "mlbb", name: "Mobile Legends", category: "game", icon: "🎮", desc: "Diamond MLBB untuk akun game pembeli.", basePrice: 10000, nominals: [10000, 25000, 50000, 100000, 250000, 500000] },
-      { id: "freefire", name: "Free Fire", category: "game", icon: "🔥", desc: "Diamond FF cepat untuk gamer.", basePrice: 10000, nominals: [10000, 20000, 50000, 100000, 200000, 500000] },
+      { id: "mlbb", name: "Mobile Legends", category: "game", icon: "🎮", desc: "Diamond Mobile Legends untuk akun game pembeli.", basePrice: 10000, nominals: [10000, 25000, 50000, 100000, 250000, 500000] },
+      { id: "freefire", name: "Free Fire", category: "game", icon: "🔥", desc: "Diamond Free Fire cepat untuk akun game pembeli.", basePrice: 10000, nominals: [10000, 20000, 50000, 100000, 200000, 500000] },
       { id: "pubg", name: "PUBG Mobile", category: "game", icon: "🏆", desc: "UC PUBG Mobile untuk item premium.", basePrice: 15000, nominals: [15000, 30000, 75000, 150000, 300000, 600000] },
-      { id: "valorant", name: "Valorant", category: "game", icon: "🎯", desc: "Voucher points untuk akun Valorant.", basePrice: 25000, nominals: [25000, 50000, 100000, 200000, 400000, 800000] },
-      { id: "dana", name: "DANA", category: "wallet", icon: "💳", desc: "Top up saldo DANA ke nomor HP.", basePrice: 10000, nominals: [10000, 25000, 50000, 100000, 200000, 500000] },
-      { id: "ovo", name: "OVO", category: "wallet", icon: "🟣", desc: "Isi saldo OVO praktis dan cepat.", basePrice: 10000, nominals: [10000, 25000, 50000, 100000, 200000, 500000] },
-      { id: "gopay", name: "GoPay", category: "wallet", icon: "🟢", desc: "Saldo GoPay untuk transaksi harian.", basePrice: 10000, nominals: [10000, 25000, 50000, 100000, 200000, 500000] },
-      { id: "shopeepay", name: "ShopeePay", category: "wallet", icon: "🛒", desc: "Top up ShopeePay untuk belanja.", basePrice: 10000, nominals: [10000, 25000, 50000, 100000, 200000, 500000] },
-      { id: "emoney", name: "Mandiri e-Money", category: "toll", icon: "🚗", desc: "Isi saldo kartu e-toll Mandiri.", basePrice: 25000, nominals: [25000, 50000, 100000, 150000, 200000, 500000] },
-      { id: "brizzi", name: "BRI Brizzi", category: "toll", icon: "🛣️", desc: "Top up saldo Brizzi untuk perjalanan.", basePrice: 25000, nominals: [25000, 50000, 100000, 150000, 200000, 500000] },
-      { id: "tapcash", name: "BNI TapCash", category: "toll", icon: "🏦", desc: "Isi saldo kartu TapCash BNI.", basePrice: 25000, nominals: [25000, 50000, 100000, 150000, 200000, 500000] },
-      { id: "flazz", name: "BCA Flazz", category: "toll", icon: "💠", desc: "Top up saldo kartu Flazz.", basePrice: 25000, nominals: [25000, 50000, 100000, 150000, 200000, 500000] },
+      { id: "fcmobile", name: "FC Mobile", category: "game", icon: "⚽", desc: "FC Points untuk akun FC Mobile.", basePrice: 15000, nominals: [15000, 30000, 75000, 150000, 300000, 600000] },
+      { id: "hok", name: "Honor of Kings", category: "game", icon: "👑", desc: "Token Honor of Kings untuk akun game pembeli.", basePrice: 15000, nominals: [15000, 30000, 75000, 150000, 300000, 600000] },
+      { id: "valorant", name: "Valorant", category: "game", icon: "🎯", desc: "Valorant Points untuk akun Valorant.", basePrice: 25000, nominals: [25000, 50000, 100000, 200000, 400000, 800000] },
+      { id: "genshin", name: "Genshin Impact", category: "game", icon: "💎", desc: "Genesis Crystals untuk akun Genshin Impact.", basePrice: 15000, nominals: [15000, 30000, 75000, 150000, 300000, 600000] },
+      { id: "roblox", name: "Roblox", category: "game", icon: "🧩", desc: "Robux untuk akun Roblox.", basePrice: 10000, nominals: [10000, 25000, 50000, 100000, 250000, 500000] },
+      { id: "efootball", name: "eFootball", category: "game", icon: "🥅", desc: "Coins eFootball untuk akun game pembeli.", basePrice: 15000, nominals: [15000, 30000, 75000, 150000, 300000, 600000] },
+      { id: "codm", name: "Call of Duty Mobile", category: "game", icon: "🪖", desc: "CP Call of Duty Mobile untuk akun game pembeli.", basePrice: 15000, nominals: [15000, 30000, 75000, 150000, 300000, 600000] },
       { id: "pulsa", name: "Pulsa All Operator", category: "digital", icon: "📱", desc: "Pulsa reguler untuk semua operator.", basePrice: 5000, nominals: [5000, 10000, 25000, 50000, 100000, 200000] },
       { id: "data", name: "Paket Data", category: "digital", icon: "🌐", desc: "Paket internet berbagai operator.", basePrice: 10000, nominals: [10000, 25000, 50000, 100000, 150000, 250000] },
       { id: "pln", name: "Token PLN", category: "digital", icon: "⚡", desc: "Token listrik prabayar pelanggan PLN.", basePrice: 20000, nominals: [20000, 50000, 100000, 200000, 500000, 1000000] },
-      { id: "voucher", name: "Voucher Digital", category: "digital", icon: "🎟️", desc: "Voucher hiburan, belanja, dan digital.", basePrice: 10000, nominals: [10000, 25000, 50000, 100000, 250000, 500000] }
+      { id: "voucher", name: "Voucher Game", category: "digital", icon: "🎟️", desc: "Voucher game dan produk digital pendukung.", basePrice: 10000, nominals: [10000, 25000, 50000, 100000, 250000, 500000] }
     ];
 
     const categoryNames = {
       game: "Top Up Game",
-      wallet: "E-Wallet",
-      toll: "E-Toll",
       digital: "Produk Digital"
     };
 
@@ -5226,7 +5212,7 @@
         var tiles = [
           ["ML", -0.39, 0.06, "mlbb"],
           ["QR", 0.39, 0.06, "qris"],
-          ["TOL", -0.39, -0.56, "etoll"],
+          ["TOL", -0.39, -0.56, "evoucher"],
           ["PLN", 0.39, -0.56, "pln"]
         ];
         tiles.forEach(function (item) {
@@ -5324,17 +5310,17 @@
             }
           }
         }
-        var sub = makeLabelSprite(THREE, "E-Wallet", { width: 360, height: 110, fontSize: 40, color: "#bae6fd", shadowBlur: 8, scaleX: 0.68 * scale, scaleY: 0.20 * scale });
+        var sub = makeLabelSprite(THREE, "Game", { width: 360, height: 110, fontSize: 40, color: "#bae6fd", shadowBlur: 8, scaleX: 0.68 * scale, scaleY: 0.20 * scale });
         sub.position.set(-0.12 * scale, -0.23 * scale, 0.13 * scale);
         group.add(sub);
         return group;
       }
 
-      function buildEtollGate(THREE, mats, scale) {
+      function buildEvoucherGate(THREE, mats, scale) {
         var group = new THREE.Group();
-        group.userData.product = "etoll";
+        group.userData.product = "evoucher";
         var base = createBox(THREE, 1.18 * scale, 0.64 * scale, 0.10 * scale, mats.cardGreen, 0, 0, 0);
-        base.userData.product = "etoll";
+        base.userData.product = "evoucher";
         base.castShadow = true;
         group.add(base);
         var road = createBox(THREE, 0.90 * scale, 0.08 * scale, 0.045 * scale, mats.line, 0, -0.21 * scale, 0.11 * scale);
@@ -5343,7 +5329,7 @@
         var postR = createBox(THREE, 0.10 * scale, 0.43 * scale, 0.06 * scale, mats.line, 0.35 * scale, 0.03 * scale, 0.135 * scale);
         var gate = createBox(THREE, 0.82 * scale, 0.07 * scale, 0.05 * scale, mats.pay, 0, 0.22 * scale, 0.15 * scale);
         group.add(postL, postR, gate);
-        var title = makeLabelSprite(THREE, "E-TOLL", { width: 420, height: 130, fontSize: 50, color: "#ffffff", shadowBlur: 10, scaleX: 0.78 * scale, scaleY: 0.24 * scale });
+        var title = makeLabelSprite(THREE, "VOUCHER", { width: 420, height: 130, fontSize: 50, color: "#ffffff", shadowBlur: 10, scaleX: 0.78 * scale, scaleY: 0.24 * scale });
         title.position.set(0, 0.02 * scale, 0.18 * scale);
         group.add(title);
         return group;
@@ -5465,7 +5451,7 @@
           ctx.lineWidth = 4;
           [-18, 10].forEach(function(x){ ctx.beginPath(); ctx.moveTo(x, -20); ctx.lineTo(x, 48); ctx.stroke(); });
           ctx.restore();
-        } else if (mode === "toll") {
+        } else if (mode === "voucher") {
           ctx.save();
           ctx.translate(256, 205);
           ctx.strokeStyle = "rgba(255,255,255,0.95)";
@@ -5635,10 +5621,10 @@
         qrisCard.rotation.set(0.05, -0.46, 0.10);
         root.add(qrisCard);
 
-        var etollGate = buildServiceIcon(THREE, mats, "E-TOLL", "TOLL", "etoll", "#22c55e", "rgba(56,189,248,0.78)", "toll", scale);
-        etollGate.position.set(-1.42 * scale, -0.92 * scale, -0.10 * scale);
-        etollGate.rotation.set(-0.04, 0.42, 0.08);
-        root.add(etollGate);
+        var evoucherGate = buildServiceIcon(THREE, mats, "VOUCHER", "VOUCHER", "evoucher", "#22c55e", "rgba(56,189,248,0.78)", "voucher", scale);
+        evoucherGate.position.set(-1.42 * scale, -0.92 * scale, -0.10 * scale);
+        evoucherGate.rotation.set(-0.04, 0.42, 0.08);
+        root.add(evoucherGate);
 
         var simChip = buildServiceIcon(THREE, mats, "PULSA", "SIM", "telkomsel", "#facc15", "rgba(251,113,133,0.82)", "sim", scale);
         simChip.position.set(1.42 * scale, -0.90 * scale, 0.56 * scale);
@@ -5669,7 +5655,7 @@
 
         var raycaster = new THREE.Raycaster();
         var pointer = new THREE.Vector2();
-        var interactive = [phone, controller, qrisCard, etollGate, simChip, plnBolt];
+        var interactive = [phone, controller, qrisCard, evoucherGate, simChip, plnBolt];
         var dragging = false;
         var moved = false;
         var downX = 0;
@@ -5790,8 +5776,8 @@
           controller.rotation.z = -0.17 + Math.sin(t * 0.78) * 0.035;
           qrisCard.position.y = 0.76 * scale + Math.sin(t * 1.02 + 2.0) * 0.07 * scale;
           qrisCard.rotation.y = -0.58 + Math.sin(t * 0.72) * 0.04;
-          etollGate.position.y = -0.92 * scale + Math.sin(t * 1.08 + 3.2) * 0.06 * scale;
-          etollGate.rotation.z = 0.16 + Math.cos(t * 0.82) * 0.025;
+          evoucherGate.position.y = -0.92 * scale + Math.sin(t * 1.08 + 3.2) * 0.06 * scale;
+          evoucherGate.rotation.z = 0.16 + Math.cos(t * 0.82) * 0.025;
           simChip.position.y = -0.91 * scale + Math.sin(t * 1.16 + 4.1) * 0.07 * scale;
           simChip.rotation.y += 0.010;
           plnBolt.position.y = (mobile ? -1.43 * scale : -1.48 * scale) + Math.sin(t * 1.35 + 1.4) * 0.075 * scale;
@@ -6186,7 +6172,7 @@
             ctx.fillStyle = "rgba(255,255,255,.94)"; ctx.fillRect(-r*.32, -r*.40, r*.64, r*.64);
             ctx.fillStyle = "#07111f";
             for (var yy=0; yy<5; yy++) for (var xx=0; xx<5; xx++) if ((xx+yy)%2===0 || xx===0 || yy===4) ctx.fillRect(-r*.25 + xx*r*.11, -r*.33 + yy*r*.11, r*.07, r*.07);
-          } else if (mode === "toll") {
+          } else if (mode === "voucher") {
             ctx.beginPath(); ctx.moveTo(-r*.44, r*.18); ctx.lineTo(-r*.44, -r*.34); ctx.lineTo(r*.44, -r*.34); ctx.lineTo(r*.44, r*.18); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(-r*.52, r*.34); ctx.lineTo(r*.52, r*.34); ctx.stroke();
           } else if (mode === "sim") {
@@ -6420,7 +6406,7 @@
 
           drawIconOrb([-1.34 * sc, .70 * sc, .06 * sc], time, "GAME", "game", "#38bdf8", "#1d4ed8");
           drawIconOrb([1.34 * sc, .70 * sc, .06 * sc], time, "QRIS", "qr", "#a855f7", "#0ea5e9");
-          drawIconOrb([-1.34 * sc, -.82 * sc, .07 * sc], time, "E-TOLL", "toll", "#22c55e", "#0891b2");
+          drawIconOrb([-1.34 * sc, -.82 * sc, .07 * sc], time, "VOUCHER", "voucher", "#22c55e", "#0891b2");
           drawIconOrb([1.34 * sc, -.82 * sc, .07 * sc], time, "PLN", "bolt", "#facc15", "#22c55e");
 
           addBox(faces, labels, { w: 1.82 * sc, h: 3.18 * sc, d: .34 * sc, pos: [0, bob, 0], rot: phoneRot, color: "#020617", stroke: "rgba(255,255,255,.22)" });
@@ -6914,13 +6900,13 @@
     transform: translate3d(calc(-50% - 220px), -142px, 32px) rotateY(-32deg) rotateZ(-12deg);
   }
 
-  .premium-card3d.wallet {
+  .premium-card3d.game {
     left: 50%; top: 50%;
     transform: translate3d(calc(-50% + 218px), -104px, 22px) rotateY(31deg) rotateZ(10deg);
     animation-delay: -1.6s;
   }
 
-  .premium-card3d.toll {
+  .premium-card3d.voucher {
     left: 50%; top: 50%;
     transform: translate3d(calc(-50% - 228px), 132px, 44px) rotateY(-26deg) rotateZ(11deg);
     animation-delay: -2.8s;
@@ -7074,8 +7060,8 @@
     .premium-card3d { width: 150px; height: 88px; border-radius: 22px; padding: 15px; }
     .premium-card3d b { font-size: 19px; }
     .premium-card3d.game { transform: translate3d(calc(-50% - 168px), -146px, 38px) rotateY(-33deg) rotateZ(-12deg); }
-    .premium-card3d.wallet { transform: translate3d(calc(-50% + 172px), -115px, 32px) rotateY(34deg) rotateZ(10deg); }
-    .premium-card3d.toll { transform: translate3d(calc(-50% - 174px), 144px, 42px) rotateY(-28deg) rotateZ(10deg); }
+    .premium-card3d.game { transform: translate3d(calc(-50% + 172px), -115px, 32px) rotateY(34deg) rotateZ(10deg); }
+    .premium-card3d.voucher { transform: translate3d(calc(-50% - 174px), 144px, 42px) rotateY(-28deg) rotateZ(10deg); }
     .premium-coin { width: 84px; height: 84px; font-size: 25px; transform: translate3d(calc(-50% + 150px), -226px, 184px) rotateY(18deg); }
     .premium-diamond { width: 86px; height: 86px; transform: translate3d(calc(-50% - 150px), -232px, 174px) rotateX(22deg) rotateY(-18deg) rotateZ(45deg); }
     .premium-diamond-label { font-size: 16px; }
@@ -7086,8 +7072,8 @@
     .premium3d-world { height: 610px; }
     .premium-phone { width: min(76vw, 286px); height: min(116vw, 466px); }
     .premium-card3d.game { transform: translate3d(calc(-50% - 148px), -134px, 38px) rotateY(-33deg) rotateZ(-12deg); }
-    .premium-card3d.wallet { transform: translate3d(calc(-50% + 148px), -106px, 32px) rotateY(34deg) rotateZ(10deg); }
-    .premium-card3d.toll { transform: translate3d(calc(-50% - 150px), 136px, 42px) rotateY(-28deg) rotateZ(10deg); }
+    .premium-card3d.game { transform: translate3d(calc(-50% + 148px), -106px, 32px) rotateY(34deg) rotateZ(10deg); }
+    .premium-card3d.voucher { transform: translate3d(calc(-50% - 150px), 136px, 42px) rotateY(-28deg) rotateZ(10deg); }
     .premium-coin { transform: translate3d(calc(-50% + 134px), -211px, 184px) rotateY(18deg); }
     .premium-diamond { transform: translate3d(calc(-50% - 134px), -216px, 174px) rotateX(22deg) rotateY(-18deg) rotateZ(45deg); }
   }
@@ -7104,8 +7090,8 @@
           '<div class="premium3d-world">' +
             '<div class="premium3d-orbit o1"></div><div class="premium3d-orbit o2"></div><div class="premium3d-orbit o3"></div>' +
             '<div class="premium-card3d game"><b>GAME</b><span>Diamond instan</span></div>' +
-            '<div class="premium-card3d wallet"><b>WALLET</b><span>QRIS cepat</span></div>' +
-            '<div class="premium-card3d toll"><b>E-TOLL</b><span>Saldo jalan</span></div>' +
+            '<div class="premium-card3d wallet"><b>FC</b><span>Points cepat</span></div>' +
+            '<div class="premium-card3d toll"><b>PLN</b><span>Token digital</span></div>' +
             '<div class="premium-diamond"><div class="premium-diamond-label">DM</div></div>' +
             '<div class="premium-coin">Rp</div>' +
             '<div class="premium-phone">' +
@@ -7114,8 +7100,8 @@
                 '<div class="premium-balance"><small>Order aktif</small><strong>Rp1.250.000</strong></div>' +
                 '<div class="premium-mini-grid">' +
                   '<div class="premium-mini"><b>ML</b><span>Game</span></div>' +
-                  '<div class="premium-mini"><b>QR</b><span>Wallet</span></div>' +
-                  '<div class="premium-mini"><b>TOL</b><span>E-Toll</span></div>' +
+                  '<div class="premium-mini"><b>FC</b><span>Game</span></div>' +
+                  '<div class="premium-mini"><b>PLN</b><span>Digital</span></div>' +
                   '<div class="premium-mini"><b>PLN</b><span>Digital</span></div>' +
                 '</div>' +
                 '<div class="premium-checkout">Instant Checkout</div>' +
@@ -7767,7 +7753,7 @@
       if (tab) tab.click();
       var produk = q("#produk");
       if (produk) produk.scrollIntoView({ behavior: "smooth", block: "start" });
-      toast("Kategori dipilih: " + ({ game: "Top Up Game", wallet: "E-Wallet", toll: "E-Toll", digital: "Produk Digital" }[category] || category));
+      toast("Kategori dipilih: " + ({ game: "Top Up Game", digital: "Produk Digital" }[category] || category));
       syncSmartPanel();
     }
 
@@ -7780,7 +7766,7 @@
       var payName = q("#smartPaymentName");
       var payNote = q("#smartPaymentNote");
       if (payName) payName.textContent = payment || "Belum dipilih";
-      if (payNote) payNote.textContent = payment ? (payment + " tampil sebagai preview. Proses gateway asli tetap mengikuti backend.") : "Metode pembayaran mengikuti sistem yang tersedia.";
+      if (payNote) payNote.textContent = payment ? (payment + " tampil sebagai preview. Proses pembayaran tetap mengikuti sistem backend yang tersedia.") : "Metode pembayaran mengikuti sistem yang tersedia.";
       if (!box) return;
       box.classList.remove("good", "warn", "danger");
       if (!category) {
@@ -7791,8 +7777,6 @@
       if (!customer) {
         var hint = {
           game: "Isi User ID game. Tambahkan server ID jika produk membutuhkannya.",
-          wallet: "Isi nomor HP aktif, disarankan format 08xxxxxxxxxx.",
-          toll: "Isi nomor kartu e-toll sesuai fisik kartu.",
           digital: "Isi nomor HP, nomor pelanggan, atau ID sesuai produk digital."
         }[category] || "Isi data tujuan sesuai produk.";
         box.textContent = hint + (productText ? " Produk aktif: " + productText + "." : "");
@@ -7802,12 +7786,6 @@
       var numeric = customer.replace(/\D/g, "");
       var valid = true;
       var msg = "Format tujuan terlihat siap. Tetap pastikan data benar sebelum membuat invoice.";
-      if (category === "wallet" && !/^08\d{8,12}$/.test(customer)) {
-        valid = false; msg = "Nomor e-wallet biasanya memakai format 08xxxxxxxxxx. Periksa lagi sebelum checkout.";
-      }
-      if (category === "toll" && numeric.length < 8) {
-        valid = false; msg = "Nomor kartu e-toll terlihat terlalu pendek. Periksa nomor kartu fisik.";
-      }
       if (category === "game" && numeric.length < 4) {
         valid = false; msg = "User ID game terlihat terlalu pendek. Pastikan ID dan server benar.";
       }
@@ -7845,10 +7823,10 @@
         });
       };
       bind(".premium-card3d.game, .premium-diamond, .premium-mini:first-child", function(){ selectProduct("mlbb", true); toast("MLBB dipilih dari objek 3D"); }, "Pilih produk game MLBB");
-      bind(".premium-card3d.wallet, .premium-mini:nth-child(2)", function(){ selectProduct("dana", true); toast("DANA dipilih dari objek 3D"); }, "Pilih produk e-wallet DANA");
-      bind(".premium-card3d.toll, .premium-mini:nth-child(3)", function(){ selectProduct("emoney", true); toast("E-Toll dipilih dari objek 3D"); }, "Pilih produk e-toll");
+      bind(".premium-card3d.wallet, .premium-mini:nth-child(2)", function(){ selectProduct("fcmobile", true); toast("FC Mobile dipilih dari objek 3D"); }, "Pilih produk FC Mobile");
+      bind(".premium-card3d.toll, .premium-mini:nth-child(3)", function(){ selectProduct("hok", true); toast("Honor of Kings dipilih dari objek 3D"); }, "Pilih produk Honor of Kings");
       bind(".premium-mini:nth-child(4)", function(){ selectProduct("pln", true); toast("Token PLN dipilih dari objek 3D"); }, "Pilih produk token PLN");
-      bind(".premium-coin", function(){ var p = q("#paymentSelect"); if (p) { p.value = "QRIS"; p.dispatchEvent(new Event("change", { bubbles: true })); } syncSmartPanel(); toast("Metode QRIS dipilih"); if (q("#checkout")) q("#checkout").scrollIntoView({ behavior: "smooth" }); }, "Pilih metode pembayaran QRIS");
+      bind(".premium-coin", function(){ var p = q("#paymentSelect"); if (p) { p.value = "QRIS"; p.dispatchEvent(new Event("change", { bubbles: true })); } syncSmartPanel(); toast("Pembayaran QRIS dipilih"); if (q("#checkout")) q("#checkout").scrollIntoView({ behavior: "smooth" }); }, "Pilih pembayaran QRIS");
       bind(".premium-checkout", function(){ if (q("#checkout")) q("#checkout").scrollIntoView({ behavior: "smooth" }); }, "Ke form checkout");
     }
 
@@ -8154,11 +8132,11 @@
       transform: translate3d(calc(-50% - 124px), -95px, 32px) rotateY(-28deg) rotateZ(-10deg) !important;
     }
 
-    html.v13-light-balanced .premium-card3d.wallet {
+    html.v13-light-balanced .premium-card3d.game {
       transform: translate3d(calc(-50% + 126px), -76px, 28px) rotateY(28deg) rotateZ(9deg) !important;
     }
 
-    html.v13-light-balanced .premium-card3d.toll {
+    html.v13-light-balanced .premium-card3d.voucher {
       transform: translate3d(calc(-50% - 128px), 102px, 34px) rotateY(-25deg) rotateZ(9deg) !important;
     }
 
@@ -8247,8 +8225,8 @@
 
     html.v13-light-balanced .premium-phone { width: min(252px, 66vw) !important; }
     html.v13-light-balanced .premium-card3d.game { transform: translate3d(calc(-50% - 114px), -90px, 32px) rotateY(-28deg) rotateZ(-10deg) !important; }
-    html.v13-light-balanced .premium-card3d.wallet { transform: translate3d(calc(-50% + 116px), -70px, 28px) rotateY(28deg) rotateZ(9deg) !important; }
-    html.v13-light-balanced .premium-card3d.toll { transform: translate3d(calc(-50% - 116px), 96px, 34px) rotateY(-25deg) rotateZ(9deg) !important; }
+    html.v13-light-balanced .premium-card3d.game { transform: translate3d(calc(-50% + 116px), -70px, 28px) rotateY(28deg) rotateZ(9deg) !important; }
+    html.v13-light-balanced .premium-card3d.voucher { transform: translate3d(calc(-50% - 116px), 96px, 34px) rotateY(-25deg) rotateZ(9deg) !important; }
     html.v13-light-balanced .premium-coin { transform: translate3d(calc(-50% + 110px), -145px, 158px) rotateY(18deg) !important; }
     html.v13-light-balanced .premium-diamond { transform: translate3d(calc(-50% - 108px), -148px, 150px) rotateX(22deg) rotateY(-18deg) rotateZ(45deg) !important; }
   }
@@ -8387,13 +8365,13 @@
   }
 
   html.v15-single-no-double .premium-card3d.game,
-  html.v15-single-no-double .premium-card3d.wallet,
-  html.v15-single-no-double .premium-card3d.toll {
+  html.v15-single-no-double .premium-card3d.game,
+  html.v15-single-no-double .premium-card3d.voucher {
     animation: v15CardClean 8.8s ease-in-out infinite !important;
     will-change: filter, margin-top !important;
   }
-  html.v15-single-no-double .premium-card3d.wallet { animation-delay: -1.6s !important; }
-  html.v15-single-no-double .premium-card3d.toll { animation-delay: -2.7s !important; }
+  html.v15-single-no-double .premium-card3d.game { animation-delay: -1.6s !important; }
+  html.v15-single-no-double .premium-card3d.voucher { animation-delay: -2.7s !important; }
 
   /* Remove duplicate-looking Tap pills. Click function remains. */
   html.v15-single-no-double .premium-card3d::after {
@@ -8503,8 +8481,8 @@
   @media (max-width: 720px) {
     html.v15-single-no-double .premium-phone { animation-duration: 9.5s !important; }
     html.v15-single-no-double .premium-card3d.game,
-    html.v15-single-no-double .premium-card3d.wallet,
-    html.v15-single-no-double .premium-card3d.toll,
+    html.v15-single-no-double .premium-card3d.game,
+    html.v15-single-no-double .premium-card3d.voucher,
     html.v15-single-no-double .premium-coin,
     html.v15-single-no-double .premium-diamond { animation-duration: 9.5s !important; }
   }
@@ -8748,8 +8726,8 @@
     animation: v16CardGlint 6.8s ease-in-out infinite !important;
   }
 
-  html.v16-production-3d .premium-card3d.wallet { animation-delay: -2.2s !important; }
-  html.v16-production-3d .premium-card3d.toll { animation-delay: -4.1s !important; }
+  html.v16-production-3d .premium-card3d.game { animation-delay: -2.2s !important; }
+  html.v16-production-3d .premium-card3d.voucher { animation-delay: -4.1s !important; }
 
   html.v16-production-3d .premium-coin {
     animation: v16CoinFloat 7.2s cubic-bezier(.42,0,.22,1) infinite !important;
@@ -9390,7 +9368,7 @@
     letter-spacing: .3px;
   }
   .v22-tile.game b { color: #38bdf8; }
-  .v22-tile.wallet b { color: #a855f7; }
+  .v22-tile.game b { color: #a855f7; }
   .v22-tile.digital b { color: #facc15; }
   .v22-tile.pln b { color: #86efac; }
 
@@ -9481,7 +9459,7 @@
     --orb-glow: rgba(56,189,248,.58);
     transform: translate3d(calc(-50% - 220px), -142px, 92px) rotateY(-22deg) rotateZ(-7deg);
   }
-  .v22-service-orb.wallet {
+  .v22-service-orb.game {
     --orb-a: rgba(168,85,247,.96);
     --orb-b: rgba(14,165,233,.92);
     --orb-glow: rgba(168,85,247,.56);
@@ -9602,7 +9580,7 @@
     .v22-orb-icon { width: 43px; height: 43px; }
     .v22-service-orb::after { bottom: -27px; font-size: 10px; padding: 4px 8px; }
     .v22-service-orb.game { transform: translate3d(calc(-50% - 144px), -124px, 78px) rotateY(-20deg) rotateZ(-7deg); }
-    .v22-service-orb.wallet { transform: translate3d(calc(-50% + 144px), -104px, 74px) rotateY(22deg) rotateZ(8deg); }
+    .v22-service-orb.game { transform: translate3d(calc(-50% + 144px), -104px, 74px) rotateY(22deg) rotateZ(8deg); }
     .v22-service-orb.digital { transform: translate3d(calc(-50% - 144px), 112px, 75px) rotateY(-19deg) rotateZ(8deg); }
     .v22-service-orb.pln { transform: translate3d(calc(-50% + 144px), 102px, 82px) rotateY(18deg) rotateZ(-8deg); }
     .v22-orbit { width: 355px; height: 232px; }
@@ -9615,7 +9593,7 @@
     .v22-phone { width: min(68vw, 238px); height: min(110vw, 394px); }
     .v22-service-orb { width: 80px; height: 80px; }
     .v22-service-orb.game { transform: translate3d(calc(-50% - 130px), -116px, 76px) rotateY(-20deg) rotateZ(-7deg); }
-    .v22-service-orb.wallet { transform: translate3d(calc(-50% + 130px), -98px, 72px) rotateY(22deg) rotateZ(8deg); }
+    .v22-service-orb.game { transform: translate3d(calc(-50% + 130px), -98px, 72px) rotateY(22deg) rotateZ(8deg); }
     .v22-service-orb.digital { transform: translate3d(calc(-50% - 130px), 104px, 74px) rotateY(-19deg) rotateZ(8deg); }
     .v22-service-orb.pln { transform: translate3d(calc(-50% + 130px), 96px, 80px) rotateY(18deg) rotateZ(-8deg); }
   }
@@ -9641,7 +9619,7 @@
     function iconGame() {
       return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M17 28c-7 0-11 5-12 14-.7 7 4 10 9 6l7-5h22l7 5c5 4 10 1 9-6-1-9-5-14-12-14H17Z" fill="rgba(255,255,255,.92)"/><path d="M19 35h10M24 30v10" stroke="#0f172a" stroke-width="4" stroke-linecap="round"/><circle cx="43" cy="35" r="3" fill="#0f172a"/><circle cx="51" cy="39" r="3" fill="#0f172a"/></svg>';
     }
-    function iconWallet() { return '<span class="v22-qr-shape" aria-hidden="true"></span>'; }
+    function iconGame() { return '<span class="v22-qr-shape" aria-hidden="true"></span>'; }
     function iconChip() { return '<span class="v22-chip-shape" aria-hidden="true"></span>'; }
     function iconBolt() { return '<span class="v22-bolt-shape" aria-hidden="true"></span>'; }
 
@@ -9656,8 +9634,8 @@
           '<button class="v22-service-orb game v22-product" type="button" data-v22-product="mlbb" data-label="GAME" aria-label="Pilih top up game">' +
             '<span class="v22-orb-icon">' + iconGame() + '</span>' +
           '</button>' +
-          '<button class="v22-service-orb wallet v22-product" type="button" data-v22-product="dana" data-label="QRIS" aria-label="Pilih e-wallet DANA">' +
-            '<span class="v22-orb-icon">' + iconWallet() + '</span>' +
+          '<button class="v22-service-orb game v22-product" type="button" data-v22-product="fcmobile" data-label="QRIS" aria-label="Pilih FC Mobile">' +
+            '<span class="v22-orb-icon">' + iconGame() + '</span>' +
           '</button>' +
           '<button class="v22-service-orb digital v22-product" type="button" data-v22-product="pulsa" data-label="PULSA" aria-label="Pilih pulsa all operator">' +
             '<span class="v22-orb-icon">' + iconChip() + '</span>' +
@@ -9671,10 +9649,10 @@
               '<div class="v22-screen">' +
                 '<div class="v22-status"><span>TopupID</span><span>5G</span></div>' +
                 '<div class="v22-speaker"></div>' +
-                '<button class="v22-balance v22-product" type="button" data-v22-product="dana" aria-label="Pilih e-wallet DANA"><small>Total order aktif</small><strong>Rp1.250.000</strong></button>' +
+                '<button class="v22-balance v22-product" type="button" data-v22-product="fcmobile" aria-label="Pilih FC Mobile"><small>Total order aktif</small><strong>Rp1.250.000</strong></button>' +
                 '<div class="v22-tile-grid">' +
                   '<button class="v22-tile game v22-product" type="button" data-v22-product="mlbb"><b>ML</b><span>Game</span></button>' +
-                  '<button class="v22-tile wallet v22-product" type="button" data-v22-product="dana"><b>QR</b><span>QRIS</span></button>' +
+                  '<button class="v22-tile game v22-product" type="button" data-v22-product="fcmobile"><b>QR</b><span>QRIS</span></button>' +
                   '<button class="v22-tile digital v22-product" type="button" data-v22-product="pulsa"><b>SIM</b><span>Pulsa</span></button>' +
                   '<button class="v22-tile pln v22-product" type="button" data-v22-product="pln"><b>⚡</b><span>PLN</span></button>' +
                 '</div>' +
@@ -9705,7 +9683,7 @@
         if (typeof window.chooseProduct === 'function') {
           window.chooseProduct(productId, true);
         } else {
-          var category = productId === 'mlbb' ? 'game' : (productId === 'dana' ? 'wallet' : 'digital');
+          var category = productId === 'mlbb' || productId === 'fcmobile' || productId === 'hok' || productId === 'valorant' || productId === 'roblox' ? 'game' : 'digital';
           var categorySelect = document.querySelector('#categorySelect');
           var productSelect = document.querySelector('#productSelect');
           if (categorySelect && productSelect) {
@@ -9940,7 +9918,7 @@
   html.v23-compact-360 .v22-service-orb.game {
     transform: translate3d(calc(-50% - 182px), -118px, 86px) rotateY(-22deg) rotateZ(-7deg) !important;
   }
-  html.v23-compact-360 .v22-service-orb.wallet {
+  html.v23-compact-360 .v22-service-orb.game {
     transform: translate3d(calc(-50% + 182px), -102px, 80px) rotateY(24deg) rotateZ(8deg) !important;
   }
   html.v23-compact-360 .v22-service-orb.digital {
@@ -10087,7 +10065,7 @@
     html.v23-compact-360 .v22-service-orb.game {
       transform: translate3d(calc(-50% - 118px), -86px, 76px) rotateY(-20deg) rotateZ(-7deg) !important;
     }
-    html.v23-compact-360 .v22-service-orb.wallet {
+    html.v23-compact-360 .v22-service-orb.game {
       transform: translate3d(calc(-50% + 118px), -76px, 72px) rotateY(22deg) rotateZ(8deg) !important;
     }
     html.v23-compact-360 .v22-service-orb.digital {
@@ -10131,7 +10109,7 @@
     html.v23-compact-360 .v22-service-orb.game {
       transform: translate3d(calc(-50% - 108px), -82px, 74px) rotateY(-20deg) rotateZ(-7deg) !important;
     }
-    html.v23-compact-360 .v22-service-orb.wallet {
+    html.v23-compact-360 .v22-service-orb.game {
       transform: translate3d(calc(-50% + 108px), -72px, 70px) rotateY(22deg) rotateZ(8deg) !important;
     }
     html.v23-compact-360 .v22-service-orb.digital {
@@ -10925,8 +10903,8 @@
   }
 
   #showcase .tls-card-1::after { content: "TOP UP GAME" !important; }
-  #showcase .tls-card-2::after { content: "E-WALLET INSTAN" !important; }
-  #showcase .tls-card-3::after { content: "E-TOLL DIGITAL" !important; }
+  #showcase .tls-card-2::after { content: "GAME INSTAN" !important; }
+  #showcase .tls-card-3::after { content: "VOUCHER DIGITAL" !important; }
   #showcase .tls-card-4::after { content: "PRODUK DIGITAL" !important; }
 
   @keyframes tlsPremiumCoverflow {
