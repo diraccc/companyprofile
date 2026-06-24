@@ -4356,9 +4356,16 @@ html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title 
   </div>
 </section>
 <section aria-label="Banner visual TopupID" class="topupid-banner-separator bottom-full-visual" id="banner-layanan-topupid">
-<div class="topupid-banner-inner">
-<img alt="Banner layanan TopupID" class="topupid-banner-full-image" decoding="async" loading="lazy" src="bbb.webp"/>
-</div>
+  <div class="topupid-banner-inner">
+    <img
+      alt="Banner layanan TopupID"
+      class="topupid-banner-full-image"
+      decoding="async"
+      loading="eager"
+      fetchpriority="high"
+      src="./bbb.webp?v=20260624"
+    />
+  </div>
 </section>
 
 </main>
@@ -16123,6 +16130,116 @@ html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title 
   setTimeout(cleanShowcase, 800);
   setTimeout(cleanShowcase, 1800);
 })();
+</script>
+
+
+<style id="v62-force-real-bbb-webp-banner">
+  /* FINAL FIX: banner bawah wajib memakai gambar asli ./bbb.webp satu folder dengan index/topup. */
+  #banner-layanan-topupid,
+  .topupid-banner-separator.bottom-full-visual#banner-layanan-topupid {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    width: 100% !important;
+    margin: 8px 0 0 !important;
+    padding: 10px 0 30px !important;
+    overflow: visible !important;
+    background: transparent !important;
+    border: 0 !important;
+  }
+
+  #banner-layanan-topupid .topupid-banner-inner {
+    position: relative !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    aspect-ratio: 2048 / 614 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin-left: calc(50% - 50vw) !important;
+    margin-right: calc(50% - 50vw) !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  #banner-layanan-topupid .topupid-banner-inner::before,
+  #banner-layanan-topupid .topupid-banner-inner::after,
+  #banner-layanan-topupid .topupid-banner-saw,
+  #banner-layanan-topupid .topupid-banner-glow,
+  #banner-layanan-topupid .topupid-banner-logo,
+  #banner-layanan-topupid .topupid-banner-html-inner,
+  #banner-layanan-topupid .topupid-banner-html-grid,
+  #banner-layanan-topupid .topupid-banner-html-glow,
+  #banner-layanan-topupid .topupid-banner-html-logo,
+  #banner-layanan-topupid .topupid-banner-html-copy,
+  #banner-layanan-topupid .topupid-banner-html-stack {
+    display: none !important;
+    content: none !important;
+  }
+
+  #banner-layanan-topupid .topupid-banner-full-image {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    object-fit: cover !important;
+    object-position: center center !important;
+    border-radius: 0 !important;
+    border-top: 1.5px solid rgba(71, 214, 255, 0.88) !important;
+    border-bottom: 1.5px solid rgba(71, 214, 255, 0.88) !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    box-shadow:
+      0 0 18px rgba(56,189,248,.34),
+      0 0 42px rgba(56,189,248,.16),
+      0 24px 70px rgba(0,0,0,.34) !important;
+    background: transparent !important;
+    color: transparent !important;
+    font-size: 0 !important;
+  }
+</style>
+
+<script id="v62-force-real-bbb-webp-banner-script">
+  (function(){
+    function forceBbbBanner(){
+      var section = document.getElementById('banner-layanan-topupid');
+      if (!section) return;
+
+      var inner = section.querySelector('.topupid-banner-inner');
+      if (!inner) {
+        inner = document.createElement('div');
+        inner.className = 'topupid-banner-inner';
+        section.replaceChildren(inner);
+      }
+
+      var img = inner.querySelector('img.topupid-banner-full-image');
+      if (!img) {
+        inner.replaceChildren();
+        img = document.createElement('img');
+        img.className = 'topupid-banner-full-image';
+        img.alt = 'Banner layanan TopupID';
+        img.decoding = 'async';
+        img.loading = 'eager';
+        inner.appendChild(img);
+      }
+
+      img.setAttribute('src', './bbb.webp?v=20260624');
+      img.setAttribute('fetchpriority', 'high');
+
+      Array.prototype.slice.call(inner.children).forEach(function(el){
+        if (el !== img) el.remove();
+      });
+    }
+
+    forceBbbBanner();
+    document.addEventListener('DOMContentLoaded', forceBbbBanner);
+    window.addEventListener('load', forceBbbBanner);
+  })();
 </script>
 
 </body>
