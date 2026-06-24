@@ -4434,6 +4434,7 @@ html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title 
 
     const FAN_MAX_VISIBLE = 7;
     const FAN_HALF = 3;
+    const FAN_IMAGE_COUNT = 25;
     const FAN_POSITIONS_HTML = [
       { rot: -21, scale: 0.7756, x: -30, y: 7.3, zIndex: 1 },
       { rot: -14, scale: 0.8498, x: -22, y: 4.0, zIndex: 2 },
@@ -4592,10 +4593,15 @@ html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title 
     }
 
     function getFanCards() {
-      return products.slice(0, 10).map((product, index) => ({
-        ...product,
-        imgUrl: `tng${index + 1}.webp`,
-      }));
+      return Array.from({ length: FAN_IMAGE_COUNT }, (_, index) => {
+        const product = products[index % products.length];
+        return {
+          ...product,
+          fanImageNumber: index + 1,
+          imgUrl: `tng${index + 1}.webp`,
+          fallbackImgUrl: productToFanImage(product, index),
+        };
+      });
     }
 
     function getFanVisibleMap(center, totalCards) {
@@ -4614,8 +4620,8 @@ html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title 
       if (!fanCarouselLayout || !fanDots) return;
       const fanCards = getFanCards();
       fanCarouselLayout.innerHTML = fanCards.map((card, index) => `
-        <button class="fan-card-html" type="button" data-fan-index="${index}" data-fan-id="${card.id}" aria-label="Pilih ${card.name}">
-          <img src="${card.imgUrl}" alt="${card.name}" loading="lazy" />
+        <button class="fan-card-html" type="button" data-fan-index="${index}" data-fan-id="${card.id}" aria-label="Pilih ${card.name} gambar ${card.fanImageNumber}">
+          <img src="${card.imgUrl}" alt="${card.name}" loading="lazy" data-fallback-src="${card.fallbackImgUrl}" />
         </button>
       `).join("");
       fanDots.innerHTML = fanCards.map((_, index) => `<span class="fan-dot-html" data-fan-dot="${index}"></span>`).join("");
@@ -4630,6 +4636,13 @@ html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title 
             updateFanCarousel(true);
           }
         });
+      });
+
+      fanCarouselLayout.querySelectorAll(".fan-card-html img").forEach(img => {
+        img.addEventListener("error", () => {
+          const fallback = img.getAttribute("data-fallback-src");
+          if (fallback && img.src !== fallback) img.src = fallback;
+        }, { once: true });
       });
 
       fanDots.querySelectorAll(".fan-dot-html").forEach(dot => {
@@ -4687,7 +4700,7 @@ html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title 
     }
 
     function moveFanCarousel(direction) {
-      const total = Math.min(products.length, 10);
+      const total = fanCarouselLayout ? fanCarouselLayout.querySelectorAll(".fan-card-html").length : getFanCards().length;
       if (!total || fanAnimating) return;
       fanAnimating = true;
       fanDirection = direction > 0 ? "right" : "left";
@@ -11011,7 +11024,7 @@ html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title 
 <!-- End V23 compact 360 dynamic patch -->
 <!-- ==========================================================
      V24 FAN CARDS TO WEBP + REMOVE LOWER CAROUSEL
-     Visual/UI-only. Fan carousel now uses local tng1.webp ... tng10.webp.
+     Visual/UI-only. Fan carousel now uses local tng1.webp ... tng25.webp.
      Lower duplicated carousel is hidden. Backend/checkout/login unchanged.
      ========================================================== -->
 <style id="v24-tng-webp-cleanup-style">
@@ -11048,12 +11061,43 @@ html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title 
   html.v24-tng-webp .fan-carousel-shell {
     margin-bottom: 0 !important;
   }
+  html.v24-tng-webp .fan-dots-html {
+    min-width: 0 !important;
+    max-width: min(52vw, 270px) !important;
+    flex-wrap: wrap !important;
+    row-gap: 5px !important;
+  }
+
+  html.v24-tng-webp .fan-dot-html {
+    flex: 0 0 auto !important;
+  }
+
+  @media (max-width: 580px) {
+    html.v24-tng-webp .fan-controls-html {
+      max-width: calc(100% - 20px) !important;
+      bottom: 14px !important;
+    }
+
+    html.v24-tng-webp .fan-dots-html {
+      max-width: 52vw !important;
+      gap: 5px !important;
+    }
+
+    html.v24-tng-webp .fan-dot-html {
+      width: 6px !important;
+      height: 6px !important;
+    }
+
+    html.v24-tng-webp .fan-dot-html.active {
+      width: 18px !important;
+    }
+  }
 </style>
 <script id="v24-tng-webp-cleanup-script">
   (function () {
     "use strict";
     document.documentElement.classList.add("v24-tng-webp");
-    window.__topupidV24Notice = "V24: lower duplicate carousel is hidden; fan carousel images use local files tng1.webp through tng10.webp. Core checkout, login, hash, API and backend remain unchanged.";
+    window.__topupidV24Notice = "V24: lower duplicate carousel is hidden; fan carousel images use local files tng1.webp through tng25.webp. Core checkout, login, hash, API and backend remain unchanged.";
   })();
 </script>
 <!-- End V24 fan cards to WEBP cleanup -->
