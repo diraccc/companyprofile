@@ -11528,5 +11528,264 @@
     }
   }
 </style>
+
+
+<!-- V48 requested fix: keep previous coverflow animation, but force centered 16:9 image fit without transparency/cropping. -->
+<style id="v48-topupid-16x9-fit-showcase">
+  /* Scope sangat terbatas: hanya section #showcase / empat gambar tls. */
+  #showcase .tls-visual-shell {
+    display: grid !important;
+    place-items: center !important;
+    overflow: hidden !important;
+  }
+
+  #showcase .tls-rotator {
+    position: relative !important;
+    width: min(940px, 100%) !important;
+    height: clamp(320px, 46vw, 500px) !important;
+    display: grid !important;
+    place-items: center !important;
+    overflow: visible !important;
+    transform: none !important;
+    animation: none !important;
+  }
+
+  #showcase .tls-card,
+  #showcase .tls-card-1,
+  #showcase .tls-card-2,
+  #showcase .tls-card-3,
+  #showcase .tls-card-4 {
+    left: 50% !important;
+    top: 50% !important;
+    width: min(610px, 74vw) !important;
+    height: auto !important;
+    aspect-ratio: 16 / 9 !important;
+    border-radius: 24px !important;
+    overflow: hidden !important;
+    background: rgba(2, 6, 23, .92) !important;
+    opacity: 1 !important;
+    filter: none !important;
+    transform-origin: center center !important;
+    backface-visibility: hidden !important;
+    --tls-side: clamp(158px, 24vw, 276px);
+    --tls-pos: 0;
+    --tls-y: 0;
+    --tls-z: 0;
+    --tls-r: 0;
+    --tls-s: 1;
+    transform: translate(-50%, -50%) translateX(calc(var(--tls-pos) * var(--tls-side))) translateY(calc(var(--tls-y) * 1px)) translateZ(calc(var(--tls-z) * 1px)) rotateY(calc(var(--tls-r) * 1deg)) scale(var(--tls-s)) !important;
+    animation: tlsCenteredSolidCoverflow 36s cubic-bezier(.45, 0, .18, 1) infinite both !important;
+  }
+
+
+
+  #showcase .tls-card-1 { animation-delay: 0s !important; }
+  #showcase .tls-card-2 { animation-delay: -9s !important; }
+  #showcase .tls-card-3 { animation-delay: -18s !important; }
+  #showcase .tls-card-4 { animation-delay: -27s !important; }
+
+  #showcase .tls-card img {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    display: block !important;
+    object-fit: contain !important;
+    object-position: center center !important;
+    transform: none !important;
+    opacity: 1 !important;
+    filter: none !important;
+    background: rgba(2, 6, 23, .92) !important;
+  }
+
+  #showcase .tls-card::before {
+    opacity: .10 !important;
+  }
+
+  #showcase .tls-card::after {
+    content: none !important;
+    display: none !important;
+  }
+
+  @keyframes tlsCenteredSolidCoverflow {
+    0%, 22.5% {
+      --tls-pos: 0;
+      --tls-y: 0;
+      --tls-z: 0;
+      --tls-r: 0;
+      --tls-s: 1;
+      opacity: 1;
+      visibility: visible;
+      filter: brightness(1.04) saturate(1.05);
+      z-index: 5;
+    }
+    28%, 47.5% {
+      --tls-pos: 1;
+      --tls-y: 14;
+      --tls-z: -70;
+      --tls-r: -34;
+      --tls-s: .84;
+      opacity: 1;
+      visibility: visible;
+      filter: brightness(1) saturate(1.03);
+      z-index: 3;
+    }
+    49.9% {
+      --tls-pos: 0;
+      --tls-y: 32;
+      --tls-z: -180;
+      --tls-r: 0;
+      --tls-s: .70;
+      opacity: 1;
+      visibility: visible;
+      filter: brightness(1) saturate(1);
+      z-index: 1;
+    }
+    50%, 72.5% {
+      --tls-pos: 0;
+      --tls-y: 32;
+      --tls-z: -180;
+      --tls-r: 0;
+      --tls-s: .70;
+      opacity: 0;
+      visibility: hidden;
+      filter: brightness(1) saturate(1);
+      z-index: 1;
+    }
+    72.6% {
+      --tls-pos: -1;
+      --tls-y: 14;
+      --tls-z: -70;
+      --tls-r: 34;
+      --tls-s: .84;
+      opacity: 1;
+      visibility: visible;
+      filter: brightness(1) saturate(1.03);
+      z-index: 2;
+    }
+    78%, 97.5% {
+      --tls-pos: -1;
+      --tls-y: 14;
+      --tls-z: -70;
+      --tls-r: 34;
+      --tls-s: .84;
+      opacity: 1;
+      visibility: visible;
+      filter: brightness(1) saturate(1.03);
+      z-index: 2;
+    }
+    100% {
+      --tls-pos: 0;
+      --tls-y: 0;
+      --tls-z: 0;
+      --tls-r: 0;
+      --tls-s: 1;
+      opacity: 1;
+      visibility: visible;
+      filter: brightness(1.04) saturate(1.05);
+      z-index: 5;
+    }
+  }
+
+  @media (max-width: 780px) {
+    #showcase .tls-visual-shell {
+      min-height: 405px !important;
+      padding: 20px !important;
+    }
+    #showcase .tls-rotator {
+      width: 100% !important;
+      height: 305px !important;
+    }
+    #showcase .tls-card,
+    #showcase .tls-card-1,
+    #showcase .tls-card-2,
+    #showcase .tls-card-3,
+    #showcase .tls-card-4 {
+      width: min(410px, calc(100vw - 72px)) !important;
+      border-radius: 22px !important;
+      --tls-side: clamp(108px, 29vw, 148px);
+    }
+  }
+
+  @media (max-width: 430px) {
+    #showcase .tls-visual-shell {
+      min-height: 378px !important;
+      padding: 16px !important;
+    }
+    #showcase .tls-rotator {
+      height: 282px !important;
+    }
+    #showcase .tls-card,
+    #showcase .tls-card-1,
+    #showcase .tls-card-2,
+    #showcase .tls-card-3,
+    #showcase .tls-card-4 {
+      width: min(340px, calc(100vw - 72px)) !important;
+      border-radius: 20px !important;
+      --tls-side: clamp(96px, 28vw, 122px);
+    }
+  }
+</style>
+
+
+<!-- V49 requested fix: slightly smaller centered 16:9 showcase cards, keeping the same coverflow animation. -->
+<style id="v49-topupid-slightly-smaller-16x9-showcase">
+  /* Scope sangat terbatas: hanya ukuran empat gambar tls di section #showcase. */
+  #showcase .tls-card,
+  #showcase .tls-card-1,
+  #showcase .tls-card-2,
+  #showcase .tls-card-3,
+  #showcase .tls-card-4 {
+    width: min(570px, 70vw) !important;
+    aspect-ratio: 16 / 9 !important;
+    height: auto !important;
+  }
+
+  @media (max-width: 780px) {
+    #showcase .tls-visual-shell {
+      min-height: 385px !important;
+      padding: 20px !important;
+    }
+
+    #showcase .tls-rotator {
+      height: 285px !important;
+    }
+
+    #showcase .tls-card,
+    #showcase .tls-card-1,
+    #showcase .tls-card-2,
+    #showcase .tls-card-3,
+    #showcase .tls-card-4 {
+      width: min(380px, calc(100vw - 92px)) !important;
+      aspect-ratio: 16 / 9 !important;
+      height: auto !important;
+      --tls-side: clamp(100px, 27vw, 136px);
+    }
+  }
+
+  @media (max-width: 430px) {
+    #showcase .tls-visual-shell {
+      min-height: 352px !important;
+      padding: 16px !important;
+    }
+
+    #showcase .tls-rotator {
+      height: 258px !important;
+    }
+
+    #showcase .tls-card,
+    #showcase .tls-card-1,
+    #showcase .tls-card-2,
+    #showcase .tls-card-3,
+    #showcase .tls-card-4 {
+      width: min(300px, calc(100vw - 96px)) !important;
+      aspect-ratio: 16 / 9 !important;
+      height: auto !important;
+      border-radius: 20px !important;
+      --tls-side: clamp(86px, 25vw, 110px);
+    }
+  }
+</style>
+
 </body>
 </html>
