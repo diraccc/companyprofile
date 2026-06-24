@@ -16242,5 +16242,139 @@ html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title 
   })();
 </script>
 
+
+<style id="v63-banner-bottom-clean-no-blue-extra-lines">
+  /* V63: bersihkan garis biru tambahan di luar gambar dan rapatkan banner tepat di atas copyright/footer. */
+  #banner-layanan-topupid,
+  .topupid-banner-separator.bottom-full-visual#banner-layanan-topupid {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+
+  #banner-layanan-topupid .topupid-banner-inner {
+    position: relative !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    aspect-ratio: 2048 / 614 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 calc(50% - 50vw) 0 calc(50% - 50vw) !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  #banner-layanan-topupid .topupid-banner-inner::before,
+  #banner-layanan-topupid .topupid-banner-inner::after,
+  #banner-layanan-topupid .topupid-banner-saw,
+  #banner-layanan-topupid .topupid-banner-glow,
+  #banner-layanan-topupid .topupid-banner-logo,
+  #banner-layanan-topupid .topupid-banner-html-inner,
+  #banner-layanan-topupid .topupid-banner-html-grid,
+  #banner-layanan-topupid .topupid-banner-html-glow,
+  #banner-layanan-topupid .topupid-banner-html-logo,
+  #banner-layanan-topupid .topupid-banner-html-copy,
+  #banner-layanan-topupid .topupid-banner-html-stack {
+    display: none !important;
+    content: none !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+
+  #banner-layanan-topupid .topupid-banner-full-image {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    object-fit: cover !important;
+    object-position: center center !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+    filter: none !important;
+    background: transparent !important;
+    color: transparent !important;
+    font-size: 0 !important;
+  }
+
+  footer,
+  footer.dirac-footer,
+  .dirac-footer {
+    margin-top: 0 !important;
+    border-top: 0 !important;
+    box-shadow: none !important;
+  }
+
+  @media (max-width: 680px) {
+    #banner-layanan-topupid,
+    .topupid-banner-separator.bottom-full-visual#banner-layanan-topupid {
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
+    #banner-layanan-topupid .topupid-banner-inner {
+      width: 100vw !important;
+      max-width: 100vw !important;
+      margin-left: calc(50% - 50vw) !important;
+      margin-right: calc(50% - 50vw) !important;
+    }
+  }
+</style>
+
+<script id="v63-force-banner-clean-image-only">
+  (function(){
+    function cleanBottomBanner(){
+      var section = document.getElementById('banner-layanan-topupid');
+      if (!section) return;
+
+      var inner = section.querySelector('.topupid-banner-inner');
+      if (!inner) {
+        inner = document.createElement('div');
+        inner.className = 'topupid-banner-inner';
+        section.replaceChildren(inner);
+      }
+
+      var img = inner.querySelector('img.topupid-banner-full-image');
+      if (!img) {
+        inner.replaceChildren();
+        img = document.createElement('img');
+        img.className = 'topupid-banner-full-image';
+        img.alt = 'Banner layanan TopupID';
+        img.decoding = 'async';
+        img.loading = 'eager';
+        inner.appendChild(img);
+      }
+
+      img.setAttribute('src', './bbb.webp?v=20260624-clean');
+      img.setAttribute('fetchpriority', 'high');
+
+      Array.prototype.slice.call(inner.children).forEach(function(el){
+        if (el !== img) el.remove();
+      });
+    }
+
+    cleanBottomBanner();
+    document.addEventListener('DOMContentLoaded', cleanBottomBanner);
+    window.addEventListener('load', cleanBottomBanner);
+  })();
+</script>
+
 </body>
 </html>
