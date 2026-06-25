@@ -17527,567 +17527,723 @@ html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title 
 })();
 </script>
 
+<!-- V70 safe animation completeness + skeleton loading patch. Visual/UI only: no endpoint, login, hash, A2F, payment gateway, email template, security policy, image source, or checkout backend logic is changed. -->
+<style id="topupid-v70-safe-animation-skeleton-style">
+  /* ==========================================================
+     TOPUPID V70 SAFE ANIMATION COMPLETION
+     Scope: micro-interactions, loading skeletons, form feedback,
+     status/timeline polish, mobile menu entrance, FAQ motion.
+     Strict guard: no animation selector is applied to product/banner images.
+     ========================================================== */
 
-
-<!-- V71 animation suite + black background lock. Additive only: no endpoint, login, payment, hash, A2F, or backend changes. -->
-<style id="topupid-v71-animation-suite-black-lock">
   :root {
-    --v71-black: #000000;
-    --v71-panel: rgba(9, 13, 23, .88);
-    --v71-panel-strong: rgba(16, 23, 37, .94);
-    --v71-line: rgba(var(--theme-rgb, 56, 189, 248), .28);
-    --v71-line-soft: rgba(var(--theme-rgb, 56, 189, 248), .14);
-    --v71-accent: rgb(var(--theme-rgb, 56, 189, 248));
-    --v71-ease: cubic-bezier(.16, 1, .3, 1);
+    --v70-ease-out: cubic-bezier(.18,.82,.22,1);
+    --v70-ease-soft: cubic-bezier(.22,1,.36,1);
+    --v70-ring: rgba(56,189,248,.48);
+    --v70-ok: rgba(34,197,94,.54);
+    --v70-warn: rgba(251,113,133,.56);
   }
 
-  /* 0. Background lock: full black canvas across every theme mode. */
-  html,
-  html[data-effective-theme],
-  html[data-effective-theme="light"],
-  body,
-  html[data-effective-theme] body,
-  html[data-effective-theme="light"] body {
-    background: #000 !important;
-    background-color: #000 !important;
-  }
-  body::before,
-  body::after {
-    display: none !important;
-    opacity: 0 !important;
-  }
-  .page,
-  main,
-  .hero,
-  .section,
-  footer,
-  .topupid-articles-section,
-  #banner-layanan-topupid,
-  .topupid-banner-separator {
-    background-color: #000 !important;
-  }
-  #particleCanvas { opacity: .22 !important; mix-blend-mode: screen !important; }
-
-  /* 1,2,10. Product click feedback, form highlight, and tap feedback. */
-  .fan-card-html,
-  .carousel-card,
-  .product-card,
-  .product-action,
-  .nominal,
   .btn,
   .small-btn,
-  .submit-btn,
+  .round-btn,
+  .tab,
+  .nominal,
+  .product-action,
+  .fan-arrow-html,
   .theme-choice,
-  .choice,
+  .mobile-cinematic-primary,
+  .real-mobile-primary,
+  .sticky-mobile-checkout a,
+  .topupid-support-card,
   .du-card {
-    transition:
-      transform .24s var(--v71-ease),
-      opacity .24s ease,
-      filter .24s ease,
-      border-color .24s ease,
-      background-color .24s ease,
-      box-shadow .24s ease,
-      color .24s ease !important;
-  }
-  .v71-pressed { transform: scale(.975) !important; }
-  .fan-card-html.v71-clicked,
-  .carousel-card.v71-clicked,
-  .product-card.v71-clicked {
-    animation: v71CardPick .62s var(--v71-ease) both !important;
-  }
-  .fan-card-html.is-selected,
-  .product-card.is-selected,
-  .carousel-card.is-selected {
-    border-color: rgba(var(--theme-rgb, 56,189,248), .72) !important;
-    box-shadow: 0 0 0 1px rgba(var(--theme-rgb, 56,189,248), .30), 0 22px 70px rgba(var(--theme-rgb, 56,189,248), .18), 0 18px 46px rgba(0,0,0,.36) !important;
-  }
-  .product-card.is-selected::after,
-  .carousel-card.is-selected::after,
-  .fan-card-html.is-selected::after {
-    content: attr(data-selected-label);
-    position: absolute !important;
-    z-index: 20 !important;
-    right: 12px !important;
-    top: 12px !important;
-    padding: 7px 10px !important;
-    border-radius: 999px !important;
-    font-size: 11px !important;
-    line-height: 1 !important;
-    font-weight: 900 !important;
-    color: #020617 !important;
-    background: linear-gradient(135deg, var(--v71-accent), #ffffff) !important;
-    box-shadow: 0 12px 26px rgba(var(--theme-rgb, 56,189,248), .28) !important;
-    pointer-events: none !important;
-  }
-  #checkout.v71-focus,
-  #orderForm.v71-focus,
-  .checkout-grid.v71-focus,
-  .panel.v71-focus {
-    animation: v71CheckoutFocus 1.08s var(--v71-ease) both !important;
+    position: relative;
+    overflow: hidden;
+    transform-origin: center;
   }
 
-  /* 3,4,16. Smooth language/theme/scroll progress transitions. */
-  html.v71-language-switching body,
-  html.v71-theme-switching body {
-    transition: background-color .26s var(--v71-ease), color .26s var(--v71-ease), filter .26s ease !important;
-  }
-  html.v71-language-switching [data-i18n],
-  html.v71-language-switching [data-i18n-source],
-  html.v71-language-switching .brand-name,
-  html.v71-language-switching .section-head,
-  html.v71-language-switching .topupid-article-card,
-  html.v71-language-switching .topupid-faq-item,
-  html.v71-language-switching .du-copy {
-    animation: v71TextSwap .28s var(--v71-ease) both !important;
-  }
-  .scroll-progress,
-  #progress {
-    background: linear-gradient(90deg, rgba(var(--theme-rgb,56,189,248),1), rgba(255,255,255,.88), rgba(var(--theme-rgb,56,189,248),.8)) !important;
-    box-shadow: 0 0 20px rgba(var(--theme-rgb,56,189,248),.78) !important;
+  .topupid-pressed {
+    animation: topupidV70Press 240ms var(--v70-ease-out);
   }
 
-  /* 5. FAQ accordion polish. */
-  .topupid-faq-item { overflow: hidden !important; }
-  .topupid-faq-item summary { cursor: pointer !important; }
-  .topupid-faq-item p {
-    transform-origin: top center !important;
-    animation: v71FaqOpen .28s var(--v71-ease) both !important;
-  }
-  .topupid-faq-item[open] {
-    border-color: rgba(var(--theme-rgb, 56,189,248), .34) !important;
-    box-shadow: inset 0 0 0 1px rgba(var(--theme-rgb, 56,189,248), .08), 0 14px 34px rgba(0,0,0,.18) !important;
+  .topupid-ripple {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    left: var(--ripple-x, 50%);
+    top: var(--ripple-y, 50%);
+    border-radius: 999px;
+    pointer-events: none;
+    background: radial-gradient(circle, rgba(255,255,255,.52), rgba(255,255,255,.26) 38%, transparent 70%);
+    transform: translate(-50%, -50%) scale(.35);
+    opacity: .82;
+    animation: topupidV70Ripple 620ms ease-out forwards;
+    z-index: 20;
   }
 
-  /* 6. Article stagger reveal. */
-  .topupid-article-card,
-  .trust-card,
-  .step-card,
-  .smart-panel {
-    transform: translateY(16px);
-    opacity: .001;
+  .topupid-field-wrap {
+    position: relative;
+    display: block;
   }
-  .topupid-article-card.v71-in,
-  .trust-card.v71-in,
-  .step-card.v71-in,
-  .smart-panel.v71-in {
-    animation: v71ArticleIn .54s var(--v71-ease) both !important;
-  }
-  .topupid-article-card.v71-in:nth-child(2n) { animation-delay: .04s !important; }
-  .topupid-article-card.v71-in:nth-child(3n) { animation-delay: .08s !important; }
 
-  /* 7,8. Invoice timeline and checkout loader status movement. */
-  .timeline-step { overflow: hidden !important; }
-  .timeline-step.done,
-  .timeline-step.is-active {
-    border-color: rgba(var(--theme-rgb,56,189,248),.34) !important;
-    background: rgba(var(--theme-rgb,56,189,248),.12) !important;
+  .topupid-field-wrap::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, transparent, rgba(56,189,248,.92), rgba(168,85,247,.72), transparent);
+    opacity: 0;
+    transform: scaleX(.46);
+    transform-origin: center;
+    transition: opacity 220ms ease, transform 260ms var(--v70-ease-soft);
+    pointer-events: none;
   }
-  .timeline-step.is-active::after,
-  .loader-step.is-active::after {
+
+  .topupid-field-wrap:focus-within::after {
+    opacity: .95;
+    transform: scaleX(.98);
+  }
+
+  .topupid-field-ok {
+    border-color: var(--v70-ok) !important;
+    box-shadow: 0 0 0 4px rgba(34,197,94,.10), 0 0 24px rgba(34,197,94,.08) !important;
+  }
+
+  .topupid-field-empty {
+    border-color: var(--v70-warn) !important;
+    box-shadow: 0 0 0 4px rgba(251,113,133,.12), 0 0 24px rgba(251,113,133,.10) !important;
+    animation: topupidV70FieldShake 360ms ease both;
+  }
+
+  .topupid-summary-pulse {
+    animation: topupidV70SummaryPulse 520ms var(--v70-ease-soft);
+  }
+
+  .summary-row b.topupid-summary-pulse,
+  #sumTotal.topupid-summary-pulse {
+    display: inline-block;
+  }
+
+  .invoice-card.topupid-result-arrive,
+  .result-box.topupid-result-arrive {
+    animation: topupidV70ResultArrive 520ms var(--v70-ease-soft);
+  }
+
+  .invoice-card .timeline-step {
+    overflow: hidden;
+  }
+
+  .invoice-card .timeline-step.done::before {
+    content: "✓";
+    display: inline-grid;
+    place-items: center;
+    width: 17px;
+    height: 17px;
+    margin-right: 6px;
+    border-radius: 999px;
+    color: var(--dark);
+    background: var(--green);
+    box-shadow: 0 0 16px rgba(34,197,94,.42);
+    animation: topupidV70CheckPop 360ms var(--v70-ease-out) both;
+  }
+
+  .invoice-card .timeline-step.done::after {
+    content: "";
+    position: absolute;
+    left: -48%;
+    top: 0;
+    width: 42%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.16), transparent);
+    animation: topupidV70TimelineSweep 2.8s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  .topupid-menu-visible,
+  #mobileMenu[style*="block"] {
+    animation: topupidV70MenuIn 360ms var(--v70-ease-soft) both;
+  }
+
+  .topupid-menu-visible a,
+  #mobileMenu[style*="block"] a {
+    animation: topupidV70MenuItemIn 360ms var(--v70-ease-soft) both;
+    animation-delay: calc(var(--v70-menu-index, 0) * 26ms);
+  }
+
+  .nav-links a:not(.nav-cta),
+  .mobile-menu a,
+  #mobileMenu a,
+  .du-card {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .nav-links a:not(.nav-cta)::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -7px;
+    height: 2px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--cyan), var(--purple));
+    opacity: 0;
+    transform: scaleX(.25);
+    transition: opacity 220ms ease, transform 260ms var(--v70-ease-soft);
+    transform-origin: center;
+  }
+
+  .nav-links a.topupid-nav-active:not(.nav-cta)::after,
+  .nav-links a:not(.nav-cta):hover::after,
+  .nav-links a:not(.nav-cta):focus-visible::after {
+    opacity: .95;
+    transform: scaleX(1);
+  }
+
+  .topupid-faq-item[open] > p {
+    animation: topupidV70FaqOpen 320ms var(--v70-ease-soft) both;
+  }
+
+  .topupid-faq-item summary {
+    transition: color 220ms ease, transform 220ms var(--v70-ease-soft);
+  }
+
+  .topupid-faq-item summary:hover,
+  .topupid-faq-item summary:focus-visible {
+    color: #dffaff;
+    transform: translateX(2px);
+  }
+
+  .topupid-loading-zone {
+    position: relative;
+  }
+
+  .topupid-skeleton-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 26px;
+    padding: 20px;
+    border: 1px solid rgba(255,255,255,.12);
+    background:
+      radial-gradient(circle at top right, rgba(56,189,248,.12), transparent 34%),
+      rgba(2,6,23,.72);
+    box-shadow: 0 24px 70px rgba(0,0,0,.22);
+  }
+
+  .topupid-skeleton-card::before {
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,.13), transparent);
-    transform: translateX(-120%);
-    animation: v71ProgressSweep 1.35s ease-in-out infinite;
+    background: linear-gradient(105deg, transparent 0%, rgba(255,255,255,.08) 38%, rgba(255,255,255,.16) 50%, rgba(255,255,255,.08) 62%, transparent 100%);
+    transform: translateX(-100%);
+    animation: topupidV70SkeletonSweep 1.12s ease-in-out infinite;
     pointer-events: none;
   }
-  .loader-step { position: relative !important; overflow: hidden !important; }
-  .loader-step.done .check { animation: v71CheckPop .42s var(--v71-ease) both !important; }
-  .transaction-loader { animation: v71ModalIn .36s var(--v71-ease) both !important; }
 
-  /* 9. Gentle validation animation. */
-  input.v71-invalid,
-  select.v71-invalid,
-  .nominal-grid.v71-invalid {
-    border-color: rgba(251,113,133,.85) !important;
-    box-shadow: 0 0 0 4px rgba(251,113,133,.14) !important;
-    animation: v71Shake .32s ease both !important;
-  }
-  .v71-field-note {
-    display: block;
-    margin-top: 7px;
-    color: #fecdd3;
-    font-size: 12px;
-    line-height: 1.45;
+  .topupid-skeleton-head,
+  .topupid-skeleton-line,
+  .topupid-skeleton-pill,
+  .topupid-skeleton-box {
+    position: relative;
+    overflow: hidden;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(255,255,255,.08), rgba(255,255,255,.14), rgba(255,255,255,.08));
+    background-size: 220% 100%;
+    animation: topupidV70SkeletonBg 1.16s ease-in-out infinite;
   }
 
-  /* 11,12. Dashboard drawer stagger and search fade. */
-  #mobileMenu.open .du-card { animation: v71MenuItemIn .38s var(--v71-ease) both !important; }
-  #mobileMenu.open .du-card:nth-child(1) { animation-delay: .02s !important; }
-  #mobileMenu.open .du-card:nth-child(2) { animation-delay: .05s !important; }
-  #mobileMenu.open .du-card:nth-child(3) { animation-delay: .08s !important; }
-  #mobileMenu.open .du-card:nth-child(4) { animation-delay: .11s !important; }
-  #mobileMenu.open .du-card:nth-child(5) { animation-delay: .14s !important; }
-  #mobileMenu.open .du-card:nth-child(6) { animation-delay: .17s !important; }
-  .du-card.v71-filter-hidden {
-    opacity: .12 !important;
-    transform: translateY(4px) scale(.985) !important;
-    pointer-events: none !important;
-    filter: grayscale(.3) blur(.2px) !important;
+  .topupid-skeleton-head {
+    width: min(260px, 78%);
+    height: 24px;
+    margin-bottom: 16px;
   }
 
-  /* 13,14. Banner shine/parallax and image loading skeleton. */
-  #banner-layanan-topupid .topupid-banner-inner,
-  .showcase-image-shell,
-  .fan-card-html,
-  .topupid-banner-full-image {
-    position: relative !important;
-    overflow: hidden !important;
+  .topupid-skeleton-line {
+    height: 13px;
+    margin-top: 11px;
   }
-  #banner-layanan-topupid .topupid-banner-inner::after {
-    content: "" !important;
-    position: absolute !important;
-    inset: 0 !important;
-    background: linear-gradient(115deg, transparent 0%, transparent 36%, rgba(255,255,255,.12) 49%, transparent 62%, transparent 100%) !important;
-    transform: translateX(-125%) !important;
-    animation: v71BannerShine 7s ease-in-out infinite !important;
-    pointer-events: none !important;
-    z-index: 3 !important;
+
+  .topupid-skeleton-line:nth-child(2) { width: 86%; }
+  .topupid-skeleton-line:nth-child(3) { width: 72%; }
+  .topupid-skeleton-line:nth-child(4) { width: 94%; }
+  .topupid-skeleton-line:nth-child(5) { width: 64%; }
+
+  .topupid-skeleton-row {
+    display: grid;
+    grid-template-columns: minmax(0,1fr) 120px;
+    gap: 16px;
+    align-items: start;
   }
-  img.v71-img-loading {
-    background: linear-gradient(90deg, rgba(255,255,255,.035), rgba(255,255,255,.11), rgba(255,255,255,.035)) !important;
-    background-size: 220% 100% !important;
-    animation: v71Skeleton 1.15s linear infinite !important;
+
+  .topupid-skeleton-box {
+    width: 120px;
+    height: 120px;
+    border-radius: 18px;
   }
-  img.v71-img-ready { animation: v71ImageReady .42s ease both !important; }
 
-  /* 17. Motion modes; full/reduced/none remain available from settings. */
-  html[data-motion="reduced"] .orbit,
-  html[data-motion="reduced"] .float-object,
-  html[data-motion="reduced"] #particleCanvas,
-  html[data-motion="reduced"] .energy-line { animation-duration: 12s !important; opacity: .55 !important; }
-  html[data-motion="none"] .orbit,
-  html[data-motion="none"] .float-object,
-  html[data-motion="none"] #particleCanvas,
-  html[data-motion="none"] .energy-line { display: none !important; }
-
-  /* 18. Consistent toast animation. */
-  .toast,
-  #toast {
-    border-color: rgba(var(--theme-rgb,56,189,248),.24) !important;
-    background: rgba(8,12,22,.96) !important;
-    box-shadow: 0 20px 70px rgba(0,0,0,.45), 0 0 0 1px rgba(var(--theme-rgb,56,189,248),.08) !important;
+  .topupid-skeleton-pill-row {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 18px;
   }
-  .toast.show,
-  #toast.show { animation: v71ToastIn .32s var(--v71-ease) both !important; }
 
-  /* 19. Tabs/product grid transition. */
-  .product-grid.v71-updating .product-card { animation: v71GridSwap .34s var(--v71-ease) both !important; }
-  .tab.active,
-  .tab:focus-visible { box-shadow: 0 14px 34px rgba(var(--theme-rgb,56,189,248),.22) !important; }
+  .topupid-skeleton-pill {
+    height: 36px;
+    border-radius: 16px;
+  }
 
-  /* 20. Trust badge subtle confidence motion. */
-  .trust-card.v71-in .feature b,
-  .badge-dot,
-  .pill,
-  .topupid-faq-badge { animation: v71TrustPulse 2.7s ease-in-out infinite !important; }
+  .topupid-submit-loading {
+    pointer-events: none;
+    opacity: .92;
+  }
 
-  @keyframes v71CardPick { 0% { transform: scale(1); } 42% { transform: scale(1.055); filter: brightness(1.12) saturate(1.12); } 100% { transform: scale(1); } }
-  @keyframes v71CheckoutFocus { 0% { box-shadow: 0 0 0 0 rgba(var(--theme-rgb,56,189,248),0); } 35% { box-shadow: 0 0 0 5px rgba(var(--theme-rgb,56,189,248),.16), 0 24px 70px rgba(var(--theme-rgb,56,189,248),.16); } 100% { box-shadow: 0 0 0 0 rgba(var(--theme-rgb,56,189,248),0); } }
-  @keyframes v71TextSwap { 0% { opacity: .38; transform: translateY(4px); } 100% { opacity: 1; transform: translateY(0); } }
-  @keyframes v71FaqOpen { 0% { opacity: 0; transform: translateY(-6px); } 100% { opacity: 1; transform: translateY(0); } }
-  @keyframes v71ArticleIn { 0% { opacity: 0; transform: translateY(22px) scale(.985); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
-  @keyframes v71ProgressSweep { 0% { transform: translateX(-120%); } 100% { transform: translateX(120%); } }
-  @keyframes v71CheckPop { 0% { transform: scale(.7); } 70% { transform: scale(1.12); } 100% { transform: scale(1); } }
-  @keyframes v71ModalIn { 0% { opacity: 0; transform: translateY(18px) scale(.985); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
-  @keyframes v71Shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 50% { transform: translateX(4px); } 75% { transform: translateX(-2px); } }
-  @keyframes v71MenuItemIn { 0% { opacity: 0; transform: translateY(12px) scale(.985); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
-  @keyframes v71BannerShine { 0%, 68%, 100% { transform: translateX(-125%); } 82% { transform: translateX(125%); } }
-  @keyframes v71Skeleton { 0% { background-position: 220% 0; } 100% { background-position: -220% 0; } }
-  @keyframes v71ImageReady { 0% { opacity: .55; filter: blur(3px); } 100% { opacity: 1; filter: blur(0); } }
-  @keyframes v71ToastIn { 0% { opacity: 0; transform: translateX(-50%) translateY(26px) scale(.985); } 100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); } }
-  @keyframes v71GridSwap { 0% { opacity: .45; transform: translateY(10px) scale(.985); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
-  @keyframes v71TrustPulse { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.24); } }
+  .topupid-submit-loading::after {
+    content: "";
+    width: 16px;
+    height: 16px;
+    margin-left: 3px;
+    border-radius: 50%;
+    border: 2px solid rgba(2,6,23,.35);
+    border-top-color: var(--dark);
+    animation: topupidV70MiniSpin 760ms linear infinite;
+  }
+
+  .topupid-soft-attention {
+    animation: topupidV70SoftAttention 900ms var(--v70-ease-soft) both;
+  }
+
+  @keyframes topupidV70Press {
+    0% { transform: scale(1); }
+    44% { transform: scale(.965); }
+    100% { transform: scale(1); }
+  }
+
+  @keyframes topupidV70Ripple {
+    0% { opacity: .86; transform: translate(-50%, -50%) scale(.25); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(15); }
+  }
+
+  @keyframes topupidV70FieldShake {
+    0%, 100% { transform: translateX(0); }
+    22% { transform: translateX(-5px); }
+    45% { transform: translateX(4px); }
+    66% { transform: translateX(-3px); }
+    82% { transform: translateX(2px); }
+  }
+
+  @keyframes topupidV70SummaryPulse {
+    0% { transform: translateY(0) scale(1); text-shadow: none; }
+    42% { transform: translateY(-3px) scale(1.035); text-shadow: 0 0 18px rgba(56,189,248,.42); }
+    100% { transform: translateY(0) scale(1); text-shadow: none; }
+  }
+
+  @keyframes topupidV70ResultArrive {
+    0% { opacity: .12; transform: translateY(16px) scale(.985); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  @keyframes topupidV70CheckPop {
+    0% { transform: scale(.2) rotate(-18deg); opacity: 0; }
+    70% { transform: scale(1.14) rotate(4deg); opacity: 1; }
+    100% { transform: scale(1) rotate(0); opacity: 1; }
+  }
+
+  @keyframes topupidV70TimelineSweep {
+    0%, 62%, 100% { transform: translateX(0); opacity: 0; }
+    74% { opacity: .92; }
+    92% { transform: translateX(350%); opacity: 0; }
+  }
+
+  @keyframes topupidV70MenuIn {
+    0% { opacity: 0; transform: translateY(-10px) scale(.982); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  @keyframes topupidV70MenuItemIn {
+    0% { opacity: 0; transform: translateY(-7px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes topupidV70FaqOpen {
+    0% { opacity: 0; transform: translateY(-6px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes topupidV70SkeletonSweep {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  @keyframes topupidV70SkeletonBg {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  @keyframes topupidV70MiniSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes topupidV70SoftAttention {
+    0% { box-shadow: inherit; }
+    36% { box-shadow: 0 0 0 4px rgba(56,189,248,.13), 0 0 34px rgba(56,189,248,.18); }
+    100% { box-shadow: inherit; }
+  }
+
+  html[data-motion="reduced"] .topupid-pressed,
+  html[data-motion="reduced"] .topupid-ripple,
+  html[data-motion="reduced"] .topupid-field-empty,
+  html[data-motion="reduced"] .topupid-summary-pulse,
+  html[data-motion="reduced"] .topupid-result-arrive,
+  html[data-motion="reduced"] .topupid-menu-visible,
+  html[data-motion="reduced"] #mobileMenu[style*="block"],
+  html[data-motion="reduced"] .topupid-menu-visible a,
+  html[data-motion="reduced"] #mobileMenu[style*="block"] a,
+  html[data-motion="reduced"] .topupid-faq-item[open] > p,
+  html[data-motion="reduced"] .topupid-skeleton-card::before,
+  html[data-motion="reduced"] .topupid-skeleton-head,
+  html[data-motion="reduced"] .topupid-skeleton-line,
+  html[data-motion="reduced"] .topupid-skeleton-pill,
+  html[data-motion="reduced"] .topupid-skeleton-box,
+  html[data-motion="reduced"] .topupid-submit-loading::after,
+  html[data-motion="reduced"] .topupid-soft-attention {
+    animation: none !important;
+    transition: none !important;
+  }
 
   @media (prefers-reduced-motion: reduce) {
-    .topupid-article-card,
-    .trust-card,
-    .step-card,
-    .smart-panel { opacity: 1 !important; transform: none !important; }
+    .topupid-pressed,
+    .topupid-ripple,
+    .topupid-field-empty,
+    .topupid-summary-pulse,
+    .topupid-result-arrive,
+    .topupid-menu-visible,
+    #mobileMenu[style*="block"],
+    .topupid-menu-visible a,
+    #mobileMenu[style*="block"] a,
+    .topupid-faq-item[open] > p,
+    .topupid-skeleton-card::before,
+    .topupid-skeleton-head,
+    .topupid-skeleton-line,
+    .topupid-skeleton-pill,
+    .topupid-skeleton-box,
+    .topupid-submit-loading::after,
+    .topupid-soft-attention {
+      animation: none !important;
+      transition: none !important;
+    }
   }
-  html[data-motion="reduced"] .topupid-article-card,
-  html[data-motion="reduced"] .trust-card,
-  html[data-motion="reduced"] .step-card,
-  html[data-motion="reduced"] .smart-panel,
-  html[data-motion="none"] .topupid-article-card,
-  html[data-motion="none"] .trust-card,
-  html[data-motion="none"] .step-card,
-  html[data-motion="none"] .smart-panel { opacity: 1 !important; transform: none !important; animation: none !important; }
+
+  @media (max-width: 620px) {
+    .topupid-skeleton-row { grid-template-columns: 1fr; }
+    .topupid-skeleton-box { width: 100%; height: 86px; }
+    .topupid-skeleton-pill-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
 </style>
 
-<script id="topupid-v71-animation-suite-black-lock">
+<script id="topupid-v70-safe-animation-skeleton-script">
 (function(){
   "use strict";
-  if (window.__topupidV71Installed) return;
-  window.__topupidV71Installed = true;
 
+  var PATCH_ID = "V70 safe animation completeness + skeleton loading";
   var root = document.documentElement;
-  var lastLanguage = root.getAttribute("data-language") || root.lang || "id";
-  var lastTheme = root.getAttribute("data-effective-theme") || root.getAttribute("data-theme") || "dark";
-  var SELECTED_LABEL = {
-    id: "Dipilih", en: "Selected", zh: "已选择", ja: "選択中", ko: "선택됨", ar: "محدد", es: "Elegido", fr: "Sélectionné"
-  };
-  function qs(sel, scope){ return (scope || document).querySelector(sel); }
-  function qsa(sel, scope){ return Array.prototype.slice.call((scope || document).querySelectorAll(sel)); }
-  function lang(){ var l=(root.getAttribute("data-language") || root.lang || "id").toLowerCase().split("-")[0]; return SELECTED_LABEL[l] ? l : "id"; }
-  function selectedLabel(){ return SELECTED_LABEL[lang()] || SELECTED_LABEL.id; }
-  function toast(msg){ try { if (typeof window.showToast === "function") window.showToast(msg); else { var t=qs("#toast,.toast"); if(t){ t.textContent=msg; t.classList.add("show"); clearTimeout(window.__v71Toast); window.__v71Toast=setTimeout(function(){ t.classList.remove("show"); },2400); } } } catch(_){} }
-  function currentProductId(){ var s=qs("#productSelect"); return s && s.value ? s.value : ""; }
+  var doc = document;
 
-  function lockBlackBackground(){
-    try {
-      root.style.setProperty("--bg", "#000000");
-      root.style.setProperty("--bg-soft", "#000000");
-      root.style.setProperty("--dark", "#000000");
-      var meta = qs('meta[name="theme-color"]');
-      if (meta) meta.setAttribute("content", "#000000");
-    } catch(_) {}
+  function qs(selector, parent){ return (parent || doc).querySelector(selector); }
+  function qsa(selector, parent){ return Array.prototype.slice.call((parent || doc).querySelectorAll(selector)); }
+  function isReducedMotion(){ return root.getAttribute("data-motion") === "reduced" || window.matchMedia("(prefers-reduced-motion: reduce)").matches; }
+  function softToast(message){ if (typeof window.showToast === "function") window.showToast(message); }
+
+  function addClassOnce(el, cls, duration){
+    if (!el) return;
+    el.classList.remove(cls);
+    void el.offsetWidth;
+    el.classList.add(cls);
+    window.setTimeout(function(){ if (el) el.classList.remove(cls); }, duration || 650);
   }
 
-  function updateSelectedVisuals(productId){
-    try {
-      productId = productId || currentProductId();
-      var label = selectedLabel();
-      qsa(".fan-card-html,.carousel-card,.product-card").forEach(function(el){
-        var id = el.getAttribute("data-fan-id") || el.getAttribute("data-carousel-id") || el.getAttribute("data-id") || el.getAttribute("data-order");
-        var selected = !!productId && id === productId;
-        el.classList.toggle("is-selected", selected);
-        if (selected) el.setAttribute("data-selected-label", label);
-      });
-    } catch(_) {}
-  }
-
-  function pulseCheckout(){
-    try {
-      var nodes = [qs("#checkout"), qs("#orderForm"), qs(".checkout-grid"), qs("#checkout .panel")].filter(Boolean);
-      nodes.forEach(function(el){
-        el.classList.remove("v71-focus");
-        void el.offsetWidth;
-        el.classList.add("v71-focus");
-        setTimeout(function(){ el.classList.remove("v71-focus"); }, 1250);
-      });
-    } catch(_) {}
-  }
-
-  function bindProductFeedback(){
-    document.addEventListener("click", function(e){
-      var target = e.target && e.target.closest && e.target.closest(".fan-card-html,.carousel-card,.product-card,[data-order],[data-quick-product]");
-      if (!target) return;
-      target.classList.remove("v71-clicked");
-      void target.offsetWidth;
-      target.classList.add("v71-clicked");
-      setTimeout(function(){ target.classList.remove("v71-clicked"); }, 720);
-      setTimeout(function(){ updateSelectedVisuals(); pulseCheckout(); }, 80);
-    }, true);
-
-    ["#productSelect", "#categorySelect", "#nominalGrid"].forEach(function(sel){
-      var el = qs(sel);
-      if (!el || el.__v71ProductFeedback) return;
-      el.__v71ProductFeedback = true;
-      ["change", "click", "input"].forEach(function(evt){ el.addEventListener(evt, function(){ setTimeout(updateSelectedVisuals, 50); }, {passive:true}); });
-    });
-    setInterval(updateSelectedVisuals, 2500);
-  }
-
-  function bindPressFeedback(){
-    document.addEventListener("pointerdown", function(e){
-      var btn = e.target && e.target.closest && e.target.closest("button,.btn,.small-btn,.tab,.choice,.du-card");
-      if (!btn) return;
-      btn.classList.add("v71-pressed");
-    }, {passive:true});
-    ["pointerup","pointercancel","pointerleave"].forEach(function(evt){
-      document.addEventListener(evt, function(e){
-        var btn = e.target && e.target.closest && e.target.closest("button,.btn,.small-btn,.tab,.choice,.du-card");
-        if (btn) btn.classList.remove("v71-pressed");
-      }, {passive:true});
+  function installButtonMicroInteractions(){
+    var selector = ".btn, .small-btn, .round-btn, .tab, .nominal, .product-action, .fan-arrow-html, .theme-choice, .mobile-cinematic-primary, .real-mobile-primary, .sticky-mobile-checkout a, .topupid-support-card, .du-card";
+    qsa(selector).forEach(function(el){
+      if (el.dataset.v70MotionReady === "1") return;
+      el.dataset.v70MotionReady = "1";
+      el.addEventListener("pointerdown", function(event){
+        if (isReducedMotion()) return;
+        addClassOnce(el, "topupid-pressed", 260);
+        var rect = el.getBoundingClientRect();
+        var ripple = doc.createElement("span");
+        ripple.className = "topupid-ripple";
+        ripple.setAttribute("aria-hidden", "true");
+        ripple.style.setProperty("--ripple-x", (event.clientX - rect.left) + "px");
+        ripple.style.setProperty("--ripple-y", (event.clientY - rect.top) + "px");
+        el.appendChild(ripple);
+        window.setTimeout(function(){ if (ripple && ripple.parentNode) ripple.parentNode.removeChild(ripple); }, 680);
+      }, { passive: true });
     });
   }
 
-  function bindLanguageThemeTransitions(){
-    try {
-      var obs = new MutationObserver(function(records){
-        var langChanged = false, themeChanged = false;
-        records.forEach(function(r){
-          if (r.attributeName === "data-language" || r.attributeName === "lang") {
-            var now = root.getAttribute("data-language") || root.lang || "id";
-            if (now !== lastLanguage) { langChanged = true; lastLanguage = now; }
-          }
-          if (r.attributeName === "data-effective-theme" || r.attributeName === "data-theme" || r.attributeName === "data-theme-mode" || r.attributeName === "style") {
-            var th = root.getAttribute("data-effective-theme") || root.getAttribute("data-theme") || "dark";
-            if (th !== lastTheme || r.attributeName === "style") { themeChanged = true; lastTheme = th; }
-          }
-        });
-        if (langChanged) {
-          root.classList.add("v71-language-switching");
-          setTimeout(function(){ root.classList.remove("v71-language-switching"); updateSelectedVisuals(); }, 360);
-        }
-        if (themeChanged) {
-          root.classList.add("v71-theme-switching");
-          lockBlackBackground();
-          setTimeout(function(){ root.classList.remove("v71-theme-switching"); }, 340);
-        }
-      });
-      obs.observe(root, { attributes:true, attributeFilter:["data-language","lang","data-effective-theme","data-theme","data-theme-mode","style"] });
-    } catch(_) {}
-  }
-
-  function enhanceFaqAccordion(){
-    qsa(".topupid-faq-item").forEach(function(item){
-      if (item.__v71Faq) return;
-      item.__v71Faq = true;
-      item.addEventListener("toggle", function(){
-        if (!item.open) return;
-        qsa(".topupid-faq-item").forEach(function(other){ if (other !== item) other.open = false; });
+  function wrapCheckoutFields(){
+    qsa("#orderForm label").forEach(function(label){
+      if (label.dataset.v70FieldWrapReady === "1") return;
+      var field = qs("input:not([type='hidden']), select", label);
+      if (!field) return;
+      label.dataset.v70FieldWrapReady = "1";
+      label.classList.add("topupid-field-wrap");
+      ["input", "change", "blur"].forEach(function(type){
+        field.addEventListener(type, function(){ validateSingleField(field, false); }, { passive: true });
       });
     });
   }
 
-  function installRevealStagger(){
-    var targets = qsa(".topupid-article-card,.trust-card,.step-card,.smart-panel");
-    if (!targets.length) return;
-    if (!("IntersectionObserver" in window)) { targets.forEach(function(el){ el.classList.add("v71-in"); }); return; }
-    var io = new IntersectionObserver(function(entries){
-      entries.forEach(function(entry){
-        if (entry.isIntersecting) {
-          entry.target.classList.add("v71-in");
-          io.unobserve(entry.target);
-        }
-      });
-    }, { threshold:.12, rootMargin:"0px 0px -6% 0px" });
-    targets.forEach(function(el, i){ el.style.animationDelay = Math.min(i * 28, 180) + "ms"; io.observe(el); });
+  function validateSingleField(field, urgent){
+    if (!field || field.type === "hidden") return true;
+    var value = String(field.value || "").trim();
+    var valid = !!value;
+    field.classList.toggle("topupid-field-ok", valid);
+    if (!valid && urgent) addClassOnce(field, "topupid-field-empty", 420);
+    if (valid) field.classList.remove("topupid-field-empty");
+    return valid;
   }
 
-  function updateTimeline(){
-    qsa(".timeline").forEach(function(timeline){
-      var steps = qsa(".timeline-step", timeline);
-      var active = -1;
-      steps.forEach(function(step, idx){ if (step.classList.contains("done")) active = idx; });
-      if (active < 0 && steps.length) active = 0;
-      steps.forEach(function(step, idx){ step.classList.toggle("is-active", idx === active || (active < 0 && idx === 0)); });
-    });
-    qsa(".loader-step").forEach(function(step){
-      step.classList.toggle("is-active", !step.classList.contains("done"));
-    });
-  }
-
-  function installValidationAnimation(){
-    var form = qs("#orderForm");
-    if (!form || form.__v71Validation) return;
-    form.__v71Validation = true;
-    form.addEventListener("submit", function(){
-      setTimeout(function(){
-        var fields = [qs("#categorySelect"), qs("#productSelect"), qs("#customerInput"), qs("#paymentSelect")].filter(Boolean);
-        fields.forEach(function(field){
-          var empty = !String(field.value || "").trim();
-          field.classList.toggle("v71-invalid", empty);
-        });
-        var nom = qs("#nominalGrid");
-        if (nom) nom.classList.toggle("v71-invalid", !String((qs("#nominalValue")||{}).value || "").trim());
-        setTimeout(function(){ qsa(".v71-invalid").forEach(function(el){ el.classList.remove("v71-invalid"); }); }, 1500);
-      }, 20);
-    }, true);
-    qsa("input,select").forEach(function(field){
-      if (field.__v71ClearInvalid) return;
-      field.__v71ClearInvalid = true;
-      ["input","change"].forEach(function(evt){ field.addEventListener(evt, function(){ field.classList.remove("v71-invalid"); }, {passive:true}); });
-    });
-  }
-
-  function enhanceMenuSearch(){
-    qsa(".du-search input").forEach(function(input){
-      if (input.__v71Search) return;
-      input.__v71Search = true;
-      input.addEventListener("input", function(){
-        var q = String(input.value || "").trim().toLowerCase();
-        var menu = input.closest("#mobileMenu") || document;
-        qsa(".du-card", menu).forEach(function(card){
-          var hit = !q || card.textContent.toLowerCase().indexOf(q) >= 0;
-          card.classList.toggle("v71-filter-hidden", !hit);
-        });
-      }, {passive:true});
-    });
-  }
-
-  function installImageSkeletons(){
-    qsa("img").forEach(function(img){
-      if (img.__v71Skeleton) return;
-      img.__v71Skeleton = true;
-      try { img.decoding = "async"; if (!img.loading) img.loading = "lazy"; } catch(_) {}
-      if (!img.complete) img.classList.add("v71-img-loading");
-      img.addEventListener("load", function(){
-        img.classList.remove("v71-img-loading");
-        img.classList.add("v71-img-ready");
-      }, {once:true});
-      img.addEventListener("error", function(){ img.classList.remove("v71-img-loading"); }, {once:true});
-    });
-  }
-
-  function installBannerParallax(){
-    var banner = qs("#banner-layanan-topupid .topupid-banner-full-image") || qs("#banner-layanan-topupid .topupid-banner-inner");
-    if (!banner || banner.__v71Parallax) return;
-    banner.__v71Parallax = true;
-    var ticking = false;
-    function update(){
-      ticking = false;
-      if (root.getAttribute("data-motion") === "none") return;
-      var rect = banner.getBoundingClientRect();
-      var center = rect.top + rect.height / 2 - window.innerHeight / 2;
-      var y = Math.max(-10, Math.min(10, center * -0.018));
-      banner.style.setProperty("--v71-banner-y", y.toFixed(2) + "px");
-      if (banner.tagName === "IMG") banner.style.transform = "translateY(" + y.toFixed(2) + "px) scale(1.012)";
+  function validateCheckoutSoft(){
+    var fields = qsa("#categorySelect, #productSelect, #customerInput, #paymentSelect");
+    var ok = true;
+    fields.forEach(function(field){ if (!validateSingleField(field, true)) ok = false; });
+    var nominal = qs("#nominalValue");
+    if (nominal && !String(nominal.value || "").trim()) {
+      ok = false;
+      var grid = qs("#nominalGrid");
+      if (grid) addClassOnce(grid, "topupid-soft-attention", 900);
     }
-    window.addEventListener("scroll", function(){ if (!ticking) { ticking=true; requestAnimationFrame(update); } }, {passive:true});
-    update();
+    return ok;
   }
 
-  function enhanceTabsGrid(){
-    var grid = qs("#productGrid");
-    if (!grid) return;
-    qsa("#tabs .tab").forEach(function(tab){
-      if (tab.__v71Tabs) return;
-      tab.__v71Tabs = true;
-      tab.addEventListener("click", function(){
-        grid.classList.add("v71-updating");
-        setTimeout(function(){ grid.classList.remove("v71-updating"); updateSelectedVisuals(); }, 460);
-      }, {passive:true});
+  function installSummaryPulse(){
+    var targets = qsa("#sumCategory, #sumProduct, #sumCustomer, #sumPayment, #sumTotal");
+    targets.forEach(function(el){
+      if (el.dataset.v70PulseReady === "1") return;
+      el.dataset.v70PulseReady = "1";
+      var last = el.textContent;
+      try {
+        var obs = new MutationObserver(function(){
+          var now = el.textContent;
+          if (now !== last) {
+            last = now;
+            if (!isReducedMotion()) addClassOnce(el, "topupid-summary-pulse", 560);
+          }
+        });
+        obs.observe(el, { childList: true, characterData: true, subtree: true });
+      } catch (_) {}
     });
   }
 
-  function watchDynamicDom(){
-    try {
-      var mo = new MutationObserver(function(){
-        installImageSkeletons();
-        enhanceFaqAccordion();
-        enhanceMenuSearch();
-        updateSelectedVisuals();
-        updateTimeline();
-      });
-      mo.observe(document.body, { childList:true, subtree:true });
-    } catch(_) {}
+  function skeletonMarkup(titleText){
+    var title = titleText || "Memuat data transaksi";
+    return '' +
+      '<div class="topupid-skeleton-card" role="status" aria-live="polite" aria-label="' + title.replace(/"/g, '&quot;') + '">' +
+        '<div class="topupid-skeleton-row">' +
+          '<div>' +
+            '<div class="topupid-skeleton-head"></div>' +
+            '<div class="topupid-skeleton-line"></div>' +
+            '<div class="topupid-skeleton-line"></div>' +
+            '<div class="topupid-skeleton-line"></div>' +
+            '<div class="topupid-skeleton-line"></div>' +
+          '</div>' +
+          '<div class="topupid-skeleton-box"></div>' +
+        '</div>' +
+        '<div class="topupid-skeleton-pill-row">' +
+          '<div class="topupid-skeleton-pill"></div>' +
+          '<div class="topupid-skeleton-pill"></div>' +
+          '<div class="topupid-skeleton-pill"></div>' +
+          '<div class="topupid-skeleton-pill"></div>' +
+        '</div>' +
+      '</div>';
   }
 
-  function boot(){
-    lockBlackBackground();
-    bindProductFeedback();
-    bindPressFeedback();
-    bindLanguageThemeTransitions();
-    enhanceFaqAccordion();
-    installRevealStagger();
-    updateTimeline();
-    installValidationAnimation();
-    enhanceMenuSearch();
-    installImageSkeletons();
-    installBannerParallax();
-    enhanceTabsGrid();
-    watchDynamicDom();
-    updateSelectedVisuals();
-    window.__topupidV71Notice = "V71: full animation suite 1-20 and black background lock applied. Protected endpoints and core systems unchanged.";
+  function showInvoiceSkeleton(label){
+    var result = qs("#invoiceResult");
+    if (!result) return;
+    result.classList.add("topupid-loading-zone");
+    result.style.display = "block";
+    result.setAttribute("aria-busy", "true");
+    result.innerHTML = skeletonMarkup(label || "Memeriksa invoice");
   }
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot, {once:true});
-  else boot();
-  window.addEventListener("load", function(){ lockBlackBackground(); installImageSkeletons(); updateSelectedVisuals(); updateTimeline(); }, {passive:true});
-  [180, 600, 1400, 3000].forEach(function(ms){ setTimeout(function(){ lockBlackBackground(); updateSelectedVisuals(); updateTimeline(); }, ms); });
+
+  function markInvoiceResultArrive(){
+    var result = qs("#invoiceResult");
+    if (!result) return;
+    result.setAttribute("aria-busy", "false");
+    addClassOnce(result, "topupid-result-arrive", 620);
+    var card = qs(".invoice-card", result);
+    if (card) addClassOnce(card, "topupid-result-arrive", 620);
+  }
+
+  function wrapInvoiceCheckerWithSkeleton(){
+    if (window.__topupidV70CheckWrapped === true) return;
+    if (typeof window.checkInvoice !== "function") return;
+    var originalCheckInvoice = window.checkInvoice;
+    window.checkInvoice = function(codeParam){
+      var input = qs("#invoiceInput");
+      var code = typeof codeParam === "string" ? codeParam : (input ? input.value.trim() : "");
+      if (!code) return originalCheckInvoice.apply(this, arguments);
+      showInvoiceSkeleton("Memeriksa status invoice");
+      window.setTimeout(function(){
+        try { originalCheckInvoice.apply(window, [codeParam]); }
+        finally { markInvoiceResultArrive(); }
+      }, isReducedMotion() ? 20 : 420);
+    };
+    window.__topupidV70CheckWrapped = true;
+  }
+
+  function wrapTransactionAnimation(){
+    if (window.__topupidV70TransactionWrapped === true) return;
+    if (typeof window.runTransactionAnimation !== "function") return;
+    var originalRun = window.runTransactionAnimation;
+    window.runTransactionAnimation = async function(){
+      var submit = qs("#orderForm .submit-btn");
+      if (submit) {
+        submit.classList.add("topupid-submit-loading");
+        submit.setAttribute("aria-busy", "true");
+      }
+      try { return await originalRun.apply(this, arguments); }
+      finally {
+        if (submit) {
+          submit.classList.remove("topupid-submit-loading");
+          submit.setAttribute("aria-busy", "false");
+        }
+      }
+    };
+    window.__topupidV70TransactionWrapped = true;
+  }
+
+  function syncSubmitLoading(active){
+    var submit = qs("#orderForm .submit-btn");
+    if (!submit) return;
+    submit.classList.toggle("topupid-submit-loading", !!active);
+    submit.setAttribute("aria-busy", active ? "true" : "false");
+  }
+
+  function installCheckoutSubmitPrecheck(){
+    var form = qs("#orderForm");
+    if (!form || form.dataset.v70SubmitReady === "1") return;
+    form.dataset.v70SubmitReady = "1";
+    form.addEventListener("submit", function(){
+      var looksReady = validateCheckoutSoft();
+      if (looksReady) {
+        syncSubmitLoading(true);
+        window.setTimeout(function(){
+          var modal = qs("#transactionModal");
+          if (!modal || !modal.classList.contains("show")) syncSubmitLoading(false);
+        }, 900);
+      }
+    }, true);
+  }
+
+  function watchTransactionModal(){
+    var modal = qs("#transactionModal");
+    if (!modal || modal.dataset.v70ModalWatch === "1") return;
+    modal.dataset.v70ModalWatch = "1";
+    try {
+      var obs = new MutationObserver(function(){
+        if (!modal.classList.contains("show")) syncSubmitLoading(false);
+      });
+      obs.observe(modal, { attributes: true, attributeFilter: ["class", "aria-hidden"] });
+    } catch (_) {}
+  }
+
+  function enhanceMobileMenuMotion(){
+    var menu = qs("#mobileMenu");
+    if (!menu || menu.dataset.v70MenuReady === "1") return;
+    menu.dataset.v70MenuReady = "1";
+    qsa("a", menu).forEach(function(a, index){ a.style.setProperty("--v70-menu-index", index); });
+    function sync(){
+      var visible = menu.style.display === "block" || window.getComputedStyle(menu).display !== "none";
+      menu.classList.toggle("topupid-menu-visible", visible);
+    }
+    sync();
+    try {
+      var obs = new MutationObserver(sync);
+      obs.observe(menu, { attributes: true, attributeFilter: ["style", "class"] });
+    } catch (_) {}
+  }
+
+  function installNavActiveIndicator(){
+    var links = qsa(".nav-links a[href^='#']");
+    if (!links.length) return;
+    var pairs = links.map(function(link){
+      var id = link.getAttribute("href");
+      if (!id || id === "#") return null;
+      var section = qs(id);
+      return section ? { link: link, section: section } : null;
+    }).filter(Boolean);
+    if (!pairs.length) return;
+    function syncActive(){
+      var middle = window.scrollY + Math.min(window.innerHeight * .42, 360);
+      var active = pairs[0];
+      pairs.forEach(function(pair){
+        if (pair.section.offsetTop <= middle) active = pair;
+      });
+      pairs.forEach(function(pair){ pair.link.classList.toggle("topupid-nav-active", pair === active); });
+    }
+    syncActive();
+    window.addEventListener("scroll", syncActive, { passive: true });
+    window.addEventListener("resize", syncActive, { passive: true });
+  }
+
+  function enhanceFaqMotion(){
+    qsa(".topupid-faq-item").forEach(function(item){
+      if (item.dataset.v70FaqReady === "1") return;
+      item.dataset.v70FaqReady = "1";
+      item.addEventListener("toggle", function(){
+        if (item.open && !isReducedMotion()) addClassOnce(item, "topupid-soft-attention", 740);
+      }, { passive: true });
+    });
+  }
+
+  function installMutationRefresh(){
+    if (window.__topupidV70RefreshObserver === true) return;
+    try {
+      var obs = new MutationObserver(function(mutations){
+        var shouldRefresh = false;
+        mutations.forEach(function(m){
+          if (m.addedNodes && m.addedNodes.length) shouldRefresh = true;
+        });
+        if (!shouldRefresh) return;
+        window.requestAnimationFrame(function(){
+          installButtonMicroInteractions();
+          wrapCheckoutFields();
+          installSummaryPulse();
+          enhanceFaqMotion();
+        });
+      });
+      obs.observe(doc.body, { childList: true, subtree: true });
+      window.__topupidV70RefreshObserver = true;
+    } catch (_) {}
+  }
+
+  function bootV70(){
+    installButtonMicroInteractions();
+    wrapCheckoutFields();
+    installSummaryPulse();
+    wrapInvoiceCheckerWithSkeleton();
+    wrapTransactionAnimation();
+    installCheckoutSubmitPrecheck();
+    watchTransactionModal();
+    enhanceMobileMenuMotion();
+    installNavActiveIndicator();
+    enhanceFaqMotion();
+    installMutationRefresh();
+    window.__topupidV70Notice = PATCH_ID + ". Visual/UI only; protected systems and image elements untouched.";
+  }
+
+  if (doc.readyState === "loading") doc.addEventListener("DOMContentLoaded", bootV70, { once: true });
+  else bootV70();
+  window.addEventListener("load", bootV70, { passive: true });
+  [160, 520, 1200, 2400].forEach(function(ms){ window.setTimeout(bootV70, ms); });
 })();
 </script>
 
