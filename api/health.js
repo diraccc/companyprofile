@@ -15650,3 +15650,564 @@ function diracV105SafeError(error) {
   const message = String(error && error.message || error || 'unknown').replace(/password|token|secret|authorization|cookie/ig, '[redacted]').slice(0, 220);
   return { code, message };
 }
+
+/* ============================================================
+   DIRAC ULTRA GLOBAL HARD BAN v106 - APPEND ONLY
+   Fokus perbaikan v106:
+   - Screenshot production menunjukkan row global-ban sudah dibuat,
+     tetapi blocked_until_ms masih 0. Itu berarti log sudah masuk,
+     namun hard-ban aktif belum tertulis pada kolom utama.
+   - v106 memaksa active hard-ban memakai prefix baru global-ban-active:*
+     dan legacy global-ban:* sekaligus.
+   - Setiap write melakukan UPSERT lalu PATCH ulang blocked_until_ms,
+     kemudian READ-BACK untuk memastikan blocked_until_ms benar-benar
+     masa depan.
+   - Tidak mengubah endpoint, login/hash, A2F/MFA, payment gateway,
+     email template, checkout, order, dashboard, parfum, atau alur lama.
+   ============================================================ */
+
+const DIRAC_ULTRA_GLOBAL_HARD_BAN_PATCH_V106 = 'dirac-ultra-global-hard-ban-v106';
+const __diracV106PreviousHandler = module.exports;
+const DIRAC_ULTRA_GLOBAL_HARD_BAN_STORE_V106 = globalThis.__DIRAC_ULTRA_GLOBAL_HARD_BAN_STORE_V106__ || new Map();
+globalThis.__DIRAC_ULTRA_GLOBAL_HARD_BAN_STORE_V106__ = DIRAC_ULTRA_GLOBAL_HARD_BAN_STORE_V106;
+
+module.exports = async function diracUltraGlobalHardBanWrapperV106(req, res) {
+  try { if (res && typeof res.setHeader === 'function') res.setHeader('X-Dirac-Global-Hard-Ban-Patch-V106', DIRAC_ULTRA_GLOBAL_HARD_BAN_PATCH_V106); } catch (_) {}
+
+  const method = String((req && req.method) || 'GET').toUpperCase();
+  const action = diracV106NormalizeAction(String((req && req.query && req.query.action) || ''));
+
+  try {
+    if (!diracV106ShouldSkip(req, action, method)) {
+      const existing = await diracV106CheckActiveHardBan(req).catch(() => ({ blocked: false }));
+      if (existing && existing.blocked) {
+        try { res.setHeader('Retry-After', String(existing.retryAfterSeconds || 86400)); } catch (_) {}
+        try { res.setHeader('X-Dirac-V106-Blocked-By', String(existing.source || 'global').slice(0, 80)); } catch (_) {}
+        return diracV106BlockedResponse(res, 'existing_global_hard_ban');
+      }
+
+      const threat = diracV106DetectThreat(req, action, method);
+      if (threat && threat.detected) {
+        const write = await diracV106RegisterActiveHardBan(req, res, action, method, threat).catch((error) => {
+          try { console.error('[dirac-v106-hard-ban-write-failed]', diracV106SafeError(error)); } catch (_) {}
+          return { ok: false, verified: false, wrote: 0, total: 0 };
+        });
+        try { res.setHeader('X-Dirac-V106-Hard-Ban-Write', write && write.ok ? 'active' : 'memory-only'); } catch (_) {}
+        try { res.setHeader('X-Dirac-V106-Hard-Ban-Verified', write && write.verified ? 'yes' : 'no'); } catch (_) {}
+        return diracV106BlockedResponse(res, threat.kind || 'security_threat');
+      }
+    }
+  } catch (error) {
+    try { console.error('[dirac-v106-hard-ban]', diracV106SafeError(error)); } catch (_) {}
+    return diracV106BlockedResponse(res, 'security_guard_error');
+  }
+
+  return __diracV106PreviousHandler(req, res);
+};
+
+function diracV106NormalizeAction(action) {
+  try { if (typeof normalizeDomainAction === 'function') return normalizeDomainAction(action); } catch (_) {}
+  try { if (typeof diracV105NormalizeAction === 'function') return diracV105NormalizeAction(action); } catch (_) {}
+  return String(action || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+}
+
+function diracV106ShouldSkip(req, action, method) {
+  if (diracV106EnvTrue('DIRAC_GLOBAL_HARD_BAN_DISABLED')) return true;
+  if (String(method || '').toUpperCase() === 'OPTIONS') return true;
+  const normalized = diracV106NormalizeAction(action);
+  if (/webhook|callback|notification|midtrans|ipaymu|payment_gateway|payment_notification/i.test(normalized)) return true;
+  try { if (typeof diracV101IsWebhookAction === 'function' && diracV101IsWebhookAction(normalized)) return true; } catch (_) {}
+  try { if (typeof diracV105ShouldSkip === 'function' && diracV105ShouldSkip(req, normalized, method)) return true; } catch (_) {}
+  return false;
+}
+
+function diracV106DetectThreat(req, action, method) {
+  const headers = (req && req.headers) || {};
+  const ua = String(headers['user-agent'] || '');
+  if (/\b(?:sqlmap|havij|acunetix|nikto|nuclei|nessus|openvas|ffuf|gobuster|dirbuster|burp\s*suite|portswigger|w3af|commix|arachni|skipfish|appscan|webinspect)\b/i.test(ua)) {
+    return { detected: true, kind: 'scanner_user_agent', source: 'user_agent', risk: 'critical' };
+  }
+
+  const samples = [];
+  samples.push(String((req && req.url) || ''));
+  samples.push(String(action || ''));
+  samples.push(String(method || ''));
+  samples.push(String(headers['referer'] || headers['referrer'] || ''));
+  samples.push(String(headers['origin'] || ''));
+  samples.push(String(headers['x-forwarded-host'] || ''));
+  samples.push(String(headers['host'] || ''));
+
+  if (req && req.query && typeof req.query === 'object') {
+    for (const [key, value] of Object.entries(req.query)) {
+      samples.push(String(key || ''));
+      if (Array.isArray(value)) value.forEach((item) => samples.push(String(item || '')));
+      else samples.push(String(value || ''));
+    }
+  }
+
+  try {
+    if (typeof diracV105FindSqlThreat === 'function') {
+      const found = diracV105FindSqlThreat(samples, 'request_surface');
+      if (found && found.detected) return found;
+    }
+  } catch (_) {}
+
+  return diracV106FindSqlThreat(samples, 'request_surface');
+}
+
+function diracV106FindSqlThreat(values, source) {
+  const patterns = [
+    ['union_select', /\bunion\s+(?:all\s+)?select\b/i],
+    ['boolean_or_true', /(?:^|[\s'"`)(])or\s+1\s*=\s*1(?:$|[\s'"`)(-])/i],
+    ['boolean_and_true', /(?:^|[\s'"`)(])and\s+1\s*=\s*1(?:$|[\s'"`)(-])/i],
+    ['quoted_boolean', /['"`]\s*(?:or|and)\s+['"`]?[a-z0-9_]+['"`]?\s*=\s*['"`]?[a-z0-9_]+/i],
+    ['time_based_sleep', /\b(?:pg_sleep|sleep|benchmark)\s*\(/i],
+    ['mssql_delay', /\bwaitfor\s+delay\b/i],
+    ['schema_probe', /\b(?:information_schema|pg_catalog|sqlite_master|mysql\.user|sysobjects|syscolumns)\b/i],
+    ['stacked_statement', /;\s*(?:select|insert|update|delete|drop|alter|truncate|create|grant|revoke|copy|execute)\b/i],
+    ['dangerous_sql_function', /\b(?:load_file|into\s+outfile|xp_cmdshell|utl_http|dbms_pipe|extractvalue|updatexml)\b/i],
+    ['sql_comment', /(?:--\s?|#\s?|\/\*|\*\/)/i],
+    ['sqlmap_marker', /\b(?:sqlmap|sqlmapoutput|sqlmapproject)\b/i]
+  ];
+  for (const raw of values || []) {
+    for (const sample of diracV106InspectionSamples(raw)) {
+      const clipped = String(sample || '').slice(0, 2000);
+      if (!clipped) continue;
+      for (const [kind, pattern] of patterns) {
+        if (pattern.test(clipped)) return { detected: true, kind, source, risk: 'critical' };
+      }
+    }
+  }
+  return { detected: false };
+}
+
+function diracV106InspectionSamples(value) {
+  const raw = String(value || '');
+  if (!raw) return [];
+  const out = new Set();
+  const add = (item) => {
+    const text = String(item || '').slice(0, 2000);
+    if (!text) return;
+    out.add(text);
+    out.add(text.toLowerCase());
+    out.add(text.replace(/\+/g, ' '));
+    out.add(text.replace(/\+/g, ' ').toLowerCase());
+  };
+  add(raw);
+  let current = raw;
+  for (let i = 0; i < 5; i += 1) {
+    try {
+      const decoded = decodeURIComponent(current);
+      add(decoded);
+      if (decoded === current) break;
+      current = decoded;
+    } catch (_) { break; }
+  }
+  return Array.from(out);
+}
+
+async function diracV106RegisterActiveHardBan(req, res, action, method, threat) {
+  const now = Date.now();
+  const years = Math.max(1, Math.min(25, Number(process.env.DIRAC_SQLMAP_BLOCK_YEARS || process.env.DIRAC_GLOBAL_HARD_BAN_YEARS || 10)));
+  const blockMs = years * 365 * 24 * 60 * 60 * 1000;
+  const blockedUntilMs = now + blockMs;
+  const ttlSeconds = Math.ceil(blockMs / 1000);
+
+  let cookieValue = diracV106ReadCookies(req)[diracV106CookieName()] || '';
+  if (!cookieValue) {
+    cookieValue = diracV106CreateBlockCookieValue(req, now);
+    diracV106SetBlockCookie(res, cookieValue, ttlSeconds);
+  }
+
+  const keys = diracV106BanKeys(req, { forcedCookieValue: cookieValue, includeCookie: true, includeSession: true, includeDevice: true, includeSubnet: true });
+  const headers = (req && req.headers) || {};
+  const recordBase = {
+    event_type: 'global_hard_ban_active',
+    patch: DIRAC_ULTRA_GLOBAL_HARD_BAN_PATCH_V106,
+    status: 'blocked',
+    risk_level: String((threat && threat.risk) || 'critical').slice(0, 40),
+    threat_kind: String((threat && threat.kind) || 'unknown').slice(0, 80),
+    threat_source: String((threat && threat.source) || 'unknown').slice(0, 80),
+    action: String(action || '').slice(0, 80),
+    method: String(method || '').toUpperCase().slice(0, 10),
+    ip_hash: diracV106Fingerprint(diracV106RequestIp(req)),
+    user_agent_hash: diracV106Fingerprint(String(headers['user-agent'] || '').slice(0, 240)),
+    blockedUntilMs,
+    blocked_until_ms: blockedUntilMs,
+    expires_at_ms: blockedUntilMs,
+    server_time: new Date(now).toISOString()
+  };
+
+  let wrote = 0;
+  let verified = 0;
+  for (const item of keys) {
+    if (!item || !item.key) continue;
+    const record = { ...recordBase, block_key_type: item.type || 'global' };
+    DIRAC_ULTRA_GLOBAL_HARD_BAN_STORE_V106.set(item.key, { blockedUntilMs, updatedAtMs: now, source: item.type || 'global' });
+    try { if (typeof DIRAC_ULTRA_GLOBAL_HARD_BAN_STORE_V105 !== 'undefined') DIRAC_ULTRA_GLOBAL_HARD_BAN_STORE_V105.set(item.key.replace('global-ban-active:', 'global-ban:'), { blockedUntilMs, updatedAtMs: now, source: item.type || 'global' }); } catch (_) {}
+    const ok = await diracV106PersistentWriteAndVerify(item.key, record, blockedUntilMs, ttlSeconds).catch((error) => {
+      try { console.error('[dirac-v106-write-verify-error]', diracV106SafeError(error)); } catch (_) {}
+      return false;
+    });
+    if (ok) { wrote += 1; verified += 1; }
+  }
+  return { ok: wrote > 0, verified: verified > 0, wrote, total: keys.length };
+}
+
+async function diracV106CheckActiveHardBan(req) {
+  const now = Date.now();
+  const keys = diracV106BanKeys(req, { includeCookie: true, includeSession: true, includeDevice: true, includeSubnet: true });
+  for (const item of keys) {
+    const key = item && item.key;
+    if (!key) continue;
+    const mem = DIRAC_ULTRA_GLOBAL_HARD_BAN_STORE_V106.get(key) || null;
+    if (mem && Number(mem.blockedUntilMs || 0) > now) {
+      return { blocked: true, source: item.type || 'memory', retryAfterSeconds: Math.max(1, Math.ceil((Number(mem.blockedUntilMs || 0) - now) / 1000)) };
+    }
+    const row = await diracV106PersistentRead(key).catch(() => null);
+    const blockedUntilMs = Number(row && (row.blocked_until_ms || row.record_json && (row.record_json.blockedUntilMs || row.record_json.blocked_until_ms || row.record_json.expires_at_ms)) || 0);
+    if (blockedUntilMs > now) {
+      DIRAC_ULTRA_GLOBAL_HARD_BAN_STORE_V106.set(key, { blockedUntilMs, updatedAtMs: now, source: item.type || 'persistent' });
+      return { blocked: true, source: item.type || 'persistent', retryAfterSeconds: Math.max(1, Math.ceil((blockedUntilMs - now) / 1000)) };
+    }
+  }
+  return { blocked: false };
+}
+
+async function diracV106PersistentWriteAndVerify(securityKey, record, blockedUntilMs, ttlSeconds) {
+  const table = String(process.env.LOGIN_SECURITY_PERSIST_TABLE || process.env.DOMAIN_LOGIN_RATE_TABLE || 'dirac_security_rate_limits').trim();
+  if (!table || !securityKey) return false;
+
+  await diracV106PersistentUpsertDirect(securityKey, record, blockedUntilMs, ttlSeconds).catch((error) => {
+    try { console.error('[dirac-v106-direct-upsert-error]', diracV106SafeError(error)); } catch (_) {}
+    return false;
+  });
+  await diracV106PersistentPatchDirect(securityKey, record, blockedUntilMs, ttlSeconds).catch((error) => {
+    try { console.error('[dirac-v106-direct-patch-error]', diracV106SafeError(error)); } catch (_) {}
+    return false;
+  });
+
+  if (typeof supabaseFetch === 'function') {
+    await diracV106PersistentUpsertViaSupabaseFetch(securityKey, record, blockedUntilMs, ttlSeconds).catch((error) => {
+      try { console.error('[dirac-v106-supabaseFetch-upsert-error]', diracV106SafeError(error)); } catch (_) {}
+      return false;
+    });
+    await diracV106PersistentPatchViaSupabaseFetch(securityKey, record, blockedUntilMs, ttlSeconds).catch((error) => {
+      try { console.error('[dirac-v106-supabaseFetch-patch-error]', diracV106SafeError(error)); } catch (_) {}
+      return false;
+    });
+  }
+
+  if (typeof writePersistentSecurityJson === 'function') {
+    await writePersistentSecurityJson(String(securityKey), record && typeof record === 'object' ? record : {}, Number(blockedUntilMs || 0), Number(ttlSeconds || 60)).catch(() => false);
+  }
+
+  const row = await diracV106PersistentRead(securityKey).catch(() => null);
+  const readBackMs = Number(row && (row.blocked_until_ms || row.record_json && (row.record_json.blockedUntilMs || row.record_json.blocked_until_ms || row.record_json.expires_at_ms)) || 0);
+  return readBackMs > Date.now();
+}
+
+function diracV106Payload(securityKey, record, blockedUntilMs, ttlSeconds) {
+  const now = Date.now();
+  return [{
+    security_key: String(securityKey),
+    record_json: record && typeof record === 'object' ? record : {},
+    blocked_until_ms: Number(blockedUntilMs || 0),
+    updated_at: new Date(now).toISOString(),
+    expires_at: new Date(now + Math.max(60, Number(ttlSeconds || 60)) * 1000).toISOString()
+  }];
+}
+
+function diracV106PatchBody(record, blockedUntilMs, ttlSeconds) {
+  const now = Date.now();
+  return {
+    record_json: record && typeof record === 'object' ? record : {},
+    blocked_until_ms: Number(blockedUntilMs || 0),
+    updated_at: new Date(now).toISOString(),
+    expires_at: new Date(now + Math.max(60, Number(ttlSeconds || 60)) * 1000).toISOString()
+  };
+}
+
+async function diracV106PersistentUpsertViaSupabaseFetch(securityKey, record, blockedUntilMs, ttlSeconds) {
+  const table = String(process.env.LOGIN_SECURITY_PERSIST_TABLE || process.env.DOMAIN_LOGIN_RATE_TABLE || 'dirac_security_rate_limits').trim();
+  const result = await supabaseFetch('/rest/v1/' + encodeURIComponent(table) + '?on_conflict=security_key', {
+    method: 'POST',
+    auth: 'service',
+    prefer: 'resolution=merge-duplicates,return=minimal',
+    body: diracV106Payload(securityKey, record, blockedUntilMs, ttlSeconds)
+  });
+  return !!(result && result.ok);
+}
+
+async function diracV106PersistentPatchViaSupabaseFetch(securityKey, record, blockedUntilMs, ttlSeconds) {
+  const table = String(process.env.LOGIN_SECURITY_PERSIST_TABLE || process.env.DOMAIN_LOGIN_RATE_TABLE || 'dirac_security_rate_limits').trim();
+  const result = await supabaseFetch('/rest/v1/' + encodeURIComponent(table) + '?security_key=eq.' + encodeURIComponent(securityKey), {
+    method: 'PATCH',
+    auth: 'service',
+    prefer: 'return=minimal',
+    body: diracV106PatchBody(record, blockedUntilMs, ttlSeconds)
+  });
+  return !!(result && result.ok);
+}
+
+async function diracV106PersistentUpsertDirect(securityKey, record, blockedUntilMs, ttlSeconds) {
+  const table = String(process.env.LOGIN_SECURITY_PERSIST_TABLE || process.env.DOMAIN_LOGIN_RATE_TABLE || 'dirac_security_rate_limits').trim();
+  const { urls, serviceKeys } = diracV106SupabaseDirectConfig();
+  if (!table || !urls.length || !serviceKeys.length || typeof fetch !== 'function') return false;
+  const payload = diracV106Payload(securityKey, record, blockedUntilMs, ttlSeconds);
+  let ok = false;
+  for (const supabaseUrl of urls) {
+    for (const serviceKey of serviceKeys) {
+      const response = await fetch(supabaseUrl + '/rest/v1/' + encodeURIComponent(table) + '?on_conflict=security_key', {
+        method: 'POST',
+        headers: {
+          apikey: serviceKey,
+          Authorization: 'Bearer ' + serviceKey,
+          'Content-Type': 'application/json',
+          Prefer: 'resolution=merge-duplicates,return=minimal'
+        },
+        body: JSON.stringify(payload)
+      });
+      if (response.ok) ok = true;
+      else { try { console.error('[dirac-v106-direct-upsert-failed]', { status: response.status, table }); } catch (_) {} }
+    }
+  }
+  return ok;
+}
+
+async function diracV106PersistentPatchDirect(securityKey, record, blockedUntilMs, ttlSeconds) {
+  const table = String(process.env.LOGIN_SECURITY_PERSIST_TABLE || process.env.DOMAIN_LOGIN_RATE_TABLE || 'dirac_security_rate_limits').trim();
+  const { urls, serviceKeys } = diracV106SupabaseDirectConfig();
+  if (!table || !urls.length || !serviceKeys.length || typeof fetch !== 'function') return false;
+  const body = diracV106PatchBody(record, blockedUntilMs, ttlSeconds);
+  let ok = false;
+  for (const supabaseUrl of urls) {
+    for (const serviceKey of serviceKeys) {
+      const response = await fetch(supabaseUrl + '/rest/v1/' + encodeURIComponent(table) + '?security_key=eq.' + encodeURIComponent(securityKey), {
+        method: 'PATCH',
+        headers: {
+          apikey: serviceKey,
+          Authorization: 'Bearer ' + serviceKey,
+          'Content-Type': 'application/json',
+          Prefer: 'return=minimal'
+        },
+        body: JSON.stringify(body)
+      });
+      if (response.ok) ok = true;
+      else { try { console.error('[dirac-v106-direct-patch-failed]', { status: response.status, table }); } catch (_) {} }
+    }
+  }
+  return ok;
+}
+
+async function diracV106PersistentRead(securityKey) {
+  const direct = await diracV106PersistentReadDirect(securityKey).catch(() => null);
+  if (direct) return direct;
+  if (typeof supabaseFetch === 'function') {
+    const table = String(process.env.LOGIN_SECURITY_PERSIST_TABLE || process.env.DOMAIN_LOGIN_RATE_TABLE || 'dirac_security_rate_limits').trim();
+    const result = await supabaseFetch('/rest/v1/' + encodeURIComponent(table)
+      + '?select=security_key,record_json,blocked_until_ms,expires_at&security_key=eq.' + encodeURIComponent(securityKey)
+      + '&limit=1', { method: 'GET', auth: 'service' }).catch(() => null);
+    if (result && result.ok && Array.isArray(result.data) && result.data.length) return result.data[0] || null;
+  }
+  if (typeof readPersistentSecurityJson === 'function') {
+    const record = await readPersistentSecurityJson(String(securityKey)).catch(() => null);
+    if (record) return { security_key: securityKey, record_json: record, blocked_until_ms: Number(record.blockedUntilMs || record.blocked_until_ms || record.expires_at_ms || 0) };
+  }
+  return null;
+}
+
+async function diracV106PersistentReadDirect(securityKey) {
+  const table = String(process.env.LOGIN_SECURITY_PERSIST_TABLE || process.env.DOMAIN_LOGIN_RATE_TABLE || 'dirac_security_rate_limits').trim();
+  const { urls, serviceKeys } = diracV106SupabaseDirectConfig();
+  if (!table || !urls.length || !serviceKeys.length || typeof fetch !== 'function') return null;
+  for (const supabaseUrl of urls) {
+    for (const serviceKey of serviceKeys) {
+      const response = await fetch(supabaseUrl + '/rest/v1/' + encodeURIComponent(table)
+        + '?select=security_key,record_json,blocked_until_ms,expires_at&security_key=eq.' + encodeURIComponent(securityKey)
+        + '&limit=1', {
+        method: 'GET',
+        headers: {
+          apikey: serviceKey,
+          Authorization: 'Bearer ' + serviceKey,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (!response.ok) continue;
+      const data = await response.json().catch(() => null);
+      if (Array.isArray(data) && data.length) return data[0] || null;
+    }
+  }
+  return null;
+}
+
+function diracV106SupabaseDirectConfig() {
+  const urls = Array.from(new Set([
+    process.env.DOMAIN_SUPABASE_URL,
+    process.env.SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.VITE_SUPABASE_URL
+  ].map((item) => String(item || '').replace(/\/$/, '')).filter(Boolean)));
+  const serviceKeys = Array.from(new Set([
+    process.env.DOMAIN_SUPABASE_SERVICE_ROLE_KEY,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    process.env.SUPABASE_SERVICE_KEY
+  ].map((item) => String(item || '').trim()).filter(Boolean)));
+  return { urls, serviceKeys };
+}
+
+function diracV106BanKeys(req, options = {}) {
+  const headers = (req && req.headers) || {};
+  const ip = diracV106RequestIp(req);
+  const ua = String(headers['user-agent'] || '').slice(0, 240);
+  const cookies = diracV106ReadCookies(req);
+  const keys = [];
+  const add = (prefix, type, raw) => {
+    const value = String(raw || '').trim();
+    if (!value || value === 'unknown') return;
+    keys.push({ type, key: prefix + ':' + type + ':' + diracV106Fingerprint(value) });
+  };
+
+  // Prefix baru active dipakai untuk memastikan tidak bentrok dengan row v104/v105 yang pernah bernilai 0.
+  add('global-ban-active', 'ip', 'ip|' + ip);
+  add('global-ban', 'ip', 'ip|' + ip);
+
+  const securityCookie = String(options.forcedCookieValue || cookies[diracV106CookieName()] || '').slice(0, 500);
+  if (options.includeCookie && securityCookie) {
+    add('global-ban-active', 'cookie', 'cookie|' + securityCookie);
+    add('global-ban', 'cookie', 'cookie|' + securityCookie);
+  }
+
+  if (options.includeSession) {
+    const sessionParts = [];
+    for (const name of diracV106SessionCookieNames()) {
+      if (name && cookies[name]) sessionParts.push(name + '=' + String(cookies[name]).slice(0, 300));
+    }
+    if (sessionParts.length) {
+      add('global-ban-active', 'session', 'session|' + sessionParts.join('|'));
+      add('global-ban', 'session', 'session|' + sessionParts.join('|'));
+    }
+  }
+
+  if (options.includeDevice && !diracV106EnvTrue('DIRAC_GLOBAL_HARD_BAN_DEVICE_FINGERPRINT_DISABLED')) {
+    const deviceRaw = [
+      ua,
+      String(headers['accept-language'] || '').slice(0, 120),
+      String(headers['sec-ch-ua'] || '').slice(0, 200),
+      String(headers['sec-ch-ua-platform'] || '').slice(0, 80),
+      String(headers['accept'] || '').slice(0, 200)
+    ].join('|');
+    add('global-ban-active', 'device_fp', 'device|' + deviceRaw);
+    add('global-ban', 'device_fp', 'device|' + deviceRaw);
+  }
+
+  if (/\b(?:sqlmap|havij|acunetix|nikto|nuclei|nessus|openvas|ffuf|gobuster|dirbuster|burp\s*suite|portswigger)\b/i.test(ua)) {
+    add('global-ban-active', 'scanner_ua', 'scanner_ua|' + ua.toLowerCase());
+    add('global-ban', 'scanner_ua', 'scanner_ua|' + ua.toLowerCase());
+  }
+
+  if (options.includeSubnet && diracV106EnvTrue('DIRAC_GLOBAL_HARD_BAN_IPV4_24')) {
+    const prefix24 = diracV106Ipv4Prefix24(ip);
+    if (prefix24) {
+      add('global-ban-active', 'ipv4_24', 'ipv4_24|' + prefix24);
+      add('global-ban', 'ipv4_24', 'ipv4_24|' + prefix24);
+    }
+  }
+
+  const seen = new Set();
+  return keys.filter((item) => {
+    if (!item || !item.key || seen.has(item.key)) return false;
+    seen.add(item.key);
+    return true;
+  });
+}
+
+function diracV106BlockedResponse(res, reason) {
+  try { if (res && typeof res.setHeader === 'function') res.setHeader('X-Dirac-Block-Reason', String(reason || 'blocked').slice(0, 80)); } catch (_) {}
+  return res.status(403).json({
+    ok: false,
+    code: 'GLOBAL_ACCESS_BLOCKED',
+    message: 'Akses dibatasi oleh sistem keamanan.'
+  });
+}
+
+function diracV106RequestIp(req) {
+  try { if (typeof diracV105RequestIp === 'function') return diracV105RequestIp(req); } catch (_) {}
+  try { if (typeof diracV104RequestIp === 'function') return diracV104RequestIp(req); } catch (_) {}
+  const headers = (req && req.headers) || {};
+  const cf = String(headers['cf-connecting-ip'] || '').trim();
+  if (cf) return cf;
+  const forwarded = String(headers['x-forwarded-for'] || '').split(',')[0].trim();
+  return forwarded || String(headers['x-real-ip'] || req && req.socket && req.socket.remoteAddress || '').trim() || 'unknown';
+}
+
+function diracV106ReadCookies(req) {
+  try { if (typeof diracV105ReadCookies === 'function') return diracV105ReadCookies(req); } catch (_) {}
+  const header = String(req && req.headers && req.headers.cookie || '');
+  const out = {};
+  header.split(';').forEach((part) => {
+    const idx = part.indexOf('=');
+    if (idx <= 0) return;
+    const name = part.slice(0, idx).trim();
+    const value = part.slice(idx + 1).trim();
+    if (name) out[name] = decodeURIComponent(value || '');
+  });
+  return out;
+}
+
+function diracV106CookieName() {
+  return String(process.env.DIRAC_GLOBAL_HARD_BAN_COOKIE || '__dirac_security_fp');
+}
+
+function diracV106CreateBlockCookieValue(req, now) {
+  const raw = [diracV106RequestIp(req), String(req && req.headers && req.headers['user-agent'] || ''), String(now || Date.now()), Math.random().toString(36).slice(2)].join('|');
+  return 'DGSEC-' + diracV106Fingerprint(raw).slice(0, 40);
+}
+
+function diracV106SetBlockCookie(res, value, ttlSeconds) {
+  try {
+    if (!res || typeof res.setHeader !== 'function') return;
+    const cookie = diracV106CookieName() + '=' + encodeURIComponent(String(value || '').slice(0, 120))
+      + '; Path=/; Max-Age=' + Math.max(60, Number(ttlSeconds || 60))
+      + '; HttpOnly; Secure; SameSite=Lax';
+    const current = res.getHeader && res.getHeader('Set-Cookie');
+    if (Array.isArray(current)) res.setHeader('Set-Cookie', [...current, cookie]);
+    else if (current) res.setHeader('Set-Cookie', [current, cookie]);
+    else res.setHeader('Set-Cookie', cookie);
+  } catch (_) {}
+}
+
+function diracV106SessionCookieNames() {
+  return [
+    String(process.env.DOMAIN_SESSION_COOKIE || 'dirac_domain_session'),
+    String(process.env.DOMAIN_REFRESH_COOKIE || 'dirac_domain_refresh'),
+    String(process.env.CUSTOMER_MFA_COOKIE || process.env.DIRAC_CUSTOMER_MFA_COOKIE || 'dirac_customer_mfa_session'),
+    String(process.env.DOMAIN_SIGNED_SESSION_COOKIE || 'dirac_domain_signed_session')
+  ].filter(Boolean);
+}
+
+function diracV106Fingerprint(value) {
+  const secret = String(process.env.DIRAC_SECURITY_HMAC_SECRET || process.env.LOGIN_SECURITY_HMAC_SECRET || process.env.AI_ADMIN_SECRET || process.env.DOMAIN_SUPABASE_SERVICE_ROLE_KEY || 'dirac-v106-fallback-secret');
+  try { return crypto.createHmac('sha256', secret).update(String(value || '')).digest('hex'); } catch (_) {}
+  try { return crypto.createHash('sha256').update(secret + '|' + String(value || '')).digest('hex'); } catch (_) {}
+  return String(value || '').slice(0, 64);
+}
+
+function diracV106Ipv4Prefix24(ip) {
+  const value = String(ip || '').trim();
+  if (!/^\d{1,3}(?:\.\d{1,3}){3}$/.test(value)) return '';
+  const parts = value.split('.').map((part) => Number(part));
+  if (parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) return '';
+  return parts.slice(0, 3).join('.') + '.0/24';
+}
+
+function diracV106EnvTrue(name) {
+  try { if (typeof isEnvTrue === 'function') return isEnvTrue(name); } catch (_) {}
+  return /^(1|true|yes|on)$/i.test(String(process.env[name] || '').trim());
+}
+
+function diracV106SafeError(error) {
+  const code = String(error && error.code || '').slice(0, 80);
+  const message = String(error && error.message || error || 'unknown').replace(/password|token|secret|authorization|cookie/ig, '[redacted]').slice(0, 220);
+  return { code, message };
+}
