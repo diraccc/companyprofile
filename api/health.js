@@ -8,6 +8,8 @@ const DIRAC_COOKIE_SESSION_PATCH = 'cookie-signed-session-v16';
 const DEFAULT_ALLOWED_ORIGINS = [
   'https://diracgroup.store',
   'https://www.diracgroup.store',
+  'https://diracgroup.id',
+  'https://www.diracgroup.id',
   'https://companyprofilee-ochre.vercel.app',
   'https://companyprofilee-expk.vercel.app'
 ];
@@ -172,7 +174,11 @@ function setCors(req, res, options = {}) {
   res.setHeader('Access-Control-Max-Age', '600');
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  return { allowed: noOrigin || !!allowedOrigin };
+
+  // STRICT ORIGIN ALLOWLIST v1:
+  // Request tanpa Origin tidak lagi diterima. Browser/API harus berasal dari
+  // origin resmi yang ada di DEFAULT_ALLOWED_ORIGINS / env allowlist.
+  return { allowed: !!allowedOrigin, noOrigin: noOrigin };
 }
 
 function getAllowedOrigins() {
