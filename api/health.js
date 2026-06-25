@@ -13421,3 +13421,531 @@ try {
     };
   }
 } catch (_) {}
+
+/* ============================================================
+   DIRAC ULTRA SQLMAP / SQLI GLOBAL GUARD v101 - APPEND ONLY
+   Tujuan:
+   - Tidak mengubah endpoint/action yang sudah ada.
+   - Tidak mengubah hash password/login Supabase, payment gateway, email template,
+     A2F/MFA existing, cookie helper, atau logika bisnis existing.
+   - Memperluas guard SQL injection/sqlmap ke query, URL, header scanner,
+     dan body ter-parse yang aman diinspeksi.
+   - Menulis blokir/audit ke tabel persistent yang sama melalui
+     LOGIN_SECURITY_PERSIST_TABLE=dirac_security_rate_limits.
+   - Service-role guard hanya memvalidasi path Supabase yang jelas berbahaya
+     dan membatasi tabel service-role ke allowlist internal/ENV.
+   ============================================================ */
+
+const DIRAC_ULTRA_SQLMAP_GUARD_PATCH = 'dirac-ultra-sqlmap-guard-v101';
+const __diracUltraSqlmapGuardPreviousHandler = module.exports;
+const DIRAC_ULTRA_SQLMAP_MEMORY_STORE = globalThis.__DIRAC_ULTRA_SQLMAP_MEMORY_STORE__ || new Map();
+globalThis.__DIRAC_ULTRA_SQLMAP_MEMORY_STORE__ = DIRAC_ULTRA_SQLMAP_MEMORY_STORE;
+
+module.exports = async function diracUltraSqlmapGuardWrapper(req, res) {
+  try { diracV101InstallGenericErrorInterceptor(res, req); } catch (_) {}
+
+  const action = diracV101NormalizeAction(String((req && req.query && req.query.action) || ''));
+  const method = String((req && req.method) || 'GET').toUpperCase();
+
+  try {
+    const existingBlock = await diracV101CheckPersistentSqlmapBlock(req, action, method).catch(() => ({ ok: true }));
+    if (existingBlock && existingBlock.blocked) {
+      try { res.setHeader('Retry-After', String(existingBlock.retryAfterSeconds || 86400)); } catch (_) {}
+      return res.status(403).json({
+        ok: false,
+        code: 'REQUEST_BLOCKED',
+        message: 'Permintaan ditolak oleh sistem keamanan.'
+      });
+    }
+
+    const threat = diracV101DetectRequestThreat(req, action, method);
+    if (threat.detected) {
+      await diracV101RegisterSqlmapAttack(req, action, method, threat).catch(() => null);
+      return res.status(threat.status || 403).json({
+        ok: false,
+        code: 'REQUEST_BLOCKED',
+        message: 'Permintaan ditolak oleh sistem keamanan.'
+      });
+    }
+  } catch (error) {
+    console.error('[dirac-ultra-sqlmap-guard-preflight]', diracV101SafeError(error));
+    return res.status(403).json({
+      ok: false,
+      code: 'REQUEST_BLOCKED',
+      message: 'Permintaan ditolak oleh sistem keamanan.'
+    });
+  }
+
+  return __diracUltraSqlmapGuardPreviousHandler(req, res);
+};
+
+function diracV101NormalizeAction(action) {
+  try {
+    if (typeof diracUltraNormalizeAction === 'function') return diracUltraNormalizeAction(action);
+  } catch (_) {}
+  return String(action || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+}
+
+function diracV101DetectRequestThreat(req, action, method) {
+  if (isEnvTrue('DIRAC_SQLMAP_GUARD_DISABLED')) return { detected: false };
+  if (String(method || '').toUpperCase() === 'OPTIONS') return { detected: false };
+
+  const headers = (req && req.headers) || {};
+  const userAgent = String(headers['user-agent'] || '').slice(0, 400);
+  const scanner = diracV101DetectScannerFingerprint(userAgent);
+  if (scanner.detected) return scanner;
+
+  const samples = [];
+  samples.push(String((req && req.url) || ''));
+  samples.push(String(action || ''));
+  if (req && req.query && typeof req.query === 'object') {
+    for (const [key, value] of Object.entries(req.query)) {
+      samples.push(String(key || ''));
+      if (Array.isArray(value)) value.forEach((item) => samples.push(String(item || '')));
+      else samples.push(String(value || ''));
+    }
+  }
+
+  const queryThreat = diracV101FindSqlInjectionThreat(samples, { source: 'query_or_url' });
+  if (queryThreat.detected) return queryThreat;
+
+  const headerSamples = [
+    String(headers['x-forwarded-host'] || ''),
+    String(headers['host'] || ''),
+    String(headers['referer'] || headers['referrer'] || ''),
+    String(headers['origin'] || '')
+  ];
+  const headerThreat = diracV101FindSqlInjectionThreat(headerSamples, { source: 'headers' });
+  if (headerThreat.detected) return headerThreat;
+
+  return { detected: false };
+}
+
+function diracV101DetectScannerFingerprint(userAgent) {
+  const ua = String(userAgent || '').toLowerCase();
+  if (!ua) return { detected: false };
+  const patterns = [
+    /\bsqlmap\b/,
+    /\bhavij\b/,
+    /\bacunetix\b/,
+    /\bnetsparker\b/,
+    /\bnikto\b/,
+    /\bw3af\b/,
+    /\bnessus\b/,
+    /\bopenvas\b/,
+    /\bnuclei\b/,
+    /\bmasscan\b/,
+    /\bzgrab\b/,
+    /\bdirbuster\b/,
+    /\bdirb\b/,
+    /\bgobuster\b/,
+    /\bffuf\b/,
+    /\bwhatweb\b/,
+    /\bjaeles\b/,
+    /\bcommix\b/,
+    /\barachni\b/,
+    /\bskipfish\b/,
+    /\bappscan\b/,
+    /\bwebinspect\b/,
+    /\bburp\s*suite\b/,
+    /\bportswigger\b/,
+    /\bozap\b/,
+    /\bzap\s*scanner\b/
+  ];
+  if (patterns.some((pattern) => pattern.test(ua))) {
+    return { detected: true, kind: 'scanner_user_agent', source: 'user_agent', risk: 'critical', status: 403 };
+  }
+  return { detected: false };
+}
+
+function diracV101FindSqlInjectionThreat(values, meta = {}) {
+  const samples = [];
+  for (const value of values || []) {
+    const expanded = diracV101InspectionSamples(value);
+    for (const sample of expanded) samples.push(sample);
+  }
+
+  const patterns = [
+    { kind: 'union_select', pattern: /\bunion\s+(?:all\s+)?select\b/i },
+    { kind: 'boolean_or_true', pattern: /(?:^|[\s'"`)(])or\s+1\s*=\s*1(?:$|[\s'"`)(])/i },
+    { kind: 'boolean_and_true', pattern: /(?:^|[\s'"`)(])and\s+1\s*=\s*1(?:$|[\s'"`)(])/i },
+    { kind: 'quoted_boolean', pattern: /['"`]\s*(?:or|and)\s+['"`]?[a-z0-9_]+['"`]?\s*=\s*['"`]?[a-z0-9_]+/i },
+    { kind: 'time_based_sleep', pattern: /\b(?:pg_sleep|sleep|benchmark)\s*\(/i },
+    { kind: 'mssql_delay', pattern: /\bwaitfor\s+delay\b/i },
+    { kind: 'schema_probe', pattern: /\b(?:information_schema|pg_catalog|sqlite_master|mysql\.user|sysobjects|syscolumns)\b/i },
+    { kind: 'stacked_statement', pattern: /;\s*(?:select|insert|update|delete|drop|alter|truncate|create|grant|revoke|copy|execute)\b/i },
+    { kind: 'dangerous_sql_function', pattern: /\b(?:load_file|into\s+outfile|xp_cmdshell|utl_http|dbms_pipe|extractvalue|updatexml)\b/i },
+    { kind: 'sql_comment', pattern: /(?:--\s|#\s|\/\*|\*\/)/i },
+    { kind: 'admin_comment_bypass', pattern: /admin\s*['"`]\s*(?:--|#|\/\*)/i },
+    { kind: 'sqlmap_marker', pattern: /\b(?:sqlmap|sqlmapoutput|sqlmapproject)\b/i }
+  ];
+
+  for (const sample of samples) {
+    const clipped = String(sample || '').slice(0, 2000);
+    if (!clipped) continue;
+    for (const item of patterns) {
+      if (item.pattern.test(clipped)) {
+        return {
+          detected: true,
+          kind: item.kind,
+          source: meta.source || 'input',
+          risk: item.kind === 'sql_comment' ? 'high' : 'critical',
+          status: 403
+        };
+      }
+    }
+  }
+
+  return { detected: false };
+}
+
+function diracV101InspectionSamples(value) {
+  const raw = String(value || '');
+  if (!raw) return [];
+  const samples = new Set();
+  const push = (item) => {
+    const text = String(item || '').slice(0, 2000);
+    if (!text) return;
+    samples.add(text);
+    samples.add(text.toLowerCase());
+    samples.add(text.replace(/\+/g, ' '));
+    samples.add(text.replace(/\+/g, ' ').toLowerCase());
+  };
+  push(raw);
+  let current = raw;
+  for (let i = 0; i < 3; i += 1) {
+    try {
+      const decoded = decodeURIComponent(current);
+      push(decoded);
+      if (decoded === current) break;
+      current = decoded;
+    } catch (_) {
+      break;
+    }
+  }
+  return Array.from(samples);
+}
+
+function diracV101ShouldInspectParsedBody(req, action) {
+  if (isEnvTrue('DIRAC_SQLMAP_BODY_GUARD_DISABLED')) return false;
+  const method = String((req && req.method) || '').toUpperCase();
+  if (!['POST', 'PUT', 'PATCH'].includes(method)) return false;
+  const normalized = diracV101NormalizeAction(action || String((req && req.query && req.query.action) || ''));
+  if (diracV101IsWebhookAction(normalized)) return false;
+  if (/passkey|recovery|mfa|a2f|otp|payment_webhook|callback|notification/.test(normalized)) return false;
+  return true;
+}
+
+function diracV101IsWebhookAction(action) {
+  try { if (typeof diracUltraIsWebhookAction === 'function') return diracUltraIsWebhookAction(action); } catch (_) {}
+  return /webhook|callback|notification/.test(String(action || '').toLowerCase());
+}
+
+function diracV101CollectInspectableBodyStrings(value, out = [], depth = 0, parentKey = '') {
+  if (out.length >= 80 || depth > 6 || value === null || value === undefined) return out;
+  const key = String(parentKey || '').toLowerCase();
+  if (/password|passwd|pwd|token|secret|otp|code|recovery|cookie|authorization|signature|challenge|credential|clientdata|attestation|assertion|proof|mfa|a2f|pin/i.test(key)) {
+    return out;
+  }
+
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    const text = String(value || '').trim();
+    if (text && text.length <= 2000) out.push(text);
+    return out;
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value.slice(0, 40)) diracV101CollectInspectableBodyStrings(item, out, depth + 1, parentKey);
+    return out;
+  }
+
+  if (typeof value === 'object') {
+    for (const [k, v] of Object.entries(value).slice(0, 80)) {
+      out.push(String(k || '').slice(0, 200));
+      diracV101CollectInspectableBodyStrings(v, out, depth + 1, k);
+    }
+  }
+  return out;
+}
+
+function diracV101ThrowBlockedThreat(threat) {
+  const error = new Error('REQUEST_BLOCKED');
+  error.statusCode = Number(threat && threat.status) || 403;
+  error.status = error.statusCode;
+  error.code = 'REQUEST_BLOCKED';
+  error.publicMessage = 'Permintaan ditolak oleh sistem keamanan.';
+  error.diracSecurityThreat = threat || { detected: true };
+  throw error;
+}
+
+function diracV101SecurityHmacSecret() {
+  return String(
+    process.env.DIRAC_SECURITY_HMAC_SECRET ||
+    process.env.DIRAC_HMAC_SECRET ||
+    process.env.DOMAIN_SECURITY_HMAC_SECRET ||
+    process.env.DOMAIN_SESSION_SECRET ||
+    process.env.CUSTOMER_MFA_SECRET ||
+    process.env.AI_ADMIN_SECRET ||
+    ''
+  ).trim();
+}
+
+function diracV101Fingerprint(value) {
+  const secret = diracV101SecurityHmacSecret();
+  const raw = String(value || '');
+  if (secret) return crypto.createHmac('sha256', secret).update(raw).digest('hex');
+  if (typeof loginSecurityHash === 'function') return loginSecurityHash(raw);
+  return crypto.createHash('sha256').update(raw).digest('hex');
+}
+
+function diracV101RequestIp(req) {
+  try { if (typeof getLoginSecurityIp === 'function') return getLoginSecurityIp(req); } catch (_) {}
+  const headers = (req && req.headers) || {};
+  return String(headers['x-forwarded-for'] || headers['x-real-ip'] || req && req.socket && req.socket.remoteAddress || 'unknown').split(',')[0].trim() || 'unknown';
+}
+
+function diracV101SqlmapSecurityKey(req, action, method) {
+  const headers = (req && req.headers) || {};
+  const ua = String(headers['user-agent'] || '').slice(0, 240);
+  const ip = diracV101RequestIp(req);
+  return 'sqlmap-ban:' + diracV101Fingerprint(['v101', method || '', action || '', ip, ua].join('|'));
+}
+
+async function diracV101CheckPersistentSqlmapBlock(req, action, method) {
+  const key = diracV101SqlmapSecurityKey(req, action, method);
+  const now = Date.now();
+  const mem = DIRAC_ULTRA_SQLMAP_MEMORY_STORE.get(key) || null;
+  if (mem && Number(mem.blockedUntilMs || 0) > now) {
+    return { blocked: true, retryAfterSeconds: Math.max(1, Math.ceil((mem.blockedUntilMs - now) / 1000)) };
+  }
+  if (!LOGIN_SECURITY_PERSIST_TABLE || typeof readPersistentSecurityJson !== 'function') return { ok: true };
+  const persisted = await readPersistentSecurityJson(key).catch(() => null);
+  const blockedUntilMs = Number(persisted && (persisted.blockedUntilMs || persisted.blocked_until_ms) || 0);
+  if (blockedUntilMs > now) {
+    DIRAC_ULTRA_SQLMAP_MEMORY_STORE.set(key, { blockedUntilMs });
+    return { blocked: true, retryAfterSeconds: Math.max(1, Math.ceil((blockedUntilMs - now) / 1000)) };
+  }
+  return { ok: true };
+}
+
+async function diracV101RegisterSqlmapAttack(req, action, method, threat) {
+  const key = diracV101SqlmapSecurityKey(req, action, method);
+  const now = Date.now();
+  const years = Math.max(1, Number(process.env.DIRAC_SQLMAP_BLOCK_YEARS || 10));
+  const blockMs = Math.min(years, 25) * 365 * 24 * 60 * 60 * 1000;
+  const blockedUntilMs = now + blockMs;
+  DIRAC_ULTRA_SQLMAP_MEMORY_STORE.set(key, { blockedUntilMs, updatedAtMs: now });
+
+  if (!LOGIN_SECURITY_PERSIST_TABLE || typeof writePersistentSecurityJson !== 'function') return false;
+
+  const headers = (req && req.headers) || {};
+  const record = {
+    event_type: 'sqlmap_or_sqli_block',
+    patch: DIRAC_ULTRA_SQLMAP_GUARD_PATCH,
+    status: 'blocked',
+    risk_level: threat && threat.risk || 'critical',
+    threat_kind: threat && threat.kind || 'unknown',
+    threat_source: threat && threat.source || 'unknown',
+    action: String(action || '').slice(0, 80),
+    method: String(method || '').toUpperCase(),
+    ip_hash: diracV101Fingerprint(diracV101RequestIp(req)),
+    user_agent_hash: diracV101Fingerprint(String(headers['user-agent'] || '').slice(0, 240)),
+    blockedUntilMs,
+    blocked_until_ms: blockedUntilMs,
+    updated_at: new Date(now).toISOString()
+  };
+  return writePersistentSecurityJson(key, record, blockedUntilMs, Math.ceil(blockMs / 1000)).catch(() => false);
+}
+
+function diracV101SafeError(error) {
+  const code = String(error && error.code || '').slice(0, 80);
+  const message = String(error && error.message || error || 'unknown').replace(/password|token|secret|authorization|cookie/ig, '[redacted]').slice(0, 220);
+  return { code, message };
+}
+
+function diracV101InstallGenericErrorInterceptor(res, req) {
+  if (!res || typeof res.json !== 'function' || res.__diracV101GenericErrorInstalled) return;
+  const originalJson = res.json.bind(res);
+  const originalStatus = typeof res.status === 'function' ? res.status.bind(res) : null;
+  Object.defineProperty(res, '__diracV101GenericErrorInstalled', { value: true, enumerable: false });
+  Object.defineProperty(res, '__diracV101StatusCode', { value: 200, writable: true, enumerable: false });
+
+  if (originalStatus) {
+    res.status = function diracV101Status(code) {
+      try { res.__diracV101StatusCode = Number(code) || res.__diracV101StatusCode || 200; } catch (_) {}
+      return originalStatus(code);
+    };
+  }
+
+  res.json = function diracV101GenericJson(payload) {
+    try {
+      const status = Number(res.__diracV101StatusCode || res.statusCode || 200);
+      const action = diracV101NormalizeAction(String((req && req.query && req.query.action) || ''));
+      if (diracV101ShouldMakeErrorGeneric(payload, status, action)) {
+        return originalJson(diracV101GenericErrorPayload(payload, status));
+      }
+    } catch (_) {}
+    return originalJson(payload);
+  };
+}
+
+function diracV101ShouldMakeErrorGeneric(payload, status, action) {
+  if (!payload || typeof payload !== 'object') return false;
+  if (payload.ok !== false) return false;
+  if (status >= 500) return true;
+  const text = JSON.stringify(payload).slice(0, 3000);
+  if (/Supabase|PostgREST|SQLSTATE|PGRST|relation\s+\"|column\s+\"|schema|database|syntax error|violates|foreign key|duplicate key|JWT|service_role/i.test(text)) return true;
+  if (/payment|webhook|callback/.test(String(action || ''))) return false;
+  return false;
+}
+
+function diracV101GenericErrorPayload(payload, status) {
+  const original = payload && typeof payload === 'object' ? payload : {};
+  const out = {
+    ok: false,
+    code: status >= 500 ? 'REQUEST_FAILED' : 'REQUEST_INVALID',
+    message: status >= 500 ? 'Permintaan belum dapat diproses.' : 'Request tidak valid.'
+  };
+  if (original.retry_after_seconds !== undefined) out.retry_after_seconds = original.retry_after_seconds;
+  if (original.blocked_years !== undefined) out.blocked_years = original.blocked_years;
+  if (original.incident_code !== undefined) out.incident_code = original.incident_code;
+  return out;
+}
+
+// Body reader guard: inspeksi dilakukan setelah parser lama selesai agar stream request tidak dikonsumsi dua kali.
+try {
+  const __diracV101OriginalReadLimitedJsonBody = typeof readLimitedJsonBody === 'function' ? readLimitedJsonBody : null;
+  if (__diracV101OriginalReadLimitedJsonBody) {
+    readLimitedJsonBody = async function readLimitedJsonBodyV101Guarded(req, limitBytes) {
+      const body = await __diracV101OriginalReadLimitedJsonBody(req, limitBytes);
+      const action = diracV101NormalizeAction(String((req && req.query && req.query.action) || (body && body.action) || (body && body.mode) || ''));
+      if (diracV101ShouldInspectParsedBody(req, action)) {
+        const samples = diracV101CollectInspectableBodyStrings(body, [], 0, '');
+        const threat = diracV101FindSqlInjectionThreat(samples, { source: 'body' });
+        if (threat.detected) {
+          await diracV101RegisterSqlmapAttack(req, action, String((req && req.method) || 'POST').toUpperCase(), threat).catch(() => null);
+          diracV101ThrowBlockedThreat(threat);
+        }
+      }
+      return body;
+    };
+  }
+} catch (_) {}
+
+try {
+  const __diracV101OriginalReadBody = typeof readBody === 'function' ? readBody : null;
+  if (__diracV101OriginalReadBody) {
+    readBody = async function readBodyV101Guarded(req) {
+      const body = await __diracV101OriginalReadBody(req);
+      const action = diracV101NormalizeAction(String((req && req.query && req.query.action) || (body && body.action) || (body && body.mode) || ''));
+      if (diracV101ShouldInspectParsedBody(req, action)) {
+        const samples = diracV101CollectInspectableBodyStrings(body, [], 0, '');
+        const threat = diracV101FindSqlInjectionThreat(samples, { source: 'body' });
+        if (threat.detected) {
+          await diracV101RegisterSqlmapAttack(req, action, String((req && req.method) || 'POST').toUpperCase(), threat).catch(() => null);
+          diracV101ThrowBlockedThreat(threat);
+        }
+      }
+      return body;
+    };
+  }
+} catch (_) {}
+
+// Service-role hardening: validasi path Supabase tanpa mengubah endpoint/action public.
+try {
+  const __diracV101OriginalSupabaseFetch = typeof supabaseFetch === 'function' ? supabaseFetch : null;
+  if (__diracV101OriginalSupabaseFetch) {
+    supabaseFetch = async function supabaseFetchV101Guarded(path, options = {}) {
+      if (options && options.auth === 'service') {
+        const guard = diracV101ValidateServiceRoleSupabasePath(path, options);
+        if (!guard.ok) {
+          const error = new Error('SERVICE_ROLE_ACCESS_BLOCKED');
+          error.statusCode = 403;
+          error.code = guard.code || 'SERVICE_ROLE_ACCESS_BLOCKED';
+          throw error;
+        }
+      }
+      return __diracV101OriginalSupabaseFetch(path, options);
+    };
+  }
+} catch (_) {}
+
+function diracV101ValidateServiceRoleSupabasePath(path, options = {}) {
+  if (isEnvTrue('DIRAC_SERVICE_ROLE_GUARD_DISABLED')) return { ok: true };
+  const raw = String(path || '').trim();
+  if (!raw || /https?:\/\//i.test(raw) || /(?:\.\.|\\|\u0000)/.test(raw)) {
+    return { ok: false, code: 'SERVICE_ROLE_PATH_INVALID' };
+  }
+  if (diracV101FindSqlInjectionThreat([raw], { source: 'service_role_path' }).detected) {
+    return { ok: false, code: 'SERVICE_ROLE_PATH_REJECTED' };
+  }
+
+  const method = String(options.method || 'GET').toUpperCase();
+  if (!['GET', 'POST', 'PATCH', 'PUT', 'DELETE'].includes(method)) {
+    return { ok: false, code: 'SERVICE_ROLE_METHOD_REJECTED' };
+  }
+
+  if (raw.startsWith('/auth/v1/admin/users')) return { ok: true, scope: 'auth_admin_users' };
+  if (!raw.startsWith('/rest/v1/')) return { ok: false, code: 'SERVICE_ROLE_SCOPE_REJECTED' };
+
+  const tablePart = raw.slice('/rest/v1/'.length).split('?')[0].split('/')[0];
+  const table = decodeURIComponent(tablePart || '').trim();
+  if (!/^[a-zA-Z0-9_]+$/.test(table)) return { ok: false, code: 'SERVICE_ROLE_TABLE_INVALID' };
+
+  const allowed = diracV101ServiceRoleAllowedTables();
+  if (!allowed.has(table)) {
+    return { ok: false, code: 'SERVICE_ROLE_TABLE_NOT_ALLOWED' };
+  }
+
+  return { ok: true, scope: 'rest_table', table };
+}
+
+function diracV101ServiceRoleAllowedTables() {
+  const base = [
+    'admin_users',
+    'customers',
+    'domain_order_items',
+    'domain_orders',
+    'domain_passkeys',
+    'domain_tld_prices',
+    'order_items',
+    'orders',
+    'payment_gateway_events',
+    'payment_transactions',
+    'products',
+    'security_customer_access_blocks',
+    'security_customer_account_requests',
+    'security_customer_auth_links',
+    'security_customer_events',
+    'security_customer_login_logs',
+    'security_customer_recovery_codes',
+    'security_customer_sessions',
+    'security_customer_settings',
+    'dirac_security_rate_limits',
+    String(process.env.LOGIN_SECURITY_PERSIST_TABLE || '').trim(),
+    String(process.env.DOMAIN_LOGIN_RATE_TABLE || '').trim()
+  ];
+  const extra = String(process.env.DIRAC_SERVICE_ROLE_EXTRA_TABLES || '').split(',').map((item) => item.trim()).filter(Boolean);
+  return new Set([...base, ...extra].filter(Boolean));
+}
+
+// Argon2id highest-compatible profile for new customer recovery-code hashes only.
+// Hash login/password Supabase tidak disentuh.
+try {
+  const __diracV101OriginalCustomerSecurityHashRecoveryCode = typeof customerSecurityHashRecoveryCode === 'function' ? customerSecurityHashRecoveryCode : null;
+  if (__diracV101OriginalCustomerSecurityHashRecoveryCode && typeof customerSecurityRecoveryCodeArgon2Input === 'function' && typeof customerSecurityGetArgon2 === 'function') {
+    customerSecurityHashRecoveryCode = async function customerSecurityHashRecoveryCodeV101Strict(code, customerId) {
+      const argon2 = customerSecurityGetArgon2();
+      const memoryCost = Math.max(19456, Math.min(262144, Number(process.env.DIRAC_ARGON2ID_MEMORY_KIB || 65536)));
+      const timeCost = Math.max(3, Math.min(6, Number(process.env.DIRAC_ARGON2ID_TIME_COST || 3)));
+      const parallelism = Math.max(1, Math.min(4, Number(process.env.DIRAC_ARGON2ID_PARALLELISM || 1)));
+      return await argon2.hash(customerSecurityRecoveryCodeArgon2Input(code, customerId), {
+        type: argon2.argon2id,
+        memoryCost,
+        timeCost,
+        parallelism,
+        hashLength: 32
+      });
+    };
+  }
+} catch (_) {}
