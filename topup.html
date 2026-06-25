@@ -3799,6 +3799,334 @@ html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title 
   }
 </style>
 
+
+<style id="topupid-articles-faq-style">
+  /* ==========================================================
+     TOPUPID ARTICLES + FAQ PATCH
+     Scope: content/help section only. No endpoint, login, hash,
+     checkout backend, payment gateway, email template, A2F, or
+     security logic is changed.
+     ========================================================== */
+  .topupid-articles-section {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .topupid-articles-section::before {
+    content: "";
+    position: absolute;
+    inset: 42px 8% auto;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(56,189,248,0.28), rgba(34,197,94,0.24), transparent);
+    pointer-events: none;
+  }
+
+  .topupid-article-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    max-width: 1160px;
+    margin: 30px auto 0;
+  }
+
+  .topupid-article-card {
+    position: relative;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 54px minmax(0, 1fr);
+    grid-template-areas:
+      "num title"
+      "num desc"
+      "list list";
+    column-gap: 14px;
+    align-items: start;
+    padding: 18px;
+    border-radius: 22px;
+    border: 1px solid rgba(255,255,255,0.105);
+    background:
+      linear-gradient(145deg, rgba(15,23,42,0.74), rgba(2,6,23,0.56)),
+      rgba(255,255,255,0.038);
+    box-shadow: 0 16px 42px rgba(0,0,0,0.18);
+    overflow: hidden;
+  }
+
+  .topupid-article-card::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 16px;
+    bottom: 16px;
+    width: 3px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(34,197,94,0.94), rgba(56,189,248,0.82));
+    opacity: 0.88;
+  }
+
+  .topupid-article-card::after {
+    content: "";
+    position: absolute;
+    right: -72px;
+    top: -72px;
+    width: 150px;
+    height: 150px;
+    border-radius: 999px;
+    background: radial-gradient(circle, rgba(56,189,248,0.12), transparent 68%);
+    pointer-events: none;
+  }
+
+  .topupid-article-number {
+    grid-area: num;
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
+    color: #a7f3d0;
+    background: rgba(34,197,94,0.10);
+    border: 1px solid rgba(34,197,94,0.28);
+    box-shadow: inset 0 0 18px rgba(56,189,248,0.06);
+    font-weight: 900;
+    font-size: 15px;
+    letter-spacing: -0.2px;
+  }
+
+  .topupid-article-card h3 {
+    grid-area: title;
+    position: relative;
+    z-index: 1;
+    margin: 2px 0 0;
+    color: #ffffff;
+    font-size: 18px;
+    line-height: 1.24;
+    letter-spacing: -0.28px;
+  }
+
+  .topupid-article-card p {
+    grid-area: desc;
+    position: relative;
+    z-index: 1;
+    margin-top: 8px;
+    color: #cbd5e1;
+    font-size: 13px;
+    line-height: 1.62;
+  }
+
+  .topupid-article-card ul {
+    grid-area: list;
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 15px;
+    padding: 13px 0 0;
+    border-top: 1px solid rgba(255,255,255,0.075);
+    list-style: none;
+  }
+
+  .topupid-article-card li {
+    position: relative;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    padding: 8px 9px 8px 23px;
+    border-radius: 13px;
+    color: #dbeafe;
+    background: rgba(255,255,255,0.045);
+    border: 1px solid rgba(255,255,255,0.07);
+    font-size: 12.5px;
+    line-height: 1.42;
+  }
+
+  .topupid-article-card li::before {
+    content: "";
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--green);
+    box-shadow: 0 0 10px rgba(34,197,94,0.55);
+    transform: translateY(-50%);
+  }
+
+  .topupid-faq-shell {
+    max-width: 1160px;
+    margin: 18px auto 0;
+    border-radius: 24px;
+    border: 1px solid rgba(255,255,255,0.105);
+    background:
+      radial-gradient(circle at 0% 0%, rgba(56,189,248,0.10), transparent 32%),
+      rgba(15,23,42,0.54);
+    backdrop-filter: blur(16px);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+    overflow: hidden;
+  }
+
+  .topupid-faq-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 22px 22px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .topupid-faq-head h3 {
+    margin: 0;
+    font-size: clamp(24px, 3.4vw, 34px);
+    line-height: 1.15;
+    letter-spacing: -0.7px;
+  }
+
+  .topupid-faq-head p {
+    max-width: 580px;
+    margin-top: 8px;
+    color: #cbd5e1;
+    font-size: 14px;
+    line-height: 1.62;
+  }
+
+  .topupid-faq-badge {
+    flex: 0 0 auto;
+    padding: 9px 12px;
+    border-radius: 999px;
+    color: #bbf7d0;
+    background: rgba(34,197,94,0.11);
+    border: 1px solid rgba(34,197,94,0.22);
+    font-size: 12px;
+    font-weight: 900;
+    white-space: nowrap;
+  }
+
+  .topupid-faq-list {
+    display: grid;
+    gap: 8px;
+    padding: 16px;
+  }
+
+  .topupid-faq-item {
+    border-radius: 17px;
+    border: 1px solid rgba(255,255,255,0.085);
+    background: rgba(2,6,23,0.36);
+    overflow: hidden;
+  }
+
+  .topupid-faq-item summary {
+    list-style: none;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 15px 16px;
+    color: #ffffff;
+    font-weight: 900;
+    line-height: 1.38;
+    cursor: pointer;
+  }
+
+  .topupid-faq-item summary::-webkit-details-marker { display: none; }
+
+  .topupid-faq-item summary::after {
+    content: "+";
+    flex: 0 0 auto;
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    color: #06101c;
+    background: linear-gradient(135deg, var(--cyan), #86efac);
+    font-size: 19px;
+    line-height: 1;
+    transition: transform 0.18s ease;
+  }
+
+  .topupid-faq-item[open] summary::after {
+    content: "−";
+    transform: rotate(180deg);
+  }
+
+  .topupid-faq-item p {
+    margin: 0;
+    padding: 0 16px 16px;
+    color: #cbd5e1;
+    font-size: 14px;
+    line-height: 1.68;
+  }
+
+  .topupid-faq-warning {
+    margin: 0 16px 16px;
+    padding: 13px 15px;
+    border-radius: 16px;
+    color: #fde68a;
+    background: rgba(250,204,21,0.078);
+    border: 1px solid rgba(250,204,21,0.18);
+    font-size: 13px;
+    line-height: 1.62;
+  }
+
+  @media (max-width: 1180px) {
+    .topupid-article-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  @media (max-width: 760px) {
+    .topupid-article-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .topupid-article-card {
+      grid-template-columns: 44px minmax(0, 1fr);
+      column-gap: 12px;
+      padding: 15px;
+      border-radius: 19px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.16);
+    }
+
+    .topupid-article-card::before { top: 14px; bottom: 14px; }
+
+    .topupid-article-number {
+      width: 40px;
+      height: 40px;
+      border-radius: 13px;
+      font-size: 14px;
+    }
+
+    .topupid-article-card h3 { font-size: 17px; }
+    .topupid-article-card p { font-size: 13px; line-height: 1.58; }
+
+    .topupid-article-card ul {
+      grid-template-columns: 1fr;
+      gap: 7px;
+      margin-top: 12px;
+      padding-top: 12px;
+    }
+
+    .topupid-article-card li {
+      min-height: 0;
+      padding-top: 8px;
+      padding-bottom: 8px;
+      font-size: 12.5px;
+    }
+
+    .topupid-faq-shell { border-radius: 20px; }
+    .topupid-faq-head { display: block; padding: 19px 16px 14px; }
+    .topupid-faq-badge { display: inline-flex; margin-top: 12px; }
+    .topupid-faq-list { padding: 12px; }
+    .topupid-faq-item { border-radius: 15px; }
+    .topupid-faq-item summary { padding: 14px 13px; }
+    .topupid-faq-item p { padding: 0 13px 14px; }
+    .topupid-faq-warning { margin-left: 12px; margin-right: 12px; }
+  }
+</style>
+
 </head>
 <body>
 <canvas aria-hidden="true" id="particleCanvas"></canvas>
@@ -4278,6 +4606,179 @@ html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title 
 </aside>
 </div>
 </section>
+
+<section class="section reveal topupid-articles-section" id="panduan-topup">
+  <div class="section-head">
+    <div class="kicker">PANDUAN & FAQ</div>
+    <h2>Artikel Bantuan Top Up Game</h2>
+    <p class="section-sub">Baca panduan ini sebelum membuat pesanan agar data game, nominal, pembayaran, dan pengecekan status tidak keliru.</p>
+  </div>
+
+  <div class="topupid-article-grid" aria-label="Artikel bantuan top up game">
+    <article class="topupid-article-card">
+      <span class="topupid-article-number">01</span>
+      <h3>Panduan Cara Order</h3>
+      <p>Alur pemesanan dibuat ringkas: pilih game, isi data tujuan, pilih nominal, pilih QRIS, lalu lanjutkan pembayaran.</p>
+      <ul>
+        <li>Pastikan game yang dipilih sudah sesuai.</li>
+        <li>Periksa User ID sebelum menekan tombol pembayaran.</li>
+        <li>Simpan kode invoice untuk pengecekan status.</li>
+      </ul>
+    </article>
+
+    <article class="topupid-article-card">
+      <span class="topupid-article-number">02</span>
+      <h3>Cara Mengisi ID Game dan Server</h3>
+      <p>Setiap game memiliki format ID yang berbeda. Ikuti format yang diminta agar pesanan masuk ke akun yang benar.</p>
+      <ul>
+        <li>Mobile Legends memakai User ID dan Server ID.</li>
+        <li>Free Fire umumnya memakai Player ID.</li>
+        <li>Game tertentu memakai UID, Riot ID, atau username.</li>
+      </ul>
+    </article>
+
+    <article class="topupid-article-card">
+      <span class="topupid-article-number">03</span>
+      <h3>Estimasi Proses Pesanan</h3>
+      <p>Pesanan diproses setelah pembayaran terkonfirmasi oleh sistem. Kecepatan proses dapat berbeda mengikuti antrean dan kondisi provider game.</p>
+      <ul>
+        <li>Status awal: menunggu pembayaran.</li>
+        <li>Status berikutnya: diproses oleh sistem.</li>
+        <li>Status akhir: selesai atau butuh pengecekan support.</li>
+      </ul>
+    </article>
+
+    <article class="topupid-article-card">
+      <span class="topupid-article-number">04</span>
+      <h3>Metode Pembayaran</h3>
+      <p>Pembayaran menggunakan metode yang tersedia pada form order. Saat ini tampilan checkout diarahkan pada QRIS.</p>
+      <ul>
+        <li>Bayar sesuai total yang muncul di ringkasan.</li>
+        <li>Jangan menutup halaman sebelum invoice tersimpan.</li>
+        <li>Gunakan satu invoice untuk satu transaksi.</li>
+      </ul>
+    </article>
+
+    <article class="topupid-article-card">
+      <span class="topupid-article-number">05</span>
+      <h3>Cara Cek Status Pesanan</h3>
+      <p>Status pesanan dapat dilihat melalui kode invoice. Masukkan kode tersebut pada bagian cek status setelah pembayaran dilakukan.</p>
+      <ul>
+        <li>Gunakan kode invoice yang benar.</li>
+        <li>Refresh riwayat bila status belum berubah.</li>
+        <li>Hubungi support jika status terlalu lama tertahan.</li>
+      </ul>
+    </article>
+
+    <article class="topupid-article-card">
+      <span class="topupid-article-number">06</span>
+      <h3>Kebijakan Salah Input ID</h3>
+      <p>Data tujuan menjadi tanggung jawab pembeli sebelum pembayaran. Pesanan yang sudah masuk ke ID salah berisiko tidak dapat ditarik kembali.</p>
+      <ul>
+        <li>Periksa angka User ID satu per satu.</li>
+        <li>Periksa Server ID untuk game yang membutuhkannya.</li>
+        <li>Jangan memakai ID akun orang lain tanpa izin.</li>
+      </ul>
+    </article>
+
+    <article class="topupid-article-card">
+      <span class="topupid-article-number">07</span>
+      <h3>Kebijakan Refund</h3>
+      <p>Refund hanya dapat dipertimbangkan apabila pesanan belum berhasil diproses ke akun game dan kendala terbukti berasal dari sistem layanan.</p>
+      <ul>
+        <li>Refund tidak berlaku untuk ID salah yang sudah sukses terkirim.</li>
+        <li>Bukti pembayaran dan invoice wajib disiapkan.</li>
+        <li>Keputusan akhir mengikuti hasil pengecekan support.</li>
+      </ul>
+    </article>
+
+    <article class="topupid-article-card">
+      <span class="topupid-article-number">08</span>
+      <h3>Keamanan Data Pengguna</h3>
+      <p>Form order hanya meminta data yang diperlukan untuk pemrosesan top up game. Jangan pernah membagikan password akun game.</p>
+      <ul>
+        <li>Top up tidak membutuhkan password akun.</li>
+        <li>Jangan kirim OTP kepada pihak mana pun.</li>
+        <li>Gunakan kontak support resmi yang tersedia di website.</li>
+      </ul>
+    </article>
+
+    <article class="topupid-article-card">
+      <span class="topupid-article-number">09</span>
+      <h3>Syarat dan Ketentuan</h3>
+      <p>Dengan membuat pesanan, pembeli menyetujui bahwa data tujuan sudah benar dan transaksi diproses berdasarkan pilihan pada form order.</p>
+      <ul>
+        <li>Harga dan nominal mengikuti tampilan pada checkout.</li>
+        <li>Pesanan tidak boleh digunakan untuk aktivitas ilegal.</li>
+        <li>Layanan dapat tertunda jika provider game mengalami gangguan.</li>
+      </ul>
+    </article>
+  </div>
+
+  <div class="topupid-faq-shell" id="faq-topup-game">
+    <div class="topupid-faq-head">
+      <div>
+        <h3>FAQ Top Up Game</h3>
+        <p>Jawaban berikut dibuat tegas agar pembeli memahami batas layanan sebelum melakukan pembayaran.</p>
+      </div>
+      <span class="topupid-faq-badge">Wajib Dibaca</span>
+    </div>
+
+    <div class="topupid-faq-list">
+      <details class="topupid-faq-item" open>
+        <summary>Apakah layanan ini khusus top up game?</summary>
+        <p>Ya. Bagian order pada website ini difokuskan untuk top up game. Pilih game yang tersedia pada form, lalu isi ID tujuan sesuai format game tersebut.</p>
+      </details>
+
+      <details class="topupid-faq-item">
+        <summary>Apakah saya perlu memberikan password akun game?</summary>
+        <p>Tidak. Top up game tidak membutuhkan password. Jangan memberikan password, kode OTP, kode verifikasi, atau akses login kepada siapa pun.</p>
+      </details>
+
+      <details class="topupid-faq-item">
+        <summary>Bagaimana jika User ID atau Server ID salah?</summary>
+        <p>Kesalahan input menjadi risiko pembeli. Jika pesanan sudah berhasil masuk ke akun yang salah, transaksi berpotensi tidak bisa dibatalkan atau direfund.</p>
+      </details>
+
+      <details class="topupid-faq-item">
+        <summary>Kapan pesanan saya diproses?</summary>
+        <p>Pesanan diproses setelah pembayaran terkonfirmasi. Estimasi dapat berubah karena antrean, gangguan provider game, atau pengecekan transaksi oleh sistem.</p>
+      </details>
+
+      <details class="topupid-faq-item">
+        <summary>Apa yang harus dilakukan jika status pesanan belum berubah?</summary>
+        <p>Cek kembali invoice, pastikan pembayaran sudah berhasil, lalu tunggu proses sinkronisasi. Jika terlalu lama, hubungi support dengan menyertakan invoice dan bukti pembayaran.</p>
+      </details>
+
+      <details class="topupid-faq-item">
+        <summary>Apakah pembayaran boleh berbeda dari total invoice?</summary>
+        <p>Tidak disarankan. Pembayaran harus mengikuti total pada checkout agar sistem lebih mudah mencocokkan transaksi.</p>
+      </details>
+
+      <details class="topupid-faq-item">
+        <summary>Apakah refund selalu bisa dilakukan?</summary>
+        <p>Tidak. Refund hanya dipertimbangkan untuk pesanan yang belum berhasil diproses dan setelah kendala diverifikasi oleh support.</p>
+      </details>
+
+      <details class="topupid-faq-item">
+        <summary>Apakah harga dapat berubah?</summary>
+        <p>Ya. Harga dapat berubah mengikuti stok, provider game, biaya sistem, atau kebijakan layanan. Harga yang berlaku adalah harga yang tampil saat checkout.</p>
+      </details>
+
+      <details class="topupid-faq-item">
+        <summary>Apakah invoice harus disimpan?</summary>
+        <p>Ya. Invoice adalah bukti awal untuk mengecek status dan memudahkan support menelusuri transaksi.</p>
+      </details>
+
+      <details class="topupid-faq-item">
+        <summary>Bagaimana cara menghubungi support?</summary>
+        <p>Gunakan tombol WhatsApp atau email support resmi pada bagian Support. Sertakan invoice, nama game, nominal, User ID, dan bukti pembayaran.</p>
+      </details>
+    </div>
+    <div class="topupid-faq-warning">Catatan tegas: transaksi hanya boleh dilanjutkan setelah data game benar. Jangan membayar jika masih ragu terhadap User ID, Server ID, nominal, atau game yang dipilih.</div>
+  </div>
+</section>
+
 <section class="section reveal" id="cek">
 <div class="section-head">
 <div class="kicker">INVOICE</div>
