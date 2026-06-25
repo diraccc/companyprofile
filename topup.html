@@ -18247,5 +18247,430 @@ html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title 
 })();
 </script>
 
+
+<!-- V71 touch-card + FAQ plus color + bottom banner edge-fit patch. Visual only; no endpoints, login, hash, A2F, payment gateway, email template, security rules, or image sources are modified. -->
+<style id="topupid-v71-touch-faq-banner-style">
+  :root {
+    --v71-touch-ease: cubic-bezier(.22, 1, .36, 1);
+  }
+
+  /* 1) Minimal modern touch motion for non-image cards that were still static on touch */
+  .topupid-v71-touch-card {
+    transform-style: preserve-3d;
+    will-change: transform, box-shadow;
+    transition: transform .22s var(--v71-touch-ease), box-shadow .22s ease, border-color .22s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .topupid-v71-touch-card.topupid-v71-card-live {
+    transform:
+      perspective(860px)
+      translate3d(var(--v71-card-mx, 0px), var(--v71-card-my, -1px), 0)
+      rotateX(var(--v71-card-rx, 0deg))
+      rotateY(var(--v71-card-ry, 0deg))
+      scale(.995) !important;
+    box-shadow:
+      0 18px 42px rgba(0,0,0,.18),
+      0 10px 24px rgba(var(--theme-rgb, 88,185,255), .12) !important;
+  }
+
+  .topupid-v71-touch-card.topupid-v71-card-live .topupid-support-icon {
+    transform: translateZ(14px) scale(1.02);
+    transition: transform .22s var(--v71-touch-ease);
+  }
+
+  .topupid-v71-touch-card.topupid-v71-card-live summary,
+  .topupid-v71-touch-card.topupid-v71-card-live .topupid-support-copy,
+  .topupid-v71-touch-card.topupid-v71-card-live .topupid-support-icon {
+    position: relative;
+    z-index: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .topupid-v71-touch-card,
+    .topupid-v71-touch-card.topupid-v71-card-live,
+    .topupid-v71-touch-card.topupid-v71-card-live .topupid-support-icon {
+      transition: none !important;
+      transform: none !important;
+    }
+  }
+
+  /* 2) FAQ plus button: no gradient, single solid color, but dynamic per item */
+  .topupid-faq-list .topupid-faq-item {
+    --v71-faq-accent-rgb: 139, 92, 246;
+  }
+  .topupid-faq-list .topupid-faq-item:nth-child(5n+1) { --v71-faq-accent-rgb: 139, 92, 246; }
+  .topupid-faq-list .topupid-faq-item:nth-child(5n+2) { --v71-faq-accent-rgb: 168, 85, 247; }
+  .topupid-faq-list .topupid-faq-item:nth-child(5n+3) { --v71-faq-accent-rgb: 99, 102, 241; }
+  .topupid-faq-list .topupid-faq-item:nth-child(5n+4) { --v71-faq-accent-rgb: 56, 189, 248; }
+  .topupid-faq-list .topupid-faq-item:nth-child(5n+5) { --v71-faq-accent-rgb: 34, 197, 94; }
+
+  .topupid-faq-item summary::after {
+    background: rgb(var(--v71-faq-accent-rgb)) !important;
+    color: #09111b !important;
+    box-shadow: 0 12px 24px rgba(var(--v71-faq-accent-rgb), .22) !important;
+    transition:
+      transform .22s var(--v71-touch-ease),
+      box-shadow .22s ease,
+      filter .22s ease,
+      background-color .22s ease !important;
+  }
+
+  .topupid-faq-item summary:hover::after,
+  .topupid-faq-item summary:focus-visible::after,
+  .topupid-faq-item[open] summary::after {
+    filter: brightness(1.06);
+    box-shadow: 0 15px 30px rgba(var(--v71-faq-accent-rgb), .28) !important;
+  }
+
+  .topupid-faq-item[open] summary::after {
+    transform: rotate(180deg) scale(1.05) !important;
+  }
+
+  /* 3) Bottom banner edge-fit: left/right flush with website area, no side mismatch */
+  #banner-layanan-topupid,
+  .topupid-banner-separator.bottom-full-visual#banner-layanan-topupid {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: clamp(18px, 3.8vw, 28px) 0 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+  }
+
+  #banner-layanan-topupid .topupid-banner-inner {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    margin-left: calc(50% - 50vw) !important;
+    margin-right: calc(50% - 50vw) !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    overflow: hidden !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  #banner-layanan-topupid .topupid-banner-full-image {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: auto !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    object-fit: cover !important;
+    object-position: center center !important;
+  }
+</style>
+<script id="topupid-v71-touch-faq-banner-script">
+(function(){
+  "use strict";
+  var doc = document;
+
+  function qs(sel, root){ return (root || doc).querySelector(sel); }
+  function qsa(sel, root){ return Array.prototype.slice.call((root || doc).querySelectorAll(sel)); }
+
+  function shouldReduce(){
+    try { return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+    catch(_) { return false; }
+  }
+
+  function installTouchCards(){
+    var cards = qsa('.topupid-support-card, .topupid-faq-item, .admin-card.panel, .history-shell.panel');
+    cards.forEach(function(card){
+      if (card.dataset.v71TouchReady === '1') return;
+      card.dataset.v71TouchReady = '1';
+      card.classList.add('topupid-v71-touch-card');
+      if (shouldReduce()) return;
+
+      var active = false;
+      var rect = null;
+
+      function limit(value, min, max){ return Math.max(min, Math.min(max, value)); }
+
+      function write(clientX, clientY){
+        rect = rect || card.getBoundingClientRect();
+        var relX = clientX - rect.left;
+        var relY = clientY - rect.top;
+        var px = rect.width ? (relX / rect.width) - 0.5 : 0;
+        var py = rect.height ? (relY / rect.height) - 0.5 : 0;
+        var rotY = limit(px * 7.5, -4, 4);
+        var rotX = limit(py * -7.5, -4, 4);
+        var moveX = limit(px * 4, -2.2, 2.2);
+        var moveY = limit(py * 3 - 1.4, -3.6, 1.6);
+        card.style.setProperty('--v71-card-rx', rotX.toFixed(2) + 'deg');
+        card.style.setProperty('--v71-card-ry', rotY.toFixed(2) + 'deg');
+        card.style.setProperty('--v71-card-mx', moveX.toFixed(2) + 'px');
+        card.style.setProperty('--v71-card-my', moveY.toFixed(2) + 'px');
+        card.classList.add('topupid-v71-card-live');
+      }
+
+      function reset(evt){
+        active = false;
+        rect = null;
+        card.style.setProperty('--v71-card-rx', '0deg');
+        card.style.setProperty('--v71-card-ry', '0deg');
+        card.style.setProperty('--v71-card-mx', '0px');
+        card.style.setProperty('--v71-card-my', '0px');
+        card.classList.remove('topupid-v71-card-live');
+        if (evt && card.hasPointerCapture && card.hasPointerCapture(evt.pointerId)) {
+          try { card.releasePointerCapture(evt.pointerId); } catch(_) {}
+        }
+      }
+
+      card.addEventListener('pointerdown', function(evt){
+        if (evt.pointerType === 'mouse') return;
+        active = true;
+        rect = card.getBoundingClientRect();
+        if (card.setPointerCapture) {
+          try { card.setPointerCapture(evt.pointerId); } catch(_) {}
+        }
+        write(evt.clientX, evt.clientY);
+      }, { passive: true });
+
+      card.addEventListener('pointermove', function(evt){
+        if (!active) return;
+        write(evt.clientX, evt.clientY);
+      }, { passive: true });
+
+      card.addEventListener('pointerup', reset, { passive: true });
+      card.addEventListener('pointercancel', reset, { passive: true });
+      card.addEventListener('pointerleave', function(evt){
+        if (evt.pointerType !== 'mouse' && active) reset(evt);
+      }, { passive: true });
+    });
+  }
+
+  function ensureBannerEdgeFit(){
+    var section = qs('#banner-layanan-topupid');
+    if (!section) return;
+    var inner = qs('.topupid-banner-inner', section);
+    if (!inner) return;
+    section.style.paddingLeft = '0';
+    section.style.paddingRight = '0';
+    inner.style.left = 'auto';
+    inner.style.right = 'auto';
+  }
+
+  function bootV71(){
+    installTouchCards();
+    ensureBannerEdgeFit();
+    window.__topupidV71Notice = 'V71 visual patch active. Protected systems untouched.';
+  }
+
+  if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', bootV71, { once: true });
+  else bootV71();
+  window.addEventListener('load', bootV71, { passive: true });
+  [180, 720, 1800].forEach(function(ms){ window.setTimeout(bootV71, ms); });
+})();
+</script>
+<!-- /V71 end -->
+
+
+
+<!-- V72 article touch + single dynamic FAQ plus + bottom banner exact-fit patch. Visual/UI only. No endpoint, login, hash, A2F, payment gateway, email template, security rule, image source, or backend contract is modified. -->
+<style id="topupid-v72-precision-visual-style">
+  :root { --v72-touch-ease: cubic-bezier(.22, 1, .36, 1); }
+
+  /* Card touch motion: minimal, modern, and scoped to HTML cards only. No img selector is animated. */
+  .topupid-v72-touch-card {
+    transform-style: preserve-3d;
+    will-change: transform, box-shadow, border-color;
+    transition: transform .20s var(--v72-touch-ease), box-shadow .20s ease, border-color .20s ease;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: pan-y;
+  }
+
+  .topupid-v72-touch-card.topupid-v72-card-live {
+    transform:
+      perspective(900px)
+      translate3d(var(--v72-card-x, 0px), var(--v72-card-y, -1px), 0)
+      rotateX(var(--v72-card-rx, 0deg))
+      rotateY(var(--v72-card-ry, 0deg))
+      scale(.998) !important;
+    border-color: rgba(var(--theme-rgb, 56, 189, 248), .26) !important;
+    box-shadow:
+      0 16px 38px rgba(0,0,0,.17),
+      0 8px 20px rgba(var(--theme-rgb, 56, 189, 248), .10) !important;
+  }
+
+  .topupid-v72-touch-card .topupid-article-number {
+    transition: transform .20s var(--v72-touch-ease), box-shadow .20s ease;
+  }
+
+  .topupid-v72-touch-card.topupid-v72-card-live .topupid-article-number {
+    transform: translateZ(12px) scale(1.015);
+    box-shadow: inset 0 0 18px rgba(var(--theme-rgb, 56, 189, 248), .08), 0 8px 22px rgba(var(--theme-rgb, 56, 189, 248), .10);
+  }
+
+  /* FAQ plus: one solid dynamic color only. It follows the active theme/accent RGB. */
+  .topupid-faq-list .topupid-faq-item,
+  .topupid-faq-list .topupid-faq-item:nth-child(n) {
+    --v71-faq-accent-rgb: var(--theme-rgb, 56, 189, 248) !important;
+  }
+
+  .topupid-faq-item summary::after {
+    background: rgb(var(--theme-rgb, 56, 189, 248)) !important;
+    color: #06101c !important;
+    background-image: none !important;
+    box-shadow: 0 12px 24px rgba(var(--theme-rgb, 56, 189, 248), .22) !important;
+  }
+
+  .topupid-faq-item summary:hover::after,
+  .topupid-faq-item summary:focus-visible::after,
+  .topupid-faq-item[open] summary::after {
+    box-shadow: 0 15px 30px rgba(var(--theme-rgb, 56, 189, 248), .28) !important;
+  }
+
+  /* Bottom visual: exact website width, no left/right mismatch, no source/content change. */
+  #banner-layanan-topupid.topupid-banner-separator.bottom-full-visual,
+  #banner-layanan-topupid {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  #banner-layanan-topupid .topupid-banner-inner {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    left: auto !important;
+    right: auto !important;
+    box-sizing: border-box !important;
+  }
+
+  #banner-layanan-topupid .topupid-banner-full-image {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    display: block !important;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .topupid-v72-touch-card,
+    .topupid-v72-touch-card.topupid-v72-card-live,
+    .topupid-v72-touch-card.topupid-v72-card-live .topupid-article-number {
+      transition: none !important;
+      transform: none !important;
+    }
+  }
+</style>
+<script id="topupid-v72-precision-visual-script">
+(function(){
+  "use strict";
+  var doc = document;
+
+  function qsa(sel, root){ return Array.prototype.slice.call((root || doc).querySelectorAll(sel)); }
+  function reduceMotion(){
+    try { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
+    catch(_) { return false; }
+  }
+  function clamp(value, min, max){ return Math.max(min, Math.min(max, value)); }
+
+  function installArticleCardTouch(){
+    var cards = qsa('.topupid-article-card');
+    cards.forEach(function(card){
+      if (card.dataset.v72TouchReady === '1') return;
+      card.dataset.v72TouchReady = '1';
+      card.classList.add('topupid-v72-touch-card');
+      if (reduceMotion()) return;
+
+      var active = false;
+      var rect = null;
+
+      function apply(clientX, clientY){
+        rect = rect || card.getBoundingClientRect();
+        var px = rect.width ? ((clientX - rect.left) / rect.width) - 0.5 : 0;
+        var py = rect.height ? ((clientY - rect.top) / rect.height) - 0.5 : 0;
+        card.style.setProperty('--v72-card-rx', clamp(py * -4.4, -2.2, 2.2).toFixed(2) + 'deg');
+        card.style.setProperty('--v72-card-ry', clamp(px * 4.4, -2.2, 2.2).toFixed(2) + 'deg');
+        card.style.setProperty('--v72-card-x', clamp(px * 3, -1.6, 1.6).toFixed(2) + 'px');
+        card.style.setProperty('--v72-card-y', clamp((py * 2.4) - 1, -2.2, 1).toFixed(2) + 'px');
+        card.classList.add('topupid-v72-card-live');
+      }
+
+      function reset(evt){
+        active = false;
+        rect = null;
+        card.style.setProperty('--v72-card-rx', '0deg');
+        card.style.setProperty('--v72-card-ry', '0deg');
+        card.style.setProperty('--v72-card-x', '0px');
+        card.style.setProperty('--v72-card-y', '0px');
+        card.classList.remove('topupid-v72-card-live');
+        if (evt && card.hasPointerCapture && card.hasPointerCapture(evt.pointerId)) {
+          try { card.releasePointerCapture(evt.pointerId); } catch(_) {}
+        }
+      }
+
+      card.addEventListener('pointerdown', function(evt){
+        if (evt.pointerType === 'mouse') return;
+        active = true;
+        rect = card.getBoundingClientRect();
+        if (card.setPointerCapture) {
+          try { card.setPointerCapture(evt.pointerId); } catch(_) {}
+        }
+        apply(evt.clientX, evt.clientY);
+      }, { passive: true });
+
+      card.addEventListener('pointermove', function(evt){
+        if (!active) return;
+        apply(evt.clientX, evt.clientY);
+      }, { passive: true });
+
+      card.addEventListener('pointerup', reset, { passive: true });
+      card.addEventListener('pointercancel', reset, { passive: true });
+      card.addEventListener('pointerleave', function(evt){
+        if (evt.pointerType !== 'mouse' && active) reset(evt);
+      }, { passive: true });
+    });
+  }
+
+  function lockBannerExactFit(){
+    var banner = doc.getElementById('banner-layanan-topupid');
+    if (!banner) return;
+    var inner = banner.querySelector('.topupid-banner-inner');
+    var image = banner.querySelector('.topupid-banner-full-image');
+    banner.style.paddingLeft = '0';
+    banner.style.paddingRight = '0';
+    banner.style.marginLeft = '0';
+    banner.style.marginRight = '0';
+    if (inner) {
+      inner.style.width = '100%';
+      inner.style.maxWidth = '100%';
+      inner.style.marginLeft = '0';
+      inner.style.marginRight = '0';
+    }
+    if (image) {
+      image.style.width = '100%';
+      image.style.maxWidth = '100%';
+      image.style.height = 'auto';
+      image.style.display = 'block';
+    }
+  }
+
+  function bootV72(){
+    installArticleCardTouch();
+    lockBannerExactFit();
+    window.__topupidV72Notice = 'V72 visual precision patch active. Protected systems untouched.';
+  }
+
+  if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', bootV72, { once: true });
+  else bootV72();
+  window.addEventListener('load', bootV72, { passive: true });
+  [200, 700, 1600, 3200].forEach(function(ms){ window.setTimeout(bootV72, ms); });
+})();
+</script>
+<!-- /V72 end -->
+
 </body>
 </html>
