@@ -314,10 +314,11 @@ async function handleDomainAction(action, req, res) {
 
     return res.status(404).json({ ok: false, message: 'Action domain tidak ditemukan.' });
   } catch (error) {
+    console.error('[domain-router]', customerSecuritySafeLogError(error));
     return res.status(500).json({
       ok: false,
-      message: 'Terjadi kesalahan pada domain router.',
-      error: String(error && error.message ? error.message : error)
+      code: 'DOMAIN_ROUTER_ERROR',
+      message: 'Sistem sedang mengalami gangguan. Silakan coba lagi.'
     });
   }
 }
@@ -1463,10 +1464,11 @@ async function recoverDomainRegisterFromSupabaseEmailDeliveryFailure(input) {
       return { ok: false, duplicate: true, status: 409 };
     }
 
+    console.error('[register-email-recovery-create-failed]', customerSecuritySafeLogError(created.data));
     return {
       ok: false,
       status: created.status || 502,
-      error: created.data || null
+      code: 'REGISTER_RECOVERY_CREATE_FAILED'
     };
   }
 
@@ -1551,7 +1553,8 @@ async function confirmRecentSupabaseAuthUser(user) {
   });
 
   if (!result.ok) {
-    return { ok: false, status: result.status || 502, error: result.data || null };
+    console.error('[register-recovery-confirm-failed]', customerSecuritySafeLogError(result.data));
+    return { ok: false, status: result.status || 502, code: 'REGISTER_RECOVERY_CONFIRM_FAILED' };
   }
 
   return { ok: true, user: normalizeSupabaseAdminUser(result.data) || user };
@@ -1568,7 +1571,8 @@ async function loginSupabaseAuthUserAfterRegisterRecovery(email, password) {
   });
 
   if (!result.ok || !result.data || !result.data.access_token) {
-    return { ok: false, status: result.status || 401, error: result.data || null };
+    console.error('[register-recovery-login-failed]', customerSecuritySafeLogError(result.data));
+    return { ok: false, status: result.status || 401, code: 'REGISTER_RECOVERY_LOGIN_FAILED' };
   }
 
   return { ok: true, session: result.data };
@@ -2022,10 +2026,11 @@ async function domainCheckout(req, res) {
   });
 
   if (!pricesResult.ok) {
+    console.error('[domain-checkout-price-fetch]', customerSecuritySafeLogError(pricesResult.data));
     return res.status(pricesResult.status).json({
       ok: false,
-      message: 'Gagal mengambil data harga domain.',
-      error: pricesResult.data
+      code: 'DOMAIN_PRICE_FETCH_FAILED',
+      message: 'Gagal mengambil data harga domain.'
     });
   }
 
@@ -2139,10 +2144,11 @@ async function domainCheckout(req, res) {
   });
 
   if (!orderResult.ok) {
+    console.error('[domain-order-create-failed]', customerSecuritySafeLogError(orderResult.data));
     return res.status(orderResult.status).json({
       ok: false,
-      message: 'Gagal membuat pesanan.',
-      error: orderResult.data
+      code: 'DOMAIN_ORDER_CREATE_FAILED',
+      message: 'Gagal membuat pesanan.'
     });
   }
 
@@ -2165,10 +2171,11 @@ async function domainCheckout(req, res) {
   });
 
   if (!itemResult.ok) {
+    console.error('[domain-order-items-save-failed]', customerSecuritySafeLogError(itemResult.data));
     return res.status(itemResult.status).json({
       ok: false,
-      message: 'Pesanan dibuat, tetapi item domain gagal disimpan.',
-      error: itemResult.data
+      code: 'DOMAIN_ORDER_ITEM_SAVE_FAILED',
+      message: 'Pesanan dibuat, tetapi item domain gagal disimpan.'
     });
   }
 
@@ -2182,11 +2189,12 @@ async function domainCheckout(req, res) {
       totalAmount
     });
   } catch (paymentError) {
+    console.error('[domain-payment-invoice-error]', lockedPaymentSafeError(paymentError));
     payment = {
       configured: true,
       payment_url: null,
       provider: 'midtrans',
-      error: String(paymentError && paymentError.message ? paymentError.message : paymentError)
+      error: 'PAYMENT_GATEWAY_URL_UNAVAILABLE'
     };
   }
 
@@ -2209,7 +2217,7 @@ async function domainCheckout(req, res) {
     invoice_id: payment && payment.invoice_id ? payment.invoice_id : null,
     payment_provider: payment && payment.provider ? payment.provider : null,
     payment_gateway_configured: Boolean(payment && payment.configured),
-    payment_error: payment && payment.error ? payment.error : null,
+    payment_error: payment && payment.error ? 'PAYMENT_GATEWAY_URL_UNAVAILABLE' : null,
     order_mail_notification: orderMailNotification,
     items: orderItems
   });
@@ -2286,10 +2294,11 @@ async function domainOrders(req, res) {
   });
 
   if (!result.ok) {
+    console.error('[domain-orders-fetch-failed]', customerSecuritySafeLogError(result.data));
     return res.status(result.status).json({
       ok: false,
-      message: 'Gagal memuat pesanan.',
-      error: result.data
+      code: 'DOMAIN_ORDERS_FETCH_FAILED',
+      message: 'Gagal memuat pesanan.'
     });
   }
 
@@ -3915,11 +3924,12 @@ async function customerSecurityStatus(req, res) {
       time: diracNowIso()
     });
   } catch (error) {
+    console.error('[customer-security-status]', customerSecuritySafeLogError(error));
     return res.status(500).json({
       ok: false,
-      message: 'Terjadi kesalahan pada customer security status.',
-      source: 'customer_security_status',
-      error: String(error && error.message ? error.message : error)
+      code: 'CUSTOMER_SECURITY_STATUS_ERROR',
+      message: 'Status keamanan akun belum bisa dimuat.',
+      source: 'customer_security_status'
     });
   }
 }
@@ -3943,8 +3953,7 @@ async function customerSecurityFetchAuthLink(authUserId) {
 
 function customerSecuritySafeUpstreamError(data) {
   if (!data) return null;
-  if (typeof data === 'string') return data.slice(0, 180);
-  return String(data.message || data.error || data.detail || 'upstream_error').slice(0, 180);
+  return 'CUSTOMER_SECURITY_UPSTREAM_ERROR';
 }
 
 function customerSecurityIsSchemaCacheMissing(result) {
@@ -4108,11 +4117,12 @@ async function customerSecurityOverview(req, res) {
       time: diracNowIso()
     });
   } catch (error) {
+    console.error('[customer-security-overview]', customerSecuritySafeLogError(error));
     return res.status(500).json({
       ok: false,
-      message: 'Terjadi kesalahan pada customer security overview.',
-      source: 'customer_security_overview',
-      error: String(error && error.message ? error.message : error)
+      code: 'CUSTOMER_SECURITY_OVERVIEW_ERROR',
+      message: 'Overview keamanan akun belum bisa dimuat.',
+      source: 'customer_security_overview'
     });
   }
 }
@@ -7037,8 +7047,7 @@ function sessionOwnershipCheckoutGenerateOrderCode() {
 
 function sessionOwnershipCheckoutSafeUpstreamError(data) {
   if (!data) return null;
-  if (typeof data === 'string') return data.slice(0, 220);
-  return String(data.message || data.error || data.detail || data.hint || 'upstream_error').slice(0, 220);
+  return 'ORDER_UPSTREAM_ERROR';
 }
 
 function sessionOwnershipCheckoutSafeError(error) {
@@ -7409,8 +7418,7 @@ function myOrdersMoney(value) {
 
 function myOrdersSafeUpstreamError(data) {
   if (!data) return '';
-  if (typeof data === 'string') return data.slice(0, 180);
-  return String(data.message || data.error || data.detail || data.hint || 'upstream_error').slice(0, 180);
+  return 'ORDERS_UPSTREAM_ERROR';
 }
 
 function myOrdersSafeError(error) {
@@ -7662,7 +7670,7 @@ async function lockedPaymentCreateForOrder(req, res) {
     await lockedPaymentMarkTransactionGatewayFailed(transaction.id, gateway.error || 'gateway_create_failed', gateway.raw || null);
     return res.status(gateway.status || 502).json({
       ok: false,
-      message: gateway.message || 'Gateway gagal membuat URL pembayaran.',
+      message: 'Gateway gagal membuat URL pembayaran.',
       payment_transaction_id: transaction.id,
       amount,
       currency: 'IDR'
@@ -8029,13 +8037,7 @@ function lockedPaymentCleanText(value, maxLength) {
 
 function lockedPaymentSafeUpstreamError(data) {
   if (!data) return null;
-  if (typeof data === 'string') return data.slice(0, 220);
-  const message = getUpstreamMessage(data);
-  if (message) return message.slice(0, 220);
-  if (data && typeof data === 'object' && (data.status_code || data.status || data.http_status)) {
-    return String(data.status_message || data.status_code || data.status || data.http_status || 'upstream_error').slice(0, 220);
-  }
-  return 'upstream_error';
+  return 'PAYMENT_UPSTREAM_ERROR';
 }
 
 function lockedPaymentSafeError(error) {
@@ -8045,8 +8047,7 @@ function lockedPaymentSafeError(error) {
 function lockedPaymentPublicError(error) {
   const text = lockedPaymentSafeError(error);
   if (!text) return null;
-  if (/secret|token|key|authorization|bearer/i.test(text)) return 'internal_payment_error';
-  return text;
+  return 'PAYMENT_PROCESSING_ERROR';
 }
 
 /* ============================================================
@@ -8496,7 +8497,7 @@ async function midtransCreateDomainPaymentInvoice(order, orderItems, customer) {
       invoice_id: gateway.invoiceId || null,
       payment_transaction_id: transaction.id,
       gateway_reference: gatewayReference,
-      error: gateway.message || 'Midtrans gagal membuat payment URL.'
+      error: 'PAYMENT_GATEWAY_URL_UNAVAILABLE'
     };
   }
 
@@ -9642,7 +9643,10 @@ async function diracPasskeyA2FSaveRegistration({ owner, credential, response, cl
       prefer: 'return=representation',
       body: rowBody
     });
-    if (!patch.ok) return { ok: false, status: patch.status || 500, message: 'Gagal memperbarui Passkey di database.', upstream: patch.data };
+    if (!patch.ok) {
+      console.error('[passkey-update-failed]', customerSecuritySafeLogError(patch.data));
+      return { ok: false, status: patch.status || 500, message: 'Gagal memperbarui Passkey di database.', code: 'PASSKEY_UPDATE_FAILED' };
+    }
     return { ok: true, created: false, row: Array.isArray(patch.data) ? patch.data[0] : patch.data };
   }
 
@@ -9652,7 +9656,10 @@ async function diracPasskeyA2FSaveRegistration({ owner, credential, response, cl
     prefer: 'return=representation',
     body: [rowBody]
   });
-  if (!created.ok) return { ok: false, status: created.status || 500, message: 'Gagal menyimpan Passkey ke database.', upstream: created.data };
+  if (!created.ok) {
+    console.error('[passkey-create-failed]', customerSecuritySafeLogError(created.data));
+    return { ok: false, status: created.status || 500, message: 'Gagal menyimpan Passkey ke database.', code: 'PASSKEY_CREATE_FAILED' };
+  }
   return { ok: true, created: true, row: Array.isArray(created.data) ? created.data[0] : created.data };
 }
 
@@ -9679,7 +9686,10 @@ async function diracPasskeyA2FUpdateUsage({ row, owner, response, credential, cl
     prefer: 'return=representation',
     body
   });
-  if (!patched.ok) return { ok: false, status: patched.status || 500, message: 'Gagal memperbarui penggunaan Passkey.', upstream: patched.data };
+  if (!patched.ok) {
+    console.error('[passkey-usage-update-failed]', customerSecuritySafeLogError(patched.data));
+    return { ok: false, status: patched.status || 500, message: 'Gagal memperbarui penggunaan Passkey.', code: 'PASSKEY_USAGE_UPDATE_FAILED' };
+  }
   return { ok: true, row: Array.isArray(patched.data) ? patched.data[0] : patched.data };
 }
 
@@ -10446,7 +10456,7 @@ async function diracUniversalPesananCreatePayment(req, res) {
     await lockedPaymentMarkTransactionGatewayFailed(transaction.id, gateway.error || gateway.message || 'gateway_create_failed', gateway.raw || null);
     return res.status(gateway.status || 502).json({
       ok: false,
-      message: gateway.message || 'Gateway gagal membuat URL pembayaran.',
+      message: 'Gateway gagal membuat URL pembayaran.',
       payment_transaction_id: transaction.id,
       amount: paymentInput.amount,
       currency: 'IDR'
@@ -11942,7 +11952,7 @@ module.exports = async function customerSecurityFeatureReadWrapper(req, res) {
     const overviewResult = await customerSecurityFetchOverviewData(access.customerId).catch((error) => ({
       ok: false,
       data: null,
-      error: String(error && error.message ? error.message : error)
+      error: 'CUSTOMER_SECURITY_OVERVIEW_ERROR'
     }));
 
     const overview = overviewResult && overviewResult.ok && overviewResult.data
@@ -12409,7 +12419,7 @@ async function customerSecurityFeatureBundleV2(req, res, action) {
   const overviewResult = await customerSecurityFetchOverviewData(access.customerId).catch((error) => ({
     ok: false,
     data: null,
-    error: String(error && error.message ? error.message : error)
+    error: 'CUSTOMER_SECURITY_OVERVIEW_ERROR'
   }));
 
   const overview = overviewResult && overviewResult.ok && overviewResult.data
@@ -12806,7 +12816,7 @@ async function customerSecurityFeatureBundleV3(req, res, action) {
   const overviewResult = await customerSecurityFetchOverviewData(access.customerId).catch((error) => ({
     ok: false,
     data: null,
-    error: String(error && error.message ? error.message : error)
+    error: 'CUSTOMER_SECURITY_OVERVIEW_ERROR'
   }));
 
   const overview = overviewResult && overviewResult.ok && overviewResult.data
