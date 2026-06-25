@@ -5014,6 +5014,7 @@ html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title 
     let fanDirection = null;
     let fanDragStartX = 0;
     let fanDragDeltaX = 0;
+    let fanSuppressClickUntil = 0;
     let particlePointer = { x: window.innerWidth / 2, y: window.innerHeight / 2, active: false };
 
     const $ = (selector) => document.querySelector(selector);
@@ -5120,9 +5121,16 @@ html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title 
       return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
     }
 
+    const FAN_IMAGE_PRODUCT_IDS = [
+      "mlbb", "freefire", "pubg", "fcmobile", "hok", "roblox", "genshin", "valorant", "codm", "efootball",
+      "wildrift", "aov", "coc", "clashroyale", "brawlstars", "stumbleguys", "minecraft", "sausageman", "ragnarokm", "ragnarokorigin",
+      "dragonnestm", "blackcloverm", "honkai", "zenless", "wuthering", "undawn", "bloodstrike", "pointblank", "supersus", "eggyparty"
+    ];
+
     function getFanCards() {
       return Array.from({ length: FAN_IMAGE_COUNT }, (_, index) => {
-        const product = products[index % products.length];
+        const mappedId = FAN_IMAGE_PRODUCT_IDS[index];
+        const product = products.find(item => item.id === mappedId) || products[index % products.length];
         return {
           ...product,
           fanImageNumber: index + 1,
@@ -5156,13 +5164,13 @@ html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title 
 
       fanCarouselLayout.querySelectorAll(".fan-card-html").forEach(card => {
         card.addEventListener("click", () => {
+          if (Date.now() < fanSuppressClickUntil) return;
           const index = Number(card.getAttribute("data-fan-index"));
           const id = card.getAttribute("data-fan-id");
-          if (index === fanCenterIndex) chooseProduct(id, true);
-          else {
-            fanCenterIndex = index;
-            updateFanCarousel(true);
-          }
+          const wasCenter = index === fanCenterIndex;
+          fanCenterIndex = index;
+          updateFanCarousel(!wasCenter);
+          if (id) chooseProduct(id, true);
         });
       });
 
@@ -5256,7 +5264,10 @@ html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title 
 
       fanCarouselWrap.addEventListener("pointerup", (event) => {
         if (fanCarouselWrap.hasPointerCapture(event.pointerId)) fanCarouselWrap.releasePointerCapture(event.pointerId);
-        if (Math.abs(fanDragDeltaX) > 36) moveFanCarousel(fanDragDeltaX < 0 ? 1 : -1);
+        if (Math.abs(fanDragDeltaX) > 36) {
+          fanSuppressClickUntil = Date.now() + 420;
+          moveFanCarousel(fanDragDeltaX < 0 ? 1 : -1);
+        }
         fanDragStartX = 0;
         fanDragDeltaX = 0;
       });
@@ -10989,10 +11000,10 @@ html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title 
           '<button class="v22-service-orb game v22-product" type="button" data-v22-product="fcmobile" data-label="QRIS" aria-label="Pilih FC Mobile">' +
             '<span class="v22-orb-icon">' + iconGame() + '</span>' +
           '</button>' +
-          '<button class="v22-service-orb digital v22-product" type="button" data-v22-product="pulsa" data-label="PULSA" aria-label="Pilih pulsa all operator">' +
+          '<button class="v22-service-orb digital v22-product" type="button" data-v22-product="freefire" data-label="FREE FIRE" aria-label="Pilih Free Fire">' +
             '<span class="v22-orb-icon">' + iconChip() + '</span>' +
           '</button>' +
-          '<button class="v22-service-orb pln v22-product" type="button" data-v22-product="pln" data-label="PLN" aria-label="Pilih token PLN">' +
+          '<button class="v22-service-orb pln v22-product" type="button" data-v22-product="valorant" data-label="VALORANT" aria-label="Pilih Valorant">' +
             '<span class="v22-orb-icon">' + iconBolt() + '</span>' +
           '</button>' +
           '<div class="v22-phone" role="img" aria-label="Preview realistis layanan top up digital">' +
@@ -11005,8 +11016,8 @@ html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title 
                 '<div class="v22-tile-grid">' +
                   '<button class="v22-tile game v22-product" type="button" data-v22-product="mlbb"><b>ML</b><span>Game</span></button>' +
                   '<button class="v22-tile game v22-product" type="button" data-v22-product="fcmobile"><b>QR</b><span>QRIS</span></button>' +
-                  '<button class="v22-tile digital v22-product" type="button" data-v22-product="pulsa"><b>SIM</b><span>Pulsa</span></button>' +
-                  '<button class="v22-tile pln v22-product" type="button" data-v22-product="pln"><b>⚡</b><span>PLN</span></button>' +
+                  '<button class="v22-tile digital v22-product" type="button" data-v22-product="freefire"><b>FF</b><span>Free Fire</span></button>' +
+                  '<button class="v22-tile pln v22-product" type="button" data-v22-product="valorant"><b>VP</b><span>Valorant</span></button>' +
                 '</div>' +
                 '<button class="v22-cta v22-product" type="button" data-v22-product="mlbb">Mulai Top Up</button>' +
               '</div>' +
@@ -11035,7 +11046,7 @@ html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title 
         if (typeof window.chooseProduct === 'function') {
           window.chooseProduct(productId, true);
         } else {
-          var category = productId === 'mlbb' || productId === 'fcmobile' || productId === 'hok' || productId === 'valorant' || productId === 'roblox' ? 'game' : 'digital';
+          var category = 'game';
           var categorySelect = document.querySelector('#categorySelect');
           var productSelect = document.querySelector('#productSelect');
           if (categorySelect && productSelect) {
@@ -17481,6 +17492,39 @@ html[data-effective-theme="light"] #mobileMenu.dirac-ultra-menu .du-group-title 
 
     window.__topupidV66Notice = 'V66: dynamic theme colors and professional text polish applied. Protected endpoints and core systems unchanged.';
   })();
+</script>
+
+
+<script id="topupid-v69-fan-link-and-hint-fix">
+(function(){
+  "use strict";
+  var HINT_TEXT = {
+    id: "Tampilan interaktif aktif • Geser kiri/kanan",
+    en: "Interactive display active • Swipe left/right",
+    zh: "交互显示已启用 • 左右滑动",
+    ja: "インタラクティブ表示が有効 • 左右にスワイプ",
+    ko: "인터랙티브 화면 활성화 • 좌우로 스와이프",
+    ar: "العرض التفاعلي مفعل • اسحب يمينًا/يسارًا",
+    es: "Vista interactiva activa • Desliza izquierda/derecha",
+    fr: "Affichage interactif actif • Glissez gauche/droite"
+  };
+  function currentLang(){
+    var lang = document.documentElement.getAttribute("data-language") || document.documentElement.lang || "id";
+    lang = String(lang).toLowerCase().split("-")[0];
+    return HINT_TEXT[lang] ? lang : "id";
+  }
+  function applyInteractiveHintText(){
+    var lang = currentLang();
+    document.querySelectorAll(".v22-hint").forEach(function(el){
+      el.textContent = HINT_TEXT[lang];
+      el.setAttribute("data-i18n-source", HINT_TEXT.id);
+    });
+  }
+  document.addEventListener("DOMContentLoaded", applyInteractiveHintText, {once:false});
+  window.addEventListener("load", applyInteractiveHintText, {passive:true});
+  window.addEventListener("dirac:global-prefs-change", applyInteractiveHintText, {passive:true});
+  [120, 450, 1000, 2200, 3800].forEach(function(ms){ setTimeout(applyInteractiveHintText, ms); });
+})();
 </script>
 
 </body>
