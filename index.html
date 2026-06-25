@@ -308,8 +308,8 @@
       position:absolute;left:0;right:0;bottom:0;padding:0.5rem;background:linear-gradient(180deg,transparent,rgba(0,0,0,0.6));
       color:var(--text);font-size:0.9rem;
     }
-    /* Teslayananonials slider */
-    .teslayananonials{
+    /* Testimoni slider */
+    .testimonial-list{
       margin-top:0.5rem;
     }
     .test-slide{
@@ -423,6 +423,38 @@
 
 /* video support for hero - ensure full cover like images */
 .slide video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% center;display:block}
+
+
+/* Scoped testimonial alignment fix: prevents partial adjacent cards on mobile and desktop */
+.testimonials{
+  overflow:hidden;
+  width:100%;
+}
+.testimonials #testSlides{
+  display:block;
+  width:100%;
+  transform:none !important;
+  transition:none !important;
+}
+.testimonials .test-slide{
+  display:none;
+  width:100%;
+  min-width:100%;
+  padding:1rem;
+  margin:0;
+}
+.testimonials .test-slide.active{
+  display:block;
+}
+.testimonials .test-slide .card{
+  width:100%;
+  margin:0;
+}
+@media(max-width:700px){
+  .testimonials .test-slide{
+    padding:0.8rem;
+  }
+}
 </style>
 <!-- Enhanced wow animations -->
 <style>
@@ -725,7 +757,7 @@
   gtag('js', new Date());
   gtag('config', 'G-XW0NP8W7Z4');
 </script>
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"OnlineStore","@id":"https://diracgroup.store/#store","name":"Dirac Parfum","url":"https://diracgroup.store/","logo":"https://diracgroup.store/logo.webp","image":"https://diracgroup.store/logo.webp","telephone":"+6287892523968","priceRange":"Rp100000 - Rp5000000","description":"Dirac Parfum adalah toko parfum original yang menyediakan parfum niche, designer, timteng, dan lokal original untuk retail, reseller, grosir, dan pengiriman ke seluruh Indonesia.","areaServed":{"@type":"Country","name":"Indonesia"},"brand":{"@type":"Brand","name":"Dirac Parfum"},"contactPoint":[{"@type":"ContactPoint","contactType":"customer service","telephone":"+6287892523968","areaServed":"ID","availableLanguage":["id","en"]}],"hasOfferCatalog":{"@type":"OfferCatalog","name":"Katalog Parfum Original","itemListElement":[{"@type":"OfferCatalog","name":"Parfum Niche Original"},{"@type":"OfferCatalog","name":"Parfum Designer Original"},{"@type":"OfferCatalog","name":"Parfum Timteng"},{"@type":"OfferCatalog","name":"Parfum Lokal Premium"}]}},{"@type":"WebSite","@id":"https://diracgroup.store/#website","name":"Dirac Parfum","url":"https://diracgroup.store/","inLanguage":"id-ID","potentialAction":{"@type":"SearchAction","target":"https://diracgroup.store/?s={search_term_string}","query-input":"required name=search_term_string"}},{"@type":"WebPage","@id":"https://diracgroup.store/#webpage","url":"https://diracgroup.store/","name":"Dirac Parfum | Toko Parfum Original","isPartOf":{"@id":"https://diracgroup.store/#website"},"inLanguage":"id-ID","description":"Dirac Parfum adalah toko parfum original untuk parfum niche, designer, timteng, dan lokal. Melayani retail, reseller, grosir, dan pengiriman ke seluruh Indonesia."},{"@type":"BreadcrumbList","@id":"https://diracgroup.store/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://diracgroup.store/"},{"@type":"ListItem","position":2,"name":"Dirac Parfum","item":"https://diracgroup.store/#about"},{"@type":"ListItem","position":3,"name":"Koleksi Parfum","item":"https://diracgroup.store/#products"}]},{"@type":"FAQPage","@id":"https://diracgroup.store/#faq","mainEntity":[{"@type":"Question","name":"Apa itu Dirac Parfum?","acceptedAnswer":{"@type":"Answer","text":"Dirac Parfum adalah toko parfum original yang menyediakan parfum niche, designer, timteng, dan lokal untuk retail, reseller, dan grosir."}},{"@type":"Question","name":"Apakah Dirac Parfum melayani reseller parfum?","acceptedAnswer":{"@type":"Answer","text":"Ya. Dirac Parfum melayani pembelian satuan, grosir, dan kebutuhan reseller dengan dukungan informasi produk, sample, dan rekomendasi kategori parfum."}},{"@type":"Question","name":"Brand parfum apa saja yang tersedia di Dirac Parfum?","acceptedAnswer":{"@type":"Answer","text":"Koleksi mencakup brand parfum yang banyak dicari seperti YSL, Dior, Nishane, LV, Tom Ford, JPG, Rasasi, dan Mykonos, serta pilihan parfum niche, designer, timteng, dan lokal lainnya sesuai stok."}},{"@type":"Question","name":"Bagaimana cara order di Dirac Parfum?","acceptedAnswer":{"@type":"Answer","text":"Order bisa dilakukan melalui halaman kontak, WhatsApp, atau halaman order yang tersedia di situs Dirac Parfum."}}]}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"OnlineStore","@id":"https://diracgroup.store/#store","name":"Dirac Parfum","url":"https://diracgroup.store/","logo":"https://diracgroup.store/logo.webp","image":"https://diracgroup.store/logo.webp","telephone":"+6287892523968","priceRange":"Rp100000 - Rp5000000","description":"Dirac Parfum adalah toko parfum original yang menyediakan parfum niche, designer, timteng, dan lokal original untuk retail, reseller, grosir, dan pengiriman ke seluruh Indonesia.","areaServed":{"@type":"Country","name":"Indonesia"},"brand":{"@type":"Brand","name":"Dirac Parfum"},"contactPoint":[{"@type":"ContactPoint","contactType":"customer service","telephone":"+6287892523968","areaServed":"ID","availableLanguage":["id","en"],"email":"support@diracgroup.store"}],"hasOfferCatalog":{"@type":"OfferCatalog","name":"Katalog Parfum Original","itemListElement":[{"@type":"OfferCatalog","name":"Parfum Niche Original"},{"@type":"OfferCatalog","name":"Parfum Designer Original"},{"@type":"OfferCatalog","name":"Parfum Timteng"},{"@type":"OfferCatalog","name":"Parfum Lokal Premium"}]},"email":"support@diracgroup.store"},{"@type":"WebSite","@id":"https://diracgroup.store/#website","name":"Dirac Parfum","url":"https://diracgroup.store/","inLanguage":"id-ID","potentialAction":{"@type":"SearchAction","target":"https://diracgroup.store/?s={search_term_string}","query-input":"required name=search_term_string"}},{"@type":"WebPage","@id":"https://diracgroup.store/#webpage","url":"https://diracgroup.store/","name":"Dirac Parfum | Toko Parfum Original","isPartOf":{"@id":"https://diracgroup.store/#website"},"inLanguage":"id-ID","description":"Dirac Parfum adalah toko parfum original untuk parfum niche, designer, timteng, dan lokal. Melayani retail, reseller, grosir, dan pengiriman ke seluruh Indonesia."},{"@type":"BreadcrumbList","@id":"https://diracgroup.store/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://diracgroup.store/"},{"@type":"ListItem","position":2,"name":"Dirac Parfum","item":"https://diracgroup.store/#about"},{"@type":"ListItem","position":3,"name":"Koleksi Parfum","item":"https://diracgroup.store/#products"}]},{"@type":"FAQPage","@id":"https://diracgroup.store/#faq","mainEntity":[{"@type":"Question","name":"Apa itu Dirac Parfum?","acceptedAnswer":{"@type":"Answer","text":"Dirac Parfum adalah toko parfum original yang menyediakan parfum niche, designer, timteng, dan lokal untuk retail, reseller, dan grosir."}},{"@type":"Question","name":"Apakah Dirac Parfum melayani reseller parfum?","acceptedAnswer":{"@type":"Answer","text":"Ya. Dirac Parfum melayani pembelian satuan, grosir, dan kebutuhan reseller dengan dukungan informasi produk, sample, dan rekomendasi kategori parfum."}},{"@type":"Question","name":"Brand parfum apa saja yang tersedia di Dirac Parfum?","acceptedAnswer":{"@type":"Answer","text":"Koleksi mencakup brand parfum yang banyak dicari seperti YSL, Dior, Nishane, LV, Tom Ford, JPG, Rasasi, dan Mykonos, serta pilihan parfum niche, designer, timteng, dan lokal lainnya sesuai stok."}},{"@type":"Question","name":"Bagaimana cara order di Dirac Parfum?","acceptedAnswer":{"@type":"Answer","text":"Order bisa dilakukan melalui halaman kontak, WhatsApp, atau halaman order yang tersedia di situs Dirac Parfum."}}]}]}</script>
 </head>
 <body>
 <header aria-label="Header utama Dirac Parfum" class="site-header" role="banner">
@@ -936,7 +968,6 @@
 </div>
 </div>
 </section>
- Clients &amp; Teslayananonials 
 <!-- BEGIN: Promo image under XERJOFF with Web To Order button -->
 <section class="container" data-animate="" id="promo-xerjoff">
 <div class="promo16x9" style="background:transparent;box-shadow:none;border:none;margin:0;">
@@ -958,7 +989,7 @@
 </section>
 <!-- END: Promo image under XERJOFF with Web To Order button -->
 <section aria-labelledby="clientsHeading" class="container" data-animate="" id="clients">
-<h2 id="clientsHeading">Klien &amp; Teslayananoni</h2>
+<h2 id="clientsHeading">Klien &amp; Testimoni</h2>
 <!-- Client logos -->
 <div aria-label="Client logos" class="card" style="display:flex;gap:0.8rem;flex-wrap:wrap;align-items:center">
 <!-- TODO: upload logos to /logos/ -->
@@ -969,10 +1000,8 @@
 <img alt="Logo client 5" loading="lazy" src="klien5.webp" style="height:40px;opacity:0.95"/>
 <img alt="Logo client 6" loading="lazy" src="klien6.webp" style="height:40px;opacity:0.95"/>
 </div>
- Teslayananonial slider 
 <div aria-label="Testimoni pelanggan" class="slider testimonials">
 <div aria-live="polite" class="slides" id="testSlides">
- 10 teslayananoni slides 
 <div class="slide test-slide" data-index="0">
 <div class="card">
 <strong>Arief K., Pemilik Toko Parfum • Surabaya</strong>
@@ -1178,6 +1207,7 @@
 <p class="muted">Pengiriman tersedia ke berbagai wilayah Indonesia.</p>
 <h3>Kontak Langsung</h3>
 <p class="muted">Telepon / WhatsApp: <a href="tel:+6287892523968">+62 878-9252-3968</a></p>
+<p class="muted">Email Support: <a href="mailto:support@diracgroup.store">support@diracgroup.store</a></p>
 
 <!-- Google Maps Placeholder -->
 <!-- GOOGLE MAPS PLACEHOLDER: coords kosong, to be filled -->
@@ -1334,7 +1364,7 @@
 <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap">
 <div>
 <strong>Dirac Parfum</strong>
-<div class="muted">Toko parfum original, reseller &amp; grosir | +62 878-9252-3968</div>
+<div class="muted">Toko parfum original, reseller &amp; grosir | +62 878-9252-3968 | <a href="mailto:support@diracgroup.store">support@diracgroup.store</a></div>
 </div>
 <div aria-label="Kontak cepat" class="socials">
 <a aria-label="WhatsApp" href="https://wa.me/6287892523968" title="WhatsApp">
@@ -1629,10 +1659,10 @@ document.addEventListener('DOMContentLoaded', function(){
   items.forEach(item => itemObserver.observe(item));
 });
 </script>
- Teslayananonial auto‑slider script 
+<!-- Testimoni auto-slider script -->
 <script>
 document.addEventListener('DOMContentLoaded', function(){
-  // Grab teslayananonial slide elements and controls
+  // Grab testimonial slide elements and controls
   const container = document.getElementById('testSlides');
   const slides = container ? container.children : [];
   const prevBtn = document.getElementById('testPrev');
@@ -1651,8 +1681,13 @@ document.addEventListener('DOMContentLoaded', function(){
     dotsContainer.appendChild(dot);
   }
   function update(){
-    // move slides container horizontally
-    container.style.transform = 'translateX(' + (-100 * currentIndex) + '%)';
+    // Keep testimonial layout locked to one full-width card; no partial adjacent cards.
+    container.style.transform = 'none';
+    Array.prototype.forEach.call(slides, function(slide, idx){
+      const isActive = idx === currentIndex;
+      slide.classList.toggle('active', isActive);
+      slide.setAttribute('aria-hidden', isActive ? 'false' : 'true');
+    });
     // update dots state
     const dots = dotsContainer.querySelectorAll('.dot');
     dots.forEach((d, idx) => {
@@ -1690,6 +1725,7 @@ document.addEventListener('DOMContentLoaded', function(){
     startAuto();
   }
   // Start autoplay
+  update();
   startAuto();
 });
 </script>
