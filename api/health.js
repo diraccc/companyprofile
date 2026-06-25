@@ -276,6 +276,28 @@ const LOGIN_SECURITY_BODY_LIMIT_BYTES = Number.isFinite(LOGIN_SECURITY_BODY_LIMI
 const LOGIN_SECURITY_PERSIST_TABLE = String(process.env.LOGIN_SECURITY_PERSIST_TABLE || '').trim();
 const LOGIN_SECURITY_PERSIST_TTL_SECONDS = 10 * 365 * 24 * 60 * 60;
 
+// LOGIN RATE LIMIT PATCH v1 - domain_login only.
+// Menggunakan tabel rate limit yang sudah ada. Tidak mengubah endpoint, hash, A2F, checkout, order, atau fitur lain.
+const DOMAIN_LOGIN_RATE_TABLE = String(process.env.DOMAIN_LOGIN_RATE_TABLE || '').trim();
+
+const DOMAIN_LOGIN_RATE_STORE = globalThis.__DIRAC_DOMAIN_LOGIN_RATE_STORE__ || new Map();
+globalThis.__DIRAC_DOMAIN_LOGIN_RATE_STORE__ = DOMAIN_LOGIN_RATE_STORE;
+
+const DOMAIN_LOGIN_RATE_MAX_RAW = Number(process.env.DOMAIN_LOGIN_RATE_MAX || 5);
+const DOMAIN_LOGIN_RATE_MAX = Number.isFinite(DOMAIN_LOGIN_RATE_MAX_RAW)
+  ? Math.max(3, DOMAIN_LOGIN_RATE_MAX_RAW)
+  : 5;
+
+const DOMAIN_LOGIN_RATE_WINDOW_MS_RAW = Number(process.env.DOMAIN_LOGIN_RATE_WINDOW_MS || 5 * 60 * 1000);
+const DOMAIN_LOGIN_RATE_WINDOW_MS = Number.isFinite(DOMAIN_LOGIN_RATE_WINDOW_MS_RAW)
+  ? Math.max(60 * 1000, DOMAIN_LOGIN_RATE_WINDOW_MS_RAW)
+  : 5 * 60 * 1000;
+
+const DOMAIN_LOGIN_RATE_BLOCK_MS_RAW = Number(process.env.DOMAIN_LOGIN_RATE_BLOCK_MS || 15 * 60 * 1000);
+const DOMAIN_LOGIN_RATE_BLOCK_MS = Number.isFinite(DOMAIN_LOGIN_RATE_BLOCK_MS_RAW)
+  ? Math.max(60 * 1000, DOMAIN_LOGIN_RATE_BLOCK_MS_RAW)
+  : 15 * 60 * 1000;
+
 async function handleDomainAction(action, req, res) {
   try {
     if (action === 'domain_health') return domainHealth(req, res);
@@ -525,6 +547,17 @@ async function domainLogin(req, res, preloadedBody) {
     return res.status(loginGuard.status).json(loginGuard.body);
   }
 
+  const loginRate = await checkDomainLoginRateLimit(req, loginGuard.email);
+  if (!loginRate.ok) {
+    res.setHeader('Retry-After', String(loginRate.retryAfterSeconds));
+    return res.status(429).json({
+      ok: false,
+      code: 'LOGIN_RATE_LIMITED',
+      retry_after_seconds: loginRate.retryAfterSeconds,
+      message: 'Terlalu banyak percobaan masuk. Silakan coba lagi beberapa saat.'
+    });
+  }
+
   const result = await supabaseFetch('/auth/v1/token?grant_type=password', {
     method: 'POST',
     auth: 'anon',
@@ -532,6 +565,20 @@ async function domainLogin(req, res, preloadedBody) {
   });
 
   if (!result.ok) {
+    if (shouldCountDomainLoginFailure(result)) {
+      const failedRate = await registerDomainLoginFailure(req, loginGuard.email);
+
+      if (failedRate.blocked) {
+        res.setHeader('Retry-After', String(failedRate.retryAfterSeconds));
+        return res.status(429).json({
+          ok: false,
+          code: 'LOGIN_RATE_LIMITED',
+          retry_after_seconds: failedRate.retryAfterSeconds,
+          message: 'Terlalu banyak percobaan masuk. Silakan coba lagi beberapa saat.'
+        });
+      }
+    }
+
     return res.status(result.status).json({
       ok: false,
       message: 'Email atau password belum sesuai.'
@@ -546,6 +593,8 @@ async function domainLogin(req, res, preloadedBody) {
       message: 'Login berhasil di server autentikasi, tetapi token sesi tidak diterima backend. Silakan coba login ulang.'
     });
   }
+
+  await clearDomainLoginRateLimit(req, loginGuard.email);
 
   setSessionCookies(res, result.data);
 
@@ -933,6 +982,176 @@ async function writePersistentLoginSecurityRecord(identity, record) {
 
 function loginSecurityHash(value) {
   return crypto.createHash('sha256').update(String(value || '')).digest('hex');
+}
+
+
+function getDomainLoginRateIdentity(req, email) {
+  const ip = getLoginSecurityIp(req);
+  const headers = (req && req.headers) || {};
+  const userAgent = String(headers['user-agent'] || '').slice(0, 160);
+  const normalizedEmail = normalizeAuthEmail(email || '');
+  const emailHash = loginSecurityHash(normalizedEmail || 'empty-email');
+  const digest = loginSecurityHash(['domain_login_rate_v1', ip, userAgent, emailHash].join('|'));
+
+  return {
+    key: 'domain-login-rate:' + digest,
+    ip,
+    emailHash
+  };
+}
+
+function normalizeDomainLoginRateRecord(record, now = Date.now()) {
+  const row = record && typeof record === 'object' ? record : {};
+  return {
+    count: Number(row.count || 0),
+    windowStartMs: Number(row.windowStartMs || row.window_start_ms || now),
+    resetAtMs: Number(row.resetAtMs || row.reset_at_ms || (now + DOMAIN_LOGIN_RATE_WINDOW_MS)),
+    blockedUntilMs: Number(row.blockedUntilMs || row.blocked_until_ms || 0),
+    lastFailedAtMs: Number(row.lastFailedAtMs || row.last_failed_at_ms || 0)
+  };
+}
+
+async function readDomainLoginRateRecord(identity) {
+  const key = String(identity && identity.key || '').trim();
+  if (!key) return null;
+
+  const memory = DOMAIN_LOGIN_RATE_STORE.get(key);
+  if (memory) return normalizeDomainLoginRateRecord(memory);
+
+  if (!DOMAIN_LOGIN_RATE_TABLE) return null;
+
+  try {
+    const path = '/rest/v1/' + encodeURIComponent(DOMAIN_LOGIN_RATE_TABLE)
+      + '?select=security_key,record_json,blocked_until_ms,expires_at'
+      + '&security_key=eq.' + encodeURIComponent(key)
+      + '&limit=1';
+
+    const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+    if (!result.ok || !Array.isArray(result.data) || !result.data.length) return null;
+
+    const row = result.data[0] || {};
+    const expiresAtMs = Date.parse(row.expires_at || '');
+    if (Number.isFinite(expiresAtMs) && expiresAtMs <= Date.now()) return null;
+
+    const record = normalizeDomainLoginRateRecord(row.record_json || {});
+    DOMAIN_LOGIN_RATE_STORE.set(key, record);
+    return record;
+  } catch (_) {
+    return null;
+  }
+}
+
+async function writeDomainLoginRateRecord(identity, record) {
+  const key = String(identity && identity.key || '').trim();
+  if (!key) return false;
+
+  const now = Date.now();
+  const normalized = normalizeDomainLoginRateRecord(record, now);
+  DOMAIN_LOGIN_RATE_STORE.set(key, normalized);
+
+  if (!DOMAIN_LOGIN_RATE_TABLE) return true;
+
+  try {
+    const ttlMs = Math.max(DOMAIN_LOGIN_RATE_WINDOW_MS, DOMAIN_LOGIN_RATE_BLOCK_MS, 60 * 1000) + 60 * 1000;
+    const payload = [{
+      security_key: key,
+      record_json: normalized,
+      blocked_until_ms: Number(normalized.blockedUntilMs || 0),
+      updated_at: new Date(now).toISOString(),
+      expires_at: new Date(now + ttlMs).toISOString()
+    }];
+
+    const result = await supabaseFetch('/rest/v1/' + encodeURIComponent(DOMAIN_LOGIN_RATE_TABLE) + '?on_conflict=security_key', {
+      method: 'POST',
+      auth: 'service',
+      prefer: 'resolution=merge-duplicates',
+      body: payload
+    });
+
+    return !!result.ok;
+  } catch (_) {
+    return false;
+  }
+}
+
+async function checkDomainLoginRateLimit(req, email) {
+  const now = Date.now();
+  const identity = getDomainLoginRateIdentity(req, email);
+  let record = await readDomainLoginRateRecord(identity);
+  record = normalizeDomainLoginRateRecord(record, now);
+
+  if (Number(record.blockedUntilMs || 0) > now) {
+    return {
+      ok: false,
+      identity,
+      retryAfterSeconds: Math.max(1, Math.ceil((record.blockedUntilMs - now) / 1000))
+    };
+  }
+
+  if (Number(record.resetAtMs || 0) <= now) {
+    record = {
+      count: 0,
+      windowStartMs: now,
+      resetAtMs: now + DOMAIN_LOGIN_RATE_WINDOW_MS,
+      blockedUntilMs: 0,
+      lastFailedAtMs: 0
+    };
+    await writeDomainLoginRateRecord(identity, record);
+  }
+
+  return { ok: true, identity, retryAfterSeconds: 0 };
+}
+
+function shouldCountDomainLoginFailure(result) {
+  const status = Number(result && result.status || 0);
+  return status === 400 || status === 401 || status === 403 || status === 422;
+}
+
+async function registerDomainLoginFailure(req, email) {
+  const now = Date.now();
+  const identity = getDomainLoginRateIdentity(req, email);
+  let record = await readDomainLoginRateRecord(identity);
+  record = normalizeDomainLoginRateRecord(record, now);
+
+  if (Number(record.resetAtMs || 0) <= now) {
+    record = {
+      count: 0,
+      windowStartMs: now,
+      resetAtMs: now + DOMAIN_LOGIN_RATE_WINDOW_MS,
+      blockedUntilMs: 0,
+      lastFailedAtMs: 0
+    };
+  }
+
+  record.count = Number(record.count || 0) + 1;
+  record.lastFailedAtMs = now;
+
+  if (record.count >= DOMAIN_LOGIN_RATE_MAX) {
+    record.blockedUntilMs = now + DOMAIN_LOGIN_RATE_BLOCK_MS;
+  }
+
+  await writeDomainLoginRateRecord(identity, record);
+
+  return {
+    blocked: Number(record.blockedUntilMs || 0) > now,
+    retryAfterSeconds: Number(record.blockedUntilMs || 0) > now
+      ? Math.max(1, Math.ceil((record.blockedUntilMs - now) / 1000))
+      : 0,
+    count: record.count
+  };
+}
+
+async function clearDomainLoginRateLimit(req, email) {
+  const now = Date.now();
+  const identity = getDomainLoginRateIdentity(req, email);
+  const record = {
+    count: 0,
+    windowStartMs: now,
+    resetAtMs: now + DOMAIN_LOGIN_RATE_WINDOW_MS,
+    blockedUntilMs: 0,
+    lastFailedAtMs: 0
+  };
+  await writeDomainLoginRateRecord(identity, record);
 }
 
 function summarizeLoginSecurityUserAgent(userAgent) {
