@@ -2883,41 +2883,11 @@ body.a2f-launching > .site-header{opacity:0!important;visibility:hidden!importan
 </style>
 
 
-<style id="dirac-revisi-sound-a2f-typing-css">
+<style id="dirac-a2f-mobile-typing-css">
 /* =========================================================
-   Revisi user: sound toggle pindah ke tema, A2F mobile dirapikan,
-   terminal 12 detik tanpa teks berulang.
-   Additive override only; tidak mengubah endpoint/login flow.
+   A2F mobile dan terminal typing CSS.
+   Tidak mengubah endpoint/login flow.
    ========================================================= */
-.sound-section-note{
-  margin:0 0 12px!important;
-  color:var(--muted)!important;
-  font-size:.84rem!important;
-  line-height:1.48!important;
-}
-.dirac-theme-sound-toggle{
-  width:100%!important;
-  min-height:72px!important;
-  justify-content:flex-start!important;
-  text-align:left!important;
-  padding:13px 15px!important;
-}
-.dirac-theme-sound-copy{display:grid!important;gap:3px!important;min-width:0!important}
-.dirac-theme-sound-copy strong{font-size:.98rem!important;line-height:1.15!important;color:inherit!important}
-.dirac-theme-sound-copy small{font-size:.74rem!important;line-height:1.35!important;color:#aeb7c6!important;font-weight:650!important}
-.dirac-theme-sound-toggle[aria-pressed="false"]{
-  background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.018))!important;
-  border-color:rgba(255,255,255,.12)!important;
-  color:#cbd5e1!important;
-}
-.dirac-theme-sound-toggle[aria-pressed="true"]{
-  border-color:rgba(var(--theme-rgb),.72)!important;
-  background:linear-gradient(180deg,rgba(var(--theme-rgb),.18),rgba(var(--theme-rgb),.055))!important;
-}
-html[data-effective-theme="light"] .sound-section-note{color:#526071!important}
-html[data-effective-theme="light"] .dirac-theme-sound-copy small{color:#64748b!important}
-html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false"]{background:#fff!important;color:#475569!important;border-color:rgba(15,23,42,.10)!important}
-
 #a2fModal .a2f-method,
 #a2fModal .a2f-method *{box-sizing:border-box!important}
 #a2fModal .a2f-method{min-width:0!important;max-width:100%!important;overflow:hidden!important}
@@ -3576,7 +3546,7 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
    1) Kustom Tema dibuat compact seperti order.html: kotak warna polos, tanpa label.
    2) Titik indikator aktif di belakang teks mode/bahasa/kontras/gerak dihapus.
    3) Keranjang header dihapus total.
-   Tidak menyentuh login, hash, A2F, recovery, forgot password, endpoint, atau sound.
+   Tidak menyentuh login, hash, A2F, recovery, forgot password, endpoint.
    ========================================================= */
 
 /* Hapus keranjang kalau masih ada dari cache/markup lama */
@@ -5134,19 +5104,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
           </div>
           <p class="dirac-motion-panel-note">Mode Hemat mengurangi animasi non-esensial tanpa mengubah login, A2F, recovery, atau tampilan utama.</p>
         </div>
-
-        <div class="theme-section sound-section is-sound-preserved" id="diracSoundThemeSection">
-          <h3 data-i18n="soundTitle">Suara Website</h3>
-          <p class="sound-section-note" data-i18n="soundDesc">Efek tombol, loading, dan animasi terminal dibuat original dari browser tanpa file audio eksternal.</p>
-          <button class="theme-pro-choice dirac-theme-sound-toggle" type="button" id="diracSoundToggle" aria-pressed="true">
-            <span class="choice-symbol dirac-theme-sound-icon" aria-hidden="true">🔊</span>
-            <span class="dirac-theme-sound-copy">
-              <strong data-i18n="soundToggleTitle">Suara aktif</strong>
-              <small data-i18n="soundToggleDesc">Tap untuk matikan / hidupkan</small>
-            </span>
-          </button>
-        </div>
-      </div>
+</div>
       <div class="theme-actions">
         <button class="theme-reset-btn" type="button" id="themeResetBtn"><span aria-hidden="true">↻</span><span data-i18n="resetTheme">Reset</span></button>
         <button class="theme-save-btn" type="button" data-close-theme><span aria-hidden="true">✓</span><span data-i18n="saveTheme">Simpan</span></button>
@@ -5398,8 +5356,8 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       lavender:{label:'Lavender', gold:'#c4b5fd', gold2:'#8b5cf6', gold3:'#5b21b6', rgb:'196,181,253'},
     };
     var I18N = {
-      id:{announce:'Packing rapi - konsultasi aroma gratis - checkout langsung via WhatsApp',navProducts:'Produk',navStyle:'Gaya',navBlog:'Blog',navPolicy:'Kebijakan',navFaq:'FAQ',theme:'Tema',returnCatalog:'Katalog',a2fSideSub:'Lapisan proteksi akun',a2fStepChoose:'Pilih metode',a2fStepVerify:'Verifikasi',a2fStepRecover:'Analisis keamanan',a2fStepFinish:'Selesai',a2fRiskKicker:'Status',a2fRiskTitle:'Proteksi belum aktif',a2fRiskText:'Dashboard tetap terkunci sampai metode keamanan diverifikasi.',a2fKicker:'Wajib sebelum dashboard',a2fRecommended:'Disarankan',a2fStrong:'Aman',a2fBackup:'Backup',a2fPasskeyMini:'Paling modern dan tahan phishing.',a2fAuthMini:'Cadangan kuat untuk akun.',a2fEmailMini:'Mudah, jangan jadikan metode utama.',a2fPreviewKicker:'Detail metode',a2fSelectedPasskey:'Passkey siap dibuat',a2fSelectedAuth:'Authenticator siap dihubungkan',a2fSelectedEmail:'Email OTP siap dikirim',a2fLivePasskey:'WebAuthn ready',a2fLiveAuth:'TOTP ready',a2fLiveEmail:'OTP ready',a2fPasskeyPanelTitle:'Buat passkey di perangkat pelanggan',a2fPasskeyPanelText:'Saat backend WebAuthn dipasang, tombol aktivasi akan memanggil challenge server dan browser membuka Face ID, sidik jari, PIN, atau password manager.',a2fAuthPanelTitle:'Gunakan Authenticator',a2fAuthPanelText:'Masukkan kode 6 digit terbaru dari Google Authenticator/Authy. Rahasia Authenticator tidak ditampilkan di halaman login.',a2fEmailPanelTitle:'Kirim kode ke email pelanggan',a2fEmailPanelText:'Untuk produksi, backend mengirim kode sekali pakai, menyimpan hash kode, memberi batas waktu, dan membatasi percobaan verifikasi.',a2fReadyHttps:'Domain aman',a2fReadyApi:'Hook endpoint siap',a2fReadyDb:'Butuh tabel MFA',a2fStart:'Aktifkan pilihan ini',a2fTitle:'Aktifkan A2F',a2fSub:'Pilih lapisan keamanan tambahan agar akun pelanggan tidak hanya bergantung pada password.',a2fNote:'Halaman ini sudah disiapkan sebagai UI produksi. Untuk A2F real, endpoint MFA harus memverifikasi passkey, OTP email, dari server sebelum dashboard dibuka.',a2fPasskey:'Passkey',a2fPasskeyText:'Gunakan Face ID, sidik jari, PIN, atau kunci perangkat yang didukung.',a2fEmail:'Email',a2fEmailText:'Gunakan kode keamanan yang dikirim ke email pelanggan.',a2fAuth:'Authenticator',a2fAuthText:'Gunakan aplikasi autentikator seperti Google Authenticator atau Authy.',a2fDone:'Selesai, buka dashboard',eyebrow:'Akses akun Dirac',heroLead:'Masuk lebih cepat,',heroGold:'belanja lebih rapi.',heroText:'Kelola identitas pelanggan, lanjutkan checkout, dan simpan preferensi belanja dengan tampilan yang menyatu dengan katalog Dirac Group.',trust1:'✅ Tampilan konsisten',trust2:'🎨 Tema tersimpan',trust3:'🌐 Multi bahasa',trust4:'💬 Bantuan cepat',mini1Title:'Aman',mini1Text:'Validasi form jelas sebelum dikirim.',mini2Title:'Responsif',mini2Text:'Nyaman di HP, tablet, dan desktop.',mini3Title:'Satu rasa',mini3Text:'Header, tema, AI, WA, dan scroll sama seperti katalog.',loginTitle:'Masuk akun',loginSubtitle:'Gunakan email pelanggan.',tabLogin:'Masuk',tabRegister:'Daftar',identifierLabel:'Email',nameLabel:'Nama lengkap',passwordLabel:'Password',confirmLabel:'Ulangi password',remember:'Ingat perangkat ini',forgot:'Kembali ke beranda',submitLogin:'Masuk sekarang',submitRegister:'Daftar akun',footerText:'Halaman akun premium yang dibuat agar perpindahan dari katalog ke login terasa satu kesatuan.',footerNav:'Navigasi',home:'Beranda',products:'Produk',faq:'FAQ',contact:'Kontak',copyright:'Premium account access.',menuTitle:'Menu',menuSub:'Akses halaman utama Dirac Group.',openTheme:'Buka pengaturan tema',drawerFoot:'Menu ini dibuat ringan agar halaman login tetap terasa seperti katalog order.',themeTitle:'Pengaturan Tema',themeSub:'Atur warna, bahasa, dan gerak website.',modeTitle:'Mode Tema',dark:'Gelap',light:'Terang',auto:'Otomatis',colorTitle:'Warna aksen',languageTitle:'Bahasa Tampilan',contrastTitle:'Kontras Tema',contrastOn:'Aktif',contrastOff:'Nonaktif',customThemeTitle:'Kustom Tema',motionTitle:'Gerak Website',motionFull:'Aktif',motionReduced:'Ringan',soundTitle:'Suara Website',soundDesc:'Efek tombol, loading, dan animasi terminal dibuat original dari browser tanpa file audio eksternal.',soundToggleTitle:'Suara aktif',soundToggleDesc:'Tap untuk matikan / hidupkan',resetTheme:'Reset',saveTheme:'Simpan',aiTitle:'Dirac AI',aiSub:'Bantuan cepat untuk halaman akun.',aiWelcome:'Halo! Saya bisa bantu soal login, daftar akun, tema, bahasa, WhatsApp, dan navigasi Dirac Group.',aiChip1:'Cara masuk',aiChip2:'Ganti tema',aiChip3:'Hubungi WA'},
-      en:{announce:'Neat packing - free scent consultation - checkout directly via WhatsApp',navProducts:'Products',navStyle:'Style',navBlog:'Blog',navPolicy:'Policies',navFaq:'FAQ',theme:'Theme',returnCatalog:'Catalog',a2fSideSub:'Account protection layer',a2fStepChoose:'Choose method',a2fStepVerify:'Verify',a2fStepRecover:'Security analysis',a2fStepFinish:'Complete',a2fRiskKicker:'Status',a2fRiskTitle:'Protection not active',a2fRiskText:'The dashboard stays locked until the security method is verified.',a2fKicker:'Required before dashboard',a2fRecommended:'Recommended',a2fStrong:'Strong',a2fBackup:'Backup',a2fPasskeyMini:'Most modern and phishing-resistant.',a2fAuthMini:'Strong backup method.',a2fEmailMini:'Easy, but not the primary method.',a2fPreviewKicker:'Method detail',a2fSelectedPasskey:'Passkey ready to create',a2fSelectedAuth:'Authenticator ready to connect',a2fSelectedEmail:'Email OTP ready to send',a2fLivePasskey:'WebAuthn ready',a2fLiveAuth:'TOTP ready',a2fLiveEmail:'OTP ready',a2fPasskeyPanelTitle:'Create a passkey on the customer device',a2fPasskeyPanelText:'When the WebAuthn backend is connected, activation will request a server challenge and the browser will open Face ID, fingerprint, PIN, or a password manager.',a2fAuthPanelTitle:'Use Authenticator',a2fAuthPanelText:'Enter the latest 6-digit code from Google Authenticator/Authy. The Authenticator secret is not shown on the login page.',a2fEmailPanelTitle:'Send a code to the customer email',a2fEmailPanelText:'For production, the backend sends a one-time code, stores a code hash, sets expiry, and rate-limits verification attempts.',a2fReadyHttps:'Secure domain',a2fReadyApi:'Endpoint hooks ready',a2fReadyDb:'Needs MFA tables',a2fStart:'Activate selected method',a2fTitle:'Enable 2FA',a2fSub:'Choose an extra security layer so the customer account does not rely on password only.',a2fNote:'This page is prepared as a production UI. For real 2FA, MFA endpoints must verify passkey, or email OTP on the server before the dashboard opens.',a2fPasskey:'Passkey',a2fPasskeyText:'Use Face ID, fingerprint, PIN, or a supported device key.',a2fEmail:'Email',a2fEmailText:'Use a security code sent to the customer email.',a2fAuth:'Authenticator',a2fAuthText:'Use an authenticator app such as Google Authenticator or Authy.',a2fDone:'Done, open dashboard',eyebrow:'Dirac account access',heroLead:'Sign in faster,',heroGold:'shop more neatly.',heroText:'Manage your customer identity, continue checkout, and save shopping preferences with a look that matches the Dirac Group catalog.',trust1:'✅ Consistent look',trust2:'🎨 Saved theme',trust3:'🌐 Multi-language',trust4:'💬 Quick help',mini1Title:'Secure',mini1Text:'Clear validation before submission.',mini2Title:'Responsive',mini2Text:'Comfortable on phone, tablet, and desktop.',mini3Title:'Unified',mini3Text:'Header, theme, AI, WA, and scroll match the catalog.',loginTitle:'Sign in',loginSubtitle:'Use your customer email.',tabLogin:'Sign in',tabRegister:'Register',identifierLabel:'Email',nameLabel:'Full name',passwordLabel:'Password',confirmLabel:'Repeat password',remember:'Remember this device',forgot:'Back to home',submitLogin:'Sign in now',submitRegister:'Create account',footerText:'A premium account page designed to feel unified with the catalog.',footerNav:'Navigation',home:'Home',products:'Products',faq:'FAQ',contact:'Contact',copyright:'Premium account access.',menuTitle:'Menu',menuSub:'Open the main Dirac Group pages.',openTheme:'Open theme settings',drawerFoot:'This menu stays light so the login page feels like the order catalog.',themeTitle:'Theme Settings',themeSub:'Set color, language, and website motion.',modeTitle:'Theme Mode',dark:'Dark',light:'Light',auto:'Automatic',colorTitle:'Accent color',languageTitle:'Display Language',contrastTitle:'Theme Contrast',contrastOn:'Active',contrastOff:'Inactive',customThemeTitle:'Custom Theme',motionTitle:'Website Motion',motionFull:'Active',motionReduced:'Light',soundTitle:'Website Sound',soundDesc:'Button, loading, and terminal sounds are generated in-browser without external audio files.',soundToggleTitle:'Sound on',soundToggleDesc:'Tap to turn off / on',resetTheme:'Reset',saveTheme:'Save',aiTitle:'Dirac AI',aiSub:'Quick help for the account page.',aiWelcome:'Hello! I can help with login, registration, themes, language, WhatsApp, and Dirac Group navigation.',aiChip1:'How to sign in',aiChip2:'Change theme',aiChip3:'Contact WA'},
+      id:{announce:'Packing rapi - konsultasi aroma gratis - checkout langsung via WhatsApp',navProducts:'Produk',navStyle:'Gaya',navBlog:'Blog',navPolicy:'Kebijakan',navFaq:'FAQ',theme:'Tema',returnCatalog:'Katalog',a2fSideSub:'Lapisan proteksi akun',a2fStepChoose:'Pilih metode',a2fStepVerify:'Verifikasi',a2fStepRecover:'Analisis keamanan',a2fStepFinish:'Selesai',a2fRiskKicker:'Status',a2fRiskTitle:'Proteksi belum aktif',a2fRiskText:'Dashboard tetap terkunci sampai metode keamanan diverifikasi.',a2fKicker:'Wajib sebelum dashboard',a2fRecommended:'Disarankan',a2fStrong:'Aman',a2fBackup:'Backup',a2fPasskeyMini:'Paling modern dan tahan phishing.',a2fAuthMini:'Cadangan kuat untuk akun.',a2fEmailMini:'Mudah, jangan jadikan metode utama.',a2fPreviewKicker:'Detail metode',a2fSelectedPasskey:'Passkey siap dibuat',a2fSelectedAuth:'Authenticator siap dihubungkan',a2fSelectedEmail:'Email OTP siap dikirim',a2fLivePasskey:'WebAuthn ready',a2fLiveAuth:'TOTP ready',a2fLiveEmail:'OTP ready',a2fPasskeyPanelTitle:'Buat passkey di perangkat pelanggan',a2fPasskeyPanelText:'Saat backend WebAuthn dipasang, tombol aktivasi akan memanggil challenge server dan browser membuka Face ID, sidik jari, PIN, atau password manager.',a2fAuthPanelTitle:'Gunakan Authenticator',a2fAuthPanelText:'Masukkan kode 6 digit terbaru dari Google Authenticator/Authy. Rahasia Authenticator tidak ditampilkan di halaman login.',a2fEmailPanelTitle:'Kirim kode ke email pelanggan',a2fEmailPanelText:'Untuk produksi, backend mengirim kode sekali pakai, menyimpan hash kode, memberi batas waktu, dan membatasi percobaan verifikasi.',a2fReadyHttps:'Domain aman',a2fReadyApi:'Hook endpoint siap',a2fReadyDb:'Butuh tabel MFA',a2fStart:'Aktifkan pilihan ini',a2fTitle:'Aktifkan A2F',a2fSub:'Pilih lapisan keamanan tambahan agar akun pelanggan tidak hanya bergantung pada password.',a2fNote:'Halaman ini sudah disiapkan sebagai UI produksi. Untuk A2F real, endpoint MFA harus memverifikasi passkey, OTP email, dari server sebelum dashboard dibuka.',a2fPasskey:'Passkey',a2fPasskeyText:'Gunakan Face ID, sidik jari, PIN, atau kunci perangkat yang didukung.',a2fEmail:'Email',a2fEmailText:'Gunakan kode keamanan yang dikirim ke email pelanggan.',a2fAuth:'Authenticator',a2fAuthText:'Gunakan aplikasi autentikator seperti Google Authenticator atau Authy.',a2fDone:'Selesai, buka dashboard',eyebrow:'Akses akun Dirac',heroLead:'Masuk lebih cepat,',heroGold:'belanja lebih rapi.',heroText:'Kelola identitas pelanggan, lanjutkan checkout, dan simpan preferensi belanja dengan tampilan yang menyatu dengan katalog Dirac Group.',trust1:'✅ Tampilan konsisten',trust2:'🎨 Tema tersimpan',trust3:'🌐 Multi bahasa',trust4:'💬 Bantuan cepat',mini1Title:'Aman',mini1Text:'Validasi form jelas sebelum dikirim.',mini2Title:'Responsif',mini2Text:'Nyaman di HP, tablet, dan desktop.',mini3Title:'Satu rasa',mini3Text:'Header, tema, AI, WA, dan scroll sama seperti katalog.',loginTitle:'Masuk akun',loginSubtitle:'Gunakan email pelanggan.',tabLogin:'Masuk',tabRegister:'Daftar',identifierLabel:'Email',nameLabel:'Nama lengkap',passwordLabel:'Password',confirmLabel:'Ulangi password',remember:'Ingat perangkat ini',forgot:'Kembali ke beranda',submitLogin:'Masuk sekarang',submitRegister:'Daftar akun',footerText:'Halaman akun premium yang dibuat agar perpindahan dari katalog ke login terasa satu kesatuan.',footerNav:'Navigasi',home:'Beranda',products:'Produk',faq:'FAQ',contact:'Kontak',copyright:'Premium account access.',menuTitle:'Menu',menuSub:'Akses halaman utama Dirac Group.',openTheme:'Buka pengaturan tema',drawerFoot:'Menu ini dibuat ringan agar halaman login tetap terasa seperti katalog order.',themeTitle:'Pengaturan Tema',themeSub:'Atur warna, bahasa, dan gerak website.',modeTitle:'Mode Tema',dark:'Gelap',light:'Terang',auto:'Otomatis',colorTitle:'Warna aksen',languageTitle:'Bahasa Tampilan',contrastTitle:'Kontras Tema',contrastOn:'Aktif',contrastOff:'Nonaktif',customThemeTitle:'Kustom Tema',motionTitle:'Gerak Website',motionFull:'Aktif',motionReduced:'Ringan',resetTheme:'Reset',saveTheme:'Simpan',aiTitle:'Dirac AI',aiSub:'Bantuan cepat untuk halaman akun.',aiWelcome:'Halo! Saya bisa bantu soal login, daftar akun, tema, bahasa, WhatsApp, dan navigasi Dirac Group.',aiChip1:'Cara masuk',aiChip2:'Ganti tema',aiChip3:'Hubungi WA'},
+      en:{announce:'Neat packing - free scent consultation - checkout directly via WhatsApp',navProducts:'Products',navStyle:'Style',navBlog:'Blog',navPolicy:'Policies',navFaq:'FAQ',theme:'Theme',returnCatalog:'Catalog',a2fSideSub:'Account protection layer',a2fStepChoose:'Choose method',a2fStepVerify:'Verify',a2fStepRecover:'Security analysis',a2fStepFinish:'Complete',a2fRiskKicker:'Status',a2fRiskTitle:'Protection not active',a2fRiskText:'The dashboard stays locked until the security method is verified.',a2fKicker:'Required before dashboard',a2fRecommended:'Recommended',a2fStrong:'Strong',a2fBackup:'Backup',a2fPasskeyMini:'Most modern and phishing-resistant.',a2fAuthMini:'Strong backup method.',a2fEmailMini:'Easy, but not the primary method.',a2fPreviewKicker:'Method detail',a2fSelectedPasskey:'Passkey ready to create',a2fSelectedAuth:'Authenticator ready to connect',a2fSelectedEmail:'Email OTP ready to send',a2fLivePasskey:'WebAuthn ready',a2fLiveAuth:'TOTP ready',a2fLiveEmail:'OTP ready',a2fPasskeyPanelTitle:'Create a passkey on the customer device',a2fPasskeyPanelText:'When the WebAuthn backend is connected, activation will request a server challenge and the browser will open Face ID, fingerprint, PIN, or a password manager.',a2fAuthPanelTitle:'Use Authenticator',a2fAuthPanelText:'Enter the latest 6-digit code from Google Authenticator/Authy. The Authenticator secret is not shown on the login page.',a2fEmailPanelTitle:'Send a code to the customer email',a2fEmailPanelText:'For production, the backend sends a one-time code, stores a code hash, sets expiry, and rate-limits verification attempts.',a2fReadyHttps:'Secure domain',a2fReadyApi:'Endpoint hooks ready',a2fReadyDb:'Needs MFA tables',a2fStart:'Activate selected method',a2fTitle:'Enable 2FA',a2fSub:'Choose an extra security layer so the customer account does not rely on password only.',a2fNote:'This page is prepared as a production UI. For real 2FA, MFA endpoints must verify passkey, or email OTP on the server before the dashboard opens.',a2fPasskey:'Passkey',a2fPasskeyText:'Use Face ID, fingerprint, PIN, or a supported device key.',a2fEmail:'Email',a2fEmailText:'Use a security code sent to the customer email.',a2fAuth:'Authenticator',a2fAuthText:'Use an authenticator app such as Google Authenticator or Authy.',a2fDone:'Done, open dashboard',eyebrow:'Dirac account access',heroLead:'Sign in faster,',heroGold:'shop more neatly.',heroText:'Manage your customer identity, continue checkout, and save shopping preferences with a look that matches the Dirac Group catalog.',trust1:'✅ Consistent look',trust2:'🎨 Saved theme',trust3:'🌐 Multi-language',trust4:'💬 Quick help',mini1Title:'Secure',mini1Text:'Clear validation before submission.',mini2Title:'Responsive',mini2Text:'Comfortable on phone, tablet, and desktop.',mini3Title:'Unified',mini3Text:'Header, theme, AI, WA, and scroll match the catalog.',loginTitle:'Sign in',loginSubtitle:'Use your customer email.',tabLogin:'Sign in',tabRegister:'Register',identifierLabel:'Email',nameLabel:'Full name',passwordLabel:'Password',confirmLabel:'Repeat password',remember:'Remember this device',forgot:'Back to home',submitLogin:'Sign in now',submitRegister:'Create account',footerText:'A premium account page designed to feel unified with the catalog.',footerNav:'Navigation',home:'Home',products:'Products',faq:'FAQ',contact:'Contact',copyright:'Premium account access.',menuTitle:'Menu',menuSub:'Open the main Dirac Group pages.',openTheme:'Open theme settings',drawerFoot:'This menu stays light so the login page feels like the order catalog.',themeTitle:'Theme Settings',themeSub:'Set color, language, and website motion.',modeTitle:'Theme Mode',dark:'Dark',light:'Light',auto:'Automatic',colorTitle:'Accent color',languageTitle:'Display Language',contrastTitle:'Theme Contrast',contrastOn:'Active',contrastOff:'Inactive',customThemeTitle:'Custom Theme',motionTitle:'Website Motion',motionFull:'Active',motionReduced:'Light',resetTheme:'Reset',saveTheme:'Save',aiTitle:'Dirac AI',aiSub:'Quick help for the account page.',aiWelcome:'Hello! I can help with login, registration, themes, language, WhatsApp, and Dirac Group navigation.',aiChip1:'How to sign in',aiChip2:'Change theme',aiChip3:'Contact WA'},
       zh:{loginTitle:'登录账号',tabLogin:'登录',tabRegister:'注册',theme:'主题',menuTitle:'菜单',themeTitle:'主题设置',languageTitle:'语言',motionTitle:'网站动效',heroLead:'更快登录，',heroGold:'更整洁购物。',submitLogin:'立即登录',submitRegister:'创建账号',aiTitle:'Dirac AI',aiWelcome:'你好！我可以帮助登录、注册、主题、语言、WhatsApp 和导航。'},
       ar:{loginTitle:'تسجيل الدخول',tabLogin:'دخول',tabRegister:'تسجيل',theme:'السمة',menuTitle:'القائمة',themeTitle:'إعدادات السمة',languageTitle:'اللغة',motionTitle:'حركة الموقع',heroLead:'ادخل أسرع،',heroGold:'وتسوق بترتيب أكثر.',submitLogin:'تسجيل الدخول الآن',submitRegister:'إنشاء حساب',aiTitle:'Dirac AI',aiWelcome:'مرحباً! يمكنني المساعدة في الدخول، التسجيل، السمة، اللغة، واتساب والتنقل.'},
       ja:{loginTitle:'ログイン',tabLogin:'ログイン',tabRegister:'登録',theme:'テーマ',menuTitle:'メニュー',themeTitle:'テーマ設定',languageTitle:'言語',motionTitle:'サイトの動き',heroLead:'より速くログイン、',heroGold:'より快適に購入。',submitLogin:'今すぐログイン',submitRegister:'アカウント作成',aiTitle:'Dirac AI',aiWelcome:'こんにちは。ログイン、登録、テーマ、言語、WhatsApp、ナビをサポートします。'},
@@ -5503,8 +5461,41 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       t.textContent = msg; t.classList.add('show');
       clearTimeout(showToast._t); showToast._t = setTimeout(function(){t.classList.remove('show');}, 2600);
     }
+    function clearLoginRateCountdown(){
+      if(clearLoginRateCountdown._timer){
+        clearInterval(clearLoginRateCountdown._timer);
+        clearLoginRateCountdown._timer = null;
+      }
+    }
+    function formatLoginRetryTime(seconds){
+      var total = Math.max(0, Math.ceil(Number(seconds || 0)));
+      var minutes = Math.floor(total / 60);
+      var secs = total % 60;
+      return minutes + ' menit ' + String(secs).padStart(2, '0') + ' detik';
+    }
+    function showLoginRateCountdown(seconds, message){
+      var box = $('#statusBox');
+      if(!box) return;
+      var remaining = Math.max(0, Math.ceil(Number(seconds || 0)));
+      clearLoginRateCountdown();
+      function render(){
+        var label = formatLoginRetryTime(remaining);
+        box.className = 'status-box show error';
+        box.style.whiteSpace = 'pre-line';
+        box.textContent = (message || 'Terlalu banyak percobaan masuk.') + '\nSilakan coba lagi dalam ' + label + '.';
+        if(remaining <= 0){
+          clearLoginRateCountdown();
+          box.textContent = 'Silakan coba login kembali.';
+          return;
+        }
+        remaining -= 1;
+      }
+      render();
+      clearLoginRateCountdown._timer = setInterval(render, 1000);
+    }
     function status(type, msg){
-      var box = $('#statusBox'); box.className = 'status-box show ' + type; box.textContent = msg;
+      clearLoginRateCountdown();
+      var box = $('#statusBox'); box.style.whiteSpace = ''; box.className = 'status-box show ' + type; box.textContent = msg;
     }
     function updateModeCopy(){
       var dict = Object.assign({}, I18N.id, I18N[settings.language] || {});
@@ -5720,6 +5711,12 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
           cache:'no-store'
         });
         var data = await response.clone().json().catch(function(){return null;});
+        if(mode === 'login' && response.status === 429 && data && data.code === 'LOGIN_RATE_LIMITED'){
+          clearPendingAuth();
+          showLoginRateCountdown(data.retry_after_seconds || data.retryAfterSeconds || 0, data.message || 'Terlalu banyak percobaan masuk.');
+          showToast('Login dibatasi sementara. Tunggu hitung mundur selesai.');
+          return;
+        }
         var duplicateRegisterMessage = registerDuplicateEmailMessage(data);
         var uncertainRegisterMessage = duplicateRegisterMessage ? '' : unverifiedRegisterConfirmationMessage(data);
         if(duplicateRegisterMessage || uncertainRegisterMessage){
@@ -7259,7 +7256,6 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
           if(done){ clearInterval(typeTimer); return; }
           pos = Math.min(text.length, pos + step);
           line.textContent = text.slice(0, pos);
-          if(window.DiracSound) window.DiracSound.play('type');
           terminal.scrollTop = terminal.scrollHeight;
           if(pos >= text.length){
             clearInterval(typeTimer);
@@ -7818,581 +7814,13 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
 
 
 
-<style id="dirac-ui-sound-feedback-css">
-/* =========================================================
-   Dirac UI Sound Feedback v3
-   Efek suara original dari Web Audio API: click, loading, terminal cyber-tick,
-   tidak mengambil audio TikTok/JJ, dan tidak mengubah flow login/A2F lama.
-   ========================================================= */
-.dirac-sound-toggle{
-  position:fixed;
-  left:84px;
-  bottom:calc(20px + env(safe-area-inset-bottom));
-  z-index:9401;
-  width:44px;
-  height:44px;
-  border-radius:999px;
-  border:1px solid rgba(var(--theme-rgb),.28);
-  background:linear-gradient(145deg,rgba(15,23,42,.94),rgba(6,11,20,.86));
-  color:#fff;
-  display:grid;
-  place-items:center;
-  box-shadow:0 14px 34px rgba(0,0,0,.32),inset 0 1px 0 rgba(255,255,255,.08);
-  font-size:1.05rem;
-  line-height:1;
-  transition:transform .22s var(--motion-ease),border-color .22s var(--motion-ease),background .22s var(--motion-ease),filter .22s var(--motion-ease),opacity .22s var(--motion-ease);
-  -webkit-tap-highlight-color:transparent;
-  touch-action:manipulation;
-}
-.dirac-sound-toggle:hover,
-.dirac-sound-toggle:focus-visible{
-  transform:translateY(-2px);
-  border-color:rgba(var(--theme-rgb),.56);
-  outline:none;
-}
-.dirac-sound-toggle[aria-pressed="false"]{
-  filter:saturate(.72);
-  opacity:.78;
-}
-html[data-effective-theme="light"] .dirac-sound-toggle{
-  background:linear-gradient(145deg,#fff,#f8fafc);
-  color:#111827;
-  border-color:rgba(var(--theme-rgb),.24);
-  box-shadow:0 14px 30px rgba(15,23,42,.14),inset 0 1px 0 rgba(255,255,255,.82);
-}
-@media(max-width:760px){
-  .dirac-sound-toggle{left:76px;bottom:calc(20px + env(safe-area-inset-bottom));width:42px;height:42px;font-size:1rem}
-}
-@media(max-width:430px){
-  .dirac-sound-toggle{left:72px;bottom:calc(18px + env(safe-area-inset-bottom));width:40px;height:40px;font-size:.96rem}
-}
-@media(prefers-reduced-motion:reduce){.dirac-sound-toggle{transition:none!important}}
-</style>
-
-<script id="dirac-ui-sound-feedback-js">
-(function(){
-  'use strict';
-
-  /* =========================================================
-     Dirac UI Sound Feedback NEW EFFECT v10
-     Fokus perubahan: membuat mesin efek suara klik baru dari nol.
-     Tidak mengubah endpoint, login, register, hash, token, cookie, A2F/MFA,
-     dashboard, checkout, order, atau keamanan backend.
-     ========================================================= */
-
-  var STORAGE_KEY = 'dirac_ui_sound_enabled_v3';
-  var LEGACY_STORAGE_KEY = 'dirac_ui_sound_enabled_v1';
-  var PATCH_KEY = 'dirac_ui_sound_new_click_effect_v10_applied';
-  var USER_OFF_KEY = 'dirac_ui_sound_user_off_v1';
-  var AudioCtx = window.AudioContext || window.webkitAudioContext;
-  var ctx = null;
-  var master = null;
-  var compressor = null;
-  var enabled = readEnabled();
-  var last = {};
-  var typeStep = 0;
-  var wavCache = {};
-  var primed = false;
-
-  function $(selector, root){ return (root || document).querySelector(selector); }
-  function ready(fn){ if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, {once:true}); else fn(); }
-  function nowMs(){ return (window.performance && performance.now) ? performance.now() : Date.now(); }
-  function clamp(value, min, max){ value = Number(value); if(!isFinite(value)) value = min; return Math.max(min, Math.min(max, value)); }
-
-  function readEnabled(){
-    try{
-      if(localStorage.getItem(PATCH_KEY) !== '1'){
-        /* v10: reset ON satu kali supaya status OFF dari eksperimen/fix lama
-           tidak membuat efek klik baru terlihat tetap hilang. */
-        localStorage.setItem(STORAGE_KEY, 'on');
-        localStorage.setItem(LEGACY_STORAGE_KEY, 'on');
-        localStorage.removeItem(USER_OFF_KEY);
-        localStorage.setItem(PATCH_KEY, '1');
-        return true;
-      }
-      if(localStorage.getItem(USER_OFF_KEY) === '1') return false;
-      var saved = localStorage.getItem(STORAGE_KEY);
-      if(saved === 'on' || saved === 'off') return saved !== 'off';
-      var legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
-      if(legacy === 'on' || legacy === 'off') return legacy !== 'off';
-    }catch(_){ }
-    return true;
-  }
-
-  function saveEnabled(){
-    try{
-      localStorage.setItem(STORAGE_KEY, enabled ? 'on' : 'off');
-      localStorage.setItem(LEGACY_STORAGE_KEY, enabled ? 'on' : 'off');
-      if(enabled) localStorage.removeItem(USER_OFF_KEY);
-      else localStorage.setItem(USER_OFF_KEY, '1');
-      localStorage.setItem(PATCH_KEY, '1');
-    }catch(_){ }
-  }
-
-  function ensureContext(){
-    if(ctx) return ctx;
-    if(!AudioCtx) return null;
-    try{
-      try{ ctx = new AudioCtx({latencyHint:'interactive'}); }
-      catch(_){ ctx = new AudioCtx(); }
-      master = ctx.createGain();
-      master.gain.value = 0.92;
-      if(ctx.createDynamicsCompressor){
-        compressor = ctx.createDynamicsCompressor();
-        compressor.threshold.value = -18;
-        compressor.knee.value = 20;
-        compressor.ratio.value = 7;
-        compressor.attack.value = 0.002;
-        compressor.release.value = 0.16;
-        master.connect(compressor);
-        compressor.connect(ctx.destination);
-      }else{
-        master.connect(ctx.destination);
-      }
-    }catch(_){
-      ctx = null;
-      master = null;
-      compressor = null;
-    }
-    return ctx;
-  }
-
-  function unlockAudio(){
-    if(!enabled) return null;
-    var audio = ensureContext();
-    if(!audio) return null;
-    try{
-      if(audio.state === 'suspended' && audio.resume) audio.resume().catch(function(){});
-      if(!primed){
-        primed = true;
-        var g = audio.createGain();
-        var o = audio.createOscillator();
-        g.gain.value = 0.00001;
-        o.frequency.value = 32;
-        o.connect(g);
-        g.connect(master || audio.destination);
-        o.start(audio.currentTime);
-        o.stop(audio.currentTime + 0.025);
-      }
-    }catch(_){ }
-    return audio;
-  }
-
-  function connect(node){
-    try{ node.connect(master || (ctx && ctx.destination)); return true; }
-    catch(_){ return false; }
-  }
-
-  function throttle(key, ms){
-    var t = nowMs();
-    var prev = Number(last[key] || 0);
-    if(t - prev < ms) return true;
-    last[key] = t;
-    return false;
-  }
-
-  function tone(freq, duration, gainValue, type, delay, endFreq){
-    var audio = ensureContext();
-    if(!audio || !enabled) return false;
-    try{
-      var t = audio.currentTime + (delay || 0.001);
-      var osc = audio.createOscillator();
-      var gain = audio.createGain();
-      osc.type = type || 'triangle';
-      osc.frequency.setValueAtTime(Math.max(1, Number(freq) || 700), t);
-      if(endFreq && osc.frequency.exponentialRampToValueAtTime){
-        osc.frequency.exponentialRampToValueAtTime(Math.max(1, Number(endFreq) || freq), t + duration);
-      }
-      gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.exponentialRampToValueAtTime(clamp(gainValue, 0.001, 0.22), t + 0.006);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
-      osc.connect(gain);
-      if(!connect(gain)) return false;
-      osc.start(t);
-      osc.stop(t + duration + 0.025);
-      return true;
-    }catch(_){ return false; }
-  }
-
-  function clickNoise(duration, gainValue, delay){
-    var audio = ensureContext();
-    if(!audio || !enabled || !audio.createBufferSource) return false;
-    try{
-      var length = Math.max(32, Math.floor(audio.sampleRate * duration));
-      var buffer = audio.createBuffer(1, length, audio.sampleRate);
-      var data = buffer.getChannelData(0);
-      for(var i = 0; i < length; i += 1){
-        var env = Math.pow(1 - (i / length), 2.15);
-        data[i] = (Math.random() * 2 - 1) * env;
-      }
-      var src = audio.createBufferSource();
-      var filter = audio.createBiquadFilter();
-      var gain = audio.createGain();
-      var t = audio.currentTime + (delay || 0.001);
-      src.buffer = buffer;
-      filter.type = 'highpass';
-      filter.frequency.value = 900;
-      filter.Q.value = 0.7;
-      gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.exponentialRampToValueAtTime(clamp(gainValue, 0.001, 0.14), t + 0.004);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
-      src.connect(filter);
-      filter.connect(gain);
-      if(!connect(gain)) return false;
-      src.start(t);
-      src.stop(t + duration + 0.02);
-      return true;
-    }catch(_){ return false; }
-  }
-
-  function writeAscii(view, offset, text){ for(var i = 0; i < text.length; i += 1) view.setUint8(offset + i, text.charCodeAt(i)); }
-
-  function makeWav(kind){
-    if(!window.btoa) return '';
-    kind = String(kind || 'click').toLowerCase();
-    var profile = {
-      click:   {duration:0.115, volume:0.82, base:760, sweep:1340, noise:0.22},
-      type:    {duration:0.035, volume:0.34, base:1220, sweep:980, noise:0.04},
-      loading: {duration:0.170, volume:0.56, base:360, sweep:620, noise:0.08},
-      success: {duration:0.210, volume:0.58, base:620, sweep:1040, noise:0.05},
-      finish:  {duration:0.260, volume:0.62, base:520, sweep:1180, noise:0.07},
-      error:   {duration:0.190, volume:0.60, base:230, sweep:155, noise:0.16}
-    };
-    var p = profile[kind] || profile.click;
-    var rate = 16000;
-    var samples = Math.max(240, Math.floor(rate * p.duration));
-    var bytes = new Uint8Array(44 + samples * 2);
-    var view = new DataView(bytes.buffer);
-    writeAscii(view, 0, 'RIFF');
-    view.setUint32(4, 36 + samples * 2, true);
-    writeAscii(view, 8, 'WAVE');
-    writeAscii(view, 12, 'fmt ');
-    view.setUint32(16, 16, true);
-    view.setUint16(20, 1, true);
-    view.setUint16(22, 1, true);
-    view.setUint32(24, rate, true);
-    view.setUint32(28, rate * 2, true);
-    view.setUint16(32, 2, true);
-    view.setUint16(34, 16, true);
-    writeAscii(view, 36, 'data');
-    view.setUint32(40, samples * 2, true);
-    for(var i = 0; i < samples; i += 1){
-      var x = i / samples;
-      var env = Math.min(1, i / 24) * Math.pow(1 - x, 1.65);
-      var freq = p.base + (p.sweep - p.base) * x;
-      var sine = Math.sin(2 * Math.PI * freq * i / rate);
-      var square = sine >= 0 ? 1 : -1;
-      var noise = (Math.random() * 2 - 1) * p.noise;
-      var sample = ((sine * 0.66) + (square * 0.22) + noise) * env * p.volume;
-      view.setInt16(44 + i * 2, Math.max(-32760, Math.min(32760, sample * 32760)), true);
-    }
-    var chunk = '';
-    for(var j = 0; j < bytes.length; j += 1) chunk += String.fromCharCode(bytes[j]);
-    return 'data:audio/wav;base64,' + btoa(chunk);
-  }
-
-  function fallbackAudio(kind){
-    if(!enabled || typeof Audio === 'undefined') return false;
-    try{
-      var key = normalizeKind(kind);
-      if(!wavCache[key]) wavCache[key] = makeWav(key);
-      if(!wavCache[key]) return false;
-      var audio = new Audio(wavCache[key]);
-      audio.preload = 'auto';
-      audio.muted = false;
-      audio.volume = 1;
-      var promise = audio.play();
-      if(promise && promise.catch) promise.catch(function(){});
-      setTimeout(function(){ try{ audio.pause(); audio.removeAttribute('src'); audio.load(); }catch(_){ } }, 900);
-      return true;
-    }catch(_){ return false; }
-  }
-
-  function normalizeKind(kind){
-    kind = String(kind || 'click').toLowerCase();
-    if(/type|typing|key/.test(kind)) return 'type';
-    if(/load|loading|wait|process/.test(kind)) return 'loading';
-    if(/success|ok|verified|valid/.test(kind)) return 'success';
-    if(/finish|done|complete|ready/.test(kind)) return 'finish';
-    if(/error|fail|danger|invalid/.test(kind)) return 'error';
-    return 'click';
-  }
-
-  function playWeb(kind){
-    kind = normalizeKind(kind);
-    if(kind === 'click'){
-      if(throttle('click', 58)) return true;
-      var ok = clickNoise(0.035, 0.072, 0.001);
-      ok = tone(620, 0.052, 0.155, 'square', 0.002, 1180) || ok;
-      ok = tone(1480, 0.040, 0.060, 'triangle', 0.022, 980) || ok;
-      return ok;
-    }
-    if(kind === 'type'){
-      if(throttle('type', 24)) return true;
-      typeStep = (typeStep + 1) % 6;
-      var freqs = [980, 1110, 1240, 1360, 1180, 1020];
-      return tone(freqs[typeStep], 0.020, 0.020, 'triangle', 0.001, freqs[typeStep] * 0.72);
-    }
-    if(kind === 'loading'){
-      if(throttle('loading', 240)) return true;
-      var okLoad = clickNoise(0.070, 0.028, 0.001);
-      okLoad = tone(330, 0.090, 0.060, 'sine', 0.014, 560) || okLoad;
-      okLoad = tone(520, 0.090, 0.046, 'sine', 0.095, 760) || okLoad;
-      return okLoad;
-    }
-    if(kind === 'success'){
-      if(throttle('success', 360)) return true;
-      var okSuccess = tone(520, 0.090, 0.075, 'triangle', 0.001, 650);
-      okSuccess = tone(780, 0.105, 0.070, 'triangle', 0.080, 1040) || okSuccess;
-      return okSuccess;
-    }
-    if(kind === 'finish'){
-      if(throttle('finish', 520)) return true;
-      var okFinish = tone(440, 0.085, 0.072, 'sine', 0.001, 660);
-      okFinish = tone(880, 0.105, 0.068, 'triangle', 0.082, 1320) || okFinish;
-      okFinish = clickNoise(0.080, 0.035, 0.155) || okFinish;
-      return okFinish;
-    }
-    if(kind === 'error'){
-      if(throttle('error', 360)) return true;
-      var okError = tone(240, 0.090, 0.074, 'sawtooth', 0.001, 170);
-      okError = tone(165, 0.115, 0.054, 'triangle', 0.080, 130) || okError;
-      return okError;
-    }
-    return playWeb('click');
-  }
-
-  function play(kind){
-    if(!enabled) return false;
-    kind = normalizeKind(kind);
-    unlockAudio();
-    var ok = playWeb(kind);
-    /* Jalur cadangan: selalu dinyalakan untuk click/loading/success/error.
-       Untuk typing tidak dipakai agar tidak terlalu ramai. */
-    if(kind !== 'type') fallbackAudio(kind);
-    try{ if(kind === 'click' && navigator.vibrate) navigator.vibrate(8); }catch(_){ }
-    return ok;
-  }
-
-  function toast(message){
-    var box = $('#toast');
-    if(!box) return;
-    box.textContent = message;
-    box.classList.add('show');
-    clearTimeout(toast._timer);
-    toast._timer = setTimeout(function(){ box.classList.remove('show'); }, 2100);
-  }
-
-  function updateToggle(){
-    var btn = $('#diracSoundToggle');
-    if(!btn) return;
-    var icon = $('.dirac-theme-sound-icon', btn);
-    var title = $('.dirac-theme-sound-copy strong', btn);
-    var desc = $('.dirac-theme-sound-copy small', btn);
-    if(icon) icon.textContent = enabled ? '🔊' : '🔇';
-    if(title) title.textContent = enabled ? 'Suara aktif' : 'Suara mati';
-    if(desc) desc.textContent = enabled ? 'Efek klik baru aktif. Coba tap tombol ini atau tombol login.' : 'Semua efek suara website dimatikan.';
-    btn.setAttribute('aria-pressed', enabled ? 'true' : 'false');
-    btn.setAttribute('aria-label', enabled ? 'Matikan suara tombol website' : 'Aktifkan suara tombol website');
-    btn.title = enabled ? 'Suara website aktif' : 'Suara website mati';
-  }
-
-  function bindToggle(){
-    var btn = $('#diracSoundToggle');
-    if(!btn || btn.__diracSoundNewV10Bound) return;
-    btn.__diracSoundNewV10Bound = true;
-    btn.addEventListener('click', function(){
-      enabled = !enabled;
-      saveEnabled();
-      updateToggle();
-      if(enabled){ unlockAudio(); play('success'); toast('Suara website aktif.'); }
-      else{ toast('Suara website dimatikan.'); }
-    });
-    updateToggle();
-  }
-
-  function disabled(el){
-    return !!(el && (el.disabled || el.getAttribute('aria-disabled') === 'true' || (el.classList && el.classList.contains('is-disabled'))));
-  }
-
-  function interactiveFrom(target){
-    var el = target && target.nodeType === 1 ? target : (target && target.parentElement);
-    if(!el || !el.closest) return null;
-    var direct = el.closest('button,a,label,summary,[role="button"],[tabindex],input[type="button"],input[type="submit"],input[type="checkbox"],input[type="radio"],select,.auth-tab,.ai-chip,.theme-pro-choice,.choice,.btn-primary,.btn-secondary,.btn-ghost,.icon-btn,.theme-toggle,.menu-toggle,.catalog-return,.header-cart,.password-toggle,[onclick],[data-action],[data-mode],[data-theme],button[data-language],[role="button"][data-language],[data-language-option],[data-lang],[data-scroll],[data-a2f-method],[data-a2f-select],[data-close-theme],[data-close-menu],[data-close-ai]');
-    if(direct) return direct;
-    var walk = el;
-    for(var i = 0; walk && walk !== document.body && i < 5; i += 1, walk = walk.parentElement){
-      try{
-        var style = window.getComputedStyle ? window.getComputedStyle(walk) : null;
-        if(style && style.cursor === 'pointer') return walk;
-      }catch(_){ }
-    }
-    return null;
-  }
-
-  function gesture(event){
-    unlockAudio();
-    var item = interactiveFrom(event && event.target);
-    if(!item || disabled(item)) return;
-    if(throttle('gesture', 52)) return;
-    play('click');
-  }
-
-  function keyboard(event){
-    if(!event || event.repeat || (event.key !== 'Enter' && event.key !== ' ')) return;
-    var item = interactiveFrom(event.target);
-    if(!item || disabled(item)) return;
-    play('click');
-  }
-
-  function authFormLooksValid(form){
-    if(!form || !form.querySelector) return false;
-    var identifier = form.querySelector('#identifier');
-    var password = form.querySelector('#password');
-    var fullName = form.querySelector('#fullName');
-    var confirm = form.querySelector('#confirmPassword');
-    var modeInput = form.querySelector('#authMode');
-    var currentMode = (modeInput && modeInput.value) || 'login';
-    var ident = identifier ? String(identifier.value || '').trim().toLowerCase() : '';
-    var pass = password ? String(password.value || '') : '';
-    var name = fullName ? String(fullName.value || '').trim() : '';
-    var confirmValue = confirm ? String(confirm.value || '') : '';
-    var identOk = /^[a-z0-9@.]+$/.test(ident) && /^[a-z0-9]+(?:[.][a-z0-9]+)*@[a-z0-9]+(?:[.][a-z0-9]+)+$/.test(ident);
-    if(!identOk || pass.length < 6) return false;
-    if(currentMode === 'register' && (name.length < 3 || pass !== confirmValue)) return false;
-    return true;
-  }
-
-  function bindDocumentEvents(){
-    if(document.__diracSoundNewV10EventsBound) return;
-    document.__diracSoundNewV10EventsBound = true;
-    document.addEventListener('pointerdown', gesture, {capture:true, passive:true});
-    document.addEventListener('touchstart', gesture, {capture:true, passive:true});
-    document.addEventListener('mousedown', function(e){ if(!window.PointerEvent) gesture(e); }, true);
-    document.addEventListener('click', function(e){ if(throttle('clickFallback', 70)) return; gesture(e); }, true);
-    document.addEventListener('keydown', keyboard, true);
-    document.addEventListener('focusin', function(e){ if(e && e.target && e.target.matches && e.target.matches('input,select,textarea')) play('click'); }, true);
-    document.addEventListener('input', function(e){ if(e && e.target && e.target.matches && e.target.matches('input[type="text"],input[type="email"],input[type="password"],textarea')) play('type'); }, true);
-    document.addEventListener('submit', function(e){
-      if(e.target && e.target.matches && e.target.matches('#authForm')){
-        play(authFormLooksValid(e.target) ? 'loading' : 'error');
-      }else{
-        play('loading');
-      }
-    }, true);
-    document.addEventListener('visibilitychange', function(){ if(!document.hidden) unlockAudio(); }, true);
-  }
-
-  function observeStatusBox(){
-    var box = $('#statusBox');
-    if(!box || !window.MutationObserver || box.__diracSoundNewV10Observed) return;
-    box.__diracSoundNewV10Observed = true;
-    var lastSignature = '';
-    new MutationObserver(function(){
-      if(!box.classList.contains('show')) return;
-      var signature = box.className + '|' + box.textContent;
-      if(signature === lastSignature) return;
-      lastSignature = signature;
-      if(box.classList.contains('success')) play('success');
-      else if(box.classList.contains('error')) play('error');
-    }).observe(box, {attributes:true, childList:true, characterData:true, subtree:true, attributeFilter:['class']});
-  }
-
-  function observeA2F(){
-    if(!window.MutationObserver) return;
-    var result = $('#a2fResult');
-    if(result && !result.__diracSoundNewV10Observed){
-      result.__diracSoundNewV10Observed = true;
-      var lastResult = '';
-      new MutationObserver(function(){
-        if(!result.classList.contains('show')) return;
-        var signature = result.className + '|' + result.textContent;
-        if(signature === lastResult) return;
-        lastResult = signature;
-        play('success');
-      }).observe(result, {attributes:true, childList:true, characterData:true, subtree:true, attributeFilter:['class']});
-    }
-    var card = $('#a2fModal .a2f-card');
-    if(card && !card.__diracSoundNewV10Observed){
-      card.__diracSoundNewV10Observed = true;
-      var wasVerified = card.classList.contains('is-verified');
-      var wasError = card.classList.contains('is-error');
-      new MutationObserver(function(){
-        var verified = card.classList.contains('is-verified');
-        var errored = card.classList.contains('is-error');
-        if(verified && !wasVerified) play('success');
-        if(errored && !wasError) play('error');
-        wasVerified = verified;
-        wasError = errored;
-      }).observe(card, {attributes:true, attributeFilter:['class','data-a2f-step-index','data-a2f-busy']});
-    }
-    var done = $('#a2fDoneBtn');
-    if(done && !done.__diracSoundNewV10Observed){
-      done.__diracSoundNewV10Observed = true;
-      var wasDisabled = done.disabled;
-      new MutationObserver(function(){
-        if(wasDisabled && !done.disabled) play('success');
-        wasDisabled = done.disabled;
-      }).observe(done, {attributes:true, attributeFilter:['disabled']});
-    }
-  }
-
-  function observeFinalLaunch(){
-    var overlay = $('#a2fLaunchOverlay');
-    if(!overlay || !window.MutationObserver || overlay.__diracSoundNewV10Observed) return;
-    overlay.__diracSoundNewV10Observed = true;
-    var pill = $('#a2fLaunchPill');
-    var terminal = $('#a2fLaunchTerminal');
-    var wasShowing = false;
-    var completed = false;
-    function text(){ return ((pill && pill.textContent) || '') + ' ' + ((terminal && terminal.textContent) || ''); }
-    function inspect(){
-      var showing = overlay.classList.contains('show') || document.body.classList.contains('a2f-launching');
-      if(showing && !wasShowing){ completed = false; play('loading'); }
-      var done = showing && /(READY|AMAN|DONE|SELESAI|COMPLETE|\[OK\])/.test(text().toUpperCase());
-      if(done && !completed){ completed = true; play('finish'); }
-      if(!showing && wasShowing && !completed){ completed = true; play('finish'); }
-      wasShowing = showing;
-    }
-    new MutationObserver(inspect).observe(overlay, {attributes:true, childList:true, subtree:true, characterData:true, attributeFilter:['class']});
-    if(pill) new MutationObserver(inspect).observe(pill, {childList:true, characterData:true, subtree:true});
-    if(terminal) new MutationObserver(inspect).observe(terminal, {childList:true, characterData:true, subtree:true});
-  }
-
-  function init(){
-    bindToggle();
-    bindDocumentEvents();
-    observeStatusBox();
-    observeA2F();
-    observeFinalLaunch();
-    updateToggle();
-  }
-
-  window.DiracSound = {
-    play: play,
-    unlock: unlockAudio,
-    setEnabled: function(value){ enabled = value !== false; saveEnabled(); updateToggle(); if(enabled) unlockAudio(); },
-    isEnabled: function(){ return enabled; },
-    version: 'new-click-effect-v10'
-  };
-
-  ready(init);
-})();
-
-</script>
 
 
 
-<script id="dirac-sound-restore-guard-js">
-(function(){
-  'use strict';
-  /* Compatibility guard only.
-     Event binding dipusatkan ke Dirac UI Sound Feedback FIX v7 agar suara tidak dobel. */
-  if(window.DiracSound && window.DiracSound.setEnabled){
-    try{ window.DiracSound.setEnabled(window.DiracSound.isEnabled ? window.DiracSound.isEnabled() : true); }catch(_){ }
-  }
-})();
-</script>
+
+
+
+
 
 <script id="dirac-forgot-password-secure-js">
 (function(){
@@ -8537,7 +7965,7 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
     return msg || 'Recovery code salah, sudah dipakai, atau expired.';
   }
 
-  function playSound(kind){ try{ if(window.DiracSound && window.DiracSound.play) window.DiracSound.play(kind || 'click'); }catch(_){} }
+  function noopFeedback(){ return false; }
   function showStatus(box, text, ok){
     var status = $('.dirac-recovery-verify-status', box);
     if(status){ status.textContent = text; status.style.color = ok ? '#15803d' : '#1e40af'; }
@@ -8563,7 +7991,7 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
     box.classList.add('is-unlocked');
     box.setAttribute('aria-hidden','false');
     showStatus(box, reason === 'two_failed' ? 'Opsi recovery code dibuka otomatis karena kode A2F salah 2x.' : 'Opsi recovery code dibuka.', true);
-    playSound('success');
+    noopFeedback('success');
     try { box.scrollIntoView({behavior:'smooth', block:'center'}); } catch (_) {}
   }
   function hide(reason){
@@ -8576,7 +8004,7 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
     var input = $('.dirac-recovery-verify-input', box);
     if(input) input.value = '';
     showStatus(box, '', true);
-    playSound('click');
+    noopFeedback('click');
   }
   function recordFailedA2FAttempt(count, reason){
     currentFailedA2FAttempts = Number(count || currentFailedA2FAttempts + 1);
@@ -8589,14 +8017,14 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
     if(input && input.value !== code) input.value = code;
     if(Array.from(code).length !== 500){
       showStatus(box, 'Recovery code harus tepat 500 karakter. Spasi/baris baru akan dibersihkan otomatis.', false);
-      playSound('error');
+      noopFeedback('error');
       return;
     }
     var btn = $('.dirac-recovery-verify-submit', box);
     var old = btn && btn.textContent;
     if(btn){ btn.disabled = true; btn.textContent = 'Memverifikasi...'; }
     showStatus(box, 'Menghubungi server recovery...', true);
-    playSound('loading');
+    noopFeedback('loading');
     try{
       var res = await fetch(API_ENDPOINT + '?action=customer_security_recovery_code_verify', {
         method:'POST',
@@ -8614,14 +8042,14 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
       }
       if(!persistProof(data)) throw new Error('Server belum mengaktifkan sesi A2F backend.');
       showStatus(box, 'Recovery code valid. Membuka dashboard...', true);
-      playSound('success');
+      noopFeedback('success');
       if(input) input.value = '';
       setTimeout(function(){ window.location.href = 'dashboard.html'; }, 650);
     }catch(e){
       var raw = e && e.message ? e.message : 'Recovery code gagal diverifikasi.';
       var friendly = recoveryFriendlyMessage(raw, window.__diracLastRecoveryVerifyData || null, window.__diracLastRecoveryVerifyStatus || 0);
       showStatus(box, friendly, false);
-      playSound('error');
+      noopFeedback('error');
     }finally{
       if(btn){ btn.disabled = false; btn.textContent = old || 'Verifikasi recovery code'; }
     }
@@ -8670,7 +8098,7 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
 (function(){
   'use strict';
   var THEME_KEY = 'dirac_theme_settings_v2';
-  var EN = {announce:'Neat packing - free scent consultation - checkout directly via WhatsApp',navProducts:'Products',navStyle:'Style',navBlog:'Blog',navPolicy:'Policies',navFaq:'FAQ',theme:'Theme',returnCatalog:'Catalog',a2fSideSub:'Account protection layer',a2fStepChoose:'Choose method',a2fStepVerify:'Verify',a2fStepRecover:'Security analysis',a2fStepFinish:'Complete',a2fRiskKicker:'Status',a2fRiskTitle:'Protection not active',a2fRiskText:'The dashboard stays locked until the security method is verified.',a2fKicker:'Required before dashboard',a2fRecommended:'Recommended',a2fStrong:'Strong',a2fBackup:'Backup',a2fPasskeyMini:'Most modern and phishing-resistant.',a2fAuthMini:'Strong backup method.',a2fEmailMini:'Easy, but not the primary method.',a2fPreviewKicker:'Method detail',a2fSelectedPasskey:'Passkey ready to create',a2fSelectedAuth:'Authenticator ready to connect',a2fSelectedEmail:'Email OTP ready to send',a2fLivePasskey:'WebAuthn ready',a2fLiveAuth:'TOTP ready',a2fLiveEmail:'OTP ready',a2fPasskeyPanelTitle:'Create a passkey on the customer device',a2fPasskeyPanelText:'When the WebAuthn backend is connected, activation will request a server challenge and the browser will open Face ID, fingerprint, PIN, or a password manager.',a2fAuthPanelTitle:'Use Authenticator',a2fAuthPanelText:'Enter the latest 6-digit code from Google Authenticator/Authy. The Authenticator secret is not shown on the login page.',a2fEmailPanelTitle:'Send a code to the customer email',a2fEmailPanelText:'For production, the backend sends a one-time code, stores a code hash, sets expiry, and rate-limits verification attempts.',a2fReadyHttps:'Secure domain',a2fReadyApi:'Endpoint hooks ready',a2fReadyDb:'Needs MFA tables',a2fStart:'Activate selected method',a2fTitle:'Enable 2FA',a2fSub:'Choose an extra security layer so the customer account does not rely on password only.',a2fNote:'This page is prepared as a production UI. For real 2FA, MFA endpoints must verify passkey, or email OTP on the server before the dashboard opens.',a2fPasskey:'Passkey',a2fPasskeyText:'Use Face ID, fingerprint, PIN, or a supported device key.',a2fEmail:'Email',a2fEmailText:'Use a security code sent to the customer email.',a2fAuth:'Authenticator',a2fAuthText:'Use an authenticator app such as Google Authenticator or Authy.',a2fDone:'Done, open dashboard',eyebrow:'Dirac account access',heroLead:'Sign in faster,',heroGold:'shop more neatly.',heroText:'Manage your customer identity, continue checkout, and save shopping preferences with a look that matches the Dirac Group catalog.',trust1:'✅ Consistent look',trust2:'🎨 Saved theme',trust3:'🌐 Multi-language',trust4:'💬 Quick help',mini1Title:'Secure',mini1Text:'Clear validation before submission.',mini2Title:'Responsive',mini2Text:'Comfortable on phone, tablet, and desktop.',mini3Title:'Unified',mini3Text:'Header, theme, AI, WA, and scroll match the catalog.',loginTitle:'Sign in',loginSubtitle:'Use your customer email.',tabLogin:'Sign in',tabRegister:'Register',identifierLabel:'Email',nameLabel:'Full name',passwordLabel:'Password',confirmLabel:'Repeat password',remember:'Remember this device',forgot:'Back to home',submitLogin:'Sign in now',submitRegister:'Create account',footerText:'A premium account page designed to feel unified with the catalog.',footerNav:'Navigation',home:'Home',products:'Products',faq:'FAQ',contact:'Contact',copyright:'Premium account access.',menuTitle:'Menu',menuSub:'Open the main Dirac Group pages.',openTheme:'Open theme settings',drawerFoot:'This menu stays light so the login page feels like the order catalog.',themeTitle:'Theme Settings',themeSub:'Set color, language, and website motion.',modeTitle:'Theme Mode',dark:'Dark',light:'Light',auto:'Automatic',colorTitle:'Accent color',languageTitle:'Display Language',contrastTitle:'Theme Contrast',contrastOn:'Active',contrastOff:'Inactive',customThemeTitle:'Custom Theme',motionTitle:'Website Motion',motionFull:'Active',motionReduced:'Light',soundTitle:'Website Sound',soundDesc:'Button, loading, and terminal sounds are generated in-browser without external audio files.',soundToggleTitle:'Sound on',soundToggleDesc:'Tap to turn off / on',resetTheme:'Reset',saveTheme:'Save',aiTitle:'Dirac AI',aiSub:'Quick help for the account page.',aiWelcome:'Hello! I can help with login, registration, themes, language, WhatsApp, and Dirac Group navigation.',aiChip1:'How to sign in',aiChip2:'Change theme',aiChip3:'Contact WA'};
+  var EN = {announce:'Neat packing - free scent consultation - checkout directly via WhatsApp',navProducts:'Products',navStyle:'Style',navBlog:'Blog',navPolicy:'Policies',navFaq:'FAQ',theme:'Theme',returnCatalog:'Catalog',a2fSideSub:'Account protection layer',a2fStepChoose:'Choose method',a2fStepVerify:'Verify',a2fStepRecover:'Security analysis',a2fStepFinish:'Complete',a2fRiskKicker:'Status',a2fRiskTitle:'Protection not active',a2fRiskText:'The dashboard stays locked until the security method is verified.',a2fKicker:'Required before dashboard',a2fRecommended:'Recommended',a2fStrong:'Strong',a2fBackup:'Backup',a2fPasskeyMini:'Most modern and phishing-resistant.',a2fAuthMini:'Strong backup method.',a2fEmailMini:'Easy, but not the primary method.',a2fPreviewKicker:'Method detail',a2fSelectedPasskey:'Passkey ready to create',a2fSelectedAuth:'Authenticator ready to connect',a2fSelectedEmail:'Email OTP ready to send',a2fLivePasskey:'WebAuthn ready',a2fLiveAuth:'TOTP ready',a2fLiveEmail:'OTP ready',a2fPasskeyPanelTitle:'Create a passkey on the customer device',a2fPasskeyPanelText:'When the WebAuthn backend is connected, activation will request a server challenge and the browser will open Face ID, fingerprint, PIN, or a password manager.',a2fAuthPanelTitle:'Use Authenticator',a2fAuthPanelText:'Enter the latest 6-digit code from Google Authenticator/Authy. The Authenticator secret is not shown on the login page.',a2fEmailPanelTitle:'Send a code to the customer email',a2fEmailPanelText:'For production, the backend sends a one-time code, stores a code hash, sets expiry, and rate-limits verification attempts.',a2fReadyHttps:'Secure domain',a2fReadyApi:'Endpoint hooks ready',a2fReadyDb:'Needs MFA tables',a2fStart:'Activate selected method',a2fTitle:'Enable 2FA',a2fSub:'Choose an extra security layer so the customer account does not rely on password only.',a2fNote:'This page is prepared as a production UI. For real 2FA, MFA endpoints must verify passkey, or email OTP on the server before the dashboard opens.',a2fPasskey:'Passkey',a2fPasskeyText:'Use Face ID, fingerprint, PIN, or a supported device key.',a2fEmail:'Email',a2fEmailText:'Use a security code sent to the customer email.',a2fAuth:'Authenticator',a2fAuthText:'Use an authenticator app such as Google Authenticator or Authy.',a2fDone:'Done, open dashboard',eyebrow:'Dirac account access',heroLead:'Sign in faster,',heroGold:'shop more neatly.',heroText:'Manage your customer identity, continue checkout, and save shopping preferences with a look that matches the Dirac Group catalog.',trust1:'✅ Consistent look',trust2:'🎨 Saved theme',trust3:'🌐 Multi-language',trust4:'💬 Quick help',mini1Title:'Secure',mini1Text:'Clear validation before submission.',mini2Title:'Responsive',mini2Text:'Comfortable on phone, tablet, and desktop.',mini3Title:'Unified',mini3Text:'Header, theme, AI, WA, and scroll match the catalog.',loginTitle:'Sign in',loginSubtitle:'Use your customer email.',tabLogin:'Sign in',tabRegister:'Register',identifierLabel:'Email',nameLabel:'Full name',passwordLabel:'Password',confirmLabel:'Repeat password',remember:'Remember this device',forgot:'Back to home',submitLogin:'Sign in now',submitRegister:'Create account',footerText:'A premium account page designed to feel unified with the catalog.',footerNav:'Navigation',home:'Home',products:'Products',faq:'FAQ',contact:'Contact',copyright:'Premium account access.',menuTitle:'Menu',menuSub:'Open the main Dirac Group pages.',openTheme:'Open theme settings',drawerFoot:'This menu stays light so the login page feels like the order catalog.',themeTitle:'Theme Settings',themeSub:'Set color, language, and website motion.',modeTitle:'Theme Mode',dark:'Dark',light:'Light',auto:'Automatic',colorTitle:'Accent color',languageTitle:'Display Language',contrastTitle:'Theme Contrast',contrastOn:'Active',contrastOff:'Inactive',customThemeTitle:'Custom Theme',motionTitle:'Website Motion',motionFull:'Active',motionReduced:'Light',resetTheme:'Reset',saveTheme:'Save',aiTitle:'Dirac AI',aiSub:'Quick help for the account page.',aiWelcome:'Hello! I can help with login, registration, themes, language, WhatsApp, and Dirac Group navigation.',aiChip1:'How to sign in',aiChip2:'Change theme',aiChip3:'Contact WA'};
 
   var PACK = {
     en: EN,
@@ -8682,7 +8110,7 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
       loginTitle:'登录账号',loginSubtitle:'使用客户邮箱。',tabLogin:'登录',tabRegister:'注册',identifierLabel:'邮箱',nameLabel:'完整姓名',passwordLabel:'密码',confirmLabel:'重复密码',remember:'记住此设备',forgot:'返回首页',submitLogin:'立即登录',submitRegister:'创建账号',
       footerText:'高级账户页面，让从目录到登录的体验保持一致。',footerNav:'导航',home:'首页',products:'产品',faq:'常见问题',contact:'联系',copyright:'高级账户访问。',
       menuTitle:'菜单',menuSub:'打开 Dirac Group 主要页面。',openTheme:'打开主题设置',drawerFoot:'此菜单保持轻量，让登录页像订单目录一样流畅。',
-      themeTitle:'主题设置',themeSub:'设置颜色、语言和网站动效。',modeTitle:'主题模式',dark:'深色',light:'浅色',auto:'自动',colorTitle:'强调色',languageTitle:'显示语言',contrastTitle:'主题对比度',contrastOn:'开启',contrastOff:'关闭',customThemeTitle:'自定义主题',motionTitle:'网站动效',motionFull:'正常',motionReduced:'省电',soundTitle:'网站声音',soundDesc:'按钮、加载和终端音效由浏览器生成，无需外部音频文件。',soundToggleTitle:'声音开启',soundToggleDesc:'点击关闭 / 开启',resetTheme:'重置',saveTheme:'保存',
+      themeTitle:'主题设置',themeSub:'设置颜色、语言和网站动效。',modeTitle:'主题模式',dark:'深色',light:'浅色',auto:'自动',colorTitle:'强调色',languageTitle:'显示语言',contrastTitle:'主题对比度',contrastOn:'开启',contrastOff:'关闭',customThemeTitle:'自定义主题',motionTitle:'网站动效',motionFull:'正常',motionReduced:'省电',resetTheme:'重置',saveTheme:'保存',
       aiTitle:'Dirac AI',aiSub:'账户页面快速帮助。',aiWelcome:'你好！我可以帮助登录、注册、主题、语言、WhatsApp 和导航。',aiChip1:'如何登录',aiChip2:'更改主题',aiChip3:'联系 WA'
     },
     ar: {
@@ -8693,7 +8121,7 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
       loginTitle:'تسجيل الدخول',loginSubtitle:'استخدم بريد العميل.',tabLogin:'دخول',tabRegister:'تسجيل',identifierLabel:'البريد الإلكتروني',nameLabel:'الاسم الكامل',passwordLabel:'كلمة المرور',confirmLabel:'أعد كلمة المرور',remember:'تذكر هذا الجهاز',forgot:'العودة للرئيسية',submitLogin:'ادخل الآن',submitRegister:'إنشاء حساب',
       footerText:'صفحة حساب مميزة تجعل الانتقال من الكتالوج إلى تسجيل الدخول متناسقاً.',footerNav:'التنقل',home:'الرئيسية',products:'المنتجات',faq:'الأسئلة',contact:'تواصل',copyright:'وصول حساب مميز.',
       menuTitle:'القائمة',menuSub:'افتح صفحات Dirac Group الرئيسية.',openTheme:'فتح إعدادات السمة',drawerFoot:'القائمة خفيفة ليبقى تسجيل الدخول مثل كتالوج الطلب.',
-      themeTitle:'إعدادات السمة',themeSub:'اضبط اللون واللغة وحركة الموقع.',modeTitle:'وضع السمة',dark:'داكن',light:'فاتح',auto:'تلقائي',colorTitle:'لون التمييز',languageTitle:'لغة العرض',contrastTitle:'تباين السمة',contrastOn:'مفعل',contrastOff:'غير مفعل',customThemeTitle:'سمة مخصصة',motionTitle:'حركة الموقع',motionFull:'عادي',motionReduced:'اقتصادي',soundTitle:'صوت الموقع',soundDesc:'أصوات الأزرار والتحميل تُنشأ داخل المتصفح بدون ملفات صوت خارجية.',soundToggleTitle:'الصوت مفعل',soundToggleDesc:'اضغط للإيقاف / التشغيل',resetTheme:'إعادة ضبط',saveTheme:'حفظ',
+      themeTitle:'إعدادات السمة',themeSub:'اضبط اللون واللغة وحركة الموقع.',modeTitle:'وضع السمة',dark:'داكن',light:'فاتح',auto:'تلقائي',colorTitle:'لون التمييز',languageTitle:'لغة العرض',contrastTitle:'تباين السمة',contrastOn:'مفعل',contrastOff:'غير مفعل',customThemeTitle:'سمة مخصصة',motionTitle:'حركة الموقع',motionFull:'عادي',motionReduced:'اقتصادي',resetTheme:'إعادة ضبط',saveTheme:'حفظ',
       aiTitle:'Dirac AI',aiSub:'مساعدة سريعة لصفحة الحساب.',aiWelcome:'مرحباً! أساعدك في الدخول، التسجيل، السمة، اللغة، واتساب والتنقل.',aiChip1:'طريقة الدخول',aiChip2:'تغيير السمة',aiChip3:'تواصل WA'
     },
     ja: {
@@ -8704,7 +8132,7 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
       loginTitle:'ログイン',loginSubtitle:'お客様のメールを使用します。',tabLogin:'ログイン',tabRegister:'登録',identifierLabel:'メール',nameLabel:'氏名',passwordLabel:'パスワード',confirmLabel:'パスワード再入力',remember:'この端末を記憶',forgot:'ホームへ戻る',submitLogin:'今すぐログイン',submitRegister:'アカウント作成',
       footerText:'カタログからログインまで一体感のあるプレミアムアカウントページです。',footerNav:'ナビゲーション',home:'ホーム',products:'商品',faq:'FAQ',contact:'連絡先',copyright:'プレミアムアカウントアクセス。',
       menuTitle:'メニュー',menuSub:'Dirac Groupの主要ページを開きます。',openTheme:'テーマ設定を開く',drawerFoot:'ログインページが注文カタログのように感じられる軽量メニューです。',
-      themeTitle:'テーマ設定',themeSub:'色、言語、サイトの動きを設定します。',modeTitle:'テーマモード',dark:'ダーク',light:'ライト',auto:'自動',colorTitle:'アクセントカラー',languageTitle:'表示言語',contrastTitle:'テーマコントラスト',contrastOn:'オン',contrastOff:'オフ',customThemeTitle:'カスタムテーマ',motionTitle:'サイトの動き',motionFull:'通常',motionReduced:'省エネ',soundTitle:'サイト音',soundDesc:'ボタン、読み込み、端末風の音は外部音声なしでブラウザ内生成されます。',soundToggleTitle:'音声オン',soundToggleDesc:'タップでオフ / オン',resetTheme:'リセット',saveTheme:'保存',
+      themeTitle:'テーマ設定',themeSub:'色、言語、サイトの動きを設定します。',modeTitle:'テーマモード',dark:'ダーク',light:'ライト',auto:'自動',colorTitle:'アクセントカラー',languageTitle:'表示言語',contrastTitle:'テーマコントラスト',contrastOn:'オン',contrastOff:'オフ',customThemeTitle:'カスタムテーマ',motionTitle:'サイトの動き',motionFull:'通常',motionReduced:'省エネ',resetTheme:'リセット',saveTheme:'保存',
       aiTitle:'Dirac AI',aiSub:'アカウントページのクイックヘルプ。',aiWelcome:'こんにちは。ログイン、登録、テーマ、言語、WhatsApp、ナビをサポートします。',aiChip1:'ログイン方法',aiChip2:'テーマ変更',aiChip3:'WAに連絡'
     },
     ko: {
@@ -8715,7 +8143,7 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
       loginTitle:'로그인',loginSubtitle:'고객 이메일을 사용하세요.',tabLogin:'로그인',tabRegister:'가입',identifierLabel:'이메일',nameLabel:'전체 이름',passwordLabel:'비밀번호',confirmLabel:'비밀번호 다시 입력',remember:'이 기기 기억',forgot:'홈으로 돌아가기',submitLogin:'지금 로그인',submitRegister:'계정 만들기',
       footerText:'카탈로그에서 로그인까지 하나의 경험처럼 느껴지는 프리미엄 계정 페이지입니다.',footerNav:'탐색',home:'홈',products:'상품',faq:'FAQ',contact:'연락처',copyright:'프리미엄 계정 접근.',
       menuTitle:'메뉴',menuSub:'Dirac Group 주요 페이지 열기.',openTheme:'테마 설정 열기',drawerFoot:'로그인 페이지가 주문 카탈로그처럼 느껴지도록 가볍게 만든 메뉴입니다.',
-      themeTitle:'테마 설정',themeSub:'색상, 언어, 웹사이트 동작을 설정하세요.',modeTitle:'테마 모드',dark:'다크',light:'라이트',auto:'자동',colorTitle:'강조 색상',languageTitle:'표시 언어',contrastTitle:'테마 대비',contrastOn:'켜짐',contrastOff:'꺼짐',customThemeTitle:'사용자 테마',motionTitle:'웹사이트 동작',motionFull:'일반',motionReduced:'절약',soundTitle:'웹사이트 소리',soundDesc:'버튼, 로딩, 터미널 효과음은 외부 오디오 없이 브라우저에서 생성됩니다.',soundToggleTitle:'소리 켜짐',soundToggleDesc:'탭하여 끄기 / 켜기',resetTheme:'초기화',saveTheme:'저장',
+      themeTitle:'테마 설정',themeSub:'색상, 언어, 웹사이트 동작을 설정하세요.',modeTitle:'테마 모드',dark:'다크',light:'라이트',auto:'자동',colorTitle:'강조 색상',languageTitle:'표시 언어',contrastTitle:'테마 대비',contrastOn:'켜짐',contrastOff:'꺼짐',customThemeTitle:'사용자 테마',motionTitle:'웹사이트 동작',motionFull:'일반',motionReduced:'절약',resetTheme:'초기화',saveTheme:'저장',
       aiTitle:'Dirac AI',aiSub:'계정 페이지 빠른 도움.',aiWelcome:'안녕하세요! 로그인, 가입, 테마, 언어, WhatsApp, 탐색을 도와드릴 수 있어요.',aiChip1:'로그인 방법',aiChip2:'테마 변경',aiChip3:'WA 문의'
     },
     es: {
@@ -8726,7 +8154,7 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
       loginTitle:'Iniciar sesión',loginSubtitle:'Usa el email del cliente.',tabLogin:'Entrar',tabRegister:'Registrarse',identifierLabel:'Email',nameLabel:'Nombre completo',passwordLabel:'Contraseña',confirmLabel:'Repetir contraseña',remember:'Recordar este dispositivo',forgot:'Volver al inicio',submitLogin:'Entrar ahora',submitRegister:'Crear cuenta',
       footerText:'Página de cuenta premium diseñada para sentirse unificada con el catálogo.',footerNav:'Navegación',home:'Inicio',products:'Productos',faq:'FAQ',contact:'Contacto',copyright:'Acceso de cuenta premium.',
       menuTitle:'Menú',menuSub:'Abre las páginas principales de Dirac Group.',openTheme:'Abrir ajustes de tema',drawerFoot:'Este menú es ligero para que el login se sienta como el catálogo.',
-      themeTitle:'Ajustes de tema',themeSub:'Configura color, idioma y movimiento del sitio.',modeTitle:'Modo de tema',dark:'Oscuro',light:'Claro',auto:'Automático',colorTitle:'Color de acento',languageTitle:'Idioma de pantalla',contrastTitle:'Contraste del tema',contrastOn:'Activo',contrastOff:'Inactivo',customThemeTitle:'Tema personalizado',motionTitle:'Movimiento del sitio',motionFull:'Normal',motionReduced:'Ahorro',soundTitle:'Sonido del sitio',soundDesc:'Los sonidos se generan en el navegador sin archivos externos.',soundToggleTitle:'Sonido activo',soundToggleDesc:'Toca para apagar / encender',resetTheme:'Restablecer',saveTheme:'Guardar',
+      themeTitle:'Ajustes de tema',themeSub:'Configura color, idioma y movimiento del sitio.',modeTitle:'Modo de tema',dark:'Oscuro',light:'Claro',auto:'Automático',colorTitle:'Color de acento',languageTitle:'Idioma de pantalla',contrastTitle:'Contraste del tema',contrastOn:'Activo',contrastOff:'Inactivo',customThemeTitle:'Tema personalizado',motionTitle:'Movimiento del sitio',motionFull:'Normal',motionReduced:'Ahorro',resetTheme:'Restablecer',saveTheme:'Guardar',
       aiTitle:'Dirac AI',aiSub:'Ayuda rápida para la página de cuenta.',aiWelcome:'¡Hola! Puedo ayudar con login, registro, tema, idioma, WhatsApp y navegación.',aiChip1:'Cómo entrar',aiChip2:'Cambiar tema',aiChip3:'Contactar WA'
     },
     fr: {
@@ -8737,7 +8165,7 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
       loginTitle:'Connexion',loginSubtitle:'Utilisez l’email du client.',tabLogin:'Connexion',tabRegister:'Inscription',identifierLabel:'Email',nameLabel:'Nom complet',passwordLabel:'Mot de passe',confirmLabel:'Répéter le mot de passe',remember:'Mémoriser cet appareil',forgot:'Retour à l’accueil',submitLogin:'Se connecter',submitRegister:'Créer un compte',
       footerText:'Page de compte premium conçue pour rester cohérente avec le catalogue.',footerNav:'Navigation',home:'Accueil',products:'Produits',faq:'FAQ',contact:'Contact',copyright:'Accès compte premium.',
       menuTitle:'Menu',menuSub:'Ouvrir les pages principales de Dirac Group.',openTheme:'Ouvrir les réglages du thème',drawerFoot:'Ce menu reste léger pour garder l’expérience catalogue.',
-      themeTitle:'Réglages du thème',themeSub:'Réglez la couleur, la langue et le mouvement du site.',modeTitle:'Mode du thème',dark:'Sombre',light:'Clair',auto:'Automatique',colorTitle:'Couleur d’accent',languageTitle:'Langue d’affichage',contrastTitle:'Contraste du thème',contrastOn:'Actif',contrastOff:'Inactif',customThemeTitle:'Thème personnalisé',motionTitle:'Mouvement du site',motionFull:'Normal',motionReduced:'Économie',soundTitle:'Son du site',soundDesc:'Les sons sont générés dans le navigateur sans fichier audio externe.',soundToggleTitle:'Son activé',soundToggleDesc:'Touchez pour désactiver / activer',resetTheme:'Réinitialiser',saveTheme:'Enregistrer',
+      themeTitle:'Réglages du thème',themeSub:'Réglez la couleur, la langue et le mouvement du site.',modeTitle:'Mode du thème',dark:'Sombre',light:'Clair',auto:'Automatique',colorTitle:'Couleur d’accent',languageTitle:'Langue d’affichage',contrastTitle:'Contraste du thème',contrastOn:'Actif',contrastOff:'Inactif',customThemeTitle:'Thème personnalisé',motionTitle:'Mouvement du site',motionFull:'Normal',motionReduced:'Économie',resetTheme:'Réinitialiser',saveTheme:'Enregistrer',
       aiTitle:'Dirac AI',aiSub:'Aide rapide pour la page compte.',aiWelcome:'Bonjour ! Je peux aider pour la connexion, l’inscription, le thème, la langue, WhatsApp et la navigation.',aiChip1:'Comment entrer',aiChip2:'Changer le thème',aiChip3:'Contacter WA'
     }
   };
@@ -8862,16 +8290,7 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
 </script>
 
 
-<script id="dirac-sound-hard-restore-v5">
-(function(){
-  'use strict';
-  /* Deprecated by Dirac UI Sound Feedback FIX v7.
-     Blok ini sengaja tidak memasang listener baru agar tidak terjadi dobel bunyi. */
-  if(window.DiracSound && !window.DiracSound.version){
-    window.DiracSound.version = 'compat-after-v7';
-  }
-})();
-</script>
+
 
 <script id="dirac-backend-only-auth-storage-purge-js">
 (function(){
