@@ -6580,46 +6580,10 @@ async function sessionOwnershipCheckoutCreateUnpaidOrder(req, res) {
     });
   }
 
-  const orderMailNotification = await orderMailNotifyNewOrderSafe({
-    source: 'checkout_order',
-    kind: serviceType,
-    order: {
-      id: order.id,
-      code: order.order_id || orderCode,
-      order_id: order.order_id || orderCode,
-      service_type: serviceType,
-      subtotal: backendQuote.subtotal,
-      shipping_cost: backendQuote.shippingCost || 0,
-      discount: backendQuote.discount || 0,
-      total: backendQuote.total,
-      currency: 'IDR',
-      order_status: order.order_status || 'pending',
-      payment_status: order.payment_status || 'unpaid',
-      created_at: order.created_at || diracNowIso(),
-      shipping_address: shippingAddress || '',
-      note: checkoutNote || ''
-    },
-    customer: {
-      name: finalCustomerName,
-      email: finalCustomerEmail,
-      phone: finalCustomerPhone,
-      shipping_address: shippingAddress || ''
-    },
-    items: itemBodies.map((item) => ({
-      product_doc_id: item.product_doc_id || '',
-      product_title: item.product_title,
-      title: item.product_title,
-      quantity: item.quantity,
-      unit_price: item.unit_price,
-      cost_price: item.cost_price,
-      subtotal: item.unit_price * item.quantity
-    })),
-    payment: {
-      url: '',
-      provider: 'pending_manual',
-      invoice_id: order.order_id || orderCode
-    }
-  });
+  // PATCH: unpaid checkout must not send customer/admin invoice email.
+  // Invoice email is sent only after a trusted payment webhook marks the order as paid.
+  // This keeps payment gateway, email templates, login/hash/A2F, and endpoints unchanged.
+  const orderMailNotification = orderMailPendingPaymentSkipSummary('checkout_order_unpaid');
 
   return res.status(200).json({
     ok: true,
@@ -6938,9 +6902,39 @@ function sessionOwnershipCheckoutProductScore(product, idCandidates, textCandida
 }
 
 function sessionOwnershipCheckoutNonNegativeMoney(value) {
-  const number = Number(String(value || '').replace(/[^0-9.]/g, ''));
+  const number = sessionOwnershipCheckoutParseMoney(value);
   if (!Number.isFinite(number) || number < 0) return 0;
   return Math.round(number);
+}
+
+function sessionOwnershipCheckoutParseMoney(value) {
+  if (typeof value === 'number') return value;
+  if (value === null || value === undefined) return 0;
+  let text = String(value).trim();
+  if (!text) return 0;
+  text = text.replace(/[^0-9,.-]/g, '');
+  if (!text) return 0;
+
+  const comma = text.lastIndexOf(',');
+  const dot = text.lastIndexOf('.');
+
+  // Indonesian currency usually uses dots as thousands separators: Rp 10.000.
+  // Preserve decimal values only when there is a clear decimal separator.
+  if (comma >= 0 && dot >= 0) {
+    if (comma > dot) text = text.replace(/\./g, '').replace(',', '.');
+    else text = text.replace(/,/g, '');
+  } else if (comma >= 0) {
+    const decimals = text.length - comma - 1;
+    text = decimals > 0 && decimals <= 2 ? text.replace(',', '.') : text.replace(/,/g, '');
+  } else if (dot >= 0) {
+    const parts = text.split('.');
+    const last = parts[parts.length - 1] || '';
+    const looksThousands = parts.length > 1 && last.length === 3 && parts.slice(1).every((part) => part.length === 3);
+    if (looksThousands) text = parts.join('');
+  }
+
+  const number = Number(text);
+  return Number.isFinite(number) ? number : 0;
 }
 
 async function sessionOwnershipCheckoutResolveCustomerOwner({ authUserId, email, fullName, phone }) {
@@ -7077,13 +7071,22 @@ function sessionOwnershipCheckoutBuildOrderNote(body) {
 async function sessionOwnershipCheckoutBuildPricingAdjustments(body, subtotal, serviceType) {
   const baseSubtotal = sessionOwnershipCheckoutNonNegativeMoney(subtotal || 0);
   const shippingCost = sessionOwnershipCheckoutExtractShippingCost(body);
-  const voucherCode = sessionOwnershipCheckoutCleanText(
-    body && (body.voucher_code || body.coupon_code || body.discount_code || body.promo_code || body.kode_voucher || body.voucher || body.coupon || body.promo) || '',
-    80
-  ).replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 80);
+  const voucherCode = sessionOwnershipCheckoutExtractVoucherCode(body);
 
+  // Backend first: if a voucher/coupon/discount table exists, calculate the discount from DB.
+  // Safe fallback: if the project only sends a precomputed discount from frontend, parse it
+  // correctly but cap it to subtotal so total cannot become negative.
+  const backendVoucher = voucherCode
+    ? await sessionOwnershipCheckoutResolveVoucherDiscountSafe(voucherCode, baseSubtotal, serviceType)
+    : { ok: false, discount: 0, source: '' };
   const requestedDiscount = sessionOwnershipCheckoutExtractDiscountAmount(body);
-  const discount = Math.min(baseSubtotal, requestedDiscount);
+  const discountSource = backendVoucher && backendVoucher.ok && backendVoucher.discount > 0
+    ? backendVoucher.source
+    : (requestedDiscount > 0 ? 'frontend_discount_amount_limited' : 'none');
+  const rawDiscount = backendVoucher && backendVoucher.ok && backendVoucher.discount > 0
+    ? backendVoucher.discount
+    : requestedDiscount;
+  const discount = Math.min(baseSubtotal, sessionOwnershipCheckoutNonNegativeMoney(rawDiscount));
   const total = Math.max(0, baseSubtotal - discount + shippingCost);
 
   return {
@@ -7092,8 +7095,32 @@ async function sessionOwnershipCheckoutBuildPricingAdjustments(body, subtotal, s
     discount,
     voucherCode,
     total,
-    priceSource: sessionOwnershipCheckoutPriceSourceWithAdjustments(serviceType, discount, shippingCost, voucherCode)
+    priceSource: sessionOwnershipCheckoutPriceSourceWithAdjustments(serviceType, discount, shippingCost, voucherCode, discountSource)
   };
+}
+
+function sessionOwnershipCheckoutExtractVoucherCode(body) {
+  const row = body && typeof body === 'object' ? body : {};
+  const candidates = [
+    row.voucher_code,
+    row.coupon_code,
+    row.discount_code,
+    row.promo_code,
+    row.kode_voucher,
+    row.kode_kupon,
+    row.kode_promo,
+    row.voucher && (row.voucher.code || row.voucher.voucher_code || row.voucher.name),
+    row.coupon && (row.coupon.code || row.coupon.coupon_code || row.coupon.name),
+    row.promo && (row.promo.code || row.promo.promo_code || row.promo.name),
+    row.applied_voucher && (row.applied_voucher.code || row.applied_voucher.voucher_code || row.applied_voucher.name),
+    row.appliedVoucher && (row.appliedVoucher.code || row.appliedVoucher.voucher_code || row.appliedVoucher.name)
+  ];
+
+  for (const value of candidates) {
+    const clean = sessionOwnershipCheckoutCleanText(value, 80).replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 80);
+    if (clean) return clean;
+  }
+  return '';
 }
 
 function sessionOwnershipCheckoutExtractShippingCost(body) {
@@ -7108,7 +7135,11 @@ function sessionOwnershipCheckoutExtractShippingCost(body) {
     row.delivery_cost,
     row.shipment_cost,
     row.biaya_ongkir,
-    row.biaya_kirim
+    row.biaya_kirim,
+    row.shipping && (row.shipping.cost || row.shipping.price || row.shipping.amount || row.shipping.ongkir),
+    row.selected_shipping && (row.selected_shipping.cost || row.selected_shipping.price || row.selected_shipping.amount || row.selected_shipping.ongkir),
+    row.selectedShipping && (row.selectedShipping.cost || row.selectedShipping.price || row.selectedShipping.amount || row.selectedShipping.ongkir),
+    row.courier && (row.courier.cost || row.courier.price || row.courier.amount || row.courier.ongkir)
   ];
   for (const value of candidates) {
     const amount = sessionOwnershipCheckoutNonNegativeMoney(value);
@@ -7128,7 +7159,16 @@ function sessionOwnershipCheckoutExtractDiscountAmount(body) {
     row.diskon,
     row.nominal_diskon,
     row.potongan,
-    row.potongan_harga
+    row.potongan_harga,
+    row.discountValue,
+    row.discount_value,
+    row.voucherAmount,
+    row.voucher_amount,
+    row.voucher && (row.voucher.discount || row.voucher.discount_amount || row.voucher.amount || row.voucher.nominal || row.voucher.value || row.voucher.potongan),
+    row.coupon && (row.coupon.discount || row.coupon.discount_amount || row.coupon.amount || row.coupon.nominal || row.coupon.value || row.coupon.potongan),
+    row.promo && (row.promo.discount || row.promo.discount_amount || row.promo.amount || row.promo.nominal || row.promo.value || row.promo.potongan),
+    row.applied_voucher && (row.applied_voucher.discount || row.applied_voucher.discount_amount || row.applied_voucher.amount || row.applied_voucher.nominal || row.applied_voucher.value || row.applied_voucher.potongan),
+    row.appliedVoucher && (row.appliedVoucher.discount || row.appliedVoucher.discount_amount || row.appliedVoucher.amount || row.appliedVoucher.nominal || row.appliedVoucher.value || row.appliedVoucher.potongan)
   ];
   for (const value of candidates) {
     const amount = sessionOwnershipCheckoutNonNegativeMoney(value);
@@ -7137,12 +7177,115 @@ function sessionOwnershipCheckoutExtractDiscountAmount(body) {
   return 0;
 }
 
-function sessionOwnershipCheckoutPriceSourceWithAdjustments(serviceType, discount, shippingCost, voucherCode) {
+async function sessionOwnershipCheckoutResolveVoucherDiscountSafe(voucherCode, subtotal, serviceType) {
+  const code = sessionOwnershipCheckoutCleanText(voucherCode, 80).replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 80);
+  const baseSubtotal = sessionOwnershipCheckoutNonNegativeMoney(subtotal || 0);
+  if (!code || baseSubtotal <= 0) return { ok: false, discount: 0, source: '' };
+
+  const envVoucher = sessionOwnershipCheckoutResolveVoucherFromEnv(code, baseSubtotal, serviceType);
+  if (envVoucher.ok) return envVoucher;
+
+  const tables = ['vouchers', 'coupons', 'discounts', 'promo_codes', 'voucher_codes'];
+  for (const table of tables) {
+    const resolved = await sessionOwnershipCheckoutResolveVoucherFromTable(table, code, baseSubtotal, serviceType);
+    if (resolved.ok) return resolved;
+    if (resolved.hardFail) return resolved;
+  }
+
+  return { ok: false, discount: 0, source: 'voucher_not_found_or_table_missing' };
+}
+
+function sessionOwnershipCheckoutResolveVoucherFromEnv(code, subtotal, serviceType) {
+  const raw = String(process.env.DIRAC_CHECKOUT_VOUCHERS_JSON || '').trim();
+  if (!raw) return { ok: false, discount: 0, source: '' };
+  try {
+    const parsed = JSON.parse(raw);
+    const candidates = Array.isArray(parsed) ? parsed : Object.keys(parsed || {}).map((key) => ({ code: key, ...(parsed[key] || {}) }));
+    const row = candidates.find((item) => String(item && (item.code || item.voucher_code || item.coupon_code) || '').trim().toLowerCase() === code.toLowerCase());
+    if (!row) return { ok: false, discount: 0, source: '' };
+    const evaluated = sessionOwnershipCheckoutEvaluateVoucherRow(row, subtotal, serviceType);
+    if (evaluated.ok) evaluated.source = 'env_voucher';
+    return evaluated;
+  } catch (_) {
+    return { ok: false, discount: 0, source: 'env_voucher_invalid_json' };
+  }
+}
+
+async function sessionOwnershipCheckoutResolveVoucherFromTable(table, code, subtotal, serviceType) {
+  const safeTable = sessionOwnershipCheckoutCleanText(table, 80).replace(/[^a-zA-Z0-9_]/g, '');
+  if (!safeTable) return { ok: false, discount: 0, source: '' };
+
+  const codeColumns = ['code', 'voucher_code', 'coupon_code', 'promo_code', 'kode', 'kode_voucher', 'name'];
+  for (const column of codeColumns) {
+    const path = `/rest/v1/${encodeURIComponent(safeTable)}?select=*&${encodeURIComponent(column)}=eq.${encodeURIComponent(code)}&limit=1`;
+    const result = await supabaseFetch(path, { method: 'GET', auth: 'service' }).catch(() => null);
+    if (!result || !result.ok) continue;
+    const row = Array.isArray(result.data) && result.data.length ? result.data[0] : null;
+    if (!row) continue;
+    const evaluated = sessionOwnershipCheckoutEvaluateVoucherRow(row, subtotal, serviceType);
+    if (evaluated.ok) {
+      evaluated.source = `${safeTable}.${column}`;
+      return evaluated;
+    }
+    return { ok: false, discount: 0, source: `${safeTable}.${column}`, hardFail: true, reason: evaluated.reason || 'voucher_invalid' };
+  }
+
+  return { ok: false, discount: 0, source: `${safeTable}.not_found` };
+}
+
+function sessionOwnershipCheckoutEvaluateVoucherRow(row, subtotal, serviceType) {
+  const data = row && typeof row === 'object' ? row : {};
+  const baseSubtotal = sessionOwnershipCheckoutNonNegativeMoney(subtotal || 0);
+  if (baseSubtotal <= 0) return { ok: false, discount: 0, reason: 'subtotal_empty' };
+
+  const status = String(data.status || '').trim().toLowerCase();
+  if (data.is_active === false || data.active === false || ['inactive', 'disabled', 'expired', 'used', 'archived'].includes(status)) {
+    return { ok: false, discount: 0, reason: 'voucher_inactive' };
+  }
+
+  const now = Date.now();
+  const startAt = Date.parse(data.starts_at || data.start_at || data.valid_from || data.active_from || '');
+  if (Number.isFinite(startAt) && startAt > now) return { ok: false, discount: 0, reason: 'voucher_not_started' };
+  const endAt = Date.parse(data.expires_at || data.expired_at || data.ends_at || data.end_at || data.valid_until || data.active_until || '');
+  if (Number.isFinite(endAt) && endAt < now) return { ok: false, discount: 0, reason: 'voucher_expired' };
+
+  const minSubtotal = sessionOwnershipCheckoutNonNegativeMoney(data.min_subtotal || data.min_purchase || data.minimum_purchase || data.min_order || data.minimum_order || 0);
+  if (minSubtotal > 0 && baseSubtotal < minSubtotal) return { ok: false, discount: 0, reason: 'minimum_order_not_met' };
+
+  const allowedService = String(data.service_type || data.category || data.service || '').trim().toLowerCase();
+  const normalizedService = sessionOwnershipCheckoutNormalizeServiceType(serviceType);
+  if (allowedService && !['all', 'semua', '*', normalizedService].includes(allowedService.replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, ''))) {
+    return { ok: false, discount: 0, reason: 'service_type_not_allowed' };
+  }
+
+  const type = String(data.discount_type || data.type || data.value_type || data.kind || '').trim().toLowerCase();
+  const percentRaw = data.percent ?? data.percentage ?? data.discount_percent ?? data.persen ?? null;
+  const amountRaw = data.discount_amount ?? data.amount ?? data.nominal ?? data.value ?? data.discount ?? data.potongan ?? data.potongan_harga ?? null;
+  let discount = 0;
+
+  if (type.includes('percent') || type.includes('persen') || percentRaw !== null) {
+    const percent = Math.max(0, Math.min(100, Number(String(percentRaw !== null ? percentRaw : amountRaw || 0).replace(/[^0-9.]/g, '')) || 0));
+    discount = Math.round(baseSubtotal * percent / 100);
+    const maxDiscount = sessionOwnershipCheckoutNonNegativeMoney(data.max_discount || data.maximum_discount || data.max_amount || data.maksimal_diskon || 0);
+    if (maxDiscount > 0) discount = Math.min(discount, maxDiscount);
+  } else {
+    discount = sessionOwnershipCheckoutNonNegativeMoney(amountRaw);
+  }
+
+  discount = Math.min(baseSubtotal, Math.max(0, discount));
+  if (discount <= 0) return { ok: false, discount: 0, reason: 'voucher_discount_empty' };
+  return { ok: true, discount, source: 'voucher' };
+}
+
+function sessionOwnershipCheckoutPriceSourceWithAdjustments(serviceType, discount, shippingCost, voucherCode, discountSource) {
   const base = sessionOwnershipCheckoutNormalizeServiceType(serviceType) === 'parfum'
     ? 'products.price.multi_item_server_locked'
     : 'manual_unpaid_quote_no_gateway';
   const flags = [];
-  if (Number(discount || 0) > 0) flags.push(voucherCode ? 'voucher_discount_applied' : 'discount_applied');
+  if (Number(discount || 0) > 0) {
+    const source = sessionOwnershipCheckoutCleanText(discountSource || '', 80);
+    flags.push(voucherCode ? `voucher_discount_applied${source ? ':' + source : ''}` : `discount_applied${source ? ':' + source : ''}`);
+  }
   if (Number(shippingCost || 0) > 0) flags.push('shipping_cost_applied');
   return flags.length ? `${base}+${flags.join('+')}` : base;
 }
@@ -7193,7 +7336,7 @@ function sessionOwnershipCheckoutPositiveInteger(value, fallback, max) {
 }
 
 function sessionOwnershipCheckoutPositiveMoney(value) {
-  const number = Number(String(value || '').replace(/[^0-9.]/g, ''));
+  const number = sessionOwnershipCheckoutParseMoney(value);
   if (!Number.isFinite(number) || number <= 0) return 0;
   return Math.round(number);
 }
