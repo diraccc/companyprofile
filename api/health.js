@@ -6460,6 +6460,7 @@ async function sessionOwnershipCheckoutCreateUnpaidOrder(req, res) {
   const quantity = sessionOwnershipCheckoutPositiveInteger(body.quantity || body.qty || 1, 1, 999);
   const requestedProductTitle = sessionOwnershipCheckoutBuildProductTitle(body, serviceType);
   const shippingAddress = sessionOwnershipCheckoutBuildShippingAddress(body);
+  const checkoutNote = sessionOwnershipCheckoutBuildOrderNote(body);
 
   if (!requestedName) return res.status(400).json({ ok: false, message: 'Nama pelanggan wajib diisi.' });
   if (!customerPhone) return res.status(400).json({ ok: false, message: 'Nomor WhatsApp/HP wajib diisi.' });
@@ -6517,7 +6518,10 @@ async function sessionOwnershipCheckoutCreateUnpaidOrder(req, res) {
       shipping_address: shippingAddress || null,
       service_type: serviceType,
       subtotal: backendQuote.subtotal,
+      shipping_cost: backendQuote.shippingCost || 0,
+      discount: backendQuote.discount || 0,
       total: backendQuote.total,
+      note: checkoutNote || null,
       payment_method: 'Belum dipilih',
       payment_status: 'unpaid',
       order_status: 'pending'
@@ -6585,12 +6589,15 @@ async function sessionOwnershipCheckoutCreateUnpaidOrder(req, res) {
       order_id: order.order_id || orderCode,
       service_type: serviceType,
       subtotal: backendQuote.subtotal,
+      shipping_cost: backendQuote.shippingCost || 0,
+      discount: backendQuote.discount || 0,
       total: backendQuote.total,
       currency: 'IDR',
       order_status: order.order_status || 'pending',
       payment_status: order.payment_status || 'unpaid',
       created_at: order.created_at || diracNowIso(),
-      shipping_address: shippingAddress || ''
+      shipping_address: shippingAddress || '',
+      note: checkoutNote || ''
     },
     customer: {
       name: finalCustomerName,
@@ -6622,10 +6629,14 @@ async function sessionOwnershipCheckoutCreateUnpaidOrder(req, res) {
     service_type: serviceType,
     total: backendQuote.total,
     subtotal: backendQuote.subtotal,
+    shipping_cost: backendQuote.shippingCost || 0,
+    discount: backendQuote.discount || 0,
+    voucher_code: backendQuote.voucherCode || '',
     currency: 'IDR',
     order_status: 'pending',
     payment_status: 'unpaid',
     shipping_address: shippingAddress || null,
+    note: checkoutNote || null,
     payment_url: null,
     dashboard_mfa_required: true,
     payment_gateway_configured: false,
@@ -6769,6 +6780,7 @@ async function sessionOwnershipCheckoutBuildBackendQuote({ body, serviceType, re
     }
 
     const subtotal = quoteItems.reduce((sum, item) => sum + item.subtotal, 0);
+    const adjustments = await sessionOwnershipCheckoutBuildPricingAdjustments(body, subtotal, normalizedServiceType);
     const totalQty = quoteItems.reduce((sum, item) => sum + item.quantity, 0);
     const productTitle = sessionOwnershipCheckoutBuildParfumQuoteTitle(quoteItems);
     const first = quoteItems[0] || {};
@@ -6776,14 +6788,17 @@ async function sessionOwnershipCheckoutBuildBackendQuote({ body, serviceType, re
     return {
       ok: true,
       priceLocked: true,
-      priceSource: 'products.price.multi_item_server_locked',
+      priceSource: adjustments.priceSource || 'products.price.multi_item_server_locked',
       productDocId: first.productDocId || '',
       productTitle,
       unitPrice: first.unitPrice || 0,
       costPrice: first.costPrice || 0,
       quantity: totalQty,
       subtotal,
-      total: subtotal,
+      shippingCost: adjustments.shippingCost || 0,
+      discount: adjustments.discount || 0,
+      voucherCode: adjustments.voucherCode || '',
+      total: adjustments.total,
       items: quoteItems,
       product: first.product || null
     };
@@ -6796,16 +6811,21 @@ async function sessionOwnershipCheckoutBuildBackendQuote({ body, serviceType, re
     return { ok: false, status: 400, message: 'Total layanan custom wajib lebih dari 0.' };
   }
 
+  const customAdjustments = await sessionOwnershipCheckoutBuildPricingAdjustments(body, frontendQuotedTotal, normalizedServiceType);
+
   return {
     ok: true,
     priceLocked: false,
-    priceSource: 'manual_unpaid_quote_no_gateway',
+    priceSource: customAdjustments.priceSource || 'manual_unpaid_quote_no_gateway',
     productDocId: '',
     productTitle: requestedProductTitle,
     unitPrice: frontendQuotedTotal,
     costPrice: 0,
     subtotal: frontendQuotedTotal,
-    total: frontendQuotedTotal
+    shippingCost: customAdjustments.shippingCost || 0,
+    discount: customAdjustments.discount || 0,
+    voucherCode: customAdjustments.voucherCode || '',
+    total: customAdjustments.total
   };
 }
 
@@ -7039,6 +7059,92 @@ function sessionOwnershipCheckoutBuildShippingAddress(body) {
   add('Catatan', row.customer_note || row.notes || row.note || row.catatan || row.shipping_note || row.order_note, 420);
 
   return sessionOwnershipCheckoutCleanText(sections.join(' | '), 1400);
+}
+
+
+function sessionOwnershipCheckoutBuildOrderNote(body) {
+  const row = body && typeof body === 'object' ? body : {};
+  const pieces = [];
+  const add = (label, value, maxLength) => {
+    const clean = sessionOwnershipCheckoutCleanText(value, maxLength || 320);
+    if (clean) pieces.push(`${label}: ${clean}`);
+  };
+  add('Detail alamat', row.address_detail || row.detail_alamat || row.detail_address || row.shipping_address_detail || row.delivery_detail || row.patokan, 360);
+  add('Catatan', row.customer_note || row.notes || row.note || row.catatan || row.shipping_note || row.order_note, 420);
+  return sessionOwnershipCheckoutCleanText(pieces.join(' | '), 700);
+}
+
+async function sessionOwnershipCheckoutBuildPricingAdjustments(body, subtotal, serviceType) {
+  const baseSubtotal = sessionOwnershipCheckoutNonNegativeMoney(subtotal || 0);
+  const shippingCost = sessionOwnershipCheckoutExtractShippingCost(body);
+  const voucherCode = sessionOwnershipCheckoutCleanText(
+    body && (body.voucher_code || body.coupon_code || body.discount_code || body.promo_code || body.kode_voucher || body.voucher || body.coupon || body.promo) || '',
+    80
+  ).replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 80);
+
+  const requestedDiscount = sessionOwnershipCheckoutExtractDiscountAmount(body);
+  const discount = Math.min(baseSubtotal, requestedDiscount);
+  const total = Math.max(0, baseSubtotal - discount + shippingCost);
+
+  return {
+    subtotal: baseSubtotal,
+    shippingCost,
+    discount,
+    voucherCode,
+    total,
+    priceSource: sessionOwnershipCheckoutPriceSourceWithAdjustments(serviceType, discount, shippingCost, voucherCode)
+  };
+}
+
+function sessionOwnershipCheckoutExtractShippingCost(body) {
+  const row = body && typeof body === 'object' ? body : {};
+  const candidates = [
+    row.shipping_cost,
+    row.ongkir,
+    row.delivery_fee,
+    row.shipping_fee,
+    row.shippingPrice,
+    row.shipping_price,
+    row.delivery_cost,
+    row.shipment_cost,
+    row.biaya_ongkir,
+    row.biaya_kirim
+  ];
+  for (const value of candidates) {
+    const amount = sessionOwnershipCheckoutNonNegativeMoney(value);
+    if (amount > 0) return Math.min(amount, 10000000);
+  }
+  return 0;
+}
+
+function sessionOwnershipCheckoutExtractDiscountAmount(body) {
+  const row = body && typeof body === 'object' ? body : {};
+  const candidates = [
+    row.discount,
+    row.discount_amount,
+    row.voucher_discount,
+    row.coupon_discount,
+    row.promo_discount,
+    row.diskon,
+    row.nominal_diskon,
+    row.potongan,
+    row.potongan_harga
+  ];
+  for (const value of candidates) {
+    const amount = sessionOwnershipCheckoutNonNegativeMoney(value);
+    if (amount > 0) return amount;
+  }
+  return 0;
+}
+
+function sessionOwnershipCheckoutPriceSourceWithAdjustments(serviceType, discount, shippingCost, voucherCode) {
+  const base = sessionOwnershipCheckoutNormalizeServiceType(serviceType) === 'parfum'
+    ? 'products.price.multi_item_server_locked'
+    : 'manual_unpaid_quote_no_gateway';
+  const flags = [];
+  if (Number(discount || 0) > 0) flags.push(voucherCode ? 'voucher_discount_applied' : 'discount_applied');
+  if (Number(shippingCost || 0) > 0) flags.push('shipping_cost_applied');
+  return flags.length ? `${base}+${flags.join('+')}` : base;
 }
 
 function sessionOwnershipCheckoutFallbackTitle(serviceType) {
@@ -10979,7 +11085,7 @@ async function orderMailBuildPaidRegularInvoiceContext(tx, provider, paidAt) {
   const orderId = String(tx.order_id || '').trim();
   if (!orderId) return { ok: false, reason: 'regular_order_id_missing' };
 
-  const select = 'id,order_id,customer_id,customer_name,customer_phone,customer_email,shipping_address,service_type,subtotal,total,payment_status,order_status,created_at';
+  const select = 'id,order_id,customer_id,customer_name,customer_phone,customer_email,shipping_address,note,service_type,subtotal,shipping_cost,discount,total,payment_status,order_status,created_at';
   const result = await supabaseFetch('/rest/v1/orders?select=' + encodeURIComponent(select) + '&id=eq.' + encodeURIComponent(orderId) + '&limit=1', {
     method: 'GET',
     auth: 'service'
@@ -11006,11 +11112,14 @@ async function orderMailBuildPaidRegularInvoiceContext(tx, provider, paidAt) {
         service_type: serviceType,
         total: amount,
         subtotal: orderMailMoney(order.subtotal || amount),
+        shipping_cost: orderMailMoney(order.shipping_cost || 0),
+        discount: orderMailMoney(order.discount || 0),
         currency: String(tx.currency || 'IDR').toUpperCase(),
         order_status: 'paid',
         payment_status: 'paid',
         created_at: paidAt || order.created_at || diracNowIso(),
-        shipping_address: order.shipping_address || ''
+        shipping_address: order.shipping_address || '',
+        note: order.note || ''
       },
       customer: {
         name: order.customer_name || customerFallback.name || 'Customer',
@@ -11230,11 +11339,14 @@ function orderMailNormalizeOrderInput(input) {
       service_type: orderMailCleanText(order.service_type || row.kind || 'order', 80),
       total,
       subtotal: orderMailMoney(order.subtotal ?? total),
+      shipping_cost: orderMailMoney(order.shipping_cost ?? order.ongkir ?? order.delivery_fee ?? 0),
+      discount: orderMailMoney(order.discount ?? order.discount_amount ?? order.voucher_discount ?? 0),
       currency,
       order_status: orderMailCleanText(order.order_status || 'pending', 40),
       payment_status: orderMailCleanText(order.payment_status || 'unpaid', 40),
       created_at: orderMailCleanText(order.created_at || diracNowIso(), 60),
-      shipping_address: orderMailCleanText(order.shipping_address || order.address || order.alamat || order.customer_address || customer.shipping_address || '', 1400)
+      shipping_address: orderMailCleanText(order.shipping_address || order.address || order.alamat || order.customer_address || customer.shipping_address || '', 1400),
+      note: orderMailCleanText(order.note || order.customer_note || order.notes || order.catatan || customer.note || '', 700)
     },
     customer: {
       name: orderMailCleanText(customer.name || customer.customer_name || 'Customer', 120),
@@ -11262,6 +11374,9 @@ function orderMailNormalizeOrderInput(input) {
 
 function orderMailBuildNewOrderMessages(data) {
   const serviceLabel = orderMailServiceLabel(data.order.service_type || data.kind);
+  const subtotal = orderMailFormatCurrency(data.order.subtotal || data.order.total, data.order.currency);
+  const shippingCost = orderMailFormatCurrency(data.order.shipping_cost || 0, data.order.currency);
+  const discount = orderMailFormatCurrency(data.order.discount || 0, data.order.currency);
   const total = orderMailFormatCurrency(data.order.total, data.order.currency);
   const created = orderMailFormatDate(data.order.created_at);
   const itemsText = orderMailItemsText(data.items, data.order.currency);
@@ -11288,8 +11403,17 @@ function orderMailBuildNewOrderMessages(data) {
   const statusLabel = paid ? 'paid / sudah dibayar' : data.order.payment_status;
   const orderUrl = orderMailOrderUrl(data.order.code);
   const shippingAddress = orderMailCleanText(data.order.shipping_address || data.customer.shipping_address || '', 1400);
+  const orderNote = orderMailCleanText(data.order.note || '', 700);
   const shippingTextLine = shippingAddress ? `Alamat pengiriman: ${shippingAddress}` : '';
+  const noteTextLine = orderNote ? `Catatan: ${orderNote}` : '';
   const shippingInfoRows = shippingAddress ? [['Alamat pengiriman', shippingAddress]] : [];
+  const noteInfoRows = orderNote ? [['Catatan', orderNote]] : [];
+  const pricingInfoRows = [
+    ['Subtotal', subtotal],
+    ['Diskon/Voucher', discount],
+    ['Ongkir', shippingCost],
+    ['Total akhir', total]
+  ];
 
   const customerText = [
     `Halo ${data.customer.name || 'Customer'},`,
@@ -11297,9 +11421,13 @@ function orderMailBuildNewOrderMessages(data) {
     customerIntro,
     `Kode pesanan: ${data.order.code}`,
     `Layanan: ${serviceLabel}`,
+    `Subtotal: ${subtotal}`,
+    `Diskon/Voucher: ${discount}`,
+    `Ongkir: ${shippingCost}`,
     `Total: ${total}`,
     `Status: ${statusLabel}`,
     shippingTextLine,
+    noteTextLine,
     `Waktu pembayaran: ${created}`,
     paymentLine.trim(),
     '',
@@ -11321,6 +11449,10 @@ function orderMailBuildNewOrderMessages(data) {
     `Email: ${data.customer.email || '-'}`,
     `HP/WA: ${data.customer.phone || '-'}`,
     shippingTextLine,
+    noteTextLine,
+    `Subtotal: ${subtotal}`,
+    `Diskon/Voucher: ${discount}`,
+    `Ongkir: ${shippingCost}`,
     `Total: ${total}`,
     `Status bayar: ${statusLabel}`,
     `Waktu pembayaran: ${created}`,
@@ -11336,9 +11468,10 @@ function orderMailBuildNewOrderMessages(data) {
     ${orderMailInfoTable([
       ['Kode pesanan', data.order.code],
       ['Layanan', serviceLabel],
-      ['Total', total],
+      ...pricingInfoRows,
       ['Status', statusLabel],
       ...shippingInfoRows,
+      ...noteInfoRows,
       ['Waktu pembayaran', created],
       ['Referensi pembayaran', data.payment.invoice_id || '-']
     ])}
@@ -11357,7 +11490,8 @@ function orderMailBuildNewOrderMessages(data) {
       ['Email', data.customer.email || '-'],
       ['HP/WA', data.customer.phone || '-'],
       ...shippingInfoRows,
-      ['Total', total],
+      ...noteInfoRows,
+      ...pricingInfoRows,
       ['Status bayar', statusLabel],
       ['Waktu pembayaran', created],
       ['Referensi pembayaran', data.payment.invoice_id || '-']
@@ -15130,4 +15264,117 @@ function diracV110SafeError(error) {
 function diracV110EnvTrue(name) {
   const value = String(process.env[name] || '').trim().toLowerCase();
   return value === '1' || value === 'true' || value === 'yes' || value === 'on';
+}
+
+
+/* ============================================================
+   DIRAC PERFUME CHECKOUT TOTAL + PUBLIC CATALOG v112 - APPEND ONLY
+   - Tidak mengubah endpoint lama.
+   - Tidak menyentuh login, hash, A2F/MFA, payment gateway, email template core,
+     dashboard, order lama, atau sistem parfum selain mapping checkout parfum.
+   - Endpoint tambahan GET katalog hanya membaca produk aktif/ready untuk HTML lihat-lihat.
+   ============================================================ */
+const DIRAC_PERFUME_CHECKOUT_CATALOG_PATCH_V112 = 'dirac-perfume-checkout-catalog-v112';
+const __diracPerfumeCatalogV112PreviousHandler = module.exports;
+
+module.exports = async function diracPerfumeCatalogV112Wrapper(req, res) {
+  const action = diracPerfumeCatalogV112NormalizeAction(String((req && req.query && req.query.action) || ''));
+  if (!diracPerfumeCatalogV112IsCatalogAction(action)) {
+    return __diracPerfumeCatalogV112PreviousHandler(req, res);
+  }
+
+  const method = String((req && req.method) || 'GET').toUpperCase();
+  const cors = setCors(req, res, { isDomainAction: true });
+  if (method === 'OPTIONS') return res.status(cors.allowed ? 200 : 403).end();
+  if (!cors.allowed) return res.status(403).json({ ok: false, message: 'Origin tidak diizinkan.' });
+  if (method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
+
+  try {
+    if (typeof diracV101CheckPersistentSqlmapBlock === 'function') {
+      const existingBlock = await diracV101CheckPersistentSqlmapBlock(req, action, method).catch(() => ({ ok: true }));
+      if (existingBlock && existingBlock.blocked) {
+        try { res.setHeader('Retry-After', String(existingBlock.retryAfterSeconds || 86400)); } catch (_) {}
+        return res.status(403).json({ ok: false, code: 'REQUEST_BLOCKED', message: 'Permintaan ditolak oleh sistem keamanan.' });
+      }
+    }
+    if (typeof diracV101DetectRequestThreat === 'function') {
+      const threat = diracV101DetectRequestThreat(req, action, method);
+      if (threat && threat.detected) {
+        if (typeof diracV101RegisterSqlmapAttack === 'function') {
+          await diracV101RegisterSqlmapAttack(req, action, method, threat).catch(() => null);
+        }
+        return res.status(threat.status || 403).json({ ok: false, code: 'REQUEST_BLOCKED', message: 'Permintaan ditolak oleh sistem keamanan.' });
+      }
+    }
+    return await diracPerfumeCatalogV112Handle(req, res);
+  } catch (error) {
+    console.error('[dirac-public-products-v112]', diracPerfumeCatalogV112SafeError(error));
+    return res.status(500).json({ ok: false, message: 'Katalog produk belum bisa dimuat.' });
+  }
+};
+
+function diracPerfumeCatalogV112NormalizeAction(action) {
+  return String(action || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+}
+
+function diracPerfumeCatalogV112IsCatalogAction(action) {
+  return [
+    'public_products',
+    'products_public',
+    'catalog_products',
+    'product_catalog',
+    'public_catalog',
+    'parfum_products',
+    'perfume_products',
+    'parfum_catalog',
+    'katalog_parfum',
+    'katalog_produk',
+    'lihat_produk'
+  ].includes(String(action || ''));
+}
+
+async function diracPerfumeCatalogV112Handle(req, res) {
+  const limitRaw = Number((req && req.query && (req.query.limit || req.query.per_page)) || 100);
+  const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.floor(limitRaw), 1), 200) : 100;
+  const select = 'doc_id,firebase_id,title,name,price,stock,status,is_ready,is_active';
+  const result = await supabaseFetch('/rest/v1/products?select=' + encodeURIComponent(select) + '&limit=' + encodeURIComponent(String(limit)), {
+    method: 'GET',
+    auth: 'service'
+  });
+
+  if (!result.ok) {
+    return res.status(result.status || 500).json({ ok: false, message: 'Produk belum bisa dibaca.' });
+  }
+
+  const rows = Array.isArray(result.data) ? result.data : [];
+  const products = rows
+    .filter((row) => row && row.is_active !== false && row.is_ready !== false && !['inactive', 'disabled', 'deleted', 'archived'].includes(String(row.status || '').toLowerCase()))
+    .map((row) => ({
+      id: String(row.doc_id || row.firebase_id || '').trim(),
+      doc_id: String(row.doc_id || '').trim(),
+      firebase_id: String(row.firebase_id || '').trim(),
+      title: sessionOwnershipCheckoutCleanText(row.title || row.name || 'Produk Parfum', 180),
+      name: sessionOwnershipCheckoutCleanText(row.name || row.title || 'Produk Parfum', 180),
+      price: sessionOwnershipCheckoutNonNegativeMoney(row.price || 0),
+      price_label: formatCurrency(sessionOwnershipCheckoutNonNegativeMoney(row.price || 0), 'IDR'),
+      stock: Number.isFinite(Number(row.stock)) ? Number(row.stock) : null,
+      status: String(row.status || '').trim(),
+      is_ready: row.is_ready !== false,
+      is_active: row.is_active !== false
+    }))
+    .filter((row) => row.id && row.price > 0);
+
+  return res.status(200).json({
+    ok: true,
+    patch: DIRAC_PERFUME_CHECKOUT_CATALOG_PATCH_V112,
+    source: 'products',
+    count: products.length,
+    products
+  });
+}
+
+function diracPerfumeCatalogV112SafeError(error) {
+  const msg = String(error && (error.code || error.name || error.message) || 'PUBLIC_PRODUCTS_ERROR');
+  if (/password|token|secret|cookie|authorization|service_role|apikey/i.test(msg)) return 'PUBLIC_PRODUCTS_ERROR';
+  return msg.slice(0, 160);
 }
