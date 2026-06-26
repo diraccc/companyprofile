@@ -15587,7 +15587,7 @@ function diracPerfumeCatalogV112IsCatalogAction(action) {
 
 async function diracPerfumeCatalogV112Handle(req, res) {
   const limitRaw = Number((req && req.query && (req.query.limit || req.query.per_page)) || 100);
-  const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.floor(limitRaw), 1), 5000) : 500;
+  const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.floor(limitRaw), 1), 200) : 100;
   const select = 'doc_id,firebase_id,title,name,price,stock,status,is_ready,is_active';
   const result = await supabaseFetch('/rest/v1/products?select=' + encodeURIComponent(select) + '&limit=' + encodeURIComponent(String(limit)), {
     method: 'GET',
@@ -15703,7 +15703,7 @@ async function diracPerfumeCatalogV116Handle(req, res) {
   try { res.setHeader('Expires', '0'); } catch (_) {}
 
   const limitRaw = Number((req && req.query && (req.query.limit || req.query.per_page)) || 100);
-  const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.floor(limitRaw), 1), 5000) : 500;
+  const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.floor(limitRaw), 1), 200) : 100;
 
   // slug wajib ikut dibaca karena tabel products user memakai slug sebagai identifier utama.
   const select = 'slug,doc_id,firebase_id,title,name,price,stock,status,is_ready,is_active';
