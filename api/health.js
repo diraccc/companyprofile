@@ -7222,6 +7222,14 @@ async function sessionOwnershipCheckoutResolveVoucherFromTable(table, code, subt
     if (!result || !result.ok) continue;
     const row = Array.isArray(result.data) && result.data.length ? result.data[0] : null;
     if (!row) continue;
+
+    // Voucher parfum bertingkat: parent code lives in public.vouchers, discount rules live in public.voucher_tiers.
+    // This does not alter payment gateway, login/hash, A2F, or existing endpoints; it only calculates checkout totals.
+    if (safeTable === 'vouchers') {
+      const tiered = await sessionOwnershipCheckoutResolveVoucherTierDiscountSafe(row, subtotal, serviceType, `${safeTable}.${column}`);
+      if (tiered.ok || tiered.hardFail) return tiered;
+    }
+
     const evaluated = sessionOwnershipCheckoutEvaluateVoucherRow(row, subtotal, serviceType);
     if (evaluated.ok) {
       evaluated.source = `${safeTable}.${column}`;
@@ -7233,30 +7241,131 @@ async function sessionOwnershipCheckoutResolveVoucherFromTable(table, code, subt
   return { ok: false, discount: 0, source: `${safeTable}.not_found` };
 }
 
+async function sessionOwnershipCheckoutResolveVoucherTierDiscountSafe(voucherRow, subtotal, serviceType, sourcePrefix) {
+  const voucher = voucherRow && typeof voucherRow === 'object' ? voucherRow : {};
+  const voucherId = sessionOwnershipCheckoutCleanText(voucher.id || voucher.voucher_id || '', 80);
+  const baseSubtotal = sessionOwnershipCheckoutNonNegativeMoney(subtotal || 0);
+  if (!voucherId || baseSubtotal <= 0) return { ok: false, discount: 0, noTier: true, source: `${sourcePrefix || 'vouchers'}.tier_missing_parent` };
+
+  const parentCheck = sessionOwnershipCheckoutValidateVoucherBase(voucher, baseSubtotal, serviceType, { requireDiscount: false, checkMaxSubtotal: false });
+  if (!parentCheck.ok) {
+    return { ok: false, discount: 0, source: `${sourcePrefix || 'vouchers'}.parent`, hardFail: true, reason: parentCheck.reason || 'voucher_invalid' };
+  }
+
+  const tierPath = `/rest/v1/voucher_tiers?select=*&voucher_id=eq.${encodeURIComponent(voucherId)}&active=eq.true&order=min_subtotal.desc`;
+  const tierResult = await supabaseFetch(tierPath, { method: 'GET', auth: 'service' }).catch(() => null);
+  if (!tierResult || !tierResult.ok) {
+    return { ok: false, discount: 0, noTier: true, source: `${sourcePrefix || 'vouchers'}.tier_unavailable` };
+  }
+
+  const tiers = Array.isArray(tierResult.data) ? tierResult.data : [];
+  const tier = tiers.find((item) => sessionOwnershipCheckoutVoucherTierMatchesSubtotal(item, baseSubtotal));
+  if (!tier) {
+    return { ok: false, discount: 0, source: `${sourcePrefix || 'vouchers'}.voucher_tiers`, hardFail: true, reason: 'voucher_tier_not_found_for_subtotal' };
+  }
+
+  const tierCheck = sessionOwnershipCheckoutValidateVoucherBase({ ...voucher, ...tier }, baseSubtotal, serviceType, { requireDiscount: true, checkMaxSubtotal: true });
+  if (!tierCheck.ok) {
+    return { ok: false, discount: 0, source: `${sourcePrefix || 'vouchers'}.voucher_tiers`, hardFail: true, reason: tierCheck.reason || 'voucher_tier_invalid' };
+  }
+
+  const discount = sessionOwnershipCheckoutCalculateVoucherDiscount({ ...voucher, ...tier }, baseSubtotal);
+  if (discount <= 0) {
+    return { ok: false, discount: 0, source: `${sourcePrefix || 'vouchers'}.voucher_tiers`, hardFail: true, reason: 'voucher_tier_discount_empty' };
+  }
+
+  return {
+    ok: true,
+    discount,
+    source: `${sourcePrefix || 'vouchers'}.voucher_tiers`,
+    tier_id: tier.id || null
+  };
+}
+
+function sessionOwnershipCheckoutVoucherTierMatchesSubtotal(tier, subtotal) {
+  const row = tier && typeof tier === 'object' ? tier : {};
+  const baseSubtotal = sessionOwnershipCheckoutNonNegativeMoney(subtotal || 0);
+  if (row.active === false || row.is_active === false) return false;
+  const minSubtotal = sessionOwnershipCheckoutNonNegativeMoney(row.min_subtotal || row.min_purchase || row.minimum_purchase || row.min_order || row.minimum_order || 0);
+  const hasMax = row.max_subtotal !== null && row.max_subtotal !== undefined && String(row.max_subtotal).trim() !== '';
+  const maxSubtotal = hasMax ? sessionOwnershipCheckoutNonNegativeMoney(row.max_subtotal || row.max_purchase || row.maximum_purchase || row.max_order || row.maximum_order || 0) : 0;
+  if (baseSubtotal < minSubtotal) return false;
+  if (hasMax && maxSubtotal > 0 && baseSubtotal > maxSubtotal) return false;
+  return true;
+}
+
 function sessionOwnershipCheckoutEvaluateVoucherRow(row, subtotal, serviceType) {
   const data = row && typeof row === 'object' ? row : {};
   const baseSubtotal = sessionOwnershipCheckoutNonNegativeMoney(subtotal || 0);
-  if (baseSubtotal <= 0) return { ok: false, discount: 0, reason: 'subtotal_empty' };
+
+  const baseCheck = sessionOwnershipCheckoutValidateVoucherBase(data, baseSubtotal, serviceType, { requireDiscount: true, checkMaxSubtotal: true });
+  if (!baseCheck.ok) return { ok: false, discount: 0, reason: baseCheck.reason || 'voucher_invalid' };
+
+  const discount = sessionOwnershipCheckoutCalculateVoucherDiscount(data, baseSubtotal);
+  if (discount <= 0) return { ok: false, discount: 0, reason: 'voucher_discount_empty' };
+  return { ok: true, discount, source: 'voucher' };
+}
+
+function sessionOwnershipCheckoutValidateVoucherBase(row, subtotal, serviceType, options = {}) {
+  const data = row && typeof row === 'object' ? row : {};
+  const baseSubtotal = sessionOwnershipCheckoutNonNegativeMoney(subtotal || 0);
+  if (baseSubtotal <= 0) return { ok: false, reason: 'subtotal_empty' };
 
   const status = String(data.status || '').trim().toLowerCase();
   if (data.is_active === false || data.active === false || ['inactive', 'disabled', 'expired', 'used', 'archived'].includes(status)) {
-    return { ok: false, discount: 0, reason: 'voucher_inactive' };
+    return { ok: false, reason: 'voucher_inactive' };
+  }
+
+  const maxUses = Number(data.max_uses || data.usage_limit || data.limit || 0);
+  const usedCount = Number(data.used_count || data.usage_count || data.used || 0);
+  if (Number.isFinite(maxUses) && maxUses > 0 && Number.isFinite(usedCount) && usedCount >= maxUses) {
+    return { ok: false, reason: 'voucher_usage_limit_reached' };
   }
 
   const now = Date.now();
   const startAt = Date.parse(data.starts_at || data.start_at || data.valid_from || data.active_from || '');
-  if (Number.isFinite(startAt) && startAt > now) return { ok: false, discount: 0, reason: 'voucher_not_started' };
+  if (Number.isFinite(startAt) && startAt > now) return { ok: false, reason: 'voucher_not_started' };
   const endAt = Date.parse(data.expires_at || data.expired_at || data.ends_at || data.end_at || data.valid_until || data.active_until || '');
-  if (Number.isFinite(endAt) && endAt < now) return { ok: false, discount: 0, reason: 'voucher_expired' };
+  if (Number.isFinite(endAt) && endAt < now) return { ok: false, reason: 'voucher_expired' };
 
   const minSubtotal = sessionOwnershipCheckoutNonNegativeMoney(data.min_subtotal || data.min_purchase || data.minimum_purchase || data.min_order || data.minimum_order || 0);
-  if (minSubtotal > 0 && baseSubtotal < minSubtotal) return { ok: false, discount: 0, reason: 'minimum_order_not_met' };
+  if (minSubtotal > 0 && baseSubtotal < minSubtotal) return { ok: false, reason: 'minimum_order_not_met' };
 
-  const allowedService = String(data.service_type || data.category || data.service || '').trim().toLowerCase();
-  const normalizedService = sessionOwnershipCheckoutNormalizeServiceType(serviceType);
-  if (allowedService && !['all', 'semua', '*', normalizedService].includes(allowedService.replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, ''))) {
-    return { ok: false, discount: 0, reason: 'service_type_not_allowed' };
+  if (options.checkMaxSubtotal) {
+    const hasMax = data.max_subtotal !== null && data.max_subtotal !== undefined && String(data.max_subtotal).trim() !== '';
+    const maxSubtotal = hasMax ? sessionOwnershipCheckoutNonNegativeMoney(data.max_subtotal || data.max_purchase || data.maximum_purchase || data.max_order || data.maximum_order || 0) : 0;
+    if (hasMax && maxSubtotal > 0 && baseSubtotal > maxSubtotal) return { ok: false, reason: 'maximum_order_exceeded' };
   }
+
+  const serviceOk = sessionOwnershipCheckoutVoucherServiceAllowed(data.service_type || data.category || data.service || '', serviceType);
+  if (!serviceOk) return { ok: false, reason: 'service_type_not_allowed' };
+
+  if (options.requireDiscount) {
+    const discount = sessionOwnershipCheckoutCalculateVoucherDiscount(data, baseSubtotal);
+    if (discount <= 0) return { ok: false, reason: 'voucher_discount_empty' };
+  }
+
+  return { ok: true };
+}
+
+function sessionOwnershipCheckoutVoucherServiceAllowed(allowedServiceRaw, orderServiceType) {
+  const raw = String(allowedServiceRaw || '').trim().toLowerCase();
+  if (!raw || ['all', 'semua', '*'].includes(raw)) return true;
+
+  const allowedList = raw.split(/[|,;\s]+/).map((item) => item.trim()).filter(Boolean);
+  const normalizedOrder = sessionOwnershipCheckoutNormalizeServiceType(orderServiceType);
+
+  return allowedList.some((item) => {
+    if (['all', 'semua', '*'].includes(item)) return true;
+    const normalizedAllowed = sessionOwnershipCheckoutNormalizeServiceType(item);
+    return normalizedAllowed === normalizedOrder;
+  });
+}
+
+function sessionOwnershipCheckoutCalculateVoucherDiscount(row, subtotal) {
+  const data = row && typeof row === 'object' ? row : {};
+  const baseSubtotal = sessionOwnershipCheckoutNonNegativeMoney(subtotal || 0);
+  if (baseSubtotal <= 0) return 0;
 
   const type = String(data.discount_type || data.type || data.value_type || data.kind || '').trim().toLowerCase();
   const percentRaw = data.percent ?? data.percentage ?? data.discount_percent ?? data.persen ?? null;
@@ -7272,9 +7381,7 @@ function sessionOwnershipCheckoutEvaluateVoucherRow(row, subtotal, serviceType) 
     discount = sessionOwnershipCheckoutNonNegativeMoney(amountRaw);
   }
 
-  discount = Math.min(baseSubtotal, Math.max(0, discount));
-  if (discount <= 0) return { ok: false, discount: 0, reason: 'voucher_discount_empty' };
-  return { ok: true, discount, source: 'voucher' };
+  return Math.min(baseSubtotal, Math.max(0, Math.round(discount)));
 }
 
 function sessionOwnershipCheckoutPriceSourceWithAdjustments(serviceType, discount, shippingCost, voucherCode, discountSource) {
@@ -14255,6 +14362,8 @@ function diracV101ServiceRoleAllowedTables() {
     'payment_gateway_events',
     'payment_transactions',
     'products',
+    'vouchers',
+    'voucher_tiers',
     'security_customer_access_blocks',
     'security_customer_account_requests',
     'security_customer_auth_links',
