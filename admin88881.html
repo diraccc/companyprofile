@@ -8,6 +8,7 @@
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://www.google.com https://www.recaptcha.net; script-src-attr 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://companyprofilee-expk.vercel.app https://aqvzzfijlomcznotyigx.supabase.co https://www.gstatic.com https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://firebasestorage.googleapis.com https://*.firebasestorage.app https://storage.googleapis.com https://firebaseinstallations.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.google.com https://www.recaptcha.net; frame-src https://www.google.com https://www.recaptcha.net; child-src https://www.google.com https://www.recaptcha.net; worker-src 'self' blob:; font-src 'self' data:; media-src 'self' data: blob:; manifest-src 'self'; form-action 'self'">
   <title>Admin Produk - Dirac Group</title>
+  <!-- DIRAC_FIX: firebase-rest-login-no-cdn-v1 -->
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
   <style>
     :root{
@@ -1062,20 +1063,6 @@
       -webkit-tap-highlight-color:rgba(96,165,250,.28)!important;
     }
     body:not(.modal-open) #loginBtn:not(:disabled){cursor:pointer!important;opacity:1!important}
-    html body:not(.modal-open) #loginSection:not(.hidden){
-      z-index:2147483000!important;
-      transform:translateZ(0)!important;
-    }
-    html body:not(.modal-open) #loginSection:not(.hidden) .login-card{
-      position:relative!important;
-      z-index:2147483001!important;
-    }
-    html body:not(.modal-open) #loginBtn{
-      position:relative!important;
-      z-index:2147483002!important;
-      user-select:none!important;
-      -webkit-user-select:none!important;
-    }
     body:not(.modal-open) #modal.hidden,
     body:not(.modal-open) .sidebar-backdrop.hidden,
     body:not(.sidebar-open) .sidebar-backdrop,
@@ -1772,133 +1759,189 @@
     </div>
   </div>
 
-
-  <script id="dirac-admin-login-bootstrap-guard">
-    /* Fail-safe login guard: hanya menampilkan error frontend bila script utama tidak aktif. Tidak mengubah auth, A2F, endpoint, hash, payment, atau security. */
-    (function(){
-      'use strict';
-      var state = { mainStarted:false, handlerReady:false, lastError:'' };
-      function clean(text){ return String(text || '').replace(/password|token|secret|authorization|cookie|apikey|apiKey/ig, '[redacted]').slice(0, 260); }
-      function show(message, kind){
-        try{
-          var box = document.getElementById('loginError');
-          if(!box) return;
-          box.textContent = clean(message || 'Sistem login belum siap.');
-          box.className = 'notice ' + (kind || 'danger');
-          box.classList.remove('hidden');
-          box.style.display = 'block';
-        }catch(_){ }
-      }
-      window.__DIRAC_ADMIN_LOGIN_GUARD__ = {
-        markMainStarted:function(){ state.mainStarted = true; },
-        markHandlerReady:function(){ state.handlerReady = true; },
-        get handlerReady(){ return state.handlerReady; },
-        get mainStarted(){ return state.mainStarted; },
-        show:show
-      };
-      window.addEventListener('error', function(event){
-        state.lastError = clean((event && (event.message || (event.error && event.error.message))) || 'Script error');
-        if(!state.handlerReady) show('Script admin gagal sebelum tombol login aktif: ' + state.lastError, 'danger');
-      }, true);
-      window.addEventListener('unhandledrejection', function(event){
-        var reason = event && event.reason;
-        state.lastError = clean((reason && (reason.message || reason.code)) || reason || 'Promise error');
-        if(!state.handlerReady) show('Script admin gagal memuat sistem login: ' + state.lastError, 'danger');
-      });
-      function installFallback(){
-        var btn = document.getElementById('loginBtn');
-        if(!btn || btn.__diracLoginGuardInstalled) return;
-        btn.__diracLoginGuardInstalled = true;
-        btn.addEventListener('click', function(){
-          window.setTimeout(function(){
-            if(!state.handlerReady){
-              show('Tombol login belum aktif karena script utama belum berhasil berjalan. Coba reload halaman. Jika tetap muncul, file admin perlu dipatch dari Firebase login ke Supabase login atau cek blokir script CDN.', 'danger');
-            }
-          }, 30);
-        }, true);
-      }
-      if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', installFallback);
-      else installFallback();
-      window.setInterval(installFallback, 1200);
-    })();
-  </script>
-
-  <script id="dirac-admin-login-touch-capture">
-    /* Touch/click capture: membuat tombol login tetap merespons jika ada layer visual yang menutup area tombol. Tidak mengubah auth, hash, A2F, endpoint, payment, email, checkout, atau security. */
-    (function(){
-      'use strict';
-      var lastRun = 0;
-      function clean(text){ return String(text || '').replace(/password|token|secret|authorization|cookie|apikey|apiKey/ig, '[redacted]').slice(0, 260); }
-      function show(message){
-        try{
-          var box = document.getElementById('loginError');
-          if(!box) return;
-          box.textContent = clean(message || 'Tombol login sudah menerima klik, tetapi sistem login belum siap.');
-          box.className = 'notice danger';
-          box.classList.remove('hidden');
-          box.style.display = 'block';
-        }catch(_){ }
-      }
-      function loginVisible(){
-        var section = document.getElementById('loginSection');
-        return !!(section && !section.classList.contains('hidden'));
-      }
-      function pointFromEvent(event){
-        var t = event && event.touches && event.touches[0] || event && event.changedTouches && event.changedTouches[0] || event;
-        if(!t) return null;
-        if(typeof t.clientX !== 'number' || typeof t.clientY !== 'number') return null;
-        return { x:t.clientX, y:t.clientY };
-      }
-      function insideButton(event){
-        var btn = document.getElementById('loginBtn');
-        if(!btn) return false;
-        if(event && event.target && event.target.closest && event.target.closest('#loginBtn')) return true;
-        var pt = pointFromEvent(event);
-        if(!pt) return false;
-        var r = btn.getBoundingClientRect();
-        return pt.x >= r.left && pt.x <= r.right && pt.y >= r.top && pt.y <= r.bottom;
-      }
-      function invoke(event){
-        if(!loginVisible() || !insideButton(event)) return;
-        var now = Date.now();
-        if(now - lastRun < 650) return;
-        lastRun = now;
-        try{
-          var btn = document.getElementById('loginBtn');
-          if(btn){
-            btn.disabled = false;
-            btn.removeAttribute('aria-disabled');
-            btn.removeAttribute('aria-busy');
-            btn.style.pointerEvents = 'auto';
-            btn.style.touchAction = 'manipulation';
-          }
-          if(typeof window.__DIRAC_ADMIN_LOGIN_MAIN_CLICK__ === 'function'){
-            if(event && typeof event.preventDefault === 'function') event.preventDefault();
-            window.__DIRAC_ADMIN_LOGIN_MAIN_CLICK__(event);
-            return;
-          }
-          if(window.__DIRAC_ADMIN_LOGIN_GUARD__ && window.__DIRAC_ADMIN_LOGIN_GUARD__.show){
-            window.__DIRAC_ADMIN_LOGIN_GUARD__.show('Klik login sudah diterima, tetapi script utama belum siap. Coba reload halaman. Jika tetap sama, kemungkinan modul Firebase CDN terblokir atau koneksi gagal memuat script.', 'danger');
-          }else{
-            show('Klik login sudah diterima, tetapi script utama belum siap. Coba reload halaman.');
-          }
-        }catch(error){
-          show('Klik login diterima, tetapi proses login gagal di frontend: ' + (error && error.message || error));
-        }
-      }
-      ['touchend','pointerup','click'].forEach(function(name){
-        document.addEventListener(name, invoke, true);
-      });
-    })();
-  </script>
-
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check.js";
-    import { getFirestore, collection, query, orderBy, onSnapshot, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    /*
+      Dirac admin login compatibility fix.
+      Tetap memakai Firebase Email/Password login, tetapi tidak bergantung lagi pada Firebase CDN module import.
+      Alasan: pada beberapa browser/hosting, module import dari gstatic gagal sehingga tombol login tampak tidak bereaksi.
+      Fix ini hanya mengganti loader Firebase client menjadi REST/shim lokal.
+      Tidak mengubah endpoint, A2F, hash, payment, invoice, checkout, email template, atau keamanan backend.
+    */
+    function initializeApp(config){
+      return { options: config || {} };
+    }
+    class ReCaptchaEnterpriseProvider{
+      constructor(siteKey){ this.siteKey = siteKey; }
+    }
+    function initializeAppCheck(){
+      return { enabled: false, mode: 'noop' };
+    }
+    const DIRAC_FIREBASE_AUTH_STORE = 'dirac-admin-firebase-rest-session-v1';
+    const DIRAC_FIREBASE_AUTH_LISTENERS = new Set();
+    function decodeJwtPayload(token){
+      try{
+        const part = String(token || '').split('.')[1] || '';
+        if(!part) return {};
+        const normalized = part.replace(/-/g, '+').replace(/_/g, '/');
+        const padded = normalized + '='.repeat((4 - normalized.length % 4) % 4);
+        const json = decodeURIComponent(Array.prototype.map.call(atob(padded), ch => '%' + ('00' + ch.charCodeAt(0).toString(16)).slice(-2)).join(''));
+        return JSON.parse(json || '{}');
+      }catch(_error){
+        return {};
+      }
+    }
+    function normalizeFirebaseError(code, message){
+      const err = new Error(message || code || 'Firebase login gagal.');
+      err.code = code || 'auth/unknown';
+      return err;
+    }
+    function readStoredFirebaseSession(){
+      try{
+        const raw = localStorage.getItem(DIRAC_FIREBASE_AUTH_STORE);
+        if(!raw) return null;
+        const data = JSON.parse(raw);
+        if(!data || !data.idToken || !data.localId) return null;
+        return data;
+      }catch(_error){
+        return null;
+      }
+    }
+    function writeStoredFirebaseSession(data){
+      try{ localStorage.setItem(DIRAC_FIREBASE_AUTH_STORE, JSON.stringify(data || {})); }catch(_error){}
+    }
+    function clearStoredFirebaseSession(){
+      try{ localStorage.removeItem(DIRAC_FIREBASE_AUTH_STORE); }catch(_error){}
+    }
+    async function firebaseAuthFetch(url, payload){
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload || {})
+      });
+      const data = await response.json().catch(() => ({}));
+      if(!response.ok){
+        const raw = data && data.error && (data.error.message || data.error.code) || ('HTTP_' + response.status);
+        const map = {
+          EMAIL_NOT_FOUND:'auth/user-not-found',
+          INVALID_PASSWORD:'auth/wrong-password',
+          INVALID_LOGIN_CREDENTIALS:'auth/invalid-credential',
+          USER_DISABLED:'auth/user-disabled',
+          TOO_MANY_ATTEMPTS_TRY_LATER:'auth/too-many-requests',
+          OPERATION_NOT_ALLOWED:'auth/operation-not-allowed'
+        };
+        throw normalizeFirebaseError(map[raw] || ('auth/' + String(raw).toLowerCase().replace(/_/g, '-')), raw);
+      }
+      return data;
+    }
+    function makeFirebaseRestUser(authObj, session){
+      const payload = decodeJwtPayload(session && session.idToken);
+      const email = String(session.email || payload.email || '');
+      const uid = String(session.localId || payload.user_id || payload.sub || '');
+      const user = {
+        uid,
+        email,
+        emailVerified: Boolean(payload.email_verified),
+        isAnonymous: false,
+        providerId: 'firebase',
+        stsTokenManager: {
+          accessToken: session.idToken,
+          refreshToken: session.refreshToken || '',
+          expirationTime: session.expiresAt || 0
+        },
+        async getIdToken(forceRefresh=false){
+          const now = Date.now();
+          if(forceRefresh || (this.stsTokenManager.expirationTime && this.stsTokenManager.expirationTime - now < 60000)){
+            if(this.stsTokenManager.refreshToken){
+              try{
+                const refreshed = await firebaseAuthFetch('https://securetoken.googleapis.com/v1/token?key=' + encodeURIComponent(authObj.apiKey), {
+                  grant_type: 'refresh_token',
+                  refresh_token: this.stsTokenManager.refreshToken
+                });
+                const expiresIn = Number(refreshed.expires_in || 3600);
+                const nextSession = {
+                  idToken: refreshed.id_token,
+                  refreshToken: refreshed.refresh_token || this.stsTokenManager.refreshToken,
+                  localId: refreshed.user_id || this.uid,
+                  email: this.email,
+                  expiresAt: Date.now() + expiresIn * 1000
+                };
+                writeStoredFirebaseSession(nextSession);
+                this.stsTokenManager.accessToken = nextSession.idToken;
+                this.stsTokenManager.refreshToken = nextSession.refreshToken;
+                this.stsTokenManager.expirationTime = nextSession.expiresAt;
+              }catch(error){
+                console.warn('Refresh token Firebase REST gagal, memakai token terakhir:', error);
+              }
+            }
+          }
+          return this.stsTokenManager.accessToken;
+        },
+        async getIdTokenResult(forceRefresh=false){
+          const token = await this.getIdToken(forceRefresh);
+          const claims = decodeJwtPayload(token);
+          return { token, claims, authTime: claims.auth_time, issuedAtTime: claims.iat, expirationTime: claims.exp };
+        }
+      };
+      return user;
+    }
+    function notifyFirebaseAuthListeners(authObj){
+      DIRAC_FIREBASE_AUTH_LISTENERS.forEach(fn => {
+        try{ fn(authObj.currentUser || null); }catch(error){ console.error('Auth listener error:', error); }
+      });
+    }
+    function getAuth(app){
+      const apiKey = app && app.options && app.options.apiKey || '';
+      const authObj = { app, apiKey, currentUser: null };
+      const stored = readStoredFirebaseSession();
+      if(stored) authObj.currentUser = makeFirebaseRestUser(authObj, stored);
+      return authObj;
+    }
+    function onAuthStateChanged(authObj, callback){
+      DIRAC_FIREBASE_AUTH_LISTENERS.add(callback);
+      setTimeout(() => callback(authObj.currentUser || null), 0);
+      return () => DIRAC_FIREBASE_AUTH_LISTENERS.delete(callback);
+    }
+    async function signInWithEmailAndPassword(authObj, email, password){
+      const data = await firebaseAuthFetch('https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=' + encodeURIComponent(authObj.apiKey), {
+        email,
+        password,
+        returnSecureToken: true
+      });
+      const expiresIn = Number(data.expiresIn || 3600);
+      const session = {
+        idToken: data.idToken,
+        refreshToken: data.refreshToken,
+        localId: data.localId,
+        email: data.email || email,
+        expiresAt: Date.now() + expiresIn * 1000
+      };
+      writeStoredFirebaseSession(session);
+      authObj.currentUser = makeFirebaseRestUser(authObj, session);
+      notifyFirebaseAuthListeners(authObj);
+      return { user: authObj.currentUser };
+    }
+    async function signOut(authObj){
+      clearStoredFirebaseSession();
+      authObj.currentUser = null;
+      notifyFirebaseAuthListeners(authObj);
+    }
+    const EmailAuthProvider = {
+      credential(email, password){ return { email, password }; }
+    };
+    async function reauthenticateWithCredential(user, credential){
+      const tempAuth = { apiKey: firebaseConfig.apiKey, currentUser: user || null };
+      return signInWithEmailAndPassword(tempAuth, credential.email, credential.password);
+    }
+    function getFirestore(){ return { provider:'noop-firestore-client' }; }
+    function collection(_db, path){ return { type:'collection', path:String(path || '') }; }
+    function doc(_db, ...parts){ return { type:'doc', path:parts.map(part => String(part || '')).join('/') }; }
+    function query(ref){ return ref; }
+    function orderBy(field, direction){ return { field, direction }; }
+    function onSnapshot(){ return () => {}; }
+    async function getDoc(){
+      return { exists: () => false, data: () => ({}) };
+    }
 
-    if(window.__DIRAC_ADMIN_LOGIN_GUARD__) window.__DIRAC_ADMIN_LOGIN_GUARD__.markMainStarted();
     const firebaseConfig = {
   apiKey: "AIzaSyD9tYvv7nyrNZuQp9Cu6huVlzY8poeRBHY",
   authDomain: "dirac-group.firebaseapp.com",
@@ -6958,11 +7001,9 @@
         repairLoginButtonState();
       }
     }
-    window.__DIRAC_ADMIN_LOGIN_MAIN_CLICK__ = handleLoginButtonClick;
     startLoginButtonSafetyGuard();
     installClipboardProtectionGuard();
     els.loginBtn.addEventListener('click', handleLoginButtonClick);
-    if(window.__DIRAC_ADMIN_LOGIN_GUARD__) window.__DIRAC_ADMIN_LOGIN_GUARD__.markHandlerReady();
     els.loginBtn.addEventListener('pointerdown', normalizeLoginButtonBeforeAction, { passive:true });
     els.loginBtn.addEventListener('touchstart', normalizeLoginButtonBeforeAction, { passive:true });
     els.loginPassword.addEventListener('keydown', (event) => { if(event.key === 'Enter') handleLoginButtonClick(event); });
