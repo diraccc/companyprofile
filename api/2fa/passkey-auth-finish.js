@@ -61,6 +61,133 @@ function setCors(req, res) {
   return isAllowedOrigin(origin);
 }
 
+
+function assertAllowedPreAuthOrigin(req) {
+  const origin = String((req && req.headers && req.headers.origin) || "");
+  if (!isAllowedOrigin(origin)) {
+    throw Object.assign(new Error("Origin tidak diizinkan untuk login admin"), { status: 403 });
+  }
+}
+
+function getFirebaseWebApiKey(body) {
+  const fromEnv = String(
+    process.env.FIREBASE_WEB_API_KEY ||
+    process.env.NEXT_PUBLIC_FIREBASE_API_KEY ||
+    process.env.FIREBASE_API_KEY ||
+    ""
+  ).trim();
+  const fromBody = String(body && body.apiKey || "").trim();
+  // Firebase Web API key bukan secret. Nilai fallback ini sama seperti yang sudah ada di HTML admin lama.
+  const fallbackPublicKey = "AIzaSyD9tYvv7nyrNZuQp9Cu6huVlzY8poeRBHY";
+  const key = fromEnv || fromBody || fallbackPublicKey;
+  if (!/^AIza[0-9A-Za-z_-]{20,}$/.test(key)) {
+    throw Object.assign(new Error("Firebase Web API key tidak valid untuk login admin"), { status: 500 });
+  }
+  return key;
+}
+
+function firebaseProxyFailure(status, data, fallbackMessage) {
+  const firebaseError = data && data.error && typeof data.error === "object"
+    ? data.error
+    : { message: fallbackMessage || "FIREBASE_AUTH_PROXY_FAILED" };
+  return {
+    success: false,
+    provider: "firebase-rest-proxy",
+    firebaseError,
+    error: String(firebaseError.message || fallbackMessage || "Firebase auth proxy gagal")
+  };
+}
+
+async function readFirebaseJsonResponse(response) {
+  const text = await response.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    return { error: { message: "FIREBASE_RESPONSE_NOT_JSON" }, raw: text.slice(0, 300) };
+  }
+}
+
+async function handleFirebasePasswordLogin(req, res, body) {
+  assertAllowedPreAuthOrigin(req);
+
+  const email = String(body && body.email || "").trim();
+  const password = String(body && body.password || "");
+  if (!email || !password) {
+    return send(res, 400, firebaseProxyFailure(400, { error: { message: "MISSING_EMAIL_OR_PASSWORD" } }, "MISSING_EMAIL_OR_PASSWORD"));
+  }
+
+  const apiKey = getFirebaseWebApiKey(body);
+  const url = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${encodeURIComponent(apiKey)}`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email,
+      password,
+      returnSecureToken: true
+    })
+  });
+  const data = await readFirebaseJsonResponse(response);
+
+  if (!response.ok) {
+    return send(res, response.status || 400, firebaseProxyFailure(response.status || 400, data, "FIREBASE_PASSWORD_LOGIN_FAILED"));
+  }
+
+  return send(res, 200, {
+    success: true,
+    action: "firebasePasswordLogin",
+    provider: "firebase-rest-proxy",
+    data: {
+      idToken: data.idToken || "",
+      refreshToken: data.refreshToken || "",
+      expiresIn: data.expiresIn || "3600",
+      localId: data.localId || "",
+      email: data.email || email,
+      registered: data.registered === true
+    }
+  });
+}
+
+async function handleFirebaseRefreshToken(req, res, body) {
+  assertAllowedPreAuthOrigin(req);
+
+  const refreshToken = String(body && (body.refresh_token || body.refreshToken) || "").trim();
+  if (!refreshToken) {
+    return send(res, 400, firebaseProxyFailure(400, { error: { message: "MISSING_REFRESH_TOKEN" } }, "MISSING_REFRESH_TOKEN"));
+  }
+
+  const apiKey = getFirebaseWebApiKey(body);
+  const params = new URLSearchParams();
+  params.set("grant_type", "refresh_token");
+  params.set("refresh_token", refreshToken);
+
+  const response = await fetch(`https://securetoken.googleapis.com/v1/token?key=${encodeURIComponent(apiKey)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: params.toString()
+  });
+  const data = await readFirebaseJsonResponse(response);
+
+  if (!response.ok) {
+    return send(res, response.status || 400, firebaseProxyFailure(response.status || 400, data, "FIREBASE_REFRESH_TOKEN_FAILED"));
+  }
+
+  return send(res, 200, {
+    success: true,
+    action: "firebaseRefreshToken",
+    provider: "firebase-rest-proxy",
+    data: {
+      id_token: data.id_token || "",
+      refresh_token: data.refresh_token || refreshToken,
+      expires_in: data.expires_in || "3600",
+      user_id: data.user_id || "",
+      project_id: data.project_id || "",
+      token_type: data.token_type || "Bearer"
+    }
+  });
+}
+
 function getA2fSecret() {
   const secret = String(process.env.A2F_SECRET || "").trim();
   if (!secret || secret === "rahasia-test" || secret.length < 32) {
@@ -163,93 +290,6 @@ function getSupabaseAdmin() {
     auth: {
       persistSession: false,
       autoRefreshToken: false
-    }
-  });
-}
-
-function getFirebaseWebApiKey() {
-  return String(
-    process.env.FIREBASE_WEB_API_KEY ||
-    process.env.NEXT_PUBLIC_FIREBASE_API_KEY ||
-    "AIzaSyD9tYvv7nyrNZuQp9Cu6huVlzY8poeRBHY"
-  ).trim();
-}
-
-function getAllowedAdminLoginEmails() {
-  return String(process.env.ADMIN_LOGIN_EMAILS || process.env.A2F_ADMIN_EMAIL || "companydirac@gmail.com")
-    .split(",")
-    .map((item) => item.trim().toLowerCase())
-    .filter(Boolean);
-}
-
-function assertAllowedAdminLoginEmail(email) {
-  const normalized = String(email || "").trim().toLowerCase();
-  const allowed = getAllowedAdminLoginEmails();
-  if (!normalized || !allowed.includes(normalized)) {
-    throw Object.assign(new Error("Email ini tidak diizinkan untuk login admin"), { status: 403 });
-  }
-  return normalized;
-}
-
-async function firebaseRestRequest(url, payload) {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload || {})
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const raw = data && data.error && (data.error.message || data.error.code) || `HTTP_${response.status}`;
-    const error = Object.assign(new Error(raw), { status: response.status, firebaseError: data && data.error });
-    throw error;
-  }
-  return data;
-}
-
-async function handleFirebasePasswordLogin(req, res, body) {
-  const email = assertAllowedAdminLoginEmail(body && body.email);
-  const password = String(body && body.password || "");
-  if (!password) throw Object.assign(new Error("Password admin wajib diisi"), { status: 400 });
-
-  const apiKey = getFirebaseWebApiKey();
-  if (!apiKey) throw Object.assign(new Error("FIREBASE_WEB_API_KEY belum diset"), { status: 500 });
-
-  const data = await firebaseRestRequest(
-    `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${encodeURIComponent(apiKey)}`,
-    { email, password, returnSecureToken: true }
-  );
-
-  return send(res, 200, {
-    success: true,
-    data: {
-      idToken: data.idToken,
-      refreshToken: data.refreshToken,
-      expiresIn: data.expiresIn,
-      localId: data.localId,
-      email: data.email || email
-    }
-  });
-}
-
-async function handleFirebaseRefreshToken(req, res, body) {
-  const refreshToken = String(body && body.refresh_token || body && body.refreshToken || "");
-  if (!refreshToken) throw Object.assign(new Error("Refresh token Firebase wajib diisi"), { status: 400 });
-
-  const apiKey = getFirebaseWebApiKey();
-  if (!apiKey) throw Object.assign(new Error("FIREBASE_WEB_API_KEY belum diset"), { status: 500 });
-
-  const data = await firebaseRestRequest(
-    `https://securetoken.googleapis.com/v1/token?key=${encodeURIComponent(apiKey)}`,
-    { grant_type: "refresh_token", refresh_token: refreshToken }
-  );
-
-  return send(res, 200, {
-    success: true,
-    data: {
-      id_token: data.id_token,
-      refresh_token: data.refresh_token,
-      expires_in: data.expires_in,
-      user_id: data.user_id
     }
   });
 }
@@ -1462,16 +1502,16 @@ module.exports = async function handler(req, res) {
     const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
     const action = String(body.action || "").trim();
 
-    if (action === "publicReadProducts" || action === "publicCreateOrder") {
-      return await handlePublicStorefrontAction(req, res, body);
-    }
-
     if (action === "firebasePasswordLogin") {
       return await handleFirebasePasswordLogin(req, res, body);
     }
 
     if (action === "firebaseRefreshToken") {
       return await handleFirebaseRefreshToken(req, res, body);
+    }
+
+    if (action === "publicReadProducts" || action === "publicCreateOrder") {
+      return await handlePublicStorefrontAction(req, res, body);
     }
 
     if (action) {
