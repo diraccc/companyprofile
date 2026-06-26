@@ -14326,253 +14326,325 @@ function diracV107SafeError(error) {
 }
 
 /* ============================================================
-   DIRAC AUTH PRIMARY ARGON2ID v108 - APPEND ONLY
-   Tujuan:
-   - Register baru memakai Supabase Admin createUser dengan password_hash
-     Argon2id sehingga auth.users.encrypted_password menjadi $argon2id$.
-   - Tidak mengubah endpoint, domainLogin(), A2F/MFA, payment gateway,
-     email template, dashboard, order, parfum, atau tabel lama.
-   - Tidak mengubah auth.users lewat SQL manual.
-   - Password Supabase diverifikasi tetap oleh Supabase Auth melalui grant_type=password.
-   Catatan penting:
-   - Hash untuk auth.users TIDAK diberi pepper karena Supabase Auth harus dapat
-     memverifikasi password asli yang dikirim ke /auth/v1/token.
+   DIRAC PASSWORD ARGON2ID VERIFIED SHADOW v4 - ROOT-CAUSE FIX
+   Akar masalah yang diperbaiki:
+   - Shadow hash Argon2id tidak boleh ditulis sebelum relasi customer tersedia.
+   - Row dengan customer_id null membuat audit membingungkan dan tidak membuktikan
+     akun customer siap dipakai.
+   - Login Supabase tetap sumber autentikasi utama; tabel ini hanya shadow hash
+     Argon2id tingkat tinggi untuk password yang berhasil register/login.
+   Prinsip:
+   - Tidak mengubah endpoint.
+   - Tidak mengubah auth.users.encrypted_password, login Supabase, A2F/MFA,
+     payment gateway, email template, dashboard, order, parfum, atau handler lama.
+   - Fail-open: jika shadow-write gagal, register/login tetap berjalan normal.
+   - Tidak menyimpan password plaintext, token, cookie, OTP, Authorization,
+     service key, atau body mentah.
    ============================================================ */
 
-const DIRAC_AUTH_PRIMARY_ARGON2ID_PATCH_V108 = 'dirac-auth-primary-argon2id-v108';
-const __diracV108OriginalDomainRegister = typeof domainRegister === 'function' ? domainRegister : null;
+const DIRAC_PASSWORD_ARGON2ID_VERIFIED_SHADOW_PATCH_V4 = 'password-argon2id-verified-shadow-v4';
 
 try {
-  if (typeof diracV101ServiceRoleAllowedTables === 'function') {
-    const __diracV108OriginalAllowedTables = diracV101ServiceRoleAllowedTables;
-    diracV101ServiceRoleAllowedTables = function diracV108ServiceRoleAllowedTables() {
-      const allowed = __diracV108OriginalAllowedTables();
-      allowed.add('security_customer_password_hashes');
-      return allowed;
+  const __diracPasswordArgon2V4OriginalAllowedTables = typeof diracV101ServiceRoleAllowedTables === 'function'
+    ? diracV101ServiceRoleAllowedTables
+    : null;
+  if (__diracPasswordArgon2V4OriginalAllowedTables && !__diracPasswordArgon2V4OriginalAllowedTables.__diracPasswordArgon2V4Wrapped) {
+    diracV101ServiceRoleAllowedTables = function diracV101ServiceRoleAllowedTablesPasswordArgon2V4() {
+      const tables = __diracPasswordArgon2V4OriginalAllowedTables();
+      tables.add('security_customer_password_hashes');
+      return tables;
     };
+    Object.defineProperty(diracV101ServiceRoleAllowedTables, '__diracPasswordArgon2V4Wrapped', { value: true, enumerable: false });
   }
 } catch (_) {}
 
-if (__diracV108OriginalDomainRegister) {
-  domainRegister = async function domainRegisterPrimaryArgon2idV108(req, res, preloadedBody) {
-    if (!diracV108PrimaryArgon2idEnabled()) {
-      return __diracV108OriginalDomainRegister(req, res, preloadedBody);
-    }
-
-    if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
-
-    try { if (res && typeof res.setHeader === 'function') res.setHeader('X-Dirac-Auth-Primary-Hash', DIRAC_AUTH_PRIMARY_ARGON2ID_PATCH_V108); } catch (_) {}
-
-    let body;
-    try {
-      body = preloadedBody || await readLimitedJsonBody(req, LOGIN_SECURITY_BODY_LIMIT_BYTES);
-      try { if (req && body && typeof body === 'object') req.body = body; } catch (_) {}
-    } catch (error) {
-      return res.status(error.statusCode || 400).json({
-        ok: false,
-        code: error.code || 'REGISTER_REQUEST_INVALID',
-        message: error.publicMessage || 'Request pendaftaran tidak valid.'
-      });
-    }
-
-    const rawEmail = String(body.email || body.identifier || body.customer_email || '');
-    const email = normalizeAuthEmail(rawEmail);
-    const password = String(body.password || '');
-    const fullName = String(body.full_name || body.fullName || body.name || '').trim();
-    const whatsapp = normalizePhone(body.whatsapp || body.phone || body.customer_whatsapp || '');
-
-    const registerGuard = await guardDomainLoginInput(req, res, {
-      rawEmail,
-      email,
-      password,
-      action: 'domain_register',
-      form: 'Register',
-      endpoint: '/api/health?action=domain_register'
-    });
-    if (!registerGuard.ok) {
-      return res.status(registerGuard.status).json(registerGuard.body);
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({ ok: false, message: 'Password minimal 6 karakter.' });
-    }
-
-    const userData = {};
-    if (fullName) {
-      userData.full_name = fullName;
-      userData.name = fullName;
-    }
-    if (whatsapp) userData.whatsapp = whatsapp;
-
-    const existingAuthUser = await findSupabaseAuthUserByEmail(email);
-    if (existingAuthUser && existingAuthUser.exists === true) {
-      return res.status(409).json(buildDomainRegisterDuplicateEmailBody());
-    }
-
-    const argon = await diracV108BuildSupabaseArgon2idPasswordHash(password);
-    const createBody = {
-      email,
-      password_hash: argon.passwordHash,
-      email_confirm: diracV108ShouldConfirmCreatedEmail()
+try {
+  const __diracPasswordArgon2V4OriginalReadLimitedJsonBody = typeof readLimitedJsonBody === 'function' ? readLimitedJsonBody : null;
+  if (__diracPasswordArgon2V4OriginalReadLimitedJsonBody && !__diracPasswordArgon2V4OriginalReadLimitedJsonBody.__diracPasswordArgon2V4Wrapped) {
+    readLimitedJsonBody = async function readLimitedJsonBodyPasswordArgon2V4(req, limitBytes) {
+      const body = await __diracPasswordArgon2V4OriginalReadLimitedJsonBody(req, limitBytes);
+      diracPasswordArgon2V4CacheBody(req, body);
+      return body;
     };
-    if (Object.keys(userData).length) createBody.user_metadata = userData;
+    Object.defineProperty(readLimitedJsonBody, '__diracPasswordArgon2V4Wrapped', { value: true, enumerable: false });
+  }
+} catch (_) {}
 
-    const created = await supabaseFetch('/auth/v1/admin/users', {
-      method: 'POST',
-      auth: 'service',
-      body: createBody
-    });
-
-    if (!created.ok) {
-      if (isSupabaseRegisterDuplicateEmailError(created.data)) {
-        return res.status(409).json(buildDomainRegisterDuplicateEmailBody());
-      }
-      console.error('[domain-register-argon2id-create-failed]', customerSecuritySafeLogError(created.data));
-      return res.status(created.status || 502).json({
-        ok: false,
-        code: 'REGISTER_ARGON2ID_CREATE_FAILED',
-        message: 'Pendaftaran belum bisa diselesaikan. Silakan coba lagi sebentar lagi.'
-      });
-    }
-
-    const createdUser = normalizeSupabaseAdminUser(created.data);
-    if (!createdUser || !createdUser.id) {
-      console.error('[domain-register-argon2id-user-missing]', customerSecuritySafeLogError(created.data));
-      return res.status(502).json({
-        ok: false,
-        code: 'REGISTER_ARGON2ID_USER_MISSING',
-        message: 'Akun belum bisa diproses. Silakan coba lagi sebentar lagi.'
-      });
-    }
-
-    const login = await loginSupabaseAuthUserAfterRegisterRecovery(email, password);
-    if (!login.ok || !login.session || !login.session.access_token) {
-      console.error('[domain-register-argon2id-login-verify-failed]', customerSecuritySafeLogError(login));
-      return res.status(502).json({
-        ok: false,
-        code: 'REGISTER_ARGON2ID_LOGIN_VERIFY_FAILED',
-        message: 'Akun berhasil dibuat, tetapi sesi login belum bisa dibuat. Silakan hubungi admin.'
-      });
-    }
-
-    await clearDomainLoginRateLimit(req, email).catch(() => null);
-
-    const session = login.session;
-    setSessionCookies(res, session);
-
-    const responseUser = session && session.user ? session.user : createdUser;
-    const bootstrap = await diracV108BootstrapAndStorePasswordShadow(req, responseUser, email, argon.passwordHash, argon.params).catch((error) => {
-      console.error('[domain-register-argon2id-bootstrap-shadow]', customerSecuritySafeLogError(error));
-      return null;
-    });
-
-    const payload = {
-      ok: true,
-      message: 'Akun berhasil dibuat dan login otomatis.',
-      needs_email_confirmation: false,
-      user: sanitizeUser(responseUser),
-      session: buildDomainAuthSessionPayload(session)
+try {
+  const __diracPasswordArgon2V4OriginalReadBody = typeof readBody === 'function' ? readBody : null;
+  if (__diracPasswordArgon2V4OriginalReadBody && !__diracPasswordArgon2V4OriginalReadBody.__diracPasswordArgon2V4Wrapped) {
+    readBody = async function readBodyPasswordArgon2V4(req) {
+      const body = await __diracPasswordArgon2V4OriginalReadBody(req);
+      diracPasswordArgon2V4CacheBody(req, body);
+      return body;
     };
+    Object.defineProperty(readBody, '__diracPasswordArgon2V4Wrapped', { value: true, enumerable: false });
+  }
+} catch (_) {}
 
-    if (bootstrap && bootstrap.ok) {
-      return res.status(200).json(customerSecurityAttachBootstrapSummary(payload, bootstrap));
-    }
+const __diracPasswordArgon2V4PreviousHandler = module.exports;
 
-    return res.status(200).json(payload);
+module.exports = async function diracPasswordArgon2VerifiedShadowWrapperV4(req, res) {
+  try { if (res && typeof res.setHeader === 'function') res.setHeader('X-Dirac-Password-Argon2id-Shadow-Patch', DIRAC_PASSWORD_ARGON2ID_VERIFIED_SHADOW_PATCH_V4); } catch (_) {}
+
+  const action = diracPasswordArgon2V4NormalizeAction(String((req && req.query && req.query.action) || ''));
+  const method = String((req && req.method) || '').toUpperCase();
+
+  if (method !== 'POST' || (action !== 'domain_register' && action !== 'domain_login')) {
+    return __diracPasswordArgon2V4PreviousHandler(req, res);
+  }
+
+  const originalStatus = typeof res.status === 'function' ? res.status.bind(res) : null;
+  const originalJson = typeof res.json === 'function' ? res.json.bind(res) : null;
+  let capturedStatus = Number(res.statusCode || 200);
+
+  if (!originalJson) return __diracPasswordArgon2V4PreviousHandler(req, res);
+
+  res.status = function diracPasswordArgon2V4Status(code) {
+    capturedStatus = Number(code || capturedStatus || 200);
+    if (originalStatus) return originalStatus(code);
+    res.statusCode = capturedStatus;
+    return res;
   };
+
+  res.json = async function diracPasswordArgon2V4Json(payload) {
+    const httpStatus = Number(capturedStatus || res.statusCode || 200);
+    if (httpStatus >= 200 && httpStatus < 300 && payload && payload.ok === true) {
+      await diracPasswordArgon2V4PersistAfterVerifiedAuth(req, payload, action).catch((error) => {
+        console.error('[password-argon2id-shadow-v4]', diracPasswordArgon2V4SafeError(error));
+      });
+    }
+    return originalJson(payload);
+  };
+
+  return __diracPasswordArgon2V4PreviousHandler(req, res);
+};
+
+function diracPasswordArgon2V4NormalizeAction(action) {
+  const clean = String(action || '').trim().toLowerCase();
+  if (clean === 'domain-register' || clean === 'register-domain') return 'domain_register';
+  if (clean === 'domain-login' || clean === 'login-domain') return 'domain_login';
+  return clean;
 }
 
-function diracV108PrimaryArgon2idEnabled() {
-  return !isEnvTrue('DIRAC_AUTH_PRIMARY_ARGON2ID_DISABLED');
+function diracPasswordArgon2V4CacheBody(req, body) {
+  try {
+    if (!req || !body || typeof body !== 'object') return;
+    const action = diracPasswordArgon2V4NormalizeAction(String((req.query && req.query.action) || body.action || body.mode || ''));
+    if (action !== 'domain_register' && action !== 'domain_login') return;
+
+    const safe = {
+      email: normalizeAuthEmail(body.email || body.identifier || body.customer_email || ''),
+      password: String(body.password || ''),
+      full_name: String(body.full_name || body.fullName || body.name || '').trim(),
+      whatsapp: String(body.whatsapp || body.phone || body.customer_whatsapp || '').trim(),
+      action
+    };
+
+    Object.defineProperty(req, '__diracPasswordArgon2V4Body', { value: safe, writable: true, configurable: true, enumerable: false });
+    if (!req.body || typeof req.body !== 'object') req.body = body;
+  } catch (_) {}
 }
 
-function diracV108ShouldConfirmCreatedEmail() {
-  // Admin createUser dengan password_hash tidak mengirim email confirmation seperti signUp biasa.
-  // Default true agar akun baru tidak terkunci tanpa email confirmation.
-  return !isEnvTrue('DIRAC_AUTH_PRIMARY_ARGON2ID_EMAIL_CONFIRM_FALSE');
+async function diracPasswordArgon2V4PersistAfterVerifiedAuth(req, payload, action) {
+  if (diracPasswordArgon2V4EnvTrue('DIRAC_PASSWORD_ARGON2_DISABLED')) return { ok: false, skipped: 'disabled' };
+
+  const cached = req && req.__diracPasswordArgon2V4Body && typeof req.__diracPasswordArgon2V4Body === 'object'
+    ? req.__diracPasswordArgon2V4Body
+    : {};
+  const password = String(cached.password || '');
+  if (!password || password.length < 6) return { ok: false, skipped: 'no_password' };
+
+  const user = payload && payload.user && typeof payload.user === 'object' ? payload.user : null;
+  const authUserId = diracPasswordArgon2V4ExtractUserId(user, payload);
+  if (!diracPasswordArgon2V4LooksLikeUuid(authUserId)) return { ok: false, skipped: 'no_auth_user_id' };
+
+  const email = normalizeAuthEmail(cached.email || user && user.email || '');
+  if (!email || (typeof isStrictDomainLoginEmail === 'function' && !isStrictDomainLoginEmail(email))) return { ok: false, skipped: 'invalid_email' };
+
+  let customerId = '';
+  if (typeof customerSecurityBootstrapRegisteredUser === 'function') {
+    const bootstrap = await customerSecurityBootstrapRegisteredUser(req, { id: authUserId, email }).catch(() => null);
+    if (bootstrap && bootstrap.ok && diracPasswordArgon2V4LooksLikeUuid(bootstrap.customer_id)) customerId = String(bootstrap.customer_id);
+  }
+
+  if (!customerId) {
+    customerId = await diracPasswordArgon2V4ResolveCustomerId(authUserId, email).catch(() => '');
+  }
+
+  if (!diracPasswordArgon2V4LooksLikeUuid(customerId)) {
+    return { ok: false, skipped: 'customer_id_not_ready' };
+  }
+
+  const active = await diracPasswordArgon2V4ReadActive(authUserId).catch(() => null);
+  if (active && active.id && active.customer_id === customerId && String(active.password_hash || '').startsWith('$argon2id$')) {
+    return { ok: true, skipped: 'active_argon2id_exists' };
+  }
+
+  const nowIso = diracNowIso();
+  await diracPasswordArgon2V4RotateActive(authUserId, nowIso).catch(() => null);
+
+  const params = diracPasswordArgon2V4Params();
+  const passwordHash = await diracPasswordArgon2V4Hash(password, { authUserId, customerId, email });
+  if (!String(passwordHash || '').startsWith('$argon2id$')) return { ok: false, skipped: 'hash_not_argon2id' };
+
+  const row = {
+    auth_user_id: authUserId,
+    customer_id: customerId,
+    email_hash: diracPasswordArgon2V4Hmac('email|' + email),
+    password_hash: passwordHash,
+    hash_algorithm: 'argon2id',
+    hash_params: {
+      profile: DIRAC_PASSWORD_ARGON2ID_VERIFIED_SHADOW_PATCH_V4,
+      memory_kib: params.memoryCost,
+      time_cost: params.timeCost,
+      parallelism: params.parallelism,
+      hash_length: params.hashLength,
+      pepper: 'env',
+      auth_user_bound: true,
+      customer_bound: true,
+      source_action: action
+    },
+    status: 'active',
+    created_at: nowIso,
+    updated_at: nowIso
+  };
+
+  return await diracPasswordArgon2V4Insert(row);
 }
 
-function diracV108Argon2idParams() {
-  const memoryCost = Math.max(19456, Math.min(262144, Number(process.env.DIRAC_AUTH_ARGON2ID_MEMORY_KIB || process.env.DIRAC_PASSWORD_ARGON2_MEMORY_KIB || process.env.DIRAC_ARGON2ID_MEMORY_KIB || 65536)));
-  const timeCost = Math.max(2, Math.min(6, Number(process.env.DIRAC_AUTH_ARGON2ID_TIME_COST || process.env.DIRAC_PASSWORD_ARGON2_TIME_COST || process.env.DIRAC_ARGON2ID_TIME_COST || 3)));
-  const parallelism = Math.max(1, Math.min(4, Number(process.env.DIRAC_AUTH_ARGON2ID_PARALLELISM || process.env.DIRAC_PASSWORD_ARGON2_PARALLELISM || process.env.DIRAC_ARGON2ID_PARALLELISM || 1)));
-  return { memoryCost, timeCost, parallelism, hashLength: 32 };
+function diracPasswordArgon2V4ExtractUserId(user, payload) {
+  const candidates = [
+    user && user.id,
+    payload && payload.user && payload.user.id,
+    payload && payload.session && payload.session.user && payload.session.user.id,
+    payload && payload.session && payload.session.user_id,
+    payload && payload.auth_user_id
+  ];
+  for (const item of candidates) {
+    const value = String(item || '').trim();
+    if (diracPasswordArgon2V4LooksLikeUuid(value)) return value;
+  }
+  return '';
 }
 
-async function diracV108BuildSupabaseArgon2idPasswordHash(password) {
-  const raw = String(password || '');
-  if (!raw) {
-    const err = new Error('ARGON2ID_PASSWORD_EMPTY');
-    err.statusCode = 400;
-    throw err;
+async function diracPasswordArgon2V4ResolveCustomerId(authUserId, email) {
+  if (typeof customerSecurityFetchAuthLink === 'function') {
+    const linkResult = await customerSecurityFetchAuthLink(authUserId).catch(() => null);
+    const row = linkResult && linkResult.ok && Array.isArray(linkResult.data) && linkResult.data.length ? linkResult.data[0] : null;
+    if (row && row.link_status === 'active' && diracPasswordArgon2V4LooksLikeUuid(row.customer_id)) return String(row.customer_id);
+  }
+  if (email) {
+    const result = await supabaseFetch('/rest/v1/customers?select=id&email=eq.' + encodeURIComponent(email) + '&limit=1', { method: 'GET', auth: 'service' }).catch(() => null);
+    const row = result && result.ok && Array.isArray(result.data) && result.data.length ? result.data[0] : null;
+    if (row && diracPasswordArgon2V4LooksLikeUuid(row.id)) return String(row.id);
+  }
+  return '';
+}
+
+async function diracPasswordArgon2V4ReadActive(authUserId) {
+  if (!diracPasswordArgon2V4LooksLikeUuid(authUserId)) return null;
+  const select = 'id,customer_id,password_hash,status';
+  const result = await supabaseFetch('/rest/v1/security_customer_password_hashes?select=' + encodeURIComponent(select) + '&auth_user_id=eq.' + encodeURIComponent(authUserId) + '&status=eq.active&limit=1', {
+    method: 'GET',
+    auth: 'service'
+  });
+  const rows = result && result.ok && Array.isArray(result.data) ? result.data : [];
+  return rows[0] || null;
+}
+
+async function diracPasswordArgon2V4RotateActive(authUserId, nowIso) {
+  if (!diracPasswordArgon2V4LooksLikeUuid(authUserId)) return { ok: false };
+  const result = await supabaseFetch('/rest/v1/security_customer_password_hashes?auth_user_id=eq.' + encodeURIComponent(authUserId) + '&status=eq.active', {
+    method: 'PATCH',
+    auth: 'service',
+    body: { status: 'rotated', updated_at: nowIso || diracNowIso() }
+  });
+  return { ok: Boolean(result && result.ok), status: result && result.status };
+}
+
+async function diracPasswordArgon2V4Insert(row) {
+  const result = await supabaseFetch('/rest/v1/security_customer_password_hashes', {
+    method: 'POST',
+    auth: 'service',
+    prefer: 'return=representation',
+    body: [{ ...row }]
+  });
+  return { ok: Boolean(result && result.ok), status: result && result.status, data: result && result.data };
+}
+
+async function diracPasswordArgon2V4Hash(password, meta = {}) {
+  const pepper = diracPasswordArgon2V4Pepper();
+  if (!pepper) {
+    const error = new Error('DIRAC_PASSWORD_PEPPER_SECRET_MISSING');
+    error.code = 'DIRAC_PASSWORD_PEPPER_SECRET_MISSING';
+    throw error;
   }
   const argon2 = customerSecurityGetArgon2();
-  const params = diracV108Argon2idParams();
-  const passwordHash = await argon2.hash(raw, {
+  const params = diracPasswordArgon2V4Params();
+  const input = [
+    'dirac-customer-password-v4-argon2id',
+    String(meta.authUserId || ''),
+    String(meta.customerId || ''),
+    normalizeAuthEmail(meta.email || ''),
+    String(password || ''),
+    pepper
+  ].join(':');
+  return await argon2.hash(input, {
     type: argon2.argon2id,
     memoryCost: params.memoryCost,
     timeCost: params.timeCost,
     parallelism: params.parallelism,
     hashLength: params.hashLength
   });
-  if (!String(passwordHash || '').startsWith('$argon2id$')) {
-    const err = new Error('ARGON2ID_HASH_FORMAT_INVALID');
-    err.statusCode = 500;
-    throw err;
-  }
+}
+
+function diracPasswordArgon2V4Params() {
   return {
-    passwordHash,
-    params: {
-      algorithm: 'argon2id',
-      memory_kib: params.memoryCost,
-      time_cost: params.timeCost,
-      parallelism: params.parallelism,
-      hash_length: params.hashLength,
-      target: 'supabase_auth_encrypted_password',
-      patch: DIRAC_AUTH_PRIMARY_ARGON2ID_PATCH_V108
-    }
+    memoryCost: diracPasswordArgon2V4Number(['DIRAC_PASSWORD_ARGON2_MEMORY_KIB', 'DIRAC_ARGON2ID_MEMORY_KIB'], 65536, 19456, 262144),
+    timeCost: diracPasswordArgon2V4Number(['DIRAC_PASSWORD_ARGON2_TIME_COST', 'DIRAC_ARGON2ID_TIME_COST'], 3, 3, 6),
+    parallelism: diracPasswordArgon2V4Number(['DIRAC_PASSWORD_ARGON2_PARALLELISM', 'DIRAC_ARGON2ID_PARALLELISM'], 1, 1, 4),
+    hashLength: diracPasswordArgon2V4Number(['DIRAC_PASSWORD_ARGON2_HASH_LENGTH'], 32, 32, 64)
   };
 }
 
-async function diracV108BootstrapAndStorePasswordShadow(req, responseUser, email, passwordHash, params) {
-  let bootstrap = null;
-  if (typeof customerSecurityBootstrapRegisteredUser === 'function') {
-    bootstrap = await customerSecurityBootstrapRegisteredUser(req, responseUser).catch((error) => ({ ok: false, reason: 'bootstrap_failed', error }));
+function diracPasswordArgon2V4Number(names, fallback, min, max) {
+  for (const name of names) {
+    const raw = String(process.env[name] || '').trim();
+    if (!raw) continue;
+    const value = Number(raw);
+    if (Number.isFinite(value)) return Math.min(Math.max(Math.floor(value), min), max);
   }
-
-  const authUserId = String(responseUser && responseUser.id || '').trim();
-  const customerId = String(bootstrap && bootstrap.customer_id || '').trim();
-  if (!authUserId || !customerSecurityLooksLikeUuid(authUserId) || !customerId || !customerSecurityLooksLikeUuid(customerId)) {
-    return bootstrap || { ok: false, reason: 'customer_id_not_ready' };
-  }
-
-  const emailHash = diracV108HmacFingerprint(['email', normalizeAuthEmail(email)].join(':'));
-  const payload = [{
-    auth_user_id: authUserId,
-    customer_id: customerId,
-    email_hash: emailHash,
-    password_hash: passwordHash,
-    hash_algorithm: 'argon2id',
-    hash_params: params || {},
-    status: 'active',
-    updated_at: new Date().toISOString()
-  }];
-
-  const inserted = await supabaseFetch('/rest/v1/security_customer_password_hashes', {
-    method: 'POST',
-    auth: 'service',
-    body: payload
-  }).catch((error) => ({ ok: false, error }));
-
-  if (!inserted.ok) {
-    console.error('[domain-register-argon2id-shadow-write-failed]', customerSecuritySafeLogError(inserted.data || inserted.error || inserted));
-  }
-
-  return bootstrap;
+  return fallback;
 }
 
-function diracV108HmacFingerprint(value) {
-  const secret = String(process.env.DIRAC_SECURITY_HMAC_SECRET || process.env.DIRAC_PASSWORD_PEPPER_SECRET || process.env.LOGIN_SECURITY_HMAC_SECRET || '').trim();
-  if (secret) return crypto.createHmac('sha256', secret).update(String(value || '')).digest('hex');
-  return crypto.createHash('sha256').update(String(value || '')).digest('hex');
+function diracPasswordArgon2V4Pepper() {
+  return String(
+    process.env.DIRAC_PASSWORD_PEPPER_SECRET ||
+    process.env.DIRAC_SECURITY_HMAC_SECRET ||
+    process.env.LOGIN_SECURITY_HMAC_SECRET ||
+    process.env.DOMAIN_SUPABASE_SERVICE_ROLE_KEY ||
+    ''
+  ).trim();
+}
+
+function diracPasswordArgon2V4Hmac(value) {
+  const secret = diracPasswordArgon2V4Pepper() || 'dirac-password-shadow-v4-fallback';
+  return crypto.createHmac('sha256', secret).update(String(value || '')).digest('hex');
+}
+
+function diracPasswordArgon2V4LooksLikeUuid(value) {
+  if (typeof customerSecurityLooksLikeUuid === 'function') return customerSecurityLooksLikeUuid(value);
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
+}
+
+function diracPasswordArgon2V4EnvTrue(name) {
+  const value = String(process.env[name] || '').trim().toLowerCase();
+  return value === '1' || value === 'true' || value === 'yes' || value === 'on';
+}
+
+function diracPasswordArgon2V4SafeError(error) {
+  const code = String(error && (error.code || error.name || error.message) || 'PASSWORD_ARGON2_SHADOW_V4_ERROR');
+  if (/password|token|secret|cookie|authorization|service_role|apikey/i.test(code)) return 'PASSWORD_ARGON2_SHADOW_V4_ERROR';
+  return code.slice(0, 120);
 }
