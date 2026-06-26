@@ -15847,3 +15847,160 @@ function diracPerfumeCatalogV116SafeError(error) {
   if (/password|token|secret|cookie|authorization|service_role|apikey/i.test(msg)) return 'PUBLIC_PRODUCTS_ERROR';
   return msg.slice(0, 160);
 }
+
+/* ============================================================
+   DIRAC PERFUME PUBLIC PRODUCTS TABLE READER v117 - APPEND ONLY
+   - Endpoint tetap: GET /api/health?action=parfum_products dan alias katalog lama.
+   - Hanya memperkuat katalog publik agar membaca tabel public.products tanpa login.
+   - Tidak menyentuh login, hash, A2F/MFA, payment gateway, email template,
+     checkout, dashboard, cookie, session, atau endpoint lain.
+   - Tidak mengekspos cost_price atau data sensitif internal.
+   ============================================================ */
+const DIRAC_PERFUME_PUBLIC_PRODUCTS_TABLE_READER_V117 = 'dirac-perfume-public-products-table-reader-v117';
+const __diracPerfumePublicProductsV117PreviousHandler = module.exports;
+
+module.exports = async function diracPerfumePublicProductsV117Wrapper(req, res) {
+  const action = diracPerfumePublicProductsV117NormalizeAction(String((req && req.query && req.query.action) || ''));
+  if (!diracPerfumePublicProductsV117IsCatalogAction(action)) {
+    return __diracPerfumePublicProductsV117PreviousHandler(req, res);
+  }
+
+  const method = String((req && req.method) || 'GET').toUpperCase();
+  const cors = setCors(req, res, { isDomainAction: true });
+  if (method === 'OPTIONS') return res.status(cors.allowed ? 200 : 403).end();
+  if (!cors.allowed) return res.status(403).json({ ok: false, message: 'Origin tidak diizinkan.' });
+  if (method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
+
+  try {
+    if (typeof diracV101CheckPersistentSqlmapBlock === 'function') {
+      const existingBlock = await diracV101CheckPersistentSqlmapBlock(req, action, method).catch(() => ({ ok: true }));
+      if (existingBlock && existingBlock.blocked) {
+        try { res.setHeader('Retry-After', String(existingBlock.retryAfterSeconds || 86400)); } catch (_) {}
+        return res.status(403).json({ ok: false, code: 'REQUEST_BLOCKED', message: 'Permintaan ditolak oleh sistem keamanan.' });
+      }
+    }
+    if (typeof diracV101DetectRequestThreat === 'function') {
+      const threat = diracV101DetectRequestThreat(req, action, method);
+      if (threat && threat.detected) {
+        if (typeof diracV101RegisterSqlmapAttack === 'function') {
+          await diracV101RegisterSqlmapAttack(req, action, method, threat).catch(() => null);
+        }
+        return res.status(threat.status || 403).json({ ok: false, code: 'REQUEST_BLOCKED', message: 'Permintaan ditolak oleh sistem keamanan.' });
+      }
+    }
+
+    return await diracPerfumePublicProductsV117Handle(req, res);
+  } catch (error) {
+    console.error('[dirac-public-products-v117]', diracPerfumePublicProductsV117SafeError(error));
+    return res.status(500).json({ ok: false, message: 'Katalog produk belum bisa dimuat.' });
+  }
+};
+
+function diracPerfumePublicProductsV117NormalizeAction(action) {
+  return String(action || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+}
+
+function diracPerfumePublicProductsV117IsCatalogAction(action) {
+  return [
+    'public_products',
+    'products_public',
+    'catalog_products',
+    'product_catalog',
+    'public_catalog',
+    'parfum_products',
+    'perfume_products',
+    'parfum_catalog',
+    'katalog_parfum',
+    'katalog_produk',
+    'lihat_produk'
+  ].includes(String(action || ''));
+}
+
+async function diracPerfumePublicProductsV117Handle(req, res) {
+  try { res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0'); } catch (_) {}
+  try { res.setHeader('Pragma', 'no-cache'); } catch (_) {}
+  try { res.setHeader('Expires', '0'); } catch (_) {}
+
+  const limitRaw = Number((req && req.query && (req.query.limit || req.query.per_page)) || 5000);
+  const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.floor(limitRaw), 1), 5000) : 5000;
+  const select = 'slug,doc_id,firebase_id,title,name,price,stock,status,is_ready,is_active,img,image_url,description,notes,long_description';
+  const path = '/rest/v1/products?select=' + encodeURIComponent(select)
+    + '&order=doc_id.asc'
+    + '&limit=' + encodeURIComponent(String(limit));
+
+  const result = await supabaseFetch(path, {
+    method: 'GET',
+    auth: 'service'
+  });
+
+  if (!result.ok) {
+    return res.status(result.status || 500).json({ ok: false, message: 'Produk belum bisa dibaca.' });
+  }
+
+  const rows = Array.isArray(result.data) ? result.data : [];
+  const products = rows
+    .filter((row) => row && row.is_active !== false && row.is_ready !== false && !['inactive', 'disabled', 'deleted', 'archived', 'hidden', 'draft'].includes(String(row.status || '').toLowerCase()))
+    .map((row) => {
+      const slug = String(row.slug || '').trim();
+      const docId = String(row.doc_id || '').trim();
+      const firebaseId = String(row.firebase_id || '').trim();
+      const id = slug || docId || firebaseId;
+      const price = diracPerfumePublicProductsV117Money(row.price || 0);
+      const image = diracPerfumePublicProductsV117Clean(row.image_url || row.img || '', 420);
+      return {
+        id,
+        slug,
+        doc_id: docId,
+        docId,
+        firebase_id: firebaseId,
+        firebaseId,
+        title: diracPerfumePublicProductsV117Clean(row.title || row.name || 'Produk Parfum', 180),
+        name: diracPerfumePublicProductsV117Clean(row.name || row.title || 'Produk Parfum', 180),
+        price,
+        price_label: formatCurrency(price, 'IDR'),
+        stock: Number.isFinite(Number(row.stock)) ? Number(row.stock) : null,
+        status: String(row.status || '').trim() || 'ready',
+        is_ready: row.is_ready !== false,
+        is_active: row.is_active !== false,
+        img: image,
+        image: image,
+        image_url: image,
+        imageUrl: image,
+        desc: diracPerfumePublicProductsV117Clean(row.description || row.notes || '', 900),
+        description: diracPerfumePublicProductsV117Clean(row.description || '', 1200),
+        notes: diracPerfumePublicProductsV117Clean(row.notes || '', 900),
+        long_desc: diracPerfumePublicProductsV117Clean(row.long_description || row.description || row.notes || '', 1800),
+        longDesc: diracPerfumePublicProductsV117Clean(row.long_description || row.description || row.notes || '', 1800),
+        long_description: diracPerfumePublicProductsV117Clean(row.long_description || '', 1800)
+      };
+    })
+    .filter((row) => row.id && row.title && row.price > 0);
+
+  return res.status(200).json({
+    ok: true,
+    success: true,
+    patch: DIRAC_PERFUME_PUBLIC_PRODUCTS_TABLE_READER_V117,
+    source: 'products',
+    table: 'products',
+    count: products.length,
+    products
+  });
+}
+
+function diracPerfumePublicProductsV117Clean(value, maxLength) {
+  const text = String(value === undefined || value === null ? '' : value).replace(/[\u0000-\u001f\u007f]+/g, ' ').trim();
+  const max = Number(maxLength || 500);
+  return text.length > max ? text.slice(0, max) : text;
+}
+
+function diracPerfumePublicProductsV117Money(value) {
+  const number = Number(String(value === undefined || value === null ? '0' : value).replace(/[^0-9.-]/g, ''));
+  return Number.isFinite(number) && number > 0 ? Math.round(number) : 0;
+}
+
+function diracPerfumePublicProductsV117SafeError(error) {
+  const msg = String(error && (error.code || error.name || error.message) || 'PUBLIC_PRODUCTS_ERROR');
+  if (/password|token|secret|cookie|authorization|service_role|apikey/i.test(msg)) return 'PUBLIC_PRODUCTS_ERROR';
+  return msg.slice(0, 160);
+}
+
