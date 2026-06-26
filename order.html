@@ -8638,22 +8638,23 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
 
   function normalizeBackendProduct(row, index){
     row = row || {};
-    const docId = cleanText(row.doc_id || row.docId || row.firebase_id || row.firebaseId || row.product_id || row.productId || row.id || String(index + 1).padStart(3, '0'));
-    const numericId = toNumber(row.product_id || row.productId || row.sort_order || row.sortOrder || row.firebase_id || row.firebaseId || row.id || docId, index + 1);
+    const docId = cleanText(row.slug || row.doc_id || row.docId || row.firebase_id || row.firebaseId || row.product_id || row.productId || row.sku || row.id || String(index + 1).padStart(3, '0'));
+    const numericId = toNumber(row.product_id || row.productId || row.sort_order || row.sortOrder || row.firebase_id || row.firebaseId || row.id || row.legacy_id || row.legacyId || docId, index + 1);
     const stock = toNumber(row.stock || row.stok || row.qty || row.quantity, 1);
     const status = cleanText(row.status || row.publish_status || row.publishStatus || (stock <= 0 ? 'sold' : 'ready'), 'ready').toLowerCase();
-    const image = cleanText(row.img || row.image || row.image_url || row.imageUrl || row.foto || row.photo_url || row.photoUrl || row.thumbnail || row.thumbnailUrl || row.cover, '');
+    const image = cleanText(row.img || row.image || row.image_url || row.imageUrl || row.foto || row.photo || row.photo_url || row.photoUrl || row.thumbnail || row.thumbnailUrl || row.cover, '');
 
     return {
       id: numericId || (index + 1),
+      slug: cleanText(row.slug || row.slug_id || row.slugId || docId, docId),
       docId: docId,
       supabaseDocId: docId,
       firebaseId: cleanText(row.firebase_id || row.firebaseId || ''),
       title: cleanText(row.title || row.name || row.nama || row.product_name || row.productName || 'Produk Tanpa Nama'),
       name: cleanText(row.name || row.title || row.nama || row.product_name || row.productName || 'Produk Tanpa Nama'),
-      category: cleanText(row.category || row.kategori || row.category_name || row.categoryName, ''),
+      category: cleanText(row.category || row.kategori || row.category_name || row.categoryName || 'Lokal'),
       brand: cleanText(row.brand || row.merek || row.brand_name || row.brandName || ''),
-      price: Math.max(0, Math.round(toNumber(row.price || row.harga || row.amount || row.total, 0))),
+      price: Math.max(0, Math.round(toNumber(row.price || row.harga || row.harga_jual || row.amount || row.sale_price || row.salePrice || row.total, 0))),
       img: image,
       desc: cleanText(row.desc || row.description || row.deskripsi || row.short_description || row.shortDescription || ''),
       notes: cleanText(row.notes || row.catatan || ''),
@@ -8667,56 +8668,73 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
     };
   }
 
-  function backendProductKey(value){
-    return String(value ?? '')
-      .normalize('NFKD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, ' ')
-      .trim();
+
+
+  function diracSafeKey(value){
+    return String(value || '').toLowerCase().trim().replace(/&amp;/g,'and').replace(/[^a-z0-9]+/g, '');
   }
 
-  function mergeBackendCatalogProducts(next){
-    const local = Array.isArray(products) ? products.slice() : [];
-    const byKey = new Map();
-    local.forEach(function(item){
-      if(!item) return;
-      [item.supabaseDocId, item.docId, item.firebaseId, item.id, item.title, item.name].forEach(function(value){
-        const key = backendProductKey(value);
-        if(key && !byKey.has(key)) byKey.set(key, item);
-      });
+  function diracProductKeys(product){
+    product = product || {};
+    const keys = [];
+    [
+      product.slug, product.docId, product.doc_id, product.supabaseDocId,
+      product.firebaseId, product.firebase_id, product.sku, product.code,
+      product.title, product.name, product.nama, product.productName, product.product_name,
+      product.img, product.image, product.image_url, product.imageUrl
+    ].forEach(function(value){
+      const raw = cleanText(value, '');
+      if(!raw) return;
+      keys.push(diracSafeKey(raw));
+      try{
+        const base = raw.split('/').pop().split('?')[0].replace(/\.[a-z0-9]+$/i, '');
+        keys.push(diracSafeKey(base));
+      }catch(error){}
+    });
+    return Array.from(new Set(keys.filter(Boolean)));
+  }
+
+  function mergeBackendProductsIntoLocal(backendList){
+    const current = Array.isArray(products) ? products.slice() : [];
+    const remote = Array.isArray(backendList) ? backendList : [];
+    if(!current.length) return remote;
+
+    const remoteByKey = new Map();
+    remote.forEach(function(item){
+      diracProductKeys(item).forEach(function(key){ if(key && !remoteByKey.has(key)) remoteByKey.set(key, item); });
     });
 
-    return (Array.isArray(next) ? next : []).map(function(item){
-      item = item || {};
-      const keys = [item.supabaseDocId, item.docId, item.firebaseId, item.id, item.title, item.name].map(backendProductKey).filter(Boolean);
-      let base = null;
-      for(const key of keys){
-        if(byKey.has(key)){ base = byKey.get(key); break; }
-      }
-      if(!base) return Object.assign({}, item, { category: cleanText(item.category, 'Lokal') });
-      return Object.assign({}, base, {
-        title: cleanText(item.title || item.name, base.title),
-        name: cleanText(item.name || item.title, base.name || base.title),
-        category: cleanText(item.category, base.category),
-        brand: cleanText(item.brand, base.brand),
-        price: Math.max(0, Math.round(toNumber(item.price, base.price || 0))),
-        img: cleanText(item.img, base.img),
-        desc: cleanText(item.desc, base.desc),
-        notes: cleanText(item.notes, base.notes),
-        longDesc: cleanText(item.longDesc, base.longDesc),
-        status: cleanText(item.status, base.status || 'ready'),
-        stock: Math.max(0, Math.round(toNumber(item.stock, base.stock || 1))),
-        soldCount: Math.max(0, Math.round(toNumber(item.soldCount, base.soldCount || 0))),
-        rating: Math.max(0, Math.min(5, toNumber(item.rating, base.rating || 0))),
-        reviewCount: Math.max(0, Math.round(toNumber(item.reviewCount, base.reviewCount || 0))),
-        isTopSeller: Boolean(item.isTopSeller || base.isTopSeller),
-        docId: cleanText(item.docId, base.docId),
-        supabaseDocId: cleanText(item.supabaseDocId || item.docId, base.supabaseDocId || base.docId),
-        firebaseId: cleanText(item.firebaseId, base.firebaseId),
-        backendPriceSynced: true
-      });
+    let updatedCount = 0;
+    const merged = current.map(function(local){
+      const match = diracProductKeys(local).map(function(key){ return remoteByKey.get(key); }).find(Boolean);
+      if(!match) return local;
+      updatedCount += 1;
+      const price = Math.max(0, Math.round(toNumber(match.price || match.harga || match.harga_jual || match.amount, local.price || 0)));
+      const stock = Math.max(0, Math.round(toNumber(match.stock || match.stok || match.qty || match.quantity, local.stock || 1)));
+      const statusRaw = cleanText(match.status || match.publish_status || match.publishStatus || local.status || (stock <= 0 ? 'sold' : 'ready'), 'ready').toLowerCase();
+      const next = Object.assign({}, local);
+      next.price = price;
+      next.harga = price;
+      next.stock = stock;
+      next.status = statusRaw === 'hidden' || statusRaw === 'nonaktif' || statusRaw === 'inactive' || statusRaw === 'draft' || statusRaw === 'archived' || statusRaw === 'deleted'
+        ? 'hidden'
+        : (statusRaw === 'sold' || statusRaw === 'habis' || stock <= 0 ? 'sold' : 'ready');
+      next.slug = cleanText(match.slug || match.docId || match.doc_id || match.supabaseDocId || next.slug, next.slug || '');
+      next.docId = cleanText(match.docId || match.doc_id || match.slug || match.id || next.docId, next.docId || '');
+      next.supabaseDocId = cleanText(match.supabaseDocId || match.docId || match.doc_id || match.slug || match.id || next.supabaseDocId, next.supabaseDocId || '');
+      next.firebaseId = cleanText(match.firebaseId || match.firebase_id || next.firebaseId, next.firebaseId || '');
+      next.category = cleanText(next.category || match.category || match.kategori, next.category || 'Lokal');
+      next.brand = cleanText(next.brand || match.brand || match.merek, next.brand || '');
+      next.desc = cleanText(next.desc || match.desc || match.description || match.deskripsi, next.desc || '');
+      next.notes = cleanText(next.notes || match.notes || match.catatan, next.notes || '');
+      next.longDesc = cleanText(next.longDesc || match.longDesc || match.long_desc || match.long_description || match.description, next.longDesc || '');
+      // Foto lokal tidak diganti agar katalog tidak kehilangan gambar .webp lama.
+      next.img = cleanText(next.img || match.img || match.image || match.image_url || match.imageUrl || match.thumbnail, next.img || '');
+      return next;
     });
+
+    window.diracBackendCatalogMergedCount = updatedCount;
+    return merged;
   }
 
   function enrichBackendProducts(){
@@ -8754,15 +8772,15 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
   async function fetchProductsFromEndpoint(endpoint){
     const attempts = [
       function(){ return requestJson(endpoint, 'GET', null, { action:'public_products', limit:5000, _:Date.now() }); },
-      function(){ return requestJson(endpoint, 'GET', null, { action:'catalog_products', limit:5000, _:Date.now() }); },
-      function(){ return requestJson(endpoint, 'GET', null, { action:'katalog_produk', limit:5000, _:Date.now() }); },
+      function(){ return requestJson(endpoint, 'GET', null, { action:'parfum_products', limit:5000, _:Date.now() }); },
+      function(){ return requestJson(endpoint, 'GET', null, { action:'katalog_parfum', limit:5000, _:Date.now() }); },
       function(){ return requestJson(endpoint, 'POST', { action:'publicReadProducts', limit:5000 }); },
       function(){ return requestJson(endpoint, 'POST', { action:'products', limit:5000 }); },
       function(){ return requestJson(endpoint, 'POST', { type:'products', limit:5000 }); },
       function(){ return requestJson(endpoint, 'POST', { resource:'products', limit:5000 }); },
-      function(){ return requestJson(endpoint, 'GET', null, { action:'publicReadProducts', limit:5000, _:Date.now() }); },
-      function(){ return requestJson(endpoint, 'GET', null, { action:'products', limit:5000, _:Date.now() }); },
-      function(){ return requestJson(endpoint, 'GET', null, { limit:5000, _:Date.now() }); }
+      function(){ return requestJson(endpoint, 'GET', null, { action:'publicReadProducts', limit:5000 }); },
+      function(){ return requestJson(endpoint, 'GET', null, { action:'products', limit:5000 }); },
+      function(){ return requestJson(endpoint, 'GET', null, { limit:5000 }); }
     ];
     let last = null;
     for(const run of attempts){
@@ -8785,7 +8803,7 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
           return item && item.title && item.price >= 0 && item.status !== 'hidden' && boolActive(item);
         });
         if(!next.length) throw new Error('produk kosong setelah normalisasi');
-        products = mergeBackendCatalogProducts(next);
+        products = mergeBackendProductsIntoLocal(next);
         enrichBackendProducts();
         refreshCatalogAfterBackend(next.length, endpoint);
         return;
