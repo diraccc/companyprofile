@@ -11004,7 +11004,7 @@ body.dirac-checkout-security-open{overflow:hidden!important}
 
   // Semua aktivitas katalog dan checkout website toko lewat backend.
   // Tidak ada SUPABASE_URL, SUPABASE_ANON_KEY, atau REST Supabase di HTML ini.
-  const DIRAC_BACKEND_ENDPOINT = '/api/2fa/passkey-auth-finish';
+  const DIRAC_BACKEND_ENDPOINT = '/api/health';
 
   function cleanText(value, fallback){
     const text = String(value ?? '').trim();
@@ -17485,5 +17485,258 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
   setTimeout(boot, 1200);
 })();
 </script>
+
+
+<script id="dirac-force-public-catalog-db-v120">
+(function(){
+  'use strict';
+  // PATCH FRONTEND ONLY v120:
+  // Memaksa katalog publik/parfum membaca harga terbaru dari /api/health?action=public_products.
+  // Tidak mengubah endpoint lama, login, A2F, payment gateway, checkout, cookie, atau template.
+  var PATCH = 'dirac-force-public-catalog-db-v120';
+  var started = false;
+
+  function cleanText(value, fallback){
+    var text = String(value === undefined || value === null ? '' : value).trim();
+    return text || (fallback || '');
+  }
+
+  function normalizeKey(value){
+    return String(value || '')
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim();
+  }
+
+  function money(value){
+    if(typeof value === 'number' && isFinite(value)) return Math.max(0, Math.round(value));
+    var raw = String(value === undefined || value === null ? '' : value).trim();
+    if(!raw) return 0;
+    // Harga Indonesia seperti "Rp 1.250.000" harus menjadi 1250000, bukan 1250.
+    var digits = raw.replace(/[^0-9-]/g, '');
+    var n = Number(digits || raw.replace(/[^0-9.-]/g, ''));
+    return isFinite(n) ? Math.max(0, Math.round(n)) : 0;
+  }
+
+  function firstText(){
+    for(var i=0;i<arguments.length;i++){
+      var v = cleanText(arguments[i]);
+      if(v) return v;
+    }
+    return '';
+  }
+
+  function falseLike(value){
+    if(value === false) return true;
+    var text = String(value === undefined || value === null ? '' : value).trim().toLowerCase();
+    return ['false','0','no','off','inactive','disabled'].indexOf(text) >= 0;
+  }
+
+  function isVisible(row){
+    if(!row || typeof row !== 'object') return false;
+    var status = cleanText(row.status || row.product_status || '').toLowerCase();
+    if(['inactive','disabled','deleted','archived','draft','hidden'].indexOf(status) >= 0) return false;
+    if(falseLike(row.is_active) || falseLike(row.active)) return false;
+    if(falseLike(row.is_ready) || falseLike(row.ready)) return false;
+    return true;
+  }
+
+  function getExistingProducts(){
+    try{
+      if(typeof products !== 'undefined' && Array.isArray(products)) return products;
+    }catch(_){ }
+    return [];
+  }
+
+  function findExistingNumericId(row, index){
+    var existing = getExistingProducts();
+    var keys = [row.slug, row.doc_id, row.docId, row.firebase_id, row.firebaseId, row.sku, row.code, row.id, row.name, row.title, row.product_name, row.nama_produk, row.nama]
+      .map(normalizeKey)
+      .filter(Boolean);
+    for(var i=0;i<existing.length;i++){
+      var p = existing[i] || {};
+      var pKeys = [p.slug, p.docId, p.doc_id, p.supabaseDocId, p.firebaseId, p.firebase_id, p.sku, p.code, p.id, p.name, p.title]
+        .map(normalizeKey)
+        .filter(Boolean);
+      for(var a=0;a<keys.length;a++){
+        if(pKeys.indexOf(keys[a]) >= 0 && Number(p.id) > 0) return Number(p.id);
+      }
+    }
+    var numeric = Number(row.product_id || row.productId || row.sort_order || row.sortOrder || row.id || row.firebase_id || row.firebaseId);
+    if(isFinite(numeric) && numeric > 0) return Math.round(numeric);
+    return index + 1;
+  }
+
+  function mapProduct(row, index){
+    row = row || {};
+    var slug = cleanText(row.slug);
+    var docId = firstText(row.doc_id, row.docId, slug, row.firebase_id, row.firebaseId, row.sku, row.code, row.id, 'product-' + (index + 1));
+    var firebaseId = firstText(row.firebase_id, row.firebaseId);
+    var name = firstText(row.title, row.name, row.product_name, row.nama_produk, row.nama, slug, 'Produk Parfum');
+    var price = money(row.price !== undefined ? row.price : (row.harga !== undefined ? row.harga : (row.harga_jual !== undefined ? row.harga_jual : (row.amount !== undefined ? row.amount : row.selling_price))));
+    var stockRaw = row.stock !== undefined ? row.stock : (row.stok !== undefined ? row.stok : (row.quantity !== undefined ? row.quantity : row.qty));
+    var stock = Number(stockRaw);
+    if(!isFinite(stock)) stock = 1;
+    var statusRaw = cleanText(row.status || row.product_status || (stock <= 0 ? 'sold' : 'ready')).toLowerCase();
+    var image = firstText(row.image_url, row.imageUrl, row.img, row.image, row.photo_url, row.photoUrl, row.photo, row.thumbnail_url, row.thumbnailUrl, row.thumbnail, row.cover, row.gambar, row.foto);
+    var category = firstText(row.category, row.kategori, row.fragrance_type, row.type, row.jenis, 'Lokal');
+    var description = firstText(row.desc, row.description, row.deskripsi, row.short_description, row.long_description, row.longDesc, row.keterangan);
+    var numericId = findExistingNumericId(row, index);
+    return {
+      id: numericId,
+      slug: slug || docId,
+      docId: docId,
+      doc_id: docId,
+      supabaseDocId: docId,
+      firebaseId: firebaseId,
+      firebase_id: firebaseId,
+      sku: cleanText(row.sku || row.product_code || row.code),
+      title: name,
+      name: name,
+      nama_produk: name,
+      product_name: name,
+      category: category,
+      kategori: category,
+      fragrance_type: category,
+      brand: firstText(row.brand, row.merk, row.merek),
+      price: price,
+      harga: price,
+      harga_jual: price,
+      amount: price,
+      price_label: 'Rp ' + price.toLocaleString('id-ID'),
+      formatted_price: 'Rp ' + price.toLocaleString('id-ID'),
+      priceLabel: 'Rp ' + price.toLocaleString('id-ID'),
+      img: image,
+      image: image,
+      image_url: image,
+      imageUrl: image,
+      photo: image,
+      thumbnail: image,
+      desc: description,
+      description: description,
+      deskripsi: description,
+      longDesc: description,
+      notes: firstText(row.notes, row.catatan),
+      status: (statusRaw === 'sold' || statusRaw === 'habis' || stock <= 0) ? 'sold' : 'ready',
+      stock: Math.max(0, Math.round(stock)),
+      stok: Math.max(0, Math.round(stock)),
+      rating: Number(row.rating || 4.8),
+      reviewCount: Number(row.review_count || row.reviewCount || row.reviews || 0),
+      soldCount: Number(row.sold_count || row.soldCount || row.terjual || row.sold || 0),
+      isTopSeller: row.is_top_seller === true || row.isTopSeller === true || String(row.badge || '').toLowerCase().indexOf('top') >= 0
+    };
+  }
+
+  function unwrap(value){
+    if(!value) return value;
+    if(typeof value === 'string'){
+      try{ return JSON.parse(value); }catch(_){ return value; }
+    }
+    return value;
+  }
+
+  function pickList(data){
+    data = unwrap(data);
+    if(Array.isArray(data)) return data;
+    if(!data || typeof data !== 'object') return [];
+    var candidates = [data.products, data.data, data.items, data.results, data.catalog, data.katalog, data.rows, data.list, data.records, data.payload, data.response].map(unwrap);
+    for(var i=0;i<candidates.length;i++){
+      var c = candidates[i];
+      if(Array.isArray(c)) return c;
+      if(c && typeof c === 'object'){
+        var nested = [c.products, c.data, c.items, c.results, c.catalog, c.katalog, c.rows, c.list, c.records].map(unwrap);
+        for(var j=0;j<nested.length;j++) if(Array.isArray(nested[j])) return nested[j];
+      }
+    }
+    return [];
+  }
+
+  function endpointCandidates(){
+    var list = [];
+    function add(url){ if(url && list.indexOf(url) < 0) list.push(url); }
+    try{ add(window.DIRAC_PRODUCTS_ENDPOINT); }catch(_){ }
+    try{ add(window.DIRAC_STORE_ENDPOINT); }catch(_){ }
+    try{ add(window.DIRAC_BACKEND_ENDPOINT); }catch(_){ }
+    add('/api/health');
+    add('https://diracgroup.store/api/health');
+    add('https://www.diracgroup.store/api/health');
+    add('https://companyprofilee-expk.vercel.app/api/health');
+    return list;
+  }
+
+  async function requestCatalog(endpoint){
+    var url = new URL(endpoint, window.location.href);
+    url.searchParams.set('action', 'public_products');
+    url.searchParams.set('limit', '1000');
+    url.searchParams.set('_catalog_ts', String(Date.now()));
+    var response = await fetch(url.toString(), {
+      method: 'GET',
+      mode: 'cors',
+      credentials: 'omit',
+      cache: 'no-store',
+      headers: { 'Accept':'application/json' }
+    });
+    var data = await response.json().catch(function(){ return null; });
+    if(!response.ok || !data || data.ok === false || data.success === false){
+      throw new Error((data && (data.message || data.error || data.code)) || ('HTTP ' + response.status));
+    }
+    var list = pickList(data);
+    if(!list.length) throw new Error('produk kosong');
+    return { endpoint:url.toString(), list:list, data:data };
+  }
+
+  function refreshAll(count, endpoint){
+    try{ if(typeof loadCart === 'function') loadCart(); }catch(_){ }
+    try{ if(typeof renderCategoryOptions === 'function') renderCategoryOptions(); }catch(_){ }
+    try{ if(typeof updateShippingOptions === 'function') updateShippingOptions(); }catch(_){ }
+    try{ if(typeof renderProducts === 'function') renderProducts({ keepFilterLimit:true }); }catch(_){ }
+    try{ if(typeof renderCart === 'function') renderCart(); }catch(_){ }
+    try{ if(typeof refreshDiracCurrencyStaticText === 'function') refreshDiracCurrencyStaticText(document.body || document); }catch(_){ }
+    try{ if(typeof refreshDiracIDRStaticText === 'function') refreshDiracIDRStaticText(document.body || document); }catch(_){ }
+    try{ if(typeof showToast === 'function') showToast('Katalog database aktif: ' + count + ' produk.'); }catch(_){ }
+    window.diracCatalogDbLoaded = true;
+    window.diracCatalogDbPatch = PATCH;
+    window.diracCatalogDbEndpoint = endpoint;
+    window.diracCatalogDbCount = count;
+    document.documentElement.setAttribute('data-dirac-catalog-db', 'active');
+    document.documentElement.setAttribute('data-dirac-catalog-db-count', String(count));
+  }
+
+  async function forceLoadCatalog(){
+    if(started) return;
+    started = true;
+    var errors = [];
+    var endpoints = endpointCandidates();
+    for(var i=0;i<endpoints.length;i++){
+      try{
+        var result = await requestCatalog(endpoints[i]);
+        var next = result.list.filter(isVisible).map(mapProduct).filter(function(p){ return p && p.title && p.price > 0; });
+        if(!next.length) throw new Error('produk kosong setelah normalisasi');
+        products = next;
+        try{ window.diracProducts = next; }catch(_){ }
+        refreshAll(next.length, result.endpoint);
+        return true;
+      }catch(error){
+        errors.push(String(endpoints[i]) + ' => ' + (error && error.message ? error.message : error));
+      }
+    }
+    window.diracCatalogDbErrors = errors;
+    console.warn('Katalog database belum terbaca:', errors);
+    try{ if(typeof showToast === 'function') showToast('Katalog database belum terbaca. Cek endpoint public_products.'); }catch(_){ }
+    return false;
+  }
+
+  function start(){
+    setTimeout(forceLoadCatalog, 50);
+    setTimeout(function(){ if(!window.diracCatalogDbLoaded) forceLoadCatalog(); }, 1200);
+  }
+
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once:true });
+  else start();
+})();
+</script>
+
 </body>
 </html>
