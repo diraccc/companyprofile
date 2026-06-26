@@ -11026,60 +11026,29 @@ body.dirac-checkout-security-open{overflow:hidden!important}
   function backendPost(payload){
     return fetch(DIRAC_BACKEND_ENDPOINT, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept':'application/json' },
+      headers: { 'Content-Type': 'application/json' },
       credentials: 'omit',
       cache: 'no-store',
       body: JSON.stringify(payload || {})
     }).then(async function(response){
       const data = await response.json().catch(function(){ return null; });
-      if(!response.ok || !data || data.success === false || data.ok === false){
+      if(!response.ok || !data || data.success === false){
         throw new Error((data && (data.error || data.message)) || ('Backend HTTP ' + response.status));
       }
       return data;
     });
-  }
-
-  function backendGetProducts(){
-    const url = DIRAC_BACKEND_ENDPOINT + '?action=public_products&limit=5000&_=' + encodeURIComponent(String(Date.now()));
-    return fetch(url, {
-      method: 'GET',
-      headers: { 'Accept':'application/json' },
-      credentials: 'omit',
-      cache: 'no-store'
-    }).then(async function(response){
-      const data = await response.json().catch(function(){ return null; });
-      if(!response.ok || !data || data.success === false || data.ok === false){
-        throw new Error((data && (data.error || data.message)) || ('Backend HTTP ' + response.status));
-      }
-      return data;
-    });
-  }
-
-  function pickProductList(data){
-    if(Array.isArray(data)) return data;
-    if(!data || typeof data !== 'object') return [];
-    const candidates = [data.products, data.data, data.items, data.results, data.catalog, data.katalog, data.rows, data.list, data.records];
-    for(const c of candidates){
-      if(Array.isArray(c)) return c;
-      if(c && typeof c === 'object'){
-        const nested = [c.products, c.data, c.items, c.results, c.rows, c.list, c.records];
-        for(const n of nested){ if(Array.isArray(n)) return n; }
-      }
-    }
-    return [];
   }
 
   function normalizeBackendProduct(row, index){
     row = row || {};
-    const docId = cleanText(row.slug || row.doc_id || row.docId || row.firebase_id || row.firebaseId || row.product_id || row.productId || row.sku || row.id || String(index + 1).padStart(3, '0'));
-    const numericId = toNumber(row.product_id || row.productId || row.sort_order || row.sortOrder || row.firebase_id || row.firebaseId || row.id || row.legacy_id || row.legacyId || docId, index + 1);
+    const docId = cleanText(row.doc_id || row.docId || row.firebase_id || row.firebaseId || row.id || String(index + 1).padStart(3, '0'));
+    const numericId = toNumber(row.product_id || row.productId || row.sort_order || row.sortOrder || row.firebase_id || row.firebaseId || row.id || docId, index + 1);
     const stock = toNumber(row.stock || row.stok, 1);
     const status = cleanText(row.status || row.publishStatus || (stock <= 0 ? 'sold' : 'ready'), 'ready').toLowerCase();
-    const image = cleanText(row.img || row.image || row.image_url || row.imageUrl || row.foto || row.photo || row.photo_url || row.photoUrl || row.thumbnail || row.thumbnailUrl || row.cover, '');
+    const image = cleanText(row.img || row.image || row.image_url || row.imageUrl || row.foto || row.photo_url || row.photoUrl || row.thumbnail || row.thumbnailUrl, '');
 
     return {
       id: numericId || (index + 1),
-      slug: cleanText(row.slug || row.slug_id || row.slugId || docId, docId),
       docId: docId,
       supabaseDocId: docId,
       firebaseId: cleanText(row.firebase_id || row.firebaseId || ''),
@@ -11087,7 +11056,7 @@ body.dirac-checkout-security-open{overflow:hidden!important}
       name: cleanText(row.name || row.title || row.nama || 'Produk Tanpa Nama'),
       category: cleanText(row.category || row.kategori || 'Lokal'),
       brand: cleanText(row.brand || row.merek || ''),
-      price: Math.max(0, Math.round(toNumber(row.price || row.harga || row.harga_jual || row.amount || row.sale_price || row.salePrice, 0))),
+      price: Math.max(0, Math.round(toNumber(row.price || row.harga, 0))),
       img: image,
       desc: cleanText(row.desc || row.description || row.deskripsi || ''),
       notes: cleanText(row.notes || row.catatan || ''),
@@ -11099,75 +11068,6 @@ body.dirac-checkout-security-open{overflow:hidden!important}
       reviewCount: Math.max(0, Math.round(toNumber(row.review_count || row.reviewCount, 0))),
       isTopSeller: row.is_top_seller === true || row.isTopSeller === true || String(row.badge || '').toLowerCase().includes('top')
     };
-  }
-
-
-
-  function diracSafeKey(value){
-    return String(value || '').toLowerCase().trim().replace(/&amp;/g,'and').replace(/[^a-z0-9]+/g, '');
-  }
-
-  function diracProductKeys(product){
-    product = product || {};
-    const keys = [];
-    [
-      product.slug, product.docId, product.doc_id, product.supabaseDocId,
-      product.firebaseId, product.firebase_id, product.sku, product.code,
-      product.title, product.name, product.nama, product.productName, product.product_name,
-      product.img, product.image, product.image_url, product.imageUrl
-    ].forEach(function(value){
-      const raw = cleanText(value, '');
-      if(!raw) return;
-      keys.push(diracSafeKey(raw));
-      try{
-        const base = raw.split('/').pop().split('?')[0].replace(/\.[a-z0-9]+$/i, '');
-        keys.push(diracSafeKey(base));
-      }catch(error){}
-    });
-    return Array.from(new Set(keys.filter(Boolean)));
-  }
-
-  function mergeBackendProductsIntoLocal(backendList){
-    const current = Array.isArray(products) ? products.slice() : [];
-    const remote = Array.isArray(backendList) ? backendList : [];
-    if(!current.length) return remote;
-
-    const remoteByKey = new Map();
-    remote.forEach(function(item){
-      diracProductKeys(item).forEach(function(key){ if(key && !remoteByKey.has(key)) remoteByKey.set(key, item); });
-    });
-
-    let updatedCount = 0;
-    const merged = current.map(function(local){
-      const match = diracProductKeys(local).map(function(key){ return remoteByKey.get(key); }).find(Boolean);
-      if(!match) return local;
-      updatedCount += 1;
-      const price = Math.max(0, Math.round(toNumber(match.price || match.harga || match.harga_jual || match.amount, local.price || 0)));
-      const stock = Math.max(0, Math.round(toNumber(match.stock || match.stok || match.qty || match.quantity, local.stock || 1)));
-      const statusRaw = cleanText(match.status || match.publish_status || match.publishStatus || local.status || (stock <= 0 ? 'sold' : 'ready'), 'ready').toLowerCase();
-      const next = Object.assign({}, local);
-      next.price = price;
-      next.harga = price;
-      next.stock = stock;
-      next.status = statusRaw === 'hidden' || statusRaw === 'nonaktif' || statusRaw === 'inactive' || statusRaw === 'draft' || statusRaw === 'archived' || statusRaw === 'deleted'
-        ? 'hidden'
-        : (statusRaw === 'sold' || statusRaw === 'habis' || stock <= 0 ? 'sold' : 'ready');
-      next.slug = cleanText(match.slug || match.docId || match.doc_id || match.supabaseDocId || next.slug, next.slug || '');
-      next.docId = cleanText(match.docId || match.doc_id || match.slug || match.id || next.docId, next.docId || '');
-      next.supabaseDocId = cleanText(match.supabaseDocId || match.docId || match.doc_id || match.slug || match.id || next.supabaseDocId, next.supabaseDocId || '');
-      next.firebaseId = cleanText(match.firebaseId || match.firebase_id || next.firebaseId, next.firebaseId || '');
-      next.category = cleanText(next.category || match.category || match.kategori, next.category || 'Lokal');
-      next.brand = cleanText(next.brand || match.brand || match.merek, next.brand || '');
-      next.desc = cleanText(next.desc || match.desc || match.description || match.deskripsi, next.desc || '');
-      next.notes = cleanText(next.notes || match.notes || match.catatan, next.notes || '');
-      next.longDesc = cleanText(next.longDesc || match.longDesc || match.long_desc || match.long_description || match.description, next.longDesc || '');
-      // Foto lokal tidak diganti agar katalog tidak kehilangan gambar .webp lama.
-      next.img = cleanText(next.img || match.img || match.image || match.image_url || match.imageUrl || match.thumbnail, next.img || '');
-      return next;
-    });
-
-    window.diracBackendCatalogMergedCount = updatedCount;
-    return merged;
   }
 
   function enrichBackendProducts(){
@@ -11200,15 +11100,19 @@ body.dirac-checkout-security-open{overflow:hidden!important}
   }
 
   async function backendFetchProducts(){
-    const data = await backendGetProducts();
-    const list = pickProductList(data);
+    const data = await backendPost({
+      action: 'publicReadProducts',
+      limit: 5000
+    });
+
+    const list = Array.isArray(data.products) ? data.products : [];
     const next = list.map(normalizeBackendProduct).filter(function(item){
       return item && item.title && item.price >= 0 && item.status !== 'hidden' && boolActive(item);
     });
 
     if(!next.length) throw new Error('Produk backend kosong. Fallback katalog lokal tetap dipakai.');
 
-    products = mergeBackendProductsIntoLocal(next);
+    products = next;
     window.diracBackendProductsLoaded = true;
     window.diracBackendProductCount = next.length;
     enrichBackendProducts();
@@ -17581,5 +17485,284 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
   setTimeout(boot, 1200);
 })();
 </script>
+<script id="dirac-db-catalog-source-of-truth-v130">
+(function(){
+  'use strict';
+  if(window.__DIRAC_DB_CATALOG_SOURCE_OF_TRUTH_V130__) return;
+  window.__DIRAC_DB_CATALOG_SOURCE_OF_TRUTH_V130__ = true;
+
+  var ENDPOINTS = [
+    window.DIRAC_CATALOG_ENDPOINT,
+    window.DIRAC_BACKEND_ENDPOINT,
+    window.DIRAC_STORE_ENDPOINT,
+    '/api/health',
+    'https://companyprofilee-expk.vercel.app/api/health'
+  ].filter(Boolean).filter(function(value, index, arr){ return arr.indexOf(value) === index; });
+
+  var ACTIONS = [
+    'public_products',
+    'parfum_products',
+    'katalog_parfum',
+    'public_catalog',
+    'products',
+    'catalog',
+    'publicReadProducts'
+  ];
+
+  function cleanText(value, fallback){
+    var text = String(value === undefined || value === null ? '' : value).replace(/[<>]/g, '').trim();
+    return text || (fallback || '');
+  }
+
+  function parseMoney(value){
+    if(typeof value === 'number' && isFinite(value)) return Math.max(0, Math.round(value));
+    var raw = String(value === undefined || value === null ? '' : value).trim();
+    if(!raw) return 0;
+    var digits = raw.replace(/[^0-9]/g, '');
+    if(!digits) return 0;
+    var n = Number(digits);
+    return isFinite(n) ? Math.max(0, Math.round(n)) : 0;
+  }
+
+  function toNumber(value, fallback){
+    var n = Number(String(value === undefined || value === null ? '' : value).replace(/[^0-9.-]/g, ''));
+    return isFinite(n) ? n : (fallback || 0);
+  }
+
+  function falseLike(value){
+    if(value === false) return true;
+    var text = String(value === undefined || value === null ? '' : value).trim().toLowerCase();
+    return ['false','0','no','off','inactive','disabled','draft','hidden','archived','deleted'].indexOf(text) >= 0;
+  }
+
+  function normalizeKey(value){
+    return String(value || '')
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 160);
+  }
+
+  function stableNumericId(key, fallback){
+    var rawNumber = Number(key);
+    if(isFinite(rawNumber) && rawNumber > 0 && rawNumber < 2147483647) return Math.floor(rawNumber);
+    var text = String(key || '');
+    var hash = 0;
+    for(var i = 0; i < text.length; i += 1){
+      hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0;
+    }
+    hash = Math.abs(hash);
+    return hash || fallback || 1;
+  }
+
+  function unwrap(value){
+    if(!value) return value;
+    if(typeof value === 'string'){
+      try{ return JSON.parse(value); }catch(error){ return value; }
+    }
+    return value;
+  }
+
+  function pickList(data){
+    data = unwrap(data);
+    if(Array.isArray(data)) return data;
+    if(!data || typeof data !== 'object') return [];
+    var candidates = [
+      data.products, data.data, data.items, data.results, data.catalog, data.katalog,
+      data.rows, data.list, data.records, data.payload, data.response, data.body
+    ].map(unwrap);
+    for(var i = 0; i < candidates.length; i += 1){
+      var item = candidates[i];
+      if(Array.isArray(item)) return item;
+      if(item && typeof item === 'object'){
+        var nested = [item.products, item.data, item.items, item.results, item.catalog, item.katalog, item.rows, item.list, item.records].map(unwrap);
+        for(var j = 0; j < nested.length; j += 1){
+          if(Array.isArray(nested[j])) return nested[j];
+        }
+      }
+    }
+    return [];
+  }
+
+  function pickImage(row){
+    var fields = [
+      row.image_url, row.imageUrl, row.main_image_url, row.mainImageUrl,
+      row.product_image, row.productImage, row.img, row.image,
+      row.photo_url, row.photoUrl, row.photo, row.foto, row.gambar,
+      row.thumbnail_url, row.thumbnailUrl, row.thumbnail, row.cover,
+      row.picture, row.picture_url, row.pictureUrl
+    ];
+    for(var i = 0; i < fields.length; i += 1){
+      var value = unwrap(fields[i]);
+      if(Array.isArray(value) && value.length) value = unwrap(value[0]);
+      if(value && typeof value === 'object') value = value.url || value.src || value.path || value.image_url || value.imageUrl || value.publicUrl || '';
+      var text = cleanText(value, '');
+      if(text) return text;
+    }
+    var arrays = [unwrap(row.images), unwrap(row.photos), unwrap(row.gallery), unwrap(row.media)];
+    for(var a = 0; a < arrays.length; a += 1){
+      var arr = arrays[a];
+      if(!Array.isArray(arr) || !arr.length) continue;
+      for(var b = 0; b < arr.length; b += 1){
+        var item = unwrap(arr[b]);
+        if(item && typeof item === 'object') item = item.url || item.src || item.path || item.image_url || item.imageUrl || item.publicUrl || '';
+        var img = cleanText(item, '');
+        if(img) return img;
+      }
+    }
+    return '';
+  }
+
+  function visibleProduct(row){
+    if(!row || typeof row !== 'object') return false;
+    var status = cleanText(row.status || row.product_status || row.publish_status || row.publishStatus || '', '').toLowerCase();
+    if(['inactive','disabled','deleted','archived','draft','hidden','nonaktif'].indexOf(status) >= 0) return false;
+    if(falseLike(row.is_active) || falseLike(row.active) || falseLike(row.isActive)) return false;
+    if(falseLike(row.is_ready) || falseLike(row.ready) || falseLike(row.isReady)) return false;
+    return true;
+  }
+
+  function normalizeProduct(row, index){
+    row = row || {};
+    var slug = cleanText(row.slug || row.handle || '', '');
+    var docId = cleanText(row.doc_id || row.docId || '', '');
+    var firebaseId = cleanText(row.firebase_id || row.firebaseId || '', '');
+    var sku = cleanText(row.sku || row.product_code || row.productCode || row.code || row.kode || '', '');
+    var name = cleanText(row.name || row.title || row.nama_produk || row.product_name || row.productName || row.nama || slug || sku, 'Produk Parfum');
+    var stableKey = slug || docId || firebaseId || sku || cleanText(row.id || row.uuid || '', '') || normalizeKey(name) || ('product-' + (index + 1));
+    var numericId = toNumber(row.product_id || row.productId || row.sort_order || row.sortOrder || row.numeric_id || row.numericId || row.legacy_id || row.legacyId || row.id, 0);
+    if(!numericId) numericId = stableNumericId(stableKey, index + 1);
+    var stockRaw = row.stock !== undefined ? row.stock : (row.stok !== undefined ? row.stok : (row.quantity !== undefined ? row.quantity : row.qty));
+    var stock = stockRaw === undefined || stockRaw === null || stockRaw === '' ? null : Math.max(0, Math.round(toNumber(stockRaw, 0)));
+    var statusRaw = cleanText(row.status || row.product_status || row.publish_status || row.publishStatus || '', '').toLowerCase();
+    var status = stock !== null && stock <= 0 ? 'sold' : (['sold','habis','out_of_stock','out-of-stock'].indexOf(statusRaw) >= 0 ? 'sold' : 'ready');
+    var price = parseMoney(row.price !== undefined ? row.price : (row.harga !== undefined ? row.harga : (row.harga_jual !== undefined ? row.harga_jual : (row.selling_price !== undefined ? row.selling_price : row.sale_price))));
+    var category = cleanText(row.category || row.kategori || row.category_name || row.categoryName || row.fragrance_type || row.type || row.jenis || 'Parfum', 'Parfum');
+    var image = pickImage(row);
+    var desc = cleanText(row.desc || row.description || row.deskripsi || row.short_description || row.shortDescription || row.keterangan || '', '');
+    var longDesc = cleanText(row.long_desc || row.longDesc || row.long_description || row.longDescription || row.deskripsi_panjang || row.description || row.desc || '', desc);
+
+    return {
+      id: numericId,
+      productId: numericId,
+      slug: slug || stableKey,
+      docId: docId || stableKey,
+      doc_id: docId || stableKey,
+      supabaseDocId: slug || docId || stableKey,
+      firebaseId: firebaseId,
+      firebase_id: firebaseId,
+      sku: sku,
+      title: cleanText(row.title || row.name || row.nama_produk || name, name),
+      name: name,
+      category: category,
+      brand: cleanText(row.brand || row.merek || row.merk || row.brand_name || row.brandName || '', ''),
+      price: price,
+      harga: price,
+      harga_jual: price,
+      img: image,
+      image: image,
+      image_url: image,
+      imageUrl: image,
+      desc: desc,
+      description: desc,
+      longDesc: longDesc,
+      notes: cleanText(row.notes || row.catatan || row.note || '', ''),
+      status: status,
+      stock: stock,
+      rating: Math.max(0, Math.min(5, toNumber(row.rating, 0))),
+      reviewCount: Math.max(0, Math.round(toNumber(row.review_count || row.reviewCount || row.reviews, 0))),
+      soldCount: Math.max(0, Math.round(toNumber(row.sold_count || row.soldCount || row.terjual || row.sold, 0))),
+      isTopSeller: row.is_top_seller === true || row.isTopSeller === true || String(row.badge || '').toLowerCase().indexOf('top') >= 0,
+      dbRaw: row
+    };
+  }
+
+  async function fetchCatalog(endpoint, action){
+    var url = new URL(endpoint, window.location.href);
+    url.searchParams.set('action', action);
+    url.searchParams.set('limit', '5000');
+    url.searchParams.set('_dirac_catalog_fresh', String(Date.now()));
+    var response = await fetch(url.toString(), {
+      method: 'GET',
+      credentials: 'omit',
+      cache: 'no-store',
+      headers: { 'Accept':'application/json', 'Cache-Control':'no-cache', 'Pragma':'no-cache' }
+    });
+    var text = await response.text().catch(function(){ return ''; });
+    var data = null;
+    try{ data = text ? JSON.parse(text) : null; }catch(error){ data = { raw:text }; }
+    if(!response.ok || (data && data.ok === false) || (data && data.success === false)){
+      throw new Error((data && (data.message || data.error || data.code)) || ('HTTP ' + response.status));
+    }
+    return data;
+  }
+
+  function refreshAfterDatabaseCatalog(count, source){
+    try{ if(typeof loadCart === 'function') loadCart(); }catch(error){}
+    try{ if(typeof renderCategoryOptions === 'function') renderCategoryOptions(); }catch(error){}
+    try{ if(typeof updateShippingOptions === 'function') updateShippingOptions(); }catch(error){}
+    try{ if(typeof renderProducts === 'function') renderProducts({ keepFilterLimit:false }); }catch(error){ try{ renderProducts(); }catch(innerError){} }
+    try{ if(typeof renderCart === 'function') renderCart(); }catch(error){}
+    try{ if(typeof refreshDiracIDRStaticText === 'function') refreshDiracIDRStaticText(document.body || document); }catch(error){}
+    try{ if(typeof refreshDiracCurrencyStaticText === 'function') refreshDiracCurrencyStaticText(document.body || document); }catch(error){}
+    window.diracCatalogSource = 'database';
+    window.diracCatalogSourceEndpoint = source;
+    window.diracCatalogSourceCount = count;
+    document.documentElement.setAttribute('data-dirac-catalog-source', 'database');
+    try{ console.info('[Dirac] Katalog database aktif:', count, source); }catch(error){}
+  }
+
+  async function loadDatabaseCatalog(){
+    var errors = [];
+    for(var e = 0; e < ENDPOINTS.length; e += 1){
+      for(var a = 0; a < ACTIONS.length; a += 1){
+        var endpoint = ENDPOINTS[e];
+        var action = ACTIONS[a];
+        try{
+          var data = await fetchCatalog(endpoint, action);
+          var list = pickList(data);
+          var next = list.filter(visibleProduct).map(normalizeProduct).filter(function(item){ return item && item.title && item.price > 0; });
+          if(!next.length) throw new Error('database products kosong');
+          products = next;
+          window.products = next;
+          window.diracDatabaseProducts = next;
+          try{
+            if(typeof distributeSalesWithBucketRatio === 'function'){
+              var salesMap = distributeSalesWithBucketRatio(products, TOTAL_SOCIAL_PROOF_SOLD);
+              var topSellerIds = typeof getTopSellerIds === 'function' ? getTopSellerIds(salesMap, TOP_SELLER_COUNT) : new Set();
+              products.forEach(function(product){
+                product.soldCount = Number(product.soldCount || salesMap.get(product.id) || 0);
+                product.isTopSeller = product.isTopSeller || topSellerIds.has(product.id);
+                product.rating = Number(product.rating || (typeof buildProductRating === 'function' ? buildProductRating(product) : 4.8));
+                product.reviewCount = Number(product.reviewCount || (typeof buildReviewCount === 'function' ? buildReviewCount(product) : 0));
+              });
+            }
+          }catch(enrichError){}
+          refreshAfterDatabaseCatalog(next.length, endpoint + '?action=' + action);
+          return true;
+        }catch(error){
+          errors.push(endpoint + '?action=' + action + ' => ' + (error && error.message ? error.message : String(error)));
+        }
+      }
+    }
+    window.diracCatalogSource = 'local-fallback';
+    window.diracCatalogErrors = errors;
+    document.documentElement.setAttribute('data-dirac-catalog-source', 'local-fallback');
+    try{ console.error('[Dirac] Katalog database gagal dibaca:', errors); }catch(error){}
+    try{ if(typeof showToast === 'function') showToast('Katalog database belum terbaca. Cek endpoint /api/health?action=public_products.'); }catch(error){}
+    return false;
+  }
+
+  function start(){
+    setTimeout(loadDatabaseCatalog, 0);
+  }
+
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once:true });
+  else start();
+})();
+</script>
+
 </body>
 </html>
