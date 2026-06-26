@@ -15630,3 +15630,220 @@ function diracPerfumeCatalogV112SafeError(error) {
   if (/password|token|secret|cookie|authorization|service_role|apikey/i.test(msg)) return 'PUBLIC_PRODUCTS_ERROR';
   return msg.slice(0, 160);
 }
+
+/* ============================================================
+   DIRAC PERFUME CATALOG SLUG FIX v116 - APPEND ONLY
+   - Memperbaiki katalog publik products yang memakai slug sebagai identifier.
+   - Memperbaiki checkout parfum agar product slug bisa dipakai sebagai kunci produk.
+   - Tidak mengubah endpoint lama, login, hash, A2F/MFA, payment gateway, cookie, dashboard.
+   ============================================================ */
+const DIRAC_PERFUME_CATALOG_SLUG_FIX_V116 = 'dirac-perfume-catalog-slug-fix-v116';
+const __diracPerfumeCatalogV116PreviousHandler = module.exports;
+
+module.exports = async function diracPerfumeCatalogV116Wrapper(req, res) {
+  const action = diracPerfumeCatalogV116NormalizeAction(String((req && req.query && req.query.action) || ''));
+  if (!diracPerfumeCatalogV116IsCatalogAction(action)) {
+    return __diracPerfumeCatalogV116PreviousHandler(req, res);
+  }
+
+  const method = String((req && req.method) || 'GET').toUpperCase();
+  const cors = setCors(req, res, { isDomainAction: true });
+  if (method === 'OPTIONS') return res.status(cors.allowed ? 200 : 403).end();
+  if (!cors.allowed) return res.status(403).json({ ok: false, message: 'Origin tidak diizinkan.' });
+  if (method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
+
+  try {
+    if (typeof diracV101CheckPersistentSqlmapBlock === 'function') {
+      const existingBlock = await diracV101CheckPersistentSqlmapBlock(req, action, method).catch(() => ({ ok: true }));
+      if (existingBlock && existingBlock.blocked) {
+        try { res.setHeader('Retry-After', String(existingBlock.retryAfterSeconds || 86400)); } catch (_) {}
+        return res.status(403).json({ ok: false, code: 'REQUEST_BLOCKED', message: 'Permintaan ditolak oleh sistem keamanan.' });
+      }
+    }
+    if (typeof diracV101DetectRequestThreat === 'function') {
+      const threat = diracV101DetectRequestThreat(req, action, method);
+      if (threat && threat.detected) {
+        if (typeof diracV101RegisterSqlmapAttack === 'function') {
+          await diracV101RegisterSqlmapAttack(req, action, method, threat).catch(() => null);
+        }
+        return res.status(threat.status || 403).json({ ok: false, code: 'REQUEST_BLOCKED', message: 'Permintaan ditolak oleh sistem keamanan.' });
+      }
+    }
+
+    return await diracPerfumeCatalogV116Handle(req, res);
+  } catch (error) {
+    console.error('[dirac-public-products-v116]', diracPerfumeCatalogV116SafeError(error));
+    return res.status(500).json({ ok: false, message: 'Katalog produk belum bisa dimuat.' });
+  }
+};
+
+function diracPerfumeCatalogV116NormalizeAction(action) {
+  return String(action || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+}
+
+function diracPerfumeCatalogV116IsCatalogAction(action) {
+  return [
+    'public_products',
+    'products_public',
+    'catalog_products',
+    'product_catalog',
+    'public_catalog',
+    'parfum_products',
+    'perfume_products',
+    'parfum_catalog',
+    'katalog_parfum',
+    'katalog_produk',
+    'lihat_produk'
+  ].includes(String(action || ''));
+}
+
+async function diracPerfumeCatalogV116Handle(req, res) {
+  try { res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0'); } catch (_) {}
+  try { res.setHeader('Pragma', 'no-cache'); } catch (_) {}
+  try { res.setHeader('Expires', '0'); } catch (_) {}
+
+  const limitRaw = Number((req && req.query && (req.query.limit || req.query.per_page)) || 100);
+  const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.floor(limitRaw), 1), 200) : 100;
+
+  // slug wajib ikut dibaca karena tabel products user memakai slug sebagai identifier utama.
+  const select = 'slug,doc_id,firebase_id,title,name,price,stock,status,is_ready,is_active';
+  const result = await supabaseFetch('/rest/v1/products?select=' + encodeURIComponent(select) + '&limit=' + encodeURIComponent(String(limit)), {
+    method: 'GET',
+    auth: 'service'
+  });
+
+  if (!result.ok) {
+    return res.status(result.status || 500).json({ ok: false, message: 'Produk belum bisa dibaca.' });
+  }
+
+  const rows = Array.isArray(result.data) ? result.data : [];
+  const products = rows
+    .filter((row) => row && row.is_active !== false && row.is_ready !== false && !['inactive', 'disabled', 'deleted', 'archived'].includes(String(row.status || '').toLowerCase()))
+    .map((row) => {
+      const slug = String(row.slug || '').trim();
+      const docId = String(row.doc_id || '').trim();
+      const firebaseId = String(row.firebase_id || '').trim();
+      const id = slug || docId || firebaseId;
+      const price = sessionOwnershipCheckoutNonNegativeMoney(row.price || 0);
+      return {
+        id,
+        slug,
+        doc_id: docId,
+        firebase_id: firebaseId,
+        title: sessionOwnershipCheckoutCleanText(row.title || row.name || 'Produk Parfum', 180),
+        name: sessionOwnershipCheckoutCleanText(row.name || row.title || 'Produk Parfum', 180),
+        price,
+        price_label: formatCurrency(price, 'IDR'),
+        stock: Number.isFinite(Number(row.stock)) ? Number(row.stock) : null,
+        status: String(row.status || '').trim(),
+        is_ready: row.is_ready !== false,
+        is_active: row.is_active !== false
+      };
+    })
+    .filter((row) => row.id && row.price > 0);
+
+  return res.status(200).json({
+    ok: true,
+    patch: DIRAC_PERFUME_CATALOG_SLUG_FIX_V116,
+    source: 'products',
+    count: products.length,
+    products
+  });
+}
+
+function sessionOwnershipCheckoutProductIdCandidates(body) {
+  return Array.from(new Set([
+    body.product_slug,
+    body.slug,
+    body.productSlug,
+    body.product_doc_id,
+    body.product_id,
+    body.doc_id,
+    body.product_firebase_id,
+    body.firebase_id,
+    body.productDocId,
+    body.productId,
+    body.firebaseId
+  ].map((value) => sessionOwnershipCheckoutCleanText(value, 120)).filter(Boolean)));
+}
+
+function sessionOwnershipCheckoutV116SafeRestEqValue(value) {
+  const text = String(value || '').trim();
+  if (!text || text.length > 120) return '';
+  return /^[A-Za-z0-9._:-]+$/.test(text) ? text : '';
+}
+
+function sessionOwnershipCheckoutProductScore(product, idCandidates, textCandidates) {
+  const slug = String(product && product.slug || '').trim();
+  const docId = String(product && product.doc_id || '').trim();
+  const firebaseId = String(product && product.firebase_id || '').trim();
+  if (idCandidates.includes(slug) || idCandidates.includes(docId) || idCandidates.includes(firebaseId)) return 1000;
+
+  const title = sessionOwnershipCheckoutNormalizeProductText([product && product.title, product && product.name, product && product.slug].filter(Boolean).join(' '));
+  if (!title) return 0;
+
+  let score = 0;
+  for (const candidate of textCandidates) {
+    if (!candidate) continue;
+    if (candidate === title) score = Math.max(score, 500);
+    else if (title.includes(candidate) || candidate.includes(title)) score = Math.max(score, 220);
+    else {
+      const words = candidate.split(' ').filter((word) => word.length >= 3);
+      const hit = words.filter((word) => title.includes(word)).length;
+      if (words.length) score = Math.max(score, Math.round((hit / words.length) * 150));
+    }
+  }
+
+  return score;
+}
+
+async function sessionOwnershipCheckoutFindProductForCheckout(body, requestedProductTitle) {
+  const idCandidates = sessionOwnershipCheckoutProductIdCandidates(body);
+  const textCandidates = sessionOwnershipCheckoutProductTextCandidates(body, requestedProductTitle);
+  const select = 'slug,doc_id,firebase_id,title,name,price,cost_price,stock,status,is_ready,is_active';
+
+  for (const rawId of idCandidates) {
+    const id = sessionOwnershipCheckoutV116SafeRestEqValue(rawId);
+    if (!id) continue;
+    const path = '/rest/v1/products?select=' + encodeURIComponent(select)
+      + '&or=' + encodeURIComponent(`(slug.eq.${id},doc_id.eq.${id},firebase_id.eq.${id})`)
+      + '&limit=5';
+    const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+    if (result.ok && Array.isArray(result.data) && result.data.length) {
+      const product = { ...result.data[0] };
+      if (!product.doc_id && product.slug) product.doc_id = product.slug;
+      return { ok: true, product, match: 'slug_or_id' };
+    }
+  }
+
+  const listResult = await supabaseFetch('/rest/v1/products?select=' + encodeURIComponent(select) + '&limit=500', {
+    method: 'GET',
+    auth: 'service'
+  });
+
+  if (!listResult.ok) {
+    return { ok: false, status: listResult.status || 500, message: 'Gagal membaca products untuk mengunci harga checkout.' };
+  }
+
+  const products = Array.isArray(listResult.data) ? listResult.data : [];
+  let best = null;
+
+  for (const product of products) {
+    const score = sessionOwnershipCheckoutProductScore(product, idCandidates, textCandidates);
+    if (!best || score > best.score) best = { product, score };
+  }
+
+  if (best && best.score >= 70) {
+    const product = { ...best.product };
+    if (!product.doc_id && product.slug) product.doc_id = product.slug;
+    return { ok: true, product, match: 'slug_or_title', score: best.score };
+  }
+
+  return { ok: false, status: 404, message: 'Produk parfum tidak cocok dengan database products.' };
+}
+
+function diracPerfumeCatalogV116SafeError(error) {
+  const msg = String(error && (error.code || error.name || error.message) || 'PUBLIC_PRODUCTS_ERROR');
+  if (/password|token|secret|cookie|authorization|service_role|apikey/i.test(msg)) return 'PUBLIC_PRODUCTS_ERROR';
+  return msg.slice(0, 160);
+}
