@@ -1062,6 +1062,20 @@
       -webkit-tap-highlight-color:rgba(96,165,250,.28)!important;
     }
     body:not(.modal-open) #loginBtn:not(:disabled){cursor:pointer!important;opacity:1!important}
+    html body:not(.modal-open) #loginSection:not(.hidden){
+      z-index:2147483000!important;
+      transform:translateZ(0)!important;
+    }
+    html body:not(.modal-open) #loginSection:not(.hidden) .login-card{
+      position:relative!important;
+      z-index:2147483001!important;
+    }
+    html body:not(.modal-open) #loginBtn{
+      position:relative!important;
+      z-index:2147483002!important;
+      user-select:none!important;
+      -webkit-user-select:none!important;
+    }
     body:not(.modal-open) #modal.hidden,
     body:not(.modal-open) .sidebar-backdrop.hidden,
     body:not(.sidebar-open) .sidebar-backdrop,
@@ -1806,6 +1820,75 @@
       if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', installFallback);
       else installFallback();
       window.setInterval(installFallback, 1200);
+    })();
+  </script>
+
+  <script id="dirac-admin-login-touch-capture">
+    /* Touch/click capture: membuat tombol login tetap merespons jika ada layer visual yang menutup area tombol. Tidak mengubah auth, hash, A2F, endpoint, payment, email, checkout, atau security. */
+    (function(){
+      'use strict';
+      var lastRun = 0;
+      function clean(text){ return String(text || '').replace(/password|token|secret|authorization|cookie|apikey|apiKey/ig, '[redacted]').slice(0, 260); }
+      function show(message){
+        try{
+          var box = document.getElementById('loginError');
+          if(!box) return;
+          box.textContent = clean(message || 'Tombol login sudah menerima klik, tetapi sistem login belum siap.');
+          box.className = 'notice danger';
+          box.classList.remove('hidden');
+          box.style.display = 'block';
+        }catch(_){ }
+      }
+      function loginVisible(){
+        var section = document.getElementById('loginSection');
+        return !!(section && !section.classList.contains('hidden'));
+      }
+      function pointFromEvent(event){
+        var t = event && event.touches && event.touches[0] || event && event.changedTouches && event.changedTouches[0] || event;
+        if(!t) return null;
+        if(typeof t.clientX !== 'number' || typeof t.clientY !== 'number') return null;
+        return { x:t.clientX, y:t.clientY };
+      }
+      function insideButton(event){
+        var btn = document.getElementById('loginBtn');
+        if(!btn) return false;
+        if(event && event.target && event.target.closest && event.target.closest('#loginBtn')) return true;
+        var pt = pointFromEvent(event);
+        if(!pt) return false;
+        var r = btn.getBoundingClientRect();
+        return pt.x >= r.left && pt.x <= r.right && pt.y >= r.top && pt.y <= r.bottom;
+      }
+      function invoke(event){
+        if(!loginVisible() || !insideButton(event)) return;
+        var now = Date.now();
+        if(now - lastRun < 650) return;
+        lastRun = now;
+        try{
+          var btn = document.getElementById('loginBtn');
+          if(btn){
+            btn.disabled = false;
+            btn.removeAttribute('aria-disabled');
+            btn.removeAttribute('aria-busy');
+            btn.style.pointerEvents = 'auto';
+            btn.style.touchAction = 'manipulation';
+          }
+          if(typeof window.__DIRAC_ADMIN_LOGIN_MAIN_CLICK__ === 'function'){
+            if(event && typeof event.preventDefault === 'function') event.preventDefault();
+            window.__DIRAC_ADMIN_LOGIN_MAIN_CLICK__(event);
+            return;
+          }
+          if(window.__DIRAC_ADMIN_LOGIN_GUARD__ && window.__DIRAC_ADMIN_LOGIN_GUARD__.show){
+            window.__DIRAC_ADMIN_LOGIN_GUARD__.show('Klik login sudah diterima, tetapi script utama belum siap. Coba reload halaman. Jika tetap sama, kemungkinan modul Firebase CDN terblokir atau koneksi gagal memuat script.', 'danger');
+          }else{
+            show('Klik login sudah diterima, tetapi script utama belum siap. Coba reload halaman.');
+          }
+        }catch(error){
+          show('Klik login diterima, tetapi proses login gagal di frontend: ' + (error && error.message || error));
+        }
+      }
+      ['touchend','pointerup','click'].forEach(function(name){
+        document.addEventListener(name, invoke, true);
+      });
     })();
   </script>
 
@@ -6875,6 +6958,7 @@
         repairLoginButtonState();
       }
     }
+    window.__DIRAC_ADMIN_LOGIN_MAIN_CLICK__ = handleLoginButtonClick;
     startLoginButtonSafetyGuard();
     installClipboardProtectionGuard();
     els.loginBtn.addEventListener('click', handleLoginButtonClick);
