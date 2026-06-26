@@ -1758,12 +1758,64 @@
     </div>
   </div>
 
+
+  <script id="dirac-admin-login-bootstrap-guard">
+    /* Fail-safe login guard: hanya menampilkan error frontend bila script utama tidak aktif. Tidak mengubah auth, A2F, endpoint, hash, payment, atau security. */
+    (function(){
+      'use strict';
+      var state = { mainStarted:false, handlerReady:false, lastError:'' };
+      function clean(text){ return String(text || '').replace(/password|token|secret|authorization|cookie|apikey|apiKey/ig, '[redacted]').slice(0, 260); }
+      function show(message, kind){
+        try{
+          var box = document.getElementById('loginError');
+          if(!box) return;
+          box.textContent = clean(message || 'Sistem login belum siap.');
+          box.className = 'notice ' + (kind || 'danger');
+          box.classList.remove('hidden');
+          box.style.display = 'block';
+        }catch(_){ }
+      }
+      window.__DIRAC_ADMIN_LOGIN_GUARD__ = {
+        markMainStarted:function(){ state.mainStarted = true; },
+        markHandlerReady:function(){ state.handlerReady = true; },
+        get handlerReady(){ return state.handlerReady; },
+        get mainStarted(){ return state.mainStarted; },
+        show:show
+      };
+      window.addEventListener('error', function(event){
+        state.lastError = clean((event && (event.message || (event.error && event.error.message))) || 'Script error');
+        if(!state.handlerReady) show('Script admin gagal sebelum tombol login aktif: ' + state.lastError, 'danger');
+      }, true);
+      window.addEventListener('unhandledrejection', function(event){
+        var reason = event && event.reason;
+        state.lastError = clean((reason && (reason.message || reason.code)) || reason || 'Promise error');
+        if(!state.handlerReady) show('Script admin gagal memuat sistem login: ' + state.lastError, 'danger');
+      });
+      function installFallback(){
+        var btn = document.getElementById('loginBtn');
+        if(!btn || btn.__diracLoginGuardInstalled) return;
+        btn.__diracLoginGuardInstalled = true;
+        btn.addEventListener('click', function(){
+          window.setTimeout(function(){
+            if(!state.handlerReady){
+              show('Tombol login belum aktif karena script utama belum berhasil berjalan. Coba reload halaman. Jika tetap muncul, file admin perlu dipatch dari Firebase login ke Supabase login atau cek blokir script CDN.', 'danger');
+            }
+          }, 30);
+        }, true);
+      }
+      if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', installFallback);
+      else installFallback();
+      window.setInterval(installFallback, 1200);
+    })();
+  </script>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check.js";
     import { getFirestore, collection, query, orderBy, onSnapshot, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+    if(window.__DIRAC_ADMIN_LOGIN_GUARD__) window.__DIRAC_ADMIN_LOGIN_GUARD__.markMainStarted();
     const firebaseConfig = {
   apiKey: "AIzaSyD9tYvv7nyrNZuQp9Cu6huVlzY8poeRBHY",
   authDomain: "dirac-group.firebaseapp.com",
@@ -6826,6 +6878,7 @@
     startLoginButtonSafetyGuard();
     installClipboardProtectionGuard();
     els.loginBtn.addEventListener('click', handleLoginButtonClick);
+    if(window.__DIRAC_ADMIN_LOGIN_GUARD__) window.__DIRAC_ADMIN_LOGIN_GUARD__.markHandlerReady();
     els.loginBtn.addEventListener('pointerdown', normalizeLoginButtonBeforeAction, { passive:true });
     els.loginBtn.addEventListener('touchstart', normalizeLoginButtonBeforeAction, { passive:true });
     els.loginPassword.addEventListener('keydown', (event) => { if(event.key === 'Enter') handleLoginButtonClick(event); });
