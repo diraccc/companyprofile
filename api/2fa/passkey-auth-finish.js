@@ -793,31 +793,133 @@ function isPublicVisibleProduct(data) {
   return true;
 }
 
+function cleanPublicProductText(value, maxLength = 500) {
+  const text = String(value === undefined || value === null ? "" : value)
+    .replace(/[\u0000-\u001f\u007f]+/g, " ")
+    .trim();
+  return text.length > maxLength ? text.slice(0, maxLength) : text;
+}
+
+function cleanPublicProductNumber(value, fallback = 0) {
+  if (typeof value === "number") return Number.isFinite(value) ? value : fallback;
+  const raw = String(value === undefined || value === null ? "" : value).trim();
+  if (!raw) return fallback;
+  let cleaned = raw.replace(/[^0-9,.-]/g, "");
+  if (!cleaned || cleaned === "-" || cleaned === "." || cleaned === ",") return fallback;
+  const negative = cleaned.charAt(0) === "-";
+  cleaned = cleaned.replace(/-/g, "");
+  const hasComma = cleaned.includes(",");
+  const hasDot = cleaned.includes(".");
+  if (hasComma && hasDot) {
+    cleaned = cleaned.lastIndexOf(",") > cleaned.lastIndexOf(".")
+      ? cleaned.replace(/\./g, "").replace(",", ".")
+      : cleaned.replace(/,/g, "");
+  } else if (hasDot) {
+    const parts = cleaned.split(".");
+    const last = parts[parts.length - 1] || "";
+    cleaned = (parts.length > 2 || last.length === 3) ? parts.join("") : cleaned;
+  } else if (hasComma) {
+    const parts = cleaned.split(",");
+    const last = parts[parts.length - 1] || "";
+    cleaned = (parts.length > 2 || last.length === 3) ? parts.join("") : cleaned.replace(",", ".");
+  }
+  const number = Number((negative ? "-" : "") + cleaned);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function publicProductFirst(row, keys, fallback = "") {
+  const input = row && typeof row === "object" && !Array.isArray(row) ? row : {};
+  for (const key of keys) {
+    if (!Object.prototype.hasOwnProperty.call(input, key)) continue;
+    const value = input[key];
+    if (value !== undefined && value !== null && String(value).trim() !== "") return value;
+  }
+  return fallback;
+}
+
+function publicProductBoolFalse(value) {
+  return value === false || ["false", "0", "no", "tidak", "nonaktif", "inactive", "disabled"].includes(String(value || "").trim().toLowerCase());
+}
+
+function isPublicProductsTableRowVisible(row) {
+  if (!row || typeof row !== "object" || Array.isArray(row)) return false;
+  if (publicProductBoolFalse(row.is_active) || publicProductBoolFalse(row.active)) return false;
+  if (publicProductBoolFalse(row.is_ready) || publicProductBoolFalse(row.ready)) return false;
+  if (row.deleted === true || row.archived === true || row.hidden === true) return false;
+  const status = String(row.status || row.publish_status || row.visibility || "").trim().toLowerCase();
+  if (["inactive", "disabled", "deleted", "archived", "hidden", "draft", "nonaktif"].includes(status)) return false;
+  return true;
+}
+
+function normalizePublicProductsTableRow(row, index) {
+  const slug = cleanPublicProductText(publicProductFirst(row, ["slug", "product_slug", "productSlug"], ""), 160);
+  const docId = cleanPublicProductText(publicProductFirst(row, ["doc_id", "docId", "id", "uuid"], slug || String(index + 1).padStart(3, "0")), 180);
+  const firebaseId = cleanPublicProductText(publicProductFirst(row, ["firebase_id", "firebaseId"], ""), 180);
+  const publicId = cleanPublicProductText(slug || docId || firebaseId || String(index + 1), 180);
+  const title = cleanPublicProductText(publicProductFirst(row, ["title", "name", "nama", "product_name", "productName", "nama_produk", "namaProduk"], "Produk Parfum"), 180);
+  const name = cleanPublicProductText(publicProductFirst(row, ["name", "title", "nama", "product_name", "productName", "nama_produk", "namaProduk"], title), 180);
+  const price = Math.max(0, Math.round(cleanPublicProductNumber(publicProductFirst(row, ["price", "harga", "harga_jual", "selling_price", "sale_price", "unit_price", "price_idr"], 0), 0)));
+  const stockRaw = publicProductFirst(row, ["stock", "stok", "quantity", "qty", "inventory"], null);
+  const stock = stockRaw === null ? null : Math.max(0, Math.round(cleanPublicProductNumber(stockRaw, 0)));
+  const status = cleanPublicProductText(publicProductFirst(row, ["status", "stock_status", "stockStatus", "availability"], stock !== null && stock <= 0 ? "sold" : "ready"), 60);
+
+  return {
+    id: publicId,
+    slug,
+    doc_id: docId,
+    docId,
+    firebase_id: firebaseId,
+    firebaseId,
+    title,
+    name,
+    category: cleanPublicProductText(publicProductFirst(row, ["category", "kategori", "product_category", "productCategory", "fragrance_type"], "Lokal"), 120),
+    brand: cleanPublicProductText(publicProductFirst(row, ["brand", "merek", "merk"], ""), 120),
+    price,
+    img: cleanPublicProductText(publicProductFirst(row, ["img", "image", "image_url", "imageUrl", "photo", "photo_url", "photoUrl", "thumbnail", "thumbnail_url", "gambar"], ""), 1200),
+    image: cleanPublicProductText(publicProductFirst(row, ["image", "img", "image_url", "imageUrl", "photo", "photo_url", "photoUrl", "thumbnail", "thumbnail_url", "gambar"], ""), 1200),
+    desc: cleanPublicProductText(publicProductFirst(row, ["desc", "description", "deskripsi", "short_desc", "short_description", "summary"], ""), 1000),
+    description: cleanPublicProductText(publicProductFirst(row, ["description", "desc", "deskripsi", "short_desc", "short_description", "summary"], ""), 1000),
+    notes: cleanPublicProductText(publicProductFirst(row, ["notes", "catatan", "aroma_notes", "scent_notes"], ""), 1000),
+    longDesc: cleanPublicProductText(publicProductFirst(row, ["long_desc", "longDesc", "long_description", "description", "deskripsi", "desc"], ""), 1600),
+    status,
+    stock,
+    is_ready: row.is_ready !== false,
+    is_active: row.is_active !== false,
+    soldCount: Math.max(0, Math.round(cleanPublicProductNumber(publicProductFirst(row, ["sold_count", "soldCount", "sold", "terjual", "total_sold"], 0), 0))),
+    rating: Math.max(0, Math.min(5, cleanPublicProductNumber(publicProductFirst(row, ["rating", "stars", "rate"], 0), 0))),
+    reviewCount: Math.max(0, Math.round(cleanPublicProductNumber(publicProductFirst(row, ["review_count", "reviewCount", "reviews", "ulasan", "total_review"], 0), 0))),
+    isTopSeller: row.is_top_seller === true || row.isTopSeller === true || String(publicProductFirst(row, ["badge", "label", "tag"], "")).toLowerCase().includes("top")
+  };
+}
+
 async function handlePublicReadProducts(body) {
   const supabase = getSupabaseAdmin();
   const limitRaw = Number(body && body.limit || 5000);
   const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.trunc(limitRaw), 1), 5000) : 5000;
 
   const { data, error } = await supabase
-    .from(ADMIN_DOCUMENTS_TABLE)
-    .select("collection, doc_id, data, created_at, updated_at")
-    .eq("collection", "products")
+    .from("products")
+    .select("*")
     .limit(limit);
 
   if (error) {
-    throw Object.assign(new Error("Gagal membaca produk publik: " + error.message), { status: 500 });
+    throw Object.assign(new Error("Gagal membaca produk publik dari tabel products: " + error.message), { status: 500 });
   }
 
   const products = (Array.isArray(data) ? data : [])
-    .map(plainDataFromRow)
-    .filter(isPublicVisibleProduct);
+    .filter(isPublicProductsTableRowVisible)
+    .map(normalizePublicProductsTableRow)
+    .filter((product) => product && product.id && product.title && product.price > 0);
 
   return {
     success: true,
+    ok: true,
     action: "publicReadProducts",
     provider: "supabase-backend",
-    products,
-    count: products.length
+    source: "products",
+    table: "products",
+    count: products.length,
+    products
   };
 }
 
