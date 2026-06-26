@@ -6459,6 +6459,7 @@ async function sessionOwnershipCheckoutCreateUnpaidOrder(req, res) {
   const serviceType = sessionOwnershipCheckoutNormalizeServiceType(body.service_type || body.service || 'parfum');
   const quantity = sessionOwnershipCheckoutPositiveInteger(body.quantity || body.qty || 1, 1, 999);
   const requestedProductTitle = sessionOwnershipCheckoutBuildProductTitle(body, serviceType);
+  const shippingAddress = sessionOwnershipCheckoutBuildShippingAddress(body);
 
   if (!requestedName) return res.status(400).json({ ok: false, message: 'Nama pelanggan wajib diisi.' });
   if (!customerPhone) return res.status(400).json({ ok: false, message: 'Nomor WhatsApp/HP wajib diisi.' });
@@ -6513,6 +6514,7 @@ async function sessionOwnershipCheckoutCreateUnpaidOrder(req, res) {
       customer_name: finalCustomerName,
       customer_phone: finalCustomerPhone,
       customer_email: finalCustomerEmail,
+      shipping_address: shippingAddress || null,
       service_type: serviceType,
       subtotal: backendQuote.subtotal,
       total: backendQuote.total,
@@ -6574,7 +6576,43 @@ async function sessionOwnershipCheckoutCreateUnpaidOrder(req, res) {
     });
   }
 
-  const orderMailNotification = orderMailPendingPaymentSkipSummary('checkout_order');
+  const orderMailNotification = await orderMailNotifyNewOrderSafe({
+    source: 'checkout_order',
+    kind: serviceType,
+    order: {
+      id: order.id,
+      code: order.order_id || orderCode,
+      order_id: order.order_id || orderCode,
+      service_type: serviceType,
+      subtotal: backendQuote.subtotal,
+      total: backendQuote.total,
+      currency: 'IDR',
+      order_status: order.order_status || 'pending',
+      payment_status: order.payment_status || 'unpaid',
+      created_at: order.created_at || diracNowIso(),
+      shipping_address: shippingAddress || ''
+    },
+    customer: {
+      name: finalCustomerName,
+      email: finalCustomerEmail,
+      phone: finalCustomerPhone,
+      shipping_address: shippingAddress || ''
+    },
+    items: itemBodies.map((item) => ({
+      product_doc_id: item.product_doc_id || '',
+      product_title: item.product_title,
+      title: item.product_title,
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+      cost_price: item.cost_price,
+      subtotal: item.unit_price * item.quantity
+    })),
+    payment: {
+      url: '',
+      provider: 'pending_manual',
+      invoice_id: order.order_id || orderCode
+    }
+  });
 
   return res.status(200).json({
     ok: true,
@@ -6587,6 +6625,7 @@ async function sessionOwnershipCheckoutCreateUnpaidOrder(req, res) {
     currency: 'IDR',
     order_status: 'pending',
     payment_status: 'unpaid',
+    shipping_address: shippingAddress || null,
     payment_url: null,
     dashboard_mfa_required: true,
     payment_gateway_configured: false,
@@ -6985,6 +7024,21 @@ function sessionOwnershipCheckoutBuildProductTitle(body, serviceType) {
   }
   const combined = details.length ? `${base} | ${details.join(' | ')}` : base;
   return sessionOwnershipCheckoutCleanText(combined, 160) || sessionOwnershipCheckoutFallbackTitle(serviceType);
+}
+
+function sessionOwnershipCheckoutBuildShippingAddress(body) {
+  const row = body && typeof body === 'object' ? body : {};
+  const sections = [];
+  const add = (label, value, maxLength) => {
+    const clean = sessionOwnershipCheckoutCleanText(value, maxLength || 360);
+    if (clean) sections.push(`${label}: ${clean}`);
+  };
+
+  add('Alamat', row.shipping_address || row.address || row.alamat || row.customer_address || row.delivery_address || row.recipient_address, 520);
+  add('Detail alamat', row.address_detail || row.detail_alamat || row.detail_address || row.shipping_address_detail || row.delivery_detail || row.patokan, 420);
+  add('Catatan', row.customer_note || row.notes || row.note || row.catatan || row.shipping_note || row.order_note, 420);
+
+  return sessionOwnershipCheckoutCleanText(sections.join(' | '), 1400);
 }
 
 function sessionOwnershipCheckoutFallbackTitle(serviceType) {
@@ -10925,7 +10979,7 @@ async function orderMailBuildPaidRegularInvoiceContext(tx, provider, paidAt) {
   const orderId = String(tx.order_id || '').trim();
   if (!orderId) return { ok: false, reason: 'regular_order_id_missing' };
 
-  const select = 'id,order_id,customer_id,customer_name,customer_phone,customer_email,service_type,subtotal,total,payment_status,order_status,created_at';
+  const select = 'id,order_id,customer_id,customer_name,customer_phone,customer_email,shipping_address,service_type,subtotal,total,payment_status,order_status,created_at';
   const result = await supabaseFetch('/rest/v1/orders?select=' + encodeURIComponent(select) + '&id=eq.' + encodeURIComponent(orderId) + '&limit=1', {
     method: 'GET',
     auth: 'service'
@@ -10955,12 +11009,14 @@ async function orderMailBuildPaidRegularInvoiceContext(tx, provider, paidAt) {
         currency: String(tx.currency || 'IDR').toUpperCase(),
         order_status: 'paid',
         payment_status: 'paid',
-        created_at: paidAt || order.created_at || diracNowIso()
+        created_at: paidAt || order.created_at || diracNowIso(),
+        shipping_address: order.shipping_address || ''
       },
       customer: {
         name: order.customer_name || customerFallback.name || 'Customer',
         email: customerEmail,
-        phone: order.customer_phone || customerFallback.phone || ''
+        phone: order.customer_phone || customerFallback.phone || '',
+        shipping_address: order.shipping_address || ''
       },
       items: Array.isArray(itemPack.items) && itemPack.items.length ? itemPack.items : [{ title: serviceType, quantity: 1, unit_price: amount, subtotal: amount }],
       payment: {
@@ -11177,12 +11233,14 @@ function orderMailNormalizeOrderInput(input) {
       currency,
       order_status: orderMailCleanText(order.order_status || 'pending', 40),
       payment_status: orderMailCleanText(order.payment_status || 'unpaid', 40),
-      created_at: orderMailCleanText(order.created_at || diracNowIso(), 60)
+      created_at: orderMailCleanText(order.created_at || diracNowIso(), 60),
+      shipping_address: orderMailCleanText(order.shipping_address || order.address || order.alamat || order.customer_address || customer.shipping_address || '', 1400)
     },
     customer: {
       name: orderMailCleanText(customer.name || customer.customer_name || 'Customer', 120),
       email: orderMailNormalizeEmail(customer.email || customer.customer_email || ''),
-      phone: orderMailCleanText(customer.phone || customer.whatsapp || customer.customer_phone || customer.customer_whatsapp || '', 80)
+      phone: orderMailCleanText(customer.phone || customer.whatsapp || customer.customer_phone || customer.customer_whatsapp || '', 80),
+      shipping_address: orderMailCleanText(customer.shipping_address || customer.address || customer.alamat || order.shipping_address || '', 1400)
     },
     payment: {
       url: orderMailCleanUrl(payment.url || payment.payment_url || ''),
@@ -11229,6 +11287,9 @@ function orderMailBuildNewOrderMessages(data) {
     : 'Ada order baru masuk.';
   const statusLabel = paid ? 'paid / sudah dibayar' : data.order.payment_status;
   const orderUrl = orderMailOrderUrl(data.order.code);
+  const shippingAddress = orderMailCleanText(data.order.shipping_address || data.customer.shipping_address || '', 1400);
+  const shippingTextLine = shippingAddress ? `Alamat pengiriman: ${shippingAddress}` : '';
+  const shippingInfoRows = shippingAddress ? [['Alamat pengiriman', shippingAddress]] : [];
 
   const customerText = [
     `Halo ${data.customer.name || 'Customer'},`,
@@ -11238,6 +11299,7 @@ function orderMailBuildNewOrderMessages(data) {
     `Layanan: ${serviceLabel}`,
     `Total: ${total}`,
     `Status: ${statusLabel}`,
+    shippingTextLine,
     `Waktu pembayaran: ${created}`,
     paymentLine.trim(),
     '',
@@ -11258,6 +11320,7 @@ function orderMailBuildNewOrderMessages(data) {
     `Customer: ${data.customer.name || '-'}`,
     `Email: ${data.customer.email || '-'}`,
     `HP/WA: ${data.customer.phone || '-'}`,
+    shippingTextLine,
     `Total: ${total}`,
     `Status bayar: ${statusLabel}`,
     `Waktu pembayaran: ${created}`,
@@ -11275,6 +11338,7 @@ function orderMailBuildNewOrderMessages(data) {
       ['Layanan', serviceLabel],
       ['Total', total],
       ['Status', statusLabel],
+      ...shippingInfoRows,
       ['Waktu pembayaran', created],
       ['Referensi pembayaran', data.payment.invoice_id || '-']
     ])}
@@ -11292,6 +11356,7 @@ function orderMailBuildNewOrderMessages(data) {
       ['Customer', data.customer.name || '-'],
       ['Email', data.customer.email || '-'],
       ['HP/WA', data.customer.phone || '-'],
+      ...shippingInfoRows,
       ['Total', total],
       ['Status bayar', statusLabel],
       ['Waktu pembayaran', created],
