@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; frame-src 'none'; script-src 'self' 'sha512-RGh6CVZd7XfiyN8/muPzoLxYCqkiEUusCBQTAf4+ObAwADjC/QUwSuf/S+lR6m03HAi59ay6iLjOHZm+rUl+ow=='; style-src 'self' 'unsafe-inline'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>Cek Backend Produk Parfum</title>
+<style>
+:root{--bg:#050608;--panel:#101722;--line:rgba(243,205,112,.22);--gold:#f3cd70;--text:#f9fafb;--muted:#aeb7c6;--danger:#ef4444;--ok:#22c55e;--warn:#f59e0b}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#07080b,#020304);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif;line-height:1.5;padding:18px}
+.wrap{max-width:980px;margin:auto}.card{background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.03));border:1px solid var(--line);border-radius:18px;padding:16px;margin:12px 0;box-shadow:0 20px 48px rgba(0,0,0,.28)}
+h1{font-size:1.35rem;margin:0 0 8px;color:var(--gold)}p{color:var(--muted);margin:6px 0}label{display:block;font-weight:700;margin:12px 0 6px}input{width:100%;border:1px solid rgba(255,255,255,.14);border-radius:12px;background:rgba(255,255,255,.06);color:#fff;padding:12px;font:inherit}
+button{border:0;border-radius:999px;padding:11px 14px;font-weight:800;margin:8px 6px 0 0;background:linear-gradient(135deg,#ffe58e,#d3a03a);color:#1a1208}button.secondary{background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.15)}button:disabled{opacity:.6}
+.status{border-radius:14px;padding:12px;margin-top:12px;font-weight:800}.idle{background:rgba(255,255,255,.06)}.loading{background:rgba(59,130,246,.16);border:1px solid rgba(59,130,246,.28)}.ok{background:rgba(34,197,94,.14);border:1px solid rgba(34,197,94,.32)}.warn{background:rgba(245,158,11,.14);border:1px solid rgba(245,158,11,.34)}.bad{background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.34)}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.grid div{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:10px;min-width:0}.grid b{display:block;color:var(--gold);font-size:.84rem}.grid span{display:block;overflow-wrap:anywhere}.diagnosis{margin-top:12px;padding:12px;border-radius:14px;background:rgba(243,205,112,.10);border:1px solid var(--line)}
+table{border-collapse:collapse;width:100%;font-size:.86rem}th,td{border-bottom:1px solid rgba(255,255,255,.09);padding:9px;text-align:left;vertical-align:top}th{color:var(--gold);position:sticky;top:0;background:#101722}code{color:#f8e7b8}.tableScroll{overflow:auto;max-height:520px}pre{white-space:pre-wrap;overflow:auto;max-height:420px;background:#05070a;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:12px;color:#d7deea}.empty{padding:14px;color:var(--muted)}.note{font-size:.92rem}
+@media(max-width:700px){body{padding:12px}.grid{grid-template-columns:1fr}table{font-size:.78rem}th,td{padding:7px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1>Cek Backend Produk Parfum</h1>
+    <p class="note">Halaman ini hanya melakukan pembacaan read-only ke endpoint produk. Tidak mengubah login, hash, A2F, payment gateway, email template, database, atau endpoint.</p>
+    <label for="endpoint">Endpoint</label>
+    <input id="endpoint" value="/api/2fa/passkey-auth-finish" autocomplete="off">
+    <label for="limit">Limit produk</label>
+    <input id="limit" value="5000" inputmode="numeric">
+    <button id="runCheck">Cek Backend Produk</button>
+    <button id="copyReport" class="secondary">Salin Laporan</button>
+    <button id="clearResult" class="secondary">Bersihkan</button>
+    <div id="statusBox" class="status idle">Belum dicek.</div>
+  </div>
+  <div id="summaryBox" class="card"></div>
+  <div class="card">
+    <h2 style="margin-top:0;color:var(--gold);font-size:1.05rem">Produk/Harga Terbaca</h2>
+    <div id="tableWrap" class="tableScroll"></div>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0;color:var(--gold);font-size:1.05rem">Raw Respons Backend</h2>
+    <pre id="rawBox"></pre>
+  </div>
+</div>
+<script>
+(function(){
+  'use strict';
+
+  var endpointInput = document.getElementById('endpoint');
+  var limitInput = document.getElementById('limit');
+  var btn = document.getElementById('runCheck');
+  var clearBtn = document.getElementById('clearResult');
+  var statusBox = document.getElementById('statusBox');
+  var summaryBox = document.getElementById('summaryBox');
+  var tableWrap = document.getElementById('tableWrap');
+  var rawBox = document.getElementById('rawBox');
+  var copyBtn = document.getElementById('copyReport');
+
+  function nowIso(){ return new Date().toISOString(); }
+  function rupiah(n){
+    n = Number(n || 0);
+    if(!Number.isFinite(n)) return '-';
+    try { return new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(n); }
+    catch(_) { return 'Rp ' + String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g,'.'); }
+  }
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+  function parsePrice(v){
+    if(v == null || v === '') return null;
+    if(typeof v === 'number' && Number.isFinite(v)) return v;
+    var s = String(v).trim();
+    if(!s) return null;
+    var clean = s.replace(/[^\d,.\-]/g,'');
+    if(!clean) return null;
+    if(clean.indexOf(',') >= 0 && clean.indexOf('.') >= 0){
+      clean = clean.replace(/\./g,'').replace(',', '.');
+    }else if(clean.indexOf(',') >= 0){
+      var partsComma = clean.split(',');
+      if(partsComma.length === 2 && partsComma[1].length <= 2) clean = partsComma[0].replace(/\./g,'') + '.' + partsComma[1];
+      else clean = clean.replace(/,/g,'');
+    }else if((clean.match(/\./g) || []).length >= 1){
+      var partsDot = clean.split('.');
+      if(partsDot.length > 2 || partsDot[partsDot.length-1].length === 3) clean = partsDot.join('');
+    }
+    var n = Number(clean);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  var arrayPaths = [
+    'products','data.products','data','items','rows','records','result.products','result.items','result.rows',
+    'payload.products','payload.items','payload.rows','response.products','response.items','response.rows'
+  ];
+  var priceKeys = [
+    'price','harga','harga_jual','selling_price','price_idr','idr_price','amount','nominal','sale_price',
+    'regular_price','final_price','display_price','unit_price','product_price'
+  ];
+  var titleKeys = ['title','name','nama','product_name','nama_produk','label'];
+  var idKeys = ['id','product_id','uuid','sku','slug','kode','code'];
+
+  function getPath(obj, path){
+    var cur = obj;
+    var parts = path.split('.');
+    for(var i=0;i<parts.length;i++){
+      if(cur == null || typeof cur !== 'object') return undefined;
+      cur = cur[parts[i]];
+    }
+    return cur;
+  }
+  function findArrays(obj, prefix, out, depth){
+    if(!obj || typeof obj !== 'object' || depth > 5) return;
+    if(Array.isArray(obj)){
+      out.push({path:prefix || '(root array)', value:obj});
+      return;
+    }
+    Object.keys(obj).slice(0,80).forEach(function(k){
+      var v = obj[k];
+      var next = prefix ? prefix + '.' + k : k;
+      if(Array.isArray(v)) out.push({path:next, value:v});
+      else if(v && typeof v === 'object') findArrays(v, next, out, depth + 1);
+    });
+  }
+  function chooseProducts(data){
+    for(var i=0;i<arrayPaths.length;i++){
+      var arr = getPath(data, arrayPaths[i]);
+      if(Array.isArray(arr)) return {path:arrayPaths[i], products:arr};
+    }
+    var found = [];
+    findArrays(data, '', found, 0);
+    found.sort(function(a,b){
+      function score(x){
+        var first = x.value && x.value[0] && typeof x.value[0] === 'object' ? x.value[0] : {};
+        var keys = Object.keys(first).join('|').toLowerCase();
+        var s = x.value.length;
+        if(/price|harga|amount|nominal/.test(keys)) s += 10000;
+        if(/title|name|nama|produk|product/.test(keys)) s += 5000;
+        return s;
+      }
+      return score(b)-score(a);
+    });
+    return found[0] ? {path:found[0].path, products:found[0].value, allArrays:found} : {path:null, products:[], allArrays:found};
+  }
+  function pick(obj, keys){
+    for(var i=0;i<keys.length;i++){
+      var k = keys[i];
+      if(obj && Object.prototype.hasOwnProperty.call(obj,k) && obj[k] != null && obj[k] !== '') return {key:k, value:obj[k]};
+    }
+    return {key:null, value:null};
+  }
+  function setStatus(kind, text){
+    statusBox.className = 'status ' + kind;
+    statusBox.textContent = text;
+  }
+  function renderTable(products){
+    if(!products.length){
+      tableWrap.innerHTML = '<div class="empty">Tidak ada array produk yang bisa dibaca dari respons backend.</div>';
+      return;
+    }
+    var rows = products.slice(0,50).map(function(p, idx){
+      p = p && typeof p === 'object' ? p : {};
+      var id = pick(p, idKeys);
+      var title = pick(p, titleKeys);
+      var price = pick(p, priceKeys);
+      var parsed = parsePrice(price.value);
+      return '<tr>' +
+        '<td>' + (idx+1) + '</td>' +
+        '<td><code>' + esc(id.key || '-') + '</code><br>' + esc(id.value || '-') + '</td>' +
+        '<td><code>' + esc(title.key || '-') + '</code><br>' + esc(title.value || '-') + '</td>' +
+        '<td><code>' + esc(price.key || '-') + '</code><br>' + esc(price.value == null ? '-' : price.value) + '</td>' +
+        '<td>' + esc(parsed == null ? '-' : rupiah(parsed)) + '</td>' +
+        '</tr>';
+    }).join('');
+    tableWrap.innerHTML =
+      '<table><thead><tr><th>No</th><th>ID</th><th>Nama</th><th>Harga mentah</th><th>Harga terbaca</th></tr></thead><tbody>' +
+      rows + '</tbody></table>';
+  }
+  function summarize(httpStatus, data, choice, elapsed, errorText){
+    var products = choice.products || [];
+    var first = products[0] && typeof products[0] === 'object' ? products[0] : {};
+    var price = pick(first, priceKeys);
+    var parsed = parsePrice(price.value);
+    var flags = [];
+    if(data && data.success === false) flags.push('success=false');
+    if(data && data.ok === false) flags.push('ok=false');
+    if(errorText) flags.push('error');
+    if(!products.length) flags.push('produk=0');
+    var diagnosis = '';
+    if(errorText){
+      diagnosis = 'Request ke endpoint gagal. Katalog akan cenderung memakai data lokal/fallback.';
+    }else if(httpStatus < 200 || httpStatus >= 300){
+      diagnosis = 'Endpoint merespons HTTP ' + httpStatus + '. Ini menunjukkan backend menolak/gagal, bukan masalah format harga di kartu produk.';
+    }else if(!products.length){
+      diagnosis = 'Endpoint berhasil dihubungi, tetapi tidak mengirim array produk yang dapat dibaca. Akar masalah ada di respons backend/action publicReadProducts atau struktur payload.';
+    }else if(parsed == null){
+      diagnosis = 'Produk terbaca, tetapi field harga tidak ditemukan/format harga tidak dikenali. Akar masalah ada pada nama kolom harga yang dikirim backend.';
+    }else{
+      diagnosis = 'Produk dan harga berhasil terbaca dari backend. Jika tampilan katalog masih harga lama, masalah berikutnya ada pada file live/cache/rendering setelah fetch.';
+    }
+    return {
+      waktu: nowIso(),
+      endpoint: endpointInput.value,
+      action: 'publicReadProducts',
+      httpStatus: httpStatus,
+      lamaMs: elapsed,
+      jumlahProdukTerbaca: products.length,
+      pathArrayProduk: choice.path || '-',
+      fieldHargaPertama: price.key || '-',
+      hargaPertamaMentah: price.value == null ? '-' : price.value,
+      hargaPertamaTerbaca: parsed == null ? '-' : rupiah(parsed),
+      tandaMasalah: flags.join(', ') || '-',
+      diagnosis: diagnosis
+    };
+  }
+  function renderSummary(s){
+    summaryBox.innerHTML =
+      '<div class="grid">' +
+        '<div><b>Endpoint</b><span>' + esc(s.endpoint) + '</span></div>' +
+        '<div><b>HTTP</b><span>' + esc(s.httpStatus) + '</span></div>' +
+        '<div><b>Jumlah produk terbaca</b><span>' + esc(s.jumlahProdukTerbaca) + '</span></div>' +
+        '<div><b>Path array</b><span>' + esc(s.pathArrayProduk) + '</span></div>' +
+        '<div><b>Field harga pertama</b><span>' + esc(s.fieldHargaPertama) + '</span></div>' +
+        '<div><b>Harga pertama</b><span>' + esc(s.hargaPertamaTerbaca) + '</span></div>' +
+      '</div>' +
+      '<div class="diagnosis"><b>Diagnosis:</b> ' + esc(s.diagnosis) + '</div>';
+  }
+  function reportText(summary, data){
+    return [
+      'LAPORAN CEK BACKEND PRODUK PARFUM',
+      'Waktu: ' + summary.waktu,
+      'Endpoint: ' + summary.endpoint,
+      'Action: publicReadProducts',
+      'HTTP: ' + summary.httpStatus,
+      'Durasi: ' + summary.lamaMs + ' ms',
+      'Jumlah produk terbaca: ' + summary.jumlahProdukTerbaca,
+      'Path array produk: ' + summary.pathArrayProduk,
+      'Field harga pertama: ' + summary.fieldHargaPertama,
+      'Harga pertama mentah: ' + summary.hargaPertamaMentah,
+      'Harga pertama terbaca: ' + summary.hargaPertamaTerbaca,
+      'Tanda masalah: ' + summary.tandaMasalah,
+      'Diagnosis: ' + summary.diagnosis
+    ].join('\n');
+  }
+
+  var lastReport = '';
+  async function run(){
+    var endpoint = String(endpointInput.value || '/api/2fa/passkey-auth-finish').trim();
+    var limit = Math.max(1, Math.min(5000, Number(limitInput.value || 5000)));
+    setStatus('loading','Mengecek backend produk... Mohon tunggu.');
+    summaryBox.innerHTML = '';
+    tableWrap.innerHTML = '';
+    rawBox.textContent = '';
+    btn.disabled = true;
+    var started = Date.now();
+    var httpStatus = '-';
+    var data = null;
+    var errorText = '';
+    try{
+      var response = await fetch(endpoint, {
+        method:'POST',
+        credentials:'same-origin',
+        cache:'no-store',
+        headers:{
+          'Content-Type':'application/json',
+          'Accept':'application/json',
+          'X-Dirac-Diagnostic':'public-products-readonly'
+        },
+        body: JSON.stringify({action:'publicReadProducts', limit:limit, diagnostic:true, ts:Date.now()})
+      });
+      httpStatus = response.status;
+      var text = await response.text();
+      try{ data = text ? JSON.parse(text) : {}; }
+      catch(parseErr){ data = {parseError:String(parseErr && parseErr.message || parseErr), rawText:text}; }
+      var elapsed = Date.now() - started;
+      var choice = chooseProducts(data);
+      var summary = summarize(httpStatus, data, choice, elapsed, '');
+      renderSummary(summary);
+      renderTable(choice.products || []);
+      rawBox.textContent = JSON.stringify(data, null, 2).slice(0, 20000);
+      lastReport = reportText(summary, data);
+      if(response.ok && choice.products && choice.products.length){
+        setStatus('ok','Backend berhasil dibaca. Lihat diagnosis dan tabel harga di bawah.');
+      }else{
+        setStatus('warn','Backend terhubung, tetapi respons belum membuktikan produk/harga terbaru terbaca.');
+      }
+    }catch(error){
+      var elapsedErr = Date.now() - started;
+      errorText = String(error && error.message || error);
+      var summaryErr = summarize(httpStatus, {}, {path:null, products:[]}, elapsedErr, errorText);
+      renderSummary(summaryErr);
+      rawBox.textContent = errorText;
+      lastReport = reportText(summaryErr, {});
+      setStatus('bad','Request gagal: ' + errorText);
+    }finally{
+      btn.disabled = false;
+    }
+  }
+
+  btn.addEventListener('click', run);
+  clearBtn.addEventListener('click', function(){
+    setStatus('idle','Belum dicek.');
+    summaryBox.innerHTML = '';
+    tableWrap.innerHTML = '';
+    rawBox.textContent = '';
+    lastReport = '';
+  });
+  copyBtn.addEventListener('click', async function(){
+    if(!lastReport){
+      setStatus('warn','Belum ada laporan. Tekan tombol cek terlebih dahulu.');
+      return;
+    }
+    try{
+      await navigator.clipboard.writeText(lastReport);
+      setStatus('ok','Laporan berhasil disalin. Kirim teks laporan itu ke chat.');
+    }catch(_){
+      rawBox.textContent = lastReport + '\n\n' + rawBox.textContent;
+      setStatus('warn','Browser tidak mengizinkan salin otomatis. Laporan saya tampilkan di kotak raw.');
+    }
+  });
+  run();
+})();
+</script>
+</body>
+</html>
