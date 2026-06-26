@@ -1777,6 +1777,7 @@
       return { enabled: false, mode: 'noop' };
     }
     const DIRAC_FIREBASE_AUTH_STORE = 'dirac-admin-firebase-rest-session-v1';
+    const DIRAC_FIREBASE_LOGIN_PROXY_ENDPOINT = 'https://companyprofilee-expk.vercel.app/api/2fa/passkey-auth-finish';
     const DIRAC_FIREBASE_AUTH_LISTENERS = new Set();
     function decodeJwtPayload(token){
       try{
@@ -1812,26 +1813,58 @@
     function clearStoredFirebaseSession(){
       try{ localStorage.removeItem(DIRAC_FIREBASE_AUTH_STORE); }catch(_error){}
     }
-    async function firebaseAuthFetch(url, payload){
-      const response = await fetch(url, {
+    function mapFirebaseRestError(data, status){
+      const raw = data && data.error && (data.error.message || data.error.code) || ('HTTP_' + status);
+      const map = {
+        EMAIL_NOT_FOUND:'auth/user-not-found',
+        INVALID_PASSWORD:'auth/wrong-password',
+        INVALID_LOGIN_CREDENTIALS:'auth/invalid-credential',
+        USER_DISABLED:'auth/user-disabled',
+        TOO_MANY_ATTEMPTS_TRY_LATER:'auth/too-many-requests',
+        OPERATION_NOT_ALLOWED:'auth/operation-not-allowed'
+      };
+      throw normalizeFirebaseError(map[raw] || ('auth/' + String(raw).toLowerCase().replace(/_/g, '-')), raw);
+    }
+    function getFirebaseAuthProxyAction(url){
+      const value = String(url || '');
+      if(value.includes('accounts:signInWithPassword')) return 'firebasePasswordLogin';
+      if(value.includes('securetoken.googleapis.com')) return 'firebaseRefreshToken';
+      return '';
+    }
+    async function firebaseAuthProxyFetch(url, payload, originalError){
+      const proxyAction = getFirebaseAuthProxyAction(url);
+      if(!proxyAction || !DIRAC_FIREBASE_LOGIN_PROXY_ENDPOINT){
+        throw originalError || normalizeFirebaseError('auth/network-request-failed', 'Load failed');
+      }
+      const response = await fetch(DIRAC_FIREBASE_LOGIN_PROXY_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload || {})
+        body: JSON.stringify(Object.assign({ action: proxyAction }, payload || {}))
       });
       const data = await response.json().catch(() => ({}));
-      if(!response.ok){
-        const raw = data && data.error && (data.error.message || data.error.code) || ('HTTP_' + response.status);
-        const map = {
-          EMAIL_NOT_FOUND:'auth/user-not-found',
-          INVALID_PASSWORD:'auth/wrong-password',
-          INVALID_LOGIN_CREDENTIALS:'auth/invalid-credential',
-          USER_DISABLED:'auth/user-disabled',
-          TOO_MANY_ATTEMPTS_TRY_LATER:'auth/too-many-requests',
-          OPERATION_NOT_ALLOWED:'auth/operation-not-allowed'
-        };
-        throw normalizeFirebaseError(map[raw] || ('auth/' + String(raw).toLowerCase().replace(/_/g, '-')), raw);
+      if(!response.ok || data.success === false){
+        mapFirebaseRestError(data && data.firebaseError ? { error: data.firebaseError } : data, response.status);
       }
-      return data;
+      return data && data.data ? data.data : data;
+    }
+    async function firebaseAuthFetch(url, payload){
+      try{
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload || {})
+        });
+        const data = await response.json().catch(() => ({}));
+        if(!response.ok){
+          mapFirebaseRestError(data, response.status);
+        }
+        return data;
+      }catch(error){
+        if(error && error.code && !/network|load|failed/i.test(error.message || error.code || '')){
+          throw error;
+        }
+        return firebaseAuthProxyFetch(url, payload, error);
+      }
     }
     function makeFirebaseRestUser(authObj, session){
       const payload = decodeJwtPayload(session && session.idToken);
