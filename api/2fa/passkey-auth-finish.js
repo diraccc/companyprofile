@@ -167,6 +167,93 @@ function getSupabaseAdmin() {
   });
 }
 
+function getFirebaseWebApiKey() {
+  return String(
+    process.env.FIREBASE_WEB_API_KEY ||
+    process.env.NEXT_PUBLIC_FIREBASE_API_KEY ||
+    "AIzaSyD9tYvv7nyrNZuQp9Cu6huVlzY8poeRBHY"
+  ).trim();
+}
+
+function getAllowedAdminLoginEmails() {
+  return String(process.env.ADMIN_LOGIN_EMAILS || process.env.A2F_ADMIN_EMAIL || "companydirac@gmail.com")
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function assertAllowedAdminLoginEmail(email) {
+  const normalized = String(email || "").trim().toLowerCase();
+  const allowed = getAllowedAdminLoginEmails();
+  if (!normalized || !allowed.includes(normalized)) {
+    throw Object.assign(new Error("Email ini tidak diizinkan untuk login admin"), { status: 403 });
+  }
+  return normalized;
+}
+
+async function firebaseRestRequest(url, payload) {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload || {})
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const raw = data && data.error && (data.error.message || data.error.code) || `HTTP_${response.status}`;
+    const error = Object.assign(new Error(raw), { status: response.status, firebaseError: data && data.error });
+    throw error;
+  }
+  return data;
+}
+
+async function handleFirebasePasswordLogin(req, res, body) {
+  const email = assertAllowedAdminLoginEmail(body && body.email);
+  const password = String(body && body.password || "");
+  if (!password) throw Object.assign(new Error("Password admin wajib diisi"), { status: 400 });
+
+  const apiKey = getFirebaseWebApiKey();
+  if (!apiKey) throw Object.assign(new Error("FIREBASE_WEB_API_KEY belum diset"), { status: 500 });
+
+  const data = await firebaseRestRequest(
+    `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${encodeURIComponent(apiKey)}`,
+    { email, password, returnSecureToken: true }
+  );
+
+  return send(res, 200, {
+    success: true,
+    data: {
+      idToken: data.idToken,
+      refreshToken: data.refreshToken,
+      expiresIn: data.expiresIn,
+      localId: data.localId,
+      email: data.email || email
+    }
+  });
+}
+
+async function handleFirebaseRefreshToken(req, res, body) {
+  const refreshToken = String(body && body.refresh_token || body && body.refreshToken || "");
+  if (!refreshToken) throw Object.assign(new Error("Refresh token Firebase wajib diisi"), { status: 400 });
+
+  const apiKey = getFirebaseWebApiKey();
+  if (!apiKey) throw Object.assign(new Error("FIREBASE_WEB_API_KEY belum diset"), { status: 500 });
+
+  const data = await firebaseRestRequest(
+    `https://securetoken.googleapis.com/v1/token?key=${encodeURIComponent(apiKey)}`,
+    { grant_type: "refresh_token", refresh_token: refreshToken }
+  );
+
+  return send(res, 200, {
+    success: true,
+    data: {
+      id_token: data.id_token,
+      refresh_token: data.refresh_token,
+      expires_in: data.expires_in,
+      user_id: data.user_id
+    }
+  });
+}
+
 async function writeAdminLog({ uid, email, role, action, ok = true, message = "" }) {
   const supabase = getSupabaseAdmin();
   const { error } = await supabase.from(ADMIN_LOG_TABLE).insert({
@@ -1377,6 +1464,14 @@ module.exports = async function handler(req, res) {
 
     if (action === "publicReadProducts" || action === "publicCreateOrder") {
       return await handlePublicStorefrontAction(req, res, body);
+    }
+
+    if (action === "firebasePasswordLogin") {
+      return await handleFirebasePasswordLogin(req, res, body);
+    }
+
+    if (action === "firebaseRefreshToken") {
+      return await handleFirebaseRefreshToken(req, res, body);
     }
 
     if (action) {
