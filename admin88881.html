@@ -1777,7 +1777,10 @@
       return { enabled: false, mode: 'noop' };
     }
     const DIRAC_FIREBASE_AUTH_STORE = 'dirac-admin-firebase-rest-session-v1';
-    const DIRAC_FIREBASE_LOGIN_PROXY_ENDPOINT = 'https://companyprofilee-expk.vercel.app/api/2fa/passkey-auth-finish';
+    const DIRAC_FIREBASE_LOGIN_PROXY_ENDPOINTS = [
+      '/api/2fa/passkey-auth-finish',
+      'https://companyprofilee-expk.vercel.app/api/2fa/passkey-auth-finish'
+    ];
     const DIRAC_FIREBASE_AUTH_LISTENERS = new Set();
     function decodeJwtPayload(token){
       try{
@@ -1833,37 +1836,60 @@
     }
     async function firebaseAuthProxyFetch(url, payload, originalError){
       const proxyAction = getFirebaseAuthProxyAction(url);
-      if(!proxyAction || !DIRAC_FIREBASE_LOGIN_PROXY_ENDPOINT){
+      if(!proxyAction){
         throw originalError || normalizeFirebaseError('auth/network-request-failed', 'Load failed');
       }
-      const response = await fetch(DIRAC_FIREBASE_LOGIN_PROXY_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(Object.assign({ action: proxyAction }, payload || {}))
-      });
-      const data = await response.json().catch(() => ({}));
-      if(!response.ok || data.success === false){
-        mapFirebaseRestError(data && data.firebaseError ? { error: data.firebaseError } : data, response.status);
+      const endpoints = (Array.isArray(DIRAC_FIREBASE_LOGIN_PROXY_ENDPOINTS) ? DIRAC_FIREBASE_LOGIN_PROXY_ENDPOINTS : [])
+        .filter(Boolean);
+      let lastError = originalError || null;
+      for(const endpoint of endpoints){
+        try{
+          let firebaseApiKey = '';
+          try{ firebaseApiKey = new URL(String(url || ''), location.href).searchParams.get('key') || ''; }catch(_error){}
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: endpoint.charAt(0) === '/' ? 'same-origin' : 'omit',
+            body: JSON.stringify(Object.assign({ action: proxyAction, apiKey: firebaseApiKey }, payload || {}))
+          });
+          const data = await response.json().catch(() => ({}));
+          if(!response.ok || data.success === false){
+            mapFirebaseRestError(data && data.firebaseError ? { error: data.firebaseError } : data, response.status);
+          }
+          return data && data.data ? data.data : data;
+        }catch(error){
+          lastError = error;
+        }
       }
-      return data && data.data ? data.data : data;
+      if(lastError && lastError.code){
+        throw lastError;
+      }
+      throw normalizeFirebaseError(
+        'auth/network-request-failed',
+        'Load failed. Backend proxy /api/2fa/passkey-auth-finish belum aktif atau tidak bisa diakses.'
+      );
     }
     async function firebaseAuthFetch(url, payload){
       try{
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload || {})
-        });
-        const data = await response.json().catch(() => ({}));
-        if(!response.ok){
-          mapFirebaseRestError(data, response.status);
+        return await firebaseAuthProxyFetch(url, payload, null);
+      }catch(proxyError){
+        try{
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload || {})
+          });
+          const data = await response.json().catch(() => ({}));
+          if(!response.ok){
+            mapFirebaseRestError(data, response.status);
+          }
+          return data;
+        }catch(directError){
+          if(proxyError && proxyError.code){
+            throw proxyError;
+          }
+          throw directError || proxyError || normalizeFirebaseError('auth/network-request-failed', 'Load failed');
         }
-        return data;
-      }catch(error){
-        if(error && error.code && !/network|load|failed/i.test(error.message || error.code || '')){
-          throw error;
-        }
-        return firebaseAuthProxyFetch(url, payload, error);
       }
     }
     function makeFirebaseRestUser(authObj, session){
