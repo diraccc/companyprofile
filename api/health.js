@@ -14478,7 +14478,13 @@ async function diracPasswordArgon2V4PersistAfterVerifiedAuth(req, payload, actio
 
   const active = await diracPasswordArgon2V4ReadActive(authUserId).catch(() => null);
   if (active && active.id && active.customer_id === customerId && String(active.password_hash || '').startsWith('$argon2id$')) {
-    return { ok: true, skipped: 'active_argon2id_exists' };
+    const rotateEveryLogin = String(action || '') === 'domain_login' && !diracV110EnvTrue('DIRAC_PASSWORD_ARGON2_ROTATE_EVERY_LOGIN_DISABLED');
+    if (!rotateEveryLogin) {
+      const matchesCurrentPassword = typeof diracV110VerifyArgon2ShadowPassword === 'function'
+        ? await diracV110VerifyArgon2ShadowPassword(password, active.password_hash, { authUserId, customerId, email }).catch(() => false)
+        : true;
+      if (matchesCurrentPassword) return { ok: true, skipped: 'active_argon2id_matches_current_password' };
+    }
   }
 
   const nowIso = diracNowIso();
@@ -14647,4 +14653,416 @@ function diracPasswordArgon2V4SafeError(error) {
   const code = String(error && (error.code || error.name || error.message) || 'PASSWORD_ARGON2_SHADOW_V4_ERROR');
   if (/password|token|secret|cookie|authorization|service_role|apikey/i.test(code)) return 'PASSWORD_ARGON2_SHADOW_V4_ERROR';
   return code.slice(0, 120);
+}
+
+/* ============================================================
+   DIRAC AUTH HARDENING SAFE v110 - APPEND ONLY
+   Fokus:
+   - Memperkuat password policy untuk register baru tanpa mengubah login Supabase.
+   - Memperbarui shadow Argon2id setelah login sukses jika password sudah berubah
+     melalui reset/ganti password, tanpa menyentuh auth.users.encrypted_password.
+   - Memperketat umur cookie/session customer secara aman.
+   - Menulis audit login/register/A2F secara best-effort tanpa data sensitif.
+   - Tidak mengubah endpoint, payment gateway, email template, A2F core,
+     dashboard, order, parfum, atau kontrak response lama.
+   ============================================================ */
+
+const DIRAC_AUTH_HARDENING_SAFE_PATCH_V110 = 'dirac-auth-hardening-safe-v110';
+
+try {
+  const __diracV110OriginalGuardDomainLoginInput = typeof guardDomainLoginInput === 'function' ? guardDomainLoginInput : null;
+  if (__diracV110OriginalGuardDomainLoginInput && !__diracV110OriginalGuardDomainLoginInput.__diracV110Wrapped) {
+    guardDomainLoginInput = async function guardDomainLoginInputV110PasswordPolicy(req, res, input) {
+      const result = await __diracV110OriginalGuardDomainLoginInput(req, res, input);
+      if (!result || !result.ok) return result;
+
+      const action = String(input && input.action || '').trim();
+      if (action !== 'domain_register') return result;
+
+      const policy = diracV110CheckPasswordPolicy(input && input.password, input && (input.email || input.rawEmail));
+      if (!policy.ok) {
+        return {
+          ok: false,
+          status: 400,
+          body: {
+            ok: false,
+            code: 'PASSWORD_POLICY_WEAK',
+            message: policy.message
+          }
+        };
+      }
+
+      return result;
+    };
+    Object.defineProperty(guardDomainLoginInput, '__diracV110Wrapped', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+try {
+  const __diracV110OriginalSetSessionCookies = typeof setSessionCookies === 'function' ? setSessionCookies : null;
+  if (__diracV110OriginalSetSessionCookies && !__diracV110OriginalSetSessionCookies.__diracV110Wrapped) {
+    setSessionCookies = function setSessionCookiesV110Tightened(res, session) {
+      if (!hasValidDomainSessionTokens(session)) {
+        clearSessionCookies(res);
+        return false;
+      }
+
+      const maxAge = diracV110SessionMaxAgeSeconds();
+      appendSetCookie(res, [
+        ...makeTokenCookieSet(ACCESS_COOKIE, session.access_token, { maxAge }),
+        ...makeTokenCookieSet(REFRESH_COOKIE, session.refresh_token, { maxAge }),
+        ...makeSignedDomainSessionCookieSet(session, { maxAge })
+      ]);
+      return true;
+    };
+    Object.defineProperty(setSessionCookies, '__diracV110Wrapped', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+try {
+  const __diracV110OriginalBuildSessionFingerprint = typeof customerSecurityBuildSessionFingerprint === 'function' ? customerSecurityBuildSessionFingerprint : null;
+  if (__diracV110OriginalBuildSessionFingerprint && !__diracV110OriginalBuildSessionFingerprint.__diracV110Wrapped) {
+    customerSecurityBuildSessionFingerprint = function customerSecurityBuildSessionFingerprintV110(req, customerId) {
+      const fingerprint = __diracV110OriginalBuildSessionFingerprint(req, customerId);
+      if (fingerprint && typeof fingerprint === 'object') {
+        fingerprint.expires_at = new Date(Date.now() + diracV110SessionMaxAgeSeconds() * 1000).toISOString();
+        fingerprint.session_hardening = DIRAC_AUTH_HARDENING_SAFE_PATCH_V110;
+      }
+      return fingerprint;
+    };
+    Object.defineProperty(customerSecurityBuildSessionFingerprint, '__diracV110Wrapped', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+try {
+  const __diracV110OriginalPasswordPersist = typeof diracPasswordArgon2V4PersistAfterVerifiedAuth === 'function'
+    ? diracPasswordArgon2V4PersistAfterVerifiedAuth
+    : null;
+  if (__diracV110OriginalPasswordPersist && !__diracV110OriginalPasswordPersist.__diracV110Wrapped) {
+    diracPasswordArgon2V4PersistAfterVerifiedAuth = async function diracPasswordArgon2V4PersistAfterVerifiedAuthV110(req, payload, action) {
+      return diracV110PersistArgon2ShadowAfterVerifiedAuth(req, payload, action);
+    };
+    Object.defineProperty(diracPasswordArgon2V4PersistAfterVerifiedAuth, '__diracV110Wrapped', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+const __diracV110PreviousHandler = module.exports;
+
+module.exports = async function diracAuthHardeningSafeWrapperV110(req, res) {
+  try { if (res && typeof res.setHeader === 'function') res.setHeader('X-Dirac-Auth-Hardening-Patch', DIRAC_AUTH_HARDENING_SAFE_PATCH_V110); } catch (_) {}
+
+  const action = diracV110NormalizeAction(String((req && req.query && req.query.action) || ''));
+  const method = String((req && req.method) || '').toUpperCase();
+
+  if (!diracV110ShouldAuditAction(action, method)) {
+    return __diracV110PreviousHandler(req, res);
+  }
+
+  const originalStatus = typeof res.status === 'function' ? res.status.bind(res) : null;
+  const originalJson = typeof res.json === 'function' ? res.json.bind(res) : null;
+  let capturedStatus = Number(res.statusCode || 200);
+
+  if (!originalJson) return __diracV110PreviousHandler(req, res);
+
+  res.status = function diracV110Status(code) {
+    capturedStatus = Number(code || capturedStatus || 200);
+    if (originalStatus) return originalStatus(code);
+    res.statusCode = capturedStatus;
+    return res;
+  };
+
+  res.json = async function diracV110Json(payload) {
+    const httpStatus = Number(capturedStatus || res.statusCode || 200);
+    if (httpStatus >= 200 && httpStatus < 300 && payload && payload.ok === true) {
+      await diracV110WriteAuthAudit(req, payload, action, httpStatus).catch((error) => {
+        console.error('[dirac-auth-audit-v110]', diracV110SafeError(error));
+      });
+    }
+    return originalJson(payload);
+  };
+
+  return __diracV110PreviousHandler(req, res);
+};
+
+function diracV110CheckPasswordPolicy(password, email) {
+  const value = String(password || '');
+  const normalizedEmail = normalizeAuthEmail(email || '');
+  const localPart = normalizedEmail.split('@')[0] || '';
+  const minLen = diracV110NumberFromEnv(['DIRAC_PASSWORD_MIN_LENGTH'], 10, 8, 128);
+
+  if (value.length < minLen) {
+    return { ok: false, message: 'Password terlalu pendek. Gunakan minimal ' + minLen + ' karakter dengan huruf dan angka.' };
+  }
+  if (value.length > 128) {
+    return { ok: false, message: 'Password terlalu panjang. Maksimal 128 karakter.' };
+  }
+  if (!/[A-Za-z]/.test(value) || !/[0-9]/.test(value)) {
+    return { ok: false, message: 'Password wajib memakai kombinasi huruf dan angka.' };
+  }
+  if (/^(.)(\1{7,})$/.test(value)) {
+    return { ok: false, message: 'Password terlalu mudah ditebak. Gunakan kombinasi yang lebih aman.' };
+  }
+  if (localPart && localPart.length >= 4 && value.toLowerCase().includes(localPart.toLowerCase())) {
+    return { ok: false, message: 'Password tidak boleh mengandung nama email.' };
+  }
+  if (diracV110LooksLikeCommonPassword(value)) {
+    return { ok: false, message: 'Password terlalu umum. Gunakan password yang lebih unik.' };
+  }
+  return { ok: true };
+}
+
+function diracV110LooksLikeCommonPassword(password) {
+  const clean = String(password || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (!clean) return true;
+  const common = new Set([
+    'password', 'password1', 'password123', 'qwerty123', 'qwertyuiop', 'admin123', 'admin12345',
+    'dirac123', 'diracgroup123', 'bismillah', 'bismillah123', 'indonesia123', 'jakarta123',
+    '12345678', '123456789', '1234567890', '11111111', '00000000', 'abc123456', 'test123456'
+  ]);
+  return common.has(clean) || /^(?:1234|abcd|qwer|asdf|zxcv)/.test(clean);
+}
+
+async function diracV110PersistArgon2ShadowAfterVerifiedAuth(req, payload, action) {
+  if (diracPasswordArgon2V4EnvTrue('DIRAC_PASSWORD_ARGON2_DISABLED')) return { ok: false, skipped: 'disabled' };
+
+  const cached = req && req.__diracPasswordArgon2V4Body && typeof req.__diracPasswordArgon2V4Body === 'object'
+    ? req.__diracPasswordArgon2V4Body
+    : {};
+  const password = String(cached.password || '');
+  if (!password || password.length < 6) return { ok: false, skipped: 'no_password' };
+
+  const user = payload && payload.user && typeof payload.user === 'object' ? payload.user : null;
+  const authUserId = diracPasswordArgon2V4ExtractUserId(user, payload);
+  if (!diracPasswordArgon2V4LooksLikeUuid(authUserId)) return { ok: false, skipped: 'no_auth_user_id' };
+
+  const email = normalizeAuthEmail(cached.email || user && user.email || '');
+  if (!email || (typeof isStrictDomainLoginEmail === 'function' && !isStrictDomainLoginEmail(email))) return { ok: false, skipped: 'invalid_email' };
+
+  let customerId = '';
+  if (typeof customerSecurityBootstrapRegisteredUser === 'function') {
+    const bootstrap = await customerSecurityBootstrapRegisteredUser(req, { id: authUserId, email }).catch(() => null);
+    if (bootstrap && bootstrap.ok && diracPasswordArgon2V4LooksLikeUuid(bootstrap.customer_id)) customerId = String(bootstrap.customer_id);
+  }
+
+  if (!customerId) {
+    customerId = await diracPasswordArgon2V4ResolveCustomerId(authUserId, email).catch(() => '');
+  }
+
+  if (!diracPasswordArgon2V4LooksLikeUuid(customerId)) {
+    return { ok: false, skipped: 'customer_id_not_ready' };
+  }
+
+  const active = await diracPasswordArgon2V4ReadActive(authUserId).catch(() => null);
+  if (active && active.id && active.customer_id === customerId && String(active.password_hash || '').startsWith('$argon2id$')) {
+    const rotateEveryLogin = String(action || '') === 'domain_login' && !diracV110EnvTrue('DIRAC_PASSWORD_ARGON2_ROTATE_EVERY_LOGIN_DISABLED');
+    if (!rotateEveryLogin) {
+      const matchesCurrentPassword = await diracV110VerifyArgon2ShadowPassword(password, active.password_hash, { authUserId, customerId, email }).catch(() => false);
+      if (matchesCurrentPassword) return { ok: true, skipped: 'active_argon2id_matches_current_password' };
+    }
+  }
+
+  const nowIso = diracNowIso();
+  await diracPasswordArgon2V4RotateActive(authUserId, nowIso).catch(() => null);
+
+  const params = diracPasswordArgon2V4Params();
+  const passwordHash = await diracPasswordArgon2V4Hash(password, { authUserId, customerId, email });
+  if (!String(passwordHash || '').startsWith('$argon2id$')) return { ok: false, skipped: 'hash_not_argon2id' };
+
+  const row = {
+    auth_user_id: authUserId,
+    customer_id: customerId,
+    email_hash: diracPasswordArgon2V4Hmac('email|' + email),
+    password_hash: passwordHash,
+    hash_algorithm: 'argon2id',
+    hash_params: {
+      profile: DIRAC_AUTH_HARDENING_SAFE_PATCH_V110,
+      memory_kib: params.memoryCost,
+      time_cost: params.timeCost,
+      parallelism: params.parallelism,
+      hash_length: params.hashLength,
+      pepper: 'env',
+      auth_user_bound: true,
+      customer_bound: true,
+      source_action: action,
+      rotates_when_password_changes: true
+    },
+    status: 'active',
+    created_at: nowIso,
+    updated_at: nowIso
+  };
+
+  return await diracPasswordArgon2V4Insert(row);
+}
+
+async function diracV110VerifyArgon2ShadowPassword(password, storedHash, meta = {}) {
+  if (!String(storedHash || '').startsWith('$argon2id$')) return false;
+  const argon2 = customerSecurityGetArgon2();
+  return await argon2.verify(String(storedHash), diracV110PasswordArgon2Input(password, meta));
+}
+
+function diracV110PasswordArgon2Input(password, meta = {}) {
+  return [
+    'dirac-customer-password-v4-argon2id',
+    String(meta.authUserId || ''),
+    String(meta.customerId || ''),
+    normalizeAuthEmail(meta.email || ''),
+    String(password || ''),
+    diracPasswordArgon2V4Pepper()
+  ].join(':');
+}
+
+function diracV110SessionMaxAgeSeconds() {
+  return diracV110NumberFromEnv(['DIRAC_SESSION_COOKIE_MAX_AGE_SECONDS', 'DOMAIN_SESSION_MAX_AGE_SECONDS'], 24 * 60 * 60, 30 * 60, 7 * 24 * 60 * 60);
+}
+
+function diracV110NormalizeAction(action) {
+  const clean = String(action || '').trim().toLowerCase();
+  const map = {
+    'domain-login': 'domain_login',
+    'login-domain': 'domain_login',
+    'domain-register': 'domain_register',
+    'register-domain': 'domain_register',
+    'dirac_mfa_email_verify': 'dirac_mfa_email_verify',
+    'domain_mfa_email_verify': 'dirac_mfa_email_verify',
+    'dirac_mfa_passkey_verify': 'dirac_mfa_passkey_verify',
+    'domain_mfa_passkey_verify': 'dirac_mfa_passkey_verify'
+  };
+  if (typeof diracPasswordArgon2V4NormalizeAction === 'function') {
+    const v4 = diracPasswordArgon2V4NormalizeAction(clean);
+    if (v4 && v4 !== clean) return v4;
+  }
+  return map[clean] || clean;
+}
+
+function diracV110ShouldAuditAction(action, method) {
+  if (method !== 'POST') return false;
+  return action === 'domain_login'
+    || action === 'domain_register'
+    || action === 'dirac_mfa_email_verify'
+    || action === 'dirac_mfa_passkey_verify';
+}
+
+async function diracV110WriteAuthAudit(req, payload, action, httpStatus) {
+  const user = payload && payload.user && typeof payload.user === 'object' ? payload.user : null;
+  let authUserId = diracPasswordArgon2V4ExtractUserId(user, payload);
+  let email = normalizeAuthEmail((user && user.email) || '');
+
+  const cached = req && req.__diracPasswordArgon2V4Body && typeof req.__diracPasswordArgon2V4Body === 'object'
+    ? req.__diracPasswordArgon2V4Body
+    : {};
+  if (!email) email = normalizeAuthEmail(cached.email || '');
+
+  if (!authUserId || !diracPasswordArgon2V4LooksLikeUuid(authUserId)) {
+    const maybeUser = await requireDomainUserForAuditV110(req).catch(() => null);
+    if (maybeUser && maybeUser.id) authUserId = String(maybeUser.id);
+    if (!email && maybeUser && maybeUser.email) email = normalizeAuthEmail(maybeUser.email);
+  }
+
+  if (!authUserId || !diracPasswordArgon2V4LooksLikeUuid(authUserId) || !email) return { ok: false, skipped: 'identity_not_ready' };
+
+  const customerId = await diracPasswordArgon2V4ResolveCustomerId(authUserId, email).catch(() => '');
+  if (!diracPasswordArgon2V4LooksLikeUuid(customerId)) return { ok: false, skipped: 'customer_id_not_ready' };
+
+  const eventType = diracV110AuditEventType(action);
+  const fingerprint = customerSecurityBuildSessionFingerprint(req, customerId);
+  const base = {
+    customer_id: customerId,
+    device_name: fingerprint && fingerprint.device_name || null,
+    browser_name: fingerprint && fingerprint.browser_name || null,
+    operating_system: fingerprint && fingerprint.operating_system || null,
+    user_agent: fingerprint && fingerprint.user_agent || null,
+    ip_address: fingerprint && fingerprint.ip_address || null,
+    metadata: {
+      patch: DIRAC_AUTH_HARDENING_SAFE_PATCH_V110,
+      action: String(action || '').slice(0, 80),
+      http_status: Number(httpStatus || 200),
+      auth_user_hash: diracV110Hmac('auth_user|' + authUserId),
+      email_hash: diracPasswordArgon2V4Hmac('email|' + email),
+      session_max_age_seconds: diracV110SessionMaxAgeSeconds()
+    }
+  };
+
+  await supabaseFetch('/rest/v1/security_customer_login_logs', {
+    method: 'POST',
+    auth: 'service',
+    body: [{
+      ...base,
+      event_type: eventType,
+      status: 'success',
+      risk_level: 'low'
+    }]
+  }).catch(() => null);
+
+  await supabaseFetch('/rest/v1/security_customer_events', {
+    method: 'POST',
+    auth: 'service',
+    body: [{
+      ...base,
+      event_type: eventType,
+      status: 'success',
+      risk_level: 'low',
+      description: diracV110AuditDescription(action)
+    }]
+  }).catch(() => null);
+
+  return { ok: true };
+}
+
+async function requireDomainUserForAuditV110(req) {
+  const cookies = parseCookies(req);
+  const accessTokens = uniqueNonEmptyStrings([
+    ...readCookieTokenCandidates(cookies, ACCESS_COOKIE)
+  ]);
+  for (const accessToken of accessTokens) {
+    const userResult = await supabaseFetch('/auth/v1/user', {
+      method: 'GET',
+      auth: 'anon',
+      bearer: accessToken
+    }).catch(() => null);
+    if (userResult && userResult.ok && userResult.data && userResult.data.id) return userResult.data;
+  }
+  return null;
+}
+
+function diracV110AuditEventType(action) {
+  if (action === 'domain_register') return 'register_success';
+  if (action === 'domain_login') return 'login_success';
+  if (action === 'dirac_mfa_email_verify') return 'mfa_email_verify_success';
+  if (action === 'dirac_mfa_passkey_verify') return 'mfa_passkey_verify_success';
+  return 'auth_success';
+}
+
+function diracV110AuditDescription(action) {
+  if (action === 'domain_register') return 'Register berhasil dan dicatat oleh audit keamanan.';
+  if (action === 'domain_login') return 'Login berhasil dan dicatat oleh audit keamanan.';
+  if (action === 'dirac_mfa_email_verify') return 'Verifikasi A2F email berhasil dan dicatat oleh audit keamanan.';
+  if (action === 'dirac_mfa_passkey_verify') return 'Verifikasi A2F passkey berhasil dan dicatat oleh audit keamanan.';
+  return 'Aktivitas autentikasi berhasil dan dicatat oleh audit keamanan.';
+}
+
+function diracV110NumberFromEnv(names, fallback, min, max) {
+  for (const name of names) {
+    const raw = String(process.env[name] || '').trim();
+    if (!raw) continue;
+    const value = Number(raw);
+    if (Number.isFinite(value)) return Math.min(Math.max(Math.floor(value), min), max);
+  }
+  return fallback;
+}
+
+function diracV110Hmac(value) {
+  const secret = String(process.env.DIRAC_SECURITY_HMAC_SECRET || process.env.LOGIN_SECURITY_HMAC_SECRET || process.env.DOMAIN_SESSION_SECRET || process.env.AI_ADMIN_SECRET || process.env.DOMAIN_SUPABASE_SERVICE_ROLE_KEY || 'dirac-v110-fallback').trim();
+  try { return crypto.createHmac('sha256', secret).update(String(value || '')).digest('hex'); } catch (_) {}
+  return crypto.createHash('sha256').update(String(value || '')).digest('hex');
+}
+
+function diracV110SafeError(error) {
+  const code = String(error && (error.code || error.name || error.message) || 'DIRAC_AUTH_AUDIT_ERROR');
+  if (/password|token|secret|cookie|authorization|service_role|apikey/i.test(code)) return 'DIRAC_AUTH_AUDIT_ERROR';
+  return code.slice(0, 120);
+}
+
+function diracV110EnvTrue(name) {
+  const value = String(process.env[name] || '').trim().toLowerCase();
+  return value === '1' || value === 'true' || value === 'yes' || value === 'on';
 }
