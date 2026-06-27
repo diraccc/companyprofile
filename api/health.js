@@ -4636,7 +4636,7 @@ function customerSecurityBuildSessionFingerprint(req, customerId) {
     ...readCookieTokenCandidates(cookies, DOMAIN_SIGNED_SESSION_COOKIE)
   ])[0] || '';
 
-  const userAgent = String((req.headers && req.headers['user-agent']) || '').trim().slice(0, 512);
+  const userAgent = diracUltraXssCleanLogText((req.headers && req.headers['user-agent']) || '', 512);
   const ip = customerSecurityRequestIp(req);
   const fallbackMaterial = [customerId, userAgent, ip].filter(Boolean).join('|');
 
@@ -5207,18 +5207,67 @@ async function customerSecurityCreateAccountRequest(req, res, action) {
   });
 }
 
-function customerSecuritySanitizeReason(value) {
-  return String(value || '')
+
+/* ============================================================
+   ULTRA XSS-SAFE LOG SANITIZER - APPEND SAFE v1
+   Fokus: membersihkan teks yang disimpan ke log/security telemetry.
+   Tidak mengubah endpoint, login, hash, A2F/MFA, payment gateway,
+   checkout, order, email template, atau alur autentikasi lama.
+   ============================================================ */
+
+function diracUltraXssCleanLogText(value, maxLength = 500, fallback = '') {
+  const safeMax = Number.isFinite(Number(maxLength)) ? Math.min(Math.max(Number(maxLength), 1), 2000) : 500;
+  const text = String(value === undefined || value === null ? fallback : value)
+    .replace(/[<>&"'`]/g, ' ')
     .replace(/[\u0000-\u001F\u007F]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
-    .slice(0, 500) || 'Customer security request.';
+    .slice(0, safeMax);
+  return text || String(fallback || '').slice(0, safeMax);
+}
+
+function diracUltraXssCleanMetadata(value, depth = 0) {
+  if (value === undefined || value === null) return null;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value === 'bigint') return diracUltraXssCleanLogText(value.toString(), 80);
+  if (typeof value === 'string') return diracUltraXssCleanLogText(value, 240);
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value.toISOString();
+
+  if (Array.isArray(value)) {
+    if (depth >= 2) return '[array]';
+    return value.slice(0, 10).map((item) => diracUltraXssCleanMetadata(item, depth + 1));
+  }
+
+  if (typeof value === 'object') {
+    if (depth >= 2) return '[object]';
+    const safe = {};
+    const entries = Object.entries(value).slice(0, 20);
+    for (const [rawKey, rawValue] of entries) {
+      const key = diracUltraXssCleanLogText(rawKey, 80).replace(/[^a-zA-Z0-9_.:-]/g, '_').slice(0, 80);
+      if (!key) continue;
+      const cleaned = diracUltraXssCleanMetadata(rawValue, depth + 1);
+      if (cleaned === undefined) continue;
+      safe[key] = cleaned;
+    }
+    return safe;
+  }
+
+  return diracUltraXssCleanLogText(value, 120);
+}
+
+function diracUltraXssCleanPublicMessage(message, fallback = 'Permintaan belum dapat diproses.', maxLength = 220) {
+  return diracUltraXssCleanLogText(message || fallback, maxLength, fallback) || fallback;
+}
+
+function customerSecuritySanitizeReason(value) {
+  return diracUltraXssCleanLogText(value || 'Customer security request.', 500, 'Customer security request.');
 }
 
 async function customerSecurityWriteGuardEvent(customerId, options = {}) {
   try {
     const req = options.req || {};
-    const userAgent = String((req.headers && req.headers['user-agent']) || '').trim().slice(0, 512);
+    const userAgent = diracUltraXssCleanLogText((req.headers && req.headers['user-agent']) || '', 512);
     const payload = {
       customer_id: customerId,
       event_type: options.event_type || 'security_settings_updated',
@@ -5230,10 +5279,10 @@ async function customerSecurityWriteGuardEvent(customerId, options = {}) {
       device_name: customerSecurityDeviceName(userAgent),
       browser_name: customerSecurityBrowserName(userAgent),
       operating_system: customerSecurityOperatingSystem(userAgent),
-      metadata: {
+      metadata: diracUltraXssCleanMetadata({
         source: 'customer_security_guarded_actions',
         ...(options.metadata && typeof options.metadata === 'object' ? options.metadata : {})
-      }
+      })
     };
 
     await supabaseFetch('/rest/v1/security_customer_events', {
@@ -5272,8 +5321,7 @@ function diracApplySecurityResponseHeaders(res, options = {}) {
 }
 
 function diracSafePublicMessage(message, fallback = 'Permintaan belum dapat diproses.') {
-  const text = String(message || fallback || '').replace(/[\u0000-\u001F\u007F]/g, ' ').replace(/\s+/g, ' ').trim();
-  return text.slice(0, 220) || fallback;
+  return diracUltraXssCleanPublicMessage(message, fallback, 220);
 }
 
 function diracNowIso() {
@@ -13834,7 +13882,7 @@ async function diracUltraWriteGenericSecurityEvent(req, options = {}) {
     ip_hash: typeof loginSecurityHash === 'function' ? loginSecurityHash(String(getLoginSecurityIp(req) || '')) : '',
     user_agent_hash: typeof loginSecurityHash === 'function' ? loginSecurityHash(String(headers['user-agent'] || '').slice(0, 240)) : '',
     created_at: new Date().toISOString(),
-    metadata: options.metadata && typeof options.metadata === 'object' ? options.metadata : {}
+    metadata: diracUltraXssCleanMetadata(options.metadata && typeof options.metadata === 'object' ? options.metadata : {})
   }, 0, 30 * 24 * 60 * 60).catch(() => false);
 }
 
