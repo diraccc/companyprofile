@@ -16613,3 +16613,125 @@ try {
     Object.defineProperty(module.exports, '__diracSqlPrecisionV108HeaderWrapped', { value: true, enumerable: false });
   }
 } catch (_) {}
+
+/* ============================================================
+   DIRAC LOGOUT + 5-MINUTE IDLE SESSION COMPATIBILITY v118
+   Tujuan:
+   - Memulihkan perilaku health_awal pada write security_customer_sessions
+     yang dipakai logout manual, revoke idle 5 menit, dan touch session.
+   - Tidak mengubah endpoint, login, hash password, A2F/MFA, payment gateway,
+     email template, checkout, order, perfume, atau wrapper anti-XSS request.
+   - Anti-XSS tetap aktif; patch ini hanya mencegah penambahan kolom baru
+     otomatis pada security_customer_sessions agar schema Supabase lama tetap kompatibel.
+   ============================================================ */
+const DIRAC_LOGOUT_IDLE_SESSION_COMPATIBILITY_V118 = 'dirac-logout-idle-session-compatibility-v118';
+const __diracLogoutIdleV118PreviousSupabaseFetch = supabaseFetch;
+const __diracLogoutIdleV118SchemaStableSupabaseFetch = (typeof __diracUltraXssV2PreviousSupabaseFetch === 'function')
+  ? __diracUltraXssV2PreviousSupabaseFetch
+  : __diracLogoutIdleV118PreviousSupabaseFetch;
+
+supabaseFetch = async function diracLogoutIdleSessionCompatibilitySupabaseFetchV118(path, options = {}) {
+  try {
+    const method = String((options && options.method) || 'GET').toUpperCase();
+    const pathText = String(path || '').toLowerCase();
+
+    if (diracLogoutIdleV118IsSessionWritePath(pathText, method) && options && options.body !== undefined) {
+      return __diracLogoutIdleV118SchemaStableSupabaseFetch(path, {
+        ...options,
+        body: diracLogoutIdleV118CleanSessionWriteBody(options.body)
+      });
+    }
+  } catch (_) {
+    // Fail-safe: jika patch kompatibilitas gagal membaca request, gunakan alur terbaru yang sudah ada.
+  }
+
+  return __diracLogoutIdleV118PreviousSupabaseFetch(path, options);
+};
+
+function diracLogoutIdleV118IsSessionWritePath(pathText, method) {
+  return /\/rest\/v1\/security_customer_sessions(?:\?|$)/i.test(String(pathText || ''))
+    && ['POST', 'PATCH', 'PUT'].includes(String(method || '').toUpperCase());
+}
+
+function diracLogoutIdleV118CleanSessionWriteBody(body) {
+  if (Array.isArray(body)) return body.map((row) => diracLogoutIdleV118CleanSessionRow(row));
+  if (body && typeof body === 'object') return diracLogoutIdleV118CleanSessionRow(body);
+  return body;
+}
+
+function diracLogoutIdleV118CleanSessionRow(row) {
+  if (!row || typeof row !== 'object' || Array.isArray(row)) return row;
+
+  const clean = { ...row };
+  const textFields = {
+    customer_id: 80,
+    session_token_hash: 160,
+    device_id: 120,
+    device_name: 120,
+    browser_name: 120,
+    operating_system: 120,
+    user_agent: 512,
+    ip_address: 80,
+    status: 80,
+    revoke_reason: 120,
+    last_seen_at: 80,
+    expires_at: 80,
+    revoked_at: 80,
+    session_hardening: 120
+  };
+
+  for (const [field, maxLength] of Object.entries(textFields)) {
+    if (clean[field] !== undefined && clean[field] !== null) {
+      clean[field] = diracLogoutIdleV118CleanText(clean[field], maxLength);
+    }
+  }
+
+  if (clean.metadata !== undefined) {
+    clean.metadata = diracLogoutIdleV118CleanMetadata(clean.metadata);
+  }
+
+  return clean;
+}
+
+function diracLogoutIdleV118CleanText(value, maxLength = 240) {
+  try {
+    if (typeof diracUltraXssV2CleanText === 'function') {
+      return diracUltraXssV2CleanText(value, maxLength);
+    }
+  } catch (_) {}
+
+  const max = Number.isFinite(Number(maxLength)) ? Math.min(Math.max(Number(maxLength), 1), 2000) : 240;
+  return String(value === undefined || value === null ? '' : value)
+    .replace(/\u0000/g, ' ')
+    .replace(/[\u0000-\u001F\u007F]/g, ' ')
+    .replace(/(?:<\s*\/?\s*(?:script|iframe|object|embed|svg|math|img|video|audio|link|meta|style|base|form|input|button|textarea)[^>]*>)/gi, ' ')
+    .replace(/\b(?:onerror|onload|onclick|onmouseover|onfocus|onmouseenter|onpointerover|onanimationstart|onbegin)\s*=/gi, ' ')
+    .replace(/\b(?:javascript|vbscript|data)\s*:/gi, ' ')
+    .replace(/[<>{}\[\]"'`&]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, max);
+}
+
+function diracLogoutIdleV118CleanMetadata(value) {
+  try {
+    if (typeof diracUltraXssV2CleanMetadata === 'function') {
+      return diracUltraXssV2CleanMetadata(value);
+    }
+  } catch (_) {}
+
+  if (value === undefined || value === null) return null;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value === 'string') return diracLogoutIdleV118CleanText(value, 240);
+  if (Array.isArray(value)) return value.slice(0, 10).map((item) => diracLogoutIdleV118CleanMetadata(item));
+  if (typeof value === 'object') {
+    const output = {};
+    for (const [key, item] of Object.entries(value).slice(0, 20)) {
+      const safeKey = diracLogoutIdleV118CleanText(key, 80).replace(/[^a-zA-Z0-9_.:-]/g, '_').slice(0, 80);
+      if (safeKey) output[safeKey] = diracLogoutIdleV118CleanMetadata(item);
+    }
+    return output;
+  }
+  return diracLogoutIdleV118CleanText(value, 120);
+}
