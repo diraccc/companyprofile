@@ -5207,18 +5207,67 @@ async function customerSecurityCreateAccountRequest(req, res, action) {
   });
 }
 
-function customerSecuritySanitizeReason(value) {
-  return String(value || '')
+
+/* ============================================================
+   ULTRA XSS-SAFE LOG SANITIZER - APPEND SAFE v1
+   Fokus: membersihkan teks yang disimpan ke log/security telemetry.
+   Tidak mengubah endpoint, login, hash, A2F/MFA, payment gateway,
+   checkout, order, email template, atau alur autentikasi lama.
+   ============================================================ */
+
+function diracUltraXssCleanLogText(value, maxLength = 500, fallback = '') {
+  const safeMax = Number.isFinite(Number(maxLength)) ? Math.min(Math.max(Number(maxLength), 1), 2000) : 500;
+  const text = String(value === undefined || value === null ? fallback : value)
+    .replace(/[<>&"'`]/g, ' ')
     .replace(/[\u0000-\u001F\u007F]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
-    .slice(0, 500) || 'Customer security request.';
+    .slice(0, safeMax);
+  return text || String(fallback || '').slice(0, safeMax);
+}
+
+function diracUltraXssCleanMetadata(value, depth = 0) {
+  if (value === undefined || value === null) return null;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value === 'bigint') return diracUltraXssCleanLogText(value.toString(), 80);
+  if (typeof value === 'string') return diracUltraXssCleanLogText(value, 240);
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value.toISOString();
+
+  if (Array.isArray(value)) {
+    if (depth >= 2) return '[array]';
+    return value.slice(0, 10).map((item) => diracUltraXssCleanMetadata(item, depth + 1));
+  }
+
+  if (typeof value === 'object') {
+    if (depth >= 2) return '[object]';
+    const safe = {};
+    const entries = Object.entries(value).slice(0, 20);
+    for (const [rawKey, rawValue] of entries) {
+      const key = diracUltraXssCleanLogText(rawKey, 80).replace(/[^a-zA-Z0-9_.:-]/g, '_').slice(0, 80);
+      if (!key) continue;
+      const cleaned = diracUltraXssCleanMetadata(rawValue, depth + 1);
+      if (cleaned === undefined) continue;
+      safe[key] = cleaned;
+    }
+    return safe;
+  }
+
+  return diracUltraXssCleanLogText(value, 120);
+}
+
+function diracUltraXssCleanPublicMessage(message, fallback = 'Permintaan belum dapat diproses.', maxLength = 220) {
+  return diracUltraXssCleanLogText(message || fallback, maxLength, fallback) || fallback;
+}
+
+function customerSecuritySanitizeReason(value) {
+  return diracUltraXssCleanLogText(value || 'Customer security request.', 500, 'Customer security request.');
 }
 
 async function customerSecurityWriteGuardEvent(customerId, options = {}) {
   try {
     const req = options.req || {};
-    const userAgent = String((req.headers && req.headers['user-agent']) || '').trim().slice(0, 512);
+    const userAgent = diracUltraXssCleanLogText((req.headers && req.headers['user-agent']) || '', 512);
     const payload = {
       customer_id: customerId,
       event_type: options.event_type || 'security_settings_updated',
@@ -5230,10 +5279,10 @@ async function customerSecurityWriteGuardEvent(customerId, options = {}) {
       device_name: customerSecurityDeviceName(userAgent),
       browser_name: customerSecurityBrowserName(userAgent),
       operating_system: customerSecurityOperatingSystem(userAgent),
-      metadata: {
+      metadata: diracUltraXssCleanMetadata({
         source: 'customer_security_guarded_actions',
         ...(options.metadata && typeof options.metadata === 'object' ? options.metadata : {})
-      }
+      })
     };
 
     await supabaseFetch('/rest/v1/security_customer_events', {
@@ -5272,8 +5321,7 @@ function diracApplySecurityResponseHeaders(res, options = {}) {
 }
 
 function diracSafePublicMessage(message, fallback = 'Permintaan belum dapat diproses.') {
-  const text = String(message || fallback || '').replace(/[\u0000-\u001F\u007F]/g, ' ').replace(/\s+/g, ' ').trim();
-  return text.slice(0, 220) || fallback;
+  return diracUltraXssCleanPublicMessage(message, fallback, 220);
 }
 
 function diracNowIso() {
@@ -13834,7 +13882,7 @@ async function diracUltraWriteGenericSecurityEvent(req, options = {}) {
     ip_hash: typeof loginSecurityHash === 'function' ? loginSecurityHash(String(getLoginSecurityIp(req) || '')) : '',
     user_agent_hash: typeof loginSecurityHash === 'function' ? loginSecurityHash(String(headers['user-agent'] || '').slice(0, 240)) : '',
     created_at: new Date().toISOString(),
-    metadata: options.metadata && typeof options.metadata === 'object' ? options.metadata : {}
+    metadata: diracUltraXssCleanMetadata(options.metadata && typeof options.metadata === 'object' ? options.metadata : {})
   }, 0, 30 * 24 * 60 * 60).catch(() => false);
 }
 
@@ -14480,6 +14528,8 @@ function diracV107ShouldSkip(req, action, method) {
   if (/\.(?:html?|css|js|mjs|map|png|jpe?g|webp|gif|svg|ico|woff2?|ttf|otf)(?:\?|$)/i.test(url) && !/\/api\/health/i.test(url)) return true;
 
   const normalized = diracV107NormalizeAction(action);
+  // Logout harus selalu lewat ke handler lama agar cookie/session bisa dibersihkan meskipun identitas pernah terkena hard-ban.
+  if (normalized === 'domain_logout' || normalized === 'logout_domain' || normalized === 'logout') return true;
   // Webhook/callback payment gateway dikecualikan agar payment tidak rusak.
   if (/webhook|callback|notification|midtrans|ipaymu|payment_gateway|payment_notification/i.test(normalized)) return true;
   try { if (typeof diracV101IsWebhookAction === 'function' && diracV101IsWebhookAction(normalized)) return true; } catch (_) {}
@@ -16004,3 +16054,562 @@ function diracPerfumePublicProductsV117SafeError(error) {
   return msg.slice(0, 160);
 }
 
+
+/* ============================================================
+   DIRAC ULTRA XSS ATTACK HARDENING v2 - APPEND ONLY
+   Tujuan:
+   - Memperkuat anti-XSS pada lapisan backend health.js.
+   - Tidak mengubah endpoint, login, hash, A2F/MFA, passkey,
+     payment gateway, email template, checkout, order, dashboard,
+     perfume system, cookie, atau session contract.
+   - Sanitasi hanya diarahkan ke tabel log/security telemetry.
+   - Guard request hanya memeriksa URL/query/header ringan tanpa membaca body,
+     sehingga tidak mengganggu stream login/payment/webhook.
+   ============================================================ */
+
+const DIRAC_ULTRA_XSS_ATTACK_HARDENING_V2 = 'dirac-ultra-xss-attack-hardening-v2';
+const __diracUltraXssV2PreviousSupabaseFetch = supabaseFetch;
+
+supabaseFetch = async function diracUltraXssV2SupabaseFetch(path, options = {}) {
+  const safeOptions = diracUltraXssV2SanitizeSupabaseSecurityWrite(path, options);
+  return __diracUltraXssV2PreviousSupabaseFetch(path, safeOptions);
+};
+
+function diracUltraXssV2SanitizeSupabaseSecurityWrite(path, options = {}) {
+  try {
+    const method = String((options && options.method) || 'GET').toUpperCase();
+    if (!['POST', 'PATCH', 'PUT'].includes(method)) return options;
+
+    const pathText = String(path || '');
+    if (!diracUltraXssV2IsSecurityTelemetryPath(pathText)) return options;
+    if (!options || options.body === undefined || options.body === null) return options;
+
+    return {
+      ...options,
+      body: diracUltraXssV2CleanSecurityTelemetryBody(options.body)
+    };
+  } catch (_) {
+    return options;
+  }
+}
+
+function diracUltraXssV2IsSecurityTelemetryPath(path) {
+  const value = String(path || '').toLowerCase();
+  return value.includes('/rest/v1/security_customer_events')
+    || value.includes('/rest/v1/security_customer_login_logs')
+    || value.includes('/rest/v1/security_customer_sessions')
+    || value.includes('/rest/v1/security_customer_account_requests');
+}
+
+function diracUltraXssV2CleanSecurityTelemetryBody(body) {
+  if (Array.isArray(body)) return body.map((row) => diracUltraXssV2CleanSecurityTelemetryRow(row));
+  if (body && typeof body === 'object') return diracUltraXssV2CleanSecurityTelemetryRow(body);
+  return body;
+}
+
+function diracUltraXssV2CleanSecurityTelemetryRow(row) {
+  if (!row || typeof row !== 'object' || Array.isArray(row)) return row;
+
+  const clean = { ...row };
+  const textFields = [
+    'event_type',
+    'status',
+    'risk_level',
+    'description',
+    'reason',
+    'user_agent',
+    'device_name',
+    'browser_name',
+    'operating_system',
+    'country',
+    'city'
+  ];
+
+  for (const field of textFields) {
+    if (clean[field] !== undefined && clean[field] !== null) {
+      clean[field] = diracUltraXssV2CleanText(clean[field], diracUltraXssV2MaxLengthForField(field));
+    }
+  }
+
+  const xssSignals = diracUltraXssV2CollectSignals(row);
+  const baseMetadata = clean.metadata && typeof clean.metadata === 'object' ? clean.metadata : {};
+  clean.metadata = diracUltraXssV2CleanMetadata({
+    ...baseMetadata,
+    ...(xssSignals.detected ? {
+      xss_payload_detected: true,
+      xss_signal_count: xssSignals.count,
+      xss_signal_kind: xssSignals.kind,
+      xss_hardening_patch: DIRAC_ULTRA_XSS_ATTACK_HARDENING_V2
+    } : {})
+  });
+
+  if (clean.ip_address && !clean.ip_hash) {
+    try {
+      const ipValue = String(clean.ip_address || '').trim();
+      if (ipValue) clean.ip_hash = crypto.createHash('sha256').update('dirac-ip-log-v2:' + ipValue).digest('hex');
+    } catch (_) {}
+  }
+
+  return clean;
+}
+
+function diracUltraXssV2MaxLengthForField(field) {
+  const key = String(field || '');
+  if (key === 'user_agent') return 300;
+  if (key === 'description' || key === 'reason') return 500;
+  if (key === 'event_type' || key === 'status' || key === 'risk_level') return 80;
+  if (key === 'device_name' || key === 'browser_name' || key === 'operating_system') return 120;
+  if (key === 'country' || key === 'city') return 120;
+  return 240;
+}
+
+function diracUltraXssV2CleanText(value, maxLength = 240) {
+  const max = Number.isFinite(Number(maxLength)) ? Math.min(Math.max(Number(maxLength), 1), 2000) : 240;
+  return String(value === undefined || value === null ? '' : value)
+    .replace(/\u0000/g, ' ')
+    .replace(/[\u0000-\u001F\u007F]/g, ' ')
+    .replace(/(?:<\s*\/?\s*(?:script|iframe|object|embed|svg|math|img|video|audio|link|meta|style|base|form|input|button|textarea)[^>]*>)/gi, ' ')
+    .replace(/\b(?:onerror|onload|onclick|onmouseover|onfocus|onmouseenter|onpointerover|onanimationstart|onbegin)\s*=/gi, ' ')
+    .replace(/\b(?:javascript|vbscript|data)\s*:/gi, ' ')
+    .replace(/[<>{}\[\]"'`&]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, max);
+}
+
+function diracUltraXssV2CleanMetadata(value, depth = 0) {
+  if (value === undefined || value === null) return null;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value === 'bigint') return diracUltraXssV2CleanText(value.toString(), 80);
+  if (typeof value === 'string') return diracUltraXssV2CleanText(value, 240);
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value.toISOString();
+
+  if (Array.isArray(value)) {
+    if (depth >= 2) return '[array]';
+    return value.slice(0, 10).map((item) => diracUltraXssV2CleanMetadata(item, depth + 1));
+  }
+
+  if (typeof value === 'object') {
+    if (depth >= 2) return '[object]';
+    const out = {};
+    const entries = Object.entries(value).slice(0, 20);
+    for (const [rawKey, rawValue] of entries) {
+      const safeKey = diracUltraXssV2CleanText(rawKey, 80).replace(/[^a-zA-Z0-9_.:-]/g, '_').slice(0, 80);
+      if (!safeKey) continue;
+      const safeValue = diracUltraXssV2CleanMetadata(rawValue, depth + 1);
+      if (safeValue !== undefined) out[safeKey] = safeValue;
+    }
+    return out;
+  }
+
+  return diracUltraXssV2CleanText(value, 120);
+}
+
+function diracUltraXssV2CollectSignals(value) {
+  const samples = diracUltraXssV2FlattenSamples(value, 0).slice(0, 40);
+  let count = 0;
+  let kind = '';
+  for (const sample of samples) {
+    const signal = diracUltraXssV2DetectPayload(sample);
+    if (signal.detected) {
+      count += 1;
+      if (!kind) kind = signal.kind;
+    }
+  }
+  return { detected: count > 0, count, kind: kind || '' };
+}
+
+function diracUltraXssV2FlattenSamples(value, depth = 0) {
+  if (value === undefined || value === null || depth > 2) return [];
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+    return [String(value).slice(0, 1200)];
+  }
+  if (Array.isArray(value)) {
+    return value.slice(0, 10).flatMap((item) => diracUltraXssV2FlattenSamples(item, depth + 1));
+  }
+  if (typeof value === 'object') {
+    return Object.entries(value).slice(0, 20).flatMap(([key, item]) => [String(key).slice(0, 200), ...diracUltraXssV2FlattenSamples(item, depth + 1)]);
+  }
+  return [];
+}
+
+function diracUltraXssV2DetectPayload(value) {
+  const raw = String(value || '');
+  if (!raw) return { detected: false, kind: '' };
+  const samples = new Set([raw, raw.replace(/\+/g, ' ')]);
+  let current = raw;
+  for (let i = 0; i < 2; i += 1) {
+    try {
+      const decoded = decodeURIComponent(current);
+      samples.add(decoded);
+      samples.add(decoded.replace(/\+/g, ' '));
+      if (decoded === current) break;
+      current = decoded;
+    } catch (_) {
+      break;
+    }
+  }
+
+  const patterns = [
+    { kind: 'script_tag', pattern: /<\s*\/?\s*script\b/i },
+    { kind: 'dangerous_tag', pattern: /<\s*(?:iframe|object|embed|svg|math|img|video|audio|link|meta|style|base|form|input|button|textarea)\b/i },
+    { kind: 'event_handler', pattern: /\bon(?:error|load|click|mouseover|mouseenter|focus|pointerover|animationstart|begin)\s*=/i },
+    { kind: 'dangerous_protocol', pattern: /\b(?:javascript|vbscript|data)\s*:/i },
+    { kind: 'html_entity_xss', pattern: /&\s*#x?0*3c\s*;|&\s*lt\s*;/i }
+  ];
+
+  for (const sample of samples) {
+    for (const item of patterns) {
+      if (item.pattern.test(sample)) return { detected: true, kind: item.kind };
+    }
+  }
+  return { detected: false, kind: '' };
+}
+
+function diracUltraXssV2RequestSamples(req) {
+  const samples = [];
+  try {
+    samples.push(String((req && req.url) || ''));
+    const query = req && req.query && typeof req.query === 'object' ? req.query : {};
+    for (const [key, value] of Object.entries(query).slice(0, 30)) {
+      samples.push(String(key || ''));
+      if (Array.isArray(value)) samples.push(...value.slice(0, 5).map((item) => String(item || '')));
+      else samples.push(String(value || ''));
+    }
+    const headers = (req && req.headers) || {};
+    for (const headerName of ['user-agent', 'referer', 'origin', 'x-forwarded-host', 'x-forwarded-proto']) {
+      if (headers[headerName]) samples.push(String(headers[headerName]).slice(0, 1200));
+    }
+  } catch (_) {}
+  return samples;
+}
+
+function diracUltraXssV2ShouldSkipActiveBlock(req) {
+  const action = String((req && req.query && req.query.action) || '').toLowerCase();
+  if (!action) return false;
+  if (/domain[_-]?logout|logout/.test(action)) return true;
+  return /payment|midtrans|ipaymu|webhook|callback|notification|login|register|mfa|a2f|passkey|checkout/.test(action);
+}
+
+function diracUltraXssV2DetectRequest(req) {
+  const samples = diracUltraXssV2RequestSamples(req);
+  for (const sample of samples) {
+    const detected = diracUltraXssV2DetectPayload(sample);
+    if (detected.detected) return detected;
+  }
+  return { detected: false, kind: '' };
+}
+
+const __diracUltraXssV2PreviousHandler = module.exports;
+
+module.exports = async function diracUltraXssAttackHardeningWrapperV2(req, res) {
+  try {
+    if (typeof diracApplySecurityResponseHeaders === 'function') diracApplySecurityResponseHeaders(res);
+  } catch (_) {}
+
+  const xss = diracUltraXssV2DetectRequest(req);
+  if (xss.detected && !diracUltraXssV2ShouldSkipActiveBlock(req)) {
+    try { res.setHeader('X-Dirac-XSS-Guard', DIRAC_ULTRA_XSS_ATTACK_HARDENING_V2); } catch (_) {}
+    return res.status(400).json({
+      ok: false,
+      code: 'REQUEST_INPUT_REJECTED',
+      message: 'Permintaan tidak valid.'
+    });
+  }
+
+  return __diracUltraXssV2PreviousHandler(req, res);
+};
+
+/* ============================================================
+   DIRAC ULTRA XSS ONE-STRIKE PERMANENT BLOCK v3 - APPEND ONLY
+   Tujuan:
+   - 1 payload XSS yang sangat jelas pada URL/query/header langsung membuat
+     hard-ban persistent.
+   - Tidak membaca body request agar login/payment/webhook stream tidak rusak.
+   - Tidak mengubah endpoint, login/hash, A2F/MFA, payment gateway,
+     email template, checkout, order, perfume, dashboard, atau handler lama.
+   - Memakai tabel hard-ban/rate-limit yang sudah ada melalui helper v107
+     bila tersedia. IP/UA disimpan sebagai key HMAC/hash, bukan raw payload.
+   ============================================================ */
+
+const DIRAC_ULTRA_XSS_ONE_STRIKE_BLOCK_V3 = 'dirac-ultra-xss-one-strike-permanent-block-v3';
+const __diracUltraXssV3PreviousHandler = module.exports;
+
+module.exports = async function diracUltraXssOneStrikePermanentBlockWrapperV3(req, res) {
+  try {
+    if (res && typeof res.setHeader === 'function') {
+      res.setHeader('X-Dirac-XSS-One-Strike-Patch', DIRAC_ULTRA_XSS_ONE_STRIKE_BLOCK_V3);
+    }
+  } catch (_) {}
+
+  try {
+    const method = String((req && req.method) || 'GET').toUpperCase();
+    const action = String((req && req.query && req.query.action) || '').toLowerCase();
+
+    if (!diracUltraXssV3ShouldSkipPermanentBlock(req, action, method)) {
+      const xss = typeof diracUltraXssV2DetectRequest === 'function'
+        ? diracUltraXssV2DetectRequest(req)
+        : { detected: false };
+
+      if (xss && xss.detected) {
+        // Jika identitas ini sudah diblokir, langsung balas blocked.
+        try {
+          if (typeof diracV107CheckActiveBan === 'function') {
+            const existing = await diracV107CheckActiveBan(req).catch(() => ({ blocked: false }));
+            if (existing && existing.blocked) {
+              try { res.setHeader('Retry-After', String(existing.retryAfterSeconds || 86400)); } catch (_) {}
+              return diracUltraXssV3BlockedResponse(res, 'XSS_PERMANENT_BLOCK_ACTIVE');
+            }
+          }
+        } catch (_) {}
+
+        const write = await diracUltraXssV3RegisterPermanentBlock(req, res, action, method, xss).catch((error) => {
+          try { console.error('[dirac-xss-v3-permanent-block-write-failed]', diracUltraXssV3SafeError(error)); } catch (_) {}
+          return { ok: false };
+        });
+        try { res.setHeader('X-Dirac-XSS-One-Strike-Write', write && write.ok ? 'active' : 'memory'); } catch (_) {}
+        return diracUltraXssV3BlockedResponse(res, 'XSS_ATTACK_ONE_STRIKE_BLOCKED');
+      }
+    }
+  } catch (error) {
+    try { console.error('[dirac-xss-v3-permanent-block]', diracUltraXssV3SafeError(error)); } catch (_) {}
+    return diracUltraXssV3BlockedResponse(res, 'XSS_SECURITY_GUARD_ERROR');
+  }
+
+  return __diracUltraXssV3PreviousHandler(req, res);
+};
+
+function diracUltraXssV3ShouldSkipPermanentBlock(req, action, method) {
+  if (diracUltraXssV3EnvTrue('DIRAC_XSS_ONE_STRIKE_BLOCK_DISABLED')) return true;
+  if (String(method || '').toUpperCase() === 'OPTIONS') return true;
+
+  const normalized = String(action || '').toLowerCase();
+  // Logout harus selalu lewat ke handler lama agar cookie/session bisa dibersihkan.
+  if (normalized === 'domain_logout' || normalized === 'domain-logout' || normalized === 'logout_domain' || normalized === 'logout') return true;
+  // Payment/webhook/callback tetap dikecualikan agar payment gateway tidak terganggu.
+  if (/webhook|callback|notification|midtrans|ipaymu|payment_gateway|payment_notification/i.test(normalized)) return true;
+  try { if (typeof diracV101IsWebhookAction === 'function' && diracV101IsWebhookAction(normalized)) return true; } catch (_) {}
+
+  // Jangan proses file statis bila ada rewrite yang tidak biasa.
+  const url = String((req && req.url) || '');
+  if (/\.(?:html?|css|js|mjs|map|png|jpe?g|webp|gif|svg|ico|woff2?|ttf|otf)(?:\?|$)/i.test(url) && !/\/api\/health/i.test(url)) return true;
+
+  return false;
+}
+
+async function diracUltraXssV3RegisterPermanentBlock(req, res, action, method, xss) {
+  const now = Date.now();
+  const years = diracUltraXssV3BlockYears();
+  const blockedUntilMs = now + years * 365 * 24 * 60 * 60 * 1000;
+  const expiresAt = new Date(blockedUntilMs).toISOString();
+
+  let keys = [];
+  try {
+    if (typeof diracV107BuildKeys === 'function') keys = diracV107BuildKeys(req);
+  } catch (_) { keys = []; }
+
+  if (!Array.isArray(keys) || !keys.length) {
+    const headers = (req && req.headers) || {};
+    const ip = typeof diracV107Ip === 'function' ? diracV107Ip(req) : String(headers['x-forwarded-for'] || headers['x-real-ip'] || 'unknown').split(',')[0].trim();
+    const ua = String(headers['user-agent'] || '').slice(0, 500);
+    const digest = diracUltraXssV3Fingerprint(['xss-v3', ip, ua].join('|'));
+    keys = [{ type: 'fallback', key: 'global-ban-active:xss:' + digest }, { type: 'fallback', key: 'global-ban:xss:' + digest }];
+  }
+
+  // Cookie hard-ban browser; tidak menyimpan cookie mentah ke database.
+  try {
+    if (res && typeof res.setHeader === 'function' && typeof diracV107Hmac === 'function' && typeof diracV107KeysForValue === 'function') {
+      const cookieValue = diracV107Hmac('xss-cookie|' + String(now) + '|' + String(Math.random())).slice(0, 64);
+      const maxAge = Math.max(60, Math.min(Math.floor((blockedUntilMs - now) / 1000), 2147483647));
+      res.setHeader('Set-Cookie', 'dirac_global_hard_ban=' + cookieValue + '; Path=/; Max-Age=' + maxAge + '; HttpOnly; Secure; SameSite=Lax');
+      keys.push(...diracV107KeysForValue('cookie', 'cookie|' + cookieValue));
+    }
+  } catch (_) {}
+
+  const safeRecord = {
+    type: 'xss_one_strike_permanent_block_v3',
+    patch: DIRAC_ULTRA_XSS_ONE_STRIKE_BLOCK_V3,
+    action: diracUltraXssV3CleanSmall(action, 80),
+    method: diracUltraXssV3CleanSmall(method, 12),
+    reason: 'xss_attack_one_strike',
+    threat_kind: diracUltraXssV3CleanSmall(xss && xss.kind || 'xss_payload', 80),
+    source: 'url_query_or_header',
+    risk: 'critical',
+    blocked_until_ms: blockedUntilMs,
+    blocked_years: years,
+    created_at: new Date(now).toISOString()
+  };
+
+  for (const item of keys) {
+    try {
+      if (typeof DIRAC_GLOBAL_HARD_BAN_STORE_V107 !== 'undefined' && DIRAC_GLOBAL_HARD_BAN_STORE_V107 && typeof DIRAC_GLOBAL_HARD_BAN_STORE_V107.set === 'function') {
+        DIRAC_GLOBAL_HARD_BAN_STORE_V107.set(item.key, { blockedUntilMs, updatedAtMs: now, type: item.type || 'xss' });
+      }
+    } catch (_) {}
+  }
+
+  const rows = Array.from(new Map(keys.map((item) => [item.key, item])).values()).map((item) => ({
+    security_key: item.key,
+    record_json: { ...safeRecord, key_type: item.type || 'xss' },
+    blocked_until_ms: blockedUntilMs,
+    updated_at: new Date(now).toISOString(),
+    expires_at: expiresAt
+  }));
+
+  if (typeof diracV107WriteRows === 'function') {
+    const write = await diracV107WriteRows(rows).catch(() => ({ ok: false, wrote: 0 }));
+    return { ok: Boolean(write && write.ok) || rows.length > 0, wrote: write && write.wrote || 0, total: rows.length, blockedUntilMs };
+  }
+
+  if (typeof writePersistentSecurityJson === 'function' && rows.length) {
+    let wrote = 0;
+    for (const row of rows.slice(0, 8)) {
+      const ok = await writePersistentSecurityJson(row.security_key, row.record_json, blockedUntilMs, Math.ceil((blockedUntilMs - now) / 1000)).catch(() => false);
+      if (ok) wrote += 1;
+    }
+    return { ok: wrote > 0 || rows.length > 0, wrote, total: rows.length, blockedUntilMs };
+  }
+
+  return { ok: rows.length > 0, wrote: 0, total: rows.length, blockedUntilMs };
+}
+
+function diracUltraXssV3BlockedResponse(res, reason) {
+  try { if (typeof diracApplySecurityResponseHeaders === 'function') diracApplySecurityResponseHeaders(res); } catch (_) {}
+  try { res.setHeader('Cache-Control', 'no-store'); } catch (_) {}
+  return res.status(403).json({
+    ok: false,
+    code: 'XSS_PERMANENT_BLOCK',
+    message: 'Akses dibatasi oleh sistem keamanan.',
+    reason: String(reason || 'blocked').slice(0, 80)
+  });
+}
+
+function diracUltraXssV3BlockYears() {
+  const raw = Number(process.env.DIRAC_XSS_BLOCK_YEARS || 100);
+  if (!Number.isFinite(raw) || raw <= 0) return 100;
+  return Math.min(Math.max(raw, 1), 100);
+}
+
+function diracUltraXssV3Fingerprint(value) {
+  try {
+    if (typeof diracV107Hmac === 'function') return diracV107Hmac(value);
+    if (typeof diracV101Fingerprint === 'function') return diracV101Fingerprint(value);
+    if (typeof loginSecurityHash === 'function') return loginSecurityHash(value);
+  } catch (_) {}
+  return crypto.createHash('sha256').update(String(value || '')).digest('hex');
+}
+
+function diracUltraXssV3CleanSmall(value, maxLength = 80) {
+  try {
+    if (typeof diracUltraXssV2CleanText === 'function') return diracUltraXssV2CleanText(value, maxLength);
+  } catch (_) {}
+  return String(value || '').replace(/[<>{}\[\]"'`&]/g, ' ').replace(/[\u0000-\u001F\u007F]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, maxLength);
+}
+
+function diracUltraXssV3EnvTrue(name) {
+  const value = String(process.env[name] || '').trim().toLowerCase();
+  return value === '1' || value === 'true' || value === 'yes' || value === 'on';
+}
+
+function diracUltraXssV3SafeError(error) {
+  const message = String(error && error.message ? error.message : error || 'error');
+  if (/password|token|secret|cookie|authorization|apikey|service_role/i.test(message)) return 'security_internal_error';
+  return message.slice(0, 180);
+}
+
+/* ============================================================
+   DIRAC SQLMAP / SQLI HARD-BAN PRECISION v108 - APPEND ONLY
+   Tujuan:
+   - Memperkuat anti SQL injection/sqlmap tanpa mengubah endpoint/action.
+   - Tidak mengubah login, hash password, A2F/MFA, payment gateway,
+     email template, checkout, order, perfume, dashboard, atau webhook.
+   - Menghindari permanent-ban berbasis User-Agent tunggal agar user normal
+     dengan browser umum tidak ikut terkena blokir.
+   - User-Agent tetap dipakai untuk deteksi scanner seperti sqlmap/nikto,
+     tetapi identity permanent-ban memakai IP hash, cookie hard-ban, dan
+     fingerprint gabungan yang menyertakan IP + header non-rahasia.
+   ============================================================ */
+const DIRAC_SQLMAP_Sqli_PRECISION_PATCH_V108 = 'dirac-sqlmap-sqli-hard-ban-precision-v108';
+
+try {
+  if (typeof diracV107BuildKeys === 'function' && !diracV107BuildKeys.__diracSqlPrecisionV108Wrapped) {
+    const __diracSqlPrecisionV108OriginalBuildKeys = diracV107BuildKeys;
+    diracV107BuildKeys = function diracV107BuildKeysSqlPrecisionV108(req) {
+      const headers = (req && req.headers) || {};
+      const keys = [];
+
+      let ip = 'unknown';
+      try { ip = typeof diracV107Ip === 'function' ? diracV107Ip(req) : String(headers['x-forwarded-for'] || headers['x-real-ip'] || (req && req.socket && req.socket.remoteAddress) || 'unknown').split(',')[0].trim(); } catch (_) {}
+      ip = String(ip || 'unknown').trim() || 'unknown';
+
+      const ua = String(headers['user-agent'] || headers['User-Agent'] || '').slice(0, 500);
+      const acceptLanguage = String(headers['accept-language'] || '').slice(0, 120);
+      const accept = String(headers.accept || '').slice(0, 200);
+      const platform = String(headers['sec-ch-ua-platform'] || '').slice(0, 80);
+      const mobile = String(headers['sec-ch-ua-mobile'] || '').slice(0, 40);
+      const forwardedHost = String(headers['x-forwarded-host'] || headers.host || '').slice(0, 160);
+      const cookie = typeof diracV107Cookie === 'function' ? diracV107Cookie(req, 'dirac_global_hard_ban') : '';
+
+      const pushKeys = (type, value) => {
+        try {
+          if (typeof diracV107KeysForValue === 'function') {
+            keys.push(...diracV107KeysForValue(type, value));
+          } else if (typeof diracV107Hmac === 'function') {
+            const digest = diracV107Hmac(value);
+            keys.push({ type, key: 'global-ban-active:' + type + ':' + digest });
+            keys.push({ type, key: 'global-ban:' + type + ':' + digest });
+          }
+        } catch (_) {}
+      };
+
+      // Permanent-ban utama: IP hash. Tidak menyimpan IP mentah pada security_key.
+      // Jika IP tidak tersedia dari platform, jangan membuat key global 'unknown' agar user normal tidak ikut terkena ban luas.
+      const ipScope = ip && ip !== 'unknown' ? ip : 'no-ip';
+      if (ip && ip !== 'unknown') pushKeys('ip', 'ip|' + ip);
+
+      // Jika browser sudah pernah menerima cookie hard-ban, cookie menjadi bukti kuat untuk blokir ulang.
+      if (cookie) pushKeys('cookie', 'cookie|' + cookie);
+
+      // Fingerprint tidak boleh hanya User-Agent. Gabungkan dengan IP + header umum agar tidak memblokir
+      // semua pengguna Chrome/Safari yang kebetulan punya User-Agent mirip.
+      if (ua || acceptLanguage || accept || platform || mobile || forwardedHost) {
+        pushKeys('fingerprint', ['fp-v108', ipScope, ua, acceptLanguage, accept, platform, mobile, forwardedHost].join('|'));
+      }
+
+      // Kompatibilitas fail-safe: jika entah kenapa tidak ada key, fallback ke builder lama.
+      // Normalnya tidak dipakai karena IP selalu tersedia atau menjadi 'unknown'.
+      if (!keys.length) {
+        try { return __diracSqlPrecisionV108OriginalBuildKeys(req); } catch (_) { return []; }
+      }
+
+      return Array.from(new Map(keys.map((item) => [item.key, item])).values());
+    };
+    Object.defineProperty(diracV107BuildKeys, '__diracSqlPrecisionV108Wrapped', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+try {
+  if (typeof diracV107RegisterHardBan === 'function' && !diracV107RegisterHardBan.__diracSqlPrecisionV108Wrapped) {
+    const __diracSqlPrecisionV108OriginalRegisterHardBan = diracV107RegisterHardBan;
+    diracV107RegisterHardBan = async function diracV107RegisterHardBanSqlPrecisionV108(req, res, action, method, threat) {
+      const enrichedThreat = Object.assign({}, threat || {}, {
+        identity_policy: 'ip_cookie_fingerprint_no_ua_only',
+        precision_patch: DIRAC_SQLMAP_Sqli_PRECISION_PATCH_V108
+      });
+      return __diracSqlPrecisionV108OriginalRegisterHardBan(req, res, action, method, enrichedThreat);
+    };
+    Object.defineProperty(diracV107RegisterHardBan, '__diracSqlPrecisionV108Wrapped', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+try {
+  if (typeof module !== 'undefined' && module.exports && typeof module.exports === 'function' && !module.exports.__diracSqlPrecisionV108HeaderWrapped) {
+    const __diracSqlPrecisionV108PreviousHandler = module.exports;
+    module.exports = async function diracSqlPrecisionV108HeaderWrapper(req, res) {
+      try { if (res && typeof res.setHeader === 'function') res.setHeader('X-Dirac-SQL-Precision-Patch-V108', DIRAC_SQLMAP_Sqli_PRECISION_PATCH_V108); } catch (_) {}
+      return __diracSqlPrecisionV108PreviousHandler(req, res);
+    };
+    Object.defineProperty(module.exports, '__diracSqlPrecisionV108HeaderWrapped', { value: true, enumerable: false });
+  }
+} catch (_) {}
