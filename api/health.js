@@ -16052,3 +16052,268 @@ function diracPerfumePublicProductsV117SafeError(error) {
   return msg.slice(0, 160);
 }
 
+
+/* ============================================================
+   DIRAC ULTRA XSS ATTACK HARDENING v2 - APPEND ONLY
+   Tujuan:
+   - Memperkuat anti-XSS pada lapisan backend health.js.
+   - Tidak mengubah endpoint, login, hash, A2F/MFA, passkey,
+     payment gateway, email template, checkout, order, dashboard,
+     perfume system, cookie, atau session contract.
+   - Sanitasi hanya diarahkan ke tabel log/security telemetry.
+   - Guard request hanya memeriksa URL/query/header ringan tanpa membaca body,
+     sehingga tidak mengganggu stream login/payment/webhook.
+   ============================================================ */
+
+const DIRAC_ULTRA_XSS_ATTACK_HARDENING_V2 = 'dirac-ultra-xss-attack-hardening-v2';
+const __diracUltraXssV2PreviousSupabaseFetch = supabaseFetch;
+
+supabaseFetch = async function diracUltraXssV2SupabaseFetch(path, options = {}) {
+  const safeOptions = diracUltraXssV2SanitizeSupabaseSecurityWrite(path, options);
+  return __diracUltraXssV2PreviousSupabaseFetch(path, safeOptions);
+};
+
+function diracUltraXssV2SanitizeSupabaseSecurityWrite(path, options = {}) {
+  try {
+    const method = String((options && options.method) || 'GET').toUpperCase();
+    if (!['POST', 'PATCH', 'PUT'].includes(method)) return options;
+
+    const pathText = String(path || '');
+    if (!diracUltraXssV2IsSecurityTelemetryPath(pathText)) return options;
+    if (!options || options.body === undefined || options.body === null) return options;
+
+    return {
+      ...options,
+      body: diracUltraXssV2CleanSecurityTelemetryBody(options.body)
+    };
+  } catch (_) {
+    return options;
+  }
+}
+
+function diracUltraXssV2IsSecurityTelemetryPath(path) {
+  const value = String(path || '').toLowerCase();
+  return value.includes('/rest/v1/security_customer_events')
+    || value.includes('/rest/v1/security_customer_login_logs')
+    || value.includes('/rest/v1/security_customer_sessions')
+    || value.includes('/rest/v1/security_customer_account_requests');
+}
+
+function diracUltraXssV2CleanSecurityTelemetryBody(body) {
+  if (Array.isArray(body)) return body.map((row) => diracUltraXssV2CleanSecurityTelemetryRow(row));
+  if (body && typeof body === 'object') return diracUltraXssV2CleanSecurityTelemetryRow(body);
+  return body;
+}
+
+function diracUltraXssV2CleanSecurityTelemetryRow(row) {
+  if (!row || typeof row !== 'object' || Array.isArray(row)) return row;
+
+  const clean = { ...row };
+  const textFields = [
+    'event_type',
+    'status',
+    'risk_level',
+    'description',
+    'reason',
+    'user_agent',
+    'device_name',
+    'browser_name',
+    'operating_system',
+    'country',
+    'city'
+  ];
+
+  for (const field of textFields) {
+    if (clean[field] !== undefined && clean[field] !== null) {
+      clean[field] = diracUltraXssV2CleanText(clean[field], diracUltraXssV2MaxLengthForField(field));
+    }
+  }
+
+  const xssSignals = diracUltraXssV2CollectSignals(row);
+  const baseMetadata = clean.metadata && typeof clean.metadata === 'object' ? clean.metadata : {};
+  clean.metadata = diracUltraXssV2CleanMetadata({
+    ...baseMetadata,
+    ...(xssSignals.detected ? {
+      xss_payload_detected: true,
+      xss_signal_count: xssSignals.count,
+      xss_signal_kind: xssSignals.kind,
+      xss_hardening_patch: DIRAC_ULTRA_XSS_ATTACK_HARDENING_V2
+    } : {})
+  });
+
+  if (clean.ip_address && !clean.ip_hash) {
+    try {
+      const ipValue = String(clean.ip_address || '').trim();
+      if (ipValue) clean.ip_hash = crypto.createHash('sha256').update('dirac-ip-log-v2:' + ipValue).digest('hex');
+    } catch (_) {}
+  }
+
+  return clean;
+}
+
+function diracUltraXssV2MaxLengthForField(field) {
+  const key = String(field || '');
+  if (key === 'user_agent') return 300;
+  if (key === 'description' || key === 'reason') return 500;
+  if (key === 'event_type' || key === 'status' || key === 'risk_level') return 80;
+  if (key === 'device_name' || key === 'browser_name' || key === 'operating_system') return 120;
+  if (key === 'country' || key === 'city') return 120;
+  return 240;
+}
+
+function diracUltraXssV2CleanText(value, maxLength = 240) {
+  const max = Number.isFinite(Number(maxLength)) ? Math.min(Math.max(Number(maxLength), 1), 2000) : 240;
+  return String(value === undefined || value === null ? '' : value)
+    .replace(/\u0000/g, ' ')
+    .replace(/[\u0000-\u001F\u007F]/g, ' ')
+    .replace(/(?:<\s*\/?\s*(?:script|iframe|object|embed|svg|math|img|video|audio|link|meta|style|base|form|input|button|textarea)[^>]*>)/gi, ' ')
+    .replace(/\b(?:onerror|onload|onclick|onmouseover|onfocus|onmouseenter|onpointerover|onanimationstart|onbegin)\s*=/gi, ' ')
+    .replace(/\b(?:javascript|vbscript|data)\s*:/gi, ' ')
+    .replace(/[<>{}\[\]"'`&]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, max);
+}
+
+function diracUltraXssV2CleanMetadata(value, depth = 0) {
+  if (value === undefined || value === null) return null;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value === 'bigint') return diracUltraXssV2CleanText(value.toString(), 80);
+  if (typeof value === 'string') return diracUltraXssV2CleanText(value, 240);
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value.toISOString();
+
+  if (Array.isArray(value)) {
+    if (depth >= 2) return '[array]';
+    return value.slice(0, 10).map((item) => diracUltraXssV2CleanMetadata(item, depth + 1));
+  }
+
+  if (typeof value === 'object') {
+    if (depth >= 2) return '[object]';
+    const out = {};
+    const entries = Object.entries(value).slice(0, 20);
+    for (const [rawKey, rawValue] of entries) {
+      const safeKey = diracUltraXssV2CleanText(rawKey, 80).replace(/[^a-zA-Z0-9_.:-]/g, '_').slice(0, 80);
+      if (!safeKey) continue;
+      const safeValue = diracUltraXssV2CleanMetadata(rawValue, depth + 1);
+      if (safeValue !== undefined) out[safeKey] = safeValue;
+    }
+    return out;
+  }
+
+  return diracUltraXssV2CleanText(value, 120);
+}
+
+function diracUltraXssV2CollectSignals(value) {
+  const samples = diracUltraXssV2FlattenSamples(value, 0).slice(0, 40);
+  let count = 0;
+  let kind = '';
+  for (const sample of samples) {
+    const signal = diracUltraXssV2DetectPayload(sample);
+    if (signal.detected) {
+      count += 1;
+      if (!kind) kind = signal.kind;
+    }
+  }
+  return { detected: count > 0, count, kind: kind || '' };
+}
+
+function diracUltraXssV2FlattenSamples(value, depth = 0) {
+  if (value === undefined || value === null || depth > 2) return [];
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+    return [String(value).slice(0, 1200)];
+  }
+  if (Array.isArray(value)) {
+    return value.slice(0, 10).flatMap((item) => diracUltraXssV2FlattenSamples(item, depth + 1));
+  }
+  if (typeof value === 'object') {
+    return Object.entries(value).slice(0, 20).flatMap(([key, item]) => [String(key).slice(0, 200), ...diracUltraXssV2FlattenSamples(item, depth + 1)]);
+  }
+  return [];
+}
+
+function diracUltraXssV2DetectPayload(value) {
+  const raw = String(value || '');
+  if (!raw) return { detected: false, kind: '' };
+  const samples = new Set([raw, raw.replace(/\+/g, ' ')]);
+  let current = raw;
+  for (let i = 0; i < 2; i += 1) {
+    try {
+      const decoded = decodeURIComponent(current);
+      samples.add(decoded);
+      samples.add(decoded.replace(/\+/g, ' '));
+      if (decoded === current) break;
+      current = decoded;
+    } catch (_) {
+      break;
+    }
+  }
+
+  const patterns = [
+    { kind: 'script_tag', pattern: /<\s*\/?\s*script\b/i },
+    { kind: 'dangerous_tag', pattern: /<\s*(?:iframe|object|embed|svg|math|img|video|audio|link|meta|style|base|form|input|button|textarea)\b/i },
+    { kind: 'event_handler', pattern: /\bon(?:error|load|click|mouseover|mouseenter|focus|pointerover|animationstart|begin)\s*=/i },
+    { kind: 'dangerous_protocol', pattern: /\b(?:javascript|vbscript|data)\s*:/i },
+    { kind: 'html_entity_xss', pattern: /&\s*#x?0*3c\s*;|&\s*lt\s*;/i }
+  ];
+
+  for (const sample of samples) {
+    for (const item of patterns) {
+      if (item.pattern.test(sample)) return { detected: true, kind: item.kind };
+    }
+  }
+  return { detected: false, kind: '' };
+}
+
+function diracUltraXssV2RequestSamples(req) {
+  const samples = [];
+  try {
+    samples.push(String((req && req.url) || ''));
+    const query = req && req.query && typeof req.query === 'object' ? req.query : {};
+    for (const [key, value] of Object.entries(query).slice(0, 30)) {
+      samples.push(String(key || ''));
+      if (Array.isArray(value)) samples.push(...value.slice(0, 5).map((item) => String(item || '')));
+      else samples.push(String(value || ''));
+    }
+    const headers = (req && req.headers) || {};
+    for (const headerName of ['user-agent', 'referer', 'origin', 'x-forwarded-host', 'x-forwarded-proto']) {
+      if (headers[headerName]) samples.push(String(headers[headerName]).slice(0, 1200));
+    }
+  } catch (_) {}
+  return samples;
+}
+
+function diracUltraXssV2ShouldSkipActiveBlock(req) {
+  const action = String((req && req.query && req.query.action) || '').toLowerCase();
+  if (!action) return false;
+  return /payment|midtrans|ipaymu|webhook|callback|notification|login|register|mfa|a2f|passkey|checkout/.test(action);
+}
+
+function diracUltraXssV2DetectRequest(req) {
+  const samples = diracUltraXssV2RequestSamples(req);
+  for (const sample of samples) {
+    const detected = diracUltraXssV2DetectPayload(sample);
+    if (detected.detected) return detected;
+  }
+  return { detected: false, kind: '' };
+}
+
+const __diracUltraXssV2PreviousHandler = module.exports;
+
+module.exports = async function diracUltraXssAttackHardeningWrapperV2(req, res) {
+  try {
+    if (typeof diracApplySecurityResponseHeaders === 'function') diracApplySecurityResponseHeaders(res);
+  } catch (_) {}
+
+  const xss = diracUltraXssV2DetectRequest(req);
+  if (xss.detected && !diracUltraXssV2ShouldSkipActiveBlock(req)) {
+    try { res.setHeader('X-Dirac-XSS-Guard', DIRAC_ULTRA_XSS_ATTACK_HARDENING_V2); } catch (_) {}
+    return res.status(400).json({
+      ok: false,
+      code: 'REQUEST_INPUT_REJECTED',
+      message: 'Permintaan tidak valid.'
+    });
+  }
+
+  return __diracUltraXssV2PreviousHandler(req, res);
+};
