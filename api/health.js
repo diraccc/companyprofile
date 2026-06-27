@@ -16512,3 +16512,99 @@ function diracUltraXssV3SafeError(error) {
   if (/password|token|secret|cookie|authorization|apikey|service_role/i.test(message)) return 'security_internal_error';
   return message.slice(0, 180);
 }
+
+/* ============================================================
+   DIRAC SQLMAP / SQLI HARD-BAN PRECISION v108 - APPEND ONLY
+   Tujuan:
+   - Memperkuat anti SQL injection/sqlmap tanpa mengubah endpoint/action.
+   - Tidak mengubah login, hash password, A2F/MFA, payment gateway,
+     email template, checkout, order, perfume, dashboard, atau webhook.
+   - Menghindari permanent-ban berbasis User-Agent tunggal agar user normal
+     dengan browser umum tidak ikut terkena blokir.
+   - User-Agent tetap dipakai untuk deteksi scanner seperti sqlmap/nikto,
+     tetapi identity permanent-ban memakai IP hash, cookie hard-ban, dan
+     fingerprint gabungan yang menyertakan IP + header non-rahasia.
+   ============================================================ */
+const DIRAC_SQLMAP_Sqli_PRECISION_PATCH_V108 = 'dirac-sqlmap-sqli-hard-ban-precision-v108';
+
+try {
+  if (typeof diracV107BuildKeys === 'function' && !diracV107BuildKeys.__diracSqlPrecisionV108Wrapped) {
+    const __diracSqlPrecisionV108OriginalBuildKeys = diracV107BuildKeys;
+    diracV107BuildKeys = function diracV107BuildKeysSqlPrecisionV108(req) {
+      const headers = (req && req.headers) || {};
+      const keys = [];
+
+      let ip = 'unknown';
+      try { ip = typeof diracV107Ip === 'function' ? diracV107Ip(req) : String(headers['x-forwarded-for'] || headers['x-real-ip'] || (req && req.socket && req.socket.remoteAddress) || 'unknown').split(',')[0].trim(); } catch (_) {}
+      ip = String(ip || 'unknown').trim() || 'unknown';
+
+      const ua = String(headers['user-agent'] || headers['User-Agent'] || '').slice(0, 500);
+      const acceptLanguage = String(headers['accept-language'] || '').slice(0, 120);
+      const accept = String(headers.accept || '').slice(0, 200);
+      const platform = String(headers['sec-ch-ua-platform'] || '').slice(0, 80);
+      const mobile = String(headers['sec-ch-ua-mobile'] || '').slice(0, 40);
+      const forwardedHost = String(headers['x-forwarded-host'] || headers.host || '').slice(0, 160);
+      const cookie = typeof diracV107Cookie === 'function' ? diracV107Cookie(req, 'dirac_global_hard_ban') : '';
+
+      const pushKeys = (type, value) => {
+        try {
+          if (typeof diracV107KeysForValue === 'function') {
+            keys.push(...diracV107KeysForValue(type, value));
+          } else if (typeof diracV107Hmac === 'function') {
+            const digest = diracV107Hmac(value);
+            keys.push({ type, key: 'global-ban-active:' + type + ':' + digest });
+            keys.push({ type, key: 'global-ban:' + type + ':' + digest });
+          }
+        } catch (_) {}
+      };
+
+      // Permanent-ban utama: IP hash. Tidak menyimpan IP mentah pada security_key.
+      // Jika IP tidak tersedia dari platform, jangan membuat key global 'unknown' agar user normal tidak ikut terkena ban luas.
+      const ipScope = ip && ip !== 'unknown' ? ip : 'no-ip';
+      if (ip && ip !== 'unknown') pushKeys('ip', 'ip|' + ip);
+
+      // Jika browser sudah pernah menerima cookie hard-ban, cookie menjadi bukti kuat untuk blokir ulang.
+      if (cookie) pushKeys('cookie', 'cookie|' + cookie);
+
+      // Fingerprint tidak boleh hanya User-Agent. Gabungkan dengan IP + header umum agar tidak memblokir
+      // semua pengguna Chrome/Safari yang kebetulan punya User-Agent mirip.
+      if (ua || acceptLanguage || accept || platform || mobile || forwardedHost) {
+        pushKeys('fingerprint', ['fp-v108', ipScope, ua, acceptLanguage, accept, platform, mobile, forwardedHost].join('|'));
+      }
+
+      // Kompatibilitas fail-safe: jika entah kenapa tidak ada key, fallback ke builder lama.
+      // Normalnya tidak dipakai karena IP selalu tersedia atau menjadi 'unknown'.
+      if (!keys.length) {
+        try { return __diracSqlPrecisionV108OriginalBuildKeys(req); } catch (_) { return []; }
+      }
+
+      return Array.from(new Map(keys.map((item) => [item.key, item])).values());
+    };
+    Object.defineProperty(diracV107BuildKeys, '__diracSqlPrecisionV108Wrapped', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+try {
+  if (typeof diracV107RegisterHardBan === 'function' && !diracV107RegisterHardBan.__diracSqlPrecisionV108Wrapped) {
+    const __diracSqlPrecisionV108OriginalRegisterHardBan = diracV107RegisterHardBan;
+    diracV107RegisterHardBan = async function diracV107RegisterHardBanSqlPrecisionV108(req, res, action, method, threat) {
+      const enrichedThreat = Object.assign({}, threat || {}, {
+        identity_policy: 'ip_cookie_fingerprint_no_ua_only',
+        precision_patch: DIRAC_SQLMAP_Sqli_PRECISION_PATCH_V108
+      });
+      return __diracSqlPrecisionV108OriginalRegisterHardBan(req, res, action, method, enrichedThreat);
+    };
+    Object.defineProperty(diracV107RegisterHardBan, '__diracSqlPrecisionV108Wrapped', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+try {
+  if (typeof module !== 'undefined' && module.exports && typeof module.exports === 'function' && !module.exports.__diracSqlPrecisionV108HeaderWrapped) {
+    const __diracSqlPrecisionV108PreviousHandler = module.exports;
+    module.exports = async function diracSqlPrecisionV108HeaderWrapper(req, res) {
+      try { if (res && typeof res.setHeader === 'function') res.setHeader('X-Dirac-SQL-Precision-Patch-V108', DIRAC_SQLMAP_Sqli_PRECISION_PATCH_V108); } catch (_) {}
+      return __diracSqlPrecisionV108PreviousHandler(req, res);
+    };
+    Object.defineProperty(module.exports, '__diracSqlPrecisionV108HeaderWrapped', { value: true, enumerable: false });
+  }
+} catch (_) {}
