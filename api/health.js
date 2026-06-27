@@ -3179,12 +3179,183 @@ function getUpstreamMessage(data) {
   return '';
 }
 
-async function supabaseFetch(path, options = {}) {
-  const supabaseUrl = requiredEnv('DOMAIN_SUPABASE_URL').replace(/\/$/, '');
-  const anonKey = requiredEnv('DOMAIN_SUPABASE_ANON_KEY');
-  const serviceKey = requiredEnv('DOMAIN_SUPABASE_SERVICE_ROLE_KEY');
+const DIRAC_MULTI_DB_ROUTER_PATCH = 'dirac-seven-db-router-safe-v1';
 
-  const key = options.auth === 'service' ? serviceKey : anonKey;
+const DIRAC_SUPABASE_TARGET_ENVS = Object.freeze({
+  legacy: {
+    url: 'DOMAIN_SUPABASE_URL',
+    anonKey: 'DOMAIN_SUPABASE_ANON_KEY',
+    serviceKey: 'DOMAIN_SUPABASE_SERVICE_ROLE_KEY'
+  },
+  core: {
+    url: 'DIRAC_CORE_SUPABASE_URL',
+    anonKey: 'DIRAC_CORE_SUPABASE_ANON_KEY',
+    serviceKey: 'DIRAC_CORE_SUPABASE_SERVICE_ROLE_KEY'
+  },
+  adminGuard: {
+    url: 'DIRAC_ADMIN_GUARD_SUPABASE_URL',
+    anonKey: 'DIRAC_ADMIN_GUARD_SUPABASE_ANON_KEY',
+    serviceKey: 'DIRAC_ADMIN_GUARD_SUPABASE_SERVICE_ROLE_KEY'
+  },
+  customerSecurity: {
+    url: 'DIRAC_CUSTOMER_SECURITY_SUPABASE_URL',
+    anonKey: 'DIRAC_CUSTOMER_SECURITY_SUPABASE_ANON_KEY',
+    serviceKey: 'DIRAC_CUSTOMER_SECURITY_SUPABASE_SERVICE_ROLE_KEY'
+  },
+  publicMfa: {
+    url: 'DIRAC_PUBLIC_MFA_SUPABASE_URL',
+    anonKey: 'DIRAC_PUBLIC_MFA_SUPABASE_ANON_KEY',
+    serviceKey: 'DIRAC_PUBLIC_MFA_SUPABASE_SERVICE_ROLE_KEY'
+  },
+  domain: {
+    url: 'DIRAC_DOMAIN_SUPABASE_URL',
+    anonKey: 'DIRAC_DOMAIN_SUPABASE_ANON_KEY',
+    serviceKey: 'DIRAC_DOMAIN_SUPABASE_SERVICE_ROLE_KEY'
+  },
+  commerce: {
+    url: 'DIRAC_COMMERCE_SUPABASE_URL',
+    anonKey: 'DIRAC_COMMERCE_SUPABASE_ANON_KEY',
+    serviceKey: 'DIRAC_COMMERCE_SUPABASE_SERVICE_ROLE_KEY'
+  },
+  paymentService: {
+    url: 'DIRAC_PAYMENT_SERVICE_SUPABASE_URL',
+    anonKey: 'DIRAC_PAYMENT_SERVICE_SUPABASE_ANON_KEY',
+    serviceKey: 'DIRAC_PAYMENT_SERVICE_SUPABASE_SERVICE_ROLE_KEY'
+  }
+});
+
+const DIRAC_TABLE_DB_MAP = Object.freeze({
+  customers: 'core',
+  admin_users: 'core',
+  settings: 'core',
+  user_totp_mfa: 'core',
+  a2f_locks: 'core',
+  a2f_lockouts: 'core',
+  admin_a2f_sessions: 'core',
+
+  admin_logs: 'adminGuard',
+  admin_clipboard_otp_challenges: 'adminGuard',
+  admin_clipboard_security: 'adminGuard',
+  dirac_security_rate_limits: 'adminGuard',
+  security_logs: 'adminGuard',
+  security_login_guard_blocks: 'adminGuard',
+  security_customer_login_logs: 'adminGuard',
+
+  security_customer_access_blocks: 'customerSecurity',
+  security_customer_auth_links: 'customerSecurity',
+  security_customer_password_hashes: 'customerSecurity',
+  security_customer_recovery_codes: 'customerSecurity',
+  security_customer_sessions: 'customerSecurity',
+  security_customer_settings: 'customerSecurity',
+
+  public_mfa_recovery_codes: 'publicMfa',
+  public_security_challenges: 'publicMfa',
+  public_security_rate_limits: 'publicMfa',
+  domain_a2f_sessions: 'publicMfa',
+  domain_mfa_challenges: 'publicMfa',
+  domain_mfa_methods: 'publicMfa',
+
+  domain_products: 'domain',
+  domain_tld_prices: 'domain',
+  domain_orders: 'domain',
+  domain_order_items: 'domain',
+  domain_passkeys: 'domain',
+  domain_remember_devices: 'domain',
+
+  products: 'commerce',
+  products_backup_before_admin_documents_sync: 'commerce',
+  orders: 'commerce',
+  order_items: 'commerce',
+  vouchers: 'commerce',
+  voucher_tiers: 'commerce',
+
+  payment_transactions: 'paymentService',
+  payment_gateway_events: 'paymentService',
+  number_orders: 'paymentService',
+  website_projects: 'paymentService',
+  security_customer_account_requests: 'paymentService',
+  security_customer_events: 'paymentService'
+});
+
+function shouldUseDiracMultiDbRouter() {
+  return isEnvTrue('DIRAC_ENABLE_MULTI_DB_ROUTER') || isEnvTrue('DIRAC_MULTI_DB_ROUTER_ENABLED');
+}
+
+function shouldUseStrictDiracMultiDbRouter() {
+  return isEnvTrue('DIRAC_MULTI_DB_STRICT');
+}
+
+function getDiracRestTableFromPath(path) {
+  const value = String(path || '');
+  const prefix = '/rest/v1/';
+  if (!value.startsWith(prefix)) return '';
+
+  const rawTable = value.slice(prefix.length).split('?')[0].split('/')[0];
+  if (!rawTable || rawTable === 'rpc') return '';
+
+  try {
+    return decodeURIComponent(rawTable);
+  } catch (_) {
+    return rawTable;
+  }
+}
+
+function resolveDiracSupabaseTargetKey(path, options = {}) {
+  const forced = String(options.db || options.database || '').trim();
+  if (forced && DIRAC_SUPABASE_TARGET_ENVS[forced]) return forced;
+
+  if (!shouldUseDiracMultiDbRouter()) return 'legacy';
+
+  const tableName = getDiracRestTableFromPath(path);
+  return DIRAC_TABLE_DB_MAP[tableName] || 'legacy';
+}
+
+function readDiracSupabaseCredentials(targetKey) {
+  const key = DIRAC_SUPABASE_TARGET_ENVS[targetKey] ? targetKey : 'legacy';
+  const envs = DIRAC_SUPABASE_TARGET_ENVS[key];
+
+  if (key === 'legacy') {
+    return {
+      targetKey: 'legacy',
+      url: requiredEnv(envs.url).replace(/\/$/, ''),
+      anonKey: requiredEnv(envs.anonKey),
+      serviceKey: requiredEnv(envs.serviceKey)
+    };
+  }
+
+  const url = String(process.env[envs.url] || '').trim();
+  const anonKey = String(process.env[envs.anonKey] || '').trim();
+  const serviceKey = String(process.env[envs.serviceKey] || '').trim();
+
+  if (url && anonKey && serviceKey) {
+    return {
+      targetKey: key,
+      url: url.replace(/\/$/, ''),
+      anonKey,
+      serviceKey
+    };
+  }
+
+  if (shouldUseStrictDiracMultiDbRouter()) {
+    throw new Error(`Missing Supabase ENV for ${key}: ${envs.url}, ${envs.anonKey}, ${envs.serviceKey}`);
+  }
+
+  const legacy = DIRAC_SUPABASE_TARGET_ENVS.legacy;
+  return {
+    targetKey: 'legacy',
+    requestedTargetKey: key,
+    fallback: true,
+    url: requiredEnv(legacy.url).replace(/\/$/, ''),
+    anonKey: requiredEnv(legacy.anonKey),
+    serviceKey: requiredEnv(legacy.serviceKey)
+  };
+}
+
+async function supabaseFetch(path, options = {}) {
+  const targetKey = resolveDiracSupabaseTargetKey(path, options);
+  const target = readDiracSupabaseCredentials(targetKey);
+
+  const key = options.auth === 'service' ? target.serviceKey : target.anonKey;
   const bearer = options.bearer || key;
 
   const headers = {
@@ -3204,7 +3375,7 @@ async function supabaseFetch(path, options = {}) {
     fetchOptions.body = JSON.stringify(options.body);
   }
 
-  const response = await fetch(`${supabaseUrl}${path}`, fetchOptions);
+  const response = await fetch(`${target.url}${path}`, fetchOptions);
   const text = await response.text();
 
   let data = null;
