@@ -16317,3 +16317,198 @@ module.exports = async function diracUltraXssAttackHardeningWrapperV2(req, res) 
 
   return __diracUltraXssV2PreviousHandler(req, res);
 };
+
+/* ============================================================
+   DIRAC ULTRA XSS ONE-STRIKE PERMANENT BLOCK v3 - APPEND ONLY
+   Tujuan:
+   - 1 payload XSS yang sangat jelas pada URL/query/header langsung membuat
+     hard-ban persistent.
+   - Tidak membaca body request agar login/payment/webhook stream tidak rusak.
+   - Tidak mengubah endpoint, login/hash, A2F/MFA, payment gateway,
+     email template, checkout, order, perfume, dashboard, atau handler lama.
+   - Memakai tabel hard-ban/rate-limit yang sudah ada melalui helper v107
+     bila tersedia. IP/UA disimpan sebagai key HMAC/hash, bukan raw payload.
+   ============================================================ */
+
+const DIRAC_ULTRA_XSS_ONE_STRIKE_BLOCK_V3 = 'dirac-ultra-xss-one-strike-permanent-block-v3';
+const __diracUltraXssV3PreviousHandler = module.exports;
+
+module.exports = async function diracUltraXssOneStrikePermanentBlockWrapperV3(req, res) {
+  try {
+    if (res && typeof res.setHeader === 'function') {
+      res.setHeader('X-Dirac-XSS-One-Strike-Patch', DIRAC_ULTRA_XSS_ONE_STRIKE_BLOCK_V3);
+    }
+  } catch (_) {}
+
+  try {
+    const method = String((req && req.method) || 'GET').toUpperCase();
+    const action = String((req && req.query && req.query.action) || '').toLowerCase();
+
+    if (!diracUltraXssV3ShouldSkipPermanentBlock(req, action, method)) {
+      const xss = typeof diracUltraXssV2DetectRequest === 'function'
+        ? diracUltraXssV2DetectRequest(req)
+        : { detected: false };
+
+      if (xss && xss.detected) {
+        // Jika identitas ini sudah diblokir, langsung balas blocked.
+        try {
+          if (typeof diracV107CheckActiveBan === 'function') {
+            const existing = await diracV107CheckActiveBan(req).catch(() => ({ blocked: false }));
+            if (existing && existing.blocked) {
+              try { res.setHeader('Retry-After', String(existing.retryAfterSeconds || 86400)); } catch (_) {}
+              return diracUltraXssV3BlockedResponse(res, 'XSS_PERMANENT_BLOCK_ACTIVE');
+            }
+          }
+        } catch (_) {}
+
+        const write = await diracUltraXssV3RegisterPermanentBlock(req, res, action, method, xss).catch((error) => {
+          try { console.error('[dirac-xss-v3-permanent-block-write-failed]', diracUltraXssV3SafeError(error)); } catch (_) {}
+          return { ok: false };
+        });
+        try { res.setHeader('X-Dirac-XSS-One-Strike-Write', write && write.ok ? 'active' : 'memory'); } catch (_) {}
+        return diracUltraXssV3BlockedResponse(res, 'XSS_ATTACK_ONE_STRIKE_BLOCKED');
+      }
+    }
+  } catch (error) {
+    try { console.error('[dirac-xss-v3-permanent-block]', diracUltraXssV3SafeError(error)); } catch (_) {}
+    return diracUltraXssV3BlockedResponse(res, 'XSS_SECURITY_GUARD_ERROR');
+  }
+
+  return __diracUltraXssV3PreviousHandler(req, res);
+};
+
+function diracUltraXssV3ShouldSkipPermanentBlock(req, action, method) {
+  if (diracUltraXssV3EnvTrue('DIRAC_XSS_ONE_STRIKE_BLOCK_DISABLED')) return true;
+  if (String(method || '').toUpperCase() === 'OPTIONS') return true;
+
+  const normalized = String(action || '').toLowerCase();
+  // Payment/webhook/callback tetap dikecualikan agar payment gateway tidak terganggu.
+  if (/webhook|callback|notification|midtrans|ipaymu|payment_gateway|payment_notification/i.test(normalized)) return true;
+  try { if (typeof diracV101IsWebhookAction === 'function' && diracV101IsWebhookAction(normalized)) return true; } catch (_) {}
+
+  // Jangan proses file statis bila ada rewrite yang tidak biasa.
+  const url = String((req && req.url) || '');
+  if (/\.(?:html?|css|js|mjs|map|png|jpe?g|webp|gif|svg|ico|woff2?|ttf|otf)(?:\?|$)/i.test(url) && !/\/api\/health/i.test(url)) return true;
+
+  return false;
+}
+
+async function diracUltraXssV3RegisterPermanentBlock(req, res, action, method, xss) {
+  const now = Date.now();
+  const years = diracUltraXssV3BlockYears();
+  const blockedUntilMs = now + years * 365 * 24 * 60 * 60 * 1000;
+  const expiresAt = new Date(blockedUntilMs).toISOString();
+
+  let keys = [];
+  try {
+    if (typeof diracV107BuildKeys === 'function') keys = diracV107BuildKeys(req);
+  } catch (_) { keys = []; }
+
+  if (!Array.isArray(keys) || !keys.length) {
+    const headers = (req && req.headers) || {};
+    const ip = typeof diracV107Ip === 'function' ? diracV107Ip(req) : String(headers['x-forwarded-for'] || headers['x-real-ip'] || 'unknown').split(',')[0].trim();
+    const ua = String(headers['user-agent'] || '').slice(0, 500);
+    const digest = diracUltraXssV3Fingerprint(['xss-v3', ip, ua].join('|'));
+    keys = [{ type: 'fallback', key: 'global-ban-active:xss:' + digest }, { type: 'fallback', key: 'global-ban:xss:' + digest }];
+  }
+
+  // Cookie hard-ban browser; tidak menyimpan cookie mentah ke database.
+  try {
+    if (res && typeof res.setHeader === 'function' && typeof diracV107Hmac === 'function' && typeof diracV107KeysForValue === 'function') {
+      const cookieValue = diracV107Hmac('xss-cookie|' + String(now) + '|' + String(Math.random())).slice(0, 64);
+      const maxAge = Math.max(60, Math.min(Math.floor((blockedUntilMs - now) / 1000), 2147483647));
+      res.setHeader('Set-Cookie', 'dirac_global_hard_ban=' + cookieValue + '; Path=/; Max-Age=' + maxAge + '; HttpOnly; Secure; SameSite=Lax');
+      keys.push(...diracV107KeysForValue('cookie', 'cookie|' + cookieValue));
+    }
+  } catch (_) {}
+
+  const safeRecord = {
+    type: 'xss_one_strike_permanent_block_v3',
+    patch: DIRAC_ULTRA_XSS_ONE_STRIKE_BLOCK_V3,
+    action: diracUltraXssV3CleanSmall(action, 80),
+    method: diracUltraXssV3CleanSmall(method, 12),
+    reason: 'xss_attack_one_strike',
+    threat_kind: diracUltraXssV3CleanSmall(xss && xss.kind || 'xss_payload', 80),
+    source: 'url_query_or_header',
+    risk: 'critical',
+    blocked_until_ms: blockedUntilMs,
+    blocked_years: years,
+    created_at: new Date(now).toISOString()
+  };
+
+  for (const item of keys) {
+    try {
+      if (typeof DIRAC_GLOBAL_HARD_BAN_STORE_V107 !== 'undefined' && DIRAC_GLOBAL_HARD_BAN_STORE_V107 && typeof DIRAC_GLOBAL_HARD_BAN_STORE_V107.set === 'function') {
+        DIRAC_GLOBAL_HARD_BAN_STORE_V107.set(item.key, { blockedUntilMs, updatedAtMs: now, type: item.type || 'xss' });
+      }
+    } catch (_) {}
+  }
+
+  const rows = Array.from(new Map(keys.map((item) => [item.key, item])).values()).map((item) => ({
+    security_key: item.key,
+    record_json: { ...safeRecord, key_type: item.type || 'xss' },
+    blocked_until_ms: blockedUntilMs,
+    updated_at: new Date(now).toISOString(),
+    expires_at: expiresAt
+  }));
+
+  if (typeof diracV107WriteRows === 'function') {
+    const write = await diracV107WriteRows(rows).catch(() => ({ ok: false, wrote: 0 }));
+    return { ok: Boolean(write && write.ok) || rows.length > 0, wrote: write && write.wrote || 0, total: rows.length, blockedUntilMs };
+  }
+
+  if (typeof writePersistentSecurityJson === 'function' && rows.length) {
+    let wrote = 0;
+    for (const row of rows.slice(0, 8)) {
+      const ok = await writePersistentSecurityJson(row.security_key, row.record_json, blockedUntilMs, Math.ceil((blockedUntilMs - now) / 1000)).catch(() => false);
+      if (ok) wrote += 1;
+    }
+    return { ok: wrote > 0 || rows.length > 0, wrote, total: rows.length, blockedUntilMs };
+  }
+
+  return { ok: rows.length > 0, wrote: 0, total: rows.length, blockedUntilMs };
+}
+
+function diracUltraXssV3BlockedResponse(res, reason) {
+  try { if (typeof diracApplySecurityResponseHeaders === 'function') diracApplySecurityResponseHeaders(res); } catch (_) {}
+  try { res.setHeader('Cache-Control', 'no-store'); } catch (_) {}
+  return res.status(403).json({
+    ok: false,
+    code: 'XSS_PERMANENT_BLOCK',
+    message: 'Akses dibatasi oleh sistem keamanan.',
+    reason: String(reason || 'blocked').slice(0, 80)
+  });
+}
+
+function diracUltraXssV3BlockYears() {
+  const raw = Number(process.env.DIRAC_XSS_BLOCK_YEARS || 100);
+  if (!Number.isFinite(raw) || raw <= 0) return 100;
+  return Math.min(Math.max(raw, 1), 100);
+}
+
+function diracUltraXssV3Fingerprint(value) {
+  try {
+    if (typeof diracV107Hmac === 'function') return diracV107Hmac(value);
+    if (typeof diracV101Fingerprint === 'function') return diracV101Fingerprint(value);
+    if (typeof loginSecurityHash === 'function') return loginSecurityHash(value);
+  } catch (_) {}
+  return crypto.createHash('sha256').update(String(value || '')).digest('hex');
+}
+
+function diracUltraXssV3CleanSmall(value, maxLength = 80) {
+  try {
+    if (typeof diracUltraXssV2CleanText === 'function') return diracUltraXssV2CleanText(value, maxLength);
+  } catch (_) {}
+  return String(value || '').replace(/[<>{}\[\]"'`&]/g, ' ').replace(/[\u0000-\u001F\u007F]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, maxLength);
+}
+
+function diracUltraXssV3EnvTrue(name) {
+  const value = String(process.env[name] || '').trim().toLowerCase();
+  return value === '1' || value === 'true' || value === 'yes' || value === 'on';
+}
+
+function diracUltraXssV3SafeError(error) {
+  const message = String(error && error.message ? error.message : error || 'error');
+  if (/password|token|secret|cookie|authorization|apikey|service_role/i.test(message)) return 'security_internal_error';
+  return message.slice(0, 180);
+}
