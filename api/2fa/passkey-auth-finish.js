@@ -23,6 +23,7 @@ const A2F_SESSION_COLLECTION = process.env.A2F_SESSION_COLLECTION || "adminA2FSe
 const A2F_SESSION_TABLE = process.env.A2F_SESSION_TABLE || "admin_a2f_sessions";
 const ADMIN_LOG_TABLE = process.env.ADMIN_LOG_TABLE || "admin_logs";
 const ADMIN_DOCUMENTS_TABLE = process.env.ADMIN_DOCUMENTS_TABLE || "admin_documents";
+const PRODUCTS_TABLE = process.env.ADMIN_PRODUCTS_TABLE || "products";
 const A2F_SESSION_TTL_MS = Number(process.env.A2F_SESSION_TTL_MS || 30 * 60 * 1000);
 const MAX_UPLOAD_BYTES = Number(process.env.ADMIN_MAX_UPLOAD_BYTES || 7 * 1024 * 1024);
 const ALLOWED_UPLOAD_PREFIXES = String(process.env.ADMIN_ALLOWED_UPLOAD_PREFIXES || "product-images/,payment-proofs/")
@@ -59,133 +60,6 @@ function setCors(req, res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   res.setHeader("Cache-Control", "no-store");
   return isAllowedOrigin(origin);
-}
-
-
-function assertAllowedPreAuthOrigin(req) {
-  const origin = String((req && req.headers && req.headers.origin) || "");
-  if (!isAllowedOrigin(origin)) {
-    throw Object.assign(new Error("Origin tidak diizinkan untuk login admin"), { status: 403 });
-  }
-}
-
-function getFirebaseWebApiKey(body) {
-  const fromEnv = String(
-    process.env.FIREBASE_WEB_API_KEY ||
-    process.env.NEXT_PUBLIC_FIREBASE_API_KEY ||
-    process.env.FIREBASE_API_KEY ||
-    ""
-  ).trim();
-  const fromBody = String(body && body.apiKey || "").trim();
-  // Firebase Web API key bukan secret. Nilai fallback ini sama seperti yang sudah ada di HTML admin lama.
-  const fallbackPublicKey = "AIzaSyD9tYvv7nyrNZuQp9Cu6huVlzY8poeRBHY";
-  const key = fromEnv || fromBody || fallbackPublicKey;
-  if (!/^AIza[0-9A-Za-z_-]{20,}$/.test(key)) {
-    throw Object.assign(new Error("Firebase Web API key tidak valid untuk login admin"), { status: 500 });
-  }
-  return key;
-}
-
-function firebaseProxyFailure(status, data, fallbackMessage) {
-  const firebaseError = data && data.error && typeof data.error === "object"
-    ? data.error
-    : { message: fallbackMessage || "FIREBASE_AUTH_PROXY_FAILED" };
-  return {
-    success: false,
-    provider: "firebase-rest-proxy",
-    firebaseError,
-    error: String(firebaseError.message || fallbackMessage || "Firebase auth proxy gagal")
-  };
-}
-
-async function readFirebaseJsonResponse(response) {
-  const text = await response.text();
-  if (!text) return {};
-  try {
-    return JSON.parse(text);
-  } catch (error) {
-    return { error: { message: "FIREBASE_RESPONSE_NOT_JSON" }, raw: text.slice(0, 300) };
-  }
-}
-
-async function handleFirebasePasswordLogin(req, res, body) {
-  assertAllowedPreAuthOrigin(req);
-
-  const email = String(body && body.email || "").trim();
-  const password = String(body && body.password || "");
-  if (!email || !password) {
-    return send(res, 400, firebaseProxyFailure(400, { error: { message: "MISSING_EMAIL_OR_PASSWORD" } }, "MISSING_EMAIL_OR_PASSWORD"));
-  }
-
-  const apiKey = getFirebaseWebApiKey(body);
-  const url = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${encodeURIComponent(apiKey)}`;
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      email,
-      password,
-      returnSecureToken: true
-    })
-  });
-  const data = await readFirebaseJsonResponse(response);
-
-  if (!response.ok) {
-    return send(res, response.status || 400, firebaseProxyFailure(response.status || 400, data, "FIREBASE_PASSWORD_LOGIN_FAILED"));
-  }
-
-  return send(res, 200, {
-    success: true,
-    action: "firebasePasswordLogin",
-    provider: "firebase-rest-proxy",
-    data: {
-      idToken: data.idToken || "",
-      refreshToken: data.refreshToken || "",
-      expiresIn: data.expiresIn || "3600",
-      localId: data.localId || "",
-      email: data.email || email,
-      registered: data.registered === true
-    }
-  });
-}
-
-async function handleFirebaseRefreshToken(req, res, body) {
-  assertAllowedPreAuthOrigin(req);
-
-  const refreshToken = String(body && (body.refresh_token || body.refreshToken) || "").trim();
-  if (!refreshToken) {
-    return send(res, 400, firebaseProxyFailure(400, { error: { message: "MISSING_REFRESH_TOKEN" } }, "MISSING_REFRESH_TOKEN"));
-  }
-
-  const apiKey = getFirebaseWebApiKey(body);
-  const params = new URLSearchParams();
-  params.set("grant_type", "refresh_token");
-  params.set("refresh_token", refreshToken);
-
-  const response = await fetch(`https://securetoken.googleapis.com/v1/token?key=${encodeURIComponent(apiKey)}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: params.toString()
-  });
-  const data = await readFirebaseJsonResponse(response);
-
-  if (!response.ok) {
-    return send(res, response.status || 400, firebaseProxyFailure(response.status || 400, data, "FIREBASE_REFRESH_TOKEN_FAILED"));
-  }
-
-  return send(res, 200, {
-    success: true,
-    action: "firebaseRefreshToken",
-    provider: "firebase-rest-proxy",
-    data: {
-      id_token: data.id_token || "",
-      refresh_token: data.refresh_token || refreshToken,
-      expires_in: data.expires_in || "3600",
-      user_id: data.user_id || "",
-      project_id: data.project_id || "",
-      token_type: data.token_type || "Bearer"
-    }
-  });
 }
 
 function getA2fSecret() {
@@ -718,7 +592,305 @@ async function deleteSupabaseDocument(collection, docId) {
   }
 }
 
+/* ============================================================
+   ADMIN PRODUCTS DIRECT TABLE SYNC v1
+   - Only collection "products" is redirected to public.products.
+   - Other admin collections remain on admin_documents.
+   - Does not change login, hash, A2F, payment, email, checkout, or endpoints.
+   ============================================================ */
+function productSlugify(value, fallback) {
+  const base = String(value || fallback || "produk")
+    .trim()
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return base || String(fallback || "produk").replace(/[^a-zA-Z0-9]+/g, "-").toLowerCase();
+}
+
+function directProductFirst(input, keys, fallback = "") {
+  const obj = input && typeof input === "object" && !Array.isArray(input) ? input : {};
+  for (const key of keys) {
+    if (!Object.prototype.hasOwnProperty.call(obj, key)) continue;
+    const value = obj[key];
+    if (value !== undefined && value !== null && String(value).trim() !== "") return value;
+  }
+  return fallback;
+}
+
+function directProductText(value, fallback = "", maxLength = 1600) {
+  const text = String(value === undefined || value === null ? fallback : value)
+    .replace(/[\u0000-\u001f\u007f]+/g, " ")
+    .trim();
+  return text.length > maxLength ? text.slice(0, maxLength) : text;
+}
+
+function directProductNumber(value, fallback = 0) {
+  if (typeof value === "number") return Number.isFinite(value) ? value : fallback;
+  if (isPlainObject(value) && value.__diracSupabaseOp === "increment") return fallback;
+  const raw = String(value === undefined || value === null ? "" : value).trim();
+  if (!raw) return fallback;
+  let cleaned = raw.replace(/[^0-9,.-]/g, "");
+  if (!cleaned || cleaned === "-" || cleaned === "." || cleaned === ",") return fallback;
+  const negative = cleaned.charAt(0) === "-";
+  cleaned = cleaned.replace(/-/g, "");
+  if (cleaned.includes(",") && cleaned.includes(".")) {
+    cleaned = cleaned.lastIndexOf(",") > cleaned.lastIndexOf(".")
+      ? cleaned.replace(/\./g, "").replace(",", ".")
+      : cleaned.replace(/,/g, "");
+  } else if (cleaned.includes(".")) {
+    const parts = cleaned.split(".");
+    const last = parts[parts.length - 1] || "";
+    cleaned = (parts.length > 2 || last.length === 3) ? parts.join("") : cleaned;
+  } else if (cleaned.includes(",")) {
+    const parts = cleaned.split(",");
+    const last = parts[parts.length - 1] || "";
+    cleaned = (parts.length > 2 || last.length === 3) ? parts.join("") : cleaned.replace(",", ".");
+  }
+  const number = Number((negative ? "-" : "") + cleaned);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function directProductBool(value, fallback = true) {
+  if (value === true || value === false) return value;
+  const text = String(value === undefined || value === null ? "" : value).trim().toLowerCase();
+  if (!text) return fallback;
+  if (["false", "0", "no", "tidak", "nonaktif", "inactive", "disabled", "off"].includes(text)) return false;
+  if (["true", "1", "yes", "ya", "aktif", "active", "enabled", "on"].includes(text)) return true;
+  return fallback;
+}
+
+function productsTableRowToAdminDocument(row, index = 0) {
+  const input = row && typeof row === "object" && !Array.isArray(row) ? row : {};
+  const docId = directProductText(directProductFirst(input, ["doc_id", "docId", "id", "uuid"], String(index + 1).padStart(3, "0")), "doc", 180);
+  const title = directProductText(directProductFirst(input, ["title", "name", "nama", "product_name"], "Produk Parfum"), "Produk Parfum", 220);
+  const status = normalizeProductStatus({
+    status: directProductFirst(input, ["status", "stock_status", "availability"], "ready"),
+    isSold: input.is_sold,
+    soldOut: input.sold_out,
+    outOfStock: input.out_of_stock
+  });
+  const img = directProductText(directProductFirst(input, ["img", "image_url", "image", "photo", "thumbnail"], ""), "", 1400);
+  const data = canonicalizeProductData({
+    docId,
+    id: directProductFirst(input, ["product_id", "productId", "firebase_id", "firebaseId", "id"], docId),
+    firebase_id: directProductFirst(input, ["firebase_id", "firebaseId"], docId),
+    firebaseId: directProductFirst(input, ["firebase_id", "firebaseId"], docId),
+    slug: directProductText(directProductFirst(input, ["slug", "product_slug"], ""), "", 220),
+    title,
+    name: directProductText(directProductFirst(input, ["name", "title", "nama", "product_name"], title), title, 220),
+    brand: directProductText(directProductFirst(input, ["brand", "merek", "merk"], ""), "", 160),
+    category: directProductText(directProductFirst(input, ["category", "kategori", "product_category"], ""), "", 160),
+    price: Math.max(0, Math.round(directProductNumber(input.price, 0))),
+    costPrice: Math.max(0, Math.round(directProductNumber(directProductFirst(input, ["cost_price", "costPrice", "modal"], 0), 0))),
+    stock: Math.max(0, Math.round(directProductNumber(input.stock, 0))),
+    minStock: Math.max(0, Math.round(directProductNumber(directProductFirst(input, ["min_stock", "minStock"], 0), 0))),
+    soldCount: Math.max(0, Math.round(directProductNumber(directProductFirst(input, ["sold_count", "soldCount", "sold"], 0), 0))),
+    rating: Math.max(0, Math.min(5, directProductNumber(input.rating, 0))),
+    reviewCount: Math.max(0, Math.round(directProductNumber(directProductFirst(input, ["review_count", "reviewCount", "reviews"], 0), 0))),
+    size: directProductText(input.size || "", "", 120),
+    fragranceType: directProductText(directProductFirst(input, ["fragrance_type", "fragranceType"], ""), "", 160),
+    gender: directProductText(input.gender || "", "", 120),
+    scentFamily: directProductText(directProductFirst(input, ["scent_family", "scentFamily"], ""), "", 160),
+    longevity: directProductText(input.longevity || "", "", 160),
+    projection: directProductText(input.projection || "", "", 160),
+    topNotes: directProductText(directProductFirst(input, ["top_notes", "topNotes"], ""), "", 600),
+    middleNotes: directProductText(directProductFirst(input, ["middle_notes", "middleNotes"], ""), "", 600),
+    baseNotes: directProductText(directProductFirst(input, ["base_notes", "baseNotes"], ""), "", 600),
+    img,
+    image_url: directProductText(directProductFirst(input, ["image_url", "imageUrl", "img"], img), img, 1400),
+    desc: directProductText(directProductFirst(input, ["desc", "description", "short_description"], ""), "", 1600),
+    description: directProductText(directProductFirst(input, ["description", "desc", "short_description"], ""), "", 1600),
+    notes: directProductText(input.notes || "", "", 1600),
+    longDesc: directProductText(directProductFirst(input, ["long_description", "longDesc", "long_desc"], ""), "", 3000),
+    status,
+    is_ready: directProductBool(input.is_ready, status !== "sold"),
+    is_active: directProductBool(input.is_active, true),
+    createdAt: input.created_at || input.createdAt || "",
+    updatedAt: input.updated_at || input.updatedAt || "",
+    createdAtMs: input.created_at ? Date.parse(input.created_at) || 0 : Number(input.createdAtMs || 0),
+    updatedAtMs: input.updated_at ? Date.parse(input.updated_at) || 0 : Number(input.updatedAtMs || 0)
+  });
+  return {
+    collection: "products",
+    doc_id: docId,
+    created_at: input.created_at || null,
+    updated_at: input.updated_at || null,
+    data
+  };
+}
+
+function productAdminDataToTableRow(data, docId, existingRow = null) {
+  const input = data && typeof data === "object" && !Array.isArray(data) ? data : {};
+  const existing = existingRow && typeof existingRow === "object" && !Array.isArray(existingRow) ? existingRow : {};
+  const title = directProductText(directProductFirst(input, ["title", "name"], existing.title || existing.name || "Produk Parfum"), "Produk Parfum", 220);
+  const cleanDocId = directProductText(docId || input.docId || existing.doc_id || existing.id || productSlugify(title, "produk"), "doc", 180);
+  const status = normalizeProductStatus(input);
+  const img = directProductText(directProductFirst(input, ["img", "image_url", "imageUrl", "image", "photo"], existing.img || existing.image_url || ""), "", 1400);
+  const nowIso = new Date().toISOString();
+  const slug = directProductText(directProductFirst(input, ["slug"], existing.slug || ""), "", 220) || productSlugify(title + "-" + cleanDocId, cleanDocId);
+  return {
+    doc_id: cleanDocId,
+    firebase_id: directProductText(directProductFirst(input, ["firebase_id", "firebaseId", "id"], existing.firebase_id || cleanDocId), cleanDocId, 180),
+    title,
+    name: directProductText(directProductFirst(input, ["name", "title"], existing.name || title), title, 220),
+    slug,
+    brand: directProductText(directProductFirst(input, ["brand"], existing.brand || ""), "", 160),
+    category: directProductText(directProductFirst(input, ["category"], existing.category || ""), "", 160),
+    price: Math.max(0, Math.round(directProductNumber(input.price, existing.price || 0))),
+    cost_price: Math.max(0, Math.round(directProductNumber(directProductFirst(input, ["costPrice", "cost_price"], existing.cost_price || 0), 0))),
+    stock: Math.max(0, Math.round(directProductNumber(input.stock, existing.stock || 0))),
+    min_stock: Math.max(0, Math.round(directProductNumber(directProductFirst(input, ["minStock", "min_stock"], existing.min_stock || 0), 0))),
+    sold_count: Math.max(0, Math.round(directProductNumber(directProductFirst(input, ["soldCount", "sold_count"], existing.sold_count || 0), 0))),
+    size: directProductText(input.size !== undefined ? input.size : existing.size || "", "", 120),
+    fragrance_type: directProductText(directProductFirst(input, ["fragranceType", "fragrance_type"], existing.fragrance_type || ""), "", 160),
+    gender: directProductText(input.gender !== undefined ? input.gender : existing.gender || "", "", 120),
+    scent_family: directProductText(directProductFirst(input, ["scentFamily", "scent_family"], existing.scent_family || ""), "", 160),
+    longevity: directProductText(input.longevity !== undefined ? input.longevity : existing.longevity || "", "", 160),
+    projection: directProductText(input.projection !== undefined ? input.projection : existing.projection || "", "", 160),
+    top_notes: directProductText(directProductFirst(input, ["topNotes", "top_notes"], existing.top_notes || ""), "", 600),
+    middle_notes: directProductText(directProductFirst(input, ["middleNotes", "middle_notes"], existing.middle_notes || ""), "", 600),
+    base_notes: directProductText(directProductFirst(input, ["baseNotes", "base_notes"], existing.base_notes || ""), "", 600),
+    img,
+    image_url: directProductText(directProductFirst(input, ["image_url", "imageUrl", "img"], existing.image_url || img), img, 1400),
+    description: directProductText(directProductFirst(input, ["description", "desc"], existing.description || ""), "", 1600),
+    notes: directProductText(input.notes !== undefined ? input.notes : existing.notes || "", "", 1600),
+    long_description: directProductText(directProductFirst(input, ["longDesc", "long_description", "long_desc"], existing.long_description || ""), "", 3000),
+    status,
+    is_ready: directProductBool(directProductFirst(input, ["is_ready", "isReady"], existing.is_ready), status !== "sold"),
+    is_active: directProductBool(directProductFirst(input, ["is_active", "isActive"], existing.is_active), true),
+    updated_at: nowIso,
+    created_at: existing.created_at || input.createdAt || nowIso
+  };
+}
+
+function compactProductTableRow(row) {
+  return {
+    doc_id: row.doc_id,
+    firebase_id: row.firebase_id,
+    title: row.title,
+    name: row.name,
+    slug: row.slug,
+    brand: row.brand,
+    category: row.category,
+    price: row.price,
+    cost_price: row.cost_price,
+    stock: row.stock,
+    min_stock: row.min_stock,
+    sold_count: row.sold_count,
+    size: row.size,
+    fragrance_type: row.fragrance_type,
+    gender: row.gender,
+    scent_family: row.scent_family,
+    longevity: row.longevity,
+    projection: row.projection,
+    top_notes: row.top_notes,
+    middle_notes: row.middle_notes,
+    base_notes: row.base_notes,
+    img: row.img,
+    image_url: row.image_url,
+    description: row.description,
+    notes: row.notes,
+    status: row.status,
+    long_description: row.long_description,
+    is_ready: row.is_ready,
+    is_active: row.is_active,
+    created_at: row.created_at,
+    updated_at: row.updated_at
+  };
+}
+
+async function getProductsTableDocument(docId) {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from(PRODUCTS_TABLE)
+    .select("*")
+    .eq("doc_id", docId)
+    .maybeSingle();
+  if (error) throw Object.assign(new Error("Gagal membaca produk dari tabel products: " + error.message), { status: 500 });
+  return data || null;
+}
+
+async function upsertProductsTableDocument(docId, patch, merge) {
+  const supabase = getSupabaseAdmin();
+  const existing = merge ? await getProductsTableDocument(docId) : null;
+  const decodedPatch = decodeValue(patch || {});
+  const currentData = existing ? productsTableRowToAdminDocument(existing).data : {};
+  const nextData = canonicalizeProductData(applyExplicitProductStatusIntent(applyDecodedPatch(currentData, decodedPatch, merge), decodedPatch));
+  const fullRow = productAdminDataToTableRow(nextData, docId, existing);
+  let result = await supabase
+    .from(PRODUCTS_TABLE)
+    .upsert(fullRow, { onConflict: "doc_id" });
+  if (result.error) {
+    const message = String(result.error.message || result.error.details || result.error.hint || "");
+    if (/column|schema cache|Could not find|does not exist/i.test(message)) {
+      result = await supabase
+        .from(PRODUCTS_TABLE)
+        .upsert(compactProductTableRow(fullRow), { onConflict: "doc_id" });
+    }
+  }
+  if (result.error) throw Object.assign(new Error("Gagal menyimpan produk ke tabel products: " + result.error.message), { status: 500 });
+}
+
+async function updateProductsTableDocument(docId, patch) {
+  const existing = await getProductsTableDocument(docId);
+  if (!existing) throw Object.assign(new Error("Produk tidak ditemukan di tabel products: " + docId), { status: 404 });
+  return upsertProductsTableDocument(docId, patch, true);
+}
+
+async function deleteProductsTableDocument(docId) {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from(PRODUCTS_TABLE)
+    .delete()
+    .eq("doc_id", docId);
+  if (error) throw Object.assign(new Error("Gagal menghapus produk dari tabel products: " + error.message), { status: 500 });
+}
+
+async function readProductsTableCollection(body) {
+  const supabase = getSupabaseAdmin();
+  const collection = "products";
+  const limitRaw = Number(body[`${collection}Limit`] || body.limit || 30000);
+  const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.trunc(limitRaw), 1), 30000) : 30000;
+  const cursor = String(body[`${collection}Cursor`] || "").trim();
+  const orderByKey = String(body[`${collection}OrderBy`] || "").trim();
+  const orderDirection = String(body[`${collection}OrderDirection`] || "asc").trim();
+
+  const { data, error } = await supabase
+    .from(PRODUCTS_TABLE)
+    .select("*")
+    .limit(30000);
+  if (error) throw Object.assign(new Error("Gagal membaca tabel products untuk admin: " + error.message), { status: 500 });
+
+  let rows = (Array.isArray(data) ? data : []).map(productsTableRowToAdminDocument);
+  rows = filterRows(rows, collection, body);
+  rows = sortRows(rows, orderByKey || "docId", orderDirection);
+  let startIndex = 0;
+  if (cursor) {
+    const found = rows.findIndex((row) => String(row.doc_id) === cursor);
+    if (found >= 0) startIndex = found + 1;
+  }
+  const pageRows = rows.slice(startIndex, startIndex + limit);
+  const next = rows[startIndex + limit] ? String(pageRows[pageRows.length - 1].doc_id || "") : "";
+  return {
+    rows: pageRows.map(rowToClient),
+    page: { limit, total: rows.length, returned: pageRows.length, cursor: cursor || "", nextCursor: next, hasMore: Boolean(next) }
+  };
+}
+
+async function fetchProductsTableAsAdminRows() {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from(PRODUCTS_TABLE)
+    .select("*")
+    .limit(30000);
+  if (error) throw Object.assign(new Error("Gagal membaca export produk dari tabel products: " + error.message), { status: 500 });
+  return (Array.isArray(data) ? data : []).map(productsTableRowToAdminDocument);
+}
+
 async function readSupabaseCollection(collection, body) {
+  if (collection === "products") return readProductsTableCollection(body);
   const supabase = getSupabaseAdmin();
   const limitRaw = Number(body[`${collection}Limit`] || body.limit || 30000);
   const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.trunc(limitRaw), 1), 30000) : 30000;
@@ -1025,7 +1197,7 @@ async function handlePublicReadProducts(body) {
   const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.trunc(limitRaw), 1), 5000) : 5000;
 
   const { data, error } = await supabase
-    .from("products")
+    .from(PRODUCTS_TABLE)
     .select("*")
     .limit(limit);
 
@@ -1044,7 +1216,7 @@ async function handlePublicReadProducts(body) {
     action: "publicReadProducts",
     provider: "supabase-backend",
     source: "products",
-    table: "products",
+    table: PRODUCTS_TABLE,
     count: products.length,
     products
   };
@@ -1224,7 +1396,11 @@ async function fetchAllAdminDocumentsForExport() {
     from += pageSize;
   }
 
-  return rows;
+  const directProducts = await fetchProductsTableAsAdminRows().catch((error) => {
+    console.warn("Gagal membaca products untuk export admin:", error.message || error);
+    return [];
+  });
+  return rows.filter((row) => String(row.collection || "") !== "products").concat(directProducts);
 }
 
 function groupAdminDocumentRows(rows) {
@@ -1331,6 +1507,10 @@ async function handleAdminDataAction(role, body) {
     if (!canWrite(role)) throw Object.assign(new Error("Role admin/editor wajib untuk simpan data"), { status: 403 });
     const collection = cleanCollectionName(body.collection);
     const docId = cleanDocId(body.docId);
+    if (collection === "products") {
+      await upsertProductsTableDocument(docId, body.data || {}, body.merge !== false);
+      return { success: true, action, provider: "supabase", table: PRODUCTS_TABLE, path: `${collection}/${docId}` };
+    }
     await upsertSupabaseDocument(collection, docId, body.data || {}, body.merge !== false);
     return { success: true, action, provider: "supabase", path: `${collection}/${docId}` };
   }
@@ -1339,6 +1519,10 @@ async function handleAdminDataAction(role, body) {
     if (!canWrite(role)) throw Object.assign(new Error("Role admin/editor wajib untuk update data"), { status: 403 });
     const collection = cleanCollectionName(body.collection);
     const docId = cleanDocId(body.docId);
+    if (collection === "products") {
+      await updateProductsTableDocument(docId, body.data || {});
+      return { success: true, action, provider: "supabase", table: PRODUCTS_TABLE, path: `${collection}/${docId}` };
+    }
     await updateSupabaseDocument(collection, docId, body.data || {});
     return { success: true, action, provider: "supabase", path: `${collection}/${docId}` };
   }
@@ -1347,6 +1531,10 @@ async function handleAdminDataAction(role, body) {
     if (!canDelete(role)) throw Object.assign(new Error("Hanya owner/admin yang boleh hapus data"), { status: 403 });
     const collection = cleanCollectionName(body.collection);
     const docId = cleanDocId(body.docId);
+    if (collection === "products") {
+      await deleteProductsTableDocument(docId);
+      return { success: true, action, provider: "supabase", table: PRODUCTS_TABLE, path: `${collection}/${docId}` };
+    }
     await deleteSupabaseDocument(collection, docId);
     return { success: true, action, provider: "supabase", path: `${collection}/${docId}` };
   }
@@ -1367,11 +1555,14 @@ async function handleAdminDataAction(role, body) {
 
       if (type === "delete") {
         if (!canDelete(role)) throw Object.assign(new Error("Hanya owner/admin yang boleh delete batch"), { status: 403 });
-        await deleteSupabaseDocument(collection, docId);
+        if (collection === "products") await deleteProductsTableDocument(docId);
+        else await deleteSupabaseDocument(collection, docId);
       } else if (type === "update") {
-        await updateSupabaseDocument(collection, docId, op.data || {});
+        if (collection === "products") await updateProductsTableDocument(docId, op.data || {});
+        else await updateSupabaseDocument(collection, docId, op.data || {});
       } else {
-        await upsertSupabaseDocument(collection, docId, op.data || {}, op.merge !== false);
+        if (collection === "products") await upsertProductsTableDocument(docId, op.data || {}, op.merge !== false);
+        else await upsertSupabaseDocument(collection, docId, op.data || {}, op.merge !== false);
       }
     }
 
@@ -1501,14 +1692,6 @@ module.exports = async function handler(req, res) {
   try {
     const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
     const action = String(body.action || "").trim();
-
-    if (action === "firebasePasswordLogin") {
-      return await handleFirebasePasswordLogin(req, res, body);
-    }
-
-    if (action === "firebaseRefreshToken") {
-      return await handleFirebaseRefreshToken(req, res, body);
-    }
 
     if (action === "publicReadProducts" || action === "publicCreateOrder") {
       return await handlePublicStorefrontAction(req, res, body);
