@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>DiracGroup Internal E2E Tester</title>
+  <meta name="robots" content="noindex,nofollow">
+  <style>
+    :root{font-family:Arial,Helvetica,sans-serif;color:#111827;background:#f3f4f6}
+    *{box-sizing:border-box}
+    body{margin:0;padding:24px}
+    .wrap{max-width:1100px;margin:auto}
+    .card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:18px;margin:0 0 16px;box-shadow:0 8px 24px rgba(15,23,42,.06)}
+    h1{font-size:26px;margin:0 0 8px}
+    h2{font-size:18px;margin:0 0 12px}
+    p{line-height:1.5}
+    label{display:block;font-weight:700;margin:10px 0 6px}
+    input,textarea,select{width:100%;padding:11px 12px;border:1px solid #cbd5e1;border-radius:10px;font-size:14px}
+    textarea{min-height:72px}
+    button{border:0;border-radius:10px;padding:11px 14px;font-weight:800;cursor:pointer;background:#111827;color:#fff;margin:8px 8px 0 0}
+    button.secondary{background:#374151}
+    button.warn{background:#b45309}
+    button.danger{background:#991b1b}
+    button:disabled{opacity:.55;cursor:not-allowed}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+    .ok{color:#047857;font-weight:800}
+    .bad{color:#b91c1c;font-weight:800}
+    .muted{color:#6b7280}
+    .pill{display:inline-block;border-radius:999px;background:#e5e7eb;padding:4px 9px;font-size:12px;font-weight:800}
+    pre{background:#0b1020;color:#d1e7ff;border-radius:14px;padding:14px;overflow:auto;min-height:180px;white-space:pre-wrap}
+    .step{display:flex;align-items:center;gap:10px;margin:8px 0}
+    .dot{width:12px;height:12px;border-radius:999px;background:#9ca3af;display:inline-block}
+    .dot.ok{background:#10b981}.dot.bad{background:#ef4444}.dot.run{background:#f59e0b}
+    .small{font-size:13px}
+    @media(max-width:800px){.grid,.grid3{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1>DiracGroup Internal E2E Tester</h1>
+    <p class="muted">
+      HTML ini untuk uji alur resmi: login → A2F email → cek pesanan → checkout parfum → buat invoice/payment link.
+      Password tidak disimpan, tidak memakai localStorage, dan semua request memakai cookie HttpOnly dari backend.
+    </p>
+    <p class="bad">
+      Jangan upload publik. Pakai hanya di domain resmi/allowed origin, misalnya halaman internal di diracgroup.store.
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>0. Konfigurasi</h2>
+    <div class="grid">
+      <div>
+        <label>Base API URL</label>
+        <input id="baseUrl" value="" placeholder="Contoh: https://diracgroup.store">
+        <div class="small muted">Jika file ini dipasang di domain yang sama, biarkan memakai origin halaman.</div>
+      </div>
+      <div>
+        <label>Mode Payment</label>
+        <select id="paymentMode">
+          <option value="manual" selected>Manual aman: buat link invoice, lalu buka gateway</option>
+          <option value="skip">Lewati payment</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>1. Login</h2>
+    <div class="grid">
+      <div>
+        <label>Email</label>
+        <input id="email" autocomplete="username" placeholder="email akun customer">
+      </div>
+      <div>
+        <label>Password</label>
+        <input id="password" type="password" autocomplete="current-password" placeholder="password">
+      </div>
+    </div>
+    <button onclick="login()">Login</button>
+    <span id="loginStatus" class="pill">belum login</span>
+  </div>
+
+  <div class="card">
+    <h2>2. A2F Email</h2>
+    <button onclick="startMfa()">Kirim Kode A2F</button>
+    <div class="grid">
+      <div>
+        <label>Setup Token</label>
+        <input id="setupToken" placeholder="otomatis terisi setelah kirim kode">
+      </div>
+      <div>
+        <label>Kode A2F 6 digit</label>
+        <input id="mfaCode" inputmode="numeric" maxlength="6" placeholder="masukkan kode dari email">
+      </div>
+    </div>
+    <button onclick="verifyMfa()">Verifikasi A2F</button>
+    <span id="mfaStatus" class="pill">belum verifikasi</span>
+  </div>
+
+  <div class="card">
+    <h2>3. Checkout Parfum</h2>
+    <div class="grid3">
+      <div>
+        <label>Nama Customer</label>
+        <input id="customerName" placeholder="Nama penerima">
+      </div>
+      <div>
+        <label>Nomor WhatsApp/HP</label>
+        <input id="phone" placeholder="08xxxxxxxxxx">
+      </div>
+      <div>
+        <label>Jumlah</label>
+        <input id="qty" type="number" min="1" value="1">
+      </div>
+    </div>
+    <div class="grid">
+      <div>
+        <label>Nama Produk Parfum</label>
+        <input id="productTitle" placeholder="Harus sama dengan nama produk di database products">
+      </div>
+      <div>
+        <label>Catatan</label>
+        <input id="note" placeholder="Opsional">
+      </div>
+    </div>
+    <label>Alamat Pengiriman</label>
+    <textarea id="address" placeholder="Alamat lengkap"></textarea>
+    <button onclick="createCheckout()">Buat Order Checkout</button>
+    <span id="checkoutStatus" class="pill">belum checkout</span>
+  </div>
+
+  <div class="card">
+    <h2>4. Pesanan & Invoice</h2>
+    <button onclick="loadOrders()">Cek Pesanan / Invoice</button>
+    <button onclick="createPayment()" class="secondary">Buat Payment Link dari Order Terpilih</button>
+    <button onclick="openPayment()" class="warn">Buka Payment Gateway</button>
+    <button onclick="pollOrders()" class="secondary">Polling Pesanan 10x</button>
+    <div class="grid">
+      <div>
+        <label>Order ID terpilih</label>
+        <input id="selectedOrderId" placeholder="otomatis dari checkout atau pilih manual">
+      </div>
+      <div>
+        <label>Payment URL</label>
+        <input id="paymentUrl" placeholder="otomatis setelah create_payment">
+      </div>
+    </div>
+    <div id="ordersBox" class="small muted"></div>
+  </div>
+
+  <div class="card">
+    <h2>5. Run Flow Aman</h2>
+    <p class="muted">
+      Mode ini menjalankan login → kirim A2F → berhenti menunggu kode → setelah kode diisi lanjut verifikasi → checkout → create payment → buka invoice.
+      Pembayaran nyata tetap dilakukan di halaman gateway resmi, bukan dipaksa dari HTML ini.
+    </p>
+    <button onclick="runSafeFlow()">Jalankan Flow Aman</button>
+    <button onclick="clearLog()" class="danger">Bersihkan Log Tampilan</button>
+    <div class="step"><span id="sLogin" class="dot"></span> Login</div>
+    <div class="step"><span id="sMfaStart" class="dot"></span> Kirim A2F</div>
+    <div class="step"><span id="sMfaVerify" class="dot"></span> Verifikasi A2F</div>
+    <div class="step"><span id="sCheckout" class="dot"></span> Checkout</div>
+    <div class="step"><span id="sPayment" class="dot"></span> Invoice/payment link</div>
+  </div>
+
+  <div class="card">
+    <h2>Log</h2>
+    <pre id="log"></pre>
+  </div>
+</div>
+
+<script>
+(function init(){
+  var origin = location && location.origin && location.origin !== 'null' ? location.origin : 'https://diracgroup.store';
+  document.getElementById('baseUrl').value = origin;
+})();
+
+var state = {
+  lastLogin: null,
+  setupToken: '',
+  selectedOrder: null,
+  paymentUrl: ''
+};
+
+function $(id){ return document.getElementById(id); }
+function safeText(v){ return String(v == null ? '' : v); }
+function apiBase(){
+  var raw = $('baseUrl').value.trim() || 'https://diracgroup.store';
+  return raw.replace(/\/+$/, '');
+}
+function endpoint(action){
+  return apiBase() + '/api/health?action=' + encodeURIComponent(action);
+}
+function setDot(id, status){
+  var el = $(id);
+  el.className = 'dot' + (status ? ' ' + status : '');
+}
+function log(msg, data){
+  var line = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+  if (data !== undefined) {
+    try { line += '\n' + JSON.stringify(redact(data), null, 2); }
+    catch (_) { line += '\n' + String(data); }
+  }
+  $('log').textContent = line + '\n\n' + $('log').textContent;
+}
+function clearLog(){ $('log').textContent = ''; }
+function redact(data){
+  var copy = JSON.parse(JSON.stringify(data == null ? {} : data));
+  function walk(obj){
+    if (!obj || typeof obj !== 'object') return;
+    Object.keys(obj).forEach(function(k){
+      if (/password|token|access|refresh|secret|cookie/i.test(k)) obj[k] = '[REDACTED]';
+      else walk(obj[k]);
+    });
+  }
+  walk(copy);
+  return copy;
+}
+async function request(action, options){
+  var url = endpoint(action);
+  var init = Object.assign({
+    method: 'GET',
+    credentials: 'include',
+    headers: { 'Accept': 'application/json' }
+  }, options || {});
+  if (init.body && typeof init.body !== 'string') {
+    init.headers = Object.assign({}, init.headers, { 'Content-Type': 'application/json' });
+    init.body = JSON.stringify(init.body);
+  }
+  var res = await fetch(url, init);
+  var text = await res.text();
+  var json = {};
+  try { json = text ? JSON.parse(text) : {}; }
+  catch (_) { json = { ok:false, raw:text }; }
+  if (!res.ok || json.ok === false) {
+    var err = new Error(json.message || ('HTTP ' + res.status));
+    err.status = res.status;
+    err.data = json;
+    throw err;
+  }
+  return json;
+}
+async function login(){
+  setDot('sLogin','run');
+  var email = $('email').value.trim();
+  var password = $('password').value;
+  if (!email || !password) throwAlert('Email dan password wajib diisi.');
+  try {
+    var json = await request('domain_login', {
+      method:'POST',
+      body:{ email: email, password: password }
+    });
+    state.lastLogin = json;
+    $('loginStatus').textContent = 'login ok, lanjut A2F';
+    $('loginStatus').className = 'pill ok';
+    setDot('sLogin','ok');
+    log('Login berhasil.', json);
+    return json;
+  } catch (e) {
+    $('loginStatus').textContent = 'login gagal';
+    $('loginStatus').className = 'pill bad';
+    setDot('sLogin','bad');
+    log('Login gagal.', e.data || e.message);
+    throw e;
+  }
+}
+async function startMfa(){
+  setDot('sMfaStart','run');
+  try {
+    var json = await request('domain_mfa_email_start', { method:'POST', body:{} });
+    state.setupToken = json.setupToken || json.mfaSetupToken || '';
+    $('setupToken').value = state.setupToken;
+    setDot('sMfaStart','ok');
+    log('Kode A2F dikirim. Cek email.', json);
+    return json;
+  } catch (e) {
+    setDot('sMfaStart','bad');
+    log('Gagal kirim A2F.', e.data || e.message);
+    throw e;
+  }
+}
+async function verifyMfa(){
+  setDot('sMfaVerify','run');
+  var setupToken = $('setupToken').value.trim();
+  var code = $('mfaCode').value.replace(/\D/g,'').slice(0,6);
+  if (!setupToken || code.length !== 6) throwAlert('Setup token dan kode A2F 6 digit wajib diisi.');
+  try {
+    var json = await request('domain_mfa_email_verify', {
+      method:'POST',
+      body:{ setupToken: setupToken, code: code }
+    });
+    $('mfaStatus').textContent = 'A2F valid';
+    $('mfaStatus').className = 'pill ok';
+    setDot('sMfaVerify','ok');
+    log('A2F berhasil.', json);
+    return json;
+  } catch (e) {
+    $('mfaStatus').textContent = 'A2F gagal';
+    $('mfaStatus').className = 'pill bad';
+    setDot('sMfaVerify','bad');
+    log('A2F gagal.', e.data || e.message);
+    throw e;
+  }
+}
+function checkoutBody(){
+  var email = $('email').value.trim();
+  var productTitle = $('productTitle').value.trim();
+  var qty = Math.max(1, Number($('qty').value || 1));
+  return {
+    service_type: 'parfum',
+    customer_name: $('customerName').value.trim(),
+    customer_email: email,
+    customer_phone: $('phone').value.trim(),
+    shipping_address: $('address').value.trim(),
+    note: $('note').value.trim(),
+    product_title: productTitle,
+    quantity: qty,
+    items: [{ product_title: productTitle, quantity: qty }]
+  };
+}
+async function createCheckout(){
+  setDot('sCheckout','run');
+  var body = checkoutBody();
+  if (!body.customer_name || !body.customer_phone || !body.product_title) {
+    throwAlert('Nama, nomor HP, dan nama produk wajib diisi.');
+  }
+  try {
+    var json = await request('checkout_order', { method:'POST', body: body });
+    var orderId = json.order_id || json.id || '';
+    $('selectedOrderId').value = orderId;
+    state.selectedOrder = json;
+    $('checkoutStatus').textContent = 'checkout ok';
+    $('checkoutStatus').className = 'pill ok';
+    setDot('sCheckout','ok');
+    log('Checkout berhasil.', json);
+    return json;
+  } catch (e) {
+    $('checkoutStatus').textContent = 'checkout gagal';
+    $('checkoutStatus').className = 'pill bad';
+    setDot('sCheckout','bad');
+    log('Checkout gagal.', e.data || e.message);
+    throw e;
+  }
+}
+async function loadOrders(){
+  try {
+    var json = await request('my_orders');
+    renderOrders(json.orders || []);
+    log('Pesanan berhasil dibaca.', json);
+    return json;
+  } catch (e) {
+    log('Gagal cek pesanan.', e.data || e.message);
+    throw e;
+  }
+}
+function renderOrders(orders){
+  var box = $('ordersBox');
+  if (!orders.length) {
+    box.textContent = 'Belum ada pesanan.';
+    return;
+  }
+  box.textContent = orders.slice(0,10).map(function(o, i){
+    return (i+1) + '. ' +
+      'id=' + safeText(o.id) +
+      ' | invoice=' + safeText(o.invoice_code || o.order_code || o.order_id) +
+      ' | total=' + safeText(o.total || o.amount || o.total_price) +
+      ' | status=' + safeText(o.order_status || o.payment_status) +
+      ' | can_pay=' + safeText(o.can_pay);
+  }).join('\n');
+}
+async function createPayment(){
+  setDot('sPayment','run');
+  var orderId = $('selectedOrderId').value.trim();
+  if (!orderId) throwAlert('Order ID belum ada.');
+  if ($('paymentMode').value === 'skip') {
+    setDot('sPayment','ok');
+    log('Payment dilewati sesuai mode.');
+    return null;
+  }
+  try {
+    var json = await request('create_payment', {
+      method:'POST',
+      body:{ order_id: orderId, order_type:'regular' }
+    });
+    var url = json.payment_url || json.invoice_url || '';
+    $('paymentUrl').value = url;
+    state.paymentUrl = url;
+    setDot('sPayment','ok');
+    log('Payment link/invoice berhasil dibuat.', json);
+    return json;
+  } catch (e) {
+    setDot('sPayment','bad');
+    log('Gagal membuat payment link.', e.data || e.message);
+    throw e;
+  }
+}
+function openPayment(){
+  var url = $('paymentUrl').value.trim();
+  if (!url) throwAlert('Payment URL belum ada.');
+  window.open(url, '_blank', 'noopener,noreferrer');
+  log('Payment gateway dibuka di tab baru. Selesaikan pembayaran di gateway resmi.');
+}
+async function pollOrders(){
+  for (var i=1; i<=10; i++) {
+    try {
+      log('Polling pesanan ke-' + i + '/10...');
+      await loadOrders();
+    } catch (e) {}
+    await new Promise(function(r){ setTimeout(r, 5000); });
+  }
+}
+async function runSafeFlow(){
+  try {
+    await login();
+    await startMfa();
+    alert('Kode A2F sudah dikirim. Isi kode 6 digit di kolom A2F, lalu tekan OK untuk lanjut.');
+    await verifyMfa();
+    await loadOrders();
+    await createCheckout();
+    await createPayment();
+    if ($('paymentUrl').value.trim()) openPayment();
+    await loadOrders();
+    log('Flow aman selesai sampai invoice/payment link.');
+  } catch (e) {
+    log('Flow berhenti karena gagal.', e.data || e.message);
+  }
+}
+function throwAlert(message){
+  alert(message);
+  throw new Error(message);
+}
+</script>
+</body>
+</html>
