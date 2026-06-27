@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#071021">
   <meta name="robots" content="noindex,nofollow">
   <meta name="referrer" content="strict-origin-when-cross-origin">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://www.google.com https://www.recaptcha.net; script-src-attr 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://companyprofilee-expk.vercel.app https://aqvzzfijlomcznotyigx.supabase.co https://www.gstatic.com https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://firebasestorage.googleapis.com https://*.firebasestorage.app https://storage.googleapis.com https://firebaseinstallations.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.google.com https://www.recaptcha.net; frame-src https://www.google.com https://www.recaptcha.net; child-src https://www.google.com https://www.recaptcha.net; worker-src 'self' blob:; font-src 'self' data:; media-src 'self' data: blob:; manifest-src 'self'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://www.google.com https://www.recaptcha.net; script-src-attr 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://aqvzzfijlomcznotyigx.supabase.co https://www.gstatic.com https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://firebasestorage.googleapis.com https://*.firebasestorage.app https://storage.googleapis.com https://firebaseinstallations.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.google.com https://www.recaptcha.net; frame-src https://www.google.com https://www.recaptcha.net; child-src https://www.google.com https://www.recaptcha.net; worker-src 'self' blob:; font-src 'self' data:; media-src 'self' data: blob:; manifest-src 'self'; form-action 'self'">
   <title>Admin Produk - Dirac Group</title>
   <!-- DIRAC_FIX: firebase-rest-login-no-cdn-v1 -->
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
@@ -1778,8 +1778,7 @@
     }
     const DIRAC_FIREBASE_AUTH_STORE = 'dirac-admin-firebase-rest-session-v1';
     const DIRAC_FIREBASE_LOGIN_PROXY_ENDPOINTS = [
-      '/api/2fa/passkey-auth-finish',
-      'https://companyprofilee-expk.vercel.app/api/2fa/passkey-auth-finish'
+      '/api/2fa/passkey-auth-finish'
     ];
     const DIRAC_FIREBASE_AUTH_LISTENERS = new Set();
     function decodeJwtPayload(token){
@@ -2021,16 +2020,16 @@
       STRICT_IMAGE_HOSTS: false,
       ALLOWED_IMAGE_HOSTS: ['firebasestorage.googleapis.com', 'storage.googleapis.com'],
       TWO_FACTOR_MAX_ATTEMPTS: 5,
-      TWO_FACTOR_TOTP_VERIFY_ENDPOINT: 'https://companyprofilee-expk.vercel.app/api/2fa/verify-totp',
-      TWO_FACTOR_PIN_VERIFY_ENDPOINT: 'https://companyprofilee-expk.vercel.app/api/2fa/verify-pin',
-      TWO_FACTOR_STEP_START_ENDPOINT: 'https://companyprofilee-expk.vercel.app/api/2fa/start-step',
-      TWO_FACTOR_STEP_VERIFY_ENDPOINT: 'https://companyprofilee-expk.vercel.app/api/2fa/verify-step',
-      TWO_FACTOR_RISK_VERIFY_ENDPOINT: 'https://companyprofilee-expk.vercel.app/api/2fa/verify-risk',
-      TWO_FACTOR_PASSKEY_AUTH_START_ENDPOINT: 'https://companyprofilee-expk.vercel.app/api/2fa/passkey-auth-start',
-      TWO_FACTOR_PASSKEY_AUTH_FINISH_ENDPOINT: 'https://companyprofilee-expk.vercel.app/api/2fa/passkey-auth-finish',
+      TWO_FACTOR_TOTP_VERIFY_ENDPOINT: '/api/2fa/verify-totp',
+      TWO_FACTOR_PIN_VERIFY_ENDPOINT: '/api/2fa/verify-pin',
+      TWO_FACTOR_STEP_START_ENDPOINT: '/api/2fa/start-step',
+      TWO_FACTOR_STEP_VERIFY_ENDPOINT: '/api/2fa/verify-step',
+      TWO_FACTOR_RISK_VERIFY_ENDPOINT: '/api/2fa/verify-risk',
+      TWO_FACTOR_PASSKEY_AUTH_START_ENDPOINT: '/api/2fa/passkey-auth-start',
+      TWO_FACTOR_PASSKEY_AUTH_FINISH_ENDPOINT: '/api/2fa/passkey-auth-finish',
       TWO_FACTOR_HASHES: []
     });
-    const A2F_LOCK_ENDPOINT = 'https://companyprofilee-expk.vercel.app/api/2fa/lock';
+    const A2F_LOCK_ENDPOINT = '/api/2fa/lock';
     const A2F_LOCK_PROVIDER = 'supabase';
     const A2F_SUPABASE_CONFIG = Object.freeze({
       url: 'https://aqvzzfijlomcznotyigx.supabase.co',
@@ -2066,7 +2065,7 @@
 
       Kontrak endpoint yang dipakai file ini:
       - Semua aksi admin menumpang ke endpoint A2F lama:
-        POST https://companyprofilee-expk.vercel.app/api/2fa/passkey-auth-finish
+        POST/api/2fa/passkey-auth-finish
 
       Endpoint ini harus membedakan request passkey biasa dan request admin lewat field action:
         "setDoc", "updateDoc", "deleteDoc", "batch", atau "createUploadUrl".
@@ -2074,7 +2073,7 @@
       Browser tidak lagi menulis langsung ke Firestore/Storage. Backend wajib memverifikasi
       Firebase ID token, role admin, dan sesi A2F server-side sebelum menulis data.
     */
-    const ADMIN_API_BASE_URL = 'https://companyprofilee-expk.vercel.app';
+    const ADMIN_API_BASE_URL = window.location.origin;
     const ADMIN_FIRESTORE_ENDPOINT = SECURITY_CONFIG.TWO_FACTOR_PASSKEY_AUTH_FINISH_ENDPOINT;
     const ADMIN_UPLOAD_ENDPOINT = SECURITY_CONFIG.TWO_FACTOR_PASSKEY_AUTH_FINISH_ENDPOINT;
     const ADMIN_READ_ENDPOINT = SECURITY_CONFIG.TWO_FACTOR_PASSKEY_AUTH_FINISH_ENDPOINT;
@@ -9534,7 +9533,7 @@
        Backend tetap cek public.admin_users.
        ============================================================ */
     const ADMIN_SECURITY_API_PRIMARY = '/api/health';
-    const ADMIN_SECURITY_API_FALLBACK = 'https://companyprofilee-expk.vercel.app/api/health';
+    const ADMIN_SECURITY_API_FALLBACK = '/api/health';
     let adminSecurityLoadedOnce = false;
 
     function adminSecurityFindSupabaseAccessToken(){
