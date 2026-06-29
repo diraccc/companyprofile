@@ -1744,8 +1744,33 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
     };
   }
 
-  const link = Array.isArray(linkResult.data) && linkResult.data.length ? linkResult.data[0] : null;
-  const customerId = String(link && link.customer_id || '').trim();
+  let link = Array.isArray(linkResult.data) && linkResult.data.length ? linkResult.data[0] : null;
+  let customerId = String(link && link.customer_id || '').trim();
+
+  // V124 compatibility fix for brand-new accounts:
+  // Keep the dashboard guard fail-closed, but first try the existing backend-only
+  // bootstrap that creates/activates the auth_user -> customer link from the
+  // authenticated Supabase user. This restores the original new-account flow
+  // without trusting customer_id from frontend and without touching login/hash/A2F/logout/payment.
+  if (!link || link.link_status !== 'active' || !customerSecurityLooksLikeUuid(customerId)) {
+    const bootstrap = typeof customerSecurityBootstrapRegisteredUser === 'function'
+      ? await customerSecurityBootstrapRegisteredUser(req, user).catch(() => null)
+      : null;
+
+    if (bootstrap && bootstrap.ok && customerSecurityLooksLikeUuid(bootstrap.customer_id)) {
+      const refreshedLinkResult = await customerSecurityFetchAuthLink(authUserId).catch(() => null);
+      const refreshedLink = refreshedLinkResult && refreshedLinkResult.ok && Array.isArray(refreshedLinkResult.data) && refreshedLinkResult.data.length
+        ? refreshedLinkResult.data[0]
+        : null;
+      const refreshedCustomerId = String(refreshedLink && refreshedLink.customer_id || bootstrap.customer_id || '').trim();
+
+      if (refreshedLink && refreshedLink.link_status === 'active' && customerSecurityLooksLikeUuid(refreshedCustomerId)) {
+        link = refreshedLink;
+        customerId = refreshedCustomerId;
+      }
+    }
+  }
+
   if (!link || link.link_status !== 'active' || !customerSecurityLooksLikeUuid(customerId)) {
     return {
       ok: false,
@@ -19026,4 +19051,4 @@ function diracBolaIdorV122SeenStore() {
 }
 
 
-/* DIRAC_BOLA_IDOR_FAIL_CLOSED_PATCH_V123: dashboard/session fail-closed + owner-scoped session revoke PATCH. */
+/* DIRAC_BOLA_IDOR_V124: dashboard/session fail-closed + owner-scoped session revoke PATCH + backend bootstrap for brand-new account customer link. */
