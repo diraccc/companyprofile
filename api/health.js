@@ -18398,3 +18398,304 @@ function diracPasswordArgon2ActiveOnlyV120SafeRowId(value) {
   if (!/^[a-zA-Z0-9_-]+$/.test(text)) return '';
   return text;
 }
+
+/* ============================================================
+   DIRAC BOLA/IDOR SERVICE-SCOPE MONITOR v121 - APPEND ONLY
+   Tujuan:
+   - Mengurangi risiko BOLA/IDOR dari service-role database access tanpa mengubah endpoint.
+   - Memantau akses service-role ke tabel milik user/customer yang tidak punya filter owner.
+   - Default MONITOR-ONLY supaya website normal tidak rusak.
+   - Optional enforce via ENV setelah staging:
+       DIRAC_BOLA_IDOR_SERVICE_SCOPE_ENFORCE=true
+   Batas aman:
+   - Tidak mengubah login, logout, auto-logout, payment gateway, email template,
+     A2F/MFA/passkey, hash algorithm, endpoint, atau response contract lama.
+   ============================================================ */
+
+const DIRAC_BOLA_IDOR_SERVICE_SCOPE_PATCH_V121 = 'bola-idor-service-scope-monitor-v121';
+
+let diracBolaIdorAsyncLocalV121 = null;
+try {
+  const asyncHooks = require('async_hooks');
+  if (asyncHooks && typeof asyncHooks.AsyncLocalStorage === 'function') {
+    diracBolaIdorAsyncLocalV121 = new asyncHooks.AsyncLocalStorage();
+  }
+} catch (_) {}
+
+try {
+  const __diracBolaIdorV121PreviousHandler = module.exports;
+  if (typeof __diracBolaIdorV121PreviousHandler === 'function' && !__diracBolaIdorV121PreviousHandler.__diracBolaIdorV121Wrapped) {
+    module.exports = async function diracBolaIdorServiceScopeContextWrapperV121(req, res) {
+      const context = diracBolaIdorV121BuildRequestContext(req);
+      if (diracBolaIdorAsyncLocalV121 && typeof diracBolaIdorAsyncLocalV121.run === 'function') {
+        return diracBolaIdorAsyncLocalV121.run(context, () => __diracBolaIdorV121PreviousHandler(req, res));
+      }
+      try { if (req && typeof req === 'object') req.__diracBolaIdorContextV121 = context; } catch (_) {}
+      return __diracBolaIdorV121PreviousHandler(req, res);
+    };
+    Object.defineProperty(module.exports, '__diracBolaIdorV121Wrapped', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+try {
+  const __diracBolaIdorV121OriginalSupabaseFetch = typeof supabaseFetch === 'function' ? supabaseFetch : null;
+  if (__diracBolaIdorV121OriginalSupabaseFetch && !__diracBolaIdorV121OriginalSupabaseFetch.__diracBolaIdorV121Wrapped) {
+    supabaseFetch = async function supabaseFetchBolaIdorServiceScopeGuardV121(path, options = {}) {
+      const decision = diracBolaIdorV121InspectServiceScope(path, options);
+      if (decision && decision.warn) diracBolaIdorV121LogDecision(decision);
+      if (decision && decision.block) {
+        const error = new Error('BOLA_IDOR_SERVICE_SCOPE_BLOCKED');
+        error.statusCode = 403;
+        error.status = 403;
+        error.code = 'BOLA_IDOR_SERVICE_SCOPE_BLOCKED';
+        error.publicMessage = 'Permintaan ditolak oleh sistem keamanan.';
+        error.diracSecurityThreat = {
+          detected: true,
+          kind: 'bola_idor_service_scope_violation',
+          table: decision.table || null,
+          method: decision.method || null,
+          action: decision.action || null,
+          patch: DIRAC_BOLA_IDOR_SERVICE_SCOPE_PATCH_V121
+        };
+        throw error;
+      }
+      return __diracBolaIdorV121OriginalSupabaseFetch(path, options);
+    };
+    Object.defineProperty(supabaseFetch, '__diracBolaIdorV121Wrapped', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+function diracBolaIdorV121BuildRequestContext(req) {
+  const query = req && req.query && typeof req.query === 'object' ? req.query : {};
+  const rawAction = String(query.action || '').trim();
+  return {
+    patch: DIRAC_BOLA_IDOR_SERVICE_SCOPE_PATCH_V121,
+    action: diracBolaIdorV121NormalizeAction(rawAction),
+    raw_action: rawAction.slice(0, 120),
+    method: String(req && req.method || '').toUpperCase().slice(0, 12),
+    origin: diracBolaIdorV121Small(String(req && req.headers && req.headers.origin || ''), 160),
+    user_agent_hash: diracBolaIdorV121HashSmall(String(req && req.headers && req.headers['user-agent'] || '')),
+    started_at: Date.now()
+  };
+}
+
+function diracBolaIdorV121CurrentContext() {
+  try {
+    if (diracBolaIdorAsyncLocalV121 && typeof diracBolaIdorAsyncLocalV121.getStore === 'function') {
+      const store = diracBolaIdorAsyncLocalV121.getStore();
+      if (store && typeof store === 'object') return store;
+    }
+  } catch (_) {}
+  return null;
+}
+
+function diracBolaIdorV121InspectServiceScope(path, options = {}) {
+  if (!options || options.auth !== 'service') return { ok: true };
+  if (diracBolaIdorV121EnvTrue('DIRAC_BOLA_IDOR_SERVICE_SCOPE_DISABLED', false)) return { ok: true };
+
+  const rawPath = String(path || '').trim();
+  if (!rawPath || !rawPath.startsWith('/rest/v1/')) return { ok: true };
+
+  const table = diracBolaIdorV121ExtractRestTable(rawPath);
+  if (!table) return { ok: true };
+
+  const policy = diracBolaIdorV121OwnedTablePolicy(table);
+  if (!policy) return { ok: true };
+
+  const method = String(options.method || 'GET').toUpperCase();
+  const ctx = diracBolaIdorV121CurrentContext() || {};
+  const action = diracBolaIdorV121NormalizeAction(ctx.action || '');
+
+  const hasOwnerScope = diracBolaIdorV121HasOwnerScope(rawPath, options.body, policy.ownerColumns);
+  const hasObjectScope = diracBolaIdorV121HasObjectScope(rawPath, options.body, policy.objectColumns);
+  const safeInsert = method === 'POST' && policy.insertMayUseBodyOwner && diracBolaIdorV121BodyHasAllOwners(options.body, policy.requiredBodyOwners || policy.ownerColumns);
+  const safeDeleteByUser = method === 'DELETE' && hasOwnerScope;
+  const scoped = hasOwnerScope || safeInsert || (policy.allowObjectScopedRead && method === 'GET' && hasObjectScope) || safeDeleteByUser;
+
+  if (scoped) return { ok: true, table, method, action, scoped: true };
+
+  const enforce = diracBolaIdorV121ShouldEnforce(action, table, method, policy);
+  return {
+    ok: false,
+    warn: true,
+    block: enforce,
+    table,
+    method,
+    action,
+    reason: 'service_role_owned_table_without_owner_scope',
+    owner_columns: policy.ownerColumns,
+    object_columns: policy.objectColumns || [],
+    patch: DIRAC_BOLA_IDOR_SERVICE_SCOPE_PATCH_V121
+  };
+}
+
+function diracBolaIdorV121OwnedTablePolicy(table) {
+  const name = String(table || '').trim();
+  const policies = {
+    orders: { ownerColumns: ['customer_id'], objectColumns: ['id', 'order_id'], insertMayUseBodyOwner: true, requiredBodyOwners: ['customer_id'] },
+    domain_orders: { ownerColumns: ['customer_id'], objectColumns: ['id', 'order_id'], insertMayUseBodyOwner: true, requiredBodyOwners: ['customer_id'] },
+    payment_transactions: { ownerColumns: ['customer_id'], objectColumns: ['id', 'order_id', 'domain_order_id', 'gateway_reference'], insertMayUseBodyOwner: true, requiredBodyOwners: ['customer_id'] },
+    security_customer_sessions: { ownerColumns: ['customer_id'], objectColumns: ['id'], insertMayUseBodyOwner: true, requiredBodyOwners: ['customer_id'] },
+    security_customer_settings: { ownerColumns: ['customer_id'], objectColumns: ['id'], insertMayUseBodyOwner: true, requiredBodyOwners: ['customer_id'] },
+    security_customer_recovery_codes: { ownerColumns: ['customer_id'], objectColumns: ['id'], insertMayUseBodyOwner: true, requiredBodyOwners: ['customer_id'] },
+    security_customer_auth_links: { ownerColumns: ['auth_user_id', 'customer_id'], objectColumns: ['id'], insertMayUseBodyOwner: true, requiredBodyOwners: ['auth_user_id', 'customer_id'] },
+    security_customer_password_hashes: { ownerColumns: ['auth_user_id', 'customer_id'], objectColumns: ['id'], insertMayUseBodyOwner: true, requiredBodyOwners: ['auth_user_id', 'customer_id'] },
+    customer_security_events: { ownerColumns: ['customer_id', 'auth_user_id'], objectColumns: ['id'], insertMayUseBodyOwner: true },
+    customers: { ownerColumns: ['id'], objectColumns: ['id'], insertMayUseBodyOwner: false }
+  };
+  return policies[name] || null;
+}
+
+function diracBolaIdorV121HasOwnerScope(path, body, ownerColumns) {
+  const cols = Array.isArray(ownerColumns) ? ownerColumns : [];
+  if (!cols.length) return false;
+  return cols.some((col) => diracBolaIdorV121PathHasColumnFilter(path, col) || diracBolaIdorV121BodyHasSafeColumn(body, col));
+}
+
+function diracBolaIdorV121HasObjectScope(path, body, objectColumns) {
+  const cols = Array.isArray(objectColumns) ? objectColumns : [];
+  if (!cols.length) return false;
+  return cols.some((col) => diracBolaIdorV121PathHasColumnFilter(path, col) || diracBolaIdorV121BodyHasSafeColumn(body, col));
+}
+
+function diracBolaIdorV121BodyHasAllOwners(body, ownerColumns) {
+  const cols = Array.isArray(ownerColumns) ? ownerColumns : [];
+  if (!cols.length) return false;
+  return cols.every((col) => diracBolaIdorV121BodyHasSafeColumn(body, col));
+}
+
+function diracBolaIdorV121PathHasColumnFilter(path, column) {
+  const col = String(column || '').trim();
+  if (!col) return false;
+  const raw = String(path || '');
+  const decoded = diracBolaIdorV121SafeDecode(raw).toLowerCase();
+  const name = col.toLowerCase().replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+  const direct = new RegExp('(?:[?&])' + name + '=(?:eq|in|is|neq|not\\.|cs|cd|ov|fts|plfts|phfts|wfts)\\.', 'i');
+  const selectOr = new RegExp('(?:[?&])or=\\([^)]*' + name + '\\.(?:eq|in)\\.', 'i');
+  return direct.test(decoded) || selectOr.test(decoded);
+}
+
+function diracBolaIdorV121BodyHasSafeColumn(body, column) {
+  const col = String(column || '').trim();
+  if (!col || body === undefined || body === null) return false;
+  const rows = Array.isArray(body) ? body : [body];
+  if (!rows.length) return false;
+  return rows.every((row) => {
+    if (!row || typeof row !== 'object' || Array.isArray(row)) return false;
+    if (!Object.prototype.hasOwnProperty.call(row, col)) return false;
+    const value = row[col];
+    if (typeof value !== 'string') return false;
+    const text = value.trim();
+    if (!text || text.length > 160) return false;
+    if (typeof customerSecurityLooksLikeUuid === 'function' && (col === 'customer_id' || col === 'auth_user_id' || col === 'id')) {
+      return customerSecurityLooksLikeUuid(text);
+    }
+    return /^[a-zA-Z0-9._:@-]+$/.test(text);
+  });
+}
+
+function diracBolaIdorV121ShouldEnforce(action, table, method, policy) {
+  if (!diracBolaIdorV121EnvTrue('DIRAC_BOLA_IDOR_SERVICE_SCOPE_ENFORCE', false)) return false;
+  const cleanAction = String(action || '').toLowerCase();
+  if (diracBolaIdorV121EnvTrue('DIRAC_BOLA_IDOR_SERVICE_SCOPE_ENFORCE_ALL', false)) return true;
+
+  // Default strict mode tetap menghindari alur yang user larang disentuh.
+  if (/login|register|logout|payment|pay|midtrans|ipaymu|webhook|callback|notification|checkout|mfa|a2f|passkey|password|hash|email|mail|csrf|token|session|recovery|security|admin/i.test(cleanAction)) {
+    return false;
+  }
+
+  if (method === 'GET' && /orders|dashboard|me|profile|account/i.test(cleanAction)) return true;
+  return false;
+}
+
+function diracBolaIdorV121ExtractRestTable(path) {
+  try {
+    const raw = String(path || '');
+    if (!raw.startsWith('/rest/v1/')) return '';
+    const part = raw.slice('/rest/v1/'.length).split('?')[0].split('/')[0];
+    const decoded = decodeURIComponent(part || '').trim();
+    return /^[a-zA-Z0-9_]+$/.test(decoded) ? decoded : '';
+  } catch (_) {
+    return '';
+  }
+}
+
+function diracBolaIdorV121NormalizeAction(action) {
+  const raw = String(action || '').trim().toLowerCase().replace(/[\s-]+/g, '_').slice(0, 120);
+  try {
+    if (typeof diracUniversalPesananPaymentNormalizeAction === 'function') return diracUniversalPesananPaymentNormalizeAction(raw);
+  } catch (_) {}
+  try {
+    if (typeof diracCsrfNormalizeAction === 'function') return diracCsrfNormalizeAction(raw);
+  } catch (_) {}
+  try {
+    if (typeof normalizeDomainAction === 'function') return normalizeDomainAction(raw);
+  } catch (_) {}
+  return raw;
+}
+
+function diracBolaIdorV121SafeDecode(value) {
+  let out = String(value || '');
+  for (let i = 0; i < 2; i += 1) {
+    try {
+      const decoded = decodeURIComponent(out);
+      if (decoded === out) break;
+      out = decoded;
+    } catch (_) { break; }
+  }
+  return out;
+}
+
+function diracBolaIdorV121EnvTrue(name, fallback = false) {
+  const raw = process.env[name];
+  if (raw === undefined || raw === null || String(raw).trim() === '') return !!fallback;
+  const value = String(raw).trim().toLowerCase();
+  if (['1', 'true', 'yes', 'on', 'block', 'enforce', 'strict'].includes(value)) return true;
+  if (['0', 'false', 'no', 'off', 'monitor', 'disabled'].includes(value)) return false;
+  return !!fallback;
+}
+
+function diracBolaIdorV121LogDecision(decision) {
+  try {
+    if (diracBolaIdorV121EnvTrue('DIRAC_BOLA_IDOR_SERVICE_SCOPE_SILENT', false)) return;
+    const key = [decision.table, decision.method, decision.action, decision.reason, decision.block ? 'block' : 'warn'].join('|');
+    const store = diracBolaIdorV121SeenStore();
+    const current = Number(store.get(key) || 0);
+    const max = Math.max(1, Number(process.env.DIRAC_BOLA_IDOR_SERVICE_SCOPE_LOG_LIMIT || 5) || 5);
+    if (current >= max) return;
+    store.set(key, current + 1);
+    console.warn('[dirac-bola-idor-service-scope]', {
+      patch: DIRAC_BOLA_IDOR_SERVICE_SCOPE_PATCH_V121,
+      mode: decision.block ? 'blocked' : 'monitor',
+      reason: decision.reason,
+      table: decision.table,
+      method: decision.method,
+      action: decision.action || null,
+      owner_columns: decision.owner_columns,
+      object_columns: decision.object_columns
+    });
+  } catch (_) {}
+}
+
+function diracBolaIdorV121SeenStore() {
+  try {
+    if (!globalThis.__DIRAC_BOLA_IDOR_V121_SEEN || !(globalThis.__DIRAC_BOLA_IDOR_V121_SEEN instanceof Map)) {
+      globalThis.__DIRAC_BOLA_IDOR_V121_SEEN = new Map();
+    }
+    return globalThis.__DIRAC_BOLA_IDOR_V121_SEEN;
+  } catch (_) {
+    return new Map();
+  }
+}
+
+function diracBolaIdorV121HashSmall(value) {
+  try {
+    return crypto.createHash('sha256').update(String(value || '')).digest('hex').slice(0, 16);
+  } catch (_) {
+    return '';
+  }
+}
+
+function diracBolaIdorV121Small(value, max) {
+  return String(value || '').replace(/[\u0000-\u001f\u007f<>]/g, '').slice(0, Math.max(1, Number(max || 120)));
+}
