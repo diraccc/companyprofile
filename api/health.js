@@ -20021,3 +20021,276 @@ try {
     Object.defineProperty(module.exports, '__diracBolaIdorPhaseAwareV128', { value: true, enumerable: false });
   }
 } catch (_) {}
+
+/* ============================================================
+   DIRAC BOLA/IDOR v129 LOGIN-SAFE PHASE GATE - APPEND ONLY
+   Tujuan koreksi:
+   - Memperbaiki false-positive v128 yang masih bisa menganggap query login ke tabel
+     customers/order/security sebagai POST_AUTH hanya karena nama tabel/path.
+   - Owner-check IDOR/BOLA hanya aktif bila ada action user-data yang eksplisit
+     dari context/body, bukan dari nama tabel atau URL saja.
+   - Login/daftar/logout/auto-logout/security session/payment/email/MFA/hash tetap bypass
+     dari owner-check, tanpa mengubah endpoint/flow/response lama.
+   - Hardening tetap aktif untuk order/profile/dashboard/customer-data setelah login.
+   ============================================================ */
+
+const DIRAC_BOLA_IDOR_LOGIN_SAFE_PHASE_GATE_PATCH_V129 = 'dirac-bola-idor-login-safe-phase-gate-v129';
+
+function diracBolaIdorV129ExplicitActionFrom(path, options = {}, actionArg) {
+  try {
+    const ctx = diracBolaIdorV128CurrentContext() || {};
+    const a1 = diracBolaIdorV128NormalizeAction(actionArg || ctx.action || '');
+    const body = options && options.body;
+    let a2 = '';
+    if (body && typeof body === 'object' && !Array.isArray(body)) {
+      a2 = diracBolaIdorV128NormalizeAction(body.action || body.mode || body.type || '');
+    }
+    return [a1, a2].filter(Boolean).join(' ').trim().toLowerCase();
+  } catch (_) {
+    return '';
+  }
+}
+
+function diracBolaIdorV129PathText(path) {
+  try { return String(path || '').trim().toLowerCase(); } catch (_) { return ''; }
+}
+
+function diracBolaIdorV129TableText(table) {
+  try { return String(table || '').trim().toLowerCase(); } catch (_) { return ''; }
+}
+
+function diracBolaIdorV129BodyLooksLikeCredentialLogin(body) {
+  try {
+    if (!body || typeof body !== 'object' || Array.isArray(body)) return false;
+    return Object.prototype.hasOwnProperty.call(body, 'email') && Object.prototype.hasOwnProperty.call(body, 'password');
+  } catch (_) { return false; }
+}
+
+function diracBolaIdorV129IsExplicitPreAuthAction(text) {
+  return /\b(domain_login|login_domain|login|signin|sign_in|domain_register|register_domain|register|signup|sign_up|forgot|forgot_password|reset_password|password_reset|email_verify|verify_email|auth_token|otp|recover)\b/i.test(String(text || ''));
+}
+
+function diracBolaIdorV129IsExplicitLogoutAction(text) {
+  return /\b(domain_logout|logout_domain|logout|signout|sign_out|manual_logout|auto_logout|idle_timeout|protected_idle_timeout|revoke_current_session)\b/i.test(String(text || ''));
+}
+
+function diracBolaIdorV129IsExplicitPaymentAction(text) {
+  return /\b(payment|pay|midtrans|ipaymu|webhook|callback|notification|gateway|checkout|create_payment|payment_status|payment_update)\b/i.test(String(text || ''));
+}
+
+function diracBolaIdorV129IsExplicitSecurityAction(text) {
+  return /\b(mfa|a2f|passkey|webauthn|password|hash|recovery|csrf|token|session|security|trusted_device|login_history|account_request|otp|challenge|credential|email|mail)\b/i.test(String(text || ''));
+}
+
+function diracBolaIdorV129IsExplicitPostAuthUserDataAction(text) {
+  return /\b(domain_orders|get_orders|my_orders|orders|order_detail|domain_dashboard_me|dashboard_me|dashboard|domain_me|profile|customer_profile|customer_data|account_profile|invoice|invoices|pesanan)\b/i.test(String(text || ''));
+}
+
+function diracBolaIdorV129IsAuthPath(path) {
+  const raw = diracBolaIdorV129PathText(path);
+  return /\/auth\/v1\/(token|signup|recover|verify|otp|user|logout)/i.test(raw);
+}
+
+function diracBolaIdorV129IsAuthOrSecurityBootstrapTable(table) {
+  return /^(security_customer_auth_links|security_customer_password_hashes|security_customer_sessions|security_customer_login_logs|security_customer_account_requests|security_customer_recovery_codes|domain_passkeys|customer_security_events)$/i.test(diracBolaIdorV129TableText(table));
+}
+
+function diracBolaIdorV129IsPaymentSystemTable(table) {
+  return /^(payment_gateway_events)$/i.test(diracBolaIdorV129TableText(table));
+}
+
+function diracBolaIdorV129IsOwnerBindingTable(table) {
+  try {
+    if (typeof diracBolaIdorV128IsOwnerBindingTable === 'function') return diracBolaIdorV128IsOwnerBindingTable(table);
+  } catch (_) {}
+  return /^(orders|order_items|domain_orders|domain_order_items|payment_transactions|customers|security_customer_settings)$/i.test(diracBolaIdorV129TableText(table));
+}
+
+/* Override v128 classifier: never classify POST_AUTH from table/path alone. */
+function diracBolaIdorV128ClassifyPhase(path, options = {}, tableArg, actionArg) {
+  try {
+    const rawPath = String(path || '').trim();
+    const table = diracBolaIdorV129TableText(tableArg || diracBolaIdorV128ExtractRestTable(rawPath) || '');
+    const explicit = diracBolaIdorV129ExplicitActionFrom(rawPath, options, actionArg);
+    const method = String(options && options.method || 'GET').toUpperCase();
+    const body = options && options.body;
+
+    if (diracBolaIdorV129IsExplicitLogoutAction(explicit)) return 'logout';
+    if (diracBolaIdorV129IsExplicitPreAuthAction(explicit) || diracBolaIdorV129IsAuthPath(rawPath) || diracBolaIdorV129BodyLooksLikeCredentialLogin(body)) return 'pre_auth';
+    if (diracBolaIdorV129IsExplicitPaymentAction(explicit) || diracBolaIdorV129IsPaymentSystemTable(table)) return 'payment_system';
+    if (diracBolaIdorV129IsExplicitSecurityAction(explicit) || diracBolaIdorV129IsAuthOrSecurityBootstrapTable(table)) return 'auth_bootstrap';
+
+    if (diracBolaIdorV129IsExplicitPostAuthUserDataAction(explicit) && diracBolaIdorV129IsOwnerBindingTable(table)) return 'post_auth_user_data';
+
+    // Unknown action/table combinations must not block. This protects login/bootstrap
+    // requests that query customers or settings before the owner/session is complete.
+    return 'unknown_safe_monitor';
+  } catch (_) {
+    return 'unknown_safe_monitor';
+  }
+}
+
+/* Extra override: v121 enforcement must require an explicit post-auth user-data action. */
+function diracBolaIdorV121ShouldEnforce(action, table, method, policy) {
+  try {
+    if (!diracBolaIdorV121EnvTrue('DIRAC_BOLA_IDOR_SERVICE_SCOPE_ENFORCE', false)) return false;
+    const explicit = diracBolaIdorV129ExplicitActionFrom('', {}, action || '');
+    if (!diracBolaIdorV129IsExplicitPostAuthUserDataAction(explicit)) return false;
+    if (!diracBolaIdorV129IsOwnerBindingTable(table)) return false;
+    return /^(GET|HEAD|PATCH|PUT|DELETE)$/i.test(String(method || 'GET'));
+  } catch (_) { return false; }
+}
+
+/* Extra override: v122 strict blocker is high-confidence only and cannot block auth/bootstrap. */
+function diracBolaIdorV122InspectStrictSafe(path, options = {}) {
+  try {
+    if (!options || options.auth !== 'service') return { ok: true };
+    if (diracBolaIdorV122EnvTrue('DIRAC_BOLA_IDOR_STRICT_SAFE_DISABLED', false)) return { ok: true };
+    if (diracBolaIdorV122EnvFalse('DIRAC_BOLA_IDOR_STRICT_SAFE_ENFORCE', true)) return { ok: true };
+
+    const rawPath = String(path || '').trim();
+    if (!rawPath || !rawPath.startsWith('/rest/v1/')) return { ok: true };
+
+    const table = diracBolaIdorV122ExtractRestTable(rawPath);
+    if (!table || !diracBolaIdorV129IsOwnerBindingTable(table)) return { ok: true };
+
+    const method = String(options.method || 'GET').toUpperCase();
+    const ctx = diracBolaIdorV122CurrentContext() || {};
+    const action = diracBolaIdorV122NormalizeAction(ctx.action || '');
+    const phase = diracBolaIdorV128ClassifyPhase(rawPath, options, table, action);
+    if (phase !== 'post_auth_user_data') return diracBolaIdorV128SoftDecision(phase, table, method, action, 'v122_v129_login_safe_skip');
+
+    const policy = diracBolaIdorV122OwnedTablePolicy(table);
+    if (!policy) return { ok: true };
+
+    const ownerScoped = diracBolaIdorV122HasOwnerScope(rawPath, options.body, policy.ownerColumns);
+    const safeInsert = method === 'POST' && policy.insertMayUseBodyOwner && diracBolaIdorV122BodyHasAllOwners(options.body, policy.requiredBodyOwners || policy.ownerColumns);
+    if (ownerScoped || safeInsert) return { ok: true, table, method, action, phase, scoped: true };
+
+    const mayBlock = /^(GET|HEAD|PATCH|PUT|DELETE)$/i.test(method);
+    return {
+      ok: false,
+      warn: true,
+      block: mayBlock,
+      table,
+      method,
+      action,
+      phase,
+      reason: mayBlock ? 'blocked_post_auth_owned_table_without_owner_scope' : 'monitored_post_auth_owned_table_without_owner_scope',
+      owner_columns: policy.ownerColumns,
+      patch: DIRAC_BOLA_IDOR_LOGIN_SAFE_PHASE_GATE_PATCH_V129
+    };
+  } catch (_) {
+    return { ok: true, error: 'bola_idor_v122_v129_guard_failed_open' };
+  }
+}
+
+/* Extra override: v126 customer_id binding cannot block unless explicit post-auth user-data action exists. */
+function diracBolaIdorV126InspectOwnerValue(path, options = {}) {
+  try {
+    if (!options || options.auth !== 'service') return { ok: true };
+    if (diracBolaIdorV126EnvTrue('DIRAC_BOLA_IDOR_OWNER_BINDING_DISABLED', false)) return { ok: true };
+
+    const method = String(options.method || 'GET').toUpperCase();
+    if (!/^(GET|HEAD|PATCH|PUT|DELETE)$/i.test(method)) return { ok: true };
+
+    const rawPath = String(path || '').trim();
+    if (!rawPath || !rawPath.startsWith('/rest/v1/')) return { ok: true };
+
+    const table = diracBolaIdorV126ExtractRestTable(rawPath);
+    if (!diracBolaIdorV129IsOwnerBindingTable(table)) return { ok: true };
+
+    const ctx = diracBolaIdorV126CurrentContext() || {};
+    const action = diracBolaIdorV126NormalizeAction(ctx.action || '');
+    const phase = diracBolaIdorV128ClassifyPhase(rawPath, options, table, action);
+    if (phase !== 'post_auth_user_data') return diracBolaIdorV128SoftDecision(phase, table, method, action, 'v126_v129_login_safe_skip');
+
+    const allowed = diracBolaIdorV126AllowedCustomerIds(ctx);
+    if (!allowed.length) return { ok: true, table, method, action, phase, reason: 'trusted_owner_not_yet_available' };
+
+    const requested = diracBolaIdorV126RequestedCustomerIds(rawPath, options.body);
+    if (!requested.length) return { ok: true, table, method, action, phase };
+
+    const denied = requested.filter((id) => !allowed.includes(id));
+    if (!denied.length) return { ok: true, table, method, action, phase, owner_value_bound: true };
+
+    return {
+      ok: false,
+      warn: true,
+      block: true,
+      table,
+      method,
+      action,
+      phase,
+      reason: 'blocked_customer_id_not_bound_to_authenticated_owner',
+      requested_count: requested.length,
+      allowed_count: allowed.length,
+      patch: DIRAC_BOLA_IDOR_LOGIN_SAFE_PHASE_GATE_PATCH_V129
+    };
+  } catch (_) {
+    return { ok: true, error: 'bola_idor_v126_v129_guard_failed_open' };
+  }
+}
+
+/* Extra override: v127 object binding cannot block unless explicit post-auth user-data action exists. */
+function diracBolaIdorV127InspectObjectValue(path, options = {}) {
+  try {
+    if (!options || options.auth !== 'service') return { ok: true };
+    if (diracBolaIdorV127EnvTrue('DIRAC_BOLA_IDOR_OBJECT_BINDING_DISABLED', false)) return { ok: true };
+
+    const method = String(options.method || 'GET').toUpperCase();
+    if (!/^(GET|HEAD|PATCH|PUT|DELETE)$/i.test(method)) return { ok: true };
+
+    const rawPath = String(path || '').trim();
+    if (!rawPath || !rawPath.startsWith('/rest/v1/')) return { ok: true };
+
+    const table = diracBolaIdorV127ExtractRestTable(rawPath);
+    if (!diracBolaIdorV129IsOwnerBindingTable(table)) return { ok: true };
+
+    const ctx = diracBolaIdorV127CurrentContext() || {};
+    const action = diracBolaIdorV127NormalizeAction(ctx.action || '');
+    const phase = diracBolaIdorV128ClassifyPhase(rawPath, options, table, action);
+    if (phase !== 'post_auth_user_data') return diracBolaIdorV128SoftDecision(phase, table, method, action, 'v127_v129_login_safe_skip');
+
+    const allowed = diracBolaIdorV127AllowedCustomerIds(ctx);
+    if (!allowed.length) return { ok: true, table, method, action, phase, reason: 'trusted_owner_not_yet_available' };
+
+    const requested = diracBolaIdorV127RequestedObjectRefs(table, rawPath, options.body);
+    if (!requested.length) return { ok: true, table, method, action, phase };
+
+    const cache = diracBolaIdorV127OwnerCache();
+    const denied = [];
+    let knownCount = 0;
+    for (const ref of requested) {
+      const owner = diracBolaIdorV127ResolveOwnerForRef(ref, cache);
+      if (!owner) continue;
+      knownCount += 1;
+      if (!allowed.includes(owner)) denied.push(ref);
+    }
+
+    if (!denied.length) return { ok: true, table, method, action, phase, known_count: knownCount, object_value_bound: knownCount > 0 };
+
+    return {
+      ok: false,
+      warn: true,
+      block: !diracBolaIdorV127EnvTrue('DIRAC_BOLA_IDOR_OBJECT_BINDING_MONITOR_ONLY', false),
+      table,
+      method,
+      action,
+      phase,
+      reason: 'blocked_object_id_not_bound_to_authenticated_owner',
+      requested_count: requested.length,
+      known_count: knownCount,
+      denied_count: denied.length,
+      patch: DIRAC_BOLA_IDOR_LOGIN_SAFE_PHASE_GATE_PATCH_V129
+    };
+  } catch (_) {
+    return { ok: true, error: 'bola_idor_v127_v129_guard_failed_open' };
+  }
+}
+
+try {
+  if (typeof module !== 'undefined' && module.exports && typeof module.exports === 'function') {
+    Object.defineProperty(module.exports, '__diracBolaIdorLoginSafeV129', { value: true, enumerable: false });
+  }
+} catch (_) {}
