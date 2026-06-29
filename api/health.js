@@ -1697,6 +1697,36 @@ async function requireDomainDashboardAccess(req, res) {
   return { user, mfa, protectedLock };
 }
 
+
+async function diracBolaIdorV126RequireOwnedCustomerFlowAccess(req, res, options = {}) {
+  const user = await requireDomainUser(req, res);
+  if (!user) return null;
+
+  const authUserId = String(user.id || '').trim();
+  const userEmail = normalizeAuthEmail(user.email || '');
+
+  if (!authUserId || !customerSecurityLooksLikeUuid(authUserId) || !userEmail || !isValidAuthEmail(userEmail)) {
+    res.status(401).json({ ok: false, message: 'Sesi login tidak valid.' });
+    return null;
+  }
+
+  const protectedLock = await requireDomainProtectedDatabaseSessionLockSafe(req, res, user).catch((error) => {
+    console.error('[owned-customer-flow-lock-v126]', customerSecuritySafeLogError(error));
+    return { ok: true, skipped: true, reason: 'lock_exception_fail_open' };
+  });
+  if (!protectedLock) return null;
+
+  return {
+    user,
+    authUserId,
+    userEmail,
+    protectedLock,
+    dashboard: false,
+    mfa_required: false,
+    access_level: String(options.accessLevel || 'owned_customer_flow')
+  };
+}
+
 async function requireDomainProtectedDatabaseSessionLockSafe(req, res, user) {
   const checked = await checkDomainProtectedDatabaseSessionLockSafe(req, user);
   if (checked && checked.ok) return checked;
@@ -1772,7 +1802,8 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
       ? String(row.revoke_reason || 'session_revoked')
       : (expired ? 'session_expired' : DOMAIN_PROTECTED_SESSION_REVOKE_REASON);
 
-    await supabaseFetch('/rest/v1/security_customer_sessions?id=eq.' + encodeURIComponent(row.id), {
+    await supabaseFetch('/rest/v1/security_customer_sessions?id=eq.' + encodeURIComponent(row.id) +
+      '&customer_id=eq.' + encodeURIComponent(customerId), {
       method: 'PATCH',
       auth: 'service',
       prefer: 'return=minimal',
@@ -1960,9 +1991,9 @@ async function domainCheck(req, res) {
 async function domainCheckout(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
 
-  // Anti-bypass: checkout domain berada sejajar dengan dashboard, jadi tidak cukup hanya login.
-  // Backend wajib memastikan sesi user + A2F/MFA dashboard masih valid sebelum membuat order.
-  const access = await requireDomainDashboardAccess(req, res);
+  // BOLA/IDOR v126: checkout tetap boleh untuk user baru setelah login,
+  // tetapi owner/customer_id tetap diselesaikan backend dan semua data order owner-scoped.
+  const access = await diracBolaIdorV126RequireOwnedCustomerFlowAccess(req, res, { accessLevel: 'domain_checkout' });
   if (!access) return;
   const { user } = access;
 
@@ -2244,7 +2275,7 @@ async function maybeCreateDomainPaymentInvoice(order, orderItems, customer) {
 async function domainOrders(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
 
-  const access = await requireDomainDashboardAccess(req, res);
+  const access = await diracBolaIdorV126RequireOwnedCustomerFlowAccess(req, res, { accessLevel: 'domain_orders' });
   if (!access) return;
 
   const { user } = access;
@@ -6651,11 +6682,9 @@ function sessionOwnershipCheckoutIsAction(action) {
 }
 
 async function sessionOwnershipCheckoutCreateUnpaidOrder(req, res) {
-  // PATCH 3G: checkout/order creation is strict backend-only.
-  // A valid login cookie alone is not enough; customer must also have a valid
-  // HttpOnly dashboard MFA cookie. This intentionally ignores the old
-  // CHECKOUT_REQUIRE_DASHBOARD_MFA=false default.
-  const access = await requireDomainDashboardAccess(req, res);
+  // BOLA/IDOR v126: checkout/order creation is backend-only and owner-scoped.
+  // Valid login + backend-resolved customer_id is required; dashboard MFA remains for sensitive security/dashboard pages.
+  const access = await diracBolaIdorV126RequireOwnedCustomerFlowAccess(req, res, { accessLevel: 'checkout_order' });
   if (!access || !access.user) return;
 
   const body = await readBody(req);
@@ -6823,7 +6852,7 @@ async function sessionOwnershipCheckoutCreateUnpaidOrder(req, res) {
     shipping_address: shippingAddress || null,
     note: checkoutNote || null,
     payment_url: null,
-    dashboard_mfa_required: true,
+    dashboard_mfa_required: false,
     payment_gateway_configured: false,
     order_mail_notification: orderMailNotification,
     ownership_locked: true,
@@ -7746,7 +7775,7 @@ function myOrdersIsAction(action) {
 }
 
 async function myOrdersReadForCurrentCustomer(req, res) {
-  const access = await requireDomainDashboardAccess(req, res);
+  const access = await diracBolaIdorV126RequireOwnedCustomerFlowAccess(req, res, { accessLevel: 'my_orders' });
   if (!access) return;
   const user = access.user;
 
@@ -7779,8 +7808,8 @@ async function myOrdersReadForCurrentCustomer(req, res) {
   return res.status(200).json({
     ok: true,
     service: 'dirac-my-orders',
-    dashboard_mfa_required: true,
-    dashboard_mfa_source: access.mfa && access.mfa.source || '',
+    dashboard_mfa_required: false,
+    dashboard_mfa_source: '',
     user: sanitizeUser(user),
     ownership_locked: true,
     direct_frontend_table_access: false,
@@ -8121,7 +8150,7 @@ function lockedPaymentIsAction(action) {
 }
 
 async function lockedPaymentCreateForOrder(req, res) {
-  const access = await requireDomainDashboardAccess(req, res);
+  const access = await diracBolaIdorV126RequireOwnedCustomerFlowAccess(req, res, { accessLevel: 'create_payment' });
   if (!access) return;
   const user = access.user;
 
@@ -10766,7 +10795,7 @@ function diracUniversalPesananGatewayConfigured() {
 }
 
 async function diracUniversalPesananReadOrders(req, res) {
-  const access = await requireDomainDashboardAccess(req, res);
+  const access = await diracBolaIdorV126RequireOwnedCustomerFlowAccess(req, res, { accessLevel: 'my_orders' });
   if (!access) return;
   const user = access.user || {};
 
@@ -10801,8 +10830,8 @@ async function diracUniversalPesananReadOrders(req, res) {
   return res.status(200).json({
     ok: true,
     service: 'dirac-my-orders',
-    dashboard_mfa_required: true,
-    dashboard_mfa_source: access.mfa && access.mfa.source || '',
+    dashboard_mfa_required: false,
+    dashboard_mfa_source: '',
     user: sanitizeUser(user),
     ownership_locked: true,
     direct_frontend_table_access: false,
@@ -10912,7 +10941,7 @@ async function diracUniversalPesananFillTxMap(map, type, ids) {
 }
 
 async function diracUniversalPesananCreatePayment(req, res) {
-  const access = await requireDomainDashboardAccess(req, res);
+  const access = await diracBolaIdorV126RequireOwnedCustomerFlowAccess(req, res, { accessLevel: 'create_payment' });
   if (!access) return;
   const user = access.user || {};
   const body = await readBody(req);
@@ -18987,3 +19016,5 @@ function diracBolaIdorV122SeenStore() {
 }
 
 /* DIRAC_BOLA_IDOR_V125_MINIMAL: restored original new-account dashboard compatibility; owner-scoped explicit customer session mutations only. */
+
+/* DIRAC_BOLA_IDOR_V126_OWNER_FLOW_PATCH: checkout/order/payment customer flow now requires valid login + backend ownership, while dashboard/security still require MFA. No endpoint names changed. */
