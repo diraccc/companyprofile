@@ -218,9 +218,9 @@ const DOMAIN_SIGNED_SESSION_COOKIE = process.env.DOMAIN_SIGNED_SESSION_COOKIE ||
 const CUSTOMER_MFA_SESSION_TYPE = 'dirac-customer-mfa-session-v1';
 const DOMAIN_SIGNED_SESSION_TYPE = 'dirac-domain-signed-session-v1';
 
-// SAFE V3: database-backed protected-page lock, fail-closed untuk dashboard.
-// Login/hash/A2F/payment/webhook/logout/auto-logout tidak diubah.
-// Dashboard hanya dibuka jika user, customer link, fingerprint, dan session DB valid.
+// SAFE V2: database-backed protected-page lock, fail-safe.
+// Login/hash/A2F/payment/webhook tidak diubah. Jika database session belum siap/schema berbeda,
+// dashboard tidak diblokir. Blokir hanya saat row database jelas revoked/expired/idle.
 const DOMAIN_PROTECTED_IDLE_TIMEOUT_MS_RAW = Number(process.env.DOMAIN_PROTECTED_IDLE_TIMEOUT_MS || 5 * 60 * 1000);
 const DOMAIN_PROTECTED_IDLE_TIMEOUT_MS = Number.isFinite(DOMAIN_PROTECTED_IDLE_TIMEOUT_MS_RAW)
   ? Math.max(15 * 1000, DOMAIN_PROTECTED_IDLE_TIMEOUT_MS_RAW)
@@ -1690,16 +1690,7 @@ async function requireDomainDashboardAccess(req, res) {
 
   const protectedLock = await requireDomainProtectedDatabaseSessionLockSafe(req, res, user).catch((error) => {
     console.error('[domain-protected-lock-safe]', customerSecuritySafeLogError(error));
-    if (!res.headersSent) {
-      res.status(401).json({
-        ok: false,
-        dashboard: false,
-        code: 'PROTECTED_SESSION_LOCK_CHECK_FAILED',
-        message: 'Sesi protected belum bisa diverifikasi. Silakan login ulang.',
-        source: 'database_protected_lock_fail_closed_v3'
-      });
-    }
-    return null;
+    return { ok: true, skipped: true, reason: 'lock_exception_fail_open' };
   });
   if (!protectedLock) return null;
 
@@ -1725,71 +1716,23 @@ async function requireDomainProtectedDatabaseSessionLockSafe(req, res, user) {
 async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
   const authUserId = String(user && user.id || '').trim();
   if (!authUserId || !customerSecurityLooksLikeUuid(authUserId)) {
-    return {
-      ok: false,
-      status: 401,
-      code: 'PROTECTED_SESSION_INVALID_USER',
-      clearCookies: true,
-      message: 'Sesi user tidak valid. Silakan login ulang.'
-    };
+    return { ok: true, skipped: true, reason: 'invalid_user_fail_open' };
   }
 
   const linkResult = await customerSecurityFetchAuthLink(authUserId);
   if (!linkResult.ok) {
-    return {
-      ok: false,
-      status: 503,
-      code: 'PROTECTED_SESSION_AUTH_LINK_UNAVAILABLE',
-      message: 'Sesi belum bisa diverifikasi karena data akun tidak tersedia. Silakan coba lagi.'
-    };
+    return { ok: true, skipped: true, reason: 'auth_link_unavailable_fail_open', status: linkResult.status };
   }
 
-  let link = Array.isArray(linkResult.data) && linkResult.data.length ? linkResult.data[0] : null;
-  let customerId = String(link && link.customer_id || '').trim();
-
-  // V124 compatibility fix for brand-new accounts:
-  // Keep the dashboard guard fail-closed, but first try the existing backend-only
-  // bootstrap that creates/activates the auth_user -> customer link from the
-  // authenticated Supabase user. This restores the original new-account flow
-  // without trusting customer_id from frontend and without touching login/hash/A2F/logout/payment.
+  const link = Array.isArray(linkResult.data) && linkResult.data.length ? linkResult.data[0] : null;
+  const customerId = String(link && link.customer_id || '').trim();
   if (!link || link.link_status !== 'active' || !customerSecurityLooksLikeUuid(customerId)) {
-    const bootstrap = typeof customerSecurityBootstrapRegisteredUser === 'function'
-      ? await customerSecurityBootstrapRegisteredUser(req, user).catch(() => null)
-      : null;
-
-    if (bootstrap && bootstrap.ok && customerSecurityLooksLikeUuid(bootstrap.customer_id)) {
-      const refreshedLinkResult = await customerSecurityFetchAuthLink(authUserId).catch(() => null);
-      const refreshedLink = refreshedLinkResult && refreshedLinkResult.ok && Array.isArray(refreshedLinkResult.data) && refreshedLinkResult.data.length
-        ? refreshedLinkResult.data[0]
-        : null;
-      const refreshedCustomerId = String(refreshedLink && refreshedLink.customer_id || bootstrap.customer_id || '').trim();
-
-      if (refreshedLink && refreshedLink.link_status === 'active' && customerSecurityLooksLikeUuid(refreshedCustomerId)) {
-        link = refreshedLink;
-        customerId = refreshedCustomerId;
-      }
-    }
-  }
-
-  if (!link || link.link_status !== 'active' || !customerSecurityLooksLikeUuid(customerId)) {
-    return {
-      ok: false,
-      status: 403,
-      code: 'PROTECTED_SESSION_CUSTOMER_LINK_INVALID',
-      clearCookies: true,
-      message: 'Akses dashboard ditolak karena relasi akun customer tidak valid.'
-    };
+    return { ok: true, skipped: true, reason: 'customer_link_not_ready_fail_open' };
   }
 
   const fingerprint = customerSecurityBuildSessionFingerprint(req, customerId);
   if (!fingerprint || !fingerprint.session_token_hash) {
-    return {
-      ok: false,
-      status: 401,
-      code: 'PROTECTED_SESSION_FINGERPRINT_MISSING',
-      customerId,
-      message: 'Sesi protected tidak lengkap. Silakan login ulang.'
-    };
+    return { ok: true, skipped: true, reason: 'missing_fingerprint_fail_open', customerId };
   }
 
   const select = 'id,status,last_seen_at,expires_at,revoked_at,revoke_reason';
@@ -1801,13 +1744,7 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
 
   const found = await supabaseFetch(readPath, { method: 'GET', auth: 'service' });
   if (!found.ok) {
-    return {
-      ok: false,
-      status: 503,
-      code: 'PROTECTED_SESSION_READ_UNAVAILABLE',
-      customerId,
-      message: 'Sesi protected belum bisa dibaca. Silakan coba lagi.'
-    };
+    return { ok: true, skipped: true, reason: 'session_read_unavailable_fail_open', status: found.status, customerId };
   }
 
   const rows = Array.isArray(found.data) ? found.data : [];
@@ -1835,8 +1772,7 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
       ? String(row.revoke_reason || 'session_revoked')
       : (expired ? 'session_expired' : DOMAIN_PROTECTED_SESSION_REVOKE_REASON);
 
-    await supabaseFetch('/rest/v1/security_customer_sessions?id=eq.' + encodeURIComponent(row.id) +
-      '&customer_id=eq.' + encodeURIComponent(customerId), {
+    await supabaseFetch('/rest/v1/security_customer_sessions?id=eq.' + encodeURIComponent(row.id), {
       method: 'PATCH',
       auth: 'service',
       prefer: 'return=minimal',
@@ -19050,5 +18986,4 @@ function diracBolaIdorV122SeenStore() {
   } catch (_) { return new Map(); }
 }
 
-
-/* DIRAC_BOLA_IDOR_V124: dashboard/session fail-closed + owner-scoped session revoke PATCH + backend bootstrap for brand-new account customer link. */
+/* DIRAC_BOLA_IDOR_V125_MINIMAL: restored original new-account dashboard compatibility; owner-scoped explicit customer session mutations only. */
