@@ -18160,3 +18160,241 @@ function diracAdvancedBackendV5EnvTrue(name, defaultValue = false) {
   if (['0', 'false', 'no', 'off', 'monitor', 'disabled'].includes(value)) return false;
   return !!defaultValue;
 }
+
+/* ============================================================
+   DIRAC PASSWORD ARGON2ID ACTIVE-ONLY SHADOW v120 - APPEND ONLY
+   Tujuan:
+   - Tabel security_customer_password_hashes hanya menyimpan current active hash.
+   - Setelah domain_login/domain_register sukses, hash Argon2id tetap dibuat ulang
+     dengan salt baru lalu MENIMPA row active yang sama.
+   - Tidak membuat status rotated, tidak menyimpan riwayat hash lama.
+   - Cleanup row lama untuk auth_user_id yang sama dilakukan best-effort/fail-open.
+   Batas aman:
+   - Tidak mengubah login Supabase, verifikasi password utama, hash algorithm,
+     payment gateway, email template, A2F/MFA/passkey, logout, auto logout,
+     endpoint, dashboard, order, atau response contract lama.
+   ============================================================ */
+
+const DIRAC_PASSWORD_ARGON2ID_ACTIVE_ONLY_PATCH_V120 = 'password-argon2id-active-only-v120';
+
+try {
+  if (typeof diracV110PersistArgon2ShadowAfterVerifiedAuth === 'function' && !diracV110PersistArgon2ShadowAfterVerifiedAuth.__diracPasswordActiveOnlyV120Wrapped) {
+    diracV110PersistArgon2ShadowAfterVerifiedAuth = diracPasswordArgon2ActiveOnlyV120PersistAfterVerifiedAuth;
+    Object.defineProperty(diracV110PersistArgon2ShadowAfterVerifiedAuth, '__diracPasswordActiveOnlyV120Wrapped', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+try {
+  if (typeof diracPasswordArgon2V4PersistAfterVerifiedAuth === 'function' && !diracPasswordArgon2V4PersistAfterVerifiedAuth.__diracPasswordActiveOnlyV120Wrapped) {
+    diracPasswordArgon2V4PersistAfterVerifiedAuth = diracPasswordArgon2ActiveOnlyV120PersistAfterVerifiedAuth;
+    Object.defineProperty(diracPasswordArgon2V4PersistAfterVerifiedAuth, '__diracPasswordActiveOnlyV120Wrapped', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+async function diracPasswordArgon2ActiveOnlyV120PersistAfterVerifiedAuth(req, payload, action) {
+  if (diracPasswordArgon2V4EnvTrue('DIRAC_PASSWORD_ARGON2_DISABLED')) return { ok: false, skipped: 'disabled' };
+
+  const cached = req && req.__diracPasswordArgon2V4Body && typeof req.__diracPasswordArgon2V4Body === 'object'
+    ? req.__diracPasswordArgon2V4Body
+    : {};
+  const password = String(cached.password || '');
+  if (!password || password.length < 6) return { ok: false, skipped: 'no_password' };
+
+  const user = payload && payload.user && typeof payload.user === 'object' ? payload.user : null;
+  const authUserId = diracPasswordArgon2V4ExtractUserId(user, payload);
+  if (!diracPasswordArgon2V4LooksLikeUuid(authUserId)) return { ok: false, skipped: 'no_auth_user_id' };
+
+  const email = normalizeAuthEmail(cached.email || user && user.email || '');
+  if (!email || (typeof isStrictDomainLoginEmail === 'function' && !isStrictDomainLoginEmail(email))) return { ok: false, skipped: 'invalid_email' };
+
+  let customerId = '';
+  if (typeof customerSecurityBootstrapRegisteredUser === 'function') {
+    const bootstrap = await customerSecurityBootstrapRegisteredUser(req, { id: authUserId, email }).catch(() => null);
+    if (bootstrap && bootstrap.ok && diracPasswordArgon2V4LooksLikeUuid(bootstrap.customer_id)) customerId = String(bootstrap.customer_id);
+  }
+
+  if (!customerId) {
+    customerId = await diracPasswordArgon2V4ResolveCustomerId(authUserId, email).catch(() => '');
+  }
+
+  if (!diracPasswordArgon2V4LooksLikeUuid(customerId)) {
+    return { ok: false, skipped: 'customer_id_not_ready' };
+  }
+
+  const nowIso = diracNowIso();
+  const params = diracPasswordArgon2V4Params();
+  const passwordHash = await diracPasswordArgon2V4Hash(password, { authUserId, customerId, email });
+  if (!String(passwordHash || '').startsWith('$argon2id$')) return { ok: false, skipped: 'hash_not_argon2id' };
+
+  const activeOnlyRow = {
+    auth_user_id: authUserId,
+    customer_id: customerId,
+    email_hash: diracPasswordArgon2V4Hmac('email|' + email),
+    password_hash: passwordHash,
+    hash_algorithm: 'argon2id',
+    hash_params: {
+      profile: DIRAC_PASSWORD_ARGON2ID_ACTIVE_ONLY_PATCH_V120,
+      memory_kib: params.memoryCost,
+      time_cost: params.timeCost,
+      parallelism: params.parallelism,
+      hash_length: params.hashLength,
+      pepper: 'env',
+      auth_user_bound: true,
+      customer_bound: true,
+      source_action: action,
+      active_only: true,
+      old_hash_retention: 'none',
+      rewritten_on_successful_auth: true
+    },
+    status: 'active',
+    updated_at: nowIso
+  };
+
+  return await diracPasswordArgon2ActiveOnlyV120UpsertCurrent(authUserId, activeOnlyRow, nowIso);
+}
+
+async function diracPasswordArgon2ActiveOnlyV120UpsertCurrent(authUserId, row, nowIso) {
+  if (!diracPasswordArgon2V4LooksLikeUuid(authUserId)) return { ok: false, skipped: 'invalid_auth_user_id' };
+
+  const activeRows = await diracPasswordArgon2ActiveOnlyV120ReadActiveRows(authUserId).catch(() => []);
+  const keep = Array.isArray(activeRows) && activeRows.length ? activeRows[0] : null;
+  const keepId = diracPasswordArgon2ActiveOnlyV120SafeRowId(keep && keep.id);
+
+  if (keepId) {
+    const updateResult = await diracPasswordArgon2ActiveOnlyV120PatchById(authUserId, keepId, row).catch((error) => ({ ok: false, status: error && error.status }));
+    if (updateResult && updateResult.ok) {
+      await diracPasswordArgon2ActiveOnlyV120DeleteOtherRows(authUserId, keepId).catch(() => null);
+      return { ok: true, mode: 'updated_active_only', status: updateResult.status || 204, kept_id: keepId };
+    }
+  }
+
+  if (keep && !keepId) {
+    const updateActiveResult = await diracPasswordArgon2ActiveOnlyV120PatchActiveByUser(authUserId, row).catch((error) => ({ ok: false, status: error && error.status }));
+    if (updateActiveResult && updateActiveResult.ok) {
+      await diracPasswordArgon2ActiveOnlyV120DeleteNonActiveRows(authUserId).catch(() => null);
+      return { ok: true, mode: 'updated_active_rows', status: updateActiveResult.status || 204 };
+    }
+  }
+
+  await diracPasswordArgon2ActiveOnlyV120DeleteAllRowsForUser(authUserId).catch(() => null);
+
+  const insertRow = {
+    ...row,
+    created_at: nowIso || row.updated_at || diracNowIso(),
+    updated_at: row.updated_at || nowIso || diracNowIso(),
+    status: 'active'
+  };
+  const insertResult = await diracPasswordArgon2ActiveOnlyV120Insert(insertRow).catch((error) => ({ ok: false, status: error && error.status }));
+  if (insertResult && insertResult.ok) {
+    return { ok: true, mode: 'inserted_active_only', status: insertResult.status || 201, data: insertResult.data };
+  }
+
+  // Race-condition fallback: kalau request lain sudah insert lebih dulu, update active row yang sekarang ada.
+  const fallbackRows = await diracPasswordArgon2ActiveOnlyV120ReadActiveRows(authUserId).catch(() => []);
+  const fallback = Array.isArray(fallbackRows) && fallbackRows.length ? fallbackRows[0] : null;
+  const fallbackId = diracPasswordArgon2ActiveOnlyV120SafeRowId(fallback && fallback.id);
+  if (fallbackId) {
+    const fallbackUpdate = await diracPasswordArgon2ActiveOnlyV120PatchById(authUserId, fallbackId, row).catch((error) => ({ ok: false, status: error && error.status }));
+    if (fallbackUpdate && fallbackUpdate.ok) {
+      await diracPasswordArgon2ActiveOnlyV120DeleteOtherRows(authUserId, fallbackId).catch(() => null);
+      return { ok: true, mode: 'race_fallback_updated_active_only', status: fallbackUpdate.status || 204, kept_id: fallbackId };
+    }
+  }
+
+  return { ok: false, mode: 'active_only_write_failed', status: insertResult && insertResult.status };
+}
+
+async function diracPasswordArgon2ActiveOnlyV120ReadActiveRows(authUserId) {
+  if (!diracPasswordArgon2V4LooksLikeUuid(authUserId)) return [];
+  const select = 'id,customer_id,status,updated_at';
+  const result = await supabaseFetch('/rest/v1/security_customer_password_hashes?select=' + encodeURIComponent(select) + '&auth_user_id=eq.' + encodeURIComponent(authUserId) + '&status=eq.active&order=updated_at.desc&limit=25', {
+    method: 'GET',
+    auth: 'service'
+  });
+  if (!result || !result.ok || !Array.isArray(result.data)) return [];
+  return result.data;
+}
+
+async function diracPasswordArgon2ActiveOnlyV120PatchById(authUserId, rowId, row) {
+  if (!diracPasswordArgon2V4LooksLikeUuid(authUserId) || !diracPasswordArgon2ActiveOnlyV120SafeRowId(rowId)) return { ok: false, skipped: 'invalid_key' };
+  const body = diracPasswordArgon2ActiveOnlyV120UpdateBody(row);
+  const result = await supabaseFetch('/rest/v1/security_customer_password_hashes?id=eq.' + encodeURIComponent(rowId) + '&auth_user_id=eq.' + encodeURIComponent(authUserId), {
+    method: 'PATCH',
+    auth: 'service',
+    prefer: 'return=minimal',
+    body
+  });
+  return { ok: Boolean(result && result.ok), status: result && result.status, data: result && result.data };
+}
+
+async function diracPasswordArgon2ActiveOnlyV120PatchActiveByUser(authUserId, row) {
+  if (!diracPasswordArgon2V4LooksLikeUuid(authUserId)) return { ok: false, skipped: 'invalid_auth_user_id' };
+  const body = diracPasswordArgon2ActiveOnlyV120UpdateBody(row);
+  const result = await supabaseFetch('/rest/v1/security_customer_password_hashes?auth_user_id=eq.' + encodeURIComponent(authUserId) + '&status=eq.active', {
+    method: 'PATCH',
+    auth: 'service',
+    prefer: 'return=minimal',
+    body
+  });
+  return { ok: Boolean(result && result.ok), status: result && result.status, data: result && result.data };
+}
+
+async function diracPasswordArgon2ActiveOnlyV120Insert(row) {
+  const result = await supabaseFetch('/rest/v1/security_customer_password_hashes', {
+    method: 'POST',
+    auth: 'service',
+    prefer: 'return=representation',
+    body: [{ ...row, status: 'active' }]
+  });
+  return { ok: Boolean(result && result.ok), status: result && result.status, data: result && result.data };
+}
+
+async function diracPasswordArgon2ActiveOnlyV120DeleteOtherRows(authUserId, keepId) {
+  if (!diracPasswordArgon2V4LooksLikeUuid(authUserId) || !diracPasswordArgon2ActiveOnlyV120SafeRowId(keepId)) return { ok: false, skipped: 'invalid_key' };
+  const result = await supabaseFetch('/rest/v1/security_customer_password_hashes?auth_user_id=eq.' + encodeURIComponent(authUserId) + '&id=neq.' + encodeURIComponent(keepId), {
+    method: 'DELETE',
+    auth: 'service',
+    prefer: 'return=minimal'
+  });
+  return { ok: Boolean(result && result.ok), status: result && result.status };
+}
+
+async function diracPasswordArgon2ActiveOnlyV120DeleteNonActiveRows(authUserId) {
+  if (!diracPasswordArgon2V4LooksLikeUuid(authUserId)) return { ok: false, skipped: 'invalid_auth_user_id' };
+  const result = await supabaseFetch('/rest/v1/security_customer_password_hashes?auth_user_id=eq.' + encodeURIComponent(authUserId) + '&status=neq.active', {
+    method: 'DELETE',
+    auth: 'service',
+    prefer: 'return=minimal'
+  });
+  return { ok: Boolean(result && result.ok), status: result && result.status };
+}
+
+async function diracPasswordArgon2ActiveOnlyV120DeleteAllRowsForUser(authUserId) {
+  if (!diracPasswordArgon2V4LooksLikeUuid(authUserId)) return { ok: false, skipped: 'invalid_auth_user_id' };
+  const result = await supabaseFetch('/rest/v1/security_customer_password_hashes?auth_user_id=eq.' + encodeURIComponent(authUserId), {
+    method: 'DELETE',
+    auth: 'service',
+    prefer: 'return=minimal'
+  });
+  return { ok: Boolean(result && result.ok), status: result && result.status };
+}
+
+function diracPasswordArgon2ActiveOnlyV120UpdateBody(row) {
+  return {
+    auth_user_id: row.auth_user_id,
+    customer_id: row.customer_id,
+    email_hash: row.email_hash,
+    password_hash: row.password_hash,
+    hash_algorithm: 'argon2id',
+    hash_params: row.hash_params,
+    status: 'active',
+    updated_at: row.updated_at || diracNowIso()
+  };
+}
+
+function diracPasswordArgon2ActiveOnlyV120SafeRowId(value) {
+  const text = String(value || '').trim();
+  if (!text || text.length > 96) return '';
+  if (!/^[a-zA-Z0-9_-]+$/.test(text)) return '';
+  return text;
+}
