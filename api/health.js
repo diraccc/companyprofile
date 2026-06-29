@@ -17297,3 +17297,425 @@ try {
     Object.defineProperty(module.exports, '__diracBodyInputThreatV119Wrapped', { value: true, enumerable: false });
   }
 } catch (_) {}
+
+/* ============================================================
+   DIRAC CSRF HMAC-SHA256 GUARD v1 - APPEND ONLY
+   Scope ketat:
+   - Tidak mengubah endpoint/action lama.
+   - Tidak menyentuh login, hash password, payment gateway, email template,
+     A2F/MFA/Passkey, domain_logout, auto-logout 5 menit, atau cookie session lama.
+   - Menambah CSRF token HMAC-SHA256 berbasis signed double-submit cookie.
+   - Mode default kompatibel agar website lama tidak langsung patah bila frontend
+     belum mengirim X-CSRF-Token. Aktifkan enforcement penuh via:
+     DIRAC_CSRF_HMAC_ENFORCE=true
+   ============================================================ */
+
+const DIRAC_CSRF_HMAC_PATCH = 'dirac-csrf-hmac-sha256-v1';
+const DIRAC_CSRF_COOKIE = process.env.DIRAC_CSRF_COOKIE || '__Host-dirac_csrf_hmac';
+const DIRAC_CSRF_HEADER = 'x-csrf-token';
+const DIRAC_CSRF_RESPONSE_HEADER = 'X-Dirac-CSRF-Token';
+const DIRAC_CSRF_TOKEN_TYPE = 'dirac-csrf-hmac-v1';
+const DIRAC_CSRF_MAX_AGE_SECONDS = Math.max(300, Math.min(24 * 60 * 60, Number(process.env.DIRAC_CSRF_MAX_AGE_SECONDS || 2 * 60 * 60)));
+const DIRAC_CSRF_CLOCK_SKEW_SECONDS = 60;
+const __diracCsrfHmacPreviousHandler = module.exports;
+
+const DIRAC_CSRF_DEFAULT_ACTIONS = new Set([
+  // Order/domain write. Bukan payment gateway wrapper.
+  'domain_checkout',
+
+  // Customer security write actions. Logout, login, A2F/MFA, passkey, email template,
+  // payment gateway, dan webhook sengaja tidak dimasukkan.
+  'customer_security_revoke_session',
+  'customer_security_revoke_other_sessions',
+  'customer_security_account_request',
+  'customer_security_recovery_codes_generate',
+  'customer_security_recovery_code_verify',
+  'customer_security_trust_current_device',
+  'customer_security_untrust_device',
+  'customer_security_prune_login_history'
+]);
+
+try {
+  const __diracCsrfOriginalSetCors = typeof setCors === 'function' ? setCors : null;
+  if (__diracCsrfOriginalSetCors && !__diracCsrfOriginalSetCors.__diracCsrfHmacWrapped) {
+    setCors = function setCorsWithCsrfHeader(req, res, options = {}) {
+      const result = __diracCsrfOriginalSetCors(req, res, options);
+      if (options && options.isDomainAction) {
+        diracCsrfAppendCsvHeader(res, 'Access-Control-Allow-Headers', [
+          'X-CSRF-Token',
+          'X-Dirac-CSRF-Token',
+          'x-csrf-token',
+          'x-dirac-csrf-token'
+        ]);
+        diracCsrfAppendCsvHeader(res, 'Access-Control-Expose-Headers', [
+          DIRAC_CSRF_RESPONSE_HEADER,
+          'X-Dirac-CSRF-Ready'
+        ]);
+      }
+      return result;
+    };
+    setCors.__diracCsrfHmacWrapped = true;
+  }
+} catch (_) {}
+
+module.exports = async function diracCsrfHmacWrapper(req, res) {
+  const method = String((req && req.method) || 'GET').toUpperCase();
+  const rawAction = String((req && req.query && req.query.action) || '').trim();
+  const action = diracCsrfNormalizeAction(rawAction);
+
+  try {
+    diracCsrfApplyResponseHeaders(res);
+
+    if (method === 'OPTIONS') {
+      return __diracCsrfHmacPreviousHandler(req, res);
+    }
+
+    // Mint token di safe-read response supaya frontend bisa mulai mengirim
+    // X-CSRF-Token tanpa endpoint baru.
+    if (method === 'GET' || method === 'HEAD') {
+      diracCsrfIssueToken(req, res, action);
+      return __diracCsrfHmacPreviousHandler(req, res);
+    }
+
+    if (diracCsrfShouldCheckRequest(action, method)) {
+      const csrf = diracCsrfVerifyRequest(req, action);
+      if (!csrf.ok) {
+        diracCsrfIssueToken(req, res, action);
+
+        if (csrf.enforced) {
+          return res.status(csrf.status || 403).json({
+            ok: false,
+            code: csrf.code || 'CSRF_TOKEN_INVALID',
+            message: 'Permintaan ditolak karena token keamanan halaman tidak valid. Muat ulang halaman lalu coba lagi.',
+            source: DIRAC_CSRF_HMAC_PATCH
+          });
+        }
+      }
+    }
+
+    return __diracCsrfHmacPreviousHandler(req, res);
+  } catch (error) {
+    console.error('[dirac-csrf-hmac]', diracCsrfSafeError(error));
+    return res.status(500).json({
+      ok: false,
+      code: 'CSRF_GUARD_ERROR',
+      message: 'Permintaan belum dapat diproses dengan aman.',
+      source: DIRAC_CSRF_HMAC_PATCH
+    });
+  }
+};
+
+function diracCsrfShouldCheckRequest(action, method) {
+  const upperMethod = String(method || '').toUpperCase();
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(upperMethod)) return false;
+  if (diracCsrfIsDisabledForAction(action)) return false;
+  if (diracCsrfIsNeverTouchAction(action)) return false;
+  return diracCsrfProtectedActions().has(String(action || ''));
+}
+
+function diracCsrfProtectedActions() {
+  const actions = new Set(DIRAC_CSRF_DEFAULT_ACTIONS);
+  String(process.env.DIRAC_CSRF_HMAC_ACTIONS || '')
+    .split(',')
+    .map((item) => diracCsrfNormalizeAction(item))
+    .filter(Boolean)
+    .forEach((item) => {
+      if (!diracCsrfIsNeverTouchAction(item)) actions.add(item);
+    });
+  return actions;
+}
+
+function diracCsrfIsNeverTouchAction(action) {
+  const clean = String(action || '');
+  return clean === 'domain_logout'
+    || clean === 'domain_login'
+    || clean === 'domain_register'
+    || clean === 'create_payment'
+    || clean === 'midtrans_webhook'
+    || clean === 'midtrans_notification'
+    || clean === 'midtrans_callback'
+    || clean === 'payment_webhook'
+    || clean === 'payment_callback'
+    || clean === 'ipaymu_webhook'
+    || clean === 'ipaymu_callback'
+    || clean === 'ipaymu_notification'
+    || /(^|_)mfa(_|$)/i.test(clean)
+    || /(^|_)a2f(_|$)/i.test(clean)
+    || /passkey/i.test(clean);
+}
+
+function diracCsrfIsDisabledForAction(action) {
+  if (isEnvTrue('DIRAC_CSRF_HMAC_DISABLED')) return true;
+  const key = 'DIRAC_CSRF_HMAC_DISABLED_' + String(action || '').toUpperCase().replace(/[^A-Z0-9]+/g, '_');
+  return isEnvTrue(key);
+}
+
+function diracCsrfIsEnforcedForAction(action) {
+  if (isEnvTrue('DIRAC_CSRF_HMAC_ENFORCE')) return true;
+  const key = 'DIRAC_CSRF_HMAC_ENFORCE_' + String(action || '').toUpperCase().replace(/[^A-Z0-9]+/g, '_');
+  return isEnvTrue(key);
+}
+
+function diracCsrfVerifyRequest(req, action) {
+  const enforced = diracCsrfIsEnforcedForAction(action);
+  const secret = diracCsrfSecret();
+  if (!secret) {
+    return enforced
+      ? { ok: false, enforced: true, status: 503, code: 'CSRF_SECRET_MISSING' }
+      : { ok: true, enforced: false, source: 'csrf_secret_missing_compat' };
+  }
+
+  const headers = (req && req.headers) || {};
+  const headerToken = String(
+    headers[DIRAC_CSRF_HEADER] ||
+    headers['X-CSRF-Token'] ||
+    headers['x-dirac-csrf-token'] ||
+    headers['X-Dirac-CSRF-Token'] ||
+    ''
+  ).trim();
+
+  const cookies = parseCookies(req);
+  const cookieToken = String(cookies[DIRAC_CSRF_COOKIE] || '').trim();
+  const hasAnyToken = Boolean(headerToken || cookieToken);
+
+  if (!headerToken || !cookieToken) {
+    return {
+      ok: !enforced && !hasAnyToken,
+      enforced,
+      status: 403,
+      code: !headerToken ? 'CSRF_HEADER_MISSING' : 'CSRF_COOKIE_MISSING'
+    };
+  }
+
+  if (!safeEqual(headerToken, cookieToken)) {
+    return { ok: false, enforced: true, status: 403, code: 'CSRF_DOUBLE_SUBMIT_MISMATCH' };
+  }
+
+  const decoded = diracCsrfDecodeToken(headerToken, secret);
+  if (!decoded || !decoded.payload) {
+    return { ok: false, enforced: true, status: 403, code: 'CSRF_SIGNATURE_INVALID' };
+  }
+
+  const payload = decoded.payload;
+  const now = Math.floor(Date.now() / 1000);
+  if (payload.typ !== DIRAC_CSRF_TOKEN_TYPE) {
+    return { ok: false, enforced: true, status: 403, code: 'CSRF_TOKEN_TYPE_INVALID' };
+  }
+  if (!payload.exp || Number(payload.exp) + DIRAC_CSRF_CLOCK_SKEW_SECONDS < now) {
+    return { ok: false, enforced: true, status: 403, code: 'CSRF_TOKEN_EXPIRED' };
+  }
+  if (payload.iat && Number(payload.iat) - DIRAC_CSRF_CLOCK_SKEW_SECONDS > now) {
+    return { ok: false, enforced: true, status: 403, code: 'CSRF_TOKEN_IAT_INVALID' };
+  }
+
+  const binding = diracCsrfRequestBinding(req);
+  if (payload.sid && binding.sid && !safeEqual(String(payload.sid), String(binding.sid))) {
+    return { ok: false, enforced: true, status: 403, code: 'CSRF_SESSION_BINDING_MISMATCH' };
+  }
+  if (payload.oh && binding.oh && !safeEqual(String(payload.oh), String(binding.oh))) {
+    return { ok: false, enforced: true, status: 403, code: 'CSRF_ORIGIN_BINDING_MISMATCH' };
+  }
+
+  return { ok: true, enforced, source: 'csrf_hmac_valid' };
+}
+
+function diracCsrfIssueToken(req, res, action) {
+  const secret = diracCsrfSecret();
+  if (!secret || !res || typeof res.setHeader !== 'function') return '';
+
+  const token = diracCsrfCreateToken(req, secret);
+  if (!token) return '';
+
+  try { res.setHeader(DIRAC_CSRF_RESPONSE_HEADER, token); } catch (_) {}
+  try { res.setHeader('X-Dirac-CSRF-Ready', '1'); } catch (_) {}
+  try { appendSetCookie(res, diracCsrfCookie(token)); } catch (_) {}
+  return token;
+}
+
+function diracCsrfCreateToken(req, secret) {
+  const now = Math.floor(Date.now() / 1000);
+  const binding = diracCsrfRequestBinding(req);
+  const payload = {
+    typ: DIRAC_CSRF_TOKEN_TYPE,
+    iat: now,
+    exp: now + DIRAC_CSRF_MAX_AGE_SECONDS,
+    n: crypto.randomBytes(18).toString('base64url'),
+    sid: binding.sid || '',
+    oh: binding.oh || ''
+  };
+  const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const sig = crypto.createHmac('sha256', secret).update(body).digest('base64url');
+  return body + '.' + sig;
+}
+
+function diracCsrfDecodeToken(token, secret) {
+  const raw = String(token || '').trim();
+  const parts = raw.split('.');
+  if (parts.length !== 2 || !parts[0] || !parts[1]) return null;
+  const expected = crypto.createHmac('sha256', secret).update(parts[0]).digest('base64url');
+  if (!safeEqual(parts[1], expected)) return null;
+  try {
+    return { payload: JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8')) };
+  } catch (_) {
+    return null;
+  }
+}
+
+function diracCsrfRequestBinding(req) {
+  const cookies = parseCookies(req);
+  let signedUser = null;
+  try {
+    const values = typeof readCookieTokenCandidates === 'function'
+      ? readCookieTokenCandidates(cookies, DOMAIN_SIGNED_SESSION_COOKIE)
+      : [cookies[DOMAIN_SIGNED_SESSION_COOKIE]].filter(Boolean);
+    for (const value of values) {
+      const payload = verifyDomainSessionCookieValue(value);
+      if (payload && payload.id && payload.email) {
+        signedUser = payload;
+        break;
+      }
+    }
+  } catch (_) {}
+
+  const tokenMaterial = [];
+  if (signedUser) {
+    tokenMaterial.push('signed-user', signedUser.id, normalizeAuthEmail(signedUser.email || ''));
+  } else {
+    try {
+      tokenMaterial.push(
+        ...readCookieTokenCandidates(cookies, ACCESS_COOKIE),
+        ...readCookieTokenCandidates(cookies, REFRESH_COOKIE),
+        ...readCookieTokenCandidates(cookies, DOMAIN_SIGNED_SESSION_COOKIE)
+      );
+    } catch (_) {}
+  }
+
+  const sid = diracCsrfSha256(tokenMaterial.filter(Boolean).join('|')).slice(0, 64);
+  const origin = diracCsrfRequestOrigin(req);
+  const oh = origin ? diracCsrfSha256('origin|' + origin).slice(0, 64) : '';
+  return { sid, oh, origin };
+}
+
+function diracCsrfRequestOrigin(req) {
+  try {
+    if (typeof requestOrigin === 'function') {
+      const value = requestOrigin(req);
+      if (value) return diracCsrfNormalizeOrigin(value);
+    }
+  } catch (_) {}
+  const headers = (req && req.headers) || {};
+  return diracCsrfNormalizeOrigin(headers.origin || headers.Origin || headers.referer || headers.Referer || '');
+}
+
+function diracCsrfNormalizeOrigin(value) {
+  try {
+    const url = new URL(String(value || '').trim());
+    return url.origin;
+  } catch (_) {
+    return '';
+  }
+}
+
+function diracCsrfSecret() {
+  const explicit = String(process.env.CSRF_SECRET || process.env.DIRAC_CSRF_SECRET || '').trim();
+  if (explicit) return explicit;
+  try {
+    if (typeof getDomainSignedSessionSecret === 'function') {
+      const fallback = String(getDomainSignedSessionSecret() || '').trim();
+      if (fallback) return fallback;
+    }
+  } catch (_) {}
+  return '';
+}
+
+function diracCsrfCookie(token) {
+  const maxAge = Math.floor(DIRAC_CSRF_MAX_AGE_SECONDS);
+  return [
+    DIRAC_CSRF_COOKIE + '=' + encodeURIComponent(String(token || '')),
+    'Path=/',
+    'Max-Age=' + maxAge,
+    'HttpOnly',
+    'Secure',
+    'SameSite=Strict',
+    'Priority=High'
+  ].join('; ');
+}
+
+function diracCsrfAppendCsvHeader(res, name, values) {
+  if (!res || typeof res.setHeader !== 'function') return;
+  const current = typeof res.getHeader === 'function' ? res.getHeader(name) : '';
+  const list = [];
+  const add = (value) => {
+    String(value || '')
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .forEach((item) => {
+        if (!list.some((existing) => existing.toLowerCase() === item.toLowerCase())) list.push(item);
+      });
+  };
+  if (Array.isArray(current)) current.forEach(add);
+  else add(current);
+  (Array.isArray(values) ? values : [values]).forEach(add);
+  res.setHeader(name, list.join(', '));
+}
+
+function diracCsrfApplyResponseHeaders(res) {
+  try {
+    if (!res || typeof res.setHeader !== 'function') return;
+    res.setHeader('X-Dirac-CSRF-Patch', DIRAC_CSRF_HMAC_PATCH);
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private, max-age=0');
+    if (typeof diracApplySecurityResponseHeaders === 'function') diracApplySecurityResponseHeaders(res);
+  } catch (_) {}
+}
+
+function diracCsrfNormalizeAction(action) {
+  const clean = String(action || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  const aliases = {
+    create_order: 'domain_checkout',
+    domain_create_order: 'domain_checkout',
+    checkout_domain: 'domain_checkout',
+    customer_security_revoke_session: 'customer_security_revoke_session',
+    customer_security_revoke_other_sessions: 'customer_security_revoke_other_sessions',
+    customer_security_account_request: 'customer_security_account_request',
+    customer_security_recovery_codes_generate: 'customer_security_recovery_codes_generate',
+    customer_security_recovery_code_verify: 'customer_security_recovery_code_verify',
+    customer_security_trust_current_device: 'customer_security_trust_current_device',
+    customer_security_untrust_device: 'customer_security_untrust_device',
+    customer_security_prune_login_history: 'customer_security_prune_login_history',
+    create_payment: 'create_payment',
+    pay_order: 'create_payment',
+    order_payment: 'create_payment',
+    checkout_payment: 'create_payment',
+    domain_logout: 'domain_logout',
+    domain_login: 'domain_login',
+    domain_register: 'domain_register',
+    dirac_mfa_email_start: 'dirac_mfa_email_start',
+    dirac_mfa_email_verify: 'dirac_mfa_email_verify',
+    dirac_mfa_passkey_start: 'dirac_mfa_passkey_start',
+    dirac_mfa_passkey_verify: 'dirac_mfa_passkey_verify',
+    domain_mfa_email_start: 'dirac_mfa_email_start',
+    domain_mfa_email_verify: 'dirac_mfa_email_verify',
+    domain_mfa_passkey_start: 'dirac_mfa_passkey_start',
+    domain_mfa_passkey_verify: 'dirac_mfa_passkey_verify',
+    midtrans_webhook: 'midtrans_webhook',
+    midtrans_notification: 'midtrans_webhook',
+    midtrans_callback: 'midtrans_webhook',
+    payment_webhook: 'midtrans_webhook',
+    payment_callback: 'midtrans_webhook',
+    ipaymu_webhook: 'ipaymu_webhook',
+    ipaymu_callback: 'ipaymu_webhook',
+    ipaymu_notification: 'ipaymu_webhook'
+  };
+  return aliases[clean] || clean;
+}
+
+function diracCsrfSha256(value) {
+  return crypto.createHash('sha256').update(String(value || '')).digest('hex');
+}
+
+function diracCsrfSafeError(error) {
+  const message = String(error && error.message ? error.message : error || 'unknown').slice(0, 180);
+  if (/password|token|secret|cookie|authorization|service_role|apikey|csrf|hmac/i.test(message)) return 'csrf_internal_error';
+  return message;
+}
