@@ -1344,35 +1344,6 @@ async function domainRegister(req, res, preloadedBody) {
   if (signupHasSession) {
     setSessionCookies(res, signupData);
   } else {
-    // REGISTER LOGIN COMPAT v127:
-    // Jika Supabase signup berhasil tetapi tidak mengembalikan session, akun baru tidak boleh
-    // terjebak gagal login dengan pesan generik. Untuk akun yang BARU dibuat dari request ini
-    // dan emailnya sama, backend memakai recovery yang sudah ada: confirm user terbaru lalu
-    // password-grant dengan password yang sama dari form register. Jika recovery gagal, fallback
-    // tetap ke perilaku lama: user diminta verifikasi email. domainLogin/hash/A2F/logout/payment
-    // tidak disentuh. Tidak ada endpoint baru.
-    const signupUser = signupData && signupData.user && typeof signupData.user === 'object' ? signupData.user : null;
-    const signupUserEmail = normalizeAuthEmail(signupUser && (signupUser.email || signupUser.email_address || ''));
-    if (signupUser && signupUserEmail === email && isSupabaseAuthUserSafeRecentUnconfirmed(signupUser)) {
-      const confirmed = await confirmRecentSupabaseAuthUser(signupUser);
-      if (confirmed && confirmed.ok) {
-        const recoveredLogin = await loginSupabaseAuthUserAfterRegisterRecovery(email, password);
-        if (recoveredLogin && recoveredLogin.ok && hasValidDomainSessionTokens(recoveredLogin.session)) {
-          setSessionCookies(res, recoveredLogin.session);
-          return res.status(200).json({
-            ok: true,
-            code: 'REGISTER_CREATED_SESSION_RECOVERED_V127',
-            message: 'Akun berhasil dibuat dan login otomatis. Silakan lanjutkan setup keamanan akun.',
-            needs_email_confirmation: false,
-            first_register_setup_required: true,
-            next: 'security_setup_required',
-            user: sanitizeUser(recoveredLogin.session.user || confirmed.user || signupUser),
-            session: buildDomainAuthSessionPayload(recoveredLogin.session)
-          });
-        }
-      }
-    }
-
     clearSessionCookies(res);
   }
 
@@ -1726,36 +1697,6 @@ async function requireDomainDashboardAccess(req, res) {
   return { user, mfa, protectedLock };
 }
 
-
-async function diracBolaIdorV126RequireOwnedCustomerFlowAccess(req, res, options = {}) {
-  const user = await requireDomainUser(req, res);
-  if (!user) return null;
-
-  const authUserId = String(user.id || '').trim();
-  const userEmail = normalizeAuthEmail(user.email || '');
-
-  if (!authUserId || !customerSecurityLooksLikeUuid(authUserId) || !userEmail || !isValidAuthEmail(userEmail)) {
-    res.status(401).json({ ok: false, message: 'Sesi login tidak valid.' });
-    return null;
-  }
-
-  const protectedLock = await requireDomainProtectedDatabaseSessionLockSafe(req, res, user).catch((error) => {
-    console.error('[owned-customer-flow-lock-v126]', customerSecuritySafeLogError(error));
-    return { ok: true, skipped: true, reason: 'lock_exception_fail_open' };
-  });
-  if (!protectedLock) return null;
-
-  return {
-    user,
-    authUserId,
-    userEmail,
-    protectedLock,
-    dashboard: false,
-    mfa_required: false,
-    access_level: String(options.accessLevel || 'owned_customer_flow')
-  };
-}
-
 async function requireDomainProtectedDatabaseSessionLockSafe(req, res, user) {
   const checked = await checkDomainProtectedDatabaseSessionLockSafe(req, user);
   if (checked && checked.ok) return checked;
@@ -1831,8 +1772,7 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
       ? String(row.revoke_reason || 'session_revoked')
       : (expired ? 'session_expired' : DOMAIN_PROTECTED_SESSION_REVOKE_REASON);
 
-    await supabaseFetch('/rest/v1/security_customer_sessions?id=eq.' + encodeURIComponent(row.id) +
-      '&customer_id=eq.' + encodeURIComponent(customerId), {
+    await supabaseFetch('/rest/v1/security_customer_sessions?id=eq.' + encodeURIComponent(row.id), {
       method: 'PATCH',
       auth: 'service',
       prefer: 'return=minimal',
@@ -2020,9 +1960,9 @@ async function domainCheck(req, res) {
 async function domainCheckout(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
 
-  // BOLA/IDOR v126: checkout tetap boleh untuk user baru setelah login,
-  // tetapi owner/customer_id tetap diselesaikan backend dan semua data order owner-scoped.
-  const access = await diracBolaIdorV126RequireOwnedCustomerFlowAccess(req, res, { accessLevel: 'domain_checkout' });
+  // Anti-bypass: checkout domain berada sejajar dengan dashboard, jadi tidak cukup hanya login.
+  // Backend wajib memastikan sesi user + A2F/MFA dashboard masih valid sebelum membuat order.
+  const access = await requireDomainDashboardAccess(req, res);
   if (!access) return;
   const { user } = access;
 
@@ -2304,7 +2244,7 @@ async function maybeCreateDomainPaymentInvoice(order, orderItems, customer) {
 async function domainOrders(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
 
-  const access = await diracBolaIdorV126RequireOwnedCustomerFlowAccess(req, res, { accessLevel: 'domain_orders' });
+  const access = await requireDomainDashboardAccess(req, res);
   if (!access) return;
 
   const { user } = access;
@@ -6711,9 +6651,11 @@ function sessionOwnershipCheckoutIsAction(action) {
 }
 
 async function sessionOwnershipCheckoutCreateUnpaidOrder(req, res) {
-  // BOLA/IDOR v126: checkout/order creation is backend-only and owner-scoped.
-  // Valid login + backend-resolved customer_id is required; dashboard MFA remains for sensitive security/dashboard pages.
-  const access = await diracBolaIdorV126RequireOwnedCustomerFlowAccess(req, res, { accessLevel: 'checkout_order' });
+  // PATCH 3G: checkout/order creation is strict backend-only.
+  // A valid login cookie alone is not enough; customer must also have a valid
+  // HttpOnly dashboard MFA cookie. This intentionally ignores the old
+  // CHECKOUT_REQUIRE_DASHBOARD_MFA=false default.
+  const access = await requireDomainDashboardAccess(req, res);
   if (!access || !access.user) return;
 
   const body = await readBody(req);
@@ -6881,7 +6823,7 @@ async function sessionOwnershipCheckoutCreateUnpaidOrder(req, res) {
     shipping_address: shippingAddress || null,
     note: checkoutNote || null,
     payment_url: null,
-    dashboard_mfa_required: false,
+    dashboard_mfa_required: true,
     payment_gateway_configured: false,
     order_mail_notification: orderMailNotification,
     ownership_locked: true,
@@ -7804,7 +7746,7 @@ function myOrdersIsAction(action) {
 }
 
 async function myOrdersReadForCurrentCustomer(req, res) {
-  const access = await diracBolaIdorV126RequireOwnedCustomerFlowAccess(req, res, { accessLevel: 'my_orders' });
+  const access = await requireDomainDashboardAccess(req, res);
   if (!access) return;
   const user = access.user;
 
@@ -7837,8 +7779,8 @@ async function myOrdersReadForCurrentCustomer(req, res) {
   return res.status(200).json({
     ok: true,
     service: 'dirac-my-orders',
-    dashboard_mfa_required: false,
-    dashboard_mfa_source: '',
+    dashboard_mfa_required: true,
+    dashboard_mfa_source: access.mfa && access.mfa.source || '',
     user: sanitizeUser(user),
     ownership_locked: true,
     direct_frontend_table_access: false,
@@ -8179,7 +8121,7 @@ function lockedPaymentIsAction(action) {
 }
 
 async function lockedPaymentCreateForOrder(req, res) {
-  const access = await diracBolaIdorV126RequireOwnedCustomerFlowAccess(req, res, { accessLevel: 'create_payment' });
+  const access = await requireDomainDashboardAccess(req, res);
   if (!access) return;
   const user = access.user;
 
@@ -10824,7 +10766,7 @@ function diracUniversalPesananGatewayConfigured() {
 }
 
 async function diracUniversalPesananReadOrders(req, res) {
-  const access = await diracBolaIdorV126RequireOwnedCustomerFlowAccess(req, res, { accessLevel: 'my_orders' });
+  const access = await requireDomainDashboardAccess(req, res);
   if (!access) return;
   const user = access.user || {};
 
@@ -10859,8 +10801,8 @@ async function diracUniversalPesananReadOrders(req, res) {
   return res.status(200).json({
     ok: true,
     service: 'dirac-my-orders',
-    dashboard_mfa_required: false,
-    dashboard_mfa_source: '',
+    dashboard_mfa_required: true,
+    dashboard_mfa_source: access.mfa && access.mfa.source || '',
     user: sanitizeUser(user),
     ownership_locked: true,
     direct_frontend_table_access: false,
@@ -10970,7 +10912,7 @@ async function diracUniversalPesananFillTxMap(map, type, ids) {
 }
 
 async function diracUniversalPesananCreatePayment(req, res) {
-  const access = await diracBolaIdorV126RequireOwnedCustomerFlowAccess(req, res, { accessLevel: 'create_payment' });
+  const access = await requireDomainDashboardAccess(req, res);
   if (!access) return;
   const user = access.user || {};
   const body = await readBody(req);
@@ -18594,10 +18536,16 @@ function diracBolaIdorV121OwnedTablePolicy(table) {
   const policies = {
     orders: { ownerColumns: ['customer_id'], objectColumns: ['id', 'order_id'], insertMayUseBodyOwner: true, requiredBodyOwners: ['customer_id'] },
     domain_orders: { ownerColumns: ['customer_id'], objectColumns: ['id', 'order_id'], insertMayUseBodyOwner: true, requiredBodyOwners: ['customer_id'] },
+    order_items: { ownerColumns: ['customer_id'], objectColumns: ['id', 'order_id'], insertMayUseBodyOwner: true, requiredBodyOwners: ['customer_id'] },
+    domain_order_items: { ownerColumns: ['customer_id'], objectColumns: ['id', 'order_id', 'domain_order_id'], insertMayUseBodyOwner: true, requiredBodyOwners: ['customer_id'] },
     payment_transactions: { ownerColumns: ['customer_id'], objectColumns: ['id', 'order_id', 'domain_order_id', 'gateway_reference'], insertMayUseBodyOwner: true, requiredBodyOwners: ['customer_id'] },
     security_customer_sessions: { ownerColumns: ['customer_id'], objectColumns: ['id'], insertMayUseBodyOwner: true, requiredBodyOwners: ['customer_id'] },
     security_customer_settings: { ownerColumns: ['customer_id'], objectColumns: ['id'], insertMayUseBodyOwner: true, requiredBodyOwners: ['customer_id'] },
     security_customer_recovery_codes: { ownerColumns: ['customer_id'], objectColumns: ['id'], insertMayUseBodyOwner: true, requiredBodyOwners: ['customer_id'] },
+    domain_passkeys: { ownerColumns: ['customer_id', 'auth_user_id', 'user_id', 'email'], objectColumns: ['id', 'credential_id'], insertMayUseBodyOwner: true },
+    security_customer_login_logs: { ownerColumns: ['customer_id', 'auth_user_id', 'email'], objectColumns: ['id'], insertMayUseBodyOwner: true },
+    security_customer_account_requests: { ownerColumns: ['customer_id', 'auth_user_id', 'email'], objectColumns: ['id'], insertMayUseBodyOwner: true },
+    payment_gateway_events: { ownerColumns: ['customer_id'], objectColumns: ['id', 'transaction_id', 'gateway_reference'], insertMayUseBodyOwner: true },
     security_customer_auth_links: { ownerColumns: ['auth_user_id', 'customer_id'], objectColumns: ['id'], insertMayUseBodyOwner: true, requiredBodyOwners: ['auth_user_id', 'customer_id'] },
     security_customer_password_hashes: { ownerColumns: ['auth_user_id', 'customer_id'], objectColumns: ['id'], insertMayUseBodyOwner: true, requiredBodyOwners: ['auth_user_id', 'customer_id'] },
     customer_security_events: { ownerColumns: ['customer_id', 'auth_user_id'], objectColumns: ['id'], insertMayUseBodyOwner: true },
@@ -18891,10 +18839,16 @@ function diracBolaIdorV122OwnedTablePolicy(table) {
   const policies = {
     orders: { ownerColumns: ['customer_id'], insertMayUseBodyOwner: true, requiredBodyOwners: ['customer_id'] },
     domain_orders: { ownerColumns: ['customer_id'], insertMayUseBodyOwner: true, requiredBodyOwners: ['customer_id'] },
+    order_items: { ownerColumns: ['customer_id'], insertMayUseBodyOwner: true, requiredBodyOwners: ['customer_id'] },
+    domain_order_items: { ownerColumns: ['customer_id'], insertMayUseBodyOwner: true, requiredBodyOwners: ['customer_id'] },
     payment_transactions: { ownerColumns: ['customer_id'], insertMayUseBodyOwner: true, requiredBodyOwners: ['customer_id'] },
     security_customer_sessions: { ownerColumns: ['customer_id'], insertMayUseBodyOwner: true, requiredBodyOwners: ['customer_id'] },
     security_customer_settings: { ownerColumns: ['customer_id'], insertMayUseBodyOwner: true, requiredBodyOwners: ['customer_id'] },
     security_customer_recovery_codes: { ownerColumns: ['customer_id'], insertMayUseBodyOwner: true, requiredBodyOwners: ['customer_id'] },
+    domain_passkeys: { ownerColumns: ['customer_id', 'auth_user_id', 'user_id', 'email'], insertMayUseBodyOwner: true },
+    security_customer_login_logs: { ownerColumns: ['customer_id', 'auth_user_id', 'email'], insertMayUseBodyOwner: true },
+    security_customer_account_requests: { ownerColumns: ['customer_id', 'auth_user_id', 'email'], insertMayUseBodyOwner: true },
+    payment_gateway_events: { ownerColumns: ['customer_id'], insertMayUseBodyOwner: true },
     security_customer_auth_links: { ownerColumns: ['auth_user_id', 'customer_id'], insertMayUseBodyOwner: true, requiredBodyOwners: ['auth_user_id', 'customer_id'] },
     security_customer_password_hashes: { ownerColumns: ['auth_user_id', 'customer_id'], insertMayUseBodyOwner: true, requiredBodyOwners: ['auth_user_id', 'customer_id'] },
     customer_security_events: { ownerColumns: ['customer_id', 'auth_user_id'], insertMayUseBodyOwner: true },
@@ -19046,6 +19000,316 @@ function diracBolaIdorV122SeenStore() {
 
 /* DIRAC_BOLA_IDOR_V125_MINIMAL: restored original new-account dashboard compatibility; owner-scoped explicit customer session mutations only. */
 
-/* DIRAC_BOLA_IDOR_V126_OWNER_FLOW_PATCH: checkout/order/payment customer flow now requires valid login + backend ownership, while dashboard/security still require MFA. No endpoint names changed. */
+/* ============================================================
+   DIRAC BOLA/IDOR OWNER VALUE BINDING v126 - APPEND ONLY
+   - Tidak mengubah endpoint, login, daftar, logout, auto-logout, payment gateway,
+     email template, A2F/MFA/passkey, hash, atau response contract lama.
+   - Menambah validasi high-confidence: bila request user-data sudah memiliki
+     daftar customer_id terpercaya dari security_customer_auth_links, query/body
+     ke tabel user-owned tidak boleh memakai customer_id di luar daftar tersebut.
+   - Tujuan: mencegah BOLA/IDOR saat attacker menyisipkan customer_id victim.
+   ============================================================ */
 
-/* DIRAC_REGISTER_LOGIN_COMPAT_V127: signup-without-session recovery for brand-new unconfirmed user only; no endpoint/login/hash/A2F/logout/payment changes. */
+const DIRAC_BOLA_IDOR_OWNER_VALUE_BINDING_PATCH_V126 = 'dirac-bola-idor-owner-value-binding-v126';
+
+try {
+  const __diracBolaIdorV126OriginalSupabaseFetch = typeof supabaseFetch === 'function' ? supabaseFetch : null;
+  if (__diracBolaIdorV126OriginalSupabaseFetch && !__diracBolaIdorV126OriginalSupabaseFetch.__diracBolaIdorV126Wrapped) {
+    supabaseFetch = async function supabaseFetchBolaIdorOwnerValueBindingV126(path, options = {}) {
+      const before = diracBolaIdorV126InspectOwnerValue(path, options);
+      if (before && before.warn) diracBolaIdorV126LogDecision(before);
+      if (before && before.block) return diracBolaIdorV126BlockedSupabaseResult(before);
+
+      const result = await __diracBolaIdorV126OriginalSupabaseFetch(path, options);
+      diracBolaIdorV126LearnTrustedOwners(path, options, result);
+      return result;
+    };
+    Object.defineProperty(supabaseFetch, '__diracBolaIdorV126Wrapped', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+function diracBolaIdorV126InspectOwnerValue(path, options = {}) {
+  try {
+    if (!options || options.auth !== 'service') return { ok: true };
+    if (diracBolaIdorV126EnvTrue('DIRAC_BOLA_IDOR_OWNER_BINDING_DISABLED', false)) return { ok: true };
+
+    const method = String(options.method || 'GET').toUpperCase();
+    if (!/^(GET|HEAD|PATCH|PUT|DELETE)$/i.test(method)) return { ok: true };
+
+    const rawPath = String(path || '').trim();
+    if (!rawPath || !rawPath.startsWith('/rest/v1/')) return { ok: true };
+
+    const table = diracBolaIdorV126ExtractRestTable(rawPath);
+    if (!diracBolaIdorV126IsOwnedTable(table)) return { ok: true };
+
+    const ctx = diracBolaIdorV126CurrentContext() || {};
+    const action = diracBolaIdorV126NormalizeAction(ctx.action || '');
+    if (!action) return { ok: true };
+    if (diracBolaIdorV126IsSensitiveFlowAction(action)) return { ok: true };
+    if (!diracBolaIdorV126IsUserDataAction(action)) return { ok: true };
+
+    const allowed = diracBolaIdorV126AllowedCustomerIds(ctx);
+    if (!allowed.length) return { ok: true, table, method, action, reason: 'trusted_owner_not_yet_available' };
+
+    const requested = diracBolaIdorV126RequestedCustomerIds(rawPath, options.body);
+    if (!requested.length) return { ok: true };
+
+    const denied = requested.filter((id) => !allowed.includes(id));
+    if (!denied.length) return { ok: true, table, method, action, owner_value_bound: true };
+
+    return {
+      ok: false,
+      warn: true,
+      block: true,
+      table,
+      method,
+      action,
+      reason: 'blocked_customer_id_not_bound_to_authenticated_owner',
+      requested_count: requested.length,
+      allowed_count: allowed.length,
+      patch: DIRAC_BOLA_IDOR_OWNER_VALUE_BINDING_PATCH_V126
+    };
+  } catch (error) {
+    return { ok: true, error: 'bola_idor_v126_guard_failed_open' };
+  }
+}
+
+function diracBolaIdorV126LearnTrustedOwners(path, options = {}, result) {
+  try {
+    if (!options || options.auth !== 'service' || !result || !result.ok) return;
+    const rawPath = String(path || '').trim();
+    if (!rawPath.startsWith('/rest/v1/')) return;
+
+    const table = diracBolaIdorV126ExtractRestTable(rawPath);
+    if (table !== 'security_customer_auth_links') return;
+    const method = String(options.method || 'GET').toUpperCase();
+    if (method !== 'GET') return;
+    if (!diracBolaIdorV126PathHasColumnFilter(rawPath, 'auth_user_id')) return;
+
+    const ctx = diracBolaIdorV126CurrentContext();
+    if (!ctx || typeof ctx !== 'object') return;
+
+    const rows = Array.isArray(result.data) ? result.data : [];
+    if (!rows.length) return;
+
+    const ids = rows
+      .filter((row) => row && String(row.link_status || '').toLowerCase() === 'active')
+      .map((row) => String(row.customer_id || '').trim())
+      .filter(diracBolaIdorV126LooksLikeUuid);
+
+    if (!ids.length) return;
+    const existing = Array.isArray(ctx.allowedCustomerIdsV126) ? ctx.allowedCustomerIdsV126 : [];
+    ctx.allowedCustomerIdsV126 = Array.from(new Set(existing.concat(ids))).slice(0, 25);
+  } catch (_) {}
+}
+
+function diracBolaIdorV126RequestedCustomerIds(path, body) {
+  const fromPath = diracBolaIdorV126ExtractColumnValuesFromPath(path, 'customer_id');
+  const fromBody = diracBolaIdorV126ExtractColumnValuesFromBody(body, 'customer_id');
+  return Array.from(new Set(fromPath.concat(fromBody).filter(diracBolaIdorV126LooksLikeUuid))).slice(0, 50);
+}
+
+function diracBolaIdorV126ExtractColumnValuesFromBody(body, column) {
+  const col = String(column || '').trim();
+  if (!col || body === undefined || body === null) return [];
+  const rows = Array.isArray(body) ? body : [body];
+  const out = [];
+  for (const row of rows) {
+    if (!row || typeof row !== 'object' || Array.isArray(row)) continue;
+    if (!Object.prototype.hasOwnProperty.call(row, col)) continue;
+    const value = row[col];
+    if (Array.isArray(value)) {
+      for (const item of value) out.push(String(item || '').trim());
+    } else {
+      out.push(String(value || '').trim());
+    }
+  }
+  return out;
+}
+
+function diracBolaIdorV126ExtractColumnValuesFromPath(path, column) {
+  const col = String(column || '').trim().toLowerCase();
+  if (!col) return [];
+  const decoded = diracBolaIdorV126SafeDecode(path);
+  const query = decoded.split('?')[1] || '';
+  if (!query) return [];
+
+  const out = [];
+  const parts = query.split('&');
+  for (const part of parts) {
+    const idx = part.indexOf('=');
+    if (idx <= 0) continue;
+    const key = part.slice(0, idx).toLowerCase();
+    const value = part.slice(idx + 1);
+    if (key === col) out.push(...diracBolaIdorV126ParsePostgrestFilterValue(value));
+    if (key === 'or') out.push(...diracBolaIdorV126ParseOrFilterValues(value, col));
+  }
+  return out;
+}
+
+function diracBolaIdorV126ParsePostgrestFilterValue(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return [];
+  const lower = raw.toLowerCase();
+  if (lower.startsWith('eq.')) return [raw.slice(3)];
+  if (lower.startsWith('in.')) {
+    const inner = raw.slice(3).replace(/^\(/, '').replace(/\)$/, '');
+    return inner.split(',').map((item) => item.replace(/^"|"$/g, '').trim()).filter(Boolean);
+  }
+  return [];
+}
+
+function diracBolaIdorV126ParseOrFilterValues(value, column) {
+  const raw = String(value || '').replace(/^\(/, '').replace(/\)$/, '');
+  const col = String(column || '').toLowerCase();
+  const out = [];
+  for (const item of raw.split(',')) {
+    const text = item.trim();
+    const lower = text.toLowerCase();
+    if (lower.startsWith(col + '.eq.')) out.push(text.slice(col.length + 4));
+    if (lower.startsWith(col + '.in.')) out.push(...diracBolaIdorV126ParsePostgrestFilterValue(text.slice(col.length + 1)));
+  }
+  return out;
+}
+
+function diracBolaIdorV126AllowedCustomerIds(ctx) {
+  try {
+    const ids = Array.isArray(ctx && ctx.allowedCustomerIdsV126) ? ctx.allowedCustomerIdsV126 : [];
+    return Array.from(new Set(ids.map((id) => String(id || '').trim()).filter(diracBolaIdorV126LooksLikeUuid))).slice(0, 25);
+  } catch (_) { return []; }
+}
+
+function diracBolaIdorV126IsOwnedTable(table) {
+  return /^(orders|order_items|domain_orders|domain_order_items|payment_transactions|security_customer_sessions|security_customer_settings|security_customer_recovery_codes|security_customer_auth_links|security_customer_password_hashes|customer_security_events|domain_passkeys|security_customer_login_logs|security_customer_account_requests|payment_gateway_events|customers)$/i.test(String(table || ''));
+}
+
+function diracBolaIdorV126IsUserDataAction(action) {
+  return /orders|order|dashboard|profile|account|me|customer|customers|invoice|invoices|pesanan/i.test(String(action || ''));
+}
+
+function diracBolaIdorV126IsSensitiveFlowAction(action) {
+  return /login|register|logout|payment|pay|midtrans|ipaymu|webhook|callback|notification|checkout|mfa|a2f|passkey|password|hash|email|mail|csrf|token|session|recovery|security|admin/i.test(String(action || ''));
+}
+
+function diracBolaIdorV126BlockedSupabaseResult(decision) {
+  return {
+    ok: false,
+    status: 403,
+    statusText: 'Forbidden',
+    data: {
+      ok: false,
+      code: 'BOLA_IDOR_OWNER_VALUE_MISMATCH',
+      message: 'Permintaan ditolak oleh sistem keamanan.',
+      reason: 'customer_id_not_bound_to_session_owner'
+    },
+    error: 'BOLA_IDOR_OWNER_VALUE_MISMATCH',
+    diracSecurityThreat: {
+      detected: true,
+      kind: 'bola_idor_owner_value_mismatch',
+      table: decision && decision.table || null,
+      method: decision && decision.method || null,
+      action: decision && decision.action || null,
+      patch: DIRAC_BOLA_IDOR_OWNER_VALUE_BINDING_PATCH_V126
+    }
+  };
+}
+
+function diracBolaIdorV126CurrentContext() {
+  try {
+    if (typeof diracBolaIdorV121CurrentContext === 'function') return diracBolaIdorV121CurrentContext();
+  } catch (_) {}
+  return null;
+}
+
+function diracBolaIdorV126ExtractRestTable(path) {
+  try {
+    if (typeof diracBolaIdorV122ExtractRestTable === 'function') return diracBolaIdorV122ExtractRestTable(path);
+  } catch (_) {}
+  try {
+    const raw = String(path || '');
+    if (!raw.startsWith('/rest/v1/')) return '';
+    const part = raw.slice('/rest/v1/'.length).split('?')[0].split('/')[0];
+    const decoded = decodeURIComponent(part || '').trim();
+    return /^[a-zA-Z0-9_]+$/.test(decoded) ? decoded : '';
+  } catch (_) { return ''; }
+}
+
+function diracBolaIdorV126PathHasColumnFilter(path, column) {
+  try {
+    if (typeof diracBolaIdorV122PathHasColumnFilter === 'function') return diracBolaIdorV122PathHasColumnFilter(path, column);
+  } catch (_) {}
+  return diracBolaIdorV126ExtractColumnValuesFromPath(path, column).length > 0;
+}
+
+function diracBolaIdorV126NormalizeAction(action) {
+  try {
+    if (typeof diracBolaIdorV122NormalizeAction === 'function') return diracBolaIdorV122NormalizeAction(action);
+  } catch (_) {}
+  return String(action || '').trim().toLowerCase().replace(/[\s-]+/g, '_').slice(0, 120);
+}
+
+function diracBolaIdorV126LooksLikeUuid(value) {
+  try {
+    if (typeof customerSecurityLooksLikeUuid === 'function') return customerSecurityLooksLikeUuid(value);
+  } catch (_) {}
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
+}
+
+function diracBolaIdorV126SafeDecode(value) {
+  try {
+    if (typeof diracBolaIdorV122SafeDecode === 'function') return diracBolaIdorV122SafeDecode(value);
+  } catch (_) {}
+  let out = String(value || '');
+  for (let i = 0; i < 2; i += 1) {
+    try {
+      const decoded = decodeURIComponent(out);
+      if (decoded === out) break;
+      out = decoded;
+    } catch (_) { break; }
+  }
+  return out;
+}
+
+function diracBolaIdorV126EnvTrue(name, fallback = false) {
+  try {
+    if (typeof diracBolaIdorV122EnvTrue === 'function') return diracBolaIdorV122EnvTrue(name, fallback);
+  } catch (_) {}
+  const raw = process.env[name];
+  if (raw === undefined || raw === null || String(raw).trim() === '') return !!fallback;
+  const value = String(raw).trim().toLowerCase();
+  if (['1', 'true', 'yes', 'on', 'block', 'enforce', 'strict'].includes(value)) return true;
+  if (['0', 'false', 'no', 'off', 'monitor', 'disabled'].includes(value)) return false;
+  return !!fallback;
+}
+
+function diracBolaIdorV126LogDecision(decision) {
+  try {
+    if (diracBolaIdorV126EnvTrue('DIRAC_BOLA_IDOR_OWNER_BINDING_SILENT', false)) return;
+    const key = [decision.table, decision.method, decision.action, decision.reason, decision.block ? 'block' : 'warn'].join('|');
+    const store = diracBolaIdorV126SeenStore();
+    const current = Number(store.get(key) || 0);
+    const max = Math.max(1, Number(process.env.DIRAC_BOLA_IDOR_OWNER_BINDING_LOG_LIMIT || 5) || 5);
+    if (current >= max) return;
+    store.set(key, current + 1);
+    console.warn('[dirac-bola-idor-owner-value-binding]', {
+      patch: DIRAC_BOLA_IDOR_OWNER_VALUE_BINDING_PATCH_V126,
+      mode: decision.block ? 'blocked' : 'monitor',
+      reason: decision.reason,
+      table: decision.table,
+      method: decision.method,
+      action: decision.action || null,
+      requested_count: decision.requested_count || 0,
+      allowed_count: decision.allowed_count || 0
+    });
+  } catch (_) {}
+}
+
+function diracBolaIdorV126SeenStore() {
+  try {
+    if (!globalThis.__DIRAC_BOLA_IDOR_V126_SEEN || !(globalThis.__DIRAC_BOLA_IDOR_V126_SEEN instanceof Map)) {
+      globalThis.__DIRAC_BOLA_IDOR_V126_SEEN = new Map();
+    }
+    return globalThis.__DIRAC_BOLA_IDOR_V126_SEEN;
+  } catch (_) { return new Map(); }
+}
+
