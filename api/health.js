@@ -20471,3 +20471,118 @@ function readDiracSupabaseCredentials(targetKey) {
   if (!serviceKey.value) missing.push((resolved.serviceNames || []).filter(Boolean).join(' atau '));
   throw new Error('Supabase ENV belum lengkap: ' + missing.join(', '));
 }
+
+
+/* ============================================================
+   AUTH/REGISTER PASS-THROUGH REPAIR FOR BOLA GLOBAL BAN - v131
+   Root cause:
+   - v128 BOLA/IDOR intentionally writes high-confidence BOLA attempts into the
+     older v107 global hard-ban store.
+   - v107 enforces that global ban before the old handler runs. That also hits
+     domain_login/domain_register and legacy auth POST, even though auth flows
+     must remain untouched.
+   - Some frontends display any auth-side rejection as the generic
+     "Email atau password belum sesuai", so it looks like the password is wrong.
+   Scope:
+   - Does not change endpoints, login/register handler body, password hash,
+     payment gateway, email templates, A2F/MFA/passkey, logout, protected idle
+     logout, BOLA owner checks, or frontend.
+   - Keeps BOLA/IDOR hard-ban active for protected object APIs, Termux/Postman,
+     dashboard/order/customer/session/invoice actions.
+   - Only restores auth/register passthrough so global BOLA ban cannot break
+     masuk/daftar. Login/register still keep their own SQLi/input/rate guards.
+   ============================================================ */
+
+const DIRAC_AUTH_REGISTER_SAFE_BOLA_REPAIR_PATCH_V131 = 'auth-register-safe-bola-repair-v131';
+
+function diracV131NormalizeAction(action) {
+  try { if (typeof normalizeDomainAction === 'function') return normalizeDomainAction(action); } catch (_) {}
+  return String(action || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+}
+
+function diracV131IsAuthPassthroughAction(action, method, req) {
+  const clean = diracV131NormalizeAction(action);
+  const upperMethod = String(method || (req && req.method) || '').toUpperCase();
+  if (clean === 'domain_login' || clean === 'domain_register') return true;
+  if (clean === 'login_domain' || clean === 'register_domain') return true;
+
+  // Legacy endpoint compatibility: POST /api/health with mode/action in body is
+  // parsed by the old handler. v107 cannot inspect that body before the handler,
+  // so no-action POST must be passed through to avoid breaking the legacy auth flow.
+  const rawAction = String(req && req.query && req.query.action || '').trim();
+  const url = String(req && req.url || '');
+  if (!rawAction && upperMethod === 'POST' && /(?:^|\/)api\/health(?:\?|$)/i.test(url)) return true;
+  return false;
+}
+
+function diracV107ShouldSkip(req, action, method) {
+  if (diracV107EnvTrue('DIRAC_GLOBAL_HARD_BAN_DISABLED')) return true;
+  if (String(method || '').toUpperCase() === 'OPTIONS') return true;
+
+  const normalized = diracV107NormalizeAction(action);
+  if (diracV131IsAuthPassthroughAction(normalized, method, req)) return true;
+
+  const url = String((req && req.url) || '');
+  if (/\.(?:html?|css|js|mjs|map|png|jpe?g|webp|gif|svg|ico|woff2?|ttf|otf)(?:\?|$)/i.test(url) && !/\/api\/health/i.test(url)) return true;
+
+  if (normalized === 'domain_logout' || normalized === 'logout_domain' || normalized === 'logout') return true;
+  if (/webhook|callback|notification|midtrans|ipaymu|payment_gateway|payment_notification/i.test(normalized)) return true;
+  try { if (typeof diracV101IsWebhookAction === 'function' && diracV101IsWebhookAction(normalized)) return true; } catch (_) {}
+
+  return false;
+}
+
+function readDiracSupabaseCredentials(targetKey) {
+  const key = DIRAC_SUPABASE_TARGET_ENVS[targetKey] ? targetKey : 'legacy';
+  const envs = DIRAC_SUPABASE_TARGET_ENVS[key];
+
+  if (key === 'legacy') {
+    return {
+      targetKey: 'legacy',
+      url: requiredEnv(envs.url).replace(/\/$/, ''),
+      anonKey: requiredEnv(envs.anonKey),
+      serviceKey: requiredEnv(envs.serviceKey),
+      authRepairPatch: DIRAC_AUTH_REGISTER_SAFE_BOLA_REPAIR_PATCH_V131
+    };
+  }
+
+  const url = String(process.env[envs.url] || '').trim();
+  const anonKey = String(process.env[envs.anonKey] || '').trim();
+  const serviceKey = String(process.env[envs.serviceKey] || '').trim();
+
+  if (url && anonKey && serviceKey) {
+    return {
+      targetKey: key,
+      url: url.replace(/\/$/, ''),
+      anonKey,
+      serviceKey,
+      authRepairPatch: DIRAC_AUTH_REGISTER_SAFE_BOLA_REPAIR_PATCH_V131
+    };
+  }
+
+  if (shouldUseStrictDiracMultiDbRouter()) {
+    throw new Error(`Missing Supabase ENV for ${key}: ${envs.url}, ${envs.anonKey}, ${envs.serviceKey}`);
+  }
+
+  const legacy = DIRAC_SUPABASE_TARGET_ENVS.legacy;
+  return {
+    targetKey: 'legacy',
+    requestedTargetKey: key,
+    fallback: true,
+    url: requiredEnv(legacy.url).replace(/\/$/, ''),
+    anonKey: requiredEnv(legacy.anonKey),
+    serviceKey: requiredEnv(legacy.serviceKey),
+    authRepairPatch: DIRAC_AUTH_REGISTER_SAFE_BOLA_REPAIR_PATCH_V131
+  };
+}
+
+try {
+  const __diracV131PreviousHandler = module.exports;
+  if (typeof __diracV131PreviousHandler === 'function' && !__diracV131PreviousHandler.__diracAuthRegisterSafeBolaRepairV131) {
+    module.exports = async function diracAuthRegisterSafeBolaRepairWrapperV131(req, res) {
+      try { if (res && typeof res.setHeader === 'function') res.setHeader('X-Dirac-Auth-Register-Safe-Bola-Repair', DIRAC_AUTH_REGISTER_SAFE_BOLA_REPAIR_PATCH_V131); } catch (_) {}
+      return __diracV131PreviousHandler(req, res);
+    };
+    Object.defineProperty(module.exports, '__diracAuthRegisterSafeBolaRepairV131', { value: true, enumerable: false });
+  }
+} catch (_) {}
