@@ -20054,3 +20054,337 @@ function diracBolaIdorV128LogDecision(decision) {
     });
   } catch (_) {}
 }
+
+
+/* ============================================================
+   OWNER PAID EMAIL SENDER ROOT FIX - APPEND ONLY - v129
+   Scope:
+   - Fixes only owner/store email delivery configuration used by the existing paid webhook sender.
+   - Does not create unpaid checkout email triggers. Pending/unpaid email remains skipped.
+   - Keeps login/register/logout/hash/A2F/payment gateway/webhook verification/email templates/endpoints unchanged.
+   Root causes fixed:
+   1) Owner email was disabled by default unless ORDER_OWNER_EMAIL_ENABLED=true.
+   2) Owner recipient was read only from ORDER_OWNER_EMAIL.
+   3) Owner SMTP was read only from ORDER_OWNER_SMTP_*; existing customer/order sender ENV could be ignored.
+   4) Port 587 could be treated as implicit TLS because secure default was always true.
+   5) Display-name recipient formats like Owner <owner@example.com> were rejected.
+   6) Existing Resend/Brevo sender ENV can be used for order owner email without touching A2F logic.
+   ============================================================ */
+
+const DIRAC_ORDER_OWNER_PAID_EMAIL_SENDER_PATCH_V129 = 'owner-paid-email-sender-rootfix-v129';
+
+function orderMailOwnerEnabled() {
+  const explicit = orderMailPickEnvV129(['ORDER_OWNER_EMAIL_ENABLED', 'ORDER_PAID_OWNER_EMAIL_ENABLED']);
+  if (explicit) return orderMailEnvTrue(explicit, false);
+  const config = orderMailSmtpConfig('owner');
+  return Boolean(config.configured && config.recipients && config.recipients.length);
+}
+
+function orderMailSmtpConfig(kind) {
+  const isOwner = kind === 'owner';
+  const upper = isOwner ? 'OWNER' : 'CUSTOMER';
+  const specificPrefix = isOwner ? 'ORDER_OWNER' : 'ORDER_CUSTOMER';
+  const prefixes = isOwner
+    ? ['ORDER_OWNER', 'ORDER_EMAIL', 'ORDER', 'DIRAC_ORDER', 'ORDER_CUSTOMER', 'DIRAC_EMAIL', 'SMTP', 'MAIL', 'EMAIL']
+    : ['ORDER_CUSTOMER', 'ORDER_EMAIL', 'ORDER', 'DIRAC_ORDER', 'DIRAC_EMAIL', 'SMTP', 'MAIL', 'EMAIL'];
+
+  const host = orderMailPickEnvV129([
+    ...prefixes.map((p) => `${p}_SMTP_HOST`),
+    `${specificPrefix}_HOST`,
+    'SMTP_HOST',
+    'MAIL_HOST'
+  ]);
+
+  const rawPort = orderMailPickEnvV129([
+    ...prefixes.map((p) => `${p}_SMTP_PORT`),
+    `${specificPrefix}_PORT`,
+    'SMTP_PORT',
+    'MAIL_PORT'
+  ]);
+  const parsedPort = Math.trunc(Number(rawPort || 0));
+  const port = Number.isFinite(parsedPort) && parsedPort > 0 ? parsedPort : 465;
+
+  const secureRaw = orderMailPickEnvV129([
+    ...prefixes.map((p) => `${p}_SMTP_SECURE`),
+    `${specificPrefix}_SECURE`,
+    'SMTP_SECURE',
+    'MAIL_SECURE'
+  ]);
+  const secure = secureRaw ? orderMailEnvTrue(secureRaw, port === 465) : (port === 465);
+
+  const user = orderMailPickEnvV129([
+    ...prefixes.map((p) => `${p}_SMTP_USER`),
+    `${specificPrefix}_USER`,
+    'SMTP_USER',
+    'MAIL_USER'
+  ]);
+
+  const pass = orderMailPickEnvV129([
+    ...prefixes.map((p) => `${p}_SMTP_PASS`),
+    ...prefixes.map((p) => `${p}_SMTP_PASSWORD`),
+    `${specificPrefix}_PASS`,
+    `${specificPrefix}_PASSWORD`,
+    'SMTP_PASS',
+    'SMTP_PASSWORD',
+    'MAIL_PASS',
+    'MAIL_PASSWORD'
+  ]).replace(/\s+/g, '');
+
+  const fromName = orderMailCleanText(orderMailPickEnvV129([
+    `${specificPrefix}_FROM_NAME`,
+    `${specificPrefix}_SENDER_NAME`,
+    'ORDER_EMAIL_FROM_NAME',
+    'ORDER_FROM_NAME',
+    'DIRAC_ORDER_FROM_NAME',
+    'DIRAC_EMAIL_FROM_NAME',
+    'RESEND_FROM_NAME',
+    'BREVO_SENDER_NAME',
+    'SMTP_FROM_NAME',
+    'MAIL_FROM_NAME'
+  ]) || 'Dirac Group', 80);
+
+  const fromEmail = orderMailNormalizeEmail(orderMailPickEnvV129([
+    `${specificPrefix}_FROM_EMAIL`,
+    `${specificPrefix}_SENDER_EMAIL`,
+    'ORDER_EMAIL_FROM_EMAIL',
+    'ORDER_EMAIL_FROM',
+    'ORDER_FROM_EMAIL',
+    'ORDER_FROM',
+    'DIRAC_ORDER_FROM_EMAIL',
+    'DIRAC_ORDER_FROM',
+    'DIRAC_EMAIL_FROM',
+    'RESEND_FROM',
+    'BREVO_SENDER_EMAIL',
+    'SMTP_FROM_EMAIL',
+    'SMTP_FROM',
+    'MAIL_FROM_EMAIL',
+    'MAIL_FROM',
+    user
+  ]));
+
+  const recipients = isOwner ? orderMailOwnerRecipientListV129() : [];
+  const smtpConfigured = Boolean(host && user && pass && fromEmail);
+  const providerConfigured = orderMailProviderConfiguredV129(upper, fromEmail);
+
+  return {
+    kind,
+    host,
+    port,
+    secure,
+    user,
+    pass,
+    fromName,
+    fromEmail,
+    recipients,
+    configured: Boolean(smtpConfigured || providerConfigured),
+    smtpConfigured,
+    providerConfigured,
+    patch: DIRAC_ORDER_OWNER_PAID_EMAIL_SENDER_PATCH_V129
+  };
+}
+
+function orderMailPublicConfigInfo(kind) {
+  const config = orderMailSmtpConfig(kind);
+  const enabled = kind === 'owner' ? orderMailOwnerEnabled() : orderMailCustomerEnabled();
+  return {
+    enabled,
+    configured: Boolean(config.configured),
+    smtpConfigured: Boolean(config.smtpConfigured),
+    providerConfigured: Boolean(config.providerConfigured),
+    host: config.host || null,
+    port: config.port || null,
+    secure: config.secure,
+    userPresent: Boolean(config.user),
+    passPresent: Boolean(config.pass),
+    fromEmailPresent: Boolean(config.fromEmail),
+    ownerRecipientCount: kind === 'owner' ? config.recipients.length : undefined,
+    paidWebhookOnly: true,
+    patch: DIRAC_ORDER_OWNER_PAID_EMAIL_SENDER_PATCH_V129
+  };
+}
+
+function orderMailPickEnvV129(names) {
+  for (const name of names || []) {
+    if (!name) continue;
+    if (Object.prototype.hasOwnProperty.call(process.env, name)) {
+      const value = String(process.env[name] || '').trim();
+      if (value) return value;
+    }
+    if (String(name).includes('@')) return String(name || '').trim();
+  }
+  return '';
+}
+
+function orderMailOwnerRecipientListV129() {
+  return orderMailParseEmailList([
+    process.env.ORDER_OWNER_EMAIL,
+    process.env.ORDER_OWNER_EMAILS,
+    process.env.ORDER_OWNER_TO,
+    process.env.ORDER_OWNER_RECIPIENT,
+    process.env.ORDER_OWNER_RECIPIENTS,
+    process.env.ORDER_ADMIN_EMAIL,
+    process.env.ORDER_ADMIN_EMAILS,
+    process.env.ORDER_EMAIL_TO_OWNER,
+    process.env.ORDER_EMAIL_TO,
+    process.env.ORDER_NOTIFICATION_EMAIL_TO,
+    process.env.NOTIFICATION_EMAIL_TO,
+    process.env.NOTIFY_OWNER_EMAIL,
+    process.env.STORE_OWNER_EMAIL,
+    process.env.STORE_OWNER_EMAILS,
+    process.env.STORE_EMAIL,
+    process.env.OWNER_EMAIL,
+    process.env.OWNER_EMAILS,
+    process.env.ADMIN_EMAIL,
+    process.env.ADMIN_EMAILS,
+    process.env.DIRAC_OWNER_EMAIL,
+    process.env.DIRAC_OWNER_EMAILS,
+    process.env.DIRAC_ADMIN_EMAIL,
+    process.env.DIRAC_ADMIN_EMAILS
+  ].filter(Boolean).join(','));
+}
+
+function orderMailParseEmailList(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return [];
+  const candidates = [];
+  const regex = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
+  let match;
+  while ((match = regex.exec(raw))) candidates.push(match[0]);
+  raw.split(/[;,\s]+/).forEach((part) => candidates.push(part));
+  return Array.from(new Set(candidates.map(orderMailNormalizeEmail).filter(Boolean))).slice(0, 50);
+}
+
+function orderMailNormalizeEmail(value) {
+  const raw = String(value || '').trim();
+  if (!raw || raw.length > 320) return '';
+  const angle = raw.match(/<\s*([^<>\s@]+@[^<>\s@]+\.[^<>\s@]+)\s*>/i);
+  const extracted = angle ? angle[1] : ((raw.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i) || [raw])[0]);
+  const email = String(extracted || '').trim().toLowerCase();
+  if (!email || email.length > 254) return '';
+  if (!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(email)) return '';
+  return email;
+}
+
+function orderMailProviderConfiguredV129(kindUpper, fromEmail) {
+  const k = String(kindUpper || '').toUpperCase();
+  const resendKey = orderMailPickEnvV129([
+    `ORDER_${k}_RESEND_API_KEY`,
+    'ORDER_EMAIL_RESEND_API_KEY',
+    'ORDER_RESEND_API_KEY',
+    'DIRAC_ORDER_RESEND_API_KEY',
+    'RESEND_API_KEY'
+  ]);
+  const brevoKey = orderMailPickEnvV129([
+    `ORDER_${k}_BREVO_API_KEY`,
+    'ORDER_EMAIL_BREVO_API_KEY',
+    'ORDER_BREVO_API_KEY',
+    'DIRAC_ORDER_BREVO_API_KEY',
+    'BREVO_API_KEY'
+  ]);
+  return Boolean(fromEmail && (resendKey || brevoKey));
+}
+
+async function orderMailSendViaSmtpSafe(config, message) {
+  try {
+    if (config && config.smtpConfigured) return await orderMailSendViaSmtp(config, message);
+    return await orderMailSendViaProviderFallbackSafeV129(config, message);
+  } catch (error) {
+    return { ok: false, error: orderMailSafeError(error) };
+  }
+}
+
+async function orderMailSendViaProviderFallbackSafeV129(config, message) {
+  const cfg = config && typeof config === 'object' ? config : {};
+  const recipients = Array.from(new Set((message.to || []).map(orderMailNormalizeEmail).filter(Boolean))).slice(0, 50);
+  if (!recipients.length) return { ok: false, error: 'recipient_missing' };
+
+  const fromEmail = orderMailNormalizeEmail(message.fromEmail || cfg.fromEmail || '');
+  const fromName = orderMailCleanText(message.fromName || cfg.fromName || 'Dirac Group', 80);
+  if (!fromEmail) return { ok: false, error: 'from_email_missing' };
+
+  const kindUpper = String(cfg.kind || 'OWNER').toUpperCase();
+  const resendKey = orderMailPickEnvV129([
+    `ORDER_${kindUpper}_RESEND_API_KEY`,
+    'ORDER_EMAIL_RESEND_API_KEY',
+    'ORDER_RESEND_API_KEY',
+    'DIRAC_ORDER_RESEND_API_KEY',
+    'RESEND_API_KEY'
+  ]);
+
+  if (resendKey) {
+    try {
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: `${fromName} <${fromEmail}>`,
+          to: recipients,
+          subject: String(message.subject || 'Dirac Group Order'),
+          text: String(message.text || ''),
+          html: String(message.html || '<p>Dirac Group</p>')
+        })
+      });
+      const body = await response.json().catch(() => ({}));
+      if (response.ok) return { ok: true, provider: 'resend', id: body && body.id || null, recipient_count: recipients.length };
+      return { ok: false, provider: 'resend', error: 'resend_' + response.status };
+    } catch (error) {
+      return { ok: false, provider: 'resend', error: orderMailSafeError(error) };
+    }
+  }
+
+  const brevoKey = orderMailPickEnvV129([
+    `ORDER_${kindUpper}_BREVO_API_KEY`,
+    'ORDER_EMAIL_BREVO_API_KEY',
+    'ORDER_BREVO_API_KEY',
+    'DIRAC_ORDER_BREVO_API_KEY',
+    'BREVO_API_KEY'
+  ]);
+
+  if (brevoKey) {
+    try {
+      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: { 'api-key': brevoKey, 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          sender: { email: fromEmail, name: fromName },
+          to: recipients.map((email) => ({ email })),
+          subject: String(message.subject || 'Dirac Group Order'),
+          textContent: String(message.text || ''),
+          htmlContent: String(message.html || '<p>Dirac Group</p>')
+        })
+      });
+      const body = await response.json().catch(() => ({}));
+      if (response.ok) return { ok: true, provider: 'brevo', id: body && body.messageId || null, recipient_count: recipients.length };
+      return { ok: false, provider: 'brevo', error: 'brevo_' + response.status };
+    } catch (error) {
+      return { ok: false, provider: 'brevo', error: orderMailSafeError(error) };
+    }
+  }
+
+  return { ok: false, error: 'smtp_or_provider_not_configured' };
+}
+
+const __diracOwnerPaidEmailSenderHealthPreviousHandlerV129 = module.exports;
+module.exports = async function diracOwnerPaidEmailSenderHealthWrapperV129(req, res) {
+  const rawAction = String((req && req.query && req.query.action) || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  if (rawAction !== 'order_mail_health' && rawAction !== 'order_email_health') {
+    return __diracOwnerPaidEmailSenderHealthPreviousHandlerV129(req, res);
+  }
+
+  const cors = setCors(req, res, { isDomainAction: true });
+  if (req.method === 'OPTIONS') return res.status(cors.allowed ? 200 : 403).end();
+  if (!cors.allowed) return res.status(403).json({ ok: false, message: 'Origin tidak diizinkan.' });
+  if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
+
+  return res.status(200).json({
+    ok: true,
+    service: 'dirac-order-mail',
+    debugPatch: DIRAC_ORDER_MAIL_PATCH,
+    senderPatch: DIRAC_ORDER_OWNER_PAID_EMAIL_SENDER_PATCH_V129,
+    customer: orderMailPublicConfigInfo('customer'),
+    owner: orderMailPublicConfigInfo('owner'),
+    paidWebhookOnly: true,
+    adminPanelCodeUntouched: true,
+    note: 'Owner email dikirim oleh sender order-mail hanya setelah paid webhook. Endpoint, template, login/register/logout/hash/A2F/payment gateway tidak diubah. Secret/app password tidak ditampilkan.'
+  });
+};
