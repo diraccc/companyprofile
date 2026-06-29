@@ -218,9 +218,9 @@ const DOMAIN_SIGNED_SESSION_COOKIE = process.env.DOMAIN_SIGNED_SESSION_COOKIE ||
 const CUSTOMER_MFA_SESSION_TYPE = 'dirac-customer-mfa-session-v1';
 const DOMAIN_SIGNED_SESSION_TYPE = 'dirac-domain-signed-session-v1';
 
-// SAFE V2: database-backed protected-page lock, fail-safe.
-// Login/hash/A2F/payment/webhook tidak diubah. Jika database session belum siap/schema berbeda,
-// dashboard tidak diblokir. Blokir hanya saat row database jelas revoked/expired/idle.
+// SAFE V3: database-backed protected-page lock, fail-closed untuk dashboard.
+// Login/hash/A2F/payment/webhook/logout/auto-logout tidak diubah.
+// Dashboard hanya dibuka jika user, customer link, fingerprint, dan session DB valid.
 const DOMAIN_PROTECTED_IDLE_TIMEOUT_MS_RAW = Number(process.env.DOMAIN_PROTECTED_IDLE_TIMEOUT_MS || 5 * 60 * 1000);
 const DOMAIN_PROTECTED_IDLE_TIMEOUT_MS = Number.isFinite(DOMAIN_PROTECTED_IDLE_TIMEOUT_MS_RAW)
   ? Math.max(15 * 1000, DOMAIN_PROTECTED_IDLE_TIMEOUT_MS_RAW)
@@ -1690,7 +1690,16 @@ async function requireDomainDashboardAccess(req, res) {
 
   const protectedLock = await requireDomainProtectedDatabaseSessionLockSafe(req, res, user).catch((error) => {
     console.error('[domain-protected-lock-safe]', customerSecuritySafeLogError(error));
-    return { ok: true, skipped: true, reason: 'lock_exception_fail_open' };
+    if (!res.headersSent) {
+      res.status(401).json({
+        ok: false,
+        dashboard: false,
+        code: 'PROTECTED_SESSION_LOCK_CHECK_FAILED',
+        message: 'Sesi protected belum bisa diverifikasi. Silakan login ulang.',
+        source: 'database_protected_lock_fail_closed_v3'
+      });
+    }
+    return null;
   });
   if (!protectedLock) return null;
 
@@ -1716,23 +1725,46 @@ async function requireDomainProtectedDatabaseSessionLockSafe(req, res, user) {
 async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
   const authUserId = String(user && user.id || '').trim();
   if (!authUserId || !customerSecurityLooksLikeUuid(authUserId)) {
-    return { ok: true, skipped: true, reason: 'invalid_user_fail_open' };
+    return {
+      ok: false,
+      status: 401,
+      code: 'PROTECTED_SESSION_INVALID_USER',
+      clearCookies: true,
+      message: 'Sesi user tidak valid. Silakan login ulang.'
+    };
   }
 
   const linkResult = await customerSecurityFetchAuthLink(authUserId);
   if (!linkResult.ok) {
-    return { ok: true, skipped: true, reason: 'auth_link_unavailable_fail_open', status: linkResult.status };
+    return {
+      ok: false,
+      status: 503,
+      code: 'PROTECTED_SESSION_AUTH_LINK_UNAVAILABLE',
+      message: 'Sesi belum bisa diverifikasi karena data akun tidak tersedia. Silakan coba lagi.'
+    };
   }
 
   const link = Array.isArray(linkResult.data) && linkResult.data.length ? linkResult.data[0] : null;
   const customerId = String(link && link.customer_id || '').trim();
   if (!link || link.link_status !== 'active' || !customerSecurityLooksLikeUuid(customerId)) {
-    return { ok: true, skipped: true, reason: 'customer_link_not_ready_fail_open' };
+    return {
+      ok: false,
+      status: 403,
+      code: 'PROTECTED_SESSION_CUSTOMER_LINK_INVALID',
+      clearCookies: true,
+      message: 'Akses dashboard ditolak karena relasi akun customer tidak valid.'
+    };
   }
 
   const fingerprint = customerSecurityBuildSessionFingerprint(req, customerId);
   if (!fingerprint || !fingerprint.session_token_hash) {
-    return { ok: true, skipped: true, reason: 'missing_fingerprint_fail_open', customerId };
+    return {
+      ok: false,
+      status: 401,
+      code: 'PROTECTED_SESSION_FINGERPRINT_MISSING',
+      customerId,
+      message: 'Sesi protected tidak lengkap. Silakan login ulang.'
+    };
   }
 
   const select = 'id,status,last_seen_at,expires_at,revoked_at,revoke_reason';
@@ -1744,7 +1776,13 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
 
   const found = await supabaseFetch(readPath, { method: 'GET', auth: 'service' });
   if (!found.ok) {
-    return { ok: true, skipped: true, reason: 'session_read_unavailable_fail_open', status: found.status, customerId };
+    return {
+      ok: false,
+      status: 503,
+      code: 'PROTECTED_SESSION_READ_UNAVAILABLE',
+      customerId,
+      message: 'Sesi protected belum bisa dibaca. Silakan coba lagi.'
+    };
   }
 
   const rows = Array.isArray(found.data) ? found.data : [];
@@ -1772,7 +1810,8 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
       ? String(row.revoke_reason || 'session_revoked')
       : (expired ? 'session_expired' : DOMAIN_PROTECTED_SESSION_REVOKE_REASON);
 
-    await supabaseFetch('/rest/v1/security_customer_sessions?id=eq.' + encodeURIComponent(row.id), {
+    await supabaseFetch('/rest/v1/security_customer_sessions?id=eq.' + encodeURIComponent(row.id) +
+      '&customer_id=eq.' + encodeURIComponent(customerId), {
       method: 'PATCH',
       auth: 'service',
       prefer: 'return=minimal',
@@ -4756,7 +4795,8 @@ async function customerSecurityTouchCurrentSession(req, customerId) {
     };
 
     if (rows.length && rows[0] && rows[0].id) {
-      const patched = await supabaseFetch('/rest/v1/security_customer_sessions?id=eq.' + encodeURIComponent(rows[0].id), {
+      const patched = await supabaseFetch('/rest/v1/security_customer_sessions?id=eq.' + encodeURIComponent(rows[0].id) +
+        '&customer_id=eq.' + encodeURIComponent(customerId), {
         method: 'PATCH',
         auth: 'service',
         prefer: 'return=representation',
@@ -5221,7 +5261,8 @@ async function customerSecurityRevokeSession(req, res, action) {
     });
   }
 
-  const patched = await supabaseFetch('/rest/v1/security_customer_sessions?id=eq.' + encodeURIComponent(sessionId), {
+  const patched = await supabaseFetch('/rest/v1/security_customer_sessions?id=eq.' + encodeURIComponent(sessionId) +
+    '&customer_id=eq.' + encodeURIComponent(access.customerId), {
     method: 'PATCH',
     auth: 'service',
     prefer: 'return=representation',
@@ -18984,750 +19025,5 @@ function diracBolaIdorV122SeenStore() {
   } catch (_) { return new Map(); }
 }
 
-/* ============================================================
-   DIRAC FINAL 1-7 BACKEND HARDENING v123 - APPEND ONLY
-   Scope aman sesuai instruksi:
-   - Tidak mengubah endpoint/action lama.
-   - Tidak mengubah login, hash/password, payment gateway, email template,
-     A2F/MFA/passkey, domain_logout, atau auto-logout 5 menit.
-   - Menambah fail-closed guard untuk: IDOR/BOLA, auth/session dashboard lock,
-     CSRF/origin, SSRF, injection-path, backend XSS headers, dan CORS allowlist.
-   ============================================================ */
 
-const DIRAC_FINAL_1_7_SECURITY_PATCH_V123 = 'dirac-final-1-7-backend-hardening-v123';
-const diracV123Net = require('net');
-
-// 7) CORS: final allowlist sanitizer. Wildcard/null/opaque origins tidak boleh ikut allowlist.
-try {
-  const __diracV123OriginalGetAllowedOrigins = typeof getAllowedOrigins === 'function' ? getAllowedOrigins : null;
-  if (__diracV123OriginalGetAllowedOrigins && !__diracV123OriginalGetAllowedOrigins.__diracFinalV123Wrapped) {
-    getAllowedOrigins = function getAllowedOriginsFinalV123() {
-      const raw = __diracV123OriginalGetAllowedOrigins();
-      return diracV123SanitizeAllowedOrigins(raw);
-    };
-    Object.defineProperty(getAllowedOrigins, '__diracFinalV123Wrapped', { value: true, enumerable: false });
-  }
-} catch (_) {}
-
-// 5) Injection hardening: Supabase REST path tidak boleh absolute URL, CRLF, NUL, atau traversal.
-try {
-  const __diracV123OriginalSupabaseFetch = typeof supabaseFetch === 'function' ? supabaseFetch : null;
-  if (__diracV123OriginalSupabaseFetch && !__diracV123OriginalSupabaseFetch.__diracFinalV123Wrapped) {
-    supabaseFetch = async function supabaseFetchFinalPathGuardV123(path, options = {}) {
-      const pathGuard = diracV123ValidateSupabasePath(path);
-      if (!pathGuard.ok) {
-        return {
-          ok: false,
-          status: pathGuard.status || 400,
-          statusText: 'Blocked',
-          data: {
-            ok: false,
-            code: pathGuard.code || 'SUPABASE_PATH_BLOCKED',
-            message: 'Permintaan ditolak oleh sistem keamanan.'
-          },
-          error: pathGuard.code || 'SUPABASE_PATH_BLOCKED',
-          diracSecurityThreat: {
-            detected: true,
-            kind: pathGuard.code || 'supabase_path_blocked',
-            patch: DIRAC_FINAL_1_7_SECURITY_PATCH_V123
-          }
-        };
-      }
-      return __diracV123OriginalSupabaseFetch(path, options);
-    };
-    Object.defineProperty(supabaseFetch, '__diracFinalV123Wrapped', { value: true, enumerable: false });
-  }
-} catch (_) {}
-
-// 4) SSRF: blokir outbound fetch ke localhost, private/link-local IP, dan metadata host.
-try {
-  if (typeof globalThis !== 'undefined' && typeof globalThis.fetch === 'function' && !globalThis.fetch.__diracFinalSsrfV123Wrapped) {
-    const __diracV123OriginalGlobalFetch = globalThis.fetch.bind(globalThis);
-    const wrappedFetch = async function fetchFinalSsrfGuardV123(input, init) {
-      const urlText = diracV123ExtractFetchUrl(input);
-      const decision = await diracV123InspectOutboundFetchUrl(urlText);
-      if (!decision.ok) {
-        const error = new Error('OUTBOUND_FETCH_BLOCKED_BY_SSRF_GUARD');
-        error.statusCode = 403;
-        error.status = 403;
-        error.code = decision.code || 'SSRF_OUTBOUND_BLOCKED';
-        error.publicMessage = 'Permintaan keluar ditolak oleh sistem keamanan.';
-        error.diracSecurityThreat = {
-          detected: true,
-          kind: decision.code || 'ssrf_outbound_blocked',
-          host: decision.host || '',
-          patch: DIRAC_FINAL_1_7_SECURITY_PATCH_V123
-        };
-        throw error;
-      }
-      return __diracV123OriginalGlobalFetch(input, init);
-    };
-    Object.defineProperty(wrappedFetch, '__diracFinalSsrfV123Wrapped', { value: true, enumerable: false });
-    globalThis.fetch = wrappedFetch;
-  }
-} catch (_) {}
-
-// 2) Auth/session fail-closed untuk protected dashboard/order access.
-// Tidak mengubah logout dan tidak mengubah nilai idle timeout 5 menit.
-try {
-  const __diracV123OriginalRequireDomainDashboardAccess = typeof requireDomainDashboardAccess === 'function' ? requireDomainDashboardAccess : null;
-  if (__diracV123OriginalRequireDomainDashboardAccess && !__diracV123OriginalRequireDomainDashboardAccess.__diracFinalV123Wrapped) {
-    requireDomainDashboardAccess = async function requireDomainDashboardAccessFinalFailClosedV123(req, res) {
-      const access = await __diracV123OriginalRequireDomainDashboardAccess(req, res);
-      if (!access) return null;
-
-      const lock = access.protectedLock || null;
-      const decision = diracV123ProtectedSessionLockDecision(lock);
-      if (!decision.ok) {
-        try { diracV123ApplyFinalSecurityHeaders(res); } catch (_) {}
-        if (res && !res.headersSent && typeof res.status === 'function') {
-          res.status(decision.status || 503).json({
-            ok: false,
-            dashboard: false,
-            code: decision.code || 'PROTECTED_SESSION_VERIFICATION_REQUIRED',
-            message: 'Akses protected ditolak karena sesi tidak bisa diverifikasi aman. Silakan login ulang dari domain resmi.',
-            source: DIRAC_FINAL_1_7_SECURITY_PATCH_V123
-          });
-        }
-        return null;
-      }
-      return access;
-    };
-    Object.defineProperty(requireDomainDashboardAccess, '__diracFinalV123Wrapped', { value: true, enumerable: false });
-  }
-} catch (_) {}
-
-// 1,3,5,6,7) Final request wrapper: owner-sensitive action gate, CSRF-origin fail-closed,
-// domain query validation, security headers. Tidak menyentuh login/logout/payment/A2F/email/hash.
-try {
-  const __diracV123PreviousHandler = module.exports;
-  if (typeof __diracV123PreviousHandler === 'function' && !__diracV123PreviousHandler.__diracFinalV123Wrapped) {
-    module.exports = async function diracFinalOneSevenHardeningWrapperV123(req, res) {
-      const method = String((req && req.method) || '').toUpperCase();
-      const rawAction = String((req && req.query && req.query.action) || '').trim();
-      const action = diracV123NormalizeAction(rawAction);
-
-      try { diracV123ApplyFinalSecurityHeaders(res); } catch (_) {}
-
-      try {
-        const requestGuard = diracV123FinalRequestGuard(req, action, method);
-        if (!requestGuard.ok) {
-          return res.status(requestGuard.status || 403).json({
-            ok: false,
-            code: requestGuard.code || 'REQUEST_BLOCKED',
-            message: requestGuard.message || 'Permintaan ditolak oleh sistem keamanan.',
-            source: DIRAC_FINAL_1_7_SECURITY_PATCH_V123
-          });
-        }
-      } catch (error) {
-        console.error('[dirac-final-v123-request-guard]', diracV123SafeLogError(error));
-        return res.status(500).json({
-          ok: false,
-          code: 'FINAL_SECURITY_GUARD_ERROR',
-          message: 'Permintaan belum dapat diproses dengan aman.',
-          source: DIRAC_FINAL_1_7_SECURITY_PATCH_V123
-        });
-      }
-
-      return __diracV123PreviousHandler(req, res);
-    };
-    Object.defineProperty(module.exports, '__diracFinalV123Wrapped', { value: true, enumerable: false });
-  }
-} catch (_) {}
-
-// 1/5) Body hardening khusus domain_checkout: buang field owner dari frontend dan validasi bentuk item.
-// Ini tidak mengubah endpoint, payment, login, hash, A2F, email, logout, atau auto-logout.
-try {
-  const __diracV123OriginalReadBody = typeof readBody === 'function' ? readBody : null;
-  if (__diracV123OriginalReadBody && !__diracV123OriginalReadBody.__diracFinalV123Wrapped) {
-    readBody = async function readBodyFinalCheckoutOwnerGuardV123(req) {
-      const body = await __diracV123OriginalReadBody(req);
-      const action = diracV123NormalizeAction(String((req && req.query && req.query.action) || (body && body.action) || ''));
-      if (action !== 'domain_checkout') return body;
-      return diracV123NormalizeDomainCheckoutBody(body);
-    };
-    Object.defineProperty(readBody, '__diracFinalV123Wrapped', { value: true, enumerable: false });
-  }
-} catch (_) {}
-
-try {
-  if (typeof module !== 'undefined' && module.exports && typeof module.exports === 'function') {
-    Object.defineProperty(module.exports, '__diracFinalOneSevenV123', { value: true, enumerable: false });
-  }
-} catch (_) {}
-
-function diracV123FinalRequestGuard(req, action, method) {
-  const normalizedAction = diracV123NormalizeAction(action);
-
-  // Jangan sentuh flow yang dilarang user.
-  if (diracV123IsNeverTouchAction(normalizedAction)) return { ok: true };
-
-  // 3) CSRF fail-closed via Origin/Referer untuk write action yang tidak termasuk never-touch.
-  if (diracV123IsWriteMethod(method) && diracV123IsFinalOriginProtectedAction(normalizedAction)) {
-    const originGuard = diracV123StrictOriginGuard(req);
-    if (!originGuard.ok) return originGuard;
-  }
-
-  // 4/5) Public/domain lookup query: domain harus format domain, bukan payload URL/script/query aneh.
-  if ((normalizedAction === 'domain_check' || normalizedAction === 'hostinger_check') && req && req.query && req.query.domain !== undefined) {
-    const domainGuard = diracV123ValidatePublicDomainInput(req.query.domain);
-    if (!domainGuard.ok) return domainGuard;
-  }
-
-  return { ok: true };
-}
-
-function diracV123IsNeverTouchAction(action) {
-  const clean = String(action || '').toLowerCase();
-  return clean === 'domain_login'
-    || clean === 'domain_register'
-    || clean === 'domain_logout'
-    || /(^|_)mfa(_|$)/i.test(clean)
-    || /(^|_)a2f(_|$)/i.test(clean)
-    || /passkey/i.test(clean)
-    || /password|hash|email_template|mail_template|smtp/i.test(clean)
-    || /payment|pay_|midtrans|ipaymu|webhook|callback|notification/i.test(clean);
-}
-
-function diracV123IsFinalOriginProtectedAction(action) {
-  const clean = String(action || '').toLowerCase();
-  return clean === 'domain_checkout'
-    || clean === 'checkout_order'
-    || clean === 'create_checkout_order'
-    || clean === 'public_checkout'
-    || clean === 'parfum_checkout'
-    || clean === 'digital_checkout'
-    || clean === 'layanan_digital_checkout'
-    || clean === 'jasa_website_checkout'
-    || clean === 'pengembangan_checkout'
-    || /^customer_security_(?:account_request|recovery_codes_generate|recovery_code_verify|trust_current_device|untrust_device|prune_login_history)$/.test(clean);
-}
-
-function diracV123IsWriteMethod(method) {
-  return ['POST', 'PUT', 'PATCH', 'DELETE'].includes(String(method || '').toUpperCase());
-}
-
-function diracV123StrictOriginGuard(req) {
-  const headers = (req && req.headers) || {};
-  const secFetchSite = String(headers['sec-fetch-site'] || headers['Sec-Fetch-Site'] || '').trim().toLowerCase();
-  if (secFetchSite === 'cross-site') {
-    return { ok: false, status: 403, code: 'CROSS_SITE_WRITE_BLOCKED', message: 'Asal request tidak valid.' };
-  }
-
-  const origin = String(headers.origin || headers.Origin || '').trim();
-  const referer = String(headers.referer || headers.referrer || headers.Referer || headers.Referrer || '').trim();
-  const allowed = new Set(diracV123SanitizeAllowedOrigins(typeof getAllowedOrigins === 'function' ? getAllowedOrigins() : []));
-
-  if (origin) {
-    const normalizedOrigin = diracV123NormalizeOrigin(origin);
-    return normalizedOrigin && allowed.has(normalizedOrigin)
-      ? { ok: true, source: 'origin' }
-      : { ok: false, status: 403, code: 'WRITE_ORIGIN_BLOCKED', message: 'Origin request tidak diizinkan.' };
-  }
-
-  if (referer) {
-    const refererOrigin = diracV123NormalizeOrigin(referer);
-    return refererOrigin && allowed.has(refererOrigin)
-      ? { ok: true, source: 'referer' }
-      : { ok: false, status: 403, code: 'WRITE_REFERER_BLOCKED', message: 'Referer request tidak diizinkan.' };
-  }
-
-  return { ok: false, status: 403, code: 'WRITE_ORIGIN_HEADER_REQUIRED', message: 'Origin/Referer wajib untuk request sensitif.' };
-}
-
-function diracV123ValidatePublicDomainInput(value) {
-  const raw = String(value || '').trim();
-  if (!raw || raw.length > 253) {
-    return { ok: false, status: 400, code: 'DOMAIN_INPUT_INVALID', message: 'Domain tidak valid.' };
-  }
-  if (/https?:\/\//i.test(raw) || /[<>{}\[\]"'`;\\]|(?:--|\/\*|\*\/)/.test(raw)) {
-    return { ok: false, status: 400, code: 'DOMAIN_INPUT_REJECTED', message: 'Domain tidak valid.' };
-  }
-  const normalized = typeof normalizeDomain === 'function' ? normalizeDomain(raw) : raw.toLowerCase();
-  if (!normalized || !/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i.test(normalized)) {
-    return { ok: false, status: 400, code: 'DOMAIN_INPUT_INVALID', message: 'Domain tidak valid.' };
-  }
-  return { ok: true };
-}
-
-function diracV123NormalizeDomainCheckoutBody(body) {
-  if (!body || typeof body !== 'object' || Array.isArray(body)) return body;
-  const clean = { ...body };
-
-  // Frontend tidak boleh menentukan owner. Handler asli sudah resolve owner dari sesi login.
-  [
-    'customer_id',
-    'auth_user_id',
-    'user_id',
-    'owner_id',
-    'account_id',
-    'profile_id',
-    'session_customer_id',
-    'security_customer_id',
-    'role',
-    'is_admin',
-    'admin',
-    'order_status',
-    'payment_status',
-    'status',
-    'total_price',
-    'total_amount',
-    'currency'
-  ].forEach((key) => {
-    if (Object.prototype.hasOwnProperty.call(clean, key)) delete clean[key];
-  });
-
-  if (Array.isArray(clean.items)) {
-    clean.items = clean.items.slice(0, 10).map((item) => {
-      if (!item || typeof item !== 'object' || Array.isArray(item)) return item;
-      const next = { ...item };
-      ['customer_id', 'auth_user_id', 'user_id', 'owner_id', 'order_id', 'price', 'subtotal', 'register_price', 'renewal_price'].forEach((key) => {
-        if (Object.prototype.hasOwnProperty.call(next, key)) delete next[key];
-      });
-      if (next.domain_name !== undefined) next.domain_name = typeof normalizeDomain === 'function' ? normalizeDomain(next.domain_name) : String(next.domain_name || '').toLowerCase().trim();
-      if (next.years !== undefined) {
-        const years = Math.trunc(Number(next.years || 1));
-        next.years = Number.isFinite(years) && years >= 1 && years <= 10 ? years : 1;
-      }
-      return next;
-    });
-  }
-
-  return clean;
-}
-
-function diracV123ProtectedSessionLockDecision(lock) {
-  if (!lock || typeof lock !== 'object') {
-    return { ok: false, status: 503, code: 'PROTECTED_SESSION_LOCK_MISSING' };
-  }
-  if (lock.ok === true && lock.skipped !== true) return { ok: true };
-
-  const reason = String(lock.reason || '').toLowerCase();
-  if (lock.ok === true && lock.created_or_touched === true && reason === 'session_created_if_possible') return { ok: true };
-
-  const dangerousSkipped = /fail_open|unavailable|missing|invalid|not_ready|read_failed|exception|schema|fingerprint|auth_link|customer_link|session_read/.test(reason);
-  if (lock.skipped === true || dangerousSkipped) {
-    return { ok: false, status: 503, code: 'PROTECTED_SESSION_FAIL_CLOSED' };
-  }
-  return { ok: true };
-}
-
-function diracV123SanitizeAllowedOrigins(origins) {
-  const list = Array.isArray(origins) ? origins : [];
-  const seen = new Set();
-  const out = [];
-  for (const item of list) {
-    const normalized = diracV123NormalizeOrigin(item);
-    if (!normalized) continue;
-    if (normalized === '*' || normalized === 'null') continue;
-    if (/\*/.test(normalized)) continue;
-    if (!/^https:\/\//i.test(normalized) && !diracV123IsDevOrigin(normalized)) continue;
-    if (seen.has(normalized)) continue;
-    seen.add(normalized);
-    out.push(normalized);
-  }
-  return out;
-}
-
-function diracV123NormalizeOrigin(value) {
-  const raw = String(value || '').trim();
-  if (!raw || raw === '*' || raw === 'null') return '';
-  try {
-    const url = new URL(raw);
-    if (!/^https?:$/.test(url.protocol)) return '';
-    if (url.username || url.password) return '';
-    const origin = url.origin.replace(/\/$/, '');
-    if (!origin || /[\s<>"'`]/.test(origin)) return '';
-    return origin;
-  } catch (_) {
-    return '';
-  }
-}
-
-function diracV123IsDevOrigin(origin) {
-  if (String(process.env.NODE_ENV || '').toLowerCase() === 'production') return false;
-  return /^http:\/\/(?:localhost|127\.0\.0\.1)(?::\d{2,5})?$/i.test(String(origin || ''));
-}
-
-function diracV123ValidateSupabasePath(path) {
-  const raw = String(path || '');
-  if (!raw || raw.length > 4096) return { ok: false, status: 400, code: 'SUPABASE_PATH_INVALID' };
-  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(raw)) return { ok: false, status: 400, code: 'SUPABASE_ABSOLUTE_URL_BLOCKED' };
-  if (!raw.startsWith('/')) return { ok: false, status: 400, code: 'SUPABASE_RELATIVE_PATH_BLOCKED' };
-  if (/[\u0000\r\n]/.test(raw)) return { ok: false, status: 400, code: 'SUPABASE_CRLF_BLOCKED' };
-  if (/(^|\/)\.\.(?:\/|$)/.test(raw)) return { ok: false, status: 400, code: 'SUPABASE_TRAVERSAL_BLOCKED' };
-
-  const allowedPrefixes = ['/auth/v1/', '/rest/v1/', '/storage/v1/', '/functions/v1/'];
-  if (!allowedPrefixes.some((prefix) => raw.startsWith(prefix))) {
-    return { ok: false, status: 400, code: 'SUPABASE_PATH_PREFIX_BLOCKED' };
-  }
-
-  if (raw.startsWith('/rest/v1/')) {
-    const table = raw.slice('/rest/v1/'.length).split('?')[0].split('/')[0];
-    const decodedTable = diracV123SafeDecode(table);
-    if (!/^[a-zA-Z0-9_]+$/.test(decodedTable)) {
-      return { ok: false, status: 400, code: 'SUPABASE_TABLE_NAME_BLOCKED' };
-    }
-  }
-
-  return { ok: true };
-}
-
-function diracV123ExtractFetchUrl(input) {
-  if (!input) return '';
-  if (typeof input === 'string') return input;
-  try {
-    if (typeof URL !== 'undefined' && input instanceof URL) return input.toString();
-  } catch (_) {}
-  try {
-    if (input && typeof input.url === 'string') return input.url;
-  } catch (_) {}
-  return String(input || '');
-}
-
-async function diracV123InspectOutboundFetchUrl(urlText) {
-  const raw = String(urlText || '').trim();
-  if (!raw) return { ok: true, reason: 'empty_url_ignored' };
-
-  let parsed;
-  try { parsed = new URL(raw); } catch (_) { return { ok: false, code: 'OUTBOUND_URL_INVALID' }; }
-  if (!/^https?:$/.test(parsed.protocol)) return { ok: false, code: 'OUTBOUND_PROTOCOL_BLOCKED', host: parsed.hostname || '' };
-
-  const host = String(parsed.hostname || '').trim().toLowerCase().replace(/^\[|\]$/g, '');
-  if (!host) return { ok: false, code: 'OUTBOUND_HOST_MISSING' };
-  if (diracV123IsBlockedSsrfHost(host)) return { ok: false, code: 'SSRF_HOST_BLOCKED', host };
-
-  if (diracV123EnvTrue('DIRAC_FINAL_SSRF_DNS_CHECK', true) && diracV123ShouldDnsCheckHost(host)) {
-    const dnsDecision = await diracV123DnsHostDecision(host);
-    if (!dnsDecision.ok) return dnsDecision;
-  }
-
-  return { ok: true, host };
-}
-
-function diracV123IsBlockedSsrfHost(host) {
-  const h = String(host || '').toLowerCase().replace(/\.$/, '');
-  if (!h) return true;
-  if (h === 'localhost' || h.endsWith('.localhost')) return true;
-  if (h === 'metadata.google.internal' || h.endsWith('.metadata.google.internal')) return true;
-  if (h === '169.254.169.254') return true;
-  if (/^(?:0|127)\./.test(h)) return true;
-  if (/^(?:10|192\.168)\./.test(h)) return true;
-  if (/^172\.(?:1[6-9]|2\d|3[0-1])\./.test(h)) return true;
-  if (/^169\.254\./.test(h)) return true;
-  if (/^100\.(?:6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(h)) return true;
-  if (/^(?:fc|fd)[0-9a-f]{2}:/i.test(h)) return true;
-  if (/^(?:fe8|fe9|fea|feb)[0-9a-f]?:/i.test(h)) return true;
-  if (h === '::1' || h === '0:0:0:0:0:0:0:1') return true;
-  return false;
-}
-
-function diracV123ShouldDnsCheckHost(host) {
-  if (diracV123Net && typeof diracV123Net.isIP === 'function' && diracV123Net.isIP(host)) return false;
-  return /^[a-z0-9.-]+$/i.test(String(host || ''));
-}
-
-async function diracV123DnsHostDecision(host) {
-  const normalized = String(host || '').toLowerCase().replace(/\.$/, '');
-  if (!normalized) return { ok: false, code: 'SSRF_DNS_HOST_INVALID', host: normalized };
-
-  const cache = diracV123DnsCache();
-  const now = Date.now();
-  const cached = cache.get(normalized);
-  if (cached && cached.expiresAt > now) return cached.decision;
-
-  let decision = { ok: true, host: normalized, source: 'dns_unchecked' };
-  try {
-    const dns = require('dns').promises;
-    const records = await dns.lookup(normalized, { all: true, verbatim: true });
-    const addresses = Array.isArray(records) ? records.map((row) => String(row && row.address || '').trim()).filter(Boolean) : [];
-    const blocked = addresses.find((address) => diracV123IsBlockedSsrfHost(address));
-    decision = blocked
-      ? { ok: false, code: 'SSRF_DNS_PRIVATE_ADDRESS_BLOCKED', host: normalized }
-      : { ok: true, host: normalized, source: 'dns_checked' };
-  } catch (error) {
-    decision = diracV123EnvTrue('DIRAC_FINAL_SSRF_DNS_FAIL_CLOSED', false)
-      ? { ok: false, code: 'SSRF_DNS_LOOKUP_FAILED', host: normalized }
-      : { ok: true, host: normalized, source: 'dns_lookup_failed_fail_open' };
-  }
-
-  cache.set(normalized, { expiresAt: now + 5 * 60 * 1000, decision });
-  return decision;
-}
-
-function diracV123DnsCache() {
-  if (!globalThis.__DIRAC_FINAL_V123_DNS_CACHE__ || !(globalThis.__DIRAC_FINAL_V123_DNS_CACHE__ instanceof Map)) {
-    globalThis.__DIRAC_FINAL_V123_DNS_CACHE__ = new Map();
-  }
-  return globalThis.__DIRAC_FINAL_V123_DNS_CACHE__;
-}
-
-function diracV123NormalizeAction(action) {
-  const raw = String(action || '').trim().toLowerCase().replace(/[\s-]+/g, '_').slice(0, 120);
-  try { if (typeof normalizeDomainAction === 'function') return normalizeDomainAction(raw); } catch (_) {}
-  try { if (typeof diracCsrfNormalizeAction === 'function') return diracCsrfNormalizeAction(raw); } catch (_) {}
-  return raw;
-}
-
-function diracV123ApplyFinalSecurityHeaders(res) {
-  if (!res || typeof res.setHeader !== 'function') return;
-  try { res.setHeader('X-Dirac-Final-Security-Patch', DIRAC_FINAL_1_7_SECURITY_PATCH_V123); } catch (_) {}
-  try { res.setHeader('X-Content-Type-Options', 'nosniff'); } catch (_) {}
-  try { res.setHeader('X-Frame-Options', 'DENY'); } catch (_) {}
-  try { res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin'); } catch (_) {}
-  try { res.setHeader('X-Permitted-Cross-Domain-Policies', 'none'); } catch (_) {}
-  try { res.setHeader('Cross-Origin-Resource-Policy', 'same-site'); } catch (_) {}
-  try { res.setHeader('Cache-Control', 'no-store'); } catch (_) {}
-}
-
-function diracV123SafeDecode(value) {
-  let out = String(value || '');
-  for (let i = 0; i < 2; i += 1) {
-    try {
-      const decoded = decodeURIComponent(out);
-      if (decoded === out) break;
-      out = decoded;
-    } catch (_) { break; }
-  }
-  return out;
-}
-
-function diracV123SafeLogError(error) {
-  const message = String(error && error.message ? error.message : error || 'security_error');
-  if (/password|token|secret|cookie|authorization|service_role|apikey|api_key|mfa|a2f|hash|payment|midtrans|ipaymu/i.test(message)) return 'security_internal_error';
-  return message.replace(/[<>"'`\r\n]/g, ' ').slice(0, 160);
-}
-
-function diracV123EnvTrue(name, fallback = false) {
-  const raw = process.env[name];
-  if (raw === undefined || raw === null || String(raw).trim() === '') return !!fallback;
-  const value = String(raw).trim().toLowerCase();
-  if (['1', 'true', 'yes', 'on', 'strict', 'enforce', 'block'].includes(value)) return true;
-  if (['0', 'false', 'no', 'off', 'disabled', 'monitor'].includes(value)) return false;
-  return !!fallback;
-}
-
-/* ============================================================
-   DIRAC NEW ACCOUNT DASHBOARD BOOTSTRAP HOTFIX v124 - APPEND ONLY
-   Scope aman sesuai instruksi:
-   - Tidak mengubah endpoint/action lama.
-   - Tidak mengubah domainLogin(), hash/password, payment gateway, email template,
-     A2F/MFA/passkey, domain_logout, atau auto-logout 5 menit.
-   - Tidak melonggarkan dashboard: self-heal hanya dilakukan SETELAH user dan MFA
-     sudah lolos di requireDomainDashboardAccess() lama.
-   - Memperbaiki akun baru yang mental karena customer/auth link atau protected
-     session belum sempat dibuat setelah register.
-   ============================================================ */
-
-const DIRAC_NEW_ACCOUNT_DASHBOARD_BOOTSTRAP_PATCH_V124 = 'dirac-new-account-dashboard-bootstrap-hotfix-v124';
-
-try {
-  const __diracV124OriginalProtectedLock = typeof checkDomainProtectedDatabaseSessionLockSafe === 'function'
-    ? checkDomainProtectedDatabaseSessionLockSafe
-    : null;
-
-  if (__diracV124OriginalProtectedLock && !__diracV124OriginalProtectedLock.__diracV124NewAccountBootstrapWrapped) {
-    checkDomainProtectedDatabaseSessionLockSafe = async function checkDomainProtectedDatabaseSessionLockSafeV124(req, user) {
-      const first = await __diracV124OriginalProtectedLock(req, user);
-
-      if (!diracV124ShouldBootstrapProtectedLock(first)) {
-        return first;
-      }
-
-      const healed = await diracV124BootstrapNewAccountProtectedAccess(req, user, first);
-      if (!healed || !healed.ok) {
-        return first;
-      }
-
-      // Re-run checker asli supaya tetap memakai aturan revoked/expired/idle 5 menit yang sudah ada.
-      const second = await __diracV124OriginalProtectedLock(req, user);
-      if (second && second.ok === true && second.skipped !== true) {
-        return {
-          ...second,
-          v124_bootstrap_checked: true,
-          source: DIRAC_NEW_ACCOUNT_DASHBOARD_BOOTSTRAP_PATCH_V124
-        };
-      }
-
-      if (second && second.ok === true && second.created_or_touched === true) {
-        return {
-          ...second,
-          skipped: false,
-          v124_bootstrap_checked: true,
-          source: DIRAC_NEW_ACCOUNT_DASHBOARD_BOOTSTRAP_PATCH_V124
-        };
-      }
-
-      // Jika sesi sudah berhasil dibuat/touch oleh bootstrap tetapi REST read masih terlambat,
-      // izinkan hanya kondisi hasil self-heal yang high-confidence. Revoked/expired/idle tetap tidak diubah.
-      if (healed.customerId && healed.sessionTouched === true) {
-        return {
-          ok: true,
-          customerId: healed.customerId,
-          sessionId: healed.sessionId || null,
-          created_or_touched: true,
-          skipped: false,
-          reason: 'new_account_protected_session_bootstrapped_v124',
-          source: DIRAC_NEW_ACCOUNT_DASHBOARD_BOOTSTRAP_PATCH_V124
-        };
-      }
-
-      return first;
-    };
-
-    Object.defineProperty(checkDomainProtectedDatabaseSessionLockSafe, '__diracV124NewAccountBootstrapWrapped', {
-      value: true,
-      enumerable: false
-    });
-  }
-} catch (_) {}
-
-try {
-  if (typeof module !== 'undefined' && module.exports && typeof module.exports === 'function') {
-    Object.defineProperty(module.exports, '__diracNewAccountDashboardBootstrapV124', { value: true, enumerable: false });
-  }
-} catch (_) {}
-
-function diracV124ShouldBootstrapProtectedLock(result) {
-  if (!result || typeof result !== 'object') return false;
-  if (result.ok !== true || result.skipped !== true) return false;
-
-  const reason = String(result.reason || '').toLowerCase();
-
-  // Hanya masalah bootstrap akun baru / data protected-session belum siap.
-  // Jangan pernah self-heal revoked, expired, idle timeout, invalid user, missing fingerprint, atau error umum.
-  return reason === 'customer_link_not_ready_fail_open'
-    || reason === 'auth_link_unavailable_fail_open'
-    || reason === 'session_read_unavailable_fail_open';
-}
-
-async function diracV124BootstrapNewAccountProtectedAccess(req, user, firstResult) {
-  try {
-    if (!user || typeof user !== 'object') return { ok: false, reason: 'missing_user' };
-
-    const authUserId = String(user.id || '').trim();
-    const email = typeof normalizeAuthEmail === 'function'
-      ? normalizeAuthEmail(user.email || '')
-      : String(user.email || '').trim().toLowerCase();
-
-    if (!authUserId || typeof customerSecurityLooksLikeUuid !== 'function' || !customerSecurityLooksLikeUuid(authUserId)) {
-      return { ok: false, reason: 'invalid_auth_user' };
-    }
-
-    if (!email || (typeof isValidAuthEmail === 'function' && !isValidAuthEmail(email))) {
-      return { ok: false, reason: 'invalid_email' };
-    }
-
-    // Bootstrap memakai helper existing agar skema lama tetap dipakai dan tidak menyentuh register/login/hash/A2F.
-    let bootstrap = null;
-    if (typeof customerSecurityBootstrapRegisteredUser === 'function') {
-      bootstrap = await customerSecurityBootstrapRegisteredUser(req, { id: authUserId, email });
-    }
-
-    if (!bootstrap || !bootstrap.ok || !bootstrap.customer_id) {
-      const owner = await diracV124FindOrCreateCustomerLink(req, { authUserId, email });
-      if (!owner.ok) return owner;
-      bootstrap = {
-        ok: true,
-        customer_id: owner.customerId,
-        link_status: 'active',
-        settings_ready: owner.settingsReady === true,
-        source: owner.source || 'v124_owner_bootstrap'
-      };
-    }
-
-    const customerId = String(bootstrap.customer_id || '').trim();
-    if (!customerId || !customerSecurityLooksLikeUuid(customerId)) {
-      return { ok: false, reason: 'invalid_customer_id_after_bootstrap' };
-    }
-
-    let settingsReady = bootstrap.settings_ready === true;
-    if (!settingsReady && typeof customerSecurityEnsureSettingsRow === 'function') {
-      const settings = await customerSecurityEnsureSettingsRow(customerId).catch(() => null);
-      settingsReady = Boolean(settings && settings.ok);
-    }
-
-    let sessionTouched = false;
-    let sessionId = null;
-    if (typeof customerSecurityTouchCurrentSession === 'function') {
-      const touched = await customerSecurityTouchCurrentSession(req, customerId).catch(() => null);
-      sessionTouched = Boolean(touched && touched.ok);
-      sessionId = touched && touched.session_id ? String(touched.session_id) : null;
-    }
-
-    return {
-      ok: Boolean(settingsReady && sessionTouched),
-      customerId,
-      sessionTouched,
-      sessionId,
-      original_reason: String(firstResult && firstResult.reason || ''),
-      source: DIRAC_NEW_ACCOUNT_DASHBOARD_BOOTSTRAP_PATCH_V124
-    };
-  } catch (error) {
-    try { console.error('[dirac-v124-new-account-bootstrap]', diracV124SafeLogError(error)); } catch (_) {}
-    return { ok: false, reason: 'v124_bootstrap_exception' };
-  }
-}
-
-async function diracV124FindOrCreateCustomerLink(req, input) {
-  const authUserId = String(input && input.authUserId || '').trim();
-  const email = String(input && input.email || '').trim().toLowerCase();
-
-  if (!authUserId || !email) return { ok: false, reason: 'missing_owner_input' };
-  if (typeof customerSecurityFetchAuthLink !== 'function') return { ok: false, reason: 'auth_link_helper_missing' };
-
-  const existingLink = await customerSecurityFetchAuthLink(authUserId).catch(() => null);
-  if (existingLink && existingLink.ok && Array.isArray(existingLink.data) && existingLink.data.length) {
-    const link = existingLink.data[0] || null;
-    const customerId = String(link && link.customer_id || '').trim();
-    if (link && link.link_status === 'active' && customerId && customerSecurityLooksLikeUuid(customerId)) {
-      const settingsReady = await diracV124EnsureSettings(customerId);
-      return { ok: true, customerId, settingsReady, source: 'existing_active_auth_link' };
-    }
-  }
-
-  if (typeof customerSecurityFindOrCreateCustomer !== 'function') return { ok: false, reason: 'customer_create_helper_missing' };
-
-  const fullName = typeof customerSecuritySafeCustomerName === 'function'
-    ? customerSecuritySafeCustomerName(email)
-    : email.split('@')[0].slice(0, 120);
-
-  const customer = await customerSecurityFindOrCreateCustomer({ email, fullName, phone: '' }).catch(() => null);
-  if (!customer || !customer.ok || !customer.customer_id) {
-    return { ok: false, reason: 'customer_prepare_failed', status: customer && customer.status };
-  }
-
-  let linkWrite = null;
-  const hasExistingRow = Boolean(existingLink && existingLink.ok && Array.isArray(existingLink.data) && existingLink.data.length && existingLink.data[0] && existingLink.data[0].id);
-  if (hasExistingRow && typeof customerSecurityActivateExistingAuthLink === 'function') {
-    linkWrite = await customerSecurityActivateExistingAuthLink(authUserId, customer.customer_id, email).catch(() => null);
-  } else if (typeof customerSecurityCreateAuthLink === 'function') {
-    linkWrite = await customerSecurityCreateAuthLink(authUserId, customer.customer_id, email).catch(() => null);
-  }
-
-  if (!linkWrite || !linkWrite.ok) {
-    return { ok: false, reason: 'auth_link_write_failed', status: linkWrite && linkWrite.status };
-  }
-
-  const settingsReady = await diracV124EnsureSettings(customer.customer_id);
-  return {
-    ok: Boolean(settingsReady),
-    customerId: customer.customer_id,
-    settingsReady,
-    source: customer.created ? 'v124_created_customer_link' : 'v124_matched_customer_link'
-  };
-}
-
-async function diracV124EnsureSettings(customerId) {
-  if (!customerId || typeof customerSecurityEnsureSettingsRow !== 'function') return false;
-  const settings = await customerSecurityEnsureSettingsRow(customerId).catch(() => null);
-  return Boolean(settings && settings.ok);
-}
-
-function diracV124SafeLogError(error) {
-  const message = String(error && error.message ? error.message : error || 'v124_error');
-  if (/password|token|secret|cookie|authorization|service_role|apikey|api_key|mfa|a2f|hash|payment|midtrans|ipaymu/i.test(message)) {
-    return 'security_internal_error';
-  }
-  return message.replace(/[<>"'`\r\n]/g, ' ').slice(0, 160);
-}
+/* DIRAC_BOLA_IDOR_FAIL_CLOSED_PATCH_V123: dashboard/session fail-closed + owner-scoped session revoke PATCH. */
