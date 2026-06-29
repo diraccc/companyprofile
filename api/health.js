@@ -19313,3 +19313,418 @@ function diracBolaIdorV126SeenStore() {
   } catch (_) { return new Map(); }
 }
 
+
+/* ============================================================
+   DIRAC BOLA/IDOR OBJECT VALUE BINDING v127 - APPEND ONLY
+   - Tidak mengubah endpoint, login, daftar, logout, auto-logout, payment gateway,
+     email template, A2F/MFA/passkey, hash, tampilan, atau response contract lama.
+   - Melanjutkan v126: v126 mengikat customer_id, v127 mengikat object id yang
+     sudah diketahui owner-nya (id/order_id/domain_order_id/transaction id).
+   - High-confidence only: bila owner object belum diketahui, request tidak diblokir
+     agar flow lama tetap kompatibel. Bila owner diketahui dan bukan milik session,
+     request user-data diblokir 403.
+   ============================================================ */
+
+const DIRAC_BOLA_IDOR_OBJECT_VALUE_BINDING_PATCH_V127 = 'dirac-bola-idor-object-value-binding-v127';
+
+try {
+  const __diracBolaIdorV127OriginalSupabaseFetch = typeof supabaseFetch === 'function' ? supabaseFetch : null;
+  if (__diracBolaIdorV127OriginalSupabaseFetch && !__diracBolaIdorV127OriginalSupabaseFetch.__diracBolaIdorV127Wrapped) {
+    supabaseFetch = async function supabaseFetchBolaIdorObjectValueBindingV127(path, options = {}) {
+      const before = diracBolaIdorV127InspectObjectValue(path, options);
+      if (before && before.warn) diracBolaIdorV127LogDecision(before);
+      if (before && before.block) return diracBolaIdorV127BlockedSupabaseResult(before);
+
+      const result = await __diracBolaIdorV127OriginalSupabaseFetch(path, options);
+      diracBolaIdorV127LearnObjectOwners(path, options, result);
+      return result;
+    };
+    Object.defineProperty(supabaseFetch, '__diracBolaIdorV127Wrapped', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+function diracBolaIdorV127InspectObjectValue(path, options = {}) {
+  try {
+    if (!options || options.auth !== 'service') return { ok: true };
+    if (diracBolaIdorV127EnvTrue('DIRAC_BOLA_IDOR_OBJECT_BINDING_DISABLED', false)) return { ok: true };
+
+    const method = String(options.method || 'GET').toUpperCase();
+    if (!/^(GET|HEAD|PATCH|PUT|DELETE)$/i.test(method)) return { ok: true };
+
+    const rawPath = String(path || '').trim();
+    if (!rawPath || !rawPath.startsWith('/rest/v1/')) return { ok: true };
+
+    const table = diracBolaIdorV127ExtractRestTable(rawPath);
+    if (!diracBolaIdorV127IsOwnedTable(table)) return { ok: true };
+
+    const ctx = diracBolaIdorV127CurrentContext() || {};
+    const action = diracBolaIdorV127NormalizeAction(ctx.action || '');
+    if (!action) return { ok: true };
+    if (diracBolaIdorV127IsSensitiveFlowAction(action)) return { ok: true };
+    if (!diracBolaIdorV127IsUserDataAction(action)) return { ok: true };
+
+    const allowed = diracBolaIdorV127AllowedCustomerIds(ctx);
+    if (!allowed.length) return { ok: true, table, method, action, reason: 'trusted_owner_not_yet_available' };
+
+    const requested = diracBolaIdorV127RequestedObjectRefs(table, rawPath, options.body);
+    if (!requested.length) return { ok: true };
+
+    const cache = diracBolaIdorV127OwnerCache();
+    const denied = [];
+    let knownCount = 0;
+
+    for (const ref of requested) {
+      const owner = diracBolaIdorV127ResolveOwnerForRef(ref, cache);
+      if (!owner) continue;
+      knownCount += 1;
+      if (!allowed.includes(owner)) denied.push(ref);
+    }
+
+    if (!denied.length) {
+      return { ok: true, table, method, action, known_count: knownCount, object_value_bound: knownCount > 0 };
+    }
+
+    return {
+      ok: false,
+      warn: true,
+      block: !diracBolaIdorV127EnvTrue('DIRAC_BOLA_IDOR_OBJECT_BINDING_MONITOR_ONLY', false),
+      table,
+      method,
+      action,
+      reason: 'blocked_object_id_not_bound_to_authenticated_owner',
+      requested_count: requested.length,
+      known_count: knownCount,
+      denied_count: denied.length,
+      patch: DIRAC_BOLA_IDOR_OBJECT_VALUE_BINDING_PATCH_V127
+    };
+  } catch (error) {
+    return { ok: true, error: 'bola_idor_v127_guard_failed_open' };
+  }
+}
+
+function diracBolaIdorV127LearnObjectOwners(path, options = {}, result) {
+  try {
+    if (!options || options.auth !== 'service' || !result || !result.ok) return;
+    const rawPath = String(path || '').trim();
+    if (!rawPath.startsWith('/rest/v1/')) return;
+
+    const table = diracBolaIdorV127ExtractRestTable(rawPath);
+    if (!diracBolaIdorV127IsOwnedTable(table)) return;
+
+    const rows = diracBolaIdorV127Rows(result.data);
+    if (!rows.length) return;
+
+    const cache = diracBolaIdorV127OwnerCache();
+    let learned = 0;
+
+    for (const row of rows) {
+      if (!row || typeof row !== 'object' || Array.isArray(row)) continue;
+      const owner = diracBolaIdorV127ResolveOwnerFromRow(table, row, cache);
+      if (!diracBolaIdorV127LooksLikeUuid(owner)) continue;
+
+      learned += diracBolaIdorV127RememberRowRefs(table, row, owner, cache);
+    }
+
+    if (learned > 0) diracBolaIdorV127TrimOwnerCache(cache);
+  } catch (_) {}
+}
+
+function diracBolaIdorV127ResolveOwnerFromRow(table, row, cache) {
+  try {
+    const cleanTable = String(table || '').toLowerCase();
+    const directCustomerId = String(row.customer_id || '').trim();
+    if (diracBolaIdorV127LooksLikeUuid(directCustomerId)) return directCustomerId;
+
+    if (cleanTable === 'customers') {
+      const customerRowId = String(row.id || '').trim();
+      if (diracBolaIdorV127LooksLikeUuid(customerRowId)) return customerRowId;
+    }
+
+    const orderId = String(row.order_id || '').trim();
+    if (diracBolaIdorV127LooksLikeUuid(orderId)) {
+      const owner = cache.get(diracBolaIdorV127CacheKey('orders', orderId)) || cache.get(diracBolaIdorV127CacheKey('domain_orders', orderId));
+      if (diracBolaIdorV127LooksLikeUuid(owner)) return owner;
+    }
+
+    const domainOrderId = String(row.domain_order_id || '').trim();
+    if (diracBolaIdorV127LooksLikeUuid(domainOrderId)) {
+      const owner = cache.get(diracBolaIdorV127CacheKey('domain_orders', domainOrderId));
+      if (diracBolaIdorV127LooksLikeUuid(owner)) return owner;
+    }
+  } catch (_) {}
+  return '';
+}
+
+function diracBolaIdorV127RememberRowRefs(table, row, owner, cache) {
+  const cleanTable = String(table || '').toLowerCase();
+  let count = 0;
+  const id = String(row && row.id || '').trim();
+  if (diracBolaIdorV127LooksLikeUuid(id)) {
+    count += diracBolaIdorV127CacheSet(cache, cleanTable, id, owner);
+  }
+
+  if (cleanTable === 'orders' && diracBolaIdorV127LooksLikeUuid(id)) {
+    count += diracBolaIdorV127CacheSet(cache, 'orders', id, owner);
+  }
+
+  if (cleanTable === 'domain_orders' && diracBolaIdorV127LooksLikeUuid(id)) {
+    count += diracBolaIdorV127CacheSet(cache, 'domain_orders', id, owner);
+  }
+
+  if (cleanTable === 'payment_transactions') {
+    const transactionId = String(row.transaction_id || row.external_id || '').trim();
+    if (transactionId && transactionId.length <= 160) count += diracBolaIdorV127CacheSet(cache, 'payment_transactions:transaction_id', transactionId, owner);
+  }
+
+  const orderId = String(row && row.order_id || '').trim();
+  if ((cleanTable === 'order_items' || cleanTable === 'payment_transactions') && diracBolaIdorV127LooksLikeUuid(orderId)) {
+    count += diracBolaIdorV127CacheSet(cache, 'orders', orderId, owner);
+  }
+
+  const domainOrderId = String(row && row.domain_order_id || '').trim();
+  if (cleanTable === 'payment_transactions' && diracBolaIdorV127LooksLikeUuid(domainOrderId)) {
+    count += diracBolaIdorV127CacheSet(cache, 'domain_orders', domainOrderId, owner);
+  }
+
+  return count;
+}
+
+function diracBolaIdorV127RequestedObjectRefs(table, path, body) {
+  const cleanTable = String(table || '').toLowerCase();
+  const refs = [];
+
+  for (const id of diracBolaIdorV127ExtractColumnValues(path, body, 'id')) {
+    if (diracBolaIdorV127LooksLikeUuid(id)) refs.push({ table: cleanTable, id, column: 'id' });
+  }
+
+  for (const orderId of diracBolaIdorV127ExtractColumnValues(path, body, 'order_id')) {
+    if (diracBolaIdorV127LooksLikeUuid(orderId)) refs.push({ table: 'orders', id: orderId, column: 'order_id' });
+  }
+
+  for (const domainOrderId of diracBolaIdorV127ExtractColumnValues(path, body, 'domain_order_id')) {
+    if (diracBolaIdorV127LooksLikeUuid(domainOrderId)) refs.push({ table: 'domain_orders', id: domainOrderId, column: 'domain_order_id' });
+  }
+
+  for (const transactionId of diracBolaIdorV127ExtractColumnValues(path, body, 'transaction_id')) {
+    const cleanId = String(transactionId || '').trim();
+    if (cleanId && cleanId.length <= 160) refs.push({ table: 'payment_transactions:transaction_id', id: cleanId, column: 'transaction_id' });
+  }
+
+  if (cleanTable === 'customers') {
+    for (const id of diracBolaIdorV127ExtractColumnValues(path, body, 'id')) {
+      if (diracBolaIdorV127LooksLikeUuid(id)) refs.push({ table: 'customers:self', id, column: 'id' });
+    }
+  }
+
+  return diracBolaIdorV127UniqueRefs(refs).slice(0, 80);
+}
+
+function diracBolaIdorV127ResolveOwnerForRef(ref, cache) {
+  try {
+    if (!ref || !ref.table || !ref.id) return '';
+    if (ref.table === 'customers:self') return diracBolaIdorV127LooksLikeUuid(ref.id) ? ref.id : '';
+    const owner = cache.get(diracBolaIdorV127CacheKey(ref.table, ref.id));
+    return diracBolaIdorV127LooksLikeUuid(owner) ? owner : '';
+  } catch (_) { return ''; }
+}
+
+function diracBolaIdorV127ExtractColumnValues(path, body, column) {
+  const values = [];
+  try {
+    if (typeof diracBolaIdorV126ExtractColumnValuesFromPath === 'function') values.push(...diracBolaIdorV126ExtractColumnValuesFromPath(path, column));
+  } catch (_) {}
+  try {
+    if (typeof diracBolaIdorV126ExtractColumnValuesFromBody === 'function') values.push(...diracBolaIdorV126ExtractColumnValuesFromBody(body, column));
+  } catch (_) {}
+  return Array.from(new Set(values.map((v) => String(v || '').trim()).filter(Boolean)));
+}
+
+function diracBolaIdorV127Rows(data) {
+  if (!data) return [];
+  if (Array.isArray(data)) return data;
+  if (typeof data === 'object') return [data];
+  return [];
+}
+
+function diracBolaIdorV127CacheSet(cache, table, id, owner) {
+  try {
+    const key = diracBolaIdorV127CacheKey(table, id);
+    if (!key || !diracBolaIdorV127LooksLikeUuid(owner)) return 0;
+    cache.set(key, String(owner).trim());
+    return 1;
+  } catch (_) { return 0; }
+}
+
+function diracBolaIdorV127CacheKey(table, id) {
+  const cleanTable = String(table || '').trim().toLowerCase();
+  const cleanId = String(id || '').trim().toLowerCase();
+  if (!cleanTable || !cleanId || cleanId.length > 200) return '';
+  return cleanTable + '|' + cleanId;
+}
+
+function diracBolaIdorV127UniqueRefs(refs) {
+  const seen = new Set();
+  const out = [];
+  for (const ref of refs || []) {
+    const key = diracBolaIdorV127CacheKey(ref && ref.table, ref && ref.id) + '|' + String(ref && ref.column || '');
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(ref);
+  }
+  return out;
+}
+
+function diracBolaIdorV127OwnerCache() {
+  try {
+    if (!globalThis.__DIRAC_BOLA_IDOR_V127_OWNER_CACHE || !(globalThis.__DIRAC_BOLA_IDOR_V127_OWNER_CACHE instanceof Map)) {
+      globalThis.__DIRAC_BOLA_IDOR_V127_OWNER_CACHE = new Map();
+    }
+    return globalThis.__DIRAC_BOLA_IDOR_V127_OWNER_CACHE;
+  } catch (_) { return new Map(); }
+}
+
+function diracBolaIdorV127TrimOwnerCache(cache) {
+  try {
+    const max = Math.max(250, Number(process.env.DIRAC_BOLA_IDOR_OBJECT_BINDING_CACHE_MAX || 5000) || 5000);
+    while (cache && cache.size > max) {
+      const first = cache.keys().next().value;
+      if (!first) break;
+      cache.delete(first);
+    }
+  } catch (_) {}
+}
+
+function diracBolaIdorV127AllowedCustomerIds(ctx) {
+  try {
+    if (typeof diracBolaIdorV126AllowedCustomerIds === 'function') return diracBolaIdorV126AllowedCustomerIds(ctx);
+  } catch (_) {}
+  try {
+    const ids = Array.isArray(ctx && ctx.allowedCustomerIdsV126) ? ctx.allowedCustomerIdsV126 : [];
+    return Array.from(new Set(ids.map((id) => String(id || '').trim()).filter(diracBolaIdorV127LooksLikeUuid))).slice(0, 25);
+  } catch (_) { return []; }
+}
+
+function diracBolaIdorV127IsOwnedTable(table) {
+  try {
+    if (typeof diracBolaIdorV126IsOwnedTable === 'function') return diracBolaIdorV126IsOwnedTable(table);
+  } catch (_) {}
+  return /^(orders|order_items|domain_orders|domain_order_items|payment_transactions|security_customer_sessions|security_customer_settings|security_customer_recovery_codes|security_customer_auth_links|security_customer_password_hashes|customer_security_events|domain_passkeys|security_customer_login_logs|security_customer_account_requests|payment_gateway_events|customers)$/i.test(String(table || ''));
+}
+
+function diracBolaIdorV127IsUserDataAction(action) {
+  try {
+    if (typeof diracBolaIdorV126IsUserDataAction === 'function') return diracBolaIdorV126IsUserDataAction(action);
+  } catch (_) {}
+  return /orders|order|dashboard|profile|account|me|customer|customers|invoice|invoices|pesanan/i.test(String(action || ''));
+}
+
+function diracBolaIdorV127IsSensitiveFlowAction(action) {
+  try {
+    if (typeof diracBolaIdorV126IsSensitiveFlowAction === 'function') return diracBolaIdorV126IsSensitiveFlowAction(action);
+  } catch (_) {}
+  return /login|register|logout|payment|pay|midtrans|ipaymu|webhook|callback|notification|checkout|mfa|a2f|passkey|password|hash|email|mail|csrf|token|session|recovery|security|admin/i.test(String(action || ''));
+}
+
+function diracBolaIdorV127BlockedSupabaseResult(decision) {
+  return {
+    ok: false,
+    status: 403,
+    statusText: 'Forbidden',
+    data: {
+      ok: false,
+      code: 'BOLA_IDOR_OBJECT_VALUE_MISMATCH',
+      message: 'Permintaan ditolak oleh sistem keamanan.',
+      reason: 'object_id_not_bound_to_session_owner'
+    },
+    error: 'BOLA_IDOR_OBJECT_VALUE_MISMATCH',
+    diracSecurityThreat: {
+      detected: true,
+      kind: 'bola_idor_object_value_mismatch',
+      table: decision && decision.table || null,
+      method: decision && decision.method || null,
+      action: decision && decision.action || null,
+      patch: DIRAC_BOLA_IDOR_OBJECT_VALUE_BINDING_PATCH_V127
+    }
+  };
+}
+
+function diracBolaIdorV127CurrentContext() {
+  try {
+    if (typeof diracBolaIdorV126CurrentContext === 'function') return diracBolaIdorV126CurrentContext();
+  } catch (_) {}
+  try {
+    if (typeof diracBolaIdorV121CurrentContext === 'function') return diracBolaIdorV121CurrentContext();
+  } catch (_) {}
+  return null;
+}
+
+function diracBolaIdorV127ExtractRestTable(path) {
+  try {
+    if (typeof diracBolaIdorV126ExtractRestTable === 'function') return diracBolaIdorV126ExtractRestTable(path);
+  } catch (_) {}
+  try {
+    const raw = String(path || '');
+    if (!raw.startsWith('/rest/v1/')) return '';
+    const part = raw.slice('/rest/v1/'.length).split('?')[0].split('/')[0];
+    const decoded = decodeURIComponent(part || '').trim();
+    return /^[a-zA-Z0-9_]+$/.test(decoded) ? decoded : '';
+  } catch (_) { return ''; }
+}
+
+function diracBolaIdorV127NormalizeAction(action) {
+  try {
+    if (typeof diracBolaIdorV126NormalizeAction === 'function') return diracBolaIdorV126NormalizeAction(action);
+  } catch (_) {}
+  return String(action || '').trim().toLowerCase().replace(/[\s-]+/g, '_').slice(0, 120);
+}
+
+function diracBolaIdorV127LooksLikeUuid(value) {
+  try {
+    if (typeof diracBolaIdorV126LooksLikeUuid === 'function') return diracBolaIdorV126LooksLikeUuid(value);
+  } catch (_) {}
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
+}
+
+function diracBolaIdorV127EnvTrue(name, fallback = false) {
+  try {
+    if (typeof diracBolaIdorV126EnvTrue === 'function') return diracBolaIdorV126EnvTrue(name, fallback);
+  } catch (_) {}
+  const raw = process.env[name];
+  if (raw === undefined || raw === null || String(raw).trim() === '') return !!fallback;
+  const value = String(raw).trim().toLowerCase();
+  if (['1', 'true', 'yes', 'on', 'block', 'enforce', 'strict'].includes(value)) return true;
+  if (['0', 'false', 'no', 'off', 'monitor', 'disabled'].includes(value)) return false;
+  return !!fallback;
+}
+
+function diracBolaIdorV127LogDecision(decision) {
+  try {
+    if (diracBolaIdorV127EnvTrue('DIRAC_BOLA_IDOR_OBJECT_BINDING_SILENT', false)) return;
+    const key = [decision.table, decision.method, decision.action, decision.reason, decision.block ? 'block' : 'warn'].join('|');
+    const store = diracBolaIdorV127SeenStore();
+    const current = Number(store.get(key) || 0);
+    const max = Math.max(1, Number(process.env.DIRAC_BOLA_IDOR_OBJECT_BINDING_LOG_LIMIT || 5) || 5);
+    if (current >= max) return;
+    store.set(key, current + 1);
+    console.warn('[dirac-bola-idor-object-value-binding]', {
+      patch: DIRAC_BOLA_IDOR_OBJECT_VALUE_BINDING_PATCH_V127,
+      mode: decision.block ? 'blocked' : 'monitor',
+      reason: decision.reason,
+      table: decision.table,
+      method: decision.method,
+      action: decision.action || null,
+      requested_count: decision.requested_count || 0,
+      known_count: decision.known_count || 0,
+      denied_count: decision.denied_count || 0
+    });
+  } catch (_) {}
+}
+
+function diracBolaIdorV127SeenStore() {
+  try {
+    if (!globalThis.__DIRAC_BOLA_IDOR_V127_SEEN || !(globalThis.__DIRAC_BOLA_IDOR_V127_SEEN instanceof Map)) {
+      globalThis.__DIRAC_BOLA_IDOR_V127_SEEN = new Map();
+    }
+    return globalThis.__DIRAC_BOLA_IDOR_V127_SEEN;
+  } catch (_) { return new Map(); }
+}
