@@ -17719,3 +17719,184 @@ function diracCsrfSafeError(error) {
   if (/password|token|secret|cookie|authorization|service_role|apikey|csrf|hmac/i.test(message)) return 'csrf_internal_error';
   return message;
 }
+
+/* ============================================================
+   DIRAC BACKEND XSS RESPONSE HARDENING v4 - APPEND ONLY
+   Scope ketat:
+   - Tidak mengubah endpoint/path lama.
+   - Tidak mengubah login, register, hash/password, payment gateway,
+     email template, A2F/MFA/passkey, checkout/order, logout, cookie/session,
+     atau auto-logout.
+   - Menambah header anti-XSS backend yang aman untuk API JSON.
+   - Sanitasi output JSON hanya untuk GET publik/non-sensitif, dan hanya
+     saat string mengandung pola XSS aktif yang jelas.
+   ============================================================ */
+
+const DIRAC_BACKEND_XSS_RESPONSE_HARDENING_V4 = 'dirac-backend-xss-response-hardening-v4';
+const __diracBackendXssV4PreviousHandler = module.exports;
+
+module.exports = async function diracBackendXssResponseHardeningWrapperV4(req, res) {
+  try { diracBackendXssV4ApplyHeaders(req, res); } catch (_) {}
+  try { diracBackendXssV4InstallJsonOutputGuard(req, res); } catch (_) {}
+  return __diracBackendXssV4PreviousHandler(req, res);
+};
+
+function diracBackendXssV4ApplyHeaders(req, res) {
+  if (!res || typeof res.setHeader !== 'function') return;
+  try {
+    if (typeof diracApplySecurityResponseHeaders === 'function') diracApplySecurityResponseHeaders(res);
+  } catch (_) {}
+
+  const action = diracBackendXssV4Action(req);
+  const protectedAction = diracBackendXssV4IsProtectedAction(action);
+  // Protected flows diminta tidak disentuh: login/register/logout/payment/MFA/A2F/passkey/checkout/order/security.
+  if (protectedAction) return;
+
+  try { res.setHeader('X-Dirac-Backend-XSS-Patch', DIRAC_BACKEND_XSS_RESPONSE_HARDENING_V4); } catch (_) {}
+  try { res.setHeader('X-Content-Type-Options', 'nosniff'); } catch (_) {}
+  try { res.setHeader('X-Frame-Options', 'DENY'); } catch (_) {}
+  try { res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin'); } catch (_) {}
+  try { res.setHeader('X-Permitted-Cross-Domain-Policies', 'none'); } catch (_) {}
+  try { res.setHeader('X-Download-Options', 'noopen'); } catch (_) {}
+  try { res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), fullscreen=(self)'); } catch (_) {}
+
+  if (!diracBackendXssV4EnvTrue('DIRAC_BACKEND_XSS_CSP_DISABLED')) {
+    try {
+      if (!diracBackendXssV4HasHeader(res, 'Content-Security-Policy')) {
+        res.setHeader('Content-Security-Policy', diracBackendXssV4CspValue());
+      }
+    } catch (_) {}
+  }
+}
+
+function diracBackendXssV4CspValue() {
+  const fromEnv = String(process.env.DIRAC_BACKEND_XSS_CSP || '').trim();
+  if (fromEnv) return fromEnv;
+  return [
+    "default-src 'none'",
+    "base-uri 'none'",
+    "object-src 'none'",
+    "script-src 'none'",
+    "style-src 'none'",
+    "img-src 'self' data: https:",
+    "font-src 'none'",
+    "connect-src 'self' https:",
+    "form-action 'none'",
+    "frame-ancestors 'none'",
+    'upgrade-insecure-requests',
+    'block-all-mixed-content'
+  ].join('; ');
+}
+
+function diracBackendXssV4InstallJsonOutputGuard(req, res) {
+  if (!res || typeof res.json !== 'function' || res.__diracBackendXssV4JsonGuardInstalled) return;
+  const action = diracBackendXssV4Action(req);
+  if (diracBackendXssV4ShouldSkipJsonGuard(req, action)) return;
+
+  const originalJson = res.json.bind(res);
+  Object.defineProperty(res, '__diracBackendXssV4JsonGuardInstalled', { value: true, enumerable: false });
+  res.json = function diracBackendXssV4SafeJson(payload) {
+    try {
+      return originalJson(diracBackendXssV4SanitizeJson(payload));
+    } catch (_) {
+      return originalJson(payload);
+    }
+  };
+}
+
+function diracBackendXssV4ShouldSkipJsonGuard(req, action) {
+  if (diracBackendXssV4EnvTrue('DIRAC_BACKEND_XSS_JSON_GUARD_DISABLED')) return true;
+  const method = String((req && req.method) || 'GET').toUpperCase();
+  if (method !== 'GET') return true;
+  if (diracBackendXssV4IsProtectedAction(action)) return true;
+  return false;
+}
+
+function diracBackendXssV4IsProtectedAction(action) {
+  const clean = String(action || '').toLowerCase();
+  if (!clean) return false;
+  return /login|register|logout|payment|pay_|midtrans|ipaymu|webhook|callback|notification|checkout|order|pesanan|invoice|email|mail|smtp|mfa|a2f|passkey|password|hash|session|token|csrf|recovery|security|admin/i.test(clean);
+}
+
+function diracBackendXssV4SanitizeJson(value, depth = 0, parentKey = '') {
+  if (depth > 12) return '[xss-safe-depth-limit]';
+  if (value === null || value === undefined) return value;
+  if (typeof value === 'string') return diracBackendXssV4SanitizeString(value, parentKey);
+  if (typeof value !== 'object') return value;
+  if (Array.isArray(value)) return value.map((item) => diracBackendXssV4SanitizeJson(item, depth + 1, parentKey));
+
+  const out = {};
+  for (const [key, item] of Object.entries(value)) {
+    const safeKey = diracBackendXssV4SafeObjectKey(key);
+    out[safeKey] = diracBackendXssV4SanitizeJson(item, depth + 1, safeKey);
+  }
+  return out;
+}
+
+function diracBackendXssV4SafeObjectKey(key) {
+  const raw = String(key || '');
+  if (!diracBackendXssV4HasXssSignal(raw)) return raw;
+  return raw.replace(/[<>{}\[\]"'`&]/g, '_').replace(/\s+/g, '_').slice(0, 120) || 'field';
+}
+
+function diracBackendXssV4SanitizeString(value, parentKey = '') {
+  const text = String(value || '');
+  if (!text) return text;
+
+  const key = String(parentKey || '').toLowerCase();
+  // Jangan ubah token/challenge/URL gambar kecuali ada pola XSS aktif yang jelas.
+  if (/^(?:id|doc_id|docid|firebase_id|firebaseid|slug|status|price_label|image|img|image_url|imageurl|url|href)$/i.test(key) && !diracBackendXssV4HasXssSignal(text)) {
+    return text;
+  }
+  if (!diracBackendXssV4HasXssSignal(text)) return text;
+
+  return text
+    .replace(/&(?!(?:amp|lt|gt|quot|#39|#x27|#96);)/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/`/g, '&#96;')
+    .replace(/\bjavascript\s*:/gi, 'blocked-javascript:')
+    .replace(/\bvbscript\s*:/gi, 'blocked-vbscript:')
+    .replace(/\bdata\s*:\s*(?:text\/html|image\/svg\+xml|application\/xhtml\+xml)/gi, 'blocked-data:')
+    .slice(0, 5000);
+}
+
+function diracBackendXssV4HasXssSignal(value) {
+  const text = String(value || '');
+  if (!text) return false;
+  return /<\s*\/?\s*(?:script|iframe|object|embed|svg|math|link|meta|style|base|form|input|button|textarea|template|details|marquee)\b/i.test(text)
+    || /\bon[a-z0-9_:-]{2,}\s*=/i.test(text)
+    || /\b(?:java|vb)script\s*:/i.test(text)
+    || /\bdata\s*:\s*(?:text\/html|image\/svg\+xml|application\/xhtml\+xml)/i.test(text)
+    || /&\s*#x?0*3c\s*;|&\s*lt\s*;/i.test(text)
+    || /srcdoc\s*=/i.test(text)
+    || /expression\s*\(/i.test(text);
+}
+
+function diracBackendXssV4Action(req) {
+  try {
+    const raw = String((req && req.query && req.query.action) || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+    if (typeof diracCsrfNormalizeAction === 'function') return diracCsrfNormalizeAction(raw);
+    if (typeof diracUltraNormalizeAction === 'function') return diracUltraNormalizeAction(raw);
+    return raw;
+  } catch (_) {
+    return String((req && req.query && req.query.action) || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  }
+}
+
+function diracBackendXssV4HasHeader(res, name) {
+  try {
+    if (!res || typeof res.getHeader !== 'function') return false;
+    const value = res.getHeader(name);
+    return value !== undefined && value !== null && String(value) !== '';
+  } catch (_) {
+    return false;
+  }
+}
+
+function diracBackendXssV4EnvTrue(name) {
+  const value = String(process.env[name] || '').trim().toLowerCase();
+  return value === '1' || value === 'true' || value === 'yes' || value === 'on';
+}
