@@ -20388,3 +20388,86 @@ module.exports = async function diracOwnerPaidEmailSenderHealthWrapperV129(req, 
     note: 'Owner email dikirim oleh sender order-mail hanya setelah paid webhook. Endpoint, template, login/register/logout/hash/A2F/payment gateway tidak diubah. Secret/app password tidak ditampilkan.'
   });
 };
+
+
+/* ============================================================
+   REGISTER SUPABASE ENV COMPATIBILITY FIX - APPEND ONLY - v130
+   Scope:
+   - Root-cause fix for domain_register failing when deployment only has
+     SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY.
+   - Existing endpoints/actions are unchanged. No new route/action is added.
+   - Does not touch login flow, register endpoint/response shape, password hash,
+     payment gateway, owner/customer email templates, A2F/MFA/passkey, logout,
+     auto-logout, BOLA/IDOR guards, or frontend routes.
+   - Does not weaken password policy. Weak passwords still fail intentionally.
+   ============================================================ */
+
+const DIRAC_REGISTER_SUPABASE_ENV_COMPAT_PATCH_V130 = 'register-supabase-env-compat-v130';
+
+function diracV130PickFirstEnv(names) {
+  for (const name of names || []) {
+    const key = String(name || '').trim();
+    if (!key) continue;
+    const value = String(process.env[key] || '').trim();
+    if (value) return { name: key, value };
+  }
+  return { name: '', value: '' };
+}
+
+function diracV130SupabaseEnvNamesForTarget(targetKey) {
+  const key = DIRAC_SUPABASE_TARGET_ENVS && DIRAC_SUPABASE_TARGET_ENVS[targetKey] ? targetKey : 'legacy';
+  const envs = DIRAC_SUPABASE_TARGET_ENVS[key] || DIRAC_SUPABASE_TARGET_ENVS.legacy || {};
+
+  const urlNames = [envs.url];
+  const anonNames = [envs.anonKey];
+  const serviceNames = [envs.serviceKey];
+
+  if (key === 'legacy') {
+    urlNames.push('SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'VITE_SUPABASE_URL');
+    anonNames.push('SUPABASE_ANON_KEY', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'VITE_SUPABASE_ANON_KEY');
+    serviceNames.push('SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_KEY', 'SUPABASE_SERVICE_ROLE');
+  }
+
+  return { key, envs, urlNames, anonNames, serviceNames };
+}
+
+function readDiracSupabaseCredentials(targetKey) {
+  const resolved = diracV130SupabaseEnvNamesForTarget(targetKey);
+  const url = diracV130PickFirstEnv(resolved.urlNames);
+  const anonKey = diracV130PickFirstEnv(resolved.anonNames);
+  const serviceKey = diracV130PickFirstEnv(resolved.serviceNames);
+
+  if (url.value && anonKey.value && serviceKey.value) {
+    return {
+      targetKey: resolved.key,
+      url: url.value.replace(/\/$/, ''),
+      anonKey: anonKey.value,
+      serviceKey: serviceKey.value,
+      envCompatPatch: DIRAC_REGISTER_SUPABASE_ENV_COMPAT_PATCH_V130
+    };
+  }
+
+  if (resolved.key !== 'legacy' && !(typeof shouldUseStrictDiracMultiDbRouter === 'function' && shouldUseStrictDiracMultiDbRouter())) {
+    const legacy = diracV130SupabaseEnvNamesForTarget('legacy');
+    const legacyUrl = diracV130PickFirstEnv(legacy.urlNames);
+    const legacyAnon = diracV130PickFirstEnv(legacy.anonNames);
+    const legacyService = diracV130PickFirstEnv(legacy.serviceNames);
+    if (legacyUrl.value && legacyAnon.value && legacyService.value) {
+      return {
+        targetKey: 'legacy',
+        requestedTargetKey: resolved.key,
+        fallback: true,
+        url: legacyUrl.value.replace(/\/$/, ''),
+        anonKey: legacyAnon.value,
+        serviceKey: legacyService.value,
+        envCompatPatch: DIRAC_REGISTER_SUPABASE_ENV_COMPAT_PATCH_V130
+      };
+    }
+  }
+
+  const missing = [];
+  if (!url.value) missing.push((resolved.urlNames || []).filter(Boolean).join(' atau '));
+  if (!anonKey.value) missing.push((resolved.anonNames || []).filter(Boolean).join(' atau '));
+  if (!serviceKey.value) missing.push((resolved.serviceNames || []).filter(Boolean).join(' atau '));
+  throw new Error('Supabase ENV belum lengkap: ' + missing.join(', '));
+}
