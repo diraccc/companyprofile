@@ -1344,6 +1344,35 @@ async function domainRegister(req, res, preloadedBody) {
   if (signupHasSession) {
     setSessionCookies(res, signupData);
   } else {
+    // REGISTER LOGIN COMPAT v127:
+    // Jika Supabase signup berhasil tetapi tidak mengembalikan session, akun baru tidak boleh
+    // terjebak gagal login dengan pesan generik. Untuk akun yang BARU dibuat dari request ini
+    // dan emailnya sama, backend memakai recovery yang sudah ada: confirm user terbaru lalu
+    // password-grant dengan password yang sama dari form register. Jika recovery gagal, fallback
+    // tetap ke perilaku lama: user diminta verifikasi email. domainLogin/hash/A2F/logout/payment
+    // tidak disentuh. Tidak ada endpoint baru.
+    const signupUser = signupData && signupData.user && typeof signupData.user === 'object' ? signupData.user : null;
+    const signupUserEmail = normalizeAuthEmail(signupUser && (signupUser.email || signupUser.email_address || ''));
+    if (signupUser && signupUserEmail === email && isSupabaseAuthUserSafeRecentUnconfirmed(signupUser)) {
+      const confirmed = await confirmRecentSupabaseAuthUser(signupUser);
+      if (confirmed && confirmed.ok) {
+        const recoveredLogin = await loginSupabaseAuthUserAfterRegisterRecovery(email, password);
+        if (recoveredLogin && recoveredLogin.ok && hasValidDomainSessionTokens(recoveredLogin.session)) {
+          setSessionCookies(res, recoveredLogin.session);
+          return res.status(200).json({
+            ok: true,
+            code: 'REGISTER_CREATED_SESSION_RECOVERED_V127',
+            message: 'Akun berhasil dibuat dan login otomatis. Silakan lanjutkan setup keamanan akun.',
+            needs_email_confirmation: false,
+            first_register_setup_required: true,
+            next: 'security_setup_required',
+            user: sanitizeUser(recoveredLogin.session.user || confirmed.user || signupUser),
+            session: buildDomainAuthSessionPayload(recoveredLogin.session)
+          });
+        }
+      }
+    }
+
     clearSessionCookies(res);
   }
 
@@ -19018,3 +19047,5 @@ function diracBolaIdorV122SeenStore() {
 /* DIRAC_BOLA_IDOR_V125_MINIMAL: restored original new-account dashboard compatibility; owner-scoped explicit customer session mutations only. */
 
 /* DIRAC_BOLA_IDOR_V126_OWNER_FLOW_PATCH: checkout/order/payment customer flow now requires valid login + backend ownership, while dashboard/security still require MFA. No endpoint names changed. */
+
+/* DIRAC_REGISTER_LOGIN_COMPAT_V127: signup-without-session recovery for brand-new unconfirmed user only; no endpoint/login/hash/A2F/logout/payment changes. */
