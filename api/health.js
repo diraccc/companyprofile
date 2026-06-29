@@ -17900,3 +17900,263 @@ function diracBackendXssV4EnvTrue(name) {
   const value = String(process.env[name] || '').trim().toLowerCase();
   return value === '1' || value === 'true' || value === 'yes' || value === 'on';
 }
+
+/* ============================================================
+   DIRAC ADVANCED BACKEND PASSIVE HARDENING v5 - APPEND ONLY
+   Scope ketat:
+   - Tidak mengubah endpoint/path lama.
+   - Tidak mengubah login, register, hash/password, payment gateway,
+     email template, A2F/MFA/passkey, checkout/order, logout, cookie/session,
+     admin/security flows, atau auto-logout.
+   - Guard tambahan hanya untuk request non-sensitif/non-protected.
+   - Fokus: prototype-pollution, request-smuggling header anomaly,
+     malformed object-id/type confusion, dan content-type observability.
+   ============================================================ */
+
+const DIRAC_ADVANCED_BACKEND_HARDENING_V5 = 'dirac-advanced-backend-passive-hardening-v5';
+const __diracAdvancedBackendV5PreviousHandler = module.exports;
+
+module.exports = async function diracAdvancedBackendPassiveHardeningWrapperV5(req, res) {
+  const action = diracAdvancedBackendV5Action(req);
+  if (!diracAdvancedBackendV5IsProtectedAction(action)) {
+    try { diracAdvancedBackendV5ApplyPassiveHeaders(req, res); } catch (_) {}
+    const decision = diracAdvancedBackendV5EvaluateRequest(req, action);
+    if (decision && decision.block) return diracAdvancedBackendV5Reject(res, decision.status || 400, decision.code || 'bad_request');
+    try { diracAdvancedBackendV5ApplyObservabilityHeaders(res, decision); } catch (_) {}
+  }
+
+  return __diracAdvancedBackendV5PreviousHandler(req, res);
+};
+
+function diracAdvancedBackendV5ApplyPassiveHeaders(req, res) {
+  if (!res || typeof res.setHeader !== 'function') return;
+  try { res.setHeader('X-Dirac-Advanced-Hardening', DIRAC_ADVANCED_BACKEND_HARDENING_V5); } catch (_) {}
+  try { res.setHeader('X-Content-Type-Options', 'nosniff'); } catch (_) {}
+  try { res.setHeader('X-Permitted-Cross-Domain-Policies', 'none'); } catch (_) {}
+  try { res.setHeader('X-Download-Options', 'noopen'); } catch (_) {}
+  try {
+    if (typeof diracApplySecurityResponseHeaders === 'function') diracApplySecurityResponseHeaders(res);
+  } catch (_) {}
+}
+
+function diracAdvancedBackendV5ApplyObservabilityHeaders(res, decision) {
+  if (!res || typeof res.setHeader !== 'function' || !decision) return;
+  if (decision.flags && decision.flags.length) {
+    res.setHeader('X-Dirac-Request-Guard', decision.flags.slice(0, 5).join(','));
+  }
+}
+
+function diracAdvancedBackendV5EvaluateRequest(req, action) {
+  const flags = [];
+
+  const headerIssue = diracAdvancedBackendV5HeaderAnomaly(req);
+  if (headerIssue) {
+    if (diracAdvancedBackendV5EnvTrue('DIRAC_ADVANCED_V5_BLOCK_HEADER_ANOMALY', true)) {
+      return { block: true, status: 400, code: headerIssue, flags: [headerIssue] };
+    }
+    flags.push(headerIssue);
+  }
+
+  const pollutionIssue = diracAdvancedBackendV5PrototypePollutionSignal(req);
+  if (pollutionIssue) {
+    if (diracAdvancedBackendV5EnvTrue('DIRAC_ADVANCED_V5_BLOCK_PROTOTYPE_POLLUTION', true)) {
+      return { block: true, status: 400, code: pollutionIssue, flags: [pollutionIssue] };
+    }
+    flags.push(pollutionIssue);
+  }
+
+  const malformedIdIssue = diracAdvancedBackendV5MalformedObjectIdSignal(req);
+  if (malformedIdIssue) {
+    if (diracAdvancedBackendV5EnvTrue('DIRAC_ADVANCED_V5_BLOCK_MALFORMED_OBJECT_ID', true)) {
+      return { block: true, status: 400, code: malformedIdIssue, flags: [malformedIdIssue] };
+    }
+    flags.push(malformedIdIssue);
+  }
+
+  const contentTypeIssue = diracAdvancedBackendV5UnsafeMutationContentTypeSignal(req);
+  if (contentTypeIssue) {
+    if (diracAdvancedBackendV5EnvTrue('DIRAC_ADVANCED_V5_BLOCK_UNSAFE_CONTENT_TYPE', false)) {
+      return { block: true, status: 415, code: contentTypeIssue, flags: [contentTypeIssue] };
+    }
+    flags.push(contentTypeIssue);
+  }
+
+  const lengthIssue = diracAdvancedBackendV5ContentLengthSignal(req);
+  if (lengthIssue) {
+    if (diracAdvancedBackendV5EnvTrue('DIRAC_ADVANCED_V5_BLOCK_LARGE_BODY', false)) {
+      return { block: true, status: 413, code: lengthIssue, flags: [lengthIssue] };
+    }
+    flags.push(lengthIssue);
+  }
+
+  return { block: false, flags };
+}
+
+function diracAdvancedBackendV5HeaderAnomaly(req) {
+  const headers = (req && req.headers) || {};
+  const contentLength = diracAdvancedBackendV5Header(headers, 'content-length');
+  const transferEncoding = diracAdvancedBackendV5Header(headers, 'transfer-encoding');
+
+  // Request smuggling hardening: conflicting CL/TE or duplicate CL is abnormal for this API.
+  if (contentLength && transferEncoding) return 'request_header_cl_te_conflict';
+  if (contentLength && /,/.test(String(contentLength))) return 'request_header_duplicate_content_length';
+  if (transferEncoding && /\bchunked\b/i.test(String(transferEncoding)) && /,/.test(String(transferEncoding))) return 'request_header_duplicate_transfer_encoding';
+  return '';
+}
+
+function diracAdvancedBackendV5PrototypePollutionSignal(req) {
+  const containers = [
+    ['query', req && req.query],
+    ['body', req && req.body],
+    ['cookies', req && req.cookies]
+  ];
+
+  for (const [name, value] of containers) {
+    if (!value || typeof value !== 'object') continue;
+    const signal = diracAdvancedBackendV5FindDangerousObjectKey(value, 0, name);
+    if (signal) return signal;
+  }
+  return '';
+}
+
+function diracAdvancedBackendV5FindDangerousObjectKey(value, depth, path) {
+  if (!value || typeof value !== 'object' || depth > 8) return '';
+  if (Array.isArray(value)) {
+    for (let i = 0; i < Math.min(value.length, 50); i += 1) {
+      const nested = diracAdvancedBackendV5FindDangerousObjectKey(value[i], depth + 1, `${path}[${i}]`);
+      if (nested) return nested;
+    }
+    return '';
+  }
+
+  for (const key of Object.keys(value)) {
+    const clean = diracAdvancedBackendV5DecodeKey(key);
+    if (clean === '__proto__' || clean === 'prototype' || clean === 'constructor') {
+      return 'prototype_pollution_key_blocked';
+    }
+    const nested = diracAdvancedBackendV5FindDangerousObjectKey(value[key], depth + 1, `${path}.${key}`);
+    if (nested) return nested;
+  }
+  return '';
+}
+
+function diracAdvancedBackendV5MalformedObjectIdSignal(req) {
+  const containers = [
+    ['query', req && req.query],
+    ['body', req && req.body]
+  ];
+  for (const [, value] of containers) {
+    const signal = diracAdvancedBackendV5FindMalformedObjectId(value, 0);
+    if (signal) return signal;
+  }
+  return '';
+}
+
+function diracAdvancedBackendV5FindMalformedObjectId(value, depth) {
+  if (!value || typeof value !== 'object' || depth > 6) return '';
+  if (Array.isArray(value)) {
+    for (let i = 0; i < Math.min(value.length, 50); i += 1) {
+      const nested = diracAdvancedBackendV5FindMalformedObjectId(value[i], depth + 1);
+      if (nested) return nested;
+    }
+    return '';
+  }
+
+  for (const [key, item] of Object.entries(value)) {
+    if (diracAdvancedBackendV5LooksLikeObjectIdKey(key)) {
+      if (item && typeof item === 'object') return 'malformed_object_id_type_blocked';
+      if (typeof item === 'string') {
+        const text = item.trim();
+        if (text.length > 256) return 'malformed_object_id_length_blocked';
+        if (/[<>{}\[\]`"'\\;]/.test(text)) return 'malformed_object_id_charset_blocked';
+      }
+    }
+    const nested = diracAdvancedBackendV5FindMalformedObjectId(item, depth + 1);
+    if (nested) return nested;
+  }
+  return '';
+}
+
+function diracAdvancedBackendV5LooksLikeObjectIdKey(key) {
+  const clean = String(key || '').toLowerCase().replace(/[\s-]+/g, '_');
+  return clean === 'id'
+    || /(?:^|_)(?:user|customer|order|session|device|payment|transaction|product|doc|firebase|invoice|cart|address|profile|account|tenant|domain)_?id$/.test(clean)
+    || /(?:^|_)(?:uuid|uid|gid|sid)$/.test(clean);
+}
+
+function diracAdvancedBackendV5UnsafeMutationContentTypeSignal(req) {
+  const method = String((req && req.method) || 'GET').toUpperCase();
+  if (!/^(POST|PUT|PATCH|DELETE)$/i.test(method)) return '';
+  const headers = (req && req.headers) || {};
+  const contentType = String(diracAdvancedBackendV5Header(headers, 'content-type') || '').toLowerCase();
+  if (!contentType) return 'mutation_missing_content_type_observed';
+  if (/application\/json|multipart\/form-data|application\/x-www-form-urlencoded|text\/plain/.test(contentType)) return '';
+  return 'mutation_unusual_content_type_observed';
+}
+
+function diracAdvancedBackendV5ContentLengthSignal(req) {
+  const headers = (req && req.headers) || {};
+  const contentLength = String(diracAdvancedBackendV5Header(headers, 'content-length') || '').trim();
+  if (!contentLength || !/^\d+$/.test(contentLength)) return '';
+  const max = Math.max(1024, Number(process.env.DIRAC_ADVANCED_V5_MAX_CONTENT_LENGTH || 1048576) || 1048576);
+  if (Number(contentLength) > max) return 'request_body_too_large_observed';
+  return '';
+}
+
+function diracAdvancedBackendV5Reject(res, status, code) {
+  try {
+    if (!res || res.headersSent) return;
+    if (typeof res.status === 'function' && typeof res.json === 'function') {
+      return res.status(status).json({ ok: false, error: String(code || 'bad_request') });
+    }
+    if (typeof res.writeHead === 'function') res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'X-Content-Type-Options': 'nosniff' });
+    if (typeof res.end === 'function') return res.end(JSON.stringify({ ok: false, error: String(code || 'bad_request') }));
+  } catch (_) {}
+}
+
+function diracAdvancedBackendV5Header(headers, name) {
+  if (!headers) return '';
+  const needle = String(name || '').toLowerCase();
+  for (const [key, value] of Object.entries(headers)) {
+    if (String(key || '').toLowerCase() === needle) return Array.isArray(value) ? value.join(',') : String(value || '');
+  }
+  return '';
+}
+
+function diracAdvancedBackendV5DecodeKey(key) {
+  let out = String(key || '').trim().toLowerCase();
+  for (let i = 0; i < 2; i += 1) {
+    try {
+      const decoded = decodeURIComponent(out);
+      if (decoded === out) break;
+      out = decoded;
+    } catch (_) { break; }
+  }
+  return out.replace(/[\u0000-\u001f\u007f\s.-]+/g, '_').replace(/_+/g, '_');
+}
+
+function diracAdvancedBackendV5Action(req) {
+  try {
+    const raw = String((req && req.query && req.query.action) || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+    if (typeof diracCsrfNormalizeAction === 'function') return diracCsrfNormalizeAction(raw);
+    if (typeof diracUltraNormalizeAction === 'function') return diracUltraNormalizeAction(raw);
+    return raw;
+  } catch (_) {
+    return String((req && req.query && req.query.action) || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  }
+}
+
+function diracAdvancedBackendV5IsProtectedAction(action) {
+  const clean = String(action || '').toLowerCase();
+  if (!clean) return false;
+  return /login|register|logout|payment|pay_|midtrans|ipaymu|webhook|callback|notification|checkout|order|pesanan|invoice|email|mail|smtp|mfa|a2f|passkey|password|hash|session|token|csrf|recovery|security|admin|cart|voucher|coupon|stock/i.test(clean);
+}
+
+function diracAdvancedBackendV5EnvTrue(name, defaultValue = false) {
+  const raw = process.env[name];
+  if (raw === undefined || raw === null || String(raw).trim() === '') return !!defaultValue;
+  const value = String(raw).trim().toLowerCase();
+  if (['1', 'true', 'yes', 'on', 'block', 'enforce'].includes(value)) return true;
+  if (['0', 'false', 'no', 'off', 'monitor', 'disabled'].includes(value)) return false;
+  return !!defaultValue;
+}
