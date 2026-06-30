@@ -21089,7 +21089,7 @@ function diracBolaIdorV132Small(value, max) {
 }
 
 /* ============================================================
-   DIRAC BOLA/IDOR CUSTOMER-LINK HARD BINDING v133 - APPEND ONLY
+   DIRAC BOLA/IDOR CUSTOMER-LINK HARD BINDING v133 + DASHBOARD BOOTSTRAP COMPAT v134
    Scope sempit dan aman:
    - Tidak menyentuh login, register, logout, auto-logout 5 menit, hash,
      A2F/MFA/passkey, payment gateway, webhook, atau email template.
@@ -21101,7 +21101,7 @@ function diracBolaIdorV132Small(value, max) {
      yang aktif, punya customer_id valid, tidak disabled, dan tidak revoked.
    ============================================================ */
 
-const DIRAC_BOLA_IDOR_CUSTOMER_LINK_HARD_BINDING_PATCH_V133 = 'dirac-bola-idor-customer-link-hard-binding-v133';
+const DIRAC_BOLA_IDOR_CUSTOMER_LINK_HARD_BINDING_PATCH_V133 = 'dirac-bola-idor-customer-link-hard-binding-v134-dashboard-bootstrap-safe';
 
 let diracBolaIdorAsyncLocalV133 = null;
 try {
@@ -21179,36 +21179,41 @@ async function diracBolaIdorV133InspectHttpRequest(req) {
   const action = diracBolaIdorV133NormalizeAction(req && req.query && req.query.action || '');
   if (!diracBolaIdorV133ShouldProtectDataAction(action, method)) return { ok: true };
 
+  // v134 compatibility repair:
+  // Do not hard-fail normal dashboard/bootstrap reads before the original handler
+  // can settle the customer auth link and protected session. Only resolve/require
+  // owner at HTTP layer when the request itself carries an object/owner id.
+  // Service-role Supabase queries below remain owner-bound for protected tables.
+  const ids = diracBolaIdorV133CollectIds(req && req.query, 'query');
+  if (!ids.length) return { ok: true };
+
   const owner = await diracBolaIdorV133ResolveStrictOwner(req).catch(() => null);
   if (!owner || !owner.ok || !diracBolaIdorV133LooksLikeUuid(owner.authUserId) || !Array.isArray(owner.customerIds) || !owner.customerIds.length) {
     const status = owner && owner.reason === 'auth_user_unavailable' ? 401 : 403;
-    return diracBolaIdorV133Decision('active_customer_link_required_for_protected_data', { action, method, status });
+    return diracBolaIdorV133Decision('active_customer_link_required_for_protected_object_request', { action, method, status });
   }
 
-  const ids = diracBolaIdorV133CollectIds(req && req.query, 'query');
-  if (ids.length) {
-    const customerMismatch = diracBolaIdorV133FindCustomerMismatch(ids, owner.customerIds);
-    if (customerMismatch) {
-      return diracBolaIdorV133Decision('query_customer_id_not_bound_to_authenticated_owner', {
-        action,
-        method,
-        source: 'query',
-        requested_count: customerMismatch.requestedCount,
-        allowed_count: owner.customerIds.length,
-        status: 403
-      });
-    }
+  const customerMismatch = diracBolaIdorV133FindCustomerMismatch(ids, owner.customerIds);
+  if (customerMismatch) {
+    return diracBolaIdorV133Decision('query_customer_id_not_bound_to_authenticated_owner', {
+      action,
+      method,
+      source: 'query',
+      requested_count: customerMismatch.requestedCount,
+      allowed_count: owner.customerIds.length,
+      status: 403
+    });
+  }
 
-    const authMismatch = diracBolaIdorV133FindAuthUserMismatch(ids, owner.authUserId);
-    if (authMismatch) {
-      return diracBolaIdorV133Decision('query_auth_user_id_not_bound_to_authenticated_user', {
-        action,
-        method,
-        source: 'query',
-        requested_count: authMismatch.requestedCount,
-        status: 403
-      });
-    }
+  const authMismatch = diracBolaIdorV133FindAuthUserMismatch(ids, owner.authUserId);
+  if (authMismatch) {
+    return diracBolaIdorV133Decision('query_auth_user_id_not_bound_to_authenticated_user', {
+      action,
+      method,
+      source: 'query',
+      requested_count: authMismatch.requestedCount,
+      status: 403
+    });
   }
 
   return { ok: true };
