@@ -10026,5 +10026,186 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
 })();
 </script>
 
+
+<script id="dirac-v132-register-frontend-safe-sync-js">
+(function(){
+  'use strict';
+  /*
+    V132 frontend compatibility patch
+    Scope sempit:
+    - Tidak mengubah endpoint, payload, password/hash, login, logout, payment, email template, A2F, atau auto-logout.
+    - Hanya menandai register sukses dan menangani request protected-data awal yang bisa ditolak v132 sebelum cookie/link stabil.
+    - Tidak membuat fake login/session. Kalau backend menolak, halaman hanya reload sekali agar cookie HttpOnly dan owner link terbaca ulang.
+  */
+  if(window.__DIRAC_V132_REGISTER_FRONTEND_SAFE_SYNC__) return;
+  window.__DIRAC_V132_REGISTER_FRONTEND_SAFE_SYNC__ = true;
+
+  var MARK_KEY = 'dirac_v132_just_registered_v1';
+  var RELOAD_KEY = 'dirac_v132_just_registered_reload_once_v1';
+  var MAX_AGE_MS = 45000;
+  var nativeFetch = window.fetch ? window.fetch.bind(window) : null;
+
+  function now(){ return Date.now ? Date.now() : new Date().getTime(); }
+  function safeSessionGet(key){ try{ return window.sessionStorage ? sessionStorage.getItem(key) : null; }catch(_){ return null; } }
+  function safeSessionSet(key, value){ try{ if(window.sessionStorage) sessionStorage.setItem(key, String(value)); }catch(_){} }
+  function safeSessionRemove(key){ try{ if(window.sessionStorage) sessionStorage.removeItem(key); }catch(_){} }
+  function parseJson(raw){ try{ return raw ? JSON.parse(raw) : null; }catch(_){ return null; } }
+  function readMark(){
+    var data = parseJson(safeSessionGet(MARK_KEY));
+    if(!data || !data.time || (now() - Number(data.time || 0)) > MAX_AGE_MS){ safeSessionRemove(MARK_KEY); return null; }
+    return data;
+  }
+  function writeMark(reason){
+    safeSessionSet(MARK_KEY, JSON.stringify({ok:true, reason:String(reason || 'register_success'), time:now()}));
+  }
+  function clearMark(){ safeSessionRemove(MARK_KEY); }
+  function urlOf(input){
+    try{
+      if(typeof input === 'string') return new URL(input, window.location.href);
+      if(input && input.url) return new URL(input.url, window.location.href);
+    }catch(_){}
+    return null;
+  }
+  function actionOf(input){
+    var url = urlOf(input);
+    return url ? String(url.searchParams.get('action') || '').trim().toLowerCase().replace(/[\s-]+/g, '_') : '';
+  }
+  function isRegisterAction(action){ return action === 'domain_register'; }
+  function isPostRegisterProtectedAction(action){
+    return /^(domain_dashboard_me|domain_orders|my_orders|pesanan_saya|customer_orders|customer_security_status|customer_security_overview|customer_security_features_bundle_v2|customer_security_features_bundle_v3)$/i.test(action || '');
+  }
+  function collectStrings(value, out, depth){
+    out = out || [];
+    depth = depth || 0;
+    if(depth > 4 || value == null) return out;
+    if(typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'){ out.push(String(value)); return out; }
+    if(Array.isArray(value)){ value.slice(0, 20).forEach(function(item){ collectStrings(item, out, depth + 1); }); return out; }
+    if(typeof value === 'object'){
+      Object.keys(value).slice(0, 50).forEach(function(key){ out.push(String(key)); collectStrings(value[key], out, depth + 1); });
+    }
+    return out;
+  }
+  function looksDuplicateRegister(data){
+    var joined = collectStrings(data, []).join(' ').toLowerCase();
+    return /(already|exists|registered|duplicate|taken|terdaftar|duplikat|sudah\s+(?:ada|dipakai|digunakan)|email_exists|user_already_exists|identity_already_exists)/i.test(joined);
+  }
+  function hasBackendSessionLike(data){
+    if(!data || typeof data !== 'object') return false;
+    var session = data.session || data.auth || (data.data && (data.data.session || data.data.auth)) || null;
+    var user = data.user || (data.data && data.data.user) || (session && session.user) || null;
+    return !!(user || session || data.first_register_setup_required === true || data.backend_only === true || (session && session.backend_only === true));
+  }
+  function isSuccessfulRegisterData(response, data){
+    if(!response || !response.ok || !data || typeof data !== 'object') return false;
+    if(data.ok !== true) return false;
+    if(data.needs_email_confirmation === true) return false;
+    if(looksDuplicateRegister(data)) return false;
+    return hasBackendSessionLike(data);
+  }
+  function isV132ProtectedBlock(response, data){
+    var status = response && Number(response.status || 0);
+    if(status !== 401 && status !== 403 && status !== 503) return false;
+    if(!data || typeof data !== 'object') return false;
+    var code = String(data.code || data.error || data.reason || '').toLowerCase();
+    var source = String(data.source || data.patch || '').toLowerCase();
+    var text = collectStrings(data, []).join(' ').toLowerCase();
+    return /bola_idor|protected_session|high_assurance|ownership_locked/.test(code + ' ' + source + ' ' + text) || data.ownership_locked === true || data.protected_lock_required === true;
+  }
+  function setStatusSuccess(message){
+    var box = document.getElementById('statusBox');
+    if(box){
+      box.classList.remove('error');
+      box.classList.add('show','success');
+      box.textContent = message;
+    }
+    var toast = document.getElementById('toast');
+    if(toast){
+      toast.textContent = message;
+      toast.classList.add('show');
+      clearTimeout(toast.__diracV132RegisterTimer);
+      toast.__diracV132RegisterTimer = setTimeout(function(){ toast.classList.remove('show'); }, 2600);
+    }
+  }
+  function scheduleOneReload(reason){
+    var mark = readMark();
+    if(!mark) return;
+    if(safeSessionGet(RELOAD_KEY) === '1') return;
+    safeSessionSet(RELOAD_KEY, '1');
+    setStatusSuccess('Akun berhasil dibuat. Menyinkronkan sesi aman, halaman dimuat ulang sebentar...');
+    setTimeout(function(){
+      try{
+        var u = new URL(window.location.href);
+        u.searchParams.set('_dirac_v132_sync', String(now()));
+        window.location.replace(u.href);
+      }catch(_){ window.location.reload(); }
+    }, reason === 'protected-block' ? 420 : 720);
+  }
+  function handleStatusMutation(){
+    var mark = readMark();
+    if(!mark || safeSessionGet(RELOAD_KEY) === '1') return;
+    var box = document.getElementById('statusBox');
+    if(!box || !box.classList.contains('error')) return;
+    var text = String(box.textContent || '').toLowerCase();
+    if(/email\s+atau\s+password|password\s+belum\s+sesuai|login\s+berhasil\s+di\s+server|cookie\s+login|domain_me|protected|sesi\s+(?:httponly|tidak valid|belum)|akses\s+ditolak|bola_idor|high_assurance/.test(text)){
+      scheduleOneReload('status-error-after-register');
+    }
+  }
+
+  if(nativeFetch){
+    window.fetch = function(input, init){
+      var action = actionOf(input);
+      return nativeFetch(input, init).then(function(response){
+        try{
+          if(isRegisterAction(action)){
+            response.clone().json().then(function(data){
+              if(isSuccessfulRegisterData(response, data)){
+                writeMark('domain_register_ok');
+                safeSessionRemove(RELOAD_KEY);
+              }else{
+                clearMark();
+              }
+            }).catch(function(){});
+          }else if(isPostRegisterProtectedAction(action) && readMark()){
+            response.clone().json().then(function(data){
+              if(isV132ProtectedBlock(response, data)) scheduleOneReload('protected-block');
+            }).catch(function(){});
+          }
+        }catch(_){}
+        return response;
+      });
+    };
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', function(){
+      if(safeSessionGet(RELOAD_KEY) === '1') setTimeout(function(){ clearMark(); safeSessionRemove(RELOAD_KEY); }, 5000);
+      handleStatusMutation();
+    }, {once:true});
+  }else{
+    if(safeSessionGet(RELOAD_KEY) === '1') setTimeout(function(){ clearMark(); safeSessionRemove(RELOAD_KEY); }, 5000);
+    handleStatusMutation();
+  }
+  if(window.MutationObserver){
+    var target = document.getElementById('statusBox') || document.body || document.documentElement;
+    if(target){
+      new MutationObserver(handleStatusMutation).observe(target, {childList:true, characterData:true, subtree:true, attributes:true, attributeFilter:['class']});
+    }
+    var modal = document.getElementById('a2fModal');
+    if(modal){
+      new MutationObserver(function(){
+        if(modal.classList.contains('open') && readMark()){
+          setTimeout(function(){ clearMark(); safeSessionRemove(RELOAD_KEY); }, 1200);
+        }
+      }).observe(modal, {attributes:true, attributeFilter:['class']});
+    }
+  }
+  window.DiracV132RegisterFrontendSafeSync = {
+    version:'v132-register-frontend-safe-sync-20260630',
+    scope:'domain_register success marker + post-register protected-data reload once',
+    doesNotChange:'endpoints, login, logout, payment, hash, email template, A2F, auto logout'
+  };
+})();
+</script>
+
 </body>
 </html>
