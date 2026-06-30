@@ -21101,7 +21101,7 @@ function diracBolaIdorV132Small(value, max) {
      yang aktif, punya customer_id valid, tidak disabled, dan tidak revoked.
    ============================================================ */
 
-const DIRAC_BOLA_IDOR_CUSTOMER_LINK_HARD_BINDING_PATCH_V133 = 'dirac-bola-idor-customer-link-hard-binding-v134-dashboard-bootstrap-safe';
+const DIRAC_BOLA_IDOR_CUSTOMER_LINK_HARD_BINDING_PATCH_V133 = 'dirac-bola-idor-customer-link-hard-binding-v135-pesanan-fast-safe';
 
 let diracBolaIdorAsyncLocalV133 = null;
 try {
@@ -21415,7 +21415,16 @@ function diracBolaIdorV133ShouldProtectDataAction(action, method) {
   const upper = String(method || 'GET').toUpperCase();
   if (!clean || upper === 'OPTIONS') return false;
   if (diracBolaIdorV133NeverTouchAction(clean)) return false;
-  if (/^(domain_dashboard_me|domain_orders|my_orders|pesanan|pesanan_saya|customer_orders|orders_saya|my_invoices|invoice_saya)$/i.test(clean)) return true;
+
+  // v135 performance repair:
+  // my_orders/pesanan is already hard-bound inside the original endpoint via
+  // requireDomainDashboardAccess() -> myOrdersResolveOwner() -> customer_id=in.(server-resolved ids).
+  // Running this outer service-role inspector on the same list endpoint added redundant
+  // auth-link reads and parent-owner lookups for every order item batch, causing pesanan.html to feel slow.
+  // Keep payment/login/logout/A2F/hash untouched and keep object-level protection for other protected actions.
+  if (/^(my_orders|pesanan|pesanan_saya|customer_orders|orders_saya|my_invoices|invoice_saya)$/i.test(clean) && upper === 'GET') return false;
+
+  if (/^(domain_dashboard_me|domain_orders)$/i.test(clean)) return true;
   if (/^customer_security_(status|overview|features_bundle_v2|features_bundle_v3|sessions|devices|events|blocks)$/i.test(clean) && upper === 'GET') return true;
   return false;
 }
