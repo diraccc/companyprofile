@@ -20602,40 +20602,13 @@ try {
 
 const DIRAC_BOLA_IDOR_HIGH_ASSURANCE_PATCH_V132 = 'dirac-bola-idor-high-assurance-protected-data-v132';
 
-const __diracBolaIdorV132PreviousRequireDomainDashboardAccess =
-  typeof requireDomainDashboardAccess === 'function' ? requireDomainDashboardAccess : null;
-
-if (__diracBolaIdorV132PreviousRequireDomainDashboardAccess && !__diracBolaIdorV132PreviousRequireDomainDashboardAccess.__diracBolaIdorV132Wrapped) {
-  requireDomainDashboardAccess = async function requireDomainDashboardAccessBolaIdorHighAssuranceV132(req, res) {
-    const access = await __diracBolaIdorV132PreviousRequireDomainDashboardAccess(req, res);
-    if (!access) return access;
-
-    const action = diracBolaIdorV132NormalizeAction(req && req.query && req.query.action || '');
-    const method = String(req && req.method || 'GET').toUpperCase();
-    if (!diracBolaIdorV132ShouldProtectDataAction(action, method)) return access;
-
-    const lock = access && access.protectedLock;
-    if (diracBolaIdorV132IsStrongProtectedLock(lock)) return access;
-
-    const reason = diracBolaIdorV132Small(lock && lock.reason || 'protected_lock_not_strong', 120);
-    const status = diracBolaIdorV132ProtectedLockStatus(reason, lock && lock.status);
-    try { if (res && typeof res.setHeader === 'function') res.setHeader('X-Dirac-Bola-Idor-High-Assurance', DIRAC_BOLA_IDOR_HIGH_ASSURANCE_PATCH_V132); } catch (_) {}
-    if (res && res.headersSent) return null;
-    return res.status(status).json({
-      ok: false,
-      dashboard: false,
-      code: 'BOLA_IDOR_PROTECTED_SESSION_STRONG_LOCK_REQUIRED',
-      message: status === 503
-        ? 'Proteksi sesi sedang belum bisa diverifikasi. Coba login ulang nanti.'
-        : 'Sesi protected tidak valid. Silakan login ulang.',
-      ownership_locked: true,
-      protected_lock_required: true,
-      source: DIRAC_BOLA_IDOR_HIGH_ASSURANCE_PATCH_V132,
-      reason
-    });
-  };
-  Object.defineProperty(requireDomainDashboardAccess, '__diracBolaIdorV132Wrapped', { value: true, enumerable: false });
-}
+// Dashboard access wrapper intentionally disabled in v132-dashboard-safe.
+// Reason: the original v132 wrapper hard-failed protectedLock during the first
+// dashboard bootstrap, which can bounce users after valid login/A2F/register
+// before the short-lived customer session lock is fully settled. Object-level
+// BOLA/IDOR protection remains enforced below by the HTTP query wrapper and
+// the service-role Supabase owner-binding wrapper. Login/register/logout,
+// payment, hash, email template, A2F/passkey, and idle logout are not changed.
 
 try {
   const __diracBolaIdorV132PreviousSupabaseFetch = typeof supabaseFetch === 'function' ? supabaseFetch : null;
