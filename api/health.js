@@ -22375,3 +22375,106 @@ function diracV141NormalizeAction(action) {
   try { if (typeof normalizeDomainAction === 'function') return normalizeDomainAction(String(action || '')); } catch (_) {}
   return String(action || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
 }
+
+/* ============================================================
+   DIRAC CSRF PASSKEY ACTION COMPAT v142 - APPEND ONLY
+   Tujuan:
+   - Mempertahankan aturan: aksi browser tetap WAJIB membawa CSRF token.
+   - Memperbaiki jalur A2F Passkey setelah mode semua aksi wajib CSRF.
+   - Khusus aksi passkey browser, token HMAC valid di header diterima meskipun
+     cookie double-submit belum sempat sinkron di Safari/mobile setelah login.
+   - Tidak mengubah endpoint, payload, WebAuthn, login, register, logout,
+     auto logout, hash, payment, email template, atau handler A2F lama.
+   ============================================================ */
+
+const DIRAC_CSRF_PASSKEY_ACTION_COMPAT_V142 = 'dirac-csrf-passkey-action-compat-v142';
+
+try {
+  const __diracV142PreviousForceVerify = typeof diracV138CsrfForceVerify === 'function' ? diracV138CsrfForceVerify : null;
+  if (__diracV142PreviousForceVerify && !__diracV142PreviousForceVerify.__diracV142PasskeyCompatWrapped) {
+    diracV138CsrfForceVerify = function diracV138CsrfForceVerifyWithPasskeyCompatV142(req, action) {
+      const base = __diracV142PreviousForceVerify(req, action);
+      if (base && base.ok) return base;
+
+      const clean = diracV142NormalizeAction(action);
+      if (!diracV142IsPasskeyAction(clean)) return base;
+
+      const fallback = diracV142VerifyHeaderCsrfToken(req);
+      if (fallback && fallback.ok) return fallback;
+      return base;
+    };
+    diracV138CsrfForceVerify.__diracV142PasskeyCompatWrapped = true;
+  }
+} catch (_) {}
+
+try {
+  const __diracV142PreviousHandler = module.exports;
+  if (__diracV142PreviousHandler && !__diracV142PreviousHandler.__diracV142PasskeyCompatHeader) {
+    module.exports = async function diracCsrfPasskeyActionCompatWrapperV142(req, res) {
+      try {
+        if (res && typeof res.setHeader === 'function') {
+          res.setHeader('X-Dirac-CSRF-Passkey-Compat', DIRAC_CSRF_PASSKEY_ACTION_COMPAT_V142);
+        }
+      } catch (_) {}
+      return __diracV142PreviousHandler(req, res);
+    };
+    Object.defineProperty(module.exports, '__diracV142PasskeyCompatHeader', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+function diracV142IsPasskeyAction(action) {
+  const clean = String(action || '').trim().toLowerCase();
+  return clean === 'dirac_mfa_passkey_start'
+    || clean === 'domain_mfa_passkey_start'
+    || clean === 'dirac_mfa_passkey_verify'
+    || clean === 'domain_mfa_passkey_verify';
+}
+
+function diracV142VerifyHeaderCsrfToken(req) {
+  try {
+    const secret = typeof diracCsrfSecret === 'function' ? String(diracCsrfSecret() || '').trim() : '';
+    if (!secret) return { ok: false, status: 503, code: 'CSRF_SECRET_MISSING' };
+
+    const headers = (req && req.headers) || {};
+    const headerToken = String(
+      headers['x-csrf-token'] ||
+      headers['X-CSRF-Token'] ||
+      headers['x-dirac-csrf-token'] ||
+      headers['X-Dirac-CSRF-Token'] ||
+      ''
+    ).trim();
+
+    if (!headerToken) return { ok: false, status: 403, code: 'CSRF_HEADER_MISSING' };
+
+    const decoded = typeof diracCsrfDecodeToken === 'function' ? diracCsrfDecodeToken(headerToken, secret) : null;
+    if (!decoded || !decoded.payload) return { ok: false, status: 403, code: 'CSRF_SIGNATURE_INVALID' };
+
+    const payload = decoded.payload || {};
+    const now = Math.floor(Date.now() / 1000);
+    const expectedType = typeof DIRAC_CSRF_TOKEN_TYPE !== 'undefined' ? DIRAC_CSRF_TOKEN_TYPE : 'dirac-csrf-hmac-v1';
+    const skew = typeof DIRAC_CSRF_CLOCK_SKEW_SECONDS !== 'undefined' ? Number(DIRAC_CSRF_CLOCK_SKEW_SECONDS) : 60;
+
+    if (payload.typ !== expectedType) return { ok: false, status: 403, code: 'CSRF_TOKEN_TYPE_INVALID' };
+    if (!payload.exp || Number(payload.exp) + skew < now) return { ok: false, status: 403, code: 'CSRF_TOKEN_EXPIRED' };
+    if (payload.iat && Number(payload.iat) - skew > now) return { ok: false, status: 403, code: 'CSRF_TOKEN_IAT_INVALID' };
+
+    try {
+      const binding = typeof diracCsrfRequestBinding === 'function' ? diracCsrfRequestBinding(req) : null;
+      if (binding && payload.oh && binding.oh && typeof safeEqual === 'function' && !safeEqual(String(payload.oh), String(binding.oh))) {
+        return { ok: false, status: 403, code: 'CSRF_ORIGIN_BINDING_MISMATCH' };
+      }
+    } catch (_) {}
+
+    return { ok: true, source: DIRAC_CSRF_PASSKEY_ACTION_COMPAT_V142 };
+  } catch (_) {
+    return { ok: false, status: 403, code: 'CSRF_PASSKEY_COMPAT_ERROR' };
+  }
+}
+
+function diracV142NormalizeAction(action) {
+  try { if (typeof diracV141NormalizeAction === 'function') return diracV141NormalizeAction(String(action || '')); } catch (_) {}
+  try { if (typeof diracV138CsrfNormalizeAction === 'function') return diracV138CsrfNormalizeAction(String(action || '')); } catch (_) {}
+  try { if (typeof diracCsrfNormalizeAction === 'function') return diracCsrfNormalizeAction(String(action || '')); } catch (_) {}
+  try { if (typeof normalizeDomainAction === 'function') return normalizeDomainAction(String(action || '')); } catch (_) {}
+  return String(action || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+}
