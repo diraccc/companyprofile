@@ -21716,3 +21716,564 @@ function diracBolaIdorV133BlockedHttpResponse(res, decision) {
 function diracBolaIdorV133Small(value, max) {
   return String(value || '').replace(/[\u0000-\u001f\u007f<>]/g, '').slice(0, Math.max(1, Number(max || 120)));
 }
+
+/* ============================================================
+   DIRAC BACKEND STRICT SAFE v136 - APPEND ONLY
+   Tujuan:
+   - Memperketat backend tanpa mengubah endpoint, login flow, logout,
+     auto-logout 5 menit, hash utama Supabase, payment gateway, email template,
+     A2F/MFA/passkey, atau tampilan frontend.
+   - CORS produksi dipersempit ke domain resmi.
+   - Token auth tetap backend-only, tidak diekspos ke JS.
+   - CSRF HMAC diwajibkan hanya untuk recovery-code generate/verify yang sudah
+     dipatch frontend-nya, agar tidak merusak aksi lain.
+   - Password register baru dibuat lebih kuat; login existing tidak disentuh.
+   ============================================================ */
+
+const DIRAC_BACKEND_STRICT_SAFE_PATCH_V136 = 'dirac-backend-strict-safe-v136';
+
+try {
+  const __diracV136OriginalGetAllowedOrigins = typeof getAllowedOrigins === 'function' ? getAllowedOrigins : null;
+  if (__diracV136OriginalGetAllowedOrigins && !__diracV136OriginalGetAllowedOrigins.__diracV136StrictWrapped) {
+    getAllowedOrigins = function getAllowedOriginsDiracV136StrictSafe() {
+      const origins = [];
+      const add = (value) => {
+        const origin = diracV136NormalizeOrigin(value);
+        if (!origin) return;
+        if (!origins.includes(origin)) origins.push(origin);
+      };
+
+      add('https://diracgroup.store');
+      add('https://www.diracgroup.store');
+      add(process.env.DOMAIN_SITE_URL);
+      add(process.env.SITE_URL);
+
+      // Produksi paling ketat: tidak lagi menerima hardcoded preview Vercel.
+      // Tambahan origin hanya diterima bila sengaja diaktifkan lewat ENV ini.
+      if (diracV136EnvTrue('DIRAC_STRICT_ALLOW_EXTRA_ORIGINS')) {
+        String(process.env.AI_ALLOWED_ORIGINS || process.env.DIRAC_EXTRA_ALLOWED_ORIGINS || '')
+          .split(',')
+          .forEach((item) => add(item));
+      }
+
+      if (process.env.NODE_ENV !== 'production') {
+        add('http://localhost:3000');
+        add('http://127.0.0.1:3000');
+        add('http://localhost:5173');
+        add('http://127.0.0.1:5173');
+      }
+
+      return origins;
+    };
+    getAllowedOrigins.__diracV136StrictWrapped = true;
+  }
+} catch (_) {}
+
+try {
+  const __diracV136OriginalShouldHideDomainAuthTokens = typeof shouldHideDomainAuthTokens === 'function' ? shouldHideDomainAuthTokens : null;
+  if (__diracV136OriginalShouldHideDomainAuthTokens && !__diracV136OriginalShouldHideDomainAuthTokens.__diracV136StrictWrapped) {
+    shouldHideDomainAuthTokens = function shouldHideDomainAuthTokensDiracV136StrictSafe() {
+      return true;
+    };
+    shouldHideDomainAuthTokens.__diracV136StrictWrapped = true;
+  }
+} catch (_) {}
+
+try {
+  const __diracV136OriginalShouldAcceptFrontendAuthHeaders = typeof shouldAcceptFrontendAuthHeaders === 'function' ? shouldAcceptFrontendAuthHeaders : null;
+  if (__diracV136OriginalShouldAcceptFrontendAuthHeaders && !__diracV136OriginalShouldAcceptFrontendAuthHeaders.__diracV136StrictWrapped) {
+    shouldAcceptFrontendAuthHeaders = function shouldAcceptFrontendAuthHeadersDiracV136StrictSafe() {
+      return false;
+    };
+    shouldAcceptFrontendAuthHeaders.__diracV136StrictWrapped = true;
+  }
+} catch (_) {}
+
+try {
+  const __diracV136OriginalDiracCsrfIsEnforcedForAction = typeof diracCsrfIsEnforcedForAction === 'function' ? diracCsrfIsEnforcedForAction : null;
+  if (__diracV136OriginalDiracCsrfIsEnforcedForAction && !__diracV136OriginalDiracCsrfIsEnforcedForAction.__diracV136StrictWrapped) {
+    diracCsrfIsEnforcedForAction = function diracCsrfIsEnforcedForActionDiracV136StrictSafe(action) {
+      const clean = diracV136NormalizeAction(action);
+      if (clean === 'customer_security_recovery_codes_generate' || clean === 'customer_security_recovery_code_verify') {
+        return true;
+      }
+      return __diracV136OriginalDiracCsrfIsEnforcedForAction(action);
+    };
+    diracCsrfIsEnforcedForAction.__diracV136StrictWrapped = true;
+  }
+} catch (_) {}
+
+try {
+  const __diracV136OriginalPasswordPolicy = typeof diracV110CheckPasswordPolicy === 'function' ? diracV110CheckPasswordPolicy : null;
+  if (__diracV136OriginalPasswordPolicy && !__diracV136OriginalPasswordPolicy.__diracV136StrictWrapped) {
+    diracV110CheckPasswordPolicy = function diracV110CheckPasswordPolicyDiracV136StrictSafe(password, email) {
+      const base = __diracV136OriginalPasswordPolicy(password, email);
+      if (!base || !base.ok) return base;
+
+      const value = String(password || '');
+      const minLen = diracV136NumberFromEnv('DIRAC_STRICT_PASSWORD_MIN_LENGTH', 12, 10, 128);
+      if (value.length < minLen) {
+        return { ok: false, message: 'Password terlalu pendek. Gunakan minimal ' + minLen + ' karakter dengan huruf dan angka.' };
+      }
+      if (!/[a-z]/.test(value) || !/[A-Z]/.test(value) || !/[0-9]/.test(value)) {
+        return { ok: false, message: 'Password wajib memakai huruf besar, huruf kecil, dan angka.' };
+      }
+      if (diracV136LooksLikeWeakPasswordPattern(value)) {
+        return { ok: false, message: 'Password terlalu mudah ditebak. Gunakan pola yang lebih acak.' };
+      }
+      return { ok: true };
+    };
+    diracV110CheckPasswordPolicy.__diracV136StrictWrapped = true;
+  }
+} catch (_) {}
+
+try {
+  const __diracV136PreviousHandler = module.exports;
+  if (__diracV136PreviousHandler && !__diracV136PreviousHandler.__diracV136StrictWrapped) {
+    module.exports = async function diracBackendStrictSafeWrapperV136(req, res) {
+      try { diracV136ApplyStrictResponseHeaders(res); } catch (_) {}
+
+      const method = String((req && req.method) || '').toUpperCase();
+      const action = diracV136NormalizeAction((req && req.query && req.query.action) || '');
+      if (method === 'POST' && diracV136NeedsStrictOrigin(action)) {
+        const originCheck = diracV136CheckOrigin(req);
+        if (!originCheck.ok) {
+          try { if (res && typeof res.setHeader === 'function') res.setHeader('Cache-Control', 'no-store'); } catch (_) {}
+          return res.status(403).json({
+            ok: false,
+            code: originCheck.code || 'STRICT_ORIGIN_BLOCKED',
+            message: 'Permintaan ditolak karena asal request tidak valid.',
+            source: DIRAC_BACKEND_STRICT_SAFE_PATCH_V136
+          });
+        }
+      }
+
+      return __diracV136PreviousHandler(req, res);
+    };
+    module.exports.__diracV136StrictWrapped = true;
+  }
+} catch (_) {}
+
+function diracV136NeedsStrictOrigin(action) {
+  const clean = diracV136NormalizeAction(action);
+  return clean === 'domain_login'
+    || clean === 'domain_register'
+    || clean === 'customer_security_recovery_codes_generate'
+    || clean === 'customer_security_recovery_code_verify';
+}
+
+function diracV136CheckOrigin(req) {
+  const headers = (req && req.headers) || {};
+  const rawOrigin = headers.origin || headers.Origin || '';
+  const rawReferer = headers.referer || headers.Referer || '';
+  const origin = diracV136NormalizeOrigin(rawOrigin || rawReferer);
+
+  // Server-to-server/no-origin tetap diizinkan agar health/internal call tidak patah.
+  // Browser normal selalu membawa Origin untuk POST fetch modern.
+  if (!origin) return { ok: true, source: 'no_origin' };
+
+  let allowed = [];
+  try { allowed = typeof getAllowedOrigins === 'function' ? getAllowedOrigins() : []; } catch (_) { allowed = []; }
+  const normalizedAllowed = new Set((allowed || []).map(diracV136NormalizeOrigin).filter(Boolean));
+  if (normalizedAllowed.has(origin)) return { ok: true, source: 'allowed_origin' };
+  return { ok: false, code: 'STRICT_ORIGIN_NOT_ALLOWED', origin: origin };
+}
+
+function diracV136ApplyStrictResponseHeaders(res) {
+  if (!res || typeof res.setHeader !== 'function') return;
+  res.setHeader('X-Dirac-Backend-Strict-Patch', DIRAC_BACKEND_STRICT_SAFE_PATCH_V136);
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), fullscreen=(self)');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+  if (process.env.NODE_ENV === 'production' || diracV136EnvTrue('DIRAC_FORCE_HSTS')) {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  }
+}
+
+function diracV136NormalizeOrigin(value) {
+  try {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    const url = new URL(raw);
+    if (!/^https?:$/.test(url.protocol)) return '';
+    if (process.env.NODE_ENV === 'production' && url.protocol !== 'https:') return '';
+    return url.origin;
+  } catch (_) {
+    return '';
+  }
+}
+
+function diracV136NormalizeAction(action) {
+  try { if (typeof normalizeDomainAction === 'function') return normalizeDomainAction(String(action || '').trim()).toLowerCase().replace(/[\s-]+/g, '_'); } catch (_) {}
+  return String(action || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+}
+
+function diracV136EnvTrue(name) {
+  return String(process.env[name] || '').trim().toLowerCase() === 'true';
+}
+
+function diracV136NumberFromEnv(name, fallback, min, max) {
+  const raw = Number(process.env[name]);
+  const value = Number.isFinite(raw) ? raw : Number(fallback);
+  return Math.max(Number(min), Math.min(Number(max), Math.floor(value)));
+}
+
+function diracV136LooksLikeWeakPasswordPattern(password) {
+  const value = String(password || '');
+  const compact = value.toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (!compact) return true;
+  if (/^(?:qwerty|asdf|zxcv|abcd|1234|1111|0000)/i.test(compact)) return true;
+  if (/(?:123456|654321|abcdef|qwerty|password|admin|diracgroup|dirac)/i.test(compact)) return true;
+  const unique = new Set(compact.split(''));
+  if (compact.length >= 10 && unique.size <= 4) return true;
+  return false;
+}
+
+/* ============================================================
+   DIRAC CSRF ALL WEBSITE ACTIONS SAFE v137 - APPEND ONLY
+   Tujuan:
+   - Memaksa CSRF HMAC untuk semua aksi website yang mengubah data
+     (POST/PUT/PATCH/DELETE) selama aksi itu bukan bagian yang eksplisit
+     dilarang disentuh: login, register, logout, A2F/MFA/passkey,
+     payment gateway/webhook/callback, email template, hash/password core.
+   - Tidak mengubah endpoint lama, tidak mengubah handler lama, tidak mengubah
+     hash, login flow, payment gateway, email template, A2F, atau auto logout.
+   - GET/HEAD tetap hanya menerbitkan token segar agar frontend bisa mengambil
+     X-Dirac-CSRF-Token tanpa endpoint baru.
+   ============================================================ */
+
+const DIRAC_CSRF_ALL_WEBSITE_ACTIONS_SAFE_V137 = 'dirac-csrf-all-website-actions-safe-v137';
+
+try {
+  const __diracV137PreviousHandler = module.exports;
+  if (__diracV137PreviousHandler && !__diracV137PreviousHandler.__diracCsrfAllWebsiteV137Wrapped) {
+    module.exports = async function diracCsrfAllWebsiteActionsSafeWrapperV137(req, res) {
+      const method = String((req && req.method) || 'GET').toUpperCase();
+      const action = diracV137CsrfNormalizeAction((req && req.query && req.query.action) || '');
+
+      try {
+        diracV137CsrfApplyHeaders(res);
+        if ((method === 'GET' || method === 'HEAD') && typeof diracCsrfIssueToken === 'function') {
+          try { diracCsrfIssueToken(req, res, action); } catch (_) {}
+        }
+
+        if (diracV137CsrfShouldForce(action, method)) {
+          const csrf = diracV137CsrfForceVerify(req, action);
+          if (!csrf.ok) {
+            try { if (typeof diracCsrfIssueToken === 'function') diracCsrfIssueToken(req, res, action); } catch (_) {}
+            try { if (res && typeof res.setHeader === 'function') res.setHeader('Cache-Control', 'no-store'); } catch (_) {}
+            return res.status(csrf.status || 403).json({
+              ok: false,
+              code: csrf.code || 'CSRF_REQUIRED_FOR_WEBSITE_ACTION',
+              message: 'Permintaan ditolak karena token keamanan halaman tidak valid. Muat ulang halaman lalu coba lagi.',
+              source: DIRAC_CSRF_ALL_WEBSITE_ACTIONS_SAFE_V137
+            });
+          }
+        }
+      } catch (error) {
+        try { console.error('[dirac-csrf-all-website-v137]', diracV137CsrfSafeError(error)); } catch (_) {}
+        return res.status(500).json({
+          ok: false,
+          code: 'CSRF_ALL_WEBSITE_GUARD_ERROR',
+          message: 'Permintaan belum dapat diproses dengan aman.',
+          source: DIRAC_CSRF_ALL_WEBSITE_ACTIONS_SAFE_V137
+        });
+      }
+
+      return __diracV137PreviousHandler(req, res);
+    };
+    Object.defineProperty(module.exports, '__diracCsrfAllWebsiteV137Wrapped', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+function diracV137CsrfShouldForce(action, method) {
+  const verb = String(method || '').toUpperCase();
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(verb)) return false;
+  const clean = diracV137CsrfNormalizeAction(action);
+  if (!clean) return false;
+  if (diracV137CsrfNeverTouchAction(clean)) return false;
+  if (diracV137CsrfServerOnlyAction(clean)) return false;
+  if (diracV137CsrfExplicitlyDisabled(clean)) return false;
+  return true;
+}
+
+function diracV137CsrfNeverTouchAction(action) {
+  const clean = diracV137CsrfNormalizeAction(action);
+  if (!clean) return true;
+
+  // Bagian yang user minta tidak disentuh dan/atau harus tetap bisa berjalan
+  // tanpa token browser: login/register/logout, MFA/A2F/passkey, payment gateway,
+  // webhook/callback/notification, email/mail, hash/password core.
+  if (clean === 'domain_login' || clean === 'domain_register' || clean === 'domain_logout') return true;
+  if (/mfa|a2f|passkey|webauthn|otp|totp/i.test(clean)) return true;
+  if (/payment_gateway|midtrans|ipaymu|webhook|callback|notification/i.test(clean)) return true;
+  if (/email_template|mail_template|smtp|mailer/i.test(clean)) return true;
+  if (/password_hash|argon|bcrypt|scrypt|pepper|hash_core/i.test(clean)) return true;
+
+  // Aksi bayar/create_payment dibiarkan oleh patch ini karena berada di area
+  // payment yang user larang disentuh. Origin guard lama tetap melindungi.
+  if (clean === 'create_payment' || clean === 'pay_order' || clean === 'order_payment' || clean === 'checkout_payment' || clean === 'bayar_pesanan') return true;
+
+  return false;
+}
+
+function diracV137CsrfServerOnlyAction(action) {
+  const clean = diracV137CsrfNormalizeAction(action);
+  return clean === 'domain_health'
+    || clean === 'hostinger_check'
+    || clean === 'domain_check'
+    || clean === 'domain_me'
+    || clean === 'domain_dashboard_me'
+    || clean === 'domain_mfa_status'
+    || clean === 'domain_orders'
+    || clean === 'my_orders'
+    || clean === 'pesanan_saya'
+    || clean === 'get_orders';
+}
+
+function diracV137CsrfExplicitlyDisabled(action) {
+  if (diracV137CsrfEnvTrue('DIRAC_CSRF_ALL_WEBSITE_ACTIONS_DISABLED')) return true;
+  const key = 'DIRAC_CSRF_ALL_DISABLED_' + String(action || '').toUpperCase().replace(/[^A-Z0-9]+/g, '_');
+  return diracV137CsrfEnvTrue(key);
+}
+
+function diracV137CsrfForceVerify(req, action) {
+  const secret = typeof diracCsrfSecret === 'function' ? String(diracCsrfSecret() || '').trim() : '';
+  if (!secret) return { ok: false, status: 503, code: 'CSRF_SECRET_MISSING' };
+
+  const headers = (req && req.headers) || {};
+  const headerToken = String(
+    headers['x-csrf-token'] ||
+    headers['X-CSRF-Token'] ||
+    headers['x-dirac-csrf-token'] ||
+    headers['X-Dirac-CSRF-Token'] ||
+    ''
+  ).trim();
+
+  const cookies = typeof parseCookies === 'function' ? parseCookies(req) : {};
+  const cookieName = typeof DIRAC_CSRF_COOKIE !== 'undefined' ? DIRAC_CSRF_COOKIE : '__Host-dirac_csrf_hmac';
+  const cookieToken = String(cookies[cookieName] || '').trim();
+
+  if (!headerToken) return { ok: false, status: 403, code: 'CSRF_HEADER_MISSING' };
+  if (!cookieToken) return { ok: false, status: 403, code: 'CSRF_COOKIE_MISSING' };
+  if (typeof safeEqual === 'function') {
+    if (!safeEqual(headerToken, cookieToken)) return { ok: false, status: 403, code: 'CSRF_DOUBLE_SUBMIT_MISMATCH' };
+  } else if (headerToken !== cookieToken) {
+    return { ok: false, status: 403, code: 'CSRF_DOUBLE_SUBMIT_MISMATCH' };
+  }
+
+  const decoded = typeof diracCsrfDecodeToken === 'function' ? diracCsrfDecodeToken(headerToken, secret) : null;
+  if (!decoded || !decoded.payload) return { ok: false, status: 403, code: 'CSRF_SIGNATURE_INVALID' };
+
+  const payload = decoded.payload || {};
+  const now = Math.floor(Date.now() / 1000);
+  const expectedType = typeof DIRAC_CSRF_TOKEN_TYPE !== 'undefined' ? DIRAC_CSRF_TOKEN_TYPE : 'dirac-csrf-hmac-v1';
+  const skew = typeof DIRAC_CSRF_CLOCK_SKEW_SECONDS !== 'undefined' ? Number(DIRAC_CSRF_CLOCK_SKEW_SECONDS) : 60;
+
+  if (payload.typ !== expectedType) return { ok: false, status: 403, code: 'CSRF_TOKEN_TYPE_INVALID' };
+  if (!payload.exp || Number(payload.exp) + skew < now) return { ok: false, status: 403, code: 'CSRF_TOKEN_EXPIRED' };
+  if (payload.iat && Number(payload.iat) - skew > now) return { ok: false, status: 403, code: 'CSRF_TOKEN_IAT_INVALID' };
+
+  try {
+    const binding = typeof diracCsrfRequestBinding === 'function' ? diracCsrfRequestBinding(req) : null;
+    if (binding && payload.sid && binding.sid && typeof safeEqual === 'function' && !safeEqual(String(payload.sid), String(binding.sid))) {
+      return { ok: false, status: 403, code: 'CSRF_SESSION_BINDING_MISMATCH' };
+    }
+    if (binding && payload.oh && binding.oh && typeof safeEqual === 'function' && !safeEqual(String(payload.oh), String(binding.oh))) {
+      return { ok: false, status: 403, code: 'CSRF_ORIGIN_BINDING_MISMATCH' };
+    }
+  } catch (_) {}
+
+  return { ok: true, source: 'csrf_all_website_valid' };
+}
+
+function diracV137CsrfNormalizeAction(action) {
+  const raw = String(action || '').trim();
+  try { if (typeof diracCsrfNormalizeAction === 'function') return diracCsrfNormalizeAction(raw); } catch (_) {}
+  try { if (typeof normalizeDomainAction === 'function') return normalizeDomainAction(raw); } catch (_) {}
+  return raw.toLowerCase().replace(/[\s-]+/g, '_');
+}
+
+function diracV137CsrfApplyHeaders(res) {
+  if (!res || typeof res.setHeader !== 'function') return;
+  try { res.setHeader('X-Dirac-CSRF-All-Website-Actions', DIRAC_CSRF_ALL_WEBSITE_ACTIONS_SAFE_V137); } catch (_) {}
+  try { res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private, max-age=0'); } catch (_) {}
+  try { if (typeof diracApplySecurityResponseHeaders === 'function') diracApplySecurityResponseHeaders(res); } catch (_) {}
+}
+
+function diracV137CsrfEnvTrue(name) {
+  return String(process.env[name] || '').trim().toLowerCase() === 'true';
+}
+
+function diracV137CsrfSafeError(error) {
+  const message = String(error && error.message ? error.message : error || 'unknown').slice(0, 160);
+  if (/password|token|secret|cookie|authorization|service_role|apikey|csrf|hmac|hash/i.test(message)) return 'csrf_internal_error';
+  return message;
+}
+
+/* ============================================================
+   DIRAC CSRF EVERY BROWSER ACTION STRICT SAFE v138 - APPEND ONLY
+   Tujuan:
+   - Memaksa CSRF HMAC untuk SEMUA aksi browser/user yang mengubah data:
+     POST, PUT, PATCH, DELETE, termasuk login, register, logout, A2F/MFA,
+     recovery code, customer security, checkout/create_payment/pay_order.
+   - Pengecualian hanya untuk server-to-server callback/webhook/notification
+     eksternal payment gateway karena tidak berasal dari browser halaman.
+     Endpoint eksternal harus tetap dilindungi signature gateway yang sudah ada.
+   - Tidak mengubah endpoint, tidak mengubah handler lama, tidak menyentuh hash,
+     payment gateway implementation, email template, A2F logic, atau auto logout.
+   ============================================================ */
+
+const DIRAC_CSRF_EVERY_BROWSER_ACTION_STRICT_SAFE_V138 = 'dirac-csrf-every-browser-action-strict-safe-v138';
+
+try {
+  const __diracV138PreviousHandler = module.exports;
+  if (__diracV138PreviousHandler && !__diracV138PreviousHandler.__diracCsrfEveryBrowserActionV138Wrapped) {
+    module.exports = async function diracCsrfEveryBrowserActionStrictSafeWrapperV138(req, res) {
+      const method = String((req && req.method) || 'GET').toUpperCase();
+      const action = diracV138CsrfNormalizeAction((req && req.query && req.query.action) || '');
+
+      try {
+        diracV138CsrfApplyHeaders(res);
+
+        // Safe-read tetap menerbitkan token segar agar halaman resmi bisa
+        // mengirim X-CSRF-Token / X-Dirac-CSRF-Token di aksi berikutnya.
+        if ((method === 'GET' || method === 'HEAD') && typeof diracCsrfIssueToken === 'function') {
+          try { diracCsrfIssueToken(req, res, action); } catch (_) {}
+        }
+
+        if (diracV138CsrfShouldForce(action, method)) {
+          const csrf = diracV138CsrfForceVerify(req, action);
+          if (!csrf.ok) {
+            try { if (typeof diracCsrfIssueToken === 'function') diracCsrfIssueToken(req, res, action); } catch (_) {}
+            try { if (res && typeof res.setHeader === 'function') res.setHeader('Cache-Control', 'no-store'); } catch (_) {}
+            return res.status(csrf.status || 403).json({
+              ok: false,
+              code: csrf.code || 'CSRF_REQUIRED_FOR_EVERY_BROWSER_ACTION',
+              message: 'Permintaan ditolak karena token keamanan halaman tidak valid. Muat ulang halaman lalu coba lagi.',
+              source: DIRAC_CSRF_EVERY_BROWSER_ACTION_STRICT_SAFE_V138
+            });
+          }
+        }
+      } catch (error) {
+        try { console.error('[dirac-csrf-every-browser-action-v138]', diracV138CsrfSafeError(error)); } catch (_) {}
+        return res.status(500).json({
+          ok: false,
+          code: 'CSRF_EVERY_BROWSER_ACTION_GUARD_ERROR',
+          message: 'Permintaan belum dapat diproses dengan aman.',
+          source: DIRAC_CSRF_EVERY_BROWSER_ACTION_STRICT_SAFE_V138
+        });
+      }
+
+      return __diracV138PreviousHandler(req, res);
+    };
+    Object.defineProperty(module.exports, '__diracCsrfEveryBrowserActionV138Wrapped', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+function diracV138CsrfShouldForce(action, method) {
+  const verb = String(method || '').toUpperCase();
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(verb)) return false;
+  const clean = diracV138CsrfNormalizeAction(action);
+  if (!clean) return false;
+  if (diracV138CsrfExternalServerToServerAction(clean)) return false;
+  if (diracV138CsrfExplicitlyDisabled(clean)) return false;
+  return true;
+}
+
+function diracV138CsrfExternalServerToServerAction(action) {
+  const clean = diracV138CsrfNormalizeAction(action);
+  if (!clean) return false;
+
+  // Hanya callback/notifikasi/webhook eksternal. Ini bukan aksi browser user,
+  // sehingga CSRF browser memang tidak berlaku. Signature payment gateway lama
+  // tetap menjadi kontrol yang benar untuk jalur ini.
+  if (/webhook|callback|notification/i.test(clean)) return true;
+  if (/midtrans.*(?:notify|notif|webhook|callback)|ipaymu.*(?:notify|notif|webhook|callback)/i.test(clean)) return true;
+
+  return false;
+}
+
+function diracV138CsrfExplicitlyDisabled(action) {
+  // Tidak menyediakan global kill-switch baru. Hanya emergency per-action agar
+  // produksi bisa rollback satu aksi spesifik tanpa menurunkan semua keamanan.
+  const key = 'DIRAC_CSRF_EVERY_BROWSER_DISABLED_' + String(action || '').toUpperCase().replace(/[^A-Z0-9]+/g, '_');
+  return diracV138CsrfEnvTrue(key);
+}
+
+function diracV138CsrfForceVerify(req, action) {
+  const secret = typeof diracCsrfSecret === 'function' ? String(diracCsrfSecret() || '').trim() : '';
+  if (!secret) return { ok: false, status: 503, code: 'CSRF_SECRET_MISSING' };
+
+  const headers = (req && req.headers) || {};
+  const headerToken = String(
+    headers['x-csrf-token'] ||
+    headers['X-CSRF-Token'] ||
+    headers['x-dirac-csrf-token'] ||
+    headers['X-Dirac-CSRF-Token'] ||
+    ''
+  ).trim();
+
+  const cookies = typeof parseCookies === 'function' ? parseCookies(req) : {};
+  const cookieName = typeof DIRAC_CSRF_COOKIE !== 'undefined' ? DIRAC_CSRF_COOKIE : '__Host-dirac_csrf_hmac';
+  const cookieToken = String(cookies[cookieName] || '').trim();
+
+  if (!headerToken) return { ok: false, status: 403, code: 'CSRF_HEADER_MISSING' };
+  if (!cookieToken) return { ok: false, status: 403, code: 'CSRF_COOKIE_MISSING' };
+
+  if (typeof safeEqual === 'function') {
+    if (!safeEqual(headerToken, cookieToken)) return { ok: false, status: 403, code: 'CSRF_DOUBLE_SUBMIT_MISMATCH' };
+  } else if (headerToken !== cookieToken) {
+    return { ok: false, status: 403, code: 'CSRF_DOUBLE_SUBMIT_MISMATCH' };
+  }
+
+  const decoded = typeof diracCsrfDecodeToken === 'function' ? diracCsrfDecodeToken(headerToken, secret) : null;
+  if (!decoded || !decoded.payload) return { ok: false, status: 403, code: 'CSRF_SIGNATURE_INVALID' };
+
+  const payload = decoded.payload || {};
+  const now = Math.floor(Date.now() / 1000);
+  const expectedType = typeof DIRAC_CSRF_TOKEN_TYPE !== 'undefined' ? DIRAC_CSRF_TOKEN_TYPE : 'dirac-csrf-hmac-v1';
+  const skew = typeof DIRAC_CSRF_CLOCK_SKEW_SECONDS !== 'undefined' ? Number(DIRAC_CSRF_CLOCK_SKEW_SECONDS) : 60;
+
+  if (payload.typ !== expectedType) return { ok: false, status: 403, code: 'CSRF_TOKEN_TYPE_INVALID' };
+  if (!payload.exp || Number(payload.exp) + skew < now) return { ok: false, status: 403, code: 'CSRF_TOKEN_EXPIRED' };
+  if (payload.iat && Number(payload.iat) - skew > now) return { ok: false, status: 403, code: 'CSRF_TOKEN_IAT_INVALID' };
+
+  try {
+    const binding = typeof diracCsrfRequestBinding === 'function' ? diracCsrfRequestBinding(req) : null;
+    if (binding && payload.sid && binding.sid && typeof safeEqual === 'function' && !safeEqual(String(payload.sid), String(binding.sid))) {
+      return { ok: false, status: 403, code: 'CSRF_SESSION_BINDING_MISMATCH' };
+    }
+    if (binding && payload.oh && binding.oh && typeof safeEqual === 'function' && !safeEqual(String(payload.oh), String(binding.oh))) {
+      return { ok: false, status: 403, code: 'CSRF_ORIGIN_BINDING_MISMATCH' };
+    }
+  } catch (_) {}
+
+  return { ok: true, source: 'csrf_every_browser_action_valid' };
+}
+
+function diracV138CsrfNormalizeAction(action) {
+  const raw = String(action || '').trim();
+  try { if (typeof diracCsrfNormalizeAction === 'function') return diracCsrfNormalizeAction(raw); } catch (_) {}
+  try { if (typeof normalizeDomainAction === 'function') return normalizeDomainAction(raw); } catch (_) {}
+  return raw.toLowerCase().replace(/[\s-]+/g, '_');
+}
+
+function diracV138CsrfApplyHeaders(res) {
+  if (!res || typeof res.setHeader !== 'function') return;
+  try { res.setHeader('X-Dirac-CSRF-Every-Browser-Action', DIRAC_CSRF_EVERY_BROWSER_ACTION_STRICT_SAFE_V138); } catch (_) {}
+  try { res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private, max-age=0'); } catch (_) {}
+  try { if (typeof diracApplySecurityResponseHeaders === 'function') diracApplySecurityResponseHeaders(res); } catch (_) {}
+}
+
+function diracV138CsrfEnvTrue(name) {
+  return String(process.env[name] || '').trim().toLowerCase() === 'true';
+}
+
+function diracV138CsrfSafeError(error) {
+  const message = String(error && error.message ? error.message : error || 'unknown').slice(0, 160);
+  if (/password|token|secret|cookie|authorization|service_role|apikey|csrf|hmac|hash/i.test(message)) return 'csrf_internal_error';
+  return message;
+}
