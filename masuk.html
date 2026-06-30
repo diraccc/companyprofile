@@ -7938,9 +7938,60 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
   function readSession(){ return (window.__DIRAC_BACKEND_AUTH_CONTEXT__ && typeof window.__DIRAC_BACKEND_AUTH_CONTEXT__ === 'object') ? window.__DIRAC_BACKEND_AUTH_CONTEXT__ : {}; }
   function writeSession(session){ window.__DIRAC_BACKEND_AUTH_CONTEXT__ = session && typeof session === 'object' ? session : {}; }
   function normalizeRecoveryCodeInput(value){ return String(value || '').replace(/\s+/g,'').trim(); }
+  var csrfTokenMemory = '';
+  function readCookie(name){
+    try{
+      var prefix = String(name || '') + '=';
+      var parts = String(document.cookie || '').split(';');
+      for(var i=0;i<parts.length;i++){
+        var item = parts[i].trim();
+        if(item.indexOf(prefix) === 0) return decodeURIComponent(item.slice(prefix.length));
+      }
+    }catch(_){}
+    return '';
+  }
+  function looksLikeCsrfToken(value){
+    var raw = String(value || '').trim();
+    return /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(raw);
+  }
+  function captureCsrfFromResponse(res){
+    try{
+      var token = res && res.headers && (
+        res.headers.get('X-Dirac-CSRF-Token') ||
+        res.headers.get('x-dirac-csrf-token') ||
+        res.headers.get('X-CSRF-Token') ||
+        res.headers.get('x-csrf-token')
+      );
+      if(looksLikeCsrfToken(token)) csrfTokenMemory = String(token).trim();
+    }catch(_){}
+    try{
+      var cookieToken = readCookie('__Host-dirac_csrf_hmac') || readCookie('dirac_csrf_hmac');
+      if(looksLikeCsrfToken(cookieToken)) csrfTokenMemory = String(cookieToken).trim();
+    }catch(_){}
+    return csrfTokenMemory;
+  }
+  async function refreshCsrfToken(){
+    try{
+      var res = await fetch(API_ENDPOINT + '?action=customer_security_guard_status', {
+        method:'GET',
+        mode:'cors',
+        credentials:'include',
+        cache:'no-store',
+        headers:{'Accept':'application/json'}
+      });
+      captureCsrfFromResponse(res);
+      try{ await res.clone().json(); }catch(_){}
+    }catch(_){}
+    return csrfTokenMemory || captureCsrfFromResponse(null) || '';
+  }
   function authHeaders(){
-    // PATCH 3A: recovery code verify memakai HttpOnly cookie backend, bukan token/header frontend.
-    return {'Accept':'application/json','Content-Type':'application/json'};
+    var headers = {'Accept':'application/json','Content-Type':'application/json'};
+    var token = csrfTokenMemory || captureCsrfFromResponse(null);
+    if(looksLikeCsrfToken(token)){
+      headers['X-CSRF-Token'] = token;
+      headers['X-Dirac-CSRF-Token'] = token;
+    }
+    return headers;
   }
   function hasRecoveryDashboardProof(data){
     var ds = data && data.dashboardSession ? data.dashboardSession : {};
@@ -7955,6 +8006,9 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
   function recoveryFriendlyMessage(raw, data, status){
     var code = String(data && (data.code || data.error_code || data.reason) || '').toUpperCase();
     var msg = String(raw || data && data.message || '');
+    if(code.indexOf('CSRF_') === 0 || /token keamanan halaman|csrf/i.test(msg)){
+      return 'Token keamanan halaman tidak valid. Muat ulang halaman lalu coba lagi.';
+    }
     if(code === 'RECOVERY_CODE_USED') return 'Recovery code sudah dipakai atau expired.';
     if(code === 'RECOVERY_CODE_EXPIRED') return 'Recovery code sudah expired. Gunakan kode recovery lain.';
     if(code === 'RECOVERY_CODE_FORMAT_INVALID') return 'Format recovery code tidak valid. Tempel 1 kode penuh dari file TXT.';
@@ -8026,14 +8080,16 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     showStatus(box, 'Menghubungi server recovery...', true);
     noopFeedback('loading');
     try{
+      await refreshCsrfToken();
       var res = await fetch(API_ENDPOINT + '?action=customer_security_recovery_code_verify', {
         method:'POST',
         mode:'cors',
         credentials:'include',
         cache:'no-store',
         headers:authHeaders(),
-        body:JSON.stringify({code:code})
+        body:JSON.stringify({code:code,recovery_code:code,recoveryCode:code})
       });
+      captureCsrfFromResponse(res);
       var data = await res.clone().json().catch(function(){ return null; });
       window.__diracLastRecoveryVerifyData = data || null;
       window.__diracLastRecoveryVerifyStatus = res.status || 0;
