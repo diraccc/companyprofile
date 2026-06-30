@@ -22277,3 +22277,101 @@ function diracV138CsrfSafeError(error) {
   if (/password|token|secret|cookie|authorization|service_role|apikey|csrf|hmac|hash/i.test(message)) return 'csrf_internal_error';
   return message;
 }
+
+
+/* ============================================================
+   DIRAC CSRF PRE-AUTH STRICT COMPAT v141 - APPEND ONLY
+   Tujuan:
+   - Menjaga aturan: login/register tetap wajib membawa CSRF header.
+   - Memperbaiki kasus Safari/mobile ketika cookie double-submit CSRF belum settle
+     pada aksi pre-auth pertama.
+   - Hanya domain_login/domain_register yang boleh memakai validasi header-token HMAC
+     tanpa cookie CSRF, karena user belum punya session dan token tetap tidak bisa
+     ditebak serta terikat origin.
+   - Aksi lain tetap mengikuti double-submit cookie v138.
+   ============================================================ */
+
+const DIRAC_CSRF_PREAUTH_STRICT_COMPAT_V141 = 'dirac-csrf-preauth-strict-compat-v141';
+
+try {
+  const __diracV141OriginalForceVerify = typeof diracV138CsrfForceVerify === 'function' ? diracV138CsrfForceVerify : null;
+  if (__diracV141OriginalForceVerify && !__diracV141OriginalForceVerify.__diracV141PreauthWrapped) {
+    diracV138CsrfForceVerify = function diracV138CsrfForceVerifyWithPreauthCompatV141(req, action) {
+      const base = __diracV141OriginalForceVerify(req, action);
+      if (base && base.ok) return base;
+
+      const clean = diracV141NormalizeAction(action);
+      if (clean !== 'domain_login' && clean !== 'domain_register') return base;
+
+      const fallback = diracV141VerifyPreauthHeaderToken(req);
+      if (fallback && fallback.ok) return fallback;
+      return base;
+    };
+    diracV138CsrfForceVerify.__diracV141PreauthWrapped = true;
+  }
+} catch (_) {}
+
+try {
+  const __diracV141PreviousHandler = module.exports;
+  if (__diracV141PreviousHandler && !__diracV141PreviousHandler.__diracV141PreauthWrapperHeader) {
+    module.exports = async function diracCsrfPreauthStrictCompatWrapperV141(req, res) {
+      try {
+        if (res && typeof res.setHeader === 'function') {
+          res.setHeader('X-Dirac-CSRF-Preauth-Compat', DIRAC_CSRF_PREAUTH_STRICT_COMPAT_V141);
+        }
+      } catch (_) {}
+      return __diracV141PreviousHandler(req, res);
+    };
+    Object.defineProperty(module.exports, '__diracV141PreauthWrapperHeader', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+function diracV141VerifyPreauthHeaderToken(req) {
+  try {
+    const secret = typeof diracCsrfSecret === 'function' ? String(diracCsrfSecret() || '').trim() : '';
+    if (!secret) return { ok: false, status: 503, code: 'CSRF_SECRET_MISSING' };
+
+    const headers = (req && req.headers) || {};
+    const headerToken = String(
+      headers['x-csrf-token'] ||
+      headers['X-CSRF-Token'] ||
+      headers['x-dirac-csrf-token'] ||
+      headers['X-Dirac-CSRF-Token'] ||
+      ''
+    ).trim();
+
+    if (!headerToken) return { ok: false, status: 403, code: 'CSRF_HEADER_MISSING' };
+
+    const decoded = typeof diracCsrfDecodeToken === 'function' ? diracCsrfDecodeToken(headerToken, secret) : null;
+    if (!decoded || !decoded.payload) return { ok: false, status: 403, code: 'CSRF_SIGNATURE_INVALID' };
+
+    const payload = decoded.payload || {};
+    const now = Math.floor(Date.now() / 1000);
+    const expectedType = typeof DIRAC_CSRF_TOKEN_TYPE !== 'undefined' ? DIRAC_CSRF_TOKEN_TYPE : 'dirac-csrf-hmac-v1';
+    const skew = typeof DIRAC_CSRF_CLOCK_SKEW_SECONDS !== 'undefined' ? Number(DIRAC_CSRF_CLOCK_SKEW_SECONDS) : 60;
+
+    if (payload.typ !== expectedType) return { ok: false, status: 403, code: 'CSRF_TOKEN_TYPE_INVALID' };
+    if (!payload.exp || Number(payload.exp) + skew < now) return { ok: false, status: 403, code: 'CSRF_TOKEN_EXPIRED' };
+    if (payload.iat && Number(payload.iat) - skew > now) return { ok: false, status: 403, code: 'CSRF_TOKEN_IAT_INVALID' };
+
+    // Pre-auth tidak memaksa cookie double-submit, tetapi tetap cek origin binding
+    // jika token dan request sama-sama membawa origin hash.
+    try {
+      const binding = typeof diracCsrfRequestBinding === 'function' ? diracCsrfRequestBinding(req) : null;
+      if (binding && payload.oh && binding.oh && typeof safeEqual === 'function' && !safeEqual(String(payload.oh), String(binding.oh))) {
+        return { ok: false, status: 403, code: 'CSRF_ORIGIN_BINDING_MISMATCH' };
+      }
+    } catch (_) {}
+
+    return { ok: true, source: 'csrf_preauth_header_hmac_valid_v141' };
+  } catch (_) {
+    return { ok: false, status: 403, code: 'CSRF_PREAUTH_COMPAT_ERROR' };
+  }
+}
+
+function diracV141NormalizeAction(action) {
+  try { if (typeof diracV138CsrfNormalizeAction === 'function') return diracV138CsrfNormalizeAction(String(action || '')); } catch (_) {}
+  try { if (typeof diracCsrfNormalizeAction === 'function') return diracCsrfNormalizeAction(String(action || '')); } catch (_) {}
+  try { if (typeof normalizeDomainAction === 'function') return normalizeDomainAction(String(action || '')); } catch (_) {}
+  return String(action || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+}
