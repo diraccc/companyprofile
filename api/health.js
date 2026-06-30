@@ -21087,3 +21087,618 @@ function diracBolaIdorV132BlockedHttpResponse(res, decision) {
 function diracBolaIdorV132Small(value, max) {
   return String(value || '').replace(/[\u0000-\u001f\u007f<>]/g, '').slice(0, Math.max(1, Number(max || 120)));
 }
+
+/* ============================================================
+   DIRAC BOLA/IDOR CUSTOMER-LINK HARD BINDING v133 - APPEND ONLY
+   Scope sempit dan aman:
+   - Tidak menyentuh login, register, logout, auto-logout 5 menit, hash,
+     A2F/MFA/passkey, payment gateway, webhook, atau email template.
+   - Tidak mengubah endpoint, nama action, response sukses lama, atau tampilan.
+   - Hanya memperketat endpoint baca data milik user/customer yang sudah protected.
+   Prinsip:
+   - customer_id/order_id/project_id dari frontend tidak pernah dipercaya.
+   - Data protected hanya boleh lewat auth.uid() -> security_customer_auth_links
+     yang aktif, punya customer_id valid, tidak disabled, dan tidak revoked.
+   ============================================================ */
+
+const DIRAC_BOLA_IDOR_CUSTOMER_LINK_HARD_BINDING_PATCH_V133 = 'dirac-bola-idor-customer-link-hard-binding-v133';
+
+let diracBolaIdorAsyncLocalV133 = null;
+try {
+  const asyncHooksV133 = require('async_hooks');
+  if (asyncHooksV133 && typeof asyncHooksV133.AsyncLocalStorage === 'function') {
+    diracBolaIdorAsyncLocalV133 = new asyncHooksV133.AsyncLocalStorage();
+  }
+} catch (_) {}
+
+try {
+  const __diracBolaIdorV133PreviousSupabaseFetch = typeof supabaseFetch === 'function' ? supabaseFetch : null;
+  if (__diracBolaIdorV133PreviousSupabaseFetch && !__diracBolaIdorV133PreviousSupabaseFetch.__diracBolaIdorV133Wrapped) {
+    supabaseFetch = async function supabaseFetchBolaIdorCustomerLinkHardBindingV133(path, options = {}) {
+      const decision = await diracBolaIdorV133InspectSupabaseAccess(path, options).catch(() => ({ ok: true }));
+      if (decision && decision.block) return diracBolaIdorV133BlockedSupabaseResult(decision);
+      return __diracBolaIdorV133PreviousSupabaseFetch(path, options);
+    };
+    Object.defineProperty(supabaseFetch, '__diracBolaIdorV133Wrapped', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+try {
+  const __diracBolaIdorV133PreviousHandler = module.exports;
+  if (typeof __diracBolaIdorV133PreviousHandler === 'function' && !__diracBolaIdorV133PreviousHandler.__diracBolaIdorV133Wrapped) {
+    module.exports = async function diracBolaIdorCustomerLinkHardBindingWrapperV133(req, res) {
+      try { if (res && typeof res.setHeader === 'function') res.setHeader('X-Dirac-Bola-Idor-Customer-Link-Binding', DIRAC_BOLA_IDOR_CUSTOMER_LINK_HARD_BINDING_PATCH_V133); } catch (_) {}
+
+      const context = diracBolaIdorV133BuildRequestContext(req);
+      const run = async () => {
+        const decision = await diracBolaIdorV133InspectHttpRequest(req).catch(() => ({ ok: true }));
+        if (decision && decision.block) return diracBolaIdorV133BlockedHttpResponse(res, decision);
+        return __diracBolaIdorV133PreviousHandler(req, res);
+      };
+
+      if (diracBolaIdorAsyncLocalV133 && typeof diracBolaIdorAsyncLocalV133.run === 'function') {
+        return diracBolaIdorAsyncLocalV133.run(context, run);
+      }
+      try { if (req && typeof req === 'object') req.__diracBolaIdorContextV133 = context; } catch (_) {}
+      return run();
+    };
+    Object.defineProperty(module.exports, '__diracBolaIdorV133Wrapped', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+function diracBolaIdorV133BuildRequestContext(req) {
+  const query = req && req.query && typeof req.query === 'object' ? req.query : {};
+  const rawAction = String(query.action || '').trim();
+  return {
+    patch: DIRAC_BOLA_IDOR_CUSTOMER_LINK_HARD_BINDING_PATCH_V133,
+    req,
+    action: diracBolaIdorV133NormalizeAction(rawAction),
+    method: String(req && req.method || 'GET').toUpperCase().slice(0, 12),
+    ownerResolvedV133: null,
+    allowedCustomerIdsV133: [],
+    started_at: Date.now()
+  };
+}
+
+function diracBolaIdorV133CurrentContext() {
+  try {
+    if (diracBolaIdorAsyncLocalV133 && typeof diracBolaIdorAsyncLocalV133.getStore === 'function') {
+      const store = diracBolaIdorAsyncLocalV133.getStore();
+      if (store && typeof store === 'object') return store;
+    }
+  } catch (_) {}
+  try {
+    const ctx132 = typeof diracBolaIdorV132CurrentContext === 'function' ? diracBolaIdorV132CurrentContext() : null;
+    if (ctx132 && typeof ctx132 === 'object') return ctx132;
+  } catch (_) {}
+  return null;
+}
+
+async function diracBolaIdorV133InspectHttpRequest(req) {
+  const method = String(req && req.method || 'GET').toUpperCase();
+  const action = diracBolaIdorV133NormalizeAction(req && req.query && req.query.action || '');
+  if (!diracBolaIdorV133ShouldProtectDataAction(action, method)) return { ok: true };
+
+  const owner = await diracBolaIdorV133ResolveStrictOwner(req).catch(() => null);
+  if (!owner || !owner.ok || !diracBolaIdorV133LooksLikeUuid(owner.authUserId) || !Array.isArray(owner.customerIds) || !owner.customerIds.length) {
+    const status = owner && owner.reason === 'auth_user_unavailable' ? 401 : 403;
+    return diracBolaIdorV133Decision('active_customer_link_required_for_protected_data', { action, method, status });
+  }
+
+  const ids = diracBolaIdorV133CollectIds(req && req.query, 'query');
+  if (ids.length) {
+    const customerMismatch = diracBolaIdorV133FindCustomerMismatch(ids, owner.customerIds);
+    if (customerMismatch) {
+      return diracBolaIdorV133Decision('query_customer_id_not_bound_to_authenticated_owner', {
+        action,
+        method,
+        source: 'query',
+        requested_count: customerMismatch.requestedCount,
+        allowed_count: owner.customerIds.length,
+        status: 403
+      });
+    }
+
+    const authMismatch = diracBolaIdorV133FindAuthUserMismatch(ids, owner.authUserId);
+    if (authMismatch) {
+      return diracBolaIdorV133Decision('query_auth_user_id_not_bound_to_authenticated_user', {
+        action,
+        method,
+        source: 'query',
+        requested_count: authMismatch.requestedCount,
+        status: 403
+      });
+    }
+  }
+
+  return { ok: true };
+}
+
+async function diracBolaIdorV133InspectSupabaseAccess(path, options = {}) {
+  if (!options || options.auth !== 'service') return { ok: true };
+  const rawPath = String(path || '').trim();
+  if (!rawPath || !rawPath.startsWith('/rest/v1/')) return { ok: true };
+
+  const ctx = diracBolaIdorV133CurrentContext() || {};
+  const action = diracBolaIdorV133NormalizeAction(ctx.action || '');
+  const method = String(options.method || 'GET').toUpperCase();
+  if (!diracBolaIdorV133ShouldProtectDataAction(action, method)) return { ok: true };
+
+  const table = diracBolaIdorV133ExtractRestTable(rawPath);
+  if (!diracBolaIdorV133IsOwnedTable(table)) return { ok: true };
+
+  const owner = await diracBolaIdorV133ResolveStrictOwner(ctx.req).catch(() => null);
+  const allowed = owner && owner.ok ? owner.customerIds : [];
+  if (!allowed || !allowed.length) {
+    return diracBolaIdorV133Decision('service_role_owner_unavailable_for_protected_table', {
+      table,
+      method,
+      action,
+      source: 'supabase',
+      status: 403
+    });
+  }
+
+  const ids = diracBolaIdorV133CollectIdsFromSupabase(rawPath, options.body);
+  const customerMismatch = diracBolaIdorV133FindCustomerMismatch(ids, allowed);
+  if (customerMismatch) {
+    return diracBolaIdorV133Decision('service_role_customer_id_not_bound_to_authenticated_owner', {
+      table,
+      method,
+      action,
+      source: 'supabase',
+      requested_count: customerMismatch.requestedCount,
+      allowed_count: allowed.length,
+      status: 403
+    });
+  }
+
+  const authMismatch = diracBolaIdorV133FindAuthUserMismatch(ids, owner.authUserId);
+  if (authMismatch) {
+    return diracBolaIdorV133Decision('service_role_auth_user_id_not_bound_to_authenticated_user', {
+      table,
+      method,
+      action,
+      source: 'supabase',
+      requested_count: authMismatch.requestedCount,
+      status: 403
+    });
+  }
+
+  if (/^(GET|HEAD|PATCH|PUT|DELETE)$/i.test(method)) {
+    if (String(table).toLowerCase() === 'customers') {
+      const requestedCustomerIds = diracBolaIdorV133CustomerIdsFromCustomersTable(rawPath, options.body);
+      if (requestedCustomerIds.length && requestedCustomerIds.some((id) => !allowed.includes(id))) {
+        return diracBolaIdorV133Decision('customers_table_id_not_bound_to_authenticated_owner', {
+          table,
+          method,
+          action,
+          source: 'supabase',
+          requested_count: requestedCustomerIds.length,
+          allowed_count: allowed.length,
+          status: 403
+        });
+      }
+    }
+
+    const directObjectIds = diracBolaIdorV133DirectObjectIdsForTable(table, ids);
+    if (directObjectIds.length) {
+      const owners = await diracBolaIdorV133ResolveKnownObjectOwners(directObjectIds, table).catch(() => []);
+      const foreign = owners.filter((row) => row && row.customer_id && !allowed.includes(String(row.customer_id)));
+      if (foreign.length) {
+        return diracBolaIdorV133Decision('service_role_object_id_not_bound_to_authenticated_owner', {
+          table,
+          method,
+          action,
+          source: 'supabase',
+          requested_count: directObjectIds.length,
+          foreign_count: foreign.length,
+          status: 403
+        });
+      }
+    }
+
+    if (diracBolaIdorV133IsChildOrderTable(table)) {
+      const parentIds = diracBolaIdorV133ChildOrderIds(table, ids);
+      if (parentIds.length) {
+        const owners = await diracBolaIdorV133ResolveChildParentOwners(table, parentIds).catch(() => []);
+        const foreign = owners.filter((row) => row && row.customer_id && !allowed.includes(String(row.customer_id)));
+        if (foreign.length) {
+          return diracBolaIdorV133Decision('service_role_child_parent_not_bound_to_authenticated_owner', {
+            table,
+            method,
+            action,
+            source: 'supabase',
+            requested_count: parentIds.length,
+            foreign_count: foreign.length,
+            status: 403
+          });
+        }
+      }
+    }
+
+    const hasOwnerScope = diracBolaIdorV133HasOwnerScope(rawPath, options.body, diracBolaIdorV133OwnerColumnsForTable(table));
+    const hasResolvableScope = directObjectIdsLengthSafeV133(table, ids) || (diracBolaIdorV133IsChildOrderTable(table) && diracBolaIdorV133ChildOrderIds(table, ids).length > 0);
+    if (!hasOwnerScope && !hasResolvableScope) {
+      return diracBolaIdorV133Decision('service_role_owned_table_requires_owner_or_resolvable_object_scope', {
+        table,
+        method,
+        action,
+        source: 'supabase',
+        status: 403
+      });
+    }
+  }
+
+  return { ok: true };
+}
+
+async function diracBolaIdorV133ResolveStrictOwner(req) {
+  const ctx = diracBolaIdorV133CurrentContext();
+  if (ctx && ctx.ownerResolvedV133) return ctx.ownerResolvedV133;
+
+  if (typeof requireDomainUser !== 'function') return { ok: false, reason: 'auth_user_unavailable' };
+  const fakeRes = diracBolaIdorV133FakeResponse();
+  const user = await requireDomainUser(req || {}, fakeRes).catch(() => null);
+  const authUserId = String(user && user.id || '').trim();
+  if (!diracBolaIdorV133LooksLikeUuid(authUserId)) return { ok: false, reason: 'auth_user_unavailable' };
+
+  const linkResult = await diracBolaIdorV133FetchValidAuthLinks(authUserId).catch(() => null);
+  const rows = linkResult && linkResult.ok && Array.isArray(linkResult.data) ? linkResult.data : [];
+  const customerIds = Array.from(new Set(rows
+    .filter(diracBolaIdorV133IsValidActiveAuthLinkRow)
+    .map((row) => String(row.customer_id || '').trim())
+    .filter(diracBolaIdorV133LooksLikeUuid))).slice(0, 25);
+
+  const owner = { ok: true, authUserId, customerIds, source: 'security_customer_auth_links.v133.active_not_disabled_not_revoked' };
+  if (ctx && typeof ctx === 'object') {
+    ctx.ownerResolvedV133 = owner;
+    ctx.allowedCustomerIdsV133 = customerIds;
+    try {
+      ctx.ownerResolvedV128 = ctx.ownerResolvedV128 || { ok: true, authUserId, customerIds };
+      ctx.allowedCustomerIdsV128 = Array.from(new Set([...(ctx.allowedCustomerIdsV128 || []), ...customerIds])).slice(0, 25);
+    } catch (_) {}
+  }
+  return owner;
+}
+
+async function diracBolaIdorV133FetchValidAuthLinks(authUserId) {
+  const uid = String(authUserId || '').trim();
+  if (!diracBolaIdorV133LooksLikeUuid(uid)) return { ok: false, status: 400, data: [] };
+
+  const select = 'id,auth_user_id,customer_id,link_status,match_confidence,verified_at,disabled_at,revoked_at';
+  const path = '/rest/v1/security_customer_auth_links?select=' + encodeURIComponent(select) +
+    '&auth_user_id=eq.' + encodeURIComponent(uid) +
+    '&order=updated_at.desc&limit=5';
+
+  const result = await diracBolaIdorV133DirectSupabaseServiceGet(path).catch(() => null);
+  if (result && result.ok && Array.isArray(result.data)) {
+    return { ok: true, status: result.status || 200, data: result.data.filter(diracBolaIdorV133IsValidActiveAuthLinkRow) };
+  }
+
+  // Fallback kompatibilitas: jangan rusak deployment lama bila kolom extended belum ada.
+  if (typeof customerSecurityFetchAuthLink === 'function') {
+    const fallback = await customerSecurityFetchAuthLink(uid).catch(() => null);
+    if (fallback && fallback.ok && Array.isArray(fallback.data)) {
+      return { ok: true, status: fallback.status || 200, data: fallback.data.filter(diracBolaIdorV133IsLegacyAcceptableAuthLinkRow) };
+    }
+  }
+  return { ok: false, status: result && result.status || 500, data: [] };
+}
+
+function diracBolaIdorV133IsValidActiveAuthLinkRow(row) {
+  if (!row || typeof row !== 'object') return false;
+  if (String(row.link_status || '').toLowerCase() !== 'active') return false;
+  if (row.disabled_at || row.revoked_at) return false;
+  if (!diracBolaIdorV133LooksLikeUuid(row.auth_user_id)) return false;
+  if (!diracBolaIdorV133LooksLikeUuid(row.customer_id)) return false;
+  const confidence = String(row.match_confidence || '').toLowerCase();
+  if (confidence && !/^(verified|trusted|system|high|exact)$/i.test(confidence)) return false;
+  return true;
+}
+
+function diracBolaIdorV133IsLegacyAcceptableAuthLinkRow(row) {
+  if (!row || typeof row !== 'object') return false;
+  if (String(row.link_status || '').toLowerCase() !== 'active') return false;
+  if (!diracBolaIdorV133LooksLikeUuid(row.auth_user_id)) return false;
+  if (!diracBolaIdorV133LooksLikeUuid(row.customer_id)) return false;
+  return true;
+}
+
+function diracBolaIdorV133ShouldProtectDataAction(action, method) {
+  const clean = String(action || '').toLowerCase();
+  const upper = String(method || 'GET').toUpperCase();
+  if (!clean || upper === 'OPTIONS') return false;
+  if (diracBolaIdorV133NeverTouchAction(clean)) return false;
+  if (/^(domain_dashboard_me|domain_orders|my_orders|pesanan|pesanan_saya|customer_orders|orders_saya|my_invoices|invoice_saya)$/i.test(clean)) return true;
+  if (/^customer_security_(status|overview|features_bundle_v2|features_bundle_v3|sessions|devices|events|blocks)$/i.test(clean) && upper === 'GET') return true;
+  return false;
+}
+
+function diracBolaIdorV133NeverTouchAction(action) {
+  const clean = String(action || '').toLowerCase();
+  if (/login|register|logout|payment|pay|midtrans|ipaymu|webhook|callback|notification|checkout|mfa|a2f|passkey|password|hash|email|mail|csrf|token/i.test(clean)) return true;
+  if (/^(create_payment|pay_order|order_payment|create_payment_order|domain_checkout|domain_check|domain_health|hostinger_check|order_mail_health|order_email_health)$/i.test(clean)) return true;
+  return false;
+}
+
+function diracBolaIdorV133IsOwnedTable(table) {
+  return /^(orders|order_items|domain_orders|domain_order_items|payment_transactions|security_customer_sessions|security_customer_settings|security_customer_recovery_codes|security_customer_auth_links|security_customer_password_hashes|security_customer_events|security_customer_login_logs|security_customer_access_blocks|customers|website_projects)$/i.test(String(table || ''));
+}
+
+function diracBolaIdorV133OwnerColumnsForTable(table) {
+  const clean = String(table || '').toLowerCase();
+  if (clean === 'security_customer_auth_links' || clean === 'security_customer_password_hashes') return ['auth_user_id', 'customer_id'];
+  if (clean === 'customers') return ['id'];
+  return ['customer_id'];
+}
+
+function diracBolaIdorV133IsChildOrderTable(table) {
+  return /^(order_items|domain_order_items)$/i.test(String(table || ''));
+}
+
+function diracBolaIdorV133CollectIds(source, sourceName) {
+  try { if (typeof diracBolaIdorV132CollectIds === 'function') return diracBolaIdorV132CollectIds(source, sourceName); } catch (_) {}
+  const out = [];
+  if (source && typeof source === 'object') {
+    Object.entries(source).forEach(([key, value]) => {
+      const cleanKey = diracBolaIdorV133NormalizeKey(key);
+      if (cleanKey === 'action' || !diracBolaIdorV133IsIdentifierKey(cleanKey)) return;
+      diracBolaIdorV133ExtractPossibleValues(value).forEach((item) => out.push({ key: cleanKey, value: item, source: sourceName || 'unknown' }));
+    });
+  }
+  return out.slice(0, 80);
+}
+
+function diracBolaIdorV133CollectIdsFromSupabase(path, body) {
+  try { if (typeof diracBolaIdorV132CollectIdsFromSupabase === 'function') return diracBolaIdorV132CollectIdsFromSupabase(path, body); } catch (_) {}
+  const out = [];
+  ['customer_id','auth_user_id','user_id','owner_user_id','id','order_id','domain_order_id','session_id','recovery_code_id','transaction_id','payment_transaction_id'].forEach((col) => {
+    diracBolaIdorV133ExtractColumnValuesFromPath(path, col).forEach((value) => out.push({ key: diracBolaIdorV133NormalizeKey(col), value, source: 'supabase_path' }));
+    diracBolaIdorV133ExtractColumnValuesFromBody(body, col).forEach((value) => out.push({ key: diracBolaIdorV133NormalizeKey(col), value, source: 'supabase_body' }));
+  });
+  return out.filter((item) => item && item.value).slice(0, 120);
+}
+
+function diracBolaIdorV133FindCustomerMismatch(ids, allowedCustomerIds) {
+  const allowed = new Set((allowedCustomerIds || []).filter(diracBolaIdorV133LooksLikeUuid));
+  if (!allowed.size) return null;
+  const requested = (ids || [])
+    .filter((item) => item && item.key === 'customer_id')
+    .map((item) => String(item.value || '').trim())
+    .filter(diracBolaIdorV133LooksLikeUuid);
+  const denied = requested.filter((id) => !allowed.has(id));
+  return denied.length ? { requestedCount: requested.length, denied } : null;
+}
+
+function diracBolaIdorV133FindAuthUserMismatch(ids, authUserId) {
+  const expected = String(authUserId || '').trim();
+  if (!diracBolaIdorV133LooksLikeUuid(expected)) return null;
+  const requested = (ids || [])
+    .filter((item) => item && /^(auth_user_id|user_id|owner_user_id)$/i.test(item.key))
+    .map((item) => String(item.value || '').trim())
+    .filter(diracBolaIdorV133LooksLikeUuid);
+  const denied = requested.filter((id) => id !== expected);
+  return denied.length ? { requestedCount: requested.length, denied } : null;
+}
+
+function diracBolaIdorV133DirectObjectIdsForTable(table, ids) {
+  const clean = String(table || '').toLowerCase();
+  const directKeys = diracBolaIdorV133IsChildOrderTable(clean)
+    ? /^(id)$/i
+    : /^(id|order_id|domain_order_id|session_id|recovery_code_id|transaction_id|payment_transaction_id)$/i;
+  return Array.from(new Set((ids || [])
+    .filter((item) => item && directKeys.test(item.key))
+    .map((item) => String(item.value || '').trim())
+    .filter(diracBolaIdorV133LooksLikeUuid))).slice(0, 40);
+}
+
+function directObjectIdsLengthSafeV133(table, ids) {
+  return diracBolaIdorV133DirectObjectIdsForTable(table, ids).length > 0;
+}
+
+function diracBolaIdorV133ChildOrderIds(table, ids) {
+  const clean = String(table || '').toLowerCase();
+  const wanted = clean === 'domain_order_items' ? /^(order_id|domain_order_id)$/i : /^order_id$/i;
+  return Array.from(new Set((ids || [])
+    .filter((item) => item && wanted.test(item.key))
+    .map((item) => String(item.value || '').trim())
+    .filter(diracBolaIdorV133LooksLikeUuid))).slice(0, 80);
+}
+
+async function diracBolaIdorV133ResolveKnownObjectOwners(objectIds, preferredTable) {
+  try { if (typeof diracBolaIdorV128ResolveKnownObjectOwners === 'function') return diracBolaIdorV128ResolveKnownObjectOwners(objectIds, preferredTable); } catch (_) {}
+  return [];
+}
+
+async function diracBolaIdorV133ResolveChildParentOwners(childTable, parentIds) {
+  try { if (typeof diracBolaIdorV128ResolveChildParentOwners === 'function') return diracBolaIdorV128ResolveChildParentOwners(childTable, parentIds); } catch (_) {}
+  return [];
+}
+
+function diracBolaIdorV133CustomerIdsFromCustomersTable(path, body) {
+  return Array.from(new Set(
+    diracBolaIdorV133ExtractColumnValuesFromPath(path, 'id')
+      .concat(diracBolaIdorV133ExtractColumnValuesFromBody(body, 'id'))
+      .filter(diracBolaIdorV133LooksLikeUuid)
+  )).slice(0, 50);
+}
+
+function diracBolaIdorV133HasOwnerScope(path, body, ownerColumns) {
+  const cols = Array.isArray(ownerColumns) ? ownerColumns : [];
+  return cols.some((col) => diracBolaIdorV133ExtractColumnValuesFromPath(path, col).length || diracBolaIdorV133ExtractColumnValuesFromBody(body, col).length);
+}
+
+function diracBolaIdorV133ExtractColumnValuesFromPath(path, column) {
+  try { if (typeof diracBolaIdorV132ExtractColumnValuesFromPath === 'function') return diracBolaIdorV132ExtractColumnValuesFromPath(path, column); } catch (_) {}
+  const col = String(column || '').trim().toLowerCase();
+  const decoded = diracBolaIdorV133SafeDecode(path);
+  const query = decoded.split('?')[1] || '';
+  if (!col || !query) return [];
+  const out = [];
+  query.split('&').forEach((part) => {
+    const idx = part.indexOf('=');
+    if (idx <= 0) return;
+    const key = decodeURIComponent(part.slice(0, idx)).toLowerCase();
+    const value = part.slice(idx + 1);
+    if (key === col) out.push(...diracBolaIdorV133ParsePostgrestFilterValue(value));
+    if (key === 'or') out.push(...diracBolaIdorV133ParseOrFilterValues(value, col));
+  });
+  return Array.from(new Set(out.map((item) => String(item || '').trim()).filter(Boolean))).slice(0, 80);
+}
+
+function diracBolaIdorV133ExtractColumnValuesFromBody(body, column) {
+  try { if (typeof diracBolaIdorV132ExtractColumnValuesFromBody === 'function') return diracBolaIdorV132ExtractColumnValuesFromBody(body, column); } catch (_) {}
+  const col = String(column || '').trim();
+  if (!col || body === undefined || body === null) return [];
+  const rows = Array.isArray(body) ? body : [body];
+  const out = [];
+  rows.forEach((row) => {
+    if (!row || typeof row !== 'object' || Array.isArray(row)) return;
+    if (!Object.prototype.hasOwnProperty.call(row, col)) return;
+    const value = row[col];
+    if (Array.isArray(value)) value.forEach((item) => out.push(String(item || '').trim()));
+    else out.push(String(value || '').trim());
+  });
+  return Array.from(new Set(out.filter(Boolean))).slice(0, 80);
+}
+
+function diracBolaIdorV133ParsePostgrestFilterValue(value) {
+  try { if (typeof diracBolaIdorV132ParsePostgrestFilterValue === 'function') return diracBolaIdorV132ParsePostgrestFilterValue(value); } catch (_) {}
+  const raw = diracBolaIdorV133SafeDecode(String(value || '').trim());
+  if (!raw) return [];
+  const lower = raw.toLowerCase();
+  if (lower.startsWith('eq.')) return [raw.slice(3)];
+  if (lower.startsWith('in.')) return raw.slice(3).replace(/^\(/, '').replace(/\)$/, '').split(',').map((item) => item.replace(/^"|"$/g, '').trim()).filter(Boolean);
+  return [];
+}
+
+function diracBolaIdorV133ParseOrFilterValues(value, column) {
+  const raw = diracBolaIdorV133SafeDecode(String(value || '')).replace(/^\(/, '').replace(/\)$/, '');
+  const col = String(column || '').toLowerCase();
+  const out = [];
+  raw.split(',').forEach((item) => {
+    const text = item.trim();
+    const lower = text.toLowerCase();
+    if (lower.startsWith(col + '.eq.')) out.push(text.slice(col.length + 4));
+    if (lower.startsWith(col + '.in.')) out.push(...diracBolaIdorV133ParsePostgrestFilterValue(text.slice(col.length + 1)));
+  });
+  return out;
+}
+
+function diracBolaIdorV133ExtractRestTable(path) {
+  try { if (typeof diracBolaIdorV132ExtractRestTable === 'function') return diracBolaIdorV132ExtractRestTable(path); } catch (_) {}
+  try {
+    const raw = String(path || '');
+    if (!raw.startsWith('/rest/v1/')) return '';
+    const part = raw.slice('/rest/v1/'.length).split('?')[0].split('/')[0];
+    const decoded = decodeURIComponent(part || '').trim();
+    return /^[a-zA-Z0-9_]+$/.test(decoded) ? decoded : '';
+  } catch (_) { return ''; }
+}
+
+function diracBolaIdorV133DirectSupabaseServiceGet(path) {
+  if (typeof diracBolaIdorV128DirectSupabaseServiceGet === 'function') return diracBolaIdorV128DirectSupabaseServiceGet(path);
+  return Promise.resolve({ ok: false, status: 0, data: null });
+}
+
+function diracBolaIdorV133FakeResponse() {
+  const headers = {};
+  return {
+    statusCode: 200,
+    headers,
+    setHeader(name, value) { headers[String(name).toLowerCase()] = value; return this; },
+    getHeader(name) { return headers[String(name).toLowerCase()]; },
+    status(code) { this.statusCode = Number(code || 200); return this; },
+    json(payload) { this.payload = payload; return this; },
+    end() { return this; }
+  };
+}
+
+function diracBolaIdorV133NormalizeAction(action) {
+  try { if (typeof diracBolaIdorV132NormalizeAction === 'function') return diracBolaIdorV132NormalizeAction(action); } catch (_) {}
+  try { if (typeof normalizeDomainAction === 'function') return normalizeDomainAction(action); } catch (_) {}
+  return String(action || '').trim().toLowerCase().replace(/[\s-]+/g, '_').slice(0, 120);
+}
+
+function diracBolaIdorV133NormalizeKey(key) {
+  return String(key || '').trim().replace(/[A-Z]/g, (m) => '_' + m.toLowerCase()).replace(/[-\s]+/g, '_').replace(/^_+|_+$/g, '').toLowerCase();
+}
+
+function diracBolaIdorV133IsIdentifierKey(key) {
+  return /^(id|customer_id|auth_user_id|user_id|owner_user_id|profile_id|account_id|order_id|domain_order_id|session_id|recovery_code_id|invoice_id|transaction_id|payment_transaction_id|gateway_reference)$/.test(String(key || '').toLowerCase());
+}
+
+function diracBolaIdorV133ExtractPossibleValues(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return [];
+  return Array.from(new Set(diracBolaIdorV133SafeDecode(raw).split(/[\s,|]+/).map((part) => part.replace(/^(?:eq|in|is)\./i, '').replace(/^\(/, '').replace(/\)$/, '').replace(/^[`'\"]|[`'\"]$/g, '').trim()).filter(Boolean))).slice(0, 20);
+}
+
+function diracBolaIdorV133LooksLikeUuid(value) {
+  try { if (typeof customerSecurityLooksLikeUuid === 'function') return customerSecurityLooksLikeUuid(value); } catch (_) {}
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
+}
+
+function diracBolaIdorV133SafeDecode(value) {
+  let out = String(value || '');
+  for (let i = 0; i < 2; i += 1) {
+    try {
+      const decoded = decodeURIComponent(out);
+      if (decoded === out) break;
+      out = decoded;
+    } catch (_) { break; }
+  }
+  return out;
+}
+
+function diracBolaIdorV133Decision(reason, extra = {}) {
+  return {
+    ok: false,
+    block: true,
+    reason: diracBolaIdorV133Small(reason || 'bola_idor_customer_link_binding_blocked', 120),
+    patch: DIRAC_BOLA_IDOR_CUSTOMER_LINK_HARD_BINDING_PATCH_V133,
+    ...extra
+  };
+}
+
+function diracBolaIdorV133BlockedSupabaseResult(decision) {
+  return {
+    ok: false,
+    status: Number(decision && decision.status || 403),
+    statusText: 'Forbidden',
+    data: {
+      ok: false,
+      code: 'BOLA_IDOR_CUSTOMER_LINK_BINDING_BLOCKED',
+      message: 'Permintaan ditolak oleh sistem keamanan.',
+      reason: diracBolaIdorV133Small(decision && decision.reason || 'owner_binding_required', 120)
+    },
+    error: 'BOLA_IDOR_CUSTOMER_LINK_BINDING_BLOCKED',
+    diracSecurityThreat: {
+      detected: true,
+      kind: 'bola_idor_customer_link_binding_blocked',
+      table: decision && decision.table || null,
+      method: decision && decision.method || null,
+      action: decision && decision.action || null,
+      patch: DIRAC_BOLA_IDOR_CUSTOMER_LINK_HARD_BINDING_PATCH_V133
+    }
+  };
+}
+
+function diracBolaIdorV133BlockedHttpResponse(res, decision) {
+  try { if (typeof diracApplySecurityResponseHeaders === 'function') diracApplySecurityResponseHeaders(res); } catch (_) {}
+  try { if (res && typeof res.setHeader === 'function') res.setHeader('Cache-Control', 'no-store'); } catch (_) {}
+  const status = Number(decision && decision.status || 403);
+  return res.status(status >= 400 && status <= 599 ? status : 403).json({
+    ok: false,
+    code: 'BOLA_IDOR_CUSTOMER_LINK_BINDING_BLOCKED',
+    message: status === 401 ? 'Sesi tidak valid. Silakan login ulang.' : 'Akses ditolak oleh sistem keamanan.',
+    ownership_locked: true,
+    source: DIRAC_BOLA_IDOR_CUSTOMER_LINK_HARD_BINDING_PATCH_V133,
+    reason: diracBolaIdorV133Small(decision && decision.reason || 'BOLA_IDOR_BLOCKED', 120)
+  });
+}
+
+function diracBolaIdorV133Small(value, max) {
+  return String(value || '').replace(/[\u0000-\u001f\u007f<>]/g, '').slice(0, Math.max(1, Number(max || 120)));
+}
