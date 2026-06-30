@@ -10421,5 +10421,153 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
 })();
 </script>
 
+
+
+<script id="dirac-csrf-a2f-passkey-fetch-bridge-v140-js">
+(function(){
+  'use strict';
+  if(window.__DIRAC_CSRF_A2F_PASSKEY_FETCH_BRIDGE_V140__) return;
+  window.__DIRAC_CSRF_A2F_PASSKEY_FETCH_BRIDGE_V140__ = true;
+
+  /*
+    DIRAC CSRF A2F/PASSKEY BRIDGE V140
+    Tujuan:
+    - Backend v138 mewajibkan CSRF untuk semua aksi browser.
+    - Bridge v139 sudah menutup /api/health, tetapi jalur A2F passkey memakai /api/2fa/start-step dan /api/2fa/verify-step.
+    - Patch ini hanya menambahkan header CSRF untuk request mutating ke /api/2fa/*.
+    - Tidak mengubah endpoint, payload, WebAuthn, login, logout, auto logout, hash, payment, atau email.
+  */
+
+  var MUTATING = {POST:true, PUT:true, PATCH:true, DELETE:true};
+  var TOKEN_HEADER = 'X-Dirac-CSRF-Token';
+  var TOKEN_HEADER_COMPAT = 'X-CSRF-Token';
+  var nativeFetch = window.fetch ? window.fetch.bind(window) : null;
+  var tokenMemory = '';
+  var tokenAt = 0;
+  var pendingToken = null;
+  if(!nativeFetch) return;
+
+  function now(){ return Date.now ? Date.now() : new Date().getTime(); }
+
+  function sameOriginUrl(input){
+    try{
+      var raw = typeof input === 'string' ? input : (input && input.url) || '';
+      if(!raw) return null;
+      var url = new URL(raw, window.location.href);
+      if(url.origin !== window.location.origin) return null;
+      return url;
+    }catch(_){ return null; }
+  }
+
+  function methodOf(input, init){
+    var m = (init && init.method) || (input && input.method) || 'GET';
+    return String(m || 'GET').toUpperCase();
+  }
+
+  function looksLikeCsrfToken(value){
+    var v = String(value || '').trim();
+    return /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(v) && v.length >= 48 && v.length <= 4096;
+  }
+
+  function readHeaderToken(res){
+    try{
+      return String(
+        res.headers.get(TOKEN_HEADER) ||
+        res.headers.get(TOKEN_HEADER_COMPAT) ||
+        res.headers.get('x-dirac-csrf-token') ||
+        res.headers.get('x-csrf-token') ||
+        ''
+      ).trim();
+    }catch(_){ return ''; }
+  }
+
+  function isA2fMutating(input, init){
+    var method = methodOf(input, init);
+    if(!MUTATING[method]) return false;
+    var url = sameOriginUrl(input);
+    if(!url) return false;
+    return /^\/api\/2fa\/(?:start-step|verify-step|lock)\/?$/i.test(url.pathname || '');
+  }
+
+  function probeToken(){
+    return nativeFetch('/api/health?action=domain_health&_csrf_a2f=' + encodeURIComponent(String(now())), {
+      method:'GET',
+      mode:'same-origin',
+      credentials:'include',
+      cache:'no-store',
+      headers:{
+        'Accept':'application/json',
+        'X-Dirac-CSRF-Probe':'a2f-passkey-v140'
+      }
+    }).then(function(res){
+      var token = readHeaderToken(res);
+      if(looksLikeCsrfToken(token)){
+        tokenMemory = token;
+        tokenAt = now();
+      }
+      return tokenMemory || token || '';
+    }).catch(function(){ return tokenMemory || ''; });
+  }
+
+  function ensureToken(){
+    if(looksLikeCsrfToken(tokenMemory) && (now() - tokenAt) < 90000) return Promise.resolve(tokenMemory);
+    if(window.DiracCsrfBrowserActionBridge && typeof window.DiracCsrfBrowserActionBridge.refresh === 'function'){
+      return Promise.resolve(window.DiracCsrfBrowserActionBridge.refresh()).then(function(token){
+        if(looksLikeCsrfToken(token)){
+          tokenMemory = String(token).trim();
+          tokenAt = now();
+          return tokenMemory;
+        }
+        return tokenMemory || '';
+      }).catch(function(){
+        if(pendingToken) return pendingToken;
+        pendingToken = probeToken().then(function(t){ pendingToken = null; return t; }, function(e){ pendingToken = null; throw e; });
+        return pendingToken;
+      });
+    }
+    if(pendingToken) return pendingToken;
+    pendingToken = probeToken().then(function(t){ pendingToken = null; return t; }, function(e){ pendingToken = null; throw e; });
+    return pendingToken;
+  }
+
+  function mergeHeaders(input, init, token){
+    var headers = new Headers();
+    try{ if(input && input.headers) new Headers(input.headers).forEach(function(v,k){ headers.set(k,v); }); }catch(_){ }
+    try{ if(init && init.headers) new Headers(init.headers).forEach(function(v,k){ headers.set(k,v); }); }catch(_){ }
+    headers.set(TOKEN_HEADER, token);
+    headers.set(TOKEN_HEADER_COMPAT, token);
+    return headers;
+  }
+
+  function withTokenInit(input, init, token){
+    var next = Object.assign({}, init || {});
+    next.headers = mergeHeaders(input, init, token);
+    next.credentials = 'include';
+    if(!next.cache) next.cache = 'no-store';
+    return next;
+  }
+
+  window.fetch = function(input, init){
+    if(!isA2fMutating(input, init)) return nativeFetch(input, init);
+    return ensureToken().then(function(token){
+      if(!looksLikeCsrfToken(token)) return nativeFetch(input, init);
+      return nativeFetch(input, withTokenInit(input, init, token));
+    });
+  };
+
+  window.DiracCsrfA2fPasskeyBridge = {
+    version:'v140',
+    refresh:ensureToken,
+    hasToken:function(){ return looksLikeCsrfToken(tokenMemory); }
+  };
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', function(){ ensureToken().catch(function(){}); }, {once:true});
+  }else{
+    ensureToken().catch(function(){});
+  }
+})();
+</script>
+
 </body>
 </html>
