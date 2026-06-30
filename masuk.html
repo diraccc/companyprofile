@@ -10569,5 +10569,139 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
 })();
 </script>
 
+
+
+<script id="dirac-csrf-login-final-bridge-v141-js">
+(function(){
+  'use strict';
+  if(window.__DIRAC_CSRF_LOGIN_FINAL_BRIDGE_V141__) return;
+  window.__DIRAC_CSRF_LOGIN_FINAL_BRIDGE_V141__ = true;
+
+  /*
+    Final bridge untuk mode backend: semua aksi browser wajib CSRF.
+    Scope sempit: hanya memastikan request mutating dari halaman masuk membawa
+    X-Dirac-CSRF-Token dan X-CSRF-Token. Tidak mengubah endpoint, payload,
+    login flow, A2F flow, logout, hash, payment, email, atau tampilan.
+  */
+
+  var MUTATING = {POST:true, PUT:true, PATCH:true, DELETE:true};
+  var TOKEN_HEADER = 'X-Dirac-CSRF-Token';
+  var TOKEN_HEADER_COMPAT = 'X-CSRF-Token';
+  var tokenMemory = '';
+  var tokenAt = 0;
+  var pending = null;
+  var nativeFetch = window.fetch ? window.fetch.bind(window) : null;
+  if(!nativeFetch) return;
+
+  function now(){ return Date.now ? Date.now() : new Date().getTime(); }
+  function looksLikeToken(value){
+    var v = String(value || '').trim();
+    return /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(v) && v.length >= 48 && v.length <= 4096;
+  }
+  function urlOf(input){
+    try{
+      var raw = typeof input === 'string' ? input : (input && input.url) || '';
+      if(!raw) return null;
+      var url = new URL(raw, window.location.href);
+      if(url.origin !== window.location.origin) return null;
+      return url;
+    }catch(_){ return null; }
+  }
+  function methodOf(input, init){
+    return String((init && init.method) || (input && input.method) || 'GET').toUpperCase();
+  }
+  function isApiMutating(input, init){
+    var method = methodOf(input, init);
+    if(!MUTATING[method]) return false;
+    var url = urlOf(input);
+    if(!url) return false;
+    return /^\/api\/health\b/i.test(url.pathname) || /^\/api\/2fa\//i.test(url.pathname);
+  }
+  function readHeader(res){
+    try{
+      return String(
+        res.headers.get(TOKEN_HEADER) ||
+        res.headers.get(TOKEN_HEADER_COMPAT) ||
+        res.headers.get('x-dirac-csrf-token') ||
+        res.headers.get('x-csrf-token') ||
+        ''
+      ).trim();
+    }catch(_){ return ''; }
+  }
+  function probeUrl(){
+    return '/api/health?action=domain_health&_csrf_login_final=' + encodeURIComponent(String(now()));
+  }
+  function remember(token){
+    if(looksLikeToken(token)){
+      tokenMemory = String(token).trim();
+      tokenAt = now();
+      return tokenMemory;
+    }
+    return tokenMemory || '';
+  }
+  function refresh(){
+    if(looksLikeToken(tokenMemory) && (now() - tokenAt) < 60000) return Promise.resolve(tokenMemory);
+    if(pending) return pending;
+    pending = nativeFetch(probeUrl(), {
+      method:'GET',
+      mode:'same-origin',
+      credentials:'include',
+      cache:'no-store',
+      headers:{'Accept':'application/json','X-Dirac-CSRF-Probe':'login-final-v141'}
+    }).then(function(res){
+      var token = readHeader(res);
+      try{ res.clone().json().catch(function(){}); }catch(_){ }
+      return remember(token);
+    }).catch(function(){
+      return tokenMemory || '';
+    }).then(function(token){
+      pending = null;
+      return token;
+    }, function(err){
+      pending = null;
+      throw err;
+    });
+    return pending;
+  }
+  function mergeHeaders(input, init, token){
+    var headers = new Headers();
+    try{ if(input && input.headers) new Headers(input.headers).forEach(function(v,k){ headers.set(k,v); }); }catch(_){ }
+    try{ if(init && init.headers) new Headers(init.headers).forEach(function(v,k){ headers.set(k,v); }); }catch(_){ }
+    headers.set(TOKEN_HEADER, token);
+    headers.set(TOKEN_HEADER_COMPAT, token);
+    return headers;
+  }
+  function withToken(input, init, token){
+    var next = Object.assign({}, init || {});
+    next.headers = mergeHeaders(input, init, token);
+    next.credentials = 'include';
+    if(!next.cache) next.cache = 'no-store';
+    return next;
+  }
+
+  window.fetch = function(input, init){
+    if(!isApiMutating(input, init)) return nativeFetch(input, init);
+    return refresh().then(function(token){
+      if(!looksLikeToken(token)) return nativeFetch(input, init);
+      return nativeFetch(input, withToken(input, init, token));
+    });
+  };
+
+  window.DiracCsrfLoginFinalBridge = {
+    version:'v141',
+    refresh:refresh,
+    hasToken:function(){ return looksLikeToken(tokenMemory); }
+  };
+
+  function preload(){ refresh().catch(function(){}); }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', preload, {once:true});
+  else preload();
+  document.addEventListener('pointerdown', function(e){
+    var t = e.target && e.target.closest ? e.target.closest('#submitBtn,#authForm button[type="submit"],[data-a2f-action],#a2fStartBtn,#a2fVerifyBtn') : null;
+    if(t) preload();
+  }, true);
+})();
+</script>
+
 </body>
 </html>
