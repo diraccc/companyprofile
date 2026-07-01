@@ -22600,3 +22600,591 @@ function diracV143SafeError(error) {
   if (/password|token|secret|cookie|authorization|apikey|service_role/i.test(message)) return 'security_internal_error';
   return message.slice(0, 160);
 }
+
+/* ============================================================
+   DIRAC GLOBAL REQUEST INPUT FIREWALL v144 - APPEND ONLY
+   Tujuan:
+   - Memperketat sanitasi backend sebelum endpoint bisnis memproses request.
+   - Scan URL/query/header dan body ter-parse secara recursive.
+   - Password ikut discan sebelum hash: quote berbahaya dan pola SQL/XSS/SQLMap/IDOR/BOLA = hard-ban.
+   - Backup/recovery code boleh karakter aneh, tetapi tetap discan pola SQL/XSS/SQLMap/IDOR/BOLA sebelum compare hash.
+   - Tidak mengubah endpoint, login flow, hash, payment gateway, email template,
+     A2F/MFA/passkey, logout, atau idle logout.
+   ============================================================ */
+
+const DIRAC_GLOBAL_REQUEST_INPUT_FIREWALL_V144 = 'dirac-global-request-input-firewall-v144';
+const __diracV144PreviousHandler = module.exports;
+
+try {
+  if (__diracV144PreviousHandler && !__diracV144PreviousHandler.__diracV144InputFirewallWrapped) {
+    module.exports = async function diracGlobalRequestInputFirewallWrapperV144(req, res) {
+      const action = diracV144NormalizeAction(String((req && req.query && req.query.action) || ''));
+      const method = String((req && req.method) || 'GET').toUpperCase();
+
+      try {
+        if (res && typeof res.setHeader === 'function') {
+          res.setHeader('X-Dirac-Input-Firewall', DIRAC_GLOBAL_REQUEST_INPUT_FIREWALL_V144);
+        }
+
+        if (!diracV144ShouldSkipPreflight(req, action, method)) {
+          const active = typeof diracV107CheckActiveBan === 'function'
+            ? await diracV107CheckActiveBan(req).catch(() => ({ blocked: false }))
+            : { blocked: false };
+          if (active && active.blocked) {
+            try { res.setHeader('Retry-After', String(active.retryAfterSeconds || 86400)); } catch (_) {}
+            return diracV144BlockedResponse(res, 'GLOBAL_HARD_BAN_ACTIVE');
+          }
+
+          const browser = diracV144CheckBrowserProof(req, action, method);
+          if (!browser.ok) {
+            await diracV144RegisterThreat(req, res, action, method, {
+              detected: true,
+              family: 'browser_proof',
+              kind: browser.reason || 'browser_proof_invalid',
+              source: browser.source || 'request_headers',
+              risk: 'critical',
+              status: 403
+            }).catch(() => null);
+            return diracV144BlockedResponse(res, browser.reason || 'BROWSER_PROOF_INVALID');
+          }
+
+          const preThreat = diracV144DetectPreParsedThreat(req, action, method);
+          if (preThreat.detected) {
+            await diracV144RegisterThreat(req, res, action, method, preThreat).catch(() => null);
+            return diracV144BlockedResponse(res, preThreat.kind || 'REQUEST_THREAT');
+          }
+
+          if (req && req.body !== undefined && req.body !== null) {
+            const bodyThreat = diracV144DetectParsedBodyThreat(req.body, action);
+            if (bodyThreat.detected) {
+              await diracV144RegisterThreat(req, res, action, method, bodyThreat).catch(() => null);
+              return diracV144BlockedResponse(res, bodyThreat.kind || 'BODY_THREAT');
+            }
+          }
+        }
+      } catch (error) {
+        try { console.error('[dirac-v144-input-firewall]', diracV144SafeError(error)); } catch (_) {}
+        return diracV144BlockedResponse(res, 'INPUT_FIREWALL_ERROR');
+      }
+
+      return __diracV144PreviousHandler(req, res);
+    };
+    Object.defineProperty(module.exports, '__diracV144InputFirewallWrapped', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+try {
+  const __diracV144OriginalReadLimitedJsonBody = typeof readLimitedJsonBody === 'function' ? readLimitedJsonBody : null;
+  if (__diracV144OriginalReadLimitedJsonBody && !__diracV144OriginalReadLimitedJsonBody.__diracV144Wrapped) {
+    readLimitedJsonBody = async function readLimitedJsonBodyV144InputFirewall(req, limitBytes) {
+      const body = await __diracV144OriginalReadLimitedJsonBody(req, limitBytes);
+      await diracV144GuardParsedBodyOrThrow(req, body);
+      return body;
+    };
+    Object.defineProperty(readLimitedJsonBody, '__diracV144Wrapped', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+try {
+  const __diracV144OriginalReadBody = typeof readBody === 'function' ? readBody : null;
+  if (__diracV144OriginalReadBody && !__diracV144OriginalReadBody.__diracV144Wrapped) {
+    readBody = async function readBodyV144InputFirewall(req) {
+      const body = await __diracV144OriginalReadBody(req);
+      await diracV144GuardParsedBodyOrThrow(req, body);
+      return body;
+    };
+    Object.defineProperty(readBody, '__diracV144Wrapped', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+async function diracV144GuardParsedBodyOrThrow(req, body) {
+  const action = diracV144NormalizeAction(String((req && req.query && req.query.action) || (body && (body.action || body.mode)) || ''));
+  const method = String((req && req.method) || 'POST').toUpperCase();
+  if (diracV144ShouldSkipBodyInspection(action, method)) return body;
+
+  const threat = diracV144DetectParsedBodyThreat(body, action);
+  if (!threat.detected) return body;
+
+  await diracV144RegisterThreat(req, null, action, method, threat).catch(() => null);
+  const error = new Error('REQUEST_BLOCKED_BY_INPUT_FIREWALL');
+  error.statusCode = 403;
+  error.status = 403;
+  error.code = 'REQUEST_BLOCKED';
+  error.publicMessage = 'Permintaan ditolak oleh sistem keamanan.';
+  error.diracSecurityThreat = {
+    detected: true,
+    kind: diracV144CleanSmall(threat.kind || 'input_firewall_threat', 80),
+    source: diracV144CleanSmall(threat.source || 'body', 80),
+    patch: DIRAC_GLOBAL_REQUEST_INPUT_FIREWALL_V144
+  };
+  throw error;
+}
+
+function diracV144ShouldSkipPreflight(req, action, method) {
+  if (diracV144EnvTrue('DIRAC_V144_INPUT_FIREWALL_DISABLED')) return true;
+  if (String(method || '').toUpperCase() === 'OPTIONS') return true;
+  const url = String((req && req.url) || '');
+  if (/\.(?:html?|css|js|mjs|map|png|jpe?g|webp|gif|svg|ico|woff2?|ttf|otf)(?:\?|$)/i.test(url) && !/\/api\/health/i.test(url)) return true;
+  const clean = diracV144NormalizeAction(action);
+  if (clean === 'domain_logout' || clean === 'logout') return true;
+  if (diracV144IsWebhookOrPaymentCallback(clean)) return true;
+  if (clean === 'domain_health' || clean === 'midtrans_health' || clean === 'ipaymu_health') return true;
+  return false;
+}
+
+function diracV144ShouldSkipBodyInspection(action, method) {
+  if (diracV144EnvTrue('DIRAC_V144_INPUT_FIREWALL_DISABLED')) return true;
+  const clean = diracV144NormalizeAction(action);
+  if (String(method || '').toUpperCase() === 'OPTIONS') return true;
+  if (clean === 'domain_logout' || clean === 'logout') return true;
+  if (diracV144IsWebhookOrPaymentCallback(clean)) return true;
+  if (/passkey|webauthn|attestation|assertion/i.test(clean)) return true;
+  return false;
+}
+
+function diracV144IsWebhookOrPaymentCallback(action) {
+  const clean = diracV144NormalizeAction(action);
+  return /midtrans|ipaymu|webhook|callback|notification|payment_gateway|payment_notification/i.test(clean);
+}
+
+function diracV144CheckBrowserProof(req, action, method) {
+  if (diracV144EnvTrue('DIRAC_V144_BROWSER_PROOF_DISABLED')) return { ok: true, source: 'disabled' };
+  if (!diracV144NeedsBrowserProof(action, method)) return { ok: true, source: 'not_required' };
+
+  const headers = (req && req.headers) || {};
+  const ua = String(headers['user-agent'] || headers['User-Agent'] || '');
+  const lowerUa = ua.toLowerCase();
+  if (!ua) return { ok: false, reason: 'browser_user_agent_missing', source: 'user_agent' };
+
+  if (/(?:postmanruntime|insomnia|thunder\s*client|curl|wget|python-requests|libwww-perl|httpclient|java\/|go-http-client|okhttp|node-fetch|axios|httpie|sqlmap|burpsuite|portswigger|owasp\s*zap|zaproxy|nikto|acunetix|nessus|openvas|arachni|nmap|masscan|scanner|crawler|fuzzer|headlesschrome|phantomjs|selenium|playwright|puppeteer)/i.test(ua)) {
+    return { ok: false, reason: 'blocked_tool_user_agent', source: 'user_agent' };
+  }
+
+  const allowedBrowser = /(Chrome\/|CriOS\/|Chromium\/|GSA\/|GoogleApp\/|Version\/[\d.]+.*Safari\/|Safari\/)/i.test(ua);
+  if (!allowedBrowser) return { ok: false, reason: 'browser_not_allowed', source: 'user_agent' };
+  if (/Safari\//i.test(ua) && !/(Chrome\/|CriOS\/|Chromium\/|Version\/[\d.]+.*Safari\/|GSA\/|GoogleApp\/)/i.test(ua)) {
+    return { ok: false, reason: 'browser_signature_incomplete', source: 'user_agent' };
+  }
+
+  const site = String(headers['sec-fetch-site'] || '').toLowerCase();
+  const mode = String(headers['sec-fetch-mode'] || '').toLowerCase();
+  const dest = String(headers['sec-fetch-dest'] || '').toLowerCase();
+  const isWrite = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(String(method || '').toUpperCase());
+
+  if (!site || !mode) return { ok: false, reason: 'fetch_metadata_missing', source: 'sec_fetch' };
+  if (!['same-origin', 'same-site', 'none'].includes(site)) return { ok: false, reason: 'fetch_site_not_allowed', source: 'sec_fetch_site' };
+  if (!['cors', 'same-origin', 'navigate', 'no-cors'].includes(mode)) return { ok: false, reason: 'fetch_mode_not_allowed', source: 'sec_fetch_mode' };
+  if (isWrite && dest && dest !== 'empty' && dest !== 'document') return { ok: false, reason: 'fetch_dest_not_allowed', source: 'sec_fetch_dest' };
+
+  if (isWrite) {
+    const originGuard = diracV144CheckOriginOrReferer(req);
+    if (!originGuard.ok) return originGuard;
+  }
+
+  if (/headless/i.test(lowerUa)) return { ok: false, reason: 'headless_browser_blocked', source: 'user_agent' };
+  return { ok: true, source: 'browser_proof' };
+}
+
+function diracV144NeedsBrowserProof(action, method) {
+  const clean = diracV144NormalizeAction(action);
+  if (!clean && String(method || '').toUpperCase() === 'GET') return false;
+  if (clean === 'domain_health' || clean === 'hostinger_check') return false;
+  if (diracV144IsWebhookOrPaymentCallback(clean)) return false;
+  return true;
+}
+
+function diracV144CheckOriginOrReferer(req) {
+  const headers = (req && req.headers) || {};
+  const origin = diracV144NormalizeOrigin(headers.origin || headers.Origin || '');
+  const referer = diracV144NormalizeOrigin(headers.referer || headers.Referer || '');
+  const allowed = diracV144AllowedOrigins();
+  if (!origin && !referer) return { ok: false, reason: 'origin_referer_missing', source: 'origin' };
+  if (origin && !allowed.has(origin)) return { ok: false, reason: 'origin_not_allowed', source: 'origin' };
+  if (!origin && referer && !allowed.has(referer)) return { ok: false, reason: 'referer_not_allowed', source: 'referer' };
+  return { ok: true, source: 'origin_or_referer' };
+}
+
+function diracV144DetectPreParsedThreat(req, action, method) {
+  const headers = (req && req.headers) || {};
+  const duplicate = diracV144DetectDuplicateQuery(req);
+  if (duplicate.detected) return duplicate;
+
+  const samples = [];
+  const push = (field, value, mode) => samples.push({ field, value, mode: mode || 'strict' });
+  push('url', String((req && req.url) || ''), 'transport');
+  push('action', action, 'strict');
+  push('method', method, 'transport');
+
+  const query = (req && req.query) || {};
+  if (query && typeof query === 'object') {
+    for (const [key, value] of Object.entries(query).slice(0, 120)) {
+      push('query_key', key, 'strict_key');
+      if (Array.isArray(value)) value.slice(0, 40).forEach((item) => push(key, item, diracV144ModeForKey(key)));
+      else push(key, value, diracV144ModeForKey(key));
+    }
+  }
+
+  [
+    'user-agent',
+    'referer',
+    'referrer',
+    'origin',
+    'host',
+    'x-forwarded-host',
+    'x-original-url',
+    'x-rewrite-url',
+    'x-http-method-override'
+  ].forEach((name) => {
+    if (headers[name] !== undefined) push('header_' + name, headers[name], 'transport');
+  });
+
+  const cookieNames = diracV144CookieNames(headers.cookie || '');
+  cookieNames.forEach((name) => push('cookie_name', name, 'strict_key'));
+
+  for (const item of samples) {
+    const threat = diracV144DetectValueThreat(item.value, item.field, item.mode);
+    if (threat.detected) return threat;
+  }
+  return { detected: false };
+}
+
+function diracV144DetectParsedBodyThreat(body, action) {
+  const items = [];
+  diracV144CollectBodyItems(body, items, 0, '', action);
+  for (const item of items) {
+    const threat = diracV144DetectValueThreat(item.value, item.field, item.mode);
+    if (threat.detected) return threat;
+  }
+  return { detected: false };
+}
+
+function diracV144CollectBodyItems(value, out, depth, parentKey, action) {
+  if (out.length >= 500 || depth > 10 || value === undefined || value === null) return out;
+  const key = String(parentKey || '');
+  const mode = diracV144ModeForKey(key, action);
+
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    out.push({ field: key || 'body', value: String(value), mode });
+    return out;
+  }
+
+  if (Array.isArray(value)) {
+    value.slice(0, 100).forEach((item, index) => diracV144CollectBodyItems(item, out, depth + 1, key + '[' + index + ']', action));
+    return out;
+  }
+
+  if (typeof value === 'object') {
+    for (const [k, v] of Object.entries(value).slice(0, 160)) {
+      out.push({ field: 'body_key', value: k, mode: 'strict_key' });
+      diracV144CollectBodyItems(v, out, depth + 1, k, action);
+    }
+  }
+  return out;
+}
+
+function diracV144ModeForKey(key, action) {
+  const cleanKey = String(key || '').toLowerCase();
+  const cleanAction = diracV144NormalizeAction(action || '');
+  if (/password|passwd|pwd|old_password|new_password|confirm_password|password_confirm/i.test(cleanKey)) return 'password';
+  if (/backup[_-]?code|recovery[_-]?code|recoverycode|customer_security_recovery_code/i.test(cleanKey) || cleanAction === 'customer_security_recovery_code_verify') return 'backup_code';
+  if (/token|secret|cookie|authorization|signature|challenge|credential|clientdata|attestation|assertion|proof|csrf|captcha|hmac|hash|session|refresh|access_token|id_token|otp|totp|pin|passkey|webauthn/i.test(cleanKey)) return 'opaque_secret';
+  if (/user_id|userid|owner_id|ownerid|role|is_admin|admin|tenant_id|permission|privilege|access_level/i.test(cleanKey)) return 'strict_key';
+  return 'strict';
+}
+
+function diracV144DetectValueThreat(value, field, mode) {
+  const raw = String(value === undefined || value === null ? '' : value);
+  if (!raw) return { detected: false };
+  const cleanField = diracV144CleanSmall(field || 'input', 80);
+  const cleanMode = String(mode || 'strict');
+
+  if (cleanMode === 'password' && /['"`\u2018\u2019\u201C\u201D]/.test(raw)) {
+    return diracV144Threat('dangerous_password_quote', cleanField, cleanMode);
+  }
+
+  if (cleanMode === 'strict' && /['"`\u2018\u2019\u201C\u201D<>;#{}\[\]|()=$%&:*?,\\]/.test(raw)) {
+    return diracV144Threat('dangerous_character', cleanField, cleanMode);
+  }
+
+  if (cleanMode === 'strict_key' && diracV144LooksLikeForbiddenKey(raw)) {
+    return diracV144Threat('forbidden_key_or_idor_bola_indicator', cleanField, cleanMode);
+  }
+
+  if (cleanMode === 'opaque_secret') {
+    const opaqueThreat = diracV144FindAttackPattern(raw, cleanField, { highConfidenceOnly: true });
+    return opaqueThreat.detected ? opaqueThreat : { detected: false };
+  }
+
+  const threat = diracV144FindAttackPattern(raw, cleanField, { highConfidenceOnly: false });
+  if (threat.detected) return threat;
+
+  if (cleanMode === 'transport' && /(?:\.\.\/|\.\.\\|%2e%2e|%252e%252e|__proto__|constructor\s*\[|prototype\s*\[)/i.test(raw)) {
+    return diracV144Threat('transport_traversal_or_prototype_pollution', cleanField, cleanMode);
+  }
+
+  return { detected: false };
+}
+
+function diracV144FindAttackPattern(value, field, options = {}) {
+  const samples = diracV144InspectionSamples(value);
+  const highOnly = Boolean(options.highConfidenceOnly);
+  const patterns = diracV144AttackPatterns(highOnly);
+
+  for (const sample of samples) {
+    const text = String(sample || '').slice(0, 4000);
+    if (!text) continue;
+    for (const item of patterns) {
+      if (item.pattern.test(text)) {
+        return {
+          detected: true,
+          family: item.family,
+          kind: item.kind,
+          source: field || 'input',
+          risk: 'critical',
+          status: 403,
+          patch: DIRAC_GLOBAL_REQUEST_INPUT_FIREWALL_V144
+        };
+      }
+    }
+  }
+  return { detected: false };
+}
+
+function diracV144AttackPatterns(highConfidenceOnly) {
+  const base = [
+    { family: 'sqli', kind: 'sqli_boolean_or_true', pattern: /\bor\s+1\s*=\s*1\b/i },
+    { family: 'sqli', kind: 'sqli_boolean_and_true', pattern: /\band\s+1\s*=\s*1\b/i },
+    { family: 'sqli', kind: 'sqli_boolean_word', pattern: /\b(?:or|and)\s+(?:true|false)\b/i },
+    { family: 'sqli', kind: 'sqli_union', pattern: /union/i },
+    { family: 'sqli', kind: 'sqli_select', pattern: /select/i },
+    { family: 'sqli', kind: 'sqli_dml_ddl', pattern: /\b(?:insert|update|delete|drop|alter|create|truncate|replace|merge|exec|execute|declare)\b/i },
+    { family: 'sqli', kind: 'sqli_clause', pattern: /\b(?:from|where|having|group\s+by|order\s+by|limit|offset|rlike|regexp|between|is\s+null|is\s+not\s+null)\b/i },
+    { family: 'sqli', kind: 'sqli_schema_enum', pattern: /\b(?:information_schema|table_schema|table_name|column_name|schema_name|database\s*\(|version\s*\(|user\s*\(|current_user\s*\(|session_user\s*\(|system_user\s*\(|@@version|@@hostname|@@datadir)\b/i },
+    { family: 'sqli', kind: 'sqli_function_probe', pattern: /\b(?:cast|convert|concat|concat_ws|group_concat|substring|substr|mid|left|right|ascii|char|chr|ord|hex|unhex|md5|sha1)\s*\(/i },
+    { family: 'sqli', kind: 'sqli_file_or_delay', pattern: /\b(?:load_file|into\s+outfile|into\s+dumpfile|sleep|benchmark|pg_sleep|waitfor\s+delay|dbms_pipe|utl_http|xp_cmdshell|sp_executesql)\b/i },
+    { family: 'sqli', kind: 'sqli_error_probe', pattern: /\b(?:sqlstate|sql\s+syntax|mysql\s+error|postgresql\s+error|mssql\s+error|oracle\s+error|odbc|jdbc|database\s+error|syntax\s+error|unterminated\s+quoted\s+string|invalid\s+query|duplicate\s+entry|no\s+such\s+table|unknown\s+column|ora-|sql\s+server|mysql|postgres|sqlite|mariadb)\b/i },
+    { family: 'sqli', kind: 'sqli_comment_or_statement', pattern: /(?:--|\/\*|\*\/|#\s*(?:select|union|insert|update|delete|drop|alter|sleep|sqlmap)|;\s*(?:select|insert|update|delete|drop|alter|truncate|create|exec|execute)\b)/i },
+    { family: 'scanner', kind: 'scanner_tool', pattern: /\b(?:sqlmap|sqlmapproject|sqlmap\.org|python-requests|libwww-perl|curl|wget|httpclient|java\/|go-http-client|burpsuite|owasp\s+zap|zaproxy|nikto|acunetix|netsparker|nessus|openvas|arachni|nmap|masscan|scanner|crawler|fuzzer|boolean-based|time-based|error-based|union\s+query|stacked\s+queries|sql\s+injection|sleep\s+payload|database\s+enumeration)\b/i },
+    { family: 'xss', kind: 'xss_script_tag', pattern: /(?:<\s*script|<\/\s*script\s*>|script\s*>|script)/i },
+    { family: 'xss', kind: 'xss_scheme', pattern: /\b(?:javascript|vbscript)\s*:/i },
+    { family: 'xss', kind: 'xss_data_uri', pattern: /\bdata\s*:\s*(?:text\/html|image\/svg)/i },
+    { family: 'xss', kind: 'xss_event_handler', pattern: /\bon(?:error|load|click|dblclick|mouseover|mouseenter|mouseleave|mousemove|mouseout|focus|blur|change|input|submit|reset|keydown|keyup|keypress|animationstart|animationend|transitionend|pointerover|pointerenter|pointerdown|pointerup|touchstart|touchend|wheel|scroll|drag|drop)\s*=/i },
+    { family: 'xss', kind: 'xss_dom_access', pattern: /\b(?:document\.(?:cookie|domain|location|referrer|write|writeln)|window\.(?:location|name|open)|localstorage|sessionstorage|navigator\.sendbeacon)\b/i },
+    { family: 'xss', kind: 'xss_js_execution', pattern: /\b(?:eval|alert|prompt|confirm|settimeout|setinterval|function|fetch|xmlhttprequest|fromcharcode|atob|btoa)\s*\(/i },
+    { family: 'xss', kind: 'xss_html_sink', pattern: /\b(?:innerhtml|outerhtml|insertadjacenthtml|srcdoc|src\s*=|href\s*=|style\s*=)\b/i },
+    { family: 'xss', kind: 'xss_dangerous_tag', pattern: /<\s*(?:iframe|object|embed|svg|img|image|body|link|meta|style|form|input|textarea|button|video|audio|source|track|math|base|details|marquee|template)\b/i },
+    { family: 'xss', kind: 'xss_css_injection', pattern: /\b(?:expression\s*\(|url\s*\(|@import)\b/i },
+    { family: 'encoded', kind: 'encoded_bypass', pattern: /(?:%3c|%3e|%22|%27|%28|%29|%2f|%5c|%3b|%2d%2d|%23|&#x|&#60|&#62|&lt;|&gt;|&quot;|&apos;|\\u003c|\\u003e|\\u0022|\\u0027)/i },
+    { family: 'encoded', kind: 'base64_or_encoder_probe', pattern: /\b(?:base64|fromcharcode|atob\s*\(|btoa\s*\()\b/i },
+    { family: 'idor_bola', kind: 'idor_bola_indicator', pattern: /(?:admin|root|superuser|isadmin|is_admin|role|role_id|user_id|userid|owner_id|ownerid|account_id|accountid|order_id|orderid|domain_id|domainid|customer_id|customerid|tenant_id|tenantid|permission|privilege|access_level)/i },
+    { family: 'xss', kind: 'xss_one_click_probe', pattern: /\bone\s*click\b/i }
+  ];
+
+  if (!highConfidenceOnly) return base;
+  return base.filter((item) => !/^(sqli_union|sqli_select|sqli_clause|idor_bola_indicator)$/.test(item.kind));
+}
+
+function diracV144InspectionSamples(value) {
+  const raw = String(value || '');
+  if (!raw) return [];
+  const samples = new Set();
+  const push = (item) => {
+    const text = String(item || '').replace(/[\u200B-\u200D\uFEFF]/g, '').slice(0, 4000);
+    if (!text) return;
+    samples.add(text);
+    samples.add(text.toLowerCase());
+    samples.add(text.replace(/\+/g, ' '));
+    samples.add(text.replace(/\+/g, ' ').toLowerCase());
+  };
+
+  push(raw);
+  let current = raw;
+  for (let i = 0; i < 3; i += 1) {
+    try {
+      const decoded = decodeURIComponent(current);
+      push(decoded);
+      if (decoded === current) break;
+      current = decoded;
+    } catch (_) { break; }
+  }
+
+  const htmlDecoded = diracV144DecodeHtmlEntities(raw);
+  if (htmlDecoded !== raw) push(htmlDecoded);
+
+  const unicodeDecoded = raw.replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => {
+    try { return String.fromCharCode(parseInt(hex, 16)); } catch (_) { return _; }
+  });
+  if (unicodeDecoded !== raw) push(unicodeDecoded);
+
+  const compact = raw.replace(/[\s._\-]+/g, ' ').trim();
+  if (compact && compact !== raw) push(compact);
+
+  if (/^[A-Za-z0-9+/=_-]{12,}$/.test(raw) && raw.length <= 512) {
+    try {
+      const normalized = raw.replace(/-/g, '+').replace(/_/g, '/');
+      const decoded = Buffer.from(normalized, 'base64').toString('utf8');
+      if (/[\x20-\x7E]{4,}/.test(decoded)) push(decoded);
+    } catch (_) {}
+  }
+
+  return Array.from(samples);
+}
+
+function diracV144DecodeHtmlEntities(value) {
+  return String(value || '')
+    .replace(/&#x([0-9a-fA-F]+);?/g, (_, hex) => {
+      try { return String.fromCodePoint(parseInt(hex, 16)); } catch (_) { return _; }
+    })
+    .replace(/&#([0-9]+);?/g, (_, num) => {
+      try { return String.fromCodePoint(parseInt(num, 10)); } catch (_) { return _; }
+    })
+    .replace(/&lt;?/gi, '<')
+    .replace(/&gt;?/gi, '>')
+    .replace(/&quot;?/gi, '"')
+    .replace(/&apos;?/gi, "'")
+    .replace(/&amp;?/gi, '&');
+}
+
+function diracV144LooksLikeForbiddenKey(value) {
+  const text = String(value || '').trim();
+  if (!text) return false;
+  return /(?:__proto__|prototype|constructor|is_admin|isadmin|role|role_id|user_id|userid|owner_id|ownerid|account_id|accountid|tenant_id|tenantid|permission|privilege|access_level)/i.test(text);
+}
+
+function diracV144DetectDuplicateQuery(req) {
+  try {
+    const rawUrl = String((req && req.url) || '');
+    const q = rawUrl.includes('?') ? rawUrl.split('?').slice(1).join('?').split('#')[0] : '';
+    if (!q) return { detected: false };
+    const seen = new Set();
+    for (const part of q.split('&')) {
+      if (!part) continue;
+      const rawKey = part.split('=')[0] || '';
+      const key = decodeURIComponent(rawKey.replace(/\+/g, ' ')).trim().toLowerCase();
+      if (!key) continue;
+      if (seen.has(key)) return diracV144Threat('duplicate_query_parameter', 'query', 'transport');
+      seen.add(key);
+    }
+  } catch (_) {}
+  return { detected: false };
+}
+
+async function diracV144RegisterThreat(req, res, action, method, threat) {
+  const safeThreat = {
+    detected: true,
+    family: diracV144CleanSmall(threat && threat.family || 'input_firewall', 40),
+    kind: diracV144CleanSmall(threat && threat.kind || 'input_firewall_threat', 80),
+    source: diracV144CleanSmall(threat && threat.source || 'request', 80),
+    risk: 'critical',
+    status: 403,
+    patch: DIRAC_GLOBAL_REQUEST_INPUT_FIREWALL_V144
+  };
+
+  if (typeof diracV119RegisterThreat === 'function') {
+    await diracV119RegisterThreat(req, res || null, action, method, safeThreat).catch(() => null);
+    return true;
+  }
+  if (typeof diracV107RegisterHardBan === 'function') {
+    await diracV107RegisterHardBan(req, res || null, action, method, safeThreat).catch(() => null);
+    return true;
+  }
+  if (typeof diracV101RegisterSqlmapAttack === 'function') {
+    await diracV101RegisterSqlmapAttack(req, action, method, safeThreat).catch(() => null);
+    return true;
+  }
+  return false;
+}
+
+function diracV144Threat(kind, field, mode) {
+  return {
+    detected: true,
+    family: kind && kind.includes('idor') ? 'idor_bola' : 'input_firewall',
+    kind: String(kind || 'input_firewall_threat').slice(0, 80),
+    source: String(field || 'input').slice(0, 80),
+    mode: String(mode || '').slice(0, 40),
+    risk: 'critical',
+    status: 403,
+    patch: DIRAC_GLOBAL_REQUEST_INPUT_FIREWALL_V144
+  };
+}
+
+function diracV144BlockedResponse(res, reason) {
+  try { if (typeof diracApplySecurityResponseHeaders === 'function') diracApplySecurityResponseHeaders(res); } catch (_) {}
+  try { if (res && typeof res.setHeader === 'function') res.setHeader('Cache-Control', 'no-store'); } catch (_) {}
+  return res.status(403).json({
+    ok: false,
+    code: 'GLOBAL_HARD_BAN',
+    message: 'Akses dibatasi oleh sistem keamanan.',
+    reason: diracV144CleanSmall(reason || 'INPUT_FIREWALL_BLOCKED', 80)
+  });
+}
+
+function diracV144CookieNames(rawCookie) {
+  return String(rawCookie || '')
+    .split(';')
+    .map((item) => String(item || '').split('=')[0].trim())
+    .filter(Boolean)
+    .slice(0, 80);
+}
+
+function diracV144AllowedOrigins() {
+  const out = new Set();
+  const add = (value) => {
+    const origin = diracV144NormalizeOrigin(value);
+    if (origin) out.add(origin);
+  };
+  try {
+    const list = typeof getAllowedOrigins === 'function' ? getAllowedOrigins() : [];
+    (list || []).forEach(add);
+  } catch (_) {}
+  add('https://diracgroup.store');
+  add('https://www.diracgroup.store');
+  add(process.env.DOMAIN_SITE_URL);
+  add(process.env.SITE_URL);
+  if (process.env.NODE_ENV !== 'production') {
+    add('http://localhost:3000');
+    add('http://127.0.0.1:3000');
+    add('http://localhost:5173');
+    add('http://127.0.0.1:5173');
+  }
+  return out;
+}
+
+function diracV144NormalizeOrigin(value) {
+  try {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    const parsed = new URL(raw);
+    if (!/^https?:$/.test(parsed.protocol)) return '';
+    return parsed.origin;
+  } catch (_) {
+    return '';
+  }
+}
+
+function diracV144NormalizeAction(action) {
+  try { if (typeof diracV143NormalizeAction === 'function') return diracV143NormalizeAction(String(action || '')); } catch (_) {}
+  try { if (typeof diracV138CsrfNormalizeAction === 'function') return diracV138CsrfNormalizeAction(String(action || '')); } catch (_) {}
+  try { if (typeof normalizeDomainAction === 'function') return normalizeDomainAction(String(action || '')); } catch (_) {}
+  return String(action || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+}
+
+function diracV144CleanSmall(value, maxLength) {
+  return String(value === undefined || value === null ? '' : value)
+    .replace(/[<>{}\[\]"'`&]/g, ' ')
+    .replace(/[\u0000-\u001F\u007F]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, Math.max(1, Math.min(Number(maxLength) || 80, 240)));
+}
+
+function diracV144EnvTrue(name) {
+  const value = String(process.env[name] || '').trim().toLowerCase();
+  return value === '1' || value === 'true' || value === 'yes' || value === 'on';
+}
+
+function diracV144SafeError(error) {
+  const message = String(error && error.message ? error.message : error || 'error');
+  if (/password|token|secret|cookie|authorization|apikey|service_role|backup|recovery/i.test(message)) return 'input_firewall_internal_error';
+  return diracV144CleanSmall(message, 160);
+}
