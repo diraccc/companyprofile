@@ -22770,11 +22770,15 @@ function diracV144CheckBrowserProof(req, action, method) {
   const mode = String(headers['sec-fetch-mode'] || '').toLowerCase();
   const dest = String(headers['sec-fetch-dest'] || '').toLowerCase();
   const isWrite = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(String(method || '').toUpperCase());
+  const mobileBrowserCompat = diracV144IsMobileBrowserCompatUa(ua);
 
-  if (!site || !mode) return { ok: false, reason: 'fetch_metadata_missing', source: 'sec_fetch' };
-  if (!['same-origin', 'same-site', 'none'].includes(site)) return { ok: false, reason: 'fetch_site_not_allowed', source: 'sec_fetch_site' };
-  if (!['cors', 'same-origin', 'navigate', 'no-cors'].includes(mode)) return { ok: false, reason: 'fetch_mode_not_allowed', source: 'sec_fetch_mode' };
-  if (isWrite && dest && dest !== 'empty' && dest !== 'document') return { ok: false, reason: 'fetch_dest_not_allowed', source: 'sec_fetch_dest' };
+  if (!site || !mode) {
+    if (!mobileBrowserCompat) return { ok: false, reason: 'fetch_metadata_missing', source: 'sec_fetch' };
+  } else {
+    if (!['same-origin', 'same-site', 'none'].includes(site)) return { ok: false, reason: 'fetch_site_not_allowed', source: 'sec_fetch_site' };
+    if (!['cors', 'same-origin', 'navigate', 'no-cors'].includes(mode)) return { ok: false, reason: 'fetch_mode_not_allowed', source: 'sec_fetch_mode' };
+    if (isWrite && dest && dest !== 'empty' && dest !== 'document') return { ok: false, reason: 'fetch_dest_not_allowed', source: 'sec_fetch_dest' };
+  }
 
   if (isWrite) {
     const originGuard = diracV144CheckOriginOrReferer(req);
@@ -22783,6 +22787,12 @@ function diracV144CheckBrowserProof(req, action, method) {
 
   if (/headless/i.test(lowerUa)) return { ok: false, reason: 'headless_browser_blocked', source: 'user_agent' };
   return { ok: true, source: 'browser_proof' };
+}
+
+function diracV144IsMobileBrowserCompatUa(userAgent) {
+  const ua = String(userAgent || '');
+  return /(?:iPhone|iPad|iPod|Mobile|Android)/i.test(ua)
+    && /(?:CriOS\/|Chrome\/|Version\/[\d.]+.*Safari\/|Safari\/|GSA\/|GoogleApp\/)/i.test(ua);
 }
 
 function diracV144NeedsBrowserProof(action, method) {
