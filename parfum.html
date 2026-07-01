@@ -13766,6 +13766,28 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   }
 
   function boot(){
+    // Reject requests where the HTML file is loaded with query strings, hash
+    // fragments or any suffix beyond the .html extension. This closes a
+    // common vector for manipulating the client‑side environment. If such an
+    // anomaly is detected we immediately register a security violation and
+    // prevent any further initialisation.
+    try{
+      var path = (window.location && window.location.pathname) || '';
+      // Locate the .html extension in the current path (case‑insensitive)
+      var idx = path.toLowerCase().indexOf('.html');
+      if(idx >= 0){
+        var extra = path.slice(idx + 5);
+        if(extra && extra !== ''){
+          armSecurityViolation('url','invalid_url_suffix');
+          return;
+        }
+      }
+      // Disallow any query string or hash fragment
+      if((window.location && (window.location.search || window.location.hash))) {
+        armSecurityViolation('url','invalid_url_suffix');
+        return;
+      }
+    }catch(_){}
     initMotionModePanel();
     ensureSmartTools();
     ensureQuizModal();
@@ -17807,18 +17829,108 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
   function setError(message){ var el=$('checkoutError'); if(el){ el.classList.remove('success'); el.textContent=message||''; el.classList.toggle('show', !!message); } }
   function triggerInput(el){ if(!el) return; try{ el.dispatchEvent(new Event('input',{bubbles:true})); }catch(_){ } try{ el.dispatchEvent(new Event('change',{bubbles:true})); }catch(_){ } }
 
-  function invalidNameChars(value){ return /[^a-z ]/.test(safeText(value)); }
-  function invalidTextChars(value){ return /[^a-z0-9 ]/.test(safeText(value)); }
+  // Hardened character validators. Allow both uppercase and lowercase letters for names
+  // and alphanumeric values for text fields. These helpers return true when the
+  // input contains a disallowed character.
+  function invalidNameChars(value){
+    // Only alphabetic characters (A‑Z or a‑z) and spaces are permitted.
+    return /[^A-Za-z ]/.test(safeText(value));
+  }
+  function invalidTextChars(value){
+    // Only alphanumeric characters (A‑Z, a‑z, 0‑9) and spaces are permitted.
+    return /[^A-Za-z0-9 ]/.test(safeText(value));
+  }
+  // Restrict characters for the menu search. Only letters and spaces are allowed.
+  function invalidMenuChars(value){
+    return /[^A-Za-z ]/.test(safeText(value));
+  }
+  // Restrict characters for the general product search. Letters, numbers and
+  // spaces are permitted.
+  function invalidSearchChars(value){
+    return /[^A-Za-z0-9 ]/.test(safeText(value));
+  }
+  // Restrict characters for promo codes. Only uppercase letters and numbers
+  // are permitted.
+  function invalidPromoChars(value){
+    return /[^A-Z0-9]/.test(safeText(value));
+  }
   function invalidPhoneChars(value){ var v=safeText(value); return /[^0-9+]/.test(v) || /\+/.test(v.slice(1)) || (v.indexOf('+') > 0); }
   function hasPayload(value){
-    var v = safeText(value).normalize('NFKC').toLowerCase();
-    return /(<|>|"|'|`|;|--|\/\*|\*\/|#|\{|\}|\[|\]|\||=)/.test(v) ||
-      /\b(sqlmap|union|select|insert|update|delete|drop|alter|create|truncate|exec|sleep|benchmark|information_schema|database|table_name|column_name|waitfor|delay)\b/.test(v) ||
-      /\b(and|or|0r)\s+1\s*=\s*1\b/.test(v);
+    // Normalize and lower‑case the input. Where possible decode URI
+    // encodings once to surface obfuscated attacks. Concatenate the decoded
+    // representation so that checks catch both encoded and plain text.
+    var raw = safeText(value).normalize('NFKC');
+    var lower = raw.toLowerCase();
+    try{
+      var decoded = decodeURIComponent(lower);
+      if(decoded && decoded !== lower) lower += ' ' + decoded.toLowerCase();
+    }catch(_){ /* ignore URI decoding errors */ }
+    // List of forbidden keywords and patterns. Everything is kept in
+    // lowercase for comparison. If any of these terms appear in the
+    // normalized input, we treat it as a payload.
+    var banned = [
+      'union','union select','union all select','select ', 'select from','select *',
+      'insert','insert into','update','update set','delete','delete from','drop','drop table',
+      'alter','alter table','create','create table','truncate','truncate table','replace','replace into',
+      'merge','merge into','exec','execute','declare','set ','from','where','having','group by','order by',
+      'limit','offset','like ','rlike','regexp','between','is null','is not null','or 1=1','and 1=1',
+      'or true','and true','or false','and false','information_schema','table_schema','table_name',
+      'column_name','schema_name','database()','version()','user()','current_user()','session_user()',
+      'system_user()','@@version','@@hostname','@@datadir','cast(','convert(','concat(','concat_ws(',
+      'group_concat(','substring(','substr(','mid(','left(','right(','ascii(','char(','chr(',
+      'ord(','hex(','unhex(','md5(','sha1(','load_file','into outfile','into dumpfile','sleep(',
+      'benchmark(','pg_sleep(','waitfor delay','dbms_pipe','utl_http','xp_cmdshell','sp_executesql',
+      'sqlstate','sql syntax','mysql error','postgresql error','mssql error','oracle error','odbc',
+      'jdbc','database error','syntax error','unterminated quoted string','invalid query','duplicate entry',
+      'no such table','unknown column','sql server','mysql','postgres','sqlite','mariadb',
+      ';','--','#','/*','*/','\'','"','`','sqlmap','sqlmapproject','sqlmap.org','python-requests','libwww-perl','curl','wget','httpclient','java/',
+      'go-http-client','burpsuite','owasp zap','zaproxy','nikto','acunetix','netsparker','nessus',
+      'openvas','arachni','nmap','masscan','scanner','crawler','fuzzer','boolean-based','time-based',
+      'error-based','union query','stacked queries','sql injection','sleep payload','database enumeration',
+      '<script','</script','script>','javascript:','vbscript:','data:text/html','data:image/svg',
+      'onerror=','onload=','onclick=','ondblclick=','onmouseover=','onmouseenter=','onmouseleave=',
+      'onmousemove=','onmouseout=','onfocus=','onblur=','onchange=','oninput=','onsubmit=',
+      'onreset=','onkeydown=','onkeyup=','onkeypress=','onanimationstart=','onanimationend=',
+      'ontransitionend=','onpointerover=','onpointerenter=','onpointerdown=','onpointerup=',
+      'ontouchstart=','ontouchend=','onwheel=','onscroll=','ondrag=','ondrop=',
+      'document.cookie','document.domain','document.location','document.referrer',
+      'window.location','window.name','window.open','localstorage','sessionstorage',
+      'eval(','alert(','prompt(','confirm(','settimeout(','setinterval(','function(',
+      'fetch(','xmlhttprequest','navigator.sendbeacon','innerhtml','outerhtml',
+      'insertadjacenthtml','document.write','document.writeln','srcdoc','src=',
+      'href=','style=','<iframe','</iframe','<object','</object','<embed','</embed',
+      '<svg','</svg','<img','<image','<body','<link','<meta','<style','</style',
+      '<form','<input','<textarea','<button','<video','<audio','<source','<track',
+      '<math','<base','<details','<marquee','<template','expression(','url(','@import','%3c','%3e','%22','%27','%28','%29','%2f',
+      '%5c','%3b','%2d%2d','%23','&#x','&#60','&#62','&lt;','&gt;','&quot;','&apos;','\u003c','\u003e','\u0022','\u0027','fromcharcode','atob(','btoa(','base64'
+    ];
+    // Remove any control characters which can mask attacks
+    lower = lower.replace(/[\x00-\x1F\x7F]/g, ' ');
+    // Quickly reject if obvious SQL/XSS metacharacters are present
+    if(/[<>"'`]|;|--|\/{2}|#/.test(lower)) return true;
+    // Check each banned term. Use indexOf to catch substrings regardless of
+    // word boundaries. If a term is found, treat as malicious.
+    for(var i = 0; i < banned.length; i++){
+      var term = banned[i];
+      if(term && lower.indexOf(term) !== -1) return true;
+    }
+    return false;
   }
-  function nameIsComplete(value){ var v=compactSpace(value); return v.length>=2 && v.length<=80 && /^[a-z]+(?: [a-z]+)*$/.test(v) && !hasPayload(v); }
-  function detailIsComplete(value){ var v=compactSpace(value); return v.length>=5 && v.length<=180 && /^[a-z0-9]+(?: [a-z0-9]+)*$/.test(v) && !hasPayload(v); }
-  function noteIsCompleteOrEmpty(value){ var v=compactSpace(value); return !v || (v.length<=180 && /^[a-z0-9]+(?: [a-z0-9]+)*$/.test(v) && !hasPayload(v)); }
+  function nameIsComplete(value){
+    var v = compactSpace(value);
+    // Name must be between 2 and 80 characters and only contain letters and spaces
+    return v.length >= 2 && v.length <= 80 && /^[A-Za-z]+(?: [A-Za-z]+)*$/.test(v) && !hasPayload(v);
+  }
+  function detailIsComplete(value){
+    var v = compactSpace(value);
+    // Address detail must be between 5 and 180 characters, only alphanumeric and spaces
+    return v.length >= 5 && v.length <= 180 && /^[A-Za-z0-9]+(?: [A-Za-z0-9]+)*$/.test(v) && !hasPayload(v);
+  }
+  function noteIsCompleteOrEmpty(value){
+    var v = compactSpace(value);
+    // Note may be empty or up to 180 characters; only alphanumeric and spaces
+    return !v || (v.length <= 180 && /^[A-Za-z0-9]+(?: [A-Za-z0-9]+)*$/.test(v) && !hasPayload(v));
+  }
   function phoneIsComplete(value){ var v=compactSpace(value); return /^\+?[0-9]{8,20}$/.test(v) && !invalidPhoneChars(v); }
 
   function ensureModal(){
@@ -17916,26 +18028,94 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
 
   function setFieldHardening(){
     var name=$('buyerName'), phone=$('buyerPhone'), email=$('buyerEmail'), detail=$('buyerAddressDetail'), note=$('buyerNote'), pay=$('paymentMethod');
-    if(name){ name.setAttribute('autocapitalize','none'); name.setAttribute('spellcheck','false'); name.setAttribute('pattern','[a-z ]{2,80}'); name.setAttribute('maxlength','80'); }
-    if(phone){ phone.setAttribute('autocapitalize','none'); phone.setAttribute('spellcheck','false'); phone.setAttribute('pattern','\\+?[0-9]{8,20}'); phone.setAttribute('maxlength','20'); }
-    if(email){ email.setAttribute('readonly','readonly'); email.setAttribute('aria-readonly','true'); email.setAttribute('data-dirac-email-locked','true'); email.addEventListener('keydown', function(e){ e.preventDefault(); }, true); email.addEventListener('paste', function(e){ e.preventDefault(); }, true); email.addEventListener('drop', function(e){ e.preventDefault(); }, true); }
-    if(detail){ detail.setAttribute('autocapitalize','none'); detail.setAttribute('spellcheck','false'); }
-    if(note){ note.setAttribute('autocapitalize','none'); note.setAttribute('spellcheck','false'); }
+    var menu=$('diracUltraMenuSearch'), search=$('searchInput'), promo=$('promoInput');
+    // Name: allow letters only (both cases), length 2–80
+    if(name){
+      name.setAttribute('autocapitalize','none');
+      name.setAttribute('spellcheck','false');
+      name.setAttribute('pattern','[A-Za-z ]{2,80}');
+      name.setAttribute('maxlength','80');
+    }
+    // Phone: unchanged but explicitly set pattern and max length
+    if(phone){
+      phone.setAttribute('autocapitalize','none');
+      phone.setAttribute('spellcheck','false');
+      phone.setAttribute('pattern','\\+?[0-9]{8,20}');
+      phone.setAttribute('maxlength','20');
+    }
+    // Lock email input
+    if(email){
+      email.setAttribute('readonly','readonly');
+      email.setAttribute('aria-readonly','true');
+      email.setAttribute('data-dirac-email-locked','true');
+      email.addEventListener('keydown', function(e){ e.preventDefault(); }, true);
+      email.addEventListener('paste', function(e){ e.preventDefault(); }, true);
+      email.addEventListener('drop', function(e){ e.preventDefault(); }, true);
+    }
+    // Detail (address): allow alphanumeric and spaces, 5–180
+    if(detail){
+      detail.setAttribute('autocapitalize','none');
+      detail.setAttribute('spellcheck','false');
+      detail.setAttribute('pattern','[A-Za-z0-9 ]{5,180}');
+      detail.setAttribute('maxlength','180');
+    }
+    // Note: allow alphanumeric and spaces, up to 180
+    if(note){
+      note.setAttribute('autocapitalize','none');
+      note.setAttribute('spellcheck','false');
+      note.setAttribute('pattern','[A-Za-z0-9 ]{0,180}');
+      note.setAttribute('maxlength','180');
+    }
+    // Menu search: only letters and spaces
+    if(menu){
+      menu.setAttribute('autocapitalize','none');
+      menu.setAttribute('spellcheck','false');
+      menu.setAttribute('pattern','[A-Za-z ]*');
+    }
+    // Product search: letters, digits and spaces
+    if(search){
+      search.setAttribute('autocapitalize','none');
+      search.setAttribute('spellcheck','false');
+      search.setAttribute('pattern','[A-Za-z0-9 ]*');
+    }
+    // Promo code: uppercase letters and numbers only; convert to uppercase on input
+    if(promo){
+      promo.setAttribute('autocapitalize','characters');
+      promo.setAttribute('spellcheck','false');
+      promo.setAttribute('pattern','[A-Z0-9]{1,32}');
+      promo.setAttribute('maxlength','32');
+      if(!promo.dataset.diracPromoBound){
+        promo.dataset.diracPromoBound = 'true';
+        promo.addEventListener('input', function(){
+          var val = String(this.value || '').toUpperCase().replace(/[^A-Z0-9]/g,'');
+          if(this.value !== val) this.value = val;
+        });
+      }
+    }
     if(pay){ pay.value='payment_gateway'; if(pay.tagName !== 'INPUT') pay.style.display='none'; }
   }
 
   function fieldKind(el){
     if(!el || !el.id) return null;
+    // Determine the type of field for validation. Extend to support menu search,
+    // product search and promo code inputs. Each field id maps to a logical
+    // kind which controls how input is validated.
     if(el.id === 'buyerName') return 'name';
     if(el.id === 'buyerAddressDetail') return 'detail';
     if(el.id === 'buyerNote') return 'note';
     if(el.id === 'buyerPhone') return 'phone';
+    if(el.id === 'diracUltraMenuSearch') return 'menu';
+    if(el.id === 'searchInput') return 'search';
+    if(el.id === 'promoInput') return 'promo';
     return null;
   }
   function hasInvalidForKind(kind, value){
     if(kind === 'name') return invalidNameChars(value) || hasPayload(value);
     if(kind === 'detail' || kind === 'note') return invalidTextChars(value) || hasPayload(value);
     if(kind === 'phone') return invalidPhoneChars(value);
+    if(kind === 'menu') return invalidMenuChars(value) || hasPayload(value);
+    if(kind === 'search') return invalidSearchChars(value) || hasPayload(value);
+    if(kind === 'promo') return invalidPromoChars(value) || hasPayload(value);
     return false;
   }
   function bindInputSecurity(){
@@ -17994,6 +18174,46 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
   }
 
   function lockEmailFromBackend(){
+    // Reject requests where the HTML file is loaded with query strings, hash
+    // fragments or any suffix beyond the .html extension. This closes a
+    // common vector for manipulating the client‑side environment. If such an
+    // anomaly is detected we immediately register a security violation and
+    // prevent any further initialisation.
+    try{
+      var path = (window.location && window.location.pathname) || '';
+      var idx = path.toLowerCase().indexOf('.html');
+      if(idx >= 0){
+        var extra = path.slice(idx + 5);
+        if(extra && extra !== ''){
+          armSecurityViolation('url','invalid_url_suffix');
+          return;
+        }
+      }
+      if((window.location && (window.location.search || window.location.hash))) {
+        armSecurityViolation('url','invalid_url_suffix');
+        return;
+      }
+    }catch(_){}
+    // Reject requests where the HTML file is loaded with query strings, hash
+    // fragments or any suffix beyond the .html extension. This closes a
+    // common vector for manipulating the client‑side environment. If such an
+    // anomaly is detected we immediately register a security violation and
+    // prevent any further initialisation.
+    try{
+      var path = (window.location && window.location.pathname) || '';
+      var idx = path.toLowerCase().indexOf('.html');
+      if(idx >= 0){
+        var extra = path.slice(idx + 5);
+        if(extra && extra !== ''){
+          armSecurityViolation('url','invalid_url_suffix');
+          return;
+        }
+      }
+      if((window.location && (window.location.search || window.location.hash))) {
+        armSecurityViolation('url','invalid_url_suffix');
+        return;
+      }
+    }catch(_){}
     setFieldHardening();
     getBackendEmail().catch(function(){
       var emailField = $('buyerEmail');
@@ -18049,6 +18269,26 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
   }
 
   function boot(){
+    // Reject requests where the HTML file is loaded with query strings, hash
+    // fragments or any suffix beyond the .html extension. This closes a
+    // common vector for manipulating the client‑side environment. If such an
+    // anomaly is detected we immediately register a security violation and
+    // prevent any further initialisation.
+    try{
+      var path = (window.location && window.location.pathname) || '';
+      var idx = path.toLowerCase().indexOf('.html');
+      if(idx >= 0){
+        var extra = path.slice(idx + 5);
+        if(extra && extra !== ''){
+          armSecurityViolation('url','invalid_url_suffix');
+          return;
+        }
+      }
+      if((window.location && (window.location.search || window.location.hash))) {
+        armSecurityViolation('url','invalid_url_suffix');
+        return;
+      }
+    }catch(_){}
     setFieldHardening();
     bindInputSecurity();
     bindCheckoutButtonGuard();
