@@ -22478,3 +22478,125 @@ function diracV142NormalizeAction(action) {
   try { if (typeof normalizeDomainAction === 'function') return normalizeDomainAction(String(action || '')); } catch (_) {}
   return String(action || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
 }
+
+/* ============================================================
+   DIRAC FRONTEND HTML THREAT REPORT v143 - APPEND ONLY
+   Tujuan:
+   - HTML parfum bertindak sebagai sensor input XSS/SQL.
+   - Tidak menambah endpoint/action baru. Report memakai action lama:
+     /api/health?action=domain_dashboard_me dengan method POST.
+   - POST report wajib lolos CSRF HMAC yang sudah ada.
+   - Backend tetap menjadi penentu global hard-ban persistent.
+   - Tidak menyentuh login, hash, payment gateway, email template, A2F/MFA,
+     logout, idle logout 5 menit, atau kontrak GET domain_dashboard_me lama.
+   ============================================================ */
+
+const DIRAC_FRONTEND_HTML_THREAT_REPORT_V143 = 'dirac-frontend-html-threat-report-v143';
+
+try {
+  const __diracV143PreviousHandler = module.exports;
+  if (__diracV143PreviousHandler && !__diracV143PreviousHandler.__diracFrontendHtmlThreatReportV143) {
+    module.exports = async function diracFrontendHtmlThreatReportWrapperV143(req, res) {
+      const action = diracV143NormalizeAction(String((req && req.query && req.query.action) || ''));
+      const method = String((req && req.method) || 'GET').toUpperCase();
+      try {
+        if (res && typeof res.setHeader === 'function') {
+          res.setHeader('X-Dirac-Frontend-HTML-Threat-Report', DIRAC_FRONTEND_HTML_THREAT_REPORT_V143);
+        }
+      } catch (_) {}
+
+      if (action === 'domain_dashboard_me' && method === 'POST') {
+        return diracV143HandleFrontendHtmlThreatReport(req, res, action, method);
+      }
+
+      return __diracV143PreviousHandler(req, res);
+    };
+    Object.defineProperty(module.exports, '__diracFrontendHtmlThreatReportV143', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+async function diracV143HandleFrontendHtmlThreatReport(req, res, action, method) {
+  try {
+    const csrf = typeof diracV138CsrfForceVerify === 'function'
+      ? diracV138CsrfForceVerify(req, action)
+      : (typeof diracCsrfVerifyRequest === 'function' ? diracCsrfVerifyRequest(req, action) : { ok: false, status: 403, code: 'CSRF_VERIFY_UNAVAILABLE' });
+
+    if (!csrf || !csrf.ok) {
+      return res.status(Number(csrf && csrf.status) || 403).json({
+        ok: false,
+        code: String(csrf && csrf.code || 'CSRF_REQUIRED'),
+        message: 'Request keamanan tidak valid.'
+      });
+    }
+
+    let body = {};
+    try {
+      body = await readLimitedJsonBody(req, Math.min(LOGIN_SECURITY_BODY_LIMIT_BYTES || 16 * 1024, 4096));
+    } catch (_) {
+      return res.status(400).json({ ok: false, code: 'SECURITY_REPORT_INVALID', message: 'Request keamanan tidak valid.' });
+    }
+
+    if (!body || body.dirac_frontend_security_report_v1 !== true) {
+      return res.status(400).json({ ok: false, code: 'SECURITY_REPORT_INVALID', message: 'Request keamanan tidak valid.' });
+    }
+
+    const field = diracV143CleanSmall(body.field || 'input', 40);
+    const reason = diracV143CleanSmall(body.reason || 'frontend_threat', 80);
+    const threat = {
+      detected: true,
+      family: 'frontend_html',
+      kind: reason || 'frontend_html_threat',
+      source: 'frontend_html_report',
+      risk: 'critical',
+      status: 403,
+      field,
+      patch: DIRAC_FRONTEND_HTML_THREAT_REPORT_V143
+    };
+
+    if (typeof diracV119RegisterThreat === 'function') {
+      await diracV119RegisterThreat(req, res, action, method, threat).catch(() => null);
+    } else if (typeof diracV107RegisterHardBan === 'function') {
+      await diracV107RegisterHardBan(req, res, action, method, threat).catch(() => null);
+    } else if (typeof diracV101RegisterSqlmapAttack === 'function') {
+      await diracV101RegisterSqlmapAttack(req, action, method, threat).catch(() => null);
+    }
+
+    try { if (typeof diracApplySecurityResponseHeaders === 'function') diracApplySecurityResponseHeaders(res); } catch (_) {}
+    try { res.setHeader('Cache-Control', 'no-store'); } catch (_) {}
+    return res.status(403).json({
+      ok: false,
+      code: 'GLOBAL_HARD_BAN',
+      message: 'Akses dibatasi oleh sistem keamanan.',
+      reason: 'FRONTEND_HTML_THREAT_REPORT'
+    });
+  } catch (error) {
+    try { console.error('[dirac-v143-frontend-html-report]', diracV143SafeError(error)); } catch (_) {}
+    return res.status(403).json({
+      ok: false,
+      code: 'GLOBAL_HARD_BAN',
+      message: 'Akses dibatasi oleh sistem keamanan.',
+      reason: 'FRONTEND_HTML_REPORT_ERROR'
+    });
+  }
+}
+
+function diracV143NormalizeAction(action) {
+  try { if (typeof diracV142NormalizeAction === 'function') return diracV142NormalizeAction(action); } catch (_) {}
+  try { if (typeof normalizeDomainAction === 'function') return normalizeDomainAction(String(action || '')); } catch (_) {}
+  return String(action || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+}
+
+function diracV143CleanSmall(value, maxLength = 80) {
+  return String(value === undefined || value === null ? '' : value)
+    .replace(/[<>{}\[\]"'`&]/g, ' ')
+    .replace(/[\u0000-\u001F\u007F]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, Math.max(1, Math.min(Number(maxLength) || 80, 160)));
+}
+
+function diracV143SafeError(error) {
+  const message = String(error && error.message ? error.message : error || 'error');
+  if (/password|token|secret|cookie|authorization|apikey|service_role/i.test(message)) return 'security_internal_error';
+  return message.slice(0, 160);
+}
