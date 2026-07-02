@@ -24222,8 +24222,7 @@ function diracCentralBrowserSignalGuardV146(req, ctx) {
   if (diracCentralScannerRegexV146().test(ua)) return { ok: false, reason: 'scanner_user_agent' };
   if (!/\b(chrome|chromium|crios|edg|firefox|fxios|safari|mobile safari)\b/i.test(ua)) return { ok: false, reason: 'browser_not_official' };
   const ch = String(headers['sec-ch-ua'] || '').trim();
-  if (!ch) return { ok: false, reason: 'sec_ch_ua_missing' };
-  if (/chrome|chromium|crios|edg/i.test(ua) && !/Chromium|Google Chrome|Microsoft Edge/i.test(ch)) return { ok: false, reason: 'sec_ch_ua_mismatch' };
+  if (ch && /chrome|chromium|crios|edg/i.test(ua) && !/Chromium|Google Chrome|Microsoft Edge/i.test(ch)) return { ok: false, reason: 'sec_ch_ua_mismatch' };
   const accept = String(headers.accept || '').toLowerCase();
   const lang = String(headers['accept-language'] || '').toLowerCase();
   if (!accept || !/(application\/json|\*\/\*|text\/html)/i.test(accept)) return { ok: false, reason: 'accept_header_invalid' };
