@@ -9798,6 +9798,13 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
       : '/api/health?action=dirac_mfa_passkey_start';
   }
 
+  function passkeyHealthAction(endpoint){
+    try{
+      var url = new URL(endpoint, window.location.href);
+      return String(url.searchParams.get('action') || '').trim().toLowerCase();
+    }catch(_e){ return ''; }
+  }
+
   function cloneInit(init){
     var next = {};
     if(init && typeof init === 'object'){
@@ -9818,12 +9825,32 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
     return next;
   }
 
+  function attachHealthSecurity(next, endpoint){
+    var action = passkeyHealthAction(endpoint);
+    var bridge = window.DiracCsrfBrowserActionBridge;
+    if(!bridge || typeof bridge.refreshForAction !== 'function') return Promise.resolve(next);
+    return Promise.resolve(bridge.refreshForAction(action)).then(function(security){
+      if(!security || !security.token) return next;
+      try{
+        var headers = new Headers(next.headers || {});
+        headers.set('X-Dirac-CSRF-Token', security.token);
+        headers.set('X-CSRF-Token', security.token);
+        if(security.pageNonce) headers.set('X-Dirac-Page-Nonce', security.pageNonce);
+        next.headers = headers;
+      }catch(_e){}
+      return next;
+    }).catch(function(){ return next; });
+  }
+
   if(window.fetch){
     var previousFetch = window.fetch.bind(window);
     window.fetch = function(input, init){
       var url = toUrl(input);
       if(isLegacyA2FEndpoint(url) && isPasskeyPayload(init)){
-        return previousFetch(passkeyHealthEndpoint(url), cloneInit(init));
+        var endpoint = passkeyHealthEndpoint(url);
+        return attachHealthSecurity(cloneInit(init), endpoint).then(function(next){
+          return previousFetch(endpoint, next);
+        });
       }
       return previousFetch(input, init);
     };
@@ -10300,9 +10327,13 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
   var MUTATING = {POST:true, PUT:true, PATCH:true, DELETE:true};
   var TOKEN_HEADER = 'X-Dirac-CSRF-Token';
   var TOKEN_HEADER_COMPAT = 'X-CSRF-Token';
+  var PAGE_NONCE_HEADER = 'X-Dirac-Page-Nonce';
   var tokenMemory = '';
   var tokenAt = 0;
+  var pageNonceMemory = {};
+  var pageNonceAt = {};
   var pendingToken = null;
+  var pendingActionToken = {};
   var nativeFetch = window.fetch ? window.fetch.bind(window) : null;
   if(!nativeFetch) return;
 
@@ -10338,6 +10369,12 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
     return true;
   }
 
+  function actionOf(input){
+    var url = sameOriginUrl(input);
+    var action = url && url.searchParams ? String(url.searchParams.get('action') || '').trim().toLowerCase() : '';
+    return /^[a-z0-9_-]{1,80}$/.test(action) ? action : '';
+  }
+
   function readHeaderToken(res){
     try{
       return String(
@@ -10350,21 +10387,53 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
     }catch(_){ return ''; }
   }
 
+  function readHeaderPageNonce(res){
+    try{
+      return String(
+        res.headers.get(PAGE_NONCE_HEADER) ||
+        res.headers.get('x-dirac-page-nonce') ||
+        res.headers.get('x-page-nonce') ||
+        ''
+      ).trim();
+    }catch(_){ return ''; }
+  }
+
   function looksLikeCsrfToken(value){
     var v = String(value || '').trim();
     // Backend token HMAC berbentuk payload.signature, bukan JWT tiga bagian.
     return /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(v) && v.length >= 48 && v.length <= 4096;
   }
 
-  function csrfProbeUrl(){
-    return '/api/health?action=domain_health&_csrf_boot=' + encodeURIComponent(String(now()));
+  function rememberPageNonce(action, nonce){
+    action = String(action || '').trim().toLowerCase();
+    if(!action || !looksLikeCsrfToken(nonce)) return;
+    pageNonceMemory[action] = String(nonce).trim();
+    pageNonceAt[action] = now();
   }
 
-  function ensureFreshCsrf(){
-    if(looksLikeCsrfToken(tokenMemory) && (now() - tokenAt) < 90000) return Promise.resolve(tokenMemory);
-    if(pendingToken) return pendingToken;
+  function freshPageNonce(action){
+    action = String(action || '').trim().toLowerCase();
+    if(!action) return '';
+    var nonce = String(pageNonceMemory[action] || '').trim();
+    return looksLikeCsrfToken(nonce) && (now() - Number(pageNonceAt[action] || 0)) < 240000 ? nonce : '';
+  }
 
-    pendingToken = nativeFetch(csrfProbeUrl(), {
+  function csrfProbeUrl(action){
+    var url = '/api/health?action=domain_health&_csrf_boot=' + encodeURIComponent(String(now()));
+    action = String(action || '').trim().toLowerCase();
+    if(/^[a-z0-9_-]{1,80}$/.test(action)){
+      url += '&_dirac_page_nonce_for=' + encodeURIComponent(action);
+    }
+    return url;
+  }
+
+  function ensureFreshCsrf(action){
+    action = String(action || '').trim().toLowerCase();
+    if(looksLikeCsrfToken(tokenMemory) && (now() - tokenAt) < 90000 && (!action || freshPageNonce(action))) return Promise.resolve(tokenMemory);
+    if(action && pendingActionToken[action]) return pendingActionToken[action];
+    if(!action && pendingToken) return pendingToken;
+
+    var probe = nativeFetch(csrfProbeUrl(action), {
       method:'GET',
       mode:'same-origin',
       credentials:'include',
@@ -10375,6 +10444,7 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
       }
     }).then(function(res){
       var token = readHeaderToken(res);
+      rememberPageNonce(action, readHeaderPageNonce(res));
       if(looksLikeCsrfToken(token)){
         tokenMemory = token;
         tokenAt = now();
@@ -10383,17 +10453,27 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
     }).catch(function(){
       return tokenMemory || '';
     }).then(function(token){
-      pendingToken = null;
+      if(action) delete pendingActionToken[action];
+      else pendingToken = null;
       return token;
     }, function(err){
-      pendingToken = null;
+      if(action) delete pendingActionToken[action];
+      else pendingToken = null;
       throw err;
     });
 
-    return pendingToken;
+    if(action) pendingActionToken[action] = probe;
+    else pendingToken = probe;
+    return probe;
   }
 
-  function mergeHeaders(input, init, token){
+  function ensureHealthSecurity(action){
+    return ensureFreshCsrf(action).then(function(token){
+      return {token: token, pageNonce: freshPageNonce(action)};
+    });
+  }
+
+  function mergeHeaders(input, init, token, pageNonce){
     var headers = new Headers();
     try{
       if(input && input.headers) new Headers(input.headers).forEach(function(v,k){ headers.set(k,v); });
@@ -10403,12 +10483,13 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
     }catch(_){ }
     headers.set(TOKEN_HEADER, token);
     headers.set(TOKEN_HEADER_COMPAT, token);
+    if(looksLikeCsrfToken(pageNonce)) headers.set(PAGE_NONCE_HEADER, pageNonce);
     return headers;
   }
 
-  function withTokenInit(input, init, token){
+  function withTokenInit(input, init, token, pageNonce){
     var next = Object.assign({}, init || {});
-    next.headers = mergeHeaders(input, init, token);
+    next.headers = mergeHeaders(input, init, token, pageNonce);
     if(!next.credentials) next.credentials = 'include';
     if(!next.cache) next.cache = 'no-store';
     return next;
@@ -10416,16 +10497,19 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
 
   window.fetch = function(input, init){
     if(!shouldAttachCsrf(input, init)) return nativeFetch(input, init);
-    return ensureFreshCsrf().then(function(token){
-      if(!looksLikeCsrfToken(token)) return nativeFetch(input, init);
-      return nativeFetch(input, withTokenInit(input, init, token));
+    var action = actionOf(input);
+    return ensureHealthSecurity(action).then(function(security){
+      if(!looksLikeCsrfToken(security.token)) return nativeFetch(input, init);
+      return nativeFetch(input, withTokenInit(input, init, security.token, security.pageNonce));
     });
   };
 
   window.DiracCsrfBrowserActionBridge = {
     version:'v139',
-    refresh:ensureFreshCsrf,
-    hasToken:function(){ return looksLikeCsrfToken(tokenMemory); }
+    refresh:function(){ return ensureFreshCsrf(''); },
+    refreshForAction:ensureHealthSecurity,
+    hasToken:function(){ return looksLikeCsrfToken(tokenMemory); },
+    pageNonceFor:freshPageNonce
   };
 
   // Jangan preload CSRF dari halaman masuk: browser GET same-origin sering tidak membawa Origin.
