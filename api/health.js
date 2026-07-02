@@ -1756,8 +1756,8 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
 
   if (!row || !row.id) {
     // Jangan blokir login hanya karena row belum ada. Buat/touch session memakai fungsi existing.
-    await customerSecurityTouchCurrentSession(req, customerId).catch(() => null);
-    return { ok: true, created_or_touched: true, customerId, skipped: false, reason: 'session_created_if_possible' };
+    customerSecurityTouchCurrentSession(req, customerId).catch(() => null);
+    return { ok: true, create_or_touch_queued: true, customerId, skipped: false, reason: 'session_create_or_touch_queued' };
   }
 
   const status = String(row.status || '').trim().toLowerCase();
@@ -1814,8 +1814,8 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
     };
   }
 
-  await customerSecurityTouchCurrentSession(req, customerId).catch(() => null);
-  return { ok: true, customerId, sessionId: row.id, idleMs, idle_timeout_ms: DOMAIN_PROTECTED_IDLE_TIMEOUT_MS };
+  customerSecurityTouchCurrentSession(req, customerId).catch(() => null);
+  return { ok: true, customerId, sessionId: row.id, idleMs, idle_timeout_ms: DOMAIN_PROTECTED_IDLE_TIMEOUT_MS, touch_queued: true };
 }
 
 async function revokeCurrentDomainProtectedSessionSafe(req, reason) {
@@ -3377,8 +3377,35 @@ async function supabaseFetch(path, options = {}) {
     fetchOptions.body = JSON.stringify(options.body);
   }
 
-  const response = await fetch(`${target.url}${path}`, fetchOptions);
-  const text = await response.text();
+  const timeoutMs = Math.max(1000, Number(options.timeoutMs || process.env.DIRAC_SUPABASE_FETCH_TIMEOUT_MS || 6500) || 6500);
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  let timer = null;
+  if (controller) {
+    fetchOptions.signal = controller.signal;
+    timer = setTimeout(() => {
+      try { controller.abort(); } catch (_) {}
+    }, timeoutMs);
+  }
+
+  let response;
+  let text = '';
+  try {
+    response = await fetch(`${target.url}${path}`, fetchOptions);
+    text = await response.text();
+  } catch (error) {
+    return {
+      ok: false,
+      status: error && error.name === 'AbortError' ? 504 : 502,
+      data: {
+        ok: false,
+        code: error && error.name === 'AbortError' ? 'SUPABASE_FETCH_TIMEOUT' : 'SUPABASE_FETCH_FAILED',
+        message: 'Supabase request tidak selesai tepat waktu.'
+      },
+      error: error && (error.code || error.name || error.message) || 'SUPABASE_FETCH_FAILED'
+    };
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 
   let data = null;
   try {
