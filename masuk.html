@@ -24,6 +24,53 @@
   }catch(_){}
 })();
 </script>
+<script id="dirac-masuk-dashboard-redirect-reason-view-v1">
+(function(){
+  'use strict';
+  var REDIRECT_STATE_KEY = 'dirac_dashboard_redirect_state_v1';
+  var LEGACY_ENTRY_KEY = 'dirac_masuk_entry_state_v1';
+  function readJson(key){
+    try{
+      var raw = sessionStorage.getItem(key);
+      return raw ? JSON.parse(raw) : null;
+    }catch(_){
+      return null;
+    }
+  }
+  function clean(value, fallback){
+    value = String(value || '').replace(/[^a-z0-9_-]/gi, '').slice(0, 32);
+    return value || fallback || 'unknown';
+  }
+  function reasonMessage(reason){
+    var map = {
+      dashboard_timeout: 'Dashboard belum mendapat jawaban valid dari cek sesi backend. Penyebabnya biasanya request domain_dashboard_me terlalu lama atau tidak selesai.',
+      session403: 'Dashboard ditolak backend 403. Penyebab paling mungkin cookie A2F dashboard belum valid, hilang, expired, atau tidak cocok dengan sesi/browser.',
+      session401: 'Dashboard ditolak backend 401. Penyebab paling mungkin cookie login atau protected session lock belum valid/expired.',
+      network: 'Dashboard gagal menghubungi backend cek sesi. Periksa koneksi, CSP, atau response API.',
+      load: 'Cek sesi dashboard gagal saat halaman dimuat.',
+      pageshow: 'Cek sesi dashboard gagal saat halaman tampil kembali.',
+      focus: 'Cek sesi dashboard gagal saat halaman aktif kembali.',
+      visible: 'Cek sesi dashboard gagal saat halaman terlihat kembali.',
+      https: 'Dashboard hanya boleh dibuka dari HTTPS resmi.',
+      idle: 'Sesi dashboard terkunci karena idle timeout.'
+    };
+    return map[reason] || ('Dashboard mengembalikan akses ke halaman masuk. Alasan teknis: ' + reason + '.');
+  }
+  function show(){
+    var state = readJson(REDIRECT_STATE_KEY);
+    var legacy = readJson(LEGACY_ENTRY_KEY);
+    var reason = clean((state && state.reason) || (legacy && legacy.reason), '');
+    if(!reason || reason === 'logout') return;
+    var box = document.getElementById('statusBox');
+    if(!box) return;
+    box.className = 'status-box show error';
+    box.style.whiteSpace = 'pre-line';
+    box.textContent = reasonMessage(reason) + '\n\nKode: ' + reason;
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', show, {once:true});
+  else show();
+})();
+</script>
 <script id="dirac-global-pref-storage-guard-v2">
 (function(){
   'use strict';
