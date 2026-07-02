@@ -24278,7 +24278,11 @@ function diracCentralPublicReadGuardV146(req, ctx) {
   if (ctx.classification !== 'public_read') return { ok: true };
   const headers = req && req.headers || {};
   const origin = diracCentralNormalizeOriginV146(headers.origin || '');
-  if (!origin || !DIRAC_CENTRAL_ALLOWED_ORIGINS_V146.has(origin)) return { ok: false, reason: 'public_origin_invalid' };
+  if (origin && !DIRAC_CENTRAL_ALLOWED_ORIGINS_V146.has(origin)) return { ok: false, reason: 'public_origin_invalid' };
+  if (!origin) {
+    const ref = diracCentralValidateRefererV146(headers.referer || headers.referrer || '');
+    if (!ref.ok) return { ok: false, reason: 'public_origin_invalid' };
+  }
   if (!['GET', 'HEAD'].includes(ctx.method)) return { ok: false, reason: 'public_method_invalid' };
   if (diracCentralScannerRegexV146().test(String(headers['user-agent'] || '').toLowerCase())) return { ok: false, reason: 'public_scanner_blocked' };
   const len = Number(headers['content-length'] || 0);
