@@ -24147,7 +24147,7 @@ function diracCentralNeedsCsrfNonceV146(ctx) {
 
 function diracCentralPageNonceGuardV146(req, res, ctx) {
   if ((ctx.method === 'GET' || ctx.method === 'HEAD') && ctx.classification !== 'server') {
-    diracCentralIssuePageNonceV146(req, res, ctx.action);
+    diracCentralIssuePageNonceV146(req, res, diracCentralPageNonceIssueTargetV146(req, ctx));
   }
   if (!diracCentralNeedsCsrfNonceV146(ctx)) return { ok: true };
   if (diracCentralIsPreAuthActionV146(ctx)) return { ok: true };
@@ -24157,6 +24157,22 @@ function diracCentralPageNonceGuardV146(req, res, ctx) {
   const verified = diracCentralVerifyPageNonceV146(req, nonce, ctx.action);
   if (!verified.ok) return { ok: false, reason: verified.reason || 'page_nonce_invalid' };
   return { ok: true };
+}
+
+function diracCentralPageNonceIssueTargetV146(req, ctx) {
+  const query = req && req.query && typeof req.query === 'object' ? req.query : {};
+  const raw = String(query._dirac_page_nonce_for || query._page_nonce_for || query.page_nonce_for || '').trim().toLowerCase();
+  if (!raw) return ctx && ctx.action || '';
+  if (!/^[a-z0-9_-]{1,80}$/.test(raw)) return ctx && ctx.action || '';
+  const alias = diracCentralNormalizeAliasV146(raw);
+  if (!alias.ok || !DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.has(alias.action)) return ctx && ctx.action || '';
+  const targetCtx = {
+    action: alias.action,
+    method: 'POST',
+    classification: diracCentralClassifyActionV146(alias.action)
+  };
+  if (!diracCentralNeedsCsrfNonceV146(targetCtx)) return ctx && ctx.action || '';
+  return alias.action;
 }
 
 function diracCentralIsPreAuthActionV146(ctx) {
@@ -24895,10 +24911,11 @@ function diracCentralStableMfaReadGateV146(req, res, ctx) {
 
 function diracCentralContractForActionV146(action) {
   const clean = String(action || '');
-  const commonGet = ['action', '_csrf_boot', '_csrf_a2f', '_csrf_login_final', '_ts', 'domain', 'limit', 'type', 'include_expired', 'order_id', 'order_code', 'domain_order_id', 'payment_id', 'transaction_id', 'invoice_id', 'gateway_reference', 'session_id', 'recovery_code_id', 'credential_id', 'project_id', 'document_id', 'item_id', 'email', 'slug'];
+  const commonGet = ['action', '_csrf_boot', '_csrf_a2f', '_csrf_login_final', '_dirac_page_nonce_for', '_page_nonce_for', 'page_nonce_for', '_ts', 'domain', 'limit', 'type', 'include_expired', 'order_id', 'order_code', 'domain_order_id', 'payment_id', 'transaction_id', 'invoice_id', 'gateway_reference', 'session_id', 'recovery_code_id', 'credential_id', 'project_id', 'document_id', 'item_id', 'email', 'slug'];
   const commonPost = ['action', 'email', 'password', 'fullName', 'full_name', 'name', 'phone', 'domain', 'domain_name', 'quantity', 'items', 'order_id', 'order_code', 'domain_order_id', 'payment_id', 'transaction_id', 'invoice_id', 'gateway_reference', 'session_id', 'recovery_code', 'recovery_code_id', 'credential_id', 'user_id', 'challenge', 'response', 'setupToken', 'mfaSetupToken', 'code', 'reason', 'csrf', 'nonce', 'idempotency_key'];
   const getOnly = { methods: ['GET', 'HEAD'], allowed: commonGet, required: [], maxBodyBytes: 1024, maxFieldBytes: 3000, mutation: false };
   const postOnly = { methods: ['POST'], allowed: commonPost, required: [], maxBodyBytes: 20 * 1024, maxFieldBytes: 3000, mutation: true };
+  const passkeyPost = { methods: ['POST'], allowed: ['action', 'method', 'identifier', 'email', 'setupToken', 'mfaSetupToken', 'token', 'passkeyMode', 'credential', 'id', 'rawId', 'type', 'response', 'clientExtensionResults', 'clientDataJSON', 'attestationObject', 'authenticatorData', 'signature', 'userHandle', 'transports', 'authenticatorAttachment', 'challenge', 'code', 'csrf', 'nonce', 'idempotency_key'], required: [], maxBodyBytes: 48 * 1024, maxFieldBytes: 12000, mutation: true };
   const authLoginPost = { methods: ['POST'], allowed: ['email', 'password', 'fullName', 'full_name', 'name', 'phone'], required: ['email', 'password'], maxBodyBytes: 20 * 1024, maxFieldBytes: 3000, mutation: true };
   const authRegisterPost = { methods: ['POST'], allowed: ['email', 'password', 'fullName', 'full_name', 'name', 'phone'], required: ['email', 'password'], maxBodyBytes: 20 * 1024, maxFieldBytes: 3000, mutation: true };
   const contracts = {
@@ -24960,10 +24977,10 @@ function diracCentralContractForActionV146(action) {
     dirac_mfa_email_verify: postOnly,
     domain_mfa_email_start: postOnly,
     domain_mfa_email_verify: postOnly,
-    dirac_mfa_passkey_start: postOnly,
-    dirac_mfa_passkey_verify: postOnly,
-    domain_mfa_passkey_start: postOnly,
-    domain_mfa_passkey_verify: postOnly,
+    dirac_mfa_passkey_start: passkeyPost,
+    dirac_mfa_passkey_verify: passkeyPost,
+    domain_mfa_passkey_start: passkeyPost,
+    domain_mfa_passkey_verify: passkeyPost,
     security_report: { ...postOnly, allowed: ['action', 'reason', 'type', 'page', 'event', 'nonce', 'csrf'], maxBodyBytes: 8 * 1024 },
     midtrans_webhook: { methods: ['POST'], allowed: ['transaction_time', 'transaction_status', 'transaction_id', 'status_message', 'status_code', 'signature_key', 'payment_type', 'order_id', 'merchant_id', 'gross_amount', 'fraud_status', 'currency', 'settlement_time', 'expiry_time'], required: ['order_id', 'status_code', 'gross_amount', 'signature_key'], maxBodyBytes: 64 * 1024, maxFieldBytes: 3000, mutation: true, allowExtra: true, allowProtectedFields: true }
   };
