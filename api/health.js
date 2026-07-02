@@ -24361,6 +24361,7 @@ function diracCentralContractGuardV146(req, ctx) {
     const parts = String(item.key || '').split('.');
     const key = parts.pop();
     const parentKey = parts.length ? parts[parts.length - 1] : '';
+    if (!key && (item.value === undefined || item.value === null || String(item.value || '').trim() === '')) continue;
     if (/^\d+$/.test(String(key || '')) && contract.allowArrayItems && allowed.has(parentKey)) {
       if (String(item.value || '').length > (contract.maxFieldBytes || 3000)) return { ok: false, reason: 'field_too_long_' + parentKey };
       continue;
@@ -24549,7 +24550,7 @@ function diracCentralIsAuthBootstrapIdentityOnlyV146(action, ids) {
 
 function diracCentralIsAuthSelfReadOnlyV146(action, ids) {
   const clean = String(action || '').toLowerCase();
-  if (clean !== 'domain_me') return false;
+  if (clean !== 'domain_me' && clean !== 'domain_dashboard_me') return false;
   const list = Array.isArray(ids) ? ids : [];
   if (!list.length) return true;
   return list.every((item) => /^(email|slug)$/i.test(String(item && item.key || '')));
@@ -24988,7 +24989,7 @@ function diracCentralStableMfaReadGateV146(req, res, ctx) {
 
 function diracCentralContractForActionV146(action) {
   const clean = String(action || '');
-  const commonGet = ['action', '_csrf_boot', '_csrf_a2f', '_csrf_login_final', '_csrf_probe', '_dirac_page_nonce_for', '_page_nonce_for', 'page_nonce_for', '_ts', '_t', 'domain', 'limit', 'type', 'include_expired', 'order_id', 'order_code', 'domain_order_id', 'payment_id', 'transaction_id', 'invoice_id', 'gateway_reference', 'session_id', 'recovery_code_id', 'credential_id', 'project_id', 'document_id', 'item_id', 'email', 'slug'];
+  const commonGet = ['action', '_csrf_boot', '_csrf_a2f', '_csrf_login_final', '_csrf_probe', '_dirac_page_nonce_for', '_page_nonce_for', 'page_nonce_for', '_ts', '_t', '_', 'domain', 'limit', 'type', 'include_expired', 'order_id', 'order_code', 'domain_order_id', 'payment_id', 'transaction_id', 'invoice_id', 'gateway_reference', 'session_id', 'recovery_code_id', 'credential_id', 'project_id', 'document_id', 'item_id', 'email', 'slug'];
   const commonPost = ['action', 'email', 'password', 'fullName', 'full_name', 'name', 'phone', 'domain', 'domain_name', 'quantity', 'items', 'order_id', 'order_code', 'domain_order_id', 'payment_id', 'transaction_id', 'invoice_id', 'gateway_reference', 'session_id', 'recovery_code', 'recovery_code_id', 'credential_id', 'user_id', 'challenge', 'response', 'setupToken', 'mfaSetupToken', 'code', 'reason', 'csrf', 'nonce', 'idempotency_key'];
   const getOnly = { methods: ['GET', 'HEAD'], allowed: commonGet, required: [], maxBodyBytes: 1024, maxFieldBytes: 3000, mutation: false };
   const postOnly = { methods: ['POST'], allowed: commonPost, required: [], maxBodyBytes: 20 * 1024, maxFieldBytes: 3000, mutation: true };
