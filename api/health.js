@@ -23430,3 +23430,1660 @@ function diracV145EnvTrue(name) {
   const value = String(process.env[name] || '').trim().toLowerCase();
   return value === '1' || value === 'true' || value === 'yes' || value === 'on';
 }
+
+/* ============================================================
+   DIRAC CENTRAL SECURITY GUARD v146 - FINAL CENTRAL FLOW
+   Pusat guard /api/health:
+   - Exact action whitelist sebelum handler lama.
+   - Ban memory + persistent via v107/v145 coalescer.
+   - Browser/page authenticity, CSRF HMAC, page nonce, contract, threat,
+     IDOR/BOLA trigger, service-role wrapper, egress wrapper, output guard.
+   - Handler/action lama tetap dipakai sebagai business logic.
+   ============================================================ */
+
+const DIRAC_CENTRAL_SECURITY_GUARD_V146 = 'dirac-central-security-guard-v146';
+const DIRAC_CENTRAL_MEMORY_BAN_V146 = globalThis.__DIRAC_CENTRAL_MEMORY_BAN_V146__ || new Map();
+const DIRAC_CENTRAL_NEGATIVE_BAN_V146 = globalThis.__DIRAC_CENTRAL_NEGATIVE_BAN_V146__ || new Map();
+const DIRAC_CENTRAL_DEVICE_BINDINGS_V146 = globalThis.__DIRAC_CENTRAL_DEVICE_BINDINGS_V146__ || new Map();
+const DIRAC_CENTRAL_OWNER_LOOKUP_CACHE_V146 = globalThis.__DIRAC_CENTRAL_OWNER_LOOKUP_CACHE_V146__ || new Map();
+const DIRAC_CENTRAL_CIRCUIT_V146 = globalThis.__DIRAC_CENTRAL_CIRCUIT_V146__ || new Map();
+const DIRAC_CENTRAL_DNS_CACHE_V146 = globalThis.__DIRAC_CENTRAL_DNS_CACHE_V146__ || new Map();
+const DIRAC_CENTRAL_CONTEXT_STACK_V146 = globalThis.__DIRAC_CENTRAL_CONTEXT_STACK_V146__ || [];
+globalThis.__DIRAC_CENTRAL_MEMORY_BAN_V146__ = DIRAC_CENTRAL_MEMORY_BAN_V146;
+globalThis.__DIRAC_CENTRAL_NEGATIVE_BAN_V146__ = DIRAC_CENTRAL_NEGATIVE_BAN_V146;
+globalThis.__DIRAC_CENTRAL_DEVICE_BINDINGS_V146__ = DIRAC_CENTRAL_DEVICE_BINDINGS_V146;
+globalThis.__DIRAC_CENTRAL_OWNER_LOOKUP_CACHE_V146__ = DIRAC_CENTRAL_OWNER_LOOKUP_CACHE_V146;
+globalThis.__DIRAC_CENTRAL_CIRCUIT_V146__ = DIRAC_CENTRAL_CIRCUIT_V146;
+globalThis.__DIRAC_CENTRAL_DNS_CACHE_V146__ = DIRAC_CENTRAL_DNS_CACHE_V146;
+globalThis.__DIRAC_CENTRAL_CONTEXT_STACK_V146__ = DIRAC_CENTRAL_CONTEXT_STACK_V146;
+
+const DIRAC_CENTRAL_ALLOWED_ORIGINS_V146 = new Set([
+  'https://diracgroup.store',
+  'https://www.diracgroup.store'
+]);
+
+const DIRAC_CENTRAL_ALLOWED_REFERER_PATHS_V146 = new Set([
+  '/masuk.html',
+  '/dashboard.html',
+  '/pesanan.html',
+  '/parfum.html',
+  '/topup.html',
+  '/keamanan.html',
+  '/livechat.html',
+  '/domain.html',
+  '/website.html'
+]);
+
+const DIRAC_CENTRAL_ACTION_ALIASES_V146 = Object.freeze({
+  'domain-login': 'domain_login',
+  'domain-register': 'domain_register',
+  'domain-logout': 'domain_logout',
+  'domain-health': 'domain_health',
+  'hostinger-check': 'hostinger_check',
+  'check-domain': 'domain_check',
+  'create-order': 'domain_checkout',
+  'get-orders': 'domain_orders',
+  'customer-security-status': 'customer_security_status',
+  'customer-security-overview': 'customer_security_overview',
+  'midtrans-webhook': 'midtrans_webhook',
+  'midtrans-health': 'midtrans_health'
+});
+
+const DIRAC_CENTRAL_ACTIVE_ACTIONS_V146 = new Set([
+  'domain_health',
+  'hostinger_check',
+  'domain_login',
+  'domain_register',
+  'domain_me',
+  'domain_dashboard_me',
+  'domain_logout',
+  'domain_check',
+  'domain_checkout',
+  'domain_orders',
+  'domain_mfa_status',
+  'customer_security_status',
+  'customer_security_overview',
+  'customer_security_guard_status',
+  'customer_security_revoke_session',
+  'customer_security_revoke_other_sessions',
+  'customer_security_account_request',
+  'customer_security_recovery_codes_status',
+  'customer_security_recovery_codes_generate',
+  'customer_security_recovery_code_verify',
+  'customer_security_features_bundle',
+  'customer_security_features_bundle_v2',
+  'customer_security_features_bundle_v3',
+  'customer_security_trusted_devices',
+  'customer_security_login_history',
+  'customer_security_score',
+  'customer_security_notifications',
+  'customer_security_request_tracker',
+  'customer_security_trust_current_device',
+  'customer_security_untrust_device',
+  'customer_security_prune_login_history',
+  'admin_security_overview',
+  'admin_security_events',
+  'admin_security_blocks',
+  'admin_security_unblock_user',
+  'checkout_order',
+  'my_orders',
+  'create_payment',
+  'midtrans_health',
+  'midtrans_webhook',
+  'dirac_mfa_email_start',
+  'dirac_mfa_email_verify',
+  'domain_mfa_email_start',
+  'domain_mfa_email_verify',
+  'dirac_mfa_passkey_start',
+  'dirac_mfa_passkey_verify',
+  'domain_mfa_passkey_start',
+  'domain_mfa_passkey_verify',
+  'dirac_mfa_passkey_status',
+  'domain_mfa_passkey_status',
+  'dirac_passkey_status',
+  'domain_passkey_status',
+  'public_products',
+  'products_public',
+  'catalog_products',
+  'product_catalog',
+  'public_catalog',
+  'parfum_products',
+  'perfume_products',
+  'parfum_catalog',
+  'katalog_parfum',
+  'katalog_produk',
+  'lihat_produk',
+  'security_report'
+]);
+
+const DIRAC_CENTRAL_DISABLED_ACTIONS_V146 = new Set([
+  'checkout_order_hp_test',
+  'ipaymu_health',
+  'ipaymu_webhook'
+]);
+
+const DIRAC_CENTRAL_SERVER_ACTIONS_V146 = new Set(['midtrans_webhook']);
+const DIRAC_CENTRAL_PUBLIC_READ_ACTIONS_V146 = new Set([
+  'domain_health',
+  'hostinger_check',
+  'domain_check',
+  'public_products',
+  'products_public',
+  'catalog_products',
+  'product_catalog',
+  'public_catalog',
+  'parfum_products',
+  'perfume_products',
+  'parfum_catalog',
+  'katalog_parfum',
+  'katalog_produk',
+  'lihat_produk',
+  'midtrans_health'
+]);
+const DIRAC_CENTRAL_ADMIN_ACTIONS_V146 = new Set([
+  'admin_security_overview',
+  'admin_security_events',
+  'admin_security_blocks',
+  'admin_security_unblock_user'
+]);
+const DIRAC_CENTRAL_SENSITIVE_ACTIONS_V146 = new Set([
+  'domain_logout',
+  'domain_checkout',
+  'checkout_order',
+  'create_payment',
+  'customer_security_revoke_session',
+  'customer_security_revoke_other_sessions',
+  'customer_security_recovery_codes_generate',
+  'customer_security_recovery_code_verify',
+  'dirac_mfa_email_start',
+  'dirac_mfa_email_verify',
+  'domain_mfa_email_start',
+  'domain_mfa_email_verify',
+  'dirac_mfa_passkey_start',
+  'dirac_mfa_passkey_verify',
+  'domain_mfa_passkey_start',
+  'domain_mfa_passkey_verify',
+  'dirac_mfa_passkey_status',
+  'domain_mfa_passkey_status',
+  'dirac_passkey_status',
+  'domain_passkey_status'
+]);
+const DIRAC_CENTRAL_USER_DATA_ACTIONS_V146 = new Set([
+  'domain_me',
+  'domain_dashboard_me',
+  'domain_orders',
+  'domain_mfa_status',
+  'customer_security_status',
+  'customer_security_overview',
+  'customer_security_guard_status',
+  'customer_security_revoke_session',
+  'customer_security_revoke_other_sessions',
+  'customer_security_account_request',
+  'customer_security_recovery_codes_status',
+  'customer_security_recovery_codes_generate',
+  'customer_security_recovery_code_verify',
+  'customer_security_features_bundle',
+  'customer_security_features_bundle_v2',
+  'customer_security_features_bundle_v3',
+  'customer_security_trusted_devices',
+  'customer_security_login_history',
+  'customer_security_score',
+  'customer_security_notifications',
+  'customer_security_request_tracker',
+  'customer_security_trust_current_device',
+  'customer_security_untrust_device',
+  'customer_security_prune_login_history',
+  'checkout_order',
+  'my_orders',
+  'create_payment'
+]);
+
+try {
+  const __diracCentralPreviousReadLimitedJsonBodyV146 = typeof readLimitedJsonBody === 'function' ? readLimitedJsonBody : null;
+  if (__diracCentralPreviousReadLimitedJsonBodyV146 && !__diracCentralPreviousReadLimitedJsonBodyV146.__diracCentralBodyCacheV146) {
+    readLimitedJsonBody = async function readLimitedJsonBodyCentralCacheV146(req, limitBytes) {
+      if (req && req.__diracCentralParsedBodyV146 && typeof req.__diracCentralParsedBodyV146 === 'object') {
+        return req.__diracCentralParsedBodyV146;
+      }
+      const body = await __diracCentralPreviousReadLimitedJsonBodyV146(req, limitBytes);
+      if (req && body && typeof body === 'object') req.__diracCentralParsedBodyV146 = body;
+      return body;
+    };
+    Object.defineProperty(readLimitedJsonBody, '__diracCentralBodyCacheV146', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+try {
+  const __diracCentralPreviousReadBodyV146 = typeof readBody === 'function' ? readBody : null;
+  if (__diracCentralPreviousReadBodyV146 && !__diracCentralPreviousReadBodyV146.__diracCentralBodyCacheV146) {
+    readBody = async function readBodyCentralCacheV146(req) {
+      if (req && req.__diracCentralParsedBodyV146 && typeof req.__diracCentralParsedBodyV146 === 'object') {
+        return req.__diracCentralParsedBodyV146;
+      }
+      const body = await __diracCentralPreviousReadBodyV146(req);
+      if (req && body && typeof body === 'object') req.__diracCentralParsedBodyV146 = body;
+      return body;
+    };
+    Object.defineProperty(readBody, '__diracCentralBodyCacheV146', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+try {
+  const __diracCentralPreviousV107ShouldSkipV146 = typeof diracV107ShouldSkip === 'function' ? diracV107ShouldSkip : null;
+  if (__diracCentralPreviousV107ShouldSkipV146 && !__diracCentralPreviousV107ShouldSkipV146.__diracCentralPassthroughV146) {
+    diracV107ShouldSkip = function diracV107ShouldSkipCentralPassthroughV146(req, action, method) {
+      if (req && req.__diracCentralSecurityGuardPassedV146) return true;
+      return __diracCentralPreviousV107ShouldSkipV146(req, action, method);
+    };
+    Object.defineProperty(diracV107ShouldSkip, '__diracCentralPassthroughV146', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+try {
+  const __diracCentralPreviousV143ThreatV146 = typeof diracV143DetectRequestThreat === 'function' ? diracV143DetectRequestThreat : null;
+  if (__diracCentralPreviousV143ThreatV146 && !__diracCentralPreviousV143ThreatV146.__diracCentralPassthroughV146) {
+    diracV143DetectRequestThreat = function diracV143DetectRequestThreatCentralPassthroughV146(req, action, method) {
+      if (req && req.__diracCentralSecurityGuardPassedV146) return { detected: false, skipped: 'central_security_guard_v146' };
+      return __diracCentralPreviousV143ThreatV146(req, action, method);
+    };
+    Object.defineProperty(diracV143DetectRequestThreat, '__diracCentralPassthroughV146', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+try {
+  const __diracCentralPreviousV143InspectOwnershipV146 = typeof diracV143InspectOwnership === 'function' ? diracV143InspectOwnership : null;
+  if (__diracCentralPreviousV143InspectOwnershipV146 && !__diracCentralPreviousV143InspectOwnershipV146.__diracCentralPassthroughV146) {
+    diracV143InspectOwnership = async function diracV143InspectOwnershipCentralPassthroughV146(req, body) {
+      if (req && req.__diracCentralSecurityGuardPassedV146) return { ok: true, skipped: 'central_security_guard_v146' };
+      return __diracCentralPreviousV143InspectOwnershipV146(req, body);
+    };
+    Object.defineProperty(diracV143InspectOwnership, '__diracCentralPassthroughV146', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+try {
+  const __diracCentralPreviousSupabaseFetchV146 = typeof supabaseFetch === 'function' ? supabaseFetch : null;
+  if (__diracCentralPreviousSupabaseFetchV146 && !__diracCentralPreviousSupabaseFetchV146.__diracCentralServiceRoleV146) {
+    supabaseFetch = async function supabaseFetchCentralServiceRoleGuardV146(path, options = {}) {
+      const decision = await diracCentralInspectServiceRoleAccessV146(path, options).catch(() => ({ ok: true }));
+      if (decision && decision.block) return diracCentralBlockedSupabaseResultV146(decision);
+      const ctx = DIRAC_CENTRAL_CONTEXT_STACK_V146[DIRAC_CENTRAL_CONTEXT_STACK_V146.length - 1];
+      if (ctx && options && options.auth === 'service') ctx.__diracCentralSafeServiceRoleFetchV146 = true;
+      try {
+        return await __diracCentralPreviousSupabaseFetchV146(path, options);
+      } finally {
+        if (ctx) ctx.__diracCentralSafeServiceRoleFetchV146 = false;
+      }
+    };
+    Object.defineProperty(supabaseFetch, '__diracCentralServiceRoleV146', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+try {
+  const __diracCentralPreviousFetchV146 = typeof globalThis.fetch === 'function' ? globalThis.fetch.bind(globalThis) : null;
+  if (__diracCentralPreviousFetchV146 && !globalThis.__DIRAC_CENTRAL_FETCH_EGRESS_WRAPPED_V146__) {
+    globalThis.fetch = async function fetchCentralEgressGuardV146(input, options) {
+      const decision = await diracCentralInspectEgressV146(input, options).catch(() => ({ ok: true }));
+      if (decision && decision.block) {
+        const error = new Error('DIRAC_EGRESS_BLOCKED');
+        error.code = 'DIRAC_EGRESS_BLOCKED';
+        error.diracSecurityThreat = decision;
+        throw error;
+      }
+      return diracCentralFetchWithRedirectGuardV146(__diracCentralPreviousFetchV146, input, options, 0);
+    };
+    globalThis.__DIRAC_CENTRAL_FETCH_EGRESS_WRAPPED_V146__ = true;
+  }
+} catch (_) {}
+
+try {
+  const __diracCentralPreviousHandlerV146 = module.exports;
+  if (typeof __diracCentralPreviousHandlerV146 === 'function' && !__diracCentralPreviousHandlerV146.__diracCentralSecurityGuardV146) {
+    module.exports = async function diracCentralSecurityGuardWrapperV146(req, res) {
+      return diracCentralSecurityGuardV146(req, res, __diracCentralPreviousHandlerV146);
+    };
+    Object.defineProperty(module.exports, '__diracCentralSecurityGuardV146', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+async function diracCentralSecurityGuardV146(req, res, nextHandler) {
+  const method = String(req && req.method || 'GET').toUpperCase();
+  let ctx = null;
+  try {
+    diracCentralApplyHeadersV146(res);
+    diracCentralWrapJsonResponseV146(res);
+
+    const identity = await diracCentralBuildIdentityV146(req);
+    ctx = {
+      req,
+      res,
+      method,
+      identity,
+      action: '',
+      classification: '',
+      startedAt: Date.now(),
+      skipHeavyScan: false,
+      body: null,
+      sample: null
+    };
+    DIRAC_CENTRAL_CONTEXT_STACK_V146.push(ctx);
+
+    const memoryBan = diracCentralCheckMemoryBanV146(identity);
+    if (memoryBan.blocked) return diracCentralBlockedResponseV146(res, 'MEMORY_BAN_ACTIVE');
+
+    const persistentBan = await diracCentralCheckPersistentBanV146(req, identity);
+    if (persistentBan.blocked) {
+      diracCentralSetMemoryBanV146(identity, persistentBan.blockedUntilMs, 'persistent_ban');
+      return diracCentralBlockedResponseV146(res, 'PERSISTENT_BAN_ACTIVE');
+    }
+    diracCentralSetNegativeCacheV146(identity);
+
+    const rawAction = String(req && req.query && req.query.action || '').trim();
+    const lowerAction = rawAction.toLowerCase();
+    const format = diracCentralValidateActionFormatV146(rawAction, lowerAction);
+    if (!format.ok) return await diracCentralBanAndBlockV146(req, res, ctx, lowerAction || 'missing_action', method, format.reason);
+
+    const aliasResult = diracCentralNormalizeAliasV146(lowerAction);
+    if (!aliasResult.ok) return await diracCentralBanAndBlockV146(req, res, ctx, lowerAction, method, aliasResult.reason);
+
+    const action = aliasResult.action;
+    ctx.action = action;
+    if (req && req.query) req.query.action = action;
+
+    if (!DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.has(action) && !DIRAC_CENTRAL_DISABLED_ACTIONS_V146.has(action)) {
+      return await diracCentralBanAndBlockV146(req, res, ctx, action, method, 'action_not_in_global_whitelist');
+    }
+
+    if (DIRAC_CENTRAL_DISABLED_ACTIONS_V146.has(action)) {
+      return diracCentralDisabledResponseV146(res);
+    }
+
+    ctx.classification = diracCentralClassifyActionV146(action);
+
+    const serverGuard = await diracCentralServerToServerGuardV146(req, res, ctx);
+    if (!serverGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, serverGuard.reason);
+
+    const pageGuard = diracCentralPageBrowserAuthenticityGuardV146(req, ctx);
+    if (!pageGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, pageGuard.reason);
+
+    const csrfGuard = diracCentralCsrfGuardV146(req, res, ctx);
+    if (!csrfGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, csrfGuard.reason);
+
+    const nonceGuard = diracCentralPageNonceGuardV146(req, res, ctx);
+    if (!nonceGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, nonceGuard.reason);
+
+    const browserSignal = diracCentralBrowserSignalGuardV146(req, ctx);
+    if (!browserSignal.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, browserSignal.reason);
+
+    const deviceGuard = diracCentralDeviceConsistencyGuardV146(req, ctx);
+    if (!deviceGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, deviceGuard.reason);
+
+    const adminGuard = await diracCentralAdminAuthGuardV146(req, res, ctx);
+    if (!adminGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, adminGuard.reason);
+
+    const publicGuard = diracCentralPublicReadGuardV146(req, ctx);
+    if (!publicGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, publicGuard.reason);
+
+    const bodyGuard = await diracCentralBodyHandlingGuardV146(req, ctx);
+    if (!bodyGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, bodyGuard.reason);
+
+    const lightGuard = diracCentralLightGuardV146(req, ctx);
+    if (!lightGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, lightGuard.reason);
+
+    const contractGuard = diracCentralContractGuardV146(req, ctx);
+    if (!contractGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, contractGuard.reason);
+
+    if (action === 'security_report') {
+      const reportGuard = diracCentralSecurityReportGuardV146(req, ctx);
+      if (!reportGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, reportGuard.reason);
+      return await diracCentralBanAndBlockV146(req, res, ctx, action, method, 'html_security_report');
+    }
+
+    if (DIRAC_CENTRAL_SENSITIVE_ACTIONS_V146.has(action)) ctx.skipHeavyScan = true;
+
+    if (!ctx.skipHeavyScan) {
+      const sampleGuard = diracCentralSampleCollectorV146(req, ctx);
+      if (!sampleGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, sampleGuard.reason);
+
+      const normalized = diracCentralNormalizeSampleV146(ctx.sample);
+      const threat = diracCentralThreatPatternGuardV146(normalized, ctx);
+      if (threat.detected) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, threat.kind);
+
+      const zeroDay = diracCentralZeroDayShieldV146(req, ctx, normalized);
+      if (!zeroDay.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, zeroDay.reason);
+    }
+
+    const idor = await diracCentralIdorBolaGuardV146(req, ctx);
+    if (!idor.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, idor.reason);
+
+    const circuit = await diracCentralCircuitBreakerV146(req, ctx, 'allow');
+    if (!circuit.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, circuit.reason);
+
+    const stableMfaGate = diracCentralStableMfaReadGateV146(req, res, ctx);
+    if (stableMfaGate.handled) return stableMfaGate.response;
+
+    req.__diracCentralSecurityGuardPassedV146 = true;
+    return await nextHandler(req, res);
+  } catch (error) {
+    try { console.error('[dirac-central-security-v146]', diracCentralSafeErrorV146(error)); } catch (_) {}
+    if (ctx) return await diracCentralBanAndBlockV146(req, res, ctx, ctx.action || 'central_guard_error', method, 'central_guard_error');
+    return diracCentralBlockedResponseV146(res, 'CENTRAL_GUARD_ERROR');
+  } finally {
+    if (ctx) {
+      const last = DIRAC_CENTRAL_CONTEXT_STACK_V146[DIRAC_CENTRAL_CONTEXT_STACK_V146.length - 1];
+      if (last === ctx) DIRAC_CENTRAL_CONTEXT_STACK_V146.pop();
+      else {
+        const idx = DIRAC_CENTRAL_CONTEXT_STACK_V146.indexOf(ctx);
+        if (idx >= 0) DIRAC_CENTRAL_CONTEXT_STACK_V146.splice(idx, 1);
+      }
+    }
+  }
+}
+
+function diracCentralApplyHeadersV146(res) {
+  if (!res || typeof res.setHeader !== 'function') return;
+  try { res.setHeader('X-Dirac-Central-Security-Guard', DIRAC_CENTRAL_SECURITY_GUARD_V146); } catch (_) {}
+  try { res.setHeader('Cache-Control', 'no-store'); } catch (_) {}
+  try { res.setHeader('X-Content-Type-Options', 'nosniff'); } catch (_) {}
+  try { res.setHeader('Content-Security-Policy', "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://diracgroup.store https://www.diracgroup.store"); } catch (_) {}
+  try { res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin'); } catch (_) {}
+  try { res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), fullscreen=(self)'); } catch (_) {}
+}
+
+function diracCentralWrapJsonResponseV146(res) {
+  if (!res || typeof res.json !== 'function' || res.__diracCentralJsonWrappedV146) return;
+  const originalJson = res.json.bind(res);
+  res.json = function diracCentralJsonResponseGuardV146(payload) {
+    diracCentralApplyHeadersV146(res);
+    return originalJson(diracCentralSanitizeOutputV146(payload, 0));
+  };
+  res.__diracCentralJsonWrappedV146 = true;
+}
+
+function diracCentralSanitizeOutputV146(value, depth) {
+  if (depth > 8 || value === null || value === undefined) return value;
+  if (typeof value === 'string') {
+    return value
+      .replace(/<script/gi, '&lt;script')
+      .replace(/<\/script/gi, '&lt;/script')
+      .replace(/javascript:/gi, 'javascript-blocked:')
+      .replace(/\bon[a-z]{3,30}\s*=/gi, 'data-blocked=');
+  }
+  if (Array.isArray(value)) return value.slice(0, 1000).map((item) => diracCentralSanitizeOutputV146(item, depth + 1));
+  if (typeof value === 'object') {
+    const out = {};
+    Object.entries(value).slice(0, 1000).forEach(([key, child]) => {
+      const cleanKey = String(key || '').replace(/[\u0000-\u001f\u007f<>]/g, '').slice(0, 120);
+      if (/secret|service_role|authorization|access_token|refresh_token|password|cookie|apikey|api_key/i.test(cleanKey)) return;
+      out[cleanKey] = diracCentralSanitizeOutputV146(child, depth + 1);
+    });
+    return out;
+  }
+  return value;
+}
+
+async function diracCentralBuildIdentityV146(req) {
+  const headers = req && req.headers || {};
+  const cookies = typeof parseCookies === 'function' ? parseCookies(req) : {};
+  const origin = diracCentralNormalizeOriginV146(headers.origin || headers.referer || headers.referrer || '');
+  const ua = String(headers['user-agent'] || '').slice(0, 500);
+  const ip = typeof getLoginSecurityIp === 'function'
+    ? getLoginSecurityIp(req || {})
+    : String(headers['x-forwarded-for'] || headers['x-real-ip'] || '').split(',')[0].trim();
+  const deviceHint = [
+    headers['sec-ch-ua'],
+    headers['sec-ch-ua-platform'],
+    headers['sec-ch-ua-mobile'],
+    headers['accept-language'],
+    headers.accept
+  ].map((v) => String(v || '').slice(0, 160)).join('|');
+
+  const sessionMaterial = [
+    cookies[ACCESS_COOKIE],
+    cookies[DOMAIN_SIGNED_SESSION_COOKIE],
+    cookies.dirac_global_hard_ban,
+    cookies.sb_access_token
+  ].map((v) => String(v || '').slice(0, 500)).filter(Boolean).join('|');
+  let authUserId = '';
+  try {
+    if (typeof decodeJwtPayloadUnsafe === 'function' && cookies[ACCESS_COOKIE]) {
+      const payload = decodeJwtPayloadUnsafe(cookies[ACCESS_COOKIE]);
+      authUserId = String(payload && (payload.sub || payload.user_id || payload.id) || '').trim();
+    }
+  } catch (_) {}
+  if (!authUserId) {
+    try {
+      if (typeof readSignedDomainSessionUser === 'function') {
+        const signed = await readSignedDomainSessionUser(cookies).catch(() => null);
+        authUserId = String(signed && signed.id || '').trim();
+      }
+    } catch (_) {}
+  }
+
+  const loggedIn = Boolean(authUserId || sessionMaterial);
+  const base = loggedIn
+    ? ['login', diracCentralHashV146(sessionMaterial || 'no-session'), diracCentralHashV146(authUserId || 'no-auth'), diracCentralHashV146(String(cookies.customer_id || 'no-customer')), diracCentralHashV146(deviceHint), diracCentralHashV146(ua), diracCentralHashV146(origin)].join('|')
+    : ['guest', diracCentralHashV146(ip || 'unknown'), diracCentralHashV146(ua || 'missing-ua'), diracCentralHashV146(origin || 'missing-origin'), diracCentralHashV146(deviceHint || 'missing-device')].join('|');
+
+  return {
+    key: 'central-ban:' + diracCentralHashV146(base),
+    loggedIn,
+    authUserId,
+    parts: { ip, ua, origin, deviceHint, sessionMaterial: sessionMaterial ? 'present' : '' }
+  };
+}
+
+function diracCentralCheckMemoryBanV146(identity) {
+  const now = Date.now();
+  const key = String(identity && identity.key || '');
+  const row = DIRAC_CENTRAL_MEMORY_BAN_V146.get(key);
+  if (row && Number(row.blockedUntilMs || 0) > now) return { blocked: true, blockedUntilMs: Number(row.blockedUntilMs) };
+  if (row) DIRAC_CENTRAL_MEMORY_BAN_V146.delete(key);
+  return { blocked: false };
+}
+
+async function diracCentralCheckPersistentBanV146(req, identity) {
+  const now = Date.now();
+  const key = String(identity && identity.key || '');
+  const neg = DIRAC_CENTRAL_NEGATIVE_BAN_V146.get(key);
+  if (neg && Number(neg.until || 0) > now) return { blocked: false, negativeCache: true };
+
+  try {
+    if (typeof diracV107CheckActiveBan === 'function') {
+      const existing = await diracV107CheckActiveBan(req);
+      if (existing && existing.blocked) {
+        return { blocked: true, blockedUntilMs: now + Math.max(1, Number(existing.retryAfterSeconds || 86400)) * 1000 };
+      }
+    }
+  } catch (_) {}
+
+  try {
+    if (typeof readPersistentSecurityJson === 'function') {
+      const record = await readPersistentSecurityJson(key).catch(() => null);
+      const blockedUntilMs = Number(record && (record.blocked_until_ms || record.blockedUntilMs) || 0);
+      if (blockedUntilMs > now) return { blocked: true, blockedUntilMs };
+    }
+  } catch (_) {}
+
+  return { blocked: false };
+}
+
+function diracCentralSetNegativeCacheV146(identity) {
+  const key = String(identity && identity.key || '');
+  if (!key) return;
+  DIRAC_CENTRAL_NEGATIVE_BAN_V146.set(key, { until: Date.now() + diracCentralNegativeCacheMsV146() });
+  diracCentralCleanupMapV146(DIRAC_CENTRAL_NEGATIVE_BAN_V146, 5000, 3000);
+}
+
+function diracCentralSetMemoryBanV146(identity, blockedUntilMs, reason) {
+  const key = String(identity && identity.key || '');
+  if (!key) return;
+  DIRAC_CENTRAL_MEMORY_BAN_V146.set(key, {
+    blockedUntilMs: Number(blockedUntilMs || (Date.now() + diracCentralBlockMsV146())),
+    reason: String(reason || 'central_ban').slice(0, 80)
+  });
+  diracCentralCleanupMapV146(DIRAC_CENTRAL_MEMORY_BAN_V146, 5000, 3000);
+}
+
+function diracCentralValidateActionFormatV146(rawAction, lowerAction) {
+  const raw = String(rawAction || '');
+  const clean = String(lowerAction || '');
+  if (!clean) return { ok: false, reason: 'action_empty' };
+  if (raw !== raw.trim()) return { ok: false, reason: 'action_has_outer_space' };
+  if (raw !== clean) return { ok: false, reason: 'action_not_lowercase' };
+  if (clean.length > 80) return { ok: false, reason: 'action_too_long' };
+  if (/[<>"'`;{}[\]()\\]/.test(clean) || /%00/i.test(clean)) return { ok: false, reason: 'action_foreign_character' };
+  if (!/^[a-z0-9_-]+$/.test(clean)) return { ok: false, reason: 'action_invalid_charset' };
+  if (/^[_-]|[_-]$/.test(clean)) return { ok: false, reason: 'action_fake_prefix_or_suffix' };
+  return { ok: true };
+}
+
+function diracCentralNormalizeAliasV146(lowerAction) {
+  const clean = String(lowerAction || '').trim();
+  if (!clean) return { ok: false, reason: 'alias_empty' };
+  if (Object.prototype.hasOwnProperty.call(DIRAC_CENTRAL_ACTION_ALIASES_V146, clean)) {
+    return { ok: true, action: DIRAC_CENTRAL_ACTION_ALIASES_V146[clean] };
+  }
+  if (clean.includes('-')) return { ok: false, reason: 'alias_not_official' };
+  return { ok: true, action: clean };
+}
+
+function diracCentralClassifyActionV146(action) {
+  const clean = String(action || '');
+  if (DIRAC_CENTRAL_SERVER_ACTIONS_V146.has(clean)) return 'server';
+  if (DIRAC_CENTRAL_PUBLIC_READ_ACTIONS_V146.has(clean)) return 'public_read';
+  if (DIRAC_CENTRAL_ADMIN_ACTIONS_V146.has(clean)) return 'admin';
+  return 'browser';
+}
+
+async function diracCentralServerToServerGuardV146(req, res, ctx) {
+  if (ctx.classification !== 'server') return { ok: true };
+  if (ctx.method !== 'POST') return { ok: false, reason: 'server_action_method_invalid' };
+  const body = await diracCentralBodyHandlingGuardV146(req, ctx, 64 * 1024);
+  if (!body.ok) return body;
+  if (ctx.action === 'midtrans_webhook') {
+    if (typeof midtransVerifySignature === 'function') {
+      const valid = midtransVerifySignature(ctx.body || {});
+      if (!valid) return { ok: false, reason: 'midtrans_signature_invalid' };
+    }
+  }
+  return { ok: true };
+}
+
+function diracCentralPageBrowserAuthenticityGuardV146(req, ctx) {
+  if (!diracCentralNeedsBrowserAuthenticityV146(ctx)) return { ok: true };
+  const headers = req && req.headers || {};
+  const origin = diracCentralNormalizeOriginV146(headers.origin || '');
+  if (!origin || !DIRAC_CENTRAL_ALLOWED_ORIGINS_V146.has(origin)) return { ok: false, reason: 'origin_invalid' };
+
+  const ref = diracCentralValidateRefererV146(headers.referer || headers.referrer || '');
+  if (!ref.ok) return ref;
+
+  const sec = diracCentralSecFetchGuardV146(req, ctx);
+  if (!sec.ok) return sec;
+  return { ok: true };
+}
+
+function diracCentralNeedsBrowserAuthenticityV146(ctx) {
+  return ctx.classification === 'browser' || ctx.classification === 'admin' || DIRAC_CENTRAL_SENSITIVE_ACTIONS_V146.has(ctx.action);
+}
+
+function diracCentralValidateRefererV146(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return { ok: false, reason: 'referer_missing' };
+  let url;
+  try { url = new URL(raw); } catch (_) { return { ok: false, reason: 'referer_invalid_url' }; }
+  if (!DIRAC_CENTRAL_ALLOWED_ORIGINS_V146.has(url.origin)) return { ok: false, reason: 'referer_origin_invalid' };
+  if (!DIRAC_CENTRAL_ALLOWED_REFERER_PATHS_V146.has(url.pathname)) return { ok: false, reason: 'referer_path_invalid' };
+  if (url.search || url.hash) return { ok: false, reason: 'referer_has_suffix_after_html' };
+  const afterOrigin = raw.slice(url.origin.length);
+  if (!DIRAC_CENTRAL_ALLOWED_REFERER_PATHS_V146.has(afterOrigin)) return { ok: false, reason: 'referer_not_exact_html' };
+  return { ok: true };
+}
+
+function diracCentralSecFetchGuardV146(req, ctx) {
+  const headers = req && req.headers || {};
+  const site = String(headers['sec-fetch-site'] || '').toLowerCase();
+  const mode = String(headers['sec-fetch-mode'] || '').toLowerCase();
+  const dest = String(headers['sec-fetch-dest'] || '').toLowerCase();
+  if (!site || !['same-origin', 'same-site'].includes(site)) return { ok: false, reason: 'sec_fetch_site_invalid' };
+  const allowedModes = ctx.method === 'GET' || ctx.method === 'HEAD' ? ['cors', 'same-origin', 'navigate'] : ['cors', 'same-origin'];
+  if (!allowedModes.includes(mode)) return { ok: false, reason: 'sec_fetch_mode_invalid' };
+  if (!['', 'empty', 'document'].includes(dest)) return { ok: false, reason: 'sec_fetch_dest_invalid' };
+  return { ok: true };
+}
+
+function diracCentralCsrfGuardV146(req, res, ctx) {
+  if (!diracCentralNeedsCsrfNonceV146(ctx)) {
+    if ((ctx.method === 'GET' || ctx.method === 'HEAD') && typeof diracCsrfIssueToken === 'function') {
+      try { diracCsrfIssueToken(req, res, ctx.action); } catch (_) {}
+    }
+    return { ok: true };
+  }
+  try {
+    if (typeof diracV138CsrfForceVerify === 'function') {
+      const csrf = diracV138CsrfForceVerify(req, ctx.action);
+      if (!csrf.ok) return { ok: false, reason: csrf.code || 'csrf_invalid' };
+      return { ok: true };
+    }
+  } catch (_) {
+    return { ok: false, reason: 'csrf_verify_error' };
+  }
+  return { ok: false, reason: 'csrf_guard_missing' };
+}
+
+function diracCentralNeedsCsrfNonceV146(ctx) {
+  if (ctx.classification === 'server' || ctx.classification === 'public_read') return false;
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(ctx.method)) return false;
+  return ctx.classification === 'browser' || ctx.classification === 'admin' || DIRAC_CENTRAL_SENSITIVE_ACTIONS_V146.has(ctx.action);
+}
+
+function diracCentralPageNonceGuardV146(req, res, ctx) {
+  if ((ctx.method === 'GET' || ctx.method === 'HEAD') && ctx.classification !== 'server') {
+    diracCentralIssuePageNonceV146(req, res, ctx.action);
+  }
+  if (!diracCentralNeedsCsrfNonceV146(ctx)) return { ok: true };
+  const headers = req && req.headers || {};
+  const nonce = String(headers['x-dirac-page-nonce'] || headers['x-page-nonce'] || '').trim();
+  if (!nonce) return { ok: false, reason: 'page_nonce_missing' };
+  const verified = diracCentralVerifyPageNonceV146(req, nonce, ctx.action);
+  if (!verified.ok) return { ok: false, reason: verified.reason || 'page_nonce_invalid' };
+  return { ok: true };
+}
+
+function diracCentralIssuePageNonceV146(req, res, action) {
+  if (!res || typeof res.setHeader !== 'function') return '';
+  const secret = diracCentralSecretV146();
+  const now = Math.floor(Date.now() / 1000);
+  const payload = {
+    typ: 'dirac-page-nonce-v1',
+    iat: now,
+    exp: now + 300,
+    act: String(action || ''),
+    sid: diracCentralRequestSessionHashV146(req),
+    oh: diracCentralHashV146(diracCentralNormalizeOriginV146(req && req.headers && (req.headers.origin || req.headers.referer || req.headers.referrer) || ''))
+  };
+  const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const sig = crypto.createHmac('sha256', secret).update(body).digest('base64url');
+  const token = body + '.' + sig;
+  try { res.setHeader('X-Dirac-Page-Nonce', token); } catch (_) {}
+  return token;
+}
+
+function diracCentralVerifyPageNonceV146(req, token, action) {
+  const parts = String(token || '').split('.');
+  if (parts.length !== 2) return { ok: false, reason: 'page_nonce_format_invalid' };
+  const expected = crypto.createHmac('sha256', diracCentralSecretV146()).update(parts[0]).digest('base64url');
+  if (typeof safeEqual === 'function') {
+    if (!safeEqual(expected, parts[1])) return { ok: false, reason: 'page_nonce_signature_invalid' };
+  } else if (expected !== parts[1]) return { ok: false, reason: 'page_nonce_signature_invalid' };
+  let payload = null;
+  try { payload = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8')); } catch (_) { return { ok: false, reason: 'page_nonce_payload_invalid' }; }
+  const now = Math.floor(Date.now() / 1000);
+  if (!payload || payload.typ !== 'dirac-page-nonce-v1') return { ok: false, reason: 'page_nonce_type_invalid' };
+  if (!payload.exp || Number(payload.exp) < now) return { ok: false, reason: 'page_nonce_expired' };
+  if (String(payload.act || '') !== String(action || '')) return { ok: false, reason: 'page_nonce_action_mismatch' };
+  const sid = diracCentralRequestSessionHashV146(req);
+  if (payload.sid && sid && payload.sid !== sid) return { ok: false, reason: 'page_nonce_session_mismatch' };
+  const originHash = diracCentralHashV146(diracCentralNormalizeOriginV146(req && req.headers && (req.headers.origin || req.headers.referer || req.headers.referrer) || ''));
+  if (payload.oh && originHash && payload.oh !== originHash) return { ok: false, reason: 'page_nonce_origin_mismatch' };
+  return { ok: true };
+}
+
+function diracCentralBrowserSignalGuardV146(req, ctx) {
+  if (!diracCentralNeedsBrowserAuthenticityV146(ctx)) return { ok: true };
+  const headers = req && req.headers || {};
+  const ua = String(headers['user-agent'] || '').toLowerCase();
+  if (!ua) return { ok: false, reason: 'user_agent_missing' };
+  if (diracCentralScannerRegexV146().test(ua)) return { ok: false, reason: 'scanner_user_agent' };
+  if (!/\b(chrome|chromium|crios|edg|firefox|fxios|safari|mobile safari)\b/i.test(ua)) return { ok: false, reason: 'browser_not_official' };
+  const ch = String(headers['sec-ch-ua'] || '').trim();
+  if (!ch) return { ok: false, reason: 'sec_ch_ua_missing' };
+  if (/chrome|chromium|crios|edg/i.test(ua) && !/Chromium|Google Chrome|Microsoft Edge/i.test(ch)) return { ok: false, reason: 'sec_ch_ua_mismatch' };
+  const accept = String(headers.accept || '').toLowerCase();
+  const lang = String(headers['accept-language'] || '').toLowerCase();
+  if (!accept || !/(application\/json|\*\/\*|text\/html)/i.test(accept)) return { ok: false, reason: 'accept_header_invalid' };
+  if (!lang || lang.length > 160) return { ok: false, reason: 'accept_language_invalid' };
+  const contentType = String(headers['content-type'] || '').toLowerCase();
+  if (['POST', 'PUT', 'PATCH'].includes(ctx.method) && !/(application\/json|multipart\/form-data|application\/x-www-form-urlencoded)/i.test(contentType)) {
+    return { ok: false, reason: 'content_type_invalid_browser' };
+  }
+  return { ok: true };
+}
+
+function diracCentralDeviceConsistencyGuardV146(req, ctx) {
+  if (!DIRAC_CENTRAL_USER_DATA_ACTIONS_V146.has(ctx.action) && !/^domain_dashboard|^customer_security|^admin_security/.test(ctx.action)) return { ok: true };
+  const sessionKey = diracCentralRequestSessionHashV146(req);
+  if (!sessionKey) return { ok: false, reason: 'device_session_hash_missing' };
+  const headers = req && req.headers || {};
+  const current = diracCentralHashV146([
+    headers['user-agent'],
+    headers.origin,
+    headers['sec-ch-ua'],
+    headers['sec-ch-ua-platform'],
+    headers['accept-language']
+  ].map((v) => String(v || '').slice(0, 160)).join('|'));
+  const previous = DIRAC_CENTRAL_DEVICE_BINDINGS_V146.get(sessionKey);
+  if (!previous) {
+    DIRAC_CENTRAL_DEVICE_BINDINGS_V146.set(sessionKey, { hash: current, until: Date.now() + 24 * 60 * 60 * 1000 });
+    diracCentralCleanupMapV146(DIRAC_CENTRAL_DEVICE_BINDINGS_V146, 5000, 3000);
+    return { ok: true };
+  }
+  if (Number(previous.until || 0) <= Date.now()) {
+    DIRAC_CENTRAL_DEVICE_BINDINGS_V146.set(sessionKey, { hash: current, until: Date.now() + 24 * 60 * 60 * 1000 });
+    return { ok: true };
+  }
+  if (previous.hash !== current) return { ok: false, reason: 'device_consistency_changed' };
+  return { ok: true };
+}
+
+async function diracCentralAdminAuthGuardV146(req, res, ctx) {
+  if (ctx.classification !== 'admin') return { ok: true };
+  try {
+    if (typeof requireAdminSecuritySupabaseOwner === 'function') {
+      const fake = diracCentralFakeResponseV146();
+      const admin = await requireAdminSecuritySupabaseOwner(req, fake, { action: ctx.action }).catch(() => null);
+      if (!admin) return { ok: false, reason: 'admin_auth_invalid' };
+      return { ok: true };
+    }
+  } catch (_) {}
+  return { ok: false, reason: 'admin_guard_missing' };
+}
+
+function diracCentralPublicReadGuardV146(req, ctx) {
+  if (ctx.classification !== 'public_read') return { ok: true };
+  const headers = req && req.headers || {};
+  const origin = diracCentralNormalizeOriginV146(headers.origin || '');
+  if (!origin || !DIRAC_CENTRAL_ALLOWED_ORIGINS_V146.has(origin)) return { ok: false, reason: 'public_origin_invalid' };
+  if (!['GET', 'HEAD'].includes(ctx.method)) return { ok: false, reason: 'public_method_invalid' };
+  if (diracCentralScannerRegexV146().test(String(headers['user-agent'] || '').toLowerCase())) return { ok: false, reason: 'public_scanner_blocked' };
+  const len = Number(headers['content-length'] || 0);
+  if (len > 1024) return { ok: false, reason: 'public_body_too_large' };
+  const rate = diracCentralRateLimitV146(ctx.identity.key + ':public:' + ctx.action, 60 * 1000, 120);
+  if (!rate.ok) return { ok: false, reason: 'public_rate_limit' };
+  return { ok: true };
+}
+
+async function diracCentralBodyHandlingGuardV146(req, ctx, explicitLimit) {
+  if (ctx.body && typeof ctx.body === 'object') return { ok: true };
+  const limit = explicitLimit || diracCentralContractForActionV146(ctx.action).maxBodyBytes || 20 * 1024;
+  const length = Number(req && req.headers && req.headers['content-length'] || 0);
+  if (length > limit) return { ok: false, reason: 'body_too_large' };
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(ctx.method)) {
+    ctx.body = {};
+    req.__diracCentralParsedBodyV146 = {};
+    return { ok: true };
+  }
+  try {
+    if (typeof readLimitedJsonBody === 'function') {
+      ctx.body = await readLimitedJsonBody(req, limit);
+      req.__parsedBody = ctx.body;
+      req.__diracCentralParsedBodyV146 = ctx.body;
+      return { ok: true };
+    }
+  } catch (error) {
+    return { ok: false, reason: error && error.code || 'body_invalid' };
+  }
+  return { ok: false, reason: 'body_reader_missing' };
+}
+
+function diracCentralLightGuardV146(req, ctx) {
+  const contract = diracCentralContractForActionV146(ctx.action);
+  if (!contract.methods.includes(ctx.method)) return { ok: false, reason: 'method_not_in_contract' };
+  const headers = req && req.headers || {};
+  if (!['GET', 'POST', 'HEAD', 'OPTIONS'].includes(ctx.method)) return { ok: false, reason: 'method_not_allowed_global' };
+  const headerNames = Object.keys(headers || {});
+  if (headerNames.some((name) => /[\u0000-\u001f\u007f]/.test(name) || String(name).length > 80)) return { ok: false, reason: 'header_name_invalid' };
+  if (Number(headers['content-length'] || 0) > contract.maxBodyBytes) return { ok: false, reason: 'body_size_contract_exceeded' };
+  return { ok: true };
+}
+
+function diracCentralContractGuardV146(req, ctx) {
+  const contract = diracCentralContractForActionV146(ctx.action);
+  if (!contract || !contract.methods || !contract.methods.length) return { ok: false, reason: 'action_contract_missing' };
+  const source = ctx.method === 'GET' || ctx.method === 'HEAD' ? (req && req.query || {}) : (ctx.body || {});
+  const clean = diracCentralFlattenObjectV146(source, 0, '', 400);
+  const allowed = new Set(['action'].concat(contract.allowed || []));
+  const required = new Set(contract.required || []);
+  for (const key of required) {
+    if (!Object.prototype.hasOwnProperty.call(source || {}, key)) return { ok: false, reason: 'required_field_missing_' + key };
+  }
+  for (const item of clean) {
+    const key = item.key.split('.').pop();
+    if (!allowed.has(key) && !contract.allowExtra) return { ok: false, reason: 'field_not_allowed_' + key };
+    if (diracCentralProtectedFieldV146(key) && !contract.allowProtectedFields) return { ok: false, reason: 'protected_field_from_frontend_' + key };
+    if (String(item.value || '').length > (contract.maxFieldBytes || 3000)) return { ok: false, reason: 'field_too_long_' + key };
+    const format = diracCentralValidateFieldFormatV146(key, item.value);
+    if (!format.ok) return { ok: false, reason: format.reason };
+  }
+  if (ctx.method === 'GET' && contract.mutation) return { ok: false, reason: 'mutation_get_rejected' };
+  return { ok: true };
+}
+
+function diracCentralSecurityReportGuardV146(req, ctx) {
+  if (ctx.action !== 'security_report') return { ok: true };
+  const body = ctx.body || {};
+  if (body.target || body.security_key || body.identity || body.ip || body.customer_id || body.user_id) {
+    return { ok: false, reason: 'security_report_target_forbidden' };
+  }
+  return { ok: true };
+}
+
+function diracCentralSampleCollectorV146(req, ctx) {
+  const out = [];
+  const push = (key, value) => {
+    if (out.join('\n').length > 50 * 1024) return;
+    const cleanKey = String(key || '').toLowerCase();
+    if (diracCentralSensitiveKeyV146(cleanKey)) {
+      out.push(cleanKey + '=[redacted-structure]');
+      return;
+    }
+    const text = String(value === undefined || value === null ? '' : value);
+    if (!text) return;
+    out.push(cleanKey + '=' + text.slice(0, 3000));
+  };
+  push('action', ctx.action);
+  push('method', ctx.method);
+  push('url', req && req.url);
+  const headers = req && req.headers || {};
+  ['origin', 'referer', 'referrer', 'user-agent', 'sec-fetch-site', 'sec-fetch-mode', 'sec-fetch-dest', 'content-type', 'accept', 'accept-language'].forEach((key) => push(key, headers[key]));
+  Object.entries(req && req.query || {}).slice(0, 80).forEach(([key, value]) => push('query.' + key, Array.isArray(value) ? value.join(',') : value));
+  diracCentralFlattenObjectV146(ctx.body || {}, 0, '', 200).forEach((item) => push('body.' + item.key, item.value));
+  if (out.join('\n').length > 50 * 1024) return { ok: false, reason: 'sample_total_too_large' };
+  ctx.sample = out.join('\n');
+  return { ok: true };
+}
+
+function diracCentralNormalizeSampleV146(sample) {
+  const values = [];
+  const add = (value) => {
+    const text = String(value || '').slice(0, 50 * 1024);
+    if (!text) return;
+    values.push(text);
+    values.push(text.toLowerCase());
+    values.push(text.replace(/\+/g, ' '));
+    values.push(text.normalize ? text.normalize('NFKC') : text);
+  };
+  let current = String(sample || '');
+  add(current);
+  for (let i = 0; i < 3; i += 1) {
+    try {
+      const decoded = decodeURIComponent(current);
+      add(decoded);
+      if (decoded === current) break;
+      current = decoded;
+    } catch (_) { break; }
+  }
+  add(diracCentralHtmlEntityDecodeV146(current));
+  add(current.replace(/\\u([0-9a-f]{4})/gi, (_, h) => String.fromCharCode(parseInt(h, 16))));
+  const spacedText = values.join('\n').toLowerCase();
+  const compactText = spacedText.replace(/\s+/g, '');
+  return { spacedText, compactText };
+}
+
+function diracCentralThreatPatternGuardV146(normalized, ctx) {
+  const spaced = normalized.spacedText || '';
+  const compact = normalized.compactText || '';
+  const checks = [
+    ['sql_injection', /\bunion\s+(?:all\s+)?select\b|(?:^|[\s'"`])(?:or|and)\s+1\s*=\s*1(?:$|[\s'"`])|true\s*=\s*true|' or '1'='1|" or "1"="1|--\s|#\s|\/\*|\*\/|;\s*(?:select|insert|update|delete|drop|alter|truncate)\b|\binformation_schema\b|\bpg_catalog\b|\bsqlite_master\b|\bmysql\.user\b|\bsysobjects\b|\bsyscolumns\b|\bsleep\s*\(|\bpg_sleep\s*\(|\bbenchmark\s*\(|\bwaitfor\s+delay\b|\bload_file\s*\(|\binto\s+outfile\b|\bxp_cmdshell\b|\bextractvalue\s*\(|\bupdatexml\s*\(/i],
+    ['xss', /<\s*script\b|<\s*\/\s*script\b|\bjavascript\s*:|\bon(?:error|load|click|mouseover)\s*=|<\s*(?:img|svg|iframe|object|embed|body|meta|link)\b|\bsrcdoc\s*=|\bdata:text\/html\b|\bdocument\.cookie\b|\blocalstorage\b|\bsessionstorage\b|\b(?:alert|confirm|prompt|eval|function)\s*\(/i],
+    ['ssrf', /\blocalhost\b|\b127\.0\.0\.1\b|\b0\.0\.0\.0\b|(?:^|[^a-f0-9])::1(?:[^a-f0-9]|$)|\[::1\]|\b10\.\d+\.\d+\.\d+\b|\b172\.(?:1[6-9]|2\d|3[0-1])\.\d+\.\d+\b|\b192\.168\.\d+\.\d+\b|\b169\.254\.169\.254\b|\b169\.254\.\d+\.\d+\b|\bmetadata\.google\.internal\b|\binstance-data\b|\bmetadata\b|\b(?:file|gopher|dict|ftp|ldap):\/\//i],
+    ['path_traversal_lfi_rfi', /\.\.\/|\.\.\\|%2e%2e%2f|%252e%252e%252f|\/etc\/passwd|\/etc\/shadow|\bboot\.ini\b|\bwin\.ini\b|\bWEB-INF\b/i],
+    ['command_injection_rce', /(?:;|\||&&|`|\$\()\s*(?:whoami|id)\b|\b(?:bash|sh|cmd\.exe|powershell|pwsh|nc|netcat|wget|curl|perl|python|php|ruby)\b/i],
+    ['prototype_pollution', /__proto__|constructor\.prototype|prototype\s*=|prototype\[|constructor\[/i],
+    ['nosql_injection', /\$(?:ne|gt|gte|lt|lte|where|regex|or|and)\b/i],
+    ['xxe', /<!DOCTYPE|<!ENTITY|\bSYSTEM\b|\bPUBLIC\b|file:\/\/\/etc\/passwd/i],
+    ['ssti_template_injection', /\{\{7\*7\}\}|\$\{7\*7\}|<%=\s*7\*7\s*%>|#\{7\*7\}/i],
+    ['log4shell', /\$\{jndi:|\b(?:ldap|rmi|dns):\/\//i],
+    ['crlf_header_injection', /%0d%0a|\\r\\n|\bSet-Cookie:|\bLocation:|\bContent-Length:|\bTransfer-Encoding:/i],
+    ['request_smuggling', /transfer-encoding[\s\S]{0,80}transfer-encoding|content-length[\s\S]{0,80}content-length|content-length[\s\S]{0,80}transfer-encoding|transfer-encoding[\s\S]{0,80}content-length|\bchunked\b[\s\S]{0,80}\bchunked\b/i],
+    ['upload_webshell', /\.phtml\b|\.jspx?\b|\.aspx?\b|<\?php|\bbase64_decode\b|\beval\s*\(|\bshell_exec\b|\bsystem\s*\(|\bpassthru\s*\(/i],
+    ['secret_file_probing', /\.env\b|\.git\b|\.aws\/credentials\b|\bid_rsa\b|\bwp-config\.php\b|\bconfig\.php\b|\bcomposer\.json\b|\bpackage-lock\.json\b/i],
+    ['csv_formula_injection', /(?:^|[\n\r=,\t ])(?:=cmd|=hyperlink|\+cmd|-cmd|@cmd)\b/i]
+  ];
+  if (spaced.includes('\u0000') || /[\u202a-\u202e\u2066-\u2069]/.test(spaced)) return { detected: true, kind: 'unicode_control_or_bidi' };
+  for (const [kind, pattern] of checks) {
+    if (pattern.test(spaced) || pattern.test(compact)) return { detected: true, kind };
+  }
+  const mass = diracCentralMassAssignmentThreatV146(ctx);
+  if (mass.detected) return mass;
+  return { detected: false };
+}
+
+function diracCentralMassAssignmentThreatV146(ctx) {
+  const contract = diracCentralContractForActionV146(ctx.action);
+  if (!contract.mutation) return { detected: false };
+  const fields = diracCentralFlattenObjectV146(ctx.body || {}, 0, '', 300).map((item) => item.key.split('.').pop());
+  const forbidden = fields.find((key) => /^(role|is_admin|admin|owner_id|balance|price|total_price|paid|payment_status)$/i.test(key) || (/^(user_id|customer_id)$/i.test(key) && !(contract.allowed || []).includes(key)));
+  return forbidden ? { detected: true, kind: 'mass_assignment_' + forbidden } : { detected: false };
+}
+
+function diracCentralZeroDayShieldV146(req, ctx, normalized) {
+  const flat = diracCentralFlattenObjectV146(ctx.body || {}, 0, '', 1000);
+  if (flat.length > 80) return { ok: false, reason: 'zeroday_field_too_many' };
+  if (flat.some((item) => item.depth > 5)) return { ok: false, reason: 'zeroday_nested_too_deep' };
+  if (String(ctx.sample || '').length > 50 * 1024) return { ok: false, reason: 'zeroday_payload_too_long' };
+  const headers = req && req.headers || {};
+  if (Object.keys(headers).some((name) => /^(x-forwarded-host|x-original-url|x-rewrite-url|x-http-method-override|x-forwarded-proto)$/i.test(String(name || '')))) {
+    return { ok: false, reason: 'zeroday_manipulative_header' };
+  }
+  if (/\b[A-Za-z0-9+/]{240,}={0,2}\b/.test(normalized.spacedText || '')) return { ok: false, reason: 'zeroday_base64_unusual' };
+  if (/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(normalized.spacedText || '')) return { ok: false, reason: 'zeroday_binary_unusual' };
+  const rate = diracCentralRateLimitV146(ctx.identity.key + ':action:' + ctx.action, 10 * 1000, 20);
+  if (!rate.ok) return { ok: false, reason: 'zeroday_request_too_fast' };
+  const idCount = diracCentralCollectIdsV146(req, ctx.body).length;
+  if (idCount > 8) return { ok: false, reason: 'zeroday_many_ids' };
+  if (String(req && req.url || '').length > 1800) return { ok: false, reason: 'zeroday_query_too_wide' };
+  return { ok: true };
+}
+
+async function diracCentralIdorBolaGuardV146(req, ctx) {
+  const ids = diracCentralCollectIdsV146(req, ctx.body);
+  const needsOwner = ids.length > 0 || DIRAC_CENTRAL_USER_DATA_ACTIONS_V146.has(ctx.action);
+  if (!needsOwner) return { ok: true, skipped: 'no_sensitive_id_and_not_user_data' };
+  if (ids.length > 12) return { ok: false, reason: 'idor_too_many_ids' };
+
+  const owner = await diracCentralResolveOwnerV146(req);
+  if (!owner || !owner.ok || !owner.customerIds || !owner.customerIds.length) return { ok: false, reason: 'idor_owner_unavailable' };
+  const allowedCustomers = new Set(owner.customerIds.map(String));
+  const requestedCustomer = ids.filter((item) => item.key === 'customer_id').map((item) => item.value).filter(diracCentralLooksLikeUuidV146);
+  if (requestedCustomer.some((id) => !allowedCustomers.has(id))) return { ok: false, reason: 'idor_customer_id_mismatch' };
+  const requestedUser = ids.filter((item) => /^(user_id|auth_user_id|owner_user_id)$/i.test(item.key)).map((item) => item.value).filter(diracCentralLooksLikeUuidV146);
+  if (requestedUser.some((id) => id !== owner.authUserId)) return { ok: false, reason: 'idor_auth_user_mismatch' };
+
+  const objects = ids.filter((item) => !/^(customer_id|user_id|auth_user_id|owner_user_id|email|slug)$/i.test(item.key));
+  if (!objects.length) return { ok: true };
+  const rows = await diracCentralLookupOwnerRowsV146(objects);
+  const foreign = rows.find((row) => row.customer_id && !allowedCustomers.has(String(row.customer_id)));
+  if (foreign) return { ok: false, reason: 'idor_object_owner_mismatch' };
+  return { ok: true };
+}
+
+async function diracCentralResolveOwnerV146(req) {
+  try {
+    if (typeof diracBolaIdorV133ResolveStrictOwner === 'function') {
+      const owner = await diracBolaIdorV133ResolveStrictOwner(req);
+      if (owner && owner.ok && owner.customerIds && owner.customerIds.length) return owner;
+    }
+  } catch (_) {}
+  try {
+    if (typeof diracBolaIdorV128ResolveRequestOwner === 'function') {
+      const owner = await diracBolaIdorV128ResolveRequestOwner(req);
+      if (owner && owner.ok && owner.customerIds && owner.customerIds.length) return owner;
+    }
+  } catch (_) {}
+  if (typeof requireDomainUser !== 'function' || typeof customerSecurityFetchAuthLink !== 'function') return { ok: false };
+  const fake = diracCentralFakeResponseV146();
+  const user = await requireDomainUser(req, fake).catch(() => null);
+  const authUserId = String(user && user.id || '').trim();
+  if (!diracCentralLooksLikeUuidV146(authUserId)) return { ok: false };
+  const link = await customerSecurityFetchAuthLink(authUserId).catch(() => null);
+  const rows = link && link.ok && Array.isArray(link.data) ? link.data : [];
+  const customerIds = Array.from(new Set(rows
+    .filter((row) => row && String(row.link_status || '').toLowerCase() === 'active')
+    .map((row) => String(row.customer_id || '').trim())
+    .filter(diracCentralLooksLikeUuidV146))).slice(0, 25);
+  return { ok: true, authUserId, customerIds };
+}
+
+async function diracCentralLookupOwnerRowsV146(objects) {
+  const cacheKey = diracCentralHashV146(JSON.stringify(objects || []));
+  const cached = DIRAC_CENTRAL_OWNER_LOOKUP_CACHE_V146.get(cacheKey);
+  if (cached && Number(cached.until || 0) > Date.now()) return cached.rows || [];
+  const rows = [];
+  const values = (regex) => Array.from(new Set((objects || []).filter((item) => regex.test(item.key)).map((item) => String(item.value || '').trim()).filter(Boolean))).slice(0, 40);
+  try {
+    if (typeof diracV143FetchOwnerRows === 'function') {
+      rows.push(...await diracV143FetchOwnerRows('orders', values(/^(order_id|order_code|item_id)$/i), ['id', 'order_id']).catch(() => []));
+      rows.push(...await diracV143FetchOwnerRows('domain_orders', values(/^(domain_order_id|order_id|order_code)$/i), ['id', 'order_code']).catch(() => []));
+      rows.push(...await diracV143FetchOwnerRows('payment_transactions', values(/^(payment_id|transaction_id|gateway_reference|invoice_id)$/i), ['id', 'gateway_reference']).catch(() => []));
+    }
+    if (typeof diracBolaIdorV128FetchOwnerRows === 'function') {
+      rows.push(...await diracBolaIdorV128FetchOwnerRows('security_customer_sessions', values(/^session_id$/i), 'id').catch(() => []));
+      rows.push(...await diracBolaIdorV128FetchOwnerRows('security_customer_recovery_codes', values(/^recovery_code_id$/i), 'id').catch(() => []));
+    }
+  } catch (_) {}
+  const cleanRows = rows.slice(0, 120);
+  DIRAC_CENTRAL_OWNER_LOOKUP_CACHE_V146.set(cacheKey, { until: Date.now() + 5000, rows: cleanRows });
+  return cleanRows;
+}
+
+async function diracCentralInspectServiceRoleAccessV146(path, options = {}) {
+  if (!options || options.auth !== 'service') return { ok: true };
+  const ctx = DIRAC_CENTRAL_CONTEXT_STACK_V146[DIRAC_CENTRAL_CONTEXT_STACK_V146.length - 1];
+  if (!ctx || !ctx.__serviceGuardActive && ctx.action === 'midtrans_webhook') return { ok: true };
+  const table = diracCentralExtractRestTableV146(path);
+  if (!diracCentralOwnedTableV146(table)) return { ok: true };
+  const method = String(options.method || 'GET').toUpperCase();
+  const hasOwnerScope = diracCentralPathHasOwnerScopeV146(path, options.body);
+  const hasObjectScope = diracCentralPathHasObjectScopeV146(path, options.body);
+  if (!hasOwnerScope && !hasObjectScope) {
+    await diracCentralBanCurrentContextV146('service_role_without_owner_scope').catch(() => null);
+    return { block: true, reason: 'service_role_without_owner_scope', status: 403 };
+  }
+  if (['POST', 'PUT', 'PATCH'].includes(method)) {
+    const fields = diracCentralFlattenObjectV146(options.body || {}, 0, '', 200).map((item) => item.key.split('.').pop());
+    if (fields.some(diracCentralProtectedFieldV146)) {
+      await diracCentralBanCurrentContextV146('service_role_protected_field').catch(() => null);
+      return { block: true, reason: 'service_role_protected_field', status: 403 };
+    }
+  }
+  return { ok: true };
+}
+
+function diracCentralBlockedSupabaseResultV146(decision) {
+  return {
+    ok: false,
+    status: Number(decision && decision.status || 403),
+    data: { ok: false, code: 'CENTRAL_SECURITY_SERVICE_ROLE_BLOCKED', message: 'Permintaan ditolak oleh sistem keamanan.' },
+    error: 'CENTRAL_SECURITY_SERVICE_ROLE_BLOCKED'
+  };
+}
+
+async function diracCentralInspectEgressV146(input, options = {}) {
+  let url;
+  try { url = new URL(typeof input === 'string' ? input : input && input.url || ''); } catch (_) { return { ok: true }; }
+  if (!/^https:$/.test(url.protocol)) return { block: true, reason: 'egress_protocol_blocked' };
+  const host = url.hostname.toLowerCase();
+  if (diracCentralIsUnsafeHostV146(host)) return { block: true, reason: 'egress_private_or_metadata_host' };
+  if (!diracCentralAllowedEgressHostV146(host)) return { block: true, reason: 'egress_host_not_allowlisted' };
+  const directService = diracCentralDirectServiceRoleFetchV146(url, input, options);
+  if (directService.block) return directService;
+  const dns = await diracCentralResolveHostIpsV146(host).catch(() => []);
+  if (dns.some(diracCentralIsUnsafeIpV146)) return { block: true, reason: 'egress_dns_resolved_private_ip' };
+  return { ok: true };
+}
+
+async function diracCentralFetchWithRedirectGuardV146(fetchImpl, input, options, depth) {
+  const currentDepth = Number(depth || 0);
+  if (currentDepth > 3) {
+    const error = new Error('DIRAC_EGRESS_REDIRECT_LIMIT');
+    error.code = 'DIRAC_EGRESS_REDIRECT_LIMIT';
+    throw error;
+  }
+  const guardedOptions = Object.assign({}, options || {}, { redirect: 'manual' });
+  const response = await fetchImpl(input, guardedOptions);
+  const status = Number(response && response.status || 0);
+  if (status < 300 || status > 399 || !response || !response.headers || typeof response.headers.get !== 'function') return response;
+  const location = response.headers.get('location');
+  if (!location) return response;
+  const base = new URL(typeof input === 'string' ? input : input && input.url || '');
+  const nextUrl = new URL(location, base);
+  const decision = await diracCentralInspectEgressV146(nextUrl.toString()).catch(() => ({ ok: true }));
+  if (decision && decision.block) {
+    const error = new Error('DIRAC_EGRESS_REDIRECT_BLOCKED');
+    error.code = 'DIRAC_EGRESS_REDIRECT_BLOCKED';
+    error.diracSecurityThreat = decision;
+    throw error;
+  }
+  return diracCentralFetchWithRedirectGuardV146(fetchImpl, nextUrl.toString(), options, currentDepth + 1);
+}
+
+function diracCentralDirectServiceRoleFetchV146(url, input, options = {}) {
+  try {
+    const ctx = DIRAC_CENTRAL_CONTEXT_STACK_V146[DIRAC_CENTRAL_CONTEXT_STACK_V146.length - 1];
+    if (!ctx || ctx.__diracCentralSafeServiceRoleFetchV146) return { ok: true };
+    const host = String(url && url.hostname || '').toLowerCase();
+    if (!/\.supabase\.co$/i.test(host)) return { ok: true };
+    const serviceKey = String(process.env.DOMAIN_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '').trim();
+    if (!serviceKey) return { ok: true };
+    const headers = options && options.headers || input && input.headers || {};
+    const raw = typeof headers.get === 'function'
+      ? [headers.get('authorization'), headers.get('apikey')].join('|')
+      : Object.values(headers || {}).join('|');
+    if (raw.includes(serviceKey)) return { block: true, reason: 'direct_service_role_fetch_blocked' };
+  } catch (_) {}
+  return { ok: true };
+}
+
+async function diracCentralResolveHostIpsV146(host) {
+  const cleanHost = String(host || '').toLowerCase();
+  const cached = DIRAC_CENTRAL_DNS_CACHE_V146.get(cleanHost);
+  if (cached && Number(cached.until || 0) > Date.now()) return cached.ips || [];
+  try {
+    const dns = require('dns').promises;
+    const rows = await Promise.race([
+      dns.lookup(cleanHost, { all: true, verbatim: true }),
+      new Promise((resolve) => setTimeout(() => resolve([]), 1000))
+    ]);
+    const ips = (rows || []).map((row) => String(row && row.address || '')).filter(Boolean).slice(0, 20);
+    DIRAC_CENTRAL_DNS_CACHE_V146.set(cleanHost, { until: Date.now() + 60 * 1000, ips });
+    diracCentralCleanupMapV146(DIRAC_CENTRAL_DNS_CACHE_V146, 2000, 1000);
+    return ips;
+  } catch (_) {
+    DIRAC_CENTRAL_DNS_CACHE_V146.set(cleanHost, { until: Date.now() + 10 * 1000, ips: [] });
+    return [];
+  }
+}
+
+function diracCentralIsUnsafeIpV146(ip) {
+  const clean = String(ip || '').trim().toLowerCase();
+  if (!clean) return false;
+  if (clean === '127.0.0.1' || clean === '0.0.0.0' || clean === '::1') return true;
+  if (/^10\./.test(clean) || /^192\.168\./.test(clean) || /^169\.254\./.test(clean)) return true;
+  if (/^172\.(?:1[6-9]|2\d|3[0-1])\./.test(clean)) return true;
+  if (/^(fc|fd)[0-9a-f]{2}:/i.test(clean) || /^fe80:/i.test(clean)) return true;
+  return false;
+}
+
+function diracCentralAllowedEgressHostV146(host) {
+  const allowed = new Set([
+    'developers.hostinger.com',
+    'api.resend.com',
+    'api.brevo.com',
+    'api.midtrans.com',
+    'app.midtrans.com',
+    'app.sandbox.midtrans.com',
+    'www.googleapis.com',
+    'api.name.com',
+    'www.namesilo.com',
+    'whoisjson.com',
+    'whoisjsonapi.com'
+  ]);
+  try {
+    ['DOMAIN_SUPABASE_URL', 'SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL'].forEach((name) => {
+      const value = String(process.env[name] || '').trim();
+      if (value) allowed.add(new URL(value).hostname.toLowerCase());
+    });
+  } catch (_) {}
+  return allowed.has(host) || /\.supabase\.co$/i.test(host);
+}
+
+function diracCentralCircuitBreakerV146(req, ctx, event) {
+  const route = String(ctx.action || 'unknown');
+  const key = ctx.identity.key + ':circuit:' + route;
+  const hit = diracCentralRateLimitV146(key, 60 * 1000, 60);
+  if (!hit.ok) return { ok: false, reason: 'circuit_breaker_rate' };
+  const globalHit = diracCentralRateLimitV146('global:circuit:' + route, 60 * 1000, 600);
+  if (!globalHit.ok) return { ok: false, reason: 'circuit_breaker_route_surge' };
+  return { ok: true };
+}
+
+async function diracCentralBanAndBlockV146(req, res, ctx, action, method, reason) {
+  try { await Promise.resolve(diracCentralCircuitBreakerV146(req, ctx, reason || 'block')); } catch (_) {}
+  await diracCentralWritePersistentBanV146(req, res, action, method, {
+    detected: true,
+    kind: String(reason || 'central_security_block').slice(0, 100),
+    source: DIRAC_CENTRAL_SECURITY_GUARD_V146,
+    risk: 'critical'
+  }).catch(() => null);
+  diracCentralSetMemoryBanV146(ctx && ctx.identity, Date.now() + diracCentralBlockMsV146(), reason);
+  return diracCentralBlockedResponseV146(res, reason);
+}
+
+async function diracCentralBanCurrentContextV146(reason) {
+  const ctx = DIRAC_CENTRAL_CONTEXT_STACK_V146[DIRAC_CENTRAL_CONTEXT_STACK_V146.length - 1];
+  if (!ctx) return { ok: false };
+  return diracCentralWritePersistentBanV146(ctx.req, ctx.res, ctx.action, ctx.method, {
+    detected: true,
+    kind: reason,
+    source: DIRAC_CENTRAL_SECURITY_GUARD_V146,
+    risk: 'critical'
+  });
+}
+
+async function diracCentralWritePersistentBanV146(req, res, action, method, threat) {
+  try {
+    if (typeof diracV107RegisterHardBan === 'function') {
+      return await diracV107RegisterHardBan(req, res || null, action || 'central_security', method || 'GET', threat || {});
+    }
+  } catch (_) {}
+  try {
+    if (typeof diracV143WriteGlobalBanOnce === 'function') {
+      return await diracV143WriteGlobalBanOnce(req, res || null, action || 'central_security', method || 'GET', threat || {});
+    }
+  } catch (_) {}
+  return { ok: false };
+}
+
+function diracCentralBlockedResponseV146(res, reason) {
+  diracCentralApplyHeadersV146(res);
+  try { if (res && typeof res.setHeader === 'function') res.setHeader('Cache-Control', 'no-store'); } catch (_) {}
+  return res.status(403).json({
+    ok: false,
+    code: 'CENTRAL_SECURITY_BLOCKED',
+    message: 'Permintaan ditolak oleh sistem keamanan.',
+    reason: String(reason || 'blocked').slice(0, 80),
+    source: DIRAC_CENTRAL_SECURITY_GUARD_V146
+  });
+}
+
+function diracCentralDisabledResponseV146(res) {
+  diracCentralApplyHeadersV146(res);
+  return res.status(404).json({
+    ok: false,
+    code: 'ACTION_DISABLED',
+    message: 'Action tidak tersedia.',
+    source: DIRAC_CENTRAL_SECURITY_GUARD_V146
+  });
+}
+
+function diracCentralStableMfaReadGateV146(req, res, ctx) {
+  const action = String(ctx && ctx.action || '');
+  if (action !== 'customer_security_features_bundle_v2' && action !== 'customer_security_features_bundle_v3') {
+    return { handled: false };
+  }
+  try {
+    const cookies = typeof parseCookies === 'function' ? parseCookies(req) : {};
+    const cookieName = typeof CUSTOMER_MFA_COOKIE !== 'undefined' ? CUSTOMER_MFA_COOKIE : 'dirac_customer_mfa_session';
+    const proof = String(cookies && cookies[cookieName] || '').trim();
+    if (proof) return { handled: false };
+  } catch (_) {
+    return { handled: false };
+  }
+  diracCentralApplyHeadersV146(res);
+  return {
+    handled: true,
+    response: res.status(403).json({
+      ok: false,
+      code: 'MFA_REQUIRED',
+      message: 'Aksi ini membutuhkan verifikasi A2F/MFA ulang dari dashboard resmi.',
+      source: DIRAC_CENTRAL_SECURITY_GUARD_V146
+    })
+  };
+}
+
+function diracCentralContractForActionV146(action) {
+  const clean = String(action || '');
+  const commonGet = ['action', 'domain', 'limit', 'type', 'include_expired', 'order_id', 'order_code', 'domain_order_id', 'payment_id', 'transaction_id', 'invoice_id', 'gateway_reference', 'session_id', 'recovery_code_id', 'credential_id', 'project_id', 'document_id', 'item_id', 'email', 'slug'];
+  const commonPost = ['action', 'email', 'password', 'fullName', 'full_name', 'name', 'phone', 'domain', 'domain_name', 'quantity', 'items', 'order_id', 'order_code', 'domain_order_id', 'payment_id', 'transaction_id', 'invoice_id', 'gateway_reference', 'session_id', 'recovery_code', 'recovery_code_id', 'credential_id', 'user_id', 'challenge', 'response', 'setupToken', 'mfaSetupToken', 'code', 'reason', 'csrf', 'nonce', 'idempotency_key'];
+  const getOnly = { methods: ['GET', 'HEAD'], allowed: commonGet, required: [], maxBodyBytes: 1024, maxFieldBytes: 3000, mutation: false };
+  const postOnly = { methods: ['POST'], allowed: commonPost, required: [], maxBodyBytes: 20 * 1024, maxFieldBytes: 3000, mutation: true };
+  const contracts = {
+    domain_health: getOnly,
+    hostinger_check: { ...getOnly, required: ['domain'] },
+    domain_check: { ...getOnly, required: ['domain'] },
+    midtrans_health: getOnly,
+    public_products: getOnly,
+    products_public: getOnly,
+    catalog_products: getOnly,
+    product_catalog: getOnly,
+    public_catalog: getOnly,
+    parfum_products: getOnly,
+    perfume_products: getOnly,
+    parfum_catalog: getOnly,
+    katalog_parfum: getOnly,
+    katalog_produk: getOnly,
+    lihat_produk: getOnly,
+    domain_me: getOnly,
+    domain_dashboard_me: getOnly,
+    domain_orders: getOnly,
+    domain_mfa_status: getOnly,
+    customer_security_status: getOnly,
+    customer_security_overview: getOnly,
+    customer_security_guard_status: getOnly,
+    customer_security_recovery_codes_status: getOnly,
+    customer_security_features_bundle: getOnly,
+    customer_security_features_bundle_v2: getOnly,
+    customer_security_features_bundle_v3: getOnly,
+    customer_security_trusted_devices: getOnly,
+    customer_security_login_history: getOnly,
+    customer_security_score: getOnly,
+    customer_security_notifications: getOnly,
+    customer_security_request_tracker: getOnly,
+    admin_security_overview: getOnly,
+    admin_security_events: getOnly,
+    admin_security_blocks: getOnly,
+    my_orders: getOnly,
+    dirac_mfa_passkey_status: getOnly,
+    domain_mfa_passkey_status: getOnly,
+    dirac_passkey_status: getOnly,
+    domain_passkey_status: getOnly,
+    domain_login: { ...postOnly, required: ['email', 'password'] },
+    domain_register: { ...postOnly, required: ['email', 'password'] },
+    domain_logout: postOnly,
+    domain_checkout: { ...postOnly, required: ['domain'] },
+    checkout_order: postOnly,
+    create_payment: postOnly,
+    customer_security_revoke_session: { ...postOnly, required: ['session_id'] },
+    customer_security_revoke_other_sessions: postOnly,
+    customer_security_account_request: postOnly,
+    customer_security_recovery_codes_generate: postOnly,
+    customer_security_recovery_code_verify: postOnly,
+    customer_security_trust_current_device: postOnly,
+    customer_security_untrust_device: postOnly,
+    customer_security_prune_login_history: postOnly,
+    admin_security_unblock_user: postOnly,
+    dirac_mfa_email_start: postOnly,
+    dirac_mfa_email_verify: postOnly,
+    domain_mfa_email_start: postOnly,
+    domain_mfa_email_verify: postOnly,
+    dirac_mfa_passkey_start: postOnly,
+    dirac_mfa_passkey_verify: postOnly,
+    domain_mfa_passkey_start: postOnly,
+    domain_mfa_passkey_verify: postOnly,
+    security_report: { ...postOnly, allowed: ['action', 'reason', 'type', 'page', 'event', 'nonce', 'csrf'], maxBodyBytes: 8 * 1024 },
+    midtrans_webhook: { methods: ['POST'], allowed: ['transaction_time', 'transaction_status', 'transaction_id', 'status_message', 'status_code', 'signature_key', 'payment_type', 'order_id', 'merchant_id', 'gross_amount', 'fraud_status', 'currency', 'settlement_time', 'expiry_time'], required: ['order_id', 'status_code', 'gross_amount', 'signature_key'], maxBodyBytes: 64 * 1024, maxFieldBytes: 3000, mutation: true, allowExtra: true, allowProtectedFields: true }
+  };
+  return contracts[clean] || { methods: [], allowed: [], required: [], maxBodyBytes: 0, maxFieldBytes: 0, mutation: false };
+}
+
+function diracCentralCollectIdsV146(req, body) {
+  const wanted = /^(customer_id|user_id|auth_user_id|owner_user_id|order_id|order_code|domain_order_id|payment_id|transaction_id|invoice_id|gateway_reference|session_id|recovery_code_id|credential_id|project_id|document_id|item_id|email|slug)$/i;
+  const out = [];
+  const push = (key, value) => {
+    const cleanKey = diracCentralNormalizeKeyV146(key);
+    if (!wanted.test(cleanKey)) return;
+    diracCentralExtractValuesV146(value).forEach((item) => out.push({ key: cleanKey, value: item }));
+  };
+  Object.entries(req && req.query || {}).forEach(([key, value]) => { if (key !== 'action') push(key, value); });
+  diracCentralFlattenObjectV146(body || {}, 0, '', 300).forEach((item) => push(item.key.split('.').pop(), item.value));
+  return out.slice(0, 100);
+}
+
+function diracCentralFlattenObjectV146(value, depth, prefix, max) {
+  const out = [];
+  const walk = (v, d, p) => {
+    if (out.length >= max || d > 6 || v === null || v === undefined) return;
+    if (typeof v !== 'object') {
+      out.push({ key: p, value: v, depth: d });
+      return;
+    }
+    if (Array.isArray(v)) {
+      v.slice(0, 50).forEach((item, index) => walk(item, d + 1, p ? p + '.' + index : String(index)));
+      return;
+    }
+    Object.entries(v).slice(0, 120).forEach(([key, child]) => walk(child, d + 1, p ? p + '.' + key : key));
+  };
+  walk(value, depth || 0, prefix || '');
+  return out;
+}
+
+function diracCentralValidateFieldFormatV146(key, value) {
+  const clean = String(key || '').toLowerCase();
+  const text = String(value === undefined || value === null ? '' : value).trim();
+  if (!text) return { ok: true };
+  if (clean === 'email' && !/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(text)) return { ok: false, reason: 'email_format_invalid' };
+  if (/domain/.test(clean) && !/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(text)) return { ok: false, reason: 'domain_format_invalid' };
+  if (/uuid|customer_id|user_id|auth_user_id|owner_user_id|session_id|recovery_code_id|credential_id|project_id|document_id|item_id/.test(clean) && !diracCentralLooksLikeUuidV146(text)) {
+    if (/_id$/.test(clean)) return { ok: false, reason: clean + '_format_invalid' };
+  }
+  if (/order_code/.test(clean) && !/^[a-zA-Z0-9._:@-]{3,120}$/.test(text)) return { ok: false, reason: 'order_code_format_invalid' };
+  return { ok: true };
+}
+
+function diracCentralProtectedFieldV146(key) {
+  return /^(role|is_admin|admin|owner_id|balance|price|total_price|paid|payment_status|service_role|auth_user_id|owner_user_id)$/i.test(String(key || ''));
+}
+
+function diracCentralSensitiveKeyV146(key) {
+  return /password|token|hash|otp|secret|cookie|authorization|payment[_-]?key|signature|credential|clientdata|attestation|assertion|csrf|hmac/i.test(String(key || ''));
+}
+
+function diracCentralNormalizeOriginV146(value) {
+  try {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    return new URL(raw).origin;
+  } catch (_) { return ''; }
+}
+
+function diracCentralRequestSessionHashV146(req) {
+  const cookies = typeof parseCookies === 'function' ? parseCookies(req) : {};
+  return diracCentralHashV146([cookies[ACCESS_COOKIE], cookies[DOMAIN_SIGNED_SESSION_COOKIE], cookies.sb_access_token].filter(Boolean).join('|'));
+}
+
+function diracCentralExtractValuesV146(value) {
+  if (Array.isArray(value)) return value.flatMap(diracCentralExtractValuesV146).slice(0, 20);
+  const raw = String(value === undefined || value === null ? '' : value).trim();
+  if (!raw) return [];
+  const samples = [raw];
+  try { samples.push(decodeURIComponent(raw)); } catch (_) {}
+  return Array.from(new Set(samples.flatMap((sample) => String(sample || '').split(/[\s,|]+/))
+    .map((part) => part.replace(/^(?:eq|in|is)\./i, '').replace(/^\(/, '').replace(/\)$/, '').replace(/^['"]|['"]$/g, '').trim())
+    .filter(Boolean))).slice(0, 20);
+}
+
+function diracCentralNormalizeKeyV146(key) {
+  return String(key || '').trim().replace(/[A-Z]/g, (m) => '_' + m.toLowerCase()).replace(/[-\s]+/g, '_').replace(/^_+|_+$/g, '').toLowerCase();
+}
+
+function diracCentralHtmlEntityDecodeV146(value) {
+  return String(value || '')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#x27;|&#39;/gi, "'")
+    .replace(/&amp;/gi, '&');
+}
+
+function diracCentralScannerRegexV146() {
+  return /\b(?:curl|wget|python|python-requests|httpie|postman|postmanruntime|insomnia|burp|burp\s*suite|owasp\s*zap|zap|sqlmap|nuclei|nikto|acunetix|netsparker|nessus|openvas|nmap|masscan|zgrab|ffuf|gobuster|dirb|dirbuster|commix|whatweb|jaeles|xray|x-ray|termux|node-fetch|axios|go-http-client|java|okhttp|libwww-perl|havij|w3af|arachni|skipfish|appscan|webinspect)\b/i;
+}
+
+function diracCentralOwnedTableV146(table) {
+  return /^(orders|order_items|domain_orders|domain_order_items|payment_transactions|security_customer_sessions|security_customer_settings|security_customer_recovery_codes|security_customer_auth_links|security_customer_password_hashes|customer_security_events|domain_passkeys|security_customer_login_logs|security_customer_account_requests|customers)$/i.test(String(table || ''));
+}
+
+function diracCentralExtractRestTableV146(path) {
+  try {
+    const raw = String(path || '');
+    if (!raw.startsWith('/rest/v1/')) return '';
+    const table = decodeURIComponent(raw.slice('/rest/v1/'.length).split('?')[0].split('/')[0] || '');
+    return /^[a-zA-Z0-9_]+$/.test(table) ? table : '';
+  } catch (_) { return ''; }
+}
+
+function diracCentralPathHasOwnerScopeV146(path, body) {
+  const raw = String(path || '').toLowerCase();
+  if (/(?:customer_id|auth_user_id|user_id)=/.test(raw)) return true;
+  return diracCentralFlattenObjectV146(body || {}, 0, '', 200).some((item) => /^(customer_id|auth_user_id|user_id)$/i.test(item.key.split('.').pop()));
+}
+
+function diracCentralPathHasObjectScopeV146(path, body) {
+  const raw = String(path || '').toLowerCase();
+  if (/(?:id|order_id|domain_order_id|payment_id|transaction_id|gateway_reference)=/.test(raw)) return true;
+  return diracCentralFlattenObjectV146(body || {}, 0, '', 200).some((item) => /^(id|order_id|domain_order_id|payment_id|transaction_id|gateway_reference)$/i.test(item.key.split('.').pop()));
+}
+
+function diracCentralIsUnsafeHostV146(host) {
+  const clean = String(host || '').toLowerCase();
+  return clean === 'localhost'
+    || clean === '0.0.0.0'
+    || clean === '127.0.0.1'
+    || clean === '::1'
+    || clean === '[::1]'
+    || clean === '169.254.169.254'
+    || clean === 'metadata.google.internal'
+    || /^10\./.test(clean)
+    || /^192\.168\./.test(clean)
+    || /^172\.(?:1[6-9]|2\d|3[0-1])\./.test(clean)
+    || /^169\.254\./.test(clean);
+}
+
+function diracCentralLooksLikeUuidV146(value) {
+  try { if (typeof customerSecurityLooksLikeUuid === 'function') return customerSecurityLooksLikeUuid(value); } catch (_) {}
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
+}
+
+function diracCentralRateLimitV146(key, windowMs, max) {
+  const now = Date.now();
+  const clean = String(key || 'rate');
+  const row = DIRAC_CENTRAL_CIRCUIT_V146.get(clean) || { count: 0, resetAt: now + windowMs };
+  if (Number(row.resetAt || 0) <= now) {
+    row.count = 0;
+    row.resetAt = now + windowMs;
+  }
+  row.count += 1;
+  DIRAC_CENTRAL_CIRCUIT_V146.set(clean, row);
+  diracCentralCleanupMapV146(DIRAC_CENTRAL_CIRCUIT_V146, 10000, 6000);
+  return { ok: row.count <= max, count: row.count, resetAt: row.resetAt };
+}
+
+function diracCentralCleanupMapV146(map, high, low) {
+  if (!map || map.size < high) return;
+  const now = Date.now();
+  for (const [key, value] of map.entries()) {
+    if (Number(value && (value.until || value.resetAt || value.blockedUntilMs) || 0) <= now) map.delete(key);
+    if (map.size <= low) break;
+  }
+}
+
+function diracCentralNegativeCacheMsV146() {
+  const raw = Number(process.env.DIRAC_GLOBAL_BAN_NEGATIVE_CACHE_MS || 5000);
+  return Number.isFinite(raw) ? Math.max(1000, Math.min(30000, Math.floor(raw))) : 5000;
+}
+
+function diracCentralBlockMsV146() {
+  const years = Math.max(1, Math.min(100, Number(process.env.DIRAC_SQLMAP_BLOCK_YEARS || 10) || 10));
+  return years * 365 * 24 * 60 * 60 * 1000;
+}
+
+function diracCentralSecretV146() {
+  return String(process.env.DIRAC_SECURITY_HMAC_SECRET || process.env.LOGIN_SECURITY_HMAC_SECRET || process.env.DOMAIN_SESSION_SECRET || process.env.AI_ADMIN_SECRET || process.env.DOMAIN_SUPABASE_SERVICE_ROLE_KEY || 'dirac-central-v146-fallback-secret');
+}
+
+function diracCentralHashV146(value) {
+  try { return crypto.createHmac('sha256', diracCentralSecretV146()).update(String(value || '')).digest('hex'); } catch (_) {}
+  return crypto.createHash('sha256').update(String(value || '')).digest('hex');
+}
+
+function diracCentralFakeResponseV146() {
+  const headers = {};
+  return {
+    statusCode: 200,
+    headers,
+    setHeader(name, value) { headers[String(name).toLowerCase()] = value; return this; },
+    getHeader(name) { return headers[String(name).toLowerCase()]; },
+    status(code) { this.statusCode = Number(code || 200); return this; },
+    json(payload) { this.payload = payload; return this; },
+    end() { return this; }
+  };
+}
+
+function diracCentralSafeErrorV146(error) {
+  const message = String(error && (error.code || error.name || error.message) || error || 'central_security_error');
+  if (/password|token|secret|cookie|authorization|service_role|apikey|csrf|hmac|hash/i.test(message)) return 'central_security_internal_error';
+  return message.slice(0, 180);
+}
+
+try {
+  const __diracCentralPreviousCsrfShouldCheckV146 = typeof diracCsrfShouldCheckRequest === 'function' ? diracCsrfShouldCheckRequest : null;
+  if (__diracCentralPreviousCsrfShouldCheckV146 && !__diracCentralPreviousCsrfShouldCheckV146.__diracCentralPassthroughV146) {
+    diracCsrfShouldCheckRequest = function diracCsrfShouldCheckRequestCentralPassthroughV146(action, method) {
+      if (diracCentralCurrentContextPassedV146()) return false;
+      return __diracCentralPreviousCsrfShouldCheckV146(action, method);
+    };
+    Object.defineProperty(diracCsrfShouldCheckRequest, '__diracCentralPassthroughV146', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+try {
+  const __diracCentralPreviousV137CsrfShouldForceV146 = typeof diracV137CsrfShouldForce === 'function' ? diracV137CsrfShouldForce : null;
+  if (__diracCentralPreviousV137CsrfShouldForceV146 && !__diracCentralPreviousV137CsrfShouldForceV146.__diracCentralPassthroughV146) {
+    diracV137CsrfShouldForce = function diracV137CsrfShouldForceCentralPassthroughV146(action, method) {
+      if (diracCentralCurrentContextPassedV146()) return false;
+      return __diracCentralPreviousV137CsrfShouldForceV146(action, method);
+    };
+    Object.defineProperty(diracV137CsrfShouldForce, '__diracCentralPassthroughV146', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+try {
+  const __diracCentralPreviousV138CsrfShouldForceV146 = typeof diracV138CsrfShouldForce === 'function' ? diracV138CsrfShouldForce : null;
+  if (__diracCentralPreviousV138CsrfShouldForceV146 && !__diracCentralPreviousV138CsrfShouldForceV146.__diracCentralPassthroughV146) {
+    diracV138CsrfShouldForce = function diracV138CsrfShouldForceCentralPassthroughV146(action, method) {
+      if (diracCentralCurrentContextPassedV146()) return false;
+      return __diracCentralPreviousV138CsrfShouldForceV146(action, method);
+    };
+    Object.defineProperty(diracV138CsrfShouldForce, '__diracCentralPassthroughV146', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+try {
+  const __diracCentralPreviousV128InspectHttpV146 = typeof diracBolaIdorV128InspectHttpRequest === 'function' ? diracBolaIdorV128InspectHttpRequest : null;
+  if (__diracCentralPreviousV128InspectHttpV146 && !__diracCentralPreviousV128InspectHttpV146.__diracCentralPassthroughV146) {
+    diracBolaIdorV128InspectHttpRequest = async function diracBolaIdorV128InspectHttpRequestCentralPassthroughV146(req) {
+      if (req && req.__diracCentralSecurityGuardPassedV146) return { ok: true, skipped: 'central_security_guard_v146' };
+      return __diracCentralPreviousV128InspectHttpV146(req);
+    };
+    Object.defineProperty(diracBolaIdorV128InspectHttpRequest, '__diracCentralPassthroughV146', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+try {
+  const __diracCentralPreviousV132InspectHttpV146 = typeof diracBolaIdorV132InspectHttpQuery === 'function' ? diracBolaIdorV132InspectHttpQuery : null;
+  if (__diracCentralPreviousV132InspectHttpV146 && !__diracCentralPreviousV132InspectHttpV146.__diracCentralPassthroughV146) {
+    diracBolaIdorV132InspectHttpQuery = async function diracBolaIdorV132InspectHttpQueryCentralPassthroughV146(req) {
+      if (req && req.__diracCentralSecurityGuardPassedV146) return { ok: true, skipped: 'central_security_guard_v146' };
+      return __diracCentralPreviousV132InspectHttpV146(req);
+    };
+    Object.defineProperty(diracBolaIdorV132InspectHttpQuery, '__diracCentralPassthroughV146', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+try {
+  const __diracCentralPreviousV133InspectHttpV146 = typeof diracBolaIdorV133InspectHttpRequest === 'function' ? diracBolaIdorV133InspectHttpRequest : null;
+  if (__diracCentralPreviousV133InspectHttpV146 && !__diracCentralPreviousV133InspectHttpV146.__diracCentralPassthroughV146) {
+    diracBolaIdorV133InspectHttpRequest = async function diracBolaIdorV133InspectHttpRequestCentralPassthroughV146(req) {
+      if (req && req.__diracCentralSecurityGuardPassedV146) return { ok: true, skipped: 'central_security_guard_v146' };
+      return __diracCentralPreviousV133InspectHttpV146(req);
+    };
+    Object.defineProperty(diracBolaIdorV133InspectHttpRequest, '__diracCentralPassthroughV146', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+function diracCentralCurrentContextPassedV146() {
+  const ctx = DIRAC_CENTRAL_CONTEXT_STACK_V146[DIRAC_CENTRAL_CONTEXT_STACK_V146.length - 1];
+  return Boolean(ctx && ctx.req && ctx.req.__diracCentralSecurityGuardPassedV146);
+}
