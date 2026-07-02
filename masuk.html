@@ -10465,6 +10465,11 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
     return looksLikeCsrfToken(nonce) && (now() - Number(pageNonceAt[action] || 0)) < 240000 ? nonce : '';
   }
 
+  function actionNeedsSessionFreshPageNonce(action){
+    action = String(action || '').trim().toLowerCase();
+    return /^(dirac_mfa_passkey_start|dirac_mfa_passkey_verify|domain_mfa_passkey_start|domain_mfa_passkey_verify|dirac_mfa_email_start|dirac_mfa_email_verify|domain_mfa_email_start|domain_mfa_email_verify|customer_security_recovery_code_verify)$/.test(action);
+  }
+
   function csrfProbeUrl(action){
     var url = '/api/health?action=domain_health&_csrf_boot=' + encodeURIComponent(String(now()));
     action = String(action || '').trim().toLowerCase();
@@ -10476,8 +10481,9 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
 
   function ensureFreshCsrf(action){
     action = String(action || '').trim().toLowerCase();
-    if(looksLikeCsrfToken(tokenMemory) && (now() - tokenAt) < 90000 && (!action || freshPageNonce(action))) return Promise.resolve(tokenMemory);
-    if(action && pendingActionToken[action]) return pendingActionToken[action];
+    var forceFreshPageNonce = actionNeedsSessionFreshPageNonce(action);
+    if(looksLikeCsrfToken(tokenMemory) && (now() - tokenAt) < 90000 && (!action || (freshPageNonce(action) && !forceFreshPageNonce))) return Promise.resolve(tokenMemory);
+    if(action && pendingActionToken[action] && !forceFreshPageNonce) return pendingActionToken[action];
     if(!action && pendingToken) return pendingToken;
 
     var probe = nativeFetch(csrfProbeUrl(action), {
