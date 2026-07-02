@@ -24080,7 +24080,8 @@ function diracCentralPageBrowserAuthenticityGuardV146(req, ctx) {
   if (!diracCentralNeedsBrowserAuthenticityV146(ctx)) return { ok: true };
   const headers = req && req.headers || {};
   const origin = diracCentralNormalizeOriginV146(headers.origin || '');
-  if (!origin || !DIRAC_CENTRAL_ALLOWED_ORIGINS_V146.has(origin)) return { ok: false, reason: 'origin_invalid' };
+  if (origin && !DIRAC_CENTRAL_ALLOWED_ORIGINS_V146.has(origin)) return { ok: false, reason: 'origin_invalid' };
+  if (!origin && !['GET', 'HEAD'].includes(ctx.method)) return { ok: false, reason: 'origin_invalid' };
 
   const ref = diracCentralValidateRefererV146(headers.referer || headers.referrer || '');
   if (!ref.ok) return ref;
