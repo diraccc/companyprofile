@@ -24353,7 +24353,13 @@ function diracCentralContractGuardV146(req, ctx) {
     if (!Object.prototype.hasOwnProperty.call(source || {}, key)) return { ok: false, reason: 'required_field_missing_' + key };
   }
   for (const item of clean) {
-    const key = item.key.split('.').pop();
+    const parts = String(item.key || '').split('.');
+    const key = parts.pop();
+    const parentKey = parts.length ? parts[parts.length - 1] : '';
+    if (/^\d+$/.test(String(key || '')) && contract.allowArrayItems && allowed.has(parentKey)) {
+      if (String(item.value || '').length > (contract.maxFieldBytes || 3000)) return { ok: false, reason: 'field_too_long_' + parentKey };
+      continue;
+    }
     if (!allowed.has(key) && !contract.allowExtra) return { ok: false, reason: 'field_not_allowed_' + key };
     if (diracCentralProtectedFieldV146(key) && !contract.allowProtectedFields) return { ok: false, reason: 'protected_field_from_frontend_' + key };
     if (String(item.value || '').length > (contract.maxFieldBytes || 3000)) return { ok: false, reason: 'field_too_long_' + key };
@@ -24981,7 +24987,7 @@ function diracCentralContractForActionV146(action) {
   const commonPost = ['action', 'email', 'password', 'fullName', 'full_name', 'name', 'phone', 'domain', 'domain_name', 'quantity', 'items', 'order_id', 'order_code', 'domain_order_id', 'payment_id', 'transaction_id', 'invoice_id', 'gateway_reference', 'session_id', 'recovery_code', 'recovery_code_id', 'credential_id', 'user_id', 'challenge', 'response', 'setupToken', 'mfaSetupToken', 'code', 'reason', 'csrf', 'nonce', 'idempotency_key'];
   const getOnly = { methods: ['GET', 'HEAD'], allowed: commonGet, required: [], maxBodyBytes: 1024, maxFieldBytes: 3000, mutation: false };
   const postOnly = { methods: ['POST'], allowed: commonPost, required: [], maxBodyBytes: 20 * 1024, maxFieldBytes: 3000, mutation: true };
-  const passkeyPost = { methods: ['POST'], allowed: ['action', 'method', 'identifier', 'email', 'setupToken', 'mfaSetupToken', 'token', 'passkeyMode', 'credential', 'id', 'rawId', 'type', 'response', 'clientExtensionResults', 'clientDataJSON', 'attestationObject', 'authenticatorData', 'signature', 'userHandle', 'transports', 'authenticatorAttachment', 'challenge', 'code', 'csrf', 'nonce', 'idempotency_key'], required: [], maxBodyBytes: 48 * 1024, maxFieldBytes: 12000, mutation: true };
+  const passkeyPost = { methods: ['POST'], allowed: ['action', 'method', 'identifier', 'email', 'setupToken', 'mfaSetupToken', 'token', 'passkeyMode', 'credential', 'id', 'rawId', 'type', 'response', 'clientExtensionResults', 'clientDataJSON', 'attestationObject', 'authenticatorData', 'signature', 'userHandle', 'transports', 'authenticatorAttachment', 'challenge', 'code', 'csrf', 'nonce', 'idempotency_key'], required: [], maxBodyBytes: 48 * 1024, maxFieldBytes: 12000, mutation: true, allowArrayItems: true };
   const authLoginPost = { methods: ['POST'], allowed: ['email', 'password', 'fullName', 'full_name', 'name', 'phone'], required: ['email', 'password'], maxBodyBytes: 20 * 1024, maxFieldBytes: 3000, mutation: true };
   const authRegisterPost = { methods: ['POST'], allowed: ['email', 'password', 'fullName', 'full_name', 'name', 'phone'], required: ['email', 'password'], maxBodyBytes: 20 * 1024, maxFieldBytes: 3000, mutation: true };
   const contracts = {
