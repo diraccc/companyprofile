@@ -24602,7 +24602,8 @@ async function diracCentralInspectServiceRoleAccessV146(path, options = {}) {
 }
 
 function diracCentralIsRegisterBootstrapServiceRoleV146(ctx, table, path, options = {}, method) {
-  if (!ctx || String(ctx.action || '').toLowerCase() !== 'domain_register') return false;
+  const action = String(ctx && ctx.action || '').toLowerCase();
+  if (action !== 'domain_register' && action !== 'domain_login') return false;
   const cleanTable = String(table || '').toLowerCase();
   const cleanMethod = String(method || options.method || 'GET').toUpperCase();
   const rawPath = String(path || '').toLowerCase();
