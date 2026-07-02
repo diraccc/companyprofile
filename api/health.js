@@ -24357,9 +24357,10 @@ function diracCentralDeviceConsistencyGuardV146(req, ctx) {
   const sessionKey = diracCentralRequestSessionHashV146(req);
   if (!sessionKey) return { ok: false, reason: 'device_session_hash_missing' };
   const headers = req && req.headers || {};
+  const stableOrigin = diracCentralNormalizeOriginV146(headers.origin || headers.referer || headers.referrer || '');
   const current = diracCentralHashV146([
     headers['user-agent'],
-    headers.origin,
+    stableOrigin,
     headers['sec-ch-ua'],
     headers['sec-ch-ua-platform'],
     headers['accept-language']
