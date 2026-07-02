@@ -24661,6 +24661,14 @@ function diracCentralIsPasskeyServiceRoleV146(ctx, table, path, options = {}, me
   const rawPath = String(path || '').toLowerCase();
   const body = options.body;
 
+  if (cleanTable === 'security_customer_auth_links') {
+    return cleanMethod === 'GET' && /[?&](?:auth_user_id|customer_id|email)=eq\./.test(rawPath);
+  }
+
+  if (cleanTable === 'customers') {
+    return cleanMethod === 'GET' && /[?&](?:id|email)=eq\./.test(rawPath);
+  }
+
   if (cleanTable === 'domain_passkeys') {
     if (cleanMethod === 'GET') {
       return /[?&](?:user_id|email|credential_id|id)=eq\./.test(rawPath);
