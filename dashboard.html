@@ -2401,6 +2401,31 @@ html[data-effective-theme="light"] .app-search-result-copy strong,html[data-effe
       var sep=String(url||'').indexOf('?')===-1?'?':'&';
       return String(url||'')+sep+'_t='+Date.now();
     }
+    function fetchWithTimeout(url,options,timeoutMs){
+      var limit=Math.max(1000,Number(timeoutMs||9000)||9000);
+      var controller=(typeof AbortController!=='undefined')?new AbortController():null;
+      var opts={};
+      Object.keys(options||{}).forEach(function(key){opts[key]=options[key];});
+      if(controller) opts.signal=controller.signal;
+      return new Promise(function(resolve,reject){
+        var settled=false;
+        var timer=setTimeout(function(){
+          if(settled) return;
+          settled=true;
+          try{if(controller) controller.abort();}catch(e){}
+          var err=new Error('dirac_dashboard_session_timeout');
+          err.name='DiracDashboardSessionTimeout';
+          reject(err);
+        },limit);
+        function done(fn,value){
+          if(settled) return;
+          settled=true;
+          clearTimeout(timer);
+          fn(value);
+        }
+        fetch(url,opts).then(function(res){done(resolve,res);},function(err){done(reject,err);});
+      });
+    }
     function delay(ms){
       return new Promise(function(resolve){setTimeout(resolve,ms);});
     }
@@ -2460,7 +2485,7 @@ html[data-effective-theme="light"] .app-search-result-copy strong,html[data-effe
     function verifyExistingLoginSession(){
       if(dashboardLoggingOut) return Promise.resolve(false);
       if(verificationPromise) return verificationPromise;
-      verificationPromise=fetch(withCacheBust(DOMAIN_ME_ENDPOINT),{method:'GET',mode:'same-origin',credentials:'include',cache:'no-store',headers:sessionHeaders()}).then(function(res){
+      verificationPromise=fetchWithTimeout(withCacheBust(DOMAIN_ME_ENDPOINT),{method:'GET',mode:'same-origin',credentials:'include',cache:'no-store',headers:sessionHeaders()},9000).then(function(res){
         if(!res.ok){
           return res.clone().json().catch(function(){return null;}).then(function(data){
             var msg=(data&&(data.message||data.error||data.hint))||('Backend menolak akses dashboard. Status '+res.status+'. Login ulang.');
@@ -3437,6 +3462,8 @@ html[data-effective-theme="light"] .app-search-result-copy strong,html[data-effe
   var CHECK_INTERVAL_MS = 5000;
   var ACTIVITY_BACKEND_SYNC_MIN_MS = 55 * 1000;
   var DIRAC_MIN_SESSION_LOADER_MS = 4500;
+  var SESSION_VERIFY_TIMEOUT_MS = 9000;
+  var SESSION_ACTIVITY_TOUCH_TIMEOUT_MS = 5500;
   var diracSessionLoaderStartedAt = 0;
   var ACTIVITY_KEY = 'dirac_protected_last_activity_v1';
   var LOGOUT_STAMP_KEY = 'dirac_protected_last_logout_v1';
@@ -3454,6 +3481,32 @@ html[data-effective-theme="light"] .app-search-result-copy strong,html[data-effe
   function withCacheBust(url){
     var sep = String(url || '').indexOf('?') === -1 ? '?' : '&';
     return String(url || '') + sep + '_t=' + now();
+  }
+
+  function fetchSessionWithTimeout(url, options, timeoutMs){
+    var limit = Math.max(1000, Number(timeoutMs || SESSION_VERIFY_TIMEOUT_MS) || SESSION_VERIFY_TIMEOUT_MS);
+    var controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    var opts = {};
+    Object.keys(options || {}).forEach(function(key){ opts[key] = options[key]; });
+    if(controller) opts.signal = controller.signal;
+    return new Promise(function(resolve, reject){
+      var settled = false;
+      var timer = setTimeout(function(){
+        if(settled) return;
+        settled = true;
+        try{ if(controller) controller.abort(); }catch(_){}
+        var err = new Error('dirac_protected_session_timeout');
+        err.name = 'DiracProtectedSessionTimeout';
+        reject(err);
+      }, limit);
+      function done(fn, value){
+        if(settled) return;
+        settled = true;
+        clearTimeout(timer);
+        fn(value);
+      }
+      fetch(url, opts).then(function(res){ done(resolve, res); }, function(err){ done(reject, err); });
+    });
   }
 
   function waitDiracMinimumSessionLoader(){
@@ -3654,13 +3707,13 @@ html[data-effective-theme="light"] .app-search-result-copy strong,html[data-effe
       return;
     }
     try{
-      var res = await fetch(withCacheBust(VERIFY_ENDPOINT), {
+      var res = await fetchSessionWithTimeout(withCacheBust(VERIFY_ENDPOINT), {
         method: 'GET',
         mode: 'same-origin',
         credentials: 'include',
         cache: 'no-store',
         headers: { 'Accept': 'application/json' }
-      });
+      }, SESSION_ACTIVITY_TOUCH_TIMEOUT_MS);
       var data = null;
       try{ data = await res.clone().json(); }catch(_){ data = null; }
       if(!(res.ok && isStrictVerifiedSessionPayload(data))){
@@ -3738,13 +3791,13 @@ html[data-effective-theme="light"] .app-search-result-copy strong,html[data-effe
     setLocked(false);
 
     try{
-      var res = await fetch(withCacheBust(VERIFY_ENDPOINT), {
+      var res = await fetchSessionWithTimeout(withCacheBust(VERIFY_ENDPOINT), {
         method: 'GET',
         mode: 'same-origin',
         credentials: 'include',
         cache: 'no-store',
         headers: { 'Accept': 'application/json' }
-      });
+      }, SESSION_VERIFY_TIMEOUT_MS);
 
       var data = null;
       try{ data = await res.clone().json(); }catch(_){ data = null; }
