@@ -24601,6 +24601,7 @@ async function diracCentralInspectServiceRoleAccessV146(path, options = {}) {
   if (!diracCentralOwnedTableV146(table)) return { ok: true };
   const method = String(options.method || 'GET').toUpperCase();
   if (diracCentralIsRegisterBootstrapServiceRoleV146(ctx, table, path, options, method)) return { ok: true, skipped: 'domain_register_bootstrap_service_role' };
+  if (diracCentralIsPasskeyServiceRoleV146(ctx, table, path, options, method)) return { ok: true, skipped: 'passkey_owner_scoped_service_role' };
   const hasOwnerScope = diracCentralPathHasOwnerScopeV146(path, options.body);
   const hasObjectScope = diracCentralPathHasObjectScopeV146(path, options.body);
   if (!hasOwnerScope && !hasObjectScope) {
@@ -24647,6 +24648,63 @@ function diracCentralIsRegisterBootstrapServiceRoleV146(ctx, table, path, option
 
   if (cleanTable === 'security_customer_password_hashes') {
     return diracCentralIsAuthPasswordHashServiceRoleV146(ctx, path, body, cleanMethod);
+  }
+
+  return false;
+}
+
+function diracCentralIsPasskeyServiceRoleV146(ctx, table, path, options = {}, method) {
+  const action = String(ctx && ctx.action || '').toLowerCase();
+  if (!/^(dirac_mfa_passkey_start|dirac_mfa_passkey_verify|domain_mfa_passkey_start|domain_mfa_passkey_verify|dirac_mfa_passkey_status|domain_mfa_passkey_status|dirac_passkey_status|domain_passkey_status)$/.test(action)) return false;
+  const cleanTable = String(table || '').toLowerCase();
+  const cleanMethod = String(method || options.method || 'GET').toUpperCase();
+  const rawPath = String(path || '').toLowerCase();
+  const body = options.body;
+
+  if (cleanTable === 'domain_passkeys') {
+    if (cleanMethod === 'GET') {
+      return /[?&](?:user_id|email|credential_id|id)=eq\./.test(rawPath);
+    }
+    if (cleanMethod === 'PATCH' && !/[?&](?:id|credential_id|user_id)=eq\./.test(rawPath)) return false;
+    if (cleanMethod !== 'POST' && cleanMethod !== 'PATCH') return false;
+    return diracCentralBodyRowsSafeV146(body, [
+      'user_id',
+      'email',
+      'credential_id',
+      'credential_json',
+      'transports',
+      'sign_count',
+      'is_active',
+      'created_at',
+      'updated_at',
+      'last_used_at'
+    ], (row) => {
+      if (row.user_id && !diracCentralLooksLikeUuidV146(row.user_id)) return false;
+      if (row.email && !diracCentralValidateFieldFormatV146('email', row.email).ok) return false;
+      if (row.credential_id && String(row.credential_id).length > 4096) return false;
+      if (row.is_active !== undefined && typeof row.is_active !== 'boolean') return false;
+      if (row.sign_count !== undefined && (!Number.isFinite(Number(row.sign_count)) || Number(row.sign_count) < 0)) return false;
+      return Boolean(row.user_id || row.email || /[?&](?:id|credential_id|user_id)=eq\./.test(rawPath));
+    });
+  }
+
+  if (cleanTable === 'security_customer_settings') {
+    if (cleanMethod === 'GET') return /[?&]customer_id=eq\./.test(rawPath);
+    if (cleanMethod === 'PATCH' && !/[?&](?:id|customer_id)=eq\./.test(rawPath)) return false;
+    if (cleanMethod !== 'POST' && cleanMethod !== 'PATCH') return false;
+    return diracCentralBodyRowsSafeV146(body, [
+      'customer_id',
+      'two_factor_enabled',
+      'two_factor_method',
+      'last_security_check_at',
+      'created_at',
+      'updated_at'
+    ], (row) => {
+      if (row.customer_id && !diracCentralLooksLikeUuidV146(row.customer_id)) return false;
+      if (row.two_factor_enabled !== undefined && typeof row.two_factor_enabled !== 'boolean') return false;
+      if (row.two_factor_method && String(row.two_factor_method).toLowerCase() !== 'passkey') return false;
+      return Boolean(row.customer_id || /[?&](?:id|customer_id)=eq\./.test(rawPath));
+    });
   }
 
   return false;
