@@ -24618,7 +24618,39 @@ function diracCentralIsRegisterBootstrapServiceRoleV146(ctx, table, path, option
     });
   }
 
+  if (cleanTable === 'security_customer_password_hashes') {
+    return diracCentralIsAuthPasswordHashServiceRoleV146(ctx, path, body, cleanMethod);
+  }
+
   return false;
+}
+
+function diracCentralIsAuthPasswordHashServiceRoleV146(ctx, path, body, method) {
+  const action = String(ctx && ctx.action || '').toLowerCase();
+  if (action !== 'domain_register' && action !== 'domain_login') return false;
+  const cleanMethod = String(method || 'GET').toUpperCase();
+  const rawPath = String(path || '').toLowerCase();
+  if (cleanMethod === 'GET' || cleanMethod === 'DELETE') return /[?&]auth_user_id=eq\./.test(rawPath);
+  if (cleanMethod === 'PATCH' && !/[?&]auth_user_id=eq\./.test(rawPath)) return false;
+  if (cleanMethod !== 'POST' && cleanMethod !== 'PATCH') return false;
+  return diracCentralBodyRowsSafeV146(body, [
+    'auth_user_id',
+    'customer_id',
+    'email_hash',
+    'password_hash',
+    'hash_algorithm',
+    'hash_params',
+    'status',
+    'created_at',
+    'updated_at'
+  ], (row) => {
+    if (row.auth_user_id && !diracCentralLooksLikeUuidV146(row.auth_user_id)) return false;
+    if (row.customer_id && !diracCentralLooksLikeUuidV146(row.customer_id)) return false;
+    if (row.password_hash && !String(row.password_hash || '').startsWith('$argon2id$')) return false;
+    if (row.hash_algorithm && String(row.hash_algorithm).toLowerCase() !== 'argon2id') return false;
+    if (row.status && !/^(active|rotated)$/i.test(String(row.status))) return false;
+    return true;
+  });
 }
 
 function diracCentralBodyRowsSafeV146(body, allowedKeys, validateRow) {
