@@ -1,6 +1,29 @@
 <!doctype html>
 <html lang="id" data-effective-theme="dark" data-motion="full" data-a2f-error-fix="friendly-v1">
 <head>
+<script id="dirac-masuk-exact-referer-url-cleaner-v1">
+(function(){
+  'use strict';
+  try{
+    var url = new URL(window.location.href);
+    if(!/\/masuk\.html$/i.test(url.pathname || '')) return;
+    if(!url.search && !url.hash) return;
+
+    var safe = {};
+    ['protected','reason','t','_dirac_v132_sync'].forEach(function(key){
+      var value = url.searchParams.get(key);
+      if(value == null) return;
+      value = String(value).slice(0, 120).replace(/[^\w.:-]/g, '');
+      if(value) safe[key] = value;
+    });
+    safe.cleaned_at = String(Date.now ? Date.now() : new Date().getTime());
+    safe.had_hash = url.hash ? '1' : '0';
+    try{ sessionStorage.setItem('dirac_masuk_entry_state_v1', JSON.stringify(safe)); }catch(_){}
+
+    history.replaceState(null, document.title, url.origin + url.pathname);
+  }catch(_){}
+})();
+</script>
 <script id="dirac-global-pref-storage-guard-v2">
 (function(){
   'use strict';
@@ -10183,8 +10206,8 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
     setTimeout(function(){
       try{
         var u = new URL(window.location.href);
-        u.searchParams.set('_dirac_v132_sync', String(now()));
-        window.location.replace(u.href);
+        safeSessionSet('dirac_v132_sync_time_v1', String(now()));
+        window.location.replace(u.origin + u.pathname);
       }catch(_){ window.location.reload(); }
     }, reason === 'protected-block' ? 420 : 720);
   }
