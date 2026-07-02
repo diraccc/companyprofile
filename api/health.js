@@ -25093,7 +25093,7 @@ function diracCentralContractForActionV146(action) {
   const authLoginPost = { methods: ['POST'], allowed: ['email', 'password', 'fullName', 'full_name', 'name', 'phone'], required: ['email', 'password'], maxBodyBytes: 20 * 1024, maxFieldBytes: 3000, mutation: true };
   const authRegisterPost = { methods: ['POST'], allowed: ['email', 'password', 'fullName', 'full_name', 'name', 'phone'], required: ['email', 'password'], maxBodyBytes: 20 * 1024, maxFieldBytes: 3000, mutation: true };
   const contracts = {
-    domain_health: getOnly,
+    domain_health: { ...getOnly, allowed: commonGet.concat(['_csrf_bootstrap']) },
     hostinger_check: { ...getOnly, required: ['domain'] },
     domain_check: { ...getOnly, required: ['domain'] },
     midtrans_health: getOnly,
