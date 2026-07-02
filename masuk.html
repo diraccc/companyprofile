@@ -10335,7 +10335,6 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
     if(!url || !API_PATH_RE.test(url.pathname + url.search)) return false;
     var action = url.searchParams ? url.searchParams.get('action') : '';
     if(isExternalCallbackAction(action)) return false;
-    if(/^(domain_login|domain_register)$/i.test(String(action || ''))) return false;
     return true;
   }
 
@@ -10624,7 +10623,6 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
     if(!MUTATING[method]) return false;
     var url = urlOf(input);
     if(!url) return false;
-    if(/^\/api\/health\b/i.test(url.pathname) && /^(domain_login|domain_register)$/i.test(String(url.searchParams.get('action') || ''))) return false;
     return /^\/api\/health\b/i.test(url.pathname) || /^\/api\/2fa\//i.test(url.pathname);
   }
   function readHeader(res){
