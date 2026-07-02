@@ -50,6 +50,8 @@ const DOMAIN_ACTION_ALIASES = Object.freeze({
   'domain_dashboard_me': 'domain_dashboard_me',
   'dashboard-me': 'domain_dashboard_me',
   'dashboard_me': 'domain_dashboard_me',
+  'dashboard-summary': 'domain_dashboard_me',
+  'dashboard_summary': 'domain_dashboard_me',
   'domain_logout': 'domain_logout',
   'domain-logout': 'domain_logout',
   'domain-mfa-status': 'domain_mfa_status',
@@ -13831,6 +13833,7 @@ function diracUltraNormalizeAction(action) {
     'domain_me': 'domain_me',
     'domain_dashboard_me': 'domain_dashboard_me',
     'dashboard_me': 'domain_dashboard_me',
+    'dashboard_summary': 'domain_dashboard_me',
     'domain_mfa_status': 'domain_mfa_status',
     'dashboard_mfa_status': 'domain_mfa_status',
     'create_payment': 'create_payment',
@@ -23483,6 +23486,8 @@ const DIRAC_CENTRAL_ACTION_ALIASES_V146 = Object.freeze({
   'check-domain': 'domain_check',
   'create-order': 'domain_checkout',
   'get-orders': 'domain_orders',
+  'dashboard-summary': 'domain_dashboard_me',
+  'dashboard_summary': 'domain_dashboard_me',
   'customer-security-status': 'customer_security_status',
   'customer-security-overview': 'customer_security_overview',
   'midtrans-webhook': 'midtrans_webhook',
@@ -24983,7 +24988,7 @@ function diracCentralStableMfaReadGateV146(req, res, ctx) {
 
 function diracCentralContractForActionV146(action) {
   const clean = String(action || '');
-  const commonGet = ['action', '_csrf_boot', '_csrf_a2f', '_csrf_login_final', '_dirac_page_nonce_for', '_page_nonce_for', 'page_nonce_for', '_ts', 'domain', 'limit', 'type', 'include_expired', 'order_id', 'order_code', 'domain_order_id', 'payment_id', 'transaction_id', 'invoice_id', 'gateway_reference', 'session_id', 'recovery_code_id', 'credential_id', 'project_id', 'document_id', 'item_id', 'email', 'slug'];
+  const commonGet = ['action', '_csrf_boot', '_csrf_a2f', '_csrf_login_final', '_csrf_probe', '_dirac_page_nonce_for', '_page_nonce_for', 'page_nonce_for', '_ts', '_t', 'domain', 'limit', 'type', 'include_expired', 'order_id', 'order_code', 'domain_order_id', 'payment_id', 'transaction_id', 'invoice_id', 'gateway_reference', 'session_id', 'recovery_code_id', 'credential_id', 'project_id', 'document_id', 'item_id', 'email', 'slug'];
   const commonPost = ['action', 'email', 'password', 'fullName', 'full_name', 'name', 'phone', 'domain', 'domain_name', 'quantity', 'items', 'order_id', 'order_code', 'domain_order_id', 'payment_id', 'transaction_id', 'invoice_id', 'gateway_reference', 'session_id', 'recovery_code', 'recovery_code_id', 'credential_id', 'user_id', 'challenge', 'response', 'setupToken', 'mfaSetupToken', 'code', 'reason', 'csrf', 'nonce', 'idempotency_key'];
   const getOnly = { methods: ['GET', 'HEAD'], allowed: commonGet, required: [], maxBodyBytes: 1024, maxFieldBytes: 3000, mutation: false };
   const postOnly = { methods: ['POST'], allowed: commonPost, required: [], maxBodyBytes: 20 * 1024, maxFieldBytes: 3000, mutation: true };
