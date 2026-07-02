@@ -5693,13 +5693,9 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       btn.disabled = true; var old = btn.textContent; btn.textContent = mode === 'register' ? 'Memvalidasi pendaftaran...' : 'Memvalidasi login...';
       var endpoint = authEndpointFor(mode);
       var payload = {
-        mode:mode,
         email:identifier,
-        identifier:identifier,
         fullName:fullName,
-        full_name:fullName,
-        remember:$('#remember').checked,
-        source:'diracgroup.store/masuk.html'
+        full_name:fullName
       };
       try{
         var response = await fetch(endpoint, {
@@ -9616,9 +9612,6 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
     };
   }
   ready(function(){
-    checkPasskeyStatus();
-    setTimeout(checkPasskeyStatus, 450);
-    setTimeout(checkPasskeyStatus, 1400);
     var modal = $('#a2fModal');
     if(modal && window.MutationObserver){
       var queued = false;
@@ -9628,14 +9621,13 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
         requestAnimationFrame(function(){
           queued = false;
           if(window.__DIRAC_PASSKEY_DB_ACTIVE__ === true) unlockEmailBackup();
-          else checkPasskeyStatus();
         });
       }).observe(modal, {subtree:true, childList:true, attributes:true, attributeFilter:['class','style','hidden','disabled','data-a2f-step-index','data-selected-a2f']});
     }
     document.addEventListener('click', function(e){
       var email = e.target && e.target.closest ? e.target.closest('#a2fModal [data-a2f-select="email"]') : null;
       if(email && window.__DIRAC_PASSKEY_DB_ACTIVE__ !== true){
-        checkPasskeyStatus();
+        return;
       }
     }, true);
   });
@@ -10320,6 +10312,7 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
     if(!url || !API_PATH_RE.test(url.pathname + url.search)) return false;
     var action = url.searchParams ? url.searchParams.get('action') : '';
     if(isExternalCallbackAction(action)) return false;
+    if(/^(domain_login|domain_register)$/i.test(String(action || ''))) return false;
     return true;
   }
 
@@ -10413,11 +10406,8 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
     hasToken:function(){ return looksLikeCsrfToken(tokenMemory); }
   };
 
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', function(){ ensureFreshCsrf().catch(function(){}); }, {once:true});
-  }else{
-    ensureFreshCsrf().catch(function(){});
-  }
+  // Jangan preload CSRF dari halaman masuk: browser GET same-origin sering tidak membawa Origin.
+  // Token tetap bisa diminta oleh bridge lain saat benar-benar dibutuhkan.
 })();
 </script>
 
@@ -10561,11 +10551,7 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
     hasToken:function(){ return looksLikeCsrfToken(tokenMemory); }
   };
 
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', function(){ ensureToken().catch(function(){}); }, {once:true});
-  }else{
-    ensureToken().catch(function(){});
-  }
+  // Jangan preload token A2F dari halaman masuk. Token A2F hanya diminta saat request A2F mutating berjalan.
 })();
 </script>
 
@@ -10615,6 +10601,7 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
     if(!MUTATING[method]) return false;
     var url = urlOf(input);
     if(!url) return false;
+    if(/^\/api\/health\b/i.test(url.pathname) && /^(domain_login|domain_register)$/i.test(String(url.searchParams.get('action') || ''))) return false;
     return /^\/api\/health\b/i.test(url.pathname) || /^\/api\/2fa\//i.test(url.pathname);
   }
   function readHeader(res){
@@ -10693,12 +10680,10 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
     hasToken:function(){ return looksLikeToken(tokenMemory); }
   };
 
-  function preload(){ refresh().catch(function(){}); }
-  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', preload, {once:true});
-  else preload();
+  function preload(){ return; }
   document.addEventListener('pointerdown', function(e){
     var t = e.target && e.target.closest ? e.target.closest('#submitBtn,#authForm button[type="submit"],[data-a2f-action],#a2fStartBtn,#a2fVerifyBtn') : null;
-    if(t) preload();
+    if(t && !t.closest('#authForm')) refresh().catch(function(){});
   }, true);
 })();
 </script>
