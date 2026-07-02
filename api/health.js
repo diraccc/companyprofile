@@ -23806,11 +23806,17 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
     const pageGuard = diracCentralPageBrowserAuthenticityGuardV146(req, ctx);
     if (!pageGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, pageGuard.reason);
 
-    const csrfGuard = diracCentralCsrfGuardV146(req, res, ctx);
-    if (!csrfGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, csrfGuard.reason);
+	    const csrfGuard = diracCentralCsrfGuardV146(req, res, ctx);
+	    if (!csrfGuard.ok) {
+	      if (diracCentralIsPreAuthActionV146(ctx)) return diracCentralPreAuthSoftBlockV146(res, csrfGuard.reason);
+	      return await diracCentralBanAndBlockV146(req, res, ctx, action, method, csrfGuard.reason);
+	    }
 
-    const nonceGuard = diracCentralPageNonceGuardV146(req, res, ctx);
-    if (!nonceGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, nonceGuard.reason);
+	    const nonceGuard = diracCentralPageNonceGuardV146(req, res, ctx);
+	    if (!nonceGuard.ok) {
+	      if (diracCentralIsPreAuthActionV146(ctx)) return diracCentralPreAuthSoftBlockV146(res, nonceGuard.reason);
+	      return await diracCentralBanAndBlockV146(req, res, ctx, action, method, nonceGuard.reason);
+	    }
 
     const browserSignal = diracCentralBrowserSignalGuardV146(req, ctx);
     if (!browserSignal.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, browserSignal.reason);
@@ -24143,12 +24149,30 @@ function diracCentralPageNonceGuardV146(req, res, ctx) {
     diracCentralIssuePageNonceV146(req, res, ctx.action);
   }
   if (!diracCentralNeedsCsrfNonceV146(ctx)) return { ok: true };
+  if (diracCentralIsPreAuthActionV146(ctx)) return { ok: true };
   const headers = req && req.headers || {};
   const nonce = String(headers['x-dirac-page-nonce'] || headers['x-page-nonce'] || '').trim();
   if (!nonce) return { ok: false, reason: 'page_nonce_missing' };
   const verified = diracCentralVerifyPageNonceV146(req, nonce, ctx.action);
   if (!verified.ok) return { ok: false, reason: verified.reason || 'page_nonce_invalid' };
   return { ok: true };
+}
+
+function diracCentralIsPreAuthActionV146(ctx) {
+  const action = String(ctx && ctx.action || '');
+  const method = String(ctx && ctx.method || '').toUpperCase();
+  return method === 'POST' && (action === 'domain_login' || action === 'domain_register');
+}
+
+function diracCentralPreAuthSoftBlockV146(res, reason) {
+  diracCentralApplyHeadersV146(res);
+  return res.status(403).json({
+    ok: false,
+    code: 'CENTRAL_SECURITY_PREAUTH_REQUIRED',
+    message: 'Permintaan login/register membutuhkan token keamanan halaman resmi.',
+    reason: String(reason || 'preauth_security_required').slice(0, 80),
+    source: DIRAC_CENTRAL_SECURITY_GUARD_V146
+  });
 }
 
 function diracCentralIssuePageNonceV146(req, res, action) {
