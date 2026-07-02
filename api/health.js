@@ -24452,7 +24452,7 @@ function diracCentralZeroDayShieldV146(req, ctx, normalized) {
   if (flat.some((item) => item.depth > 5)) return { ok: false, reason: 'zeroday_nested_too_deep' };
   if (String(ctx.sample || '').length > 50 * 1024) return { ok: false, reason: 'zeroday_payload_too_long' };
   const headers = req && req.headers || {};
-  if (Object.keys(headers).some((name) => /^(x-forwarded-host|x-original-url|x-rewrite-url|x-http-method-override|x-forwarded-proto)$/i.test(String(name || '')))) {
+  if (!diracCentralProxyHeaderGuardV146(headers).ok) {
     return { ok: false, reason: 'zeroday_manipulative_header' };
   }
   if (/\b[A-Za-z0-9+/]{240,}={0,2}\b/.test(normalized.spacedText || '')) return { ok: false, reason: 'zeroday_base64_unusual' };
@@ -24462,6 +24462,29 @@ function diracCentralZeroDayShieldV146(req, ctx, normalized) {
   const idCount = diracCentralCollectIdsV146(req, ctx.body).length;
   if (idCount > 8) return { ok: false, reason: 'zeroday_many_ids' };
   if (String(req && req.url || '').length > 1800) return { ok: false, reason: 'zeroday_query_too_wide' };
+  return { ok: true };
+}
+
+function diracCentralProxyHeaderGuardV146(headers) {
+  headers = headers || {};
+  const names = Object.keys(headers).map((name) => String(name || '').toLowerCase());
+  if (names.some((name) => /^(x-original-url|x-rewrite-url|x-http-method-override)$/.test(name))) return { ok: false };
+
+  const rawProto = String(headers['x-forwarded-proto'] || '').trim().toLowerCase();
+  if (rawProto) {
+    const proto = rawProto.split(',')[0].trim();
+    if (proto !== 'https') return { ok: false };
+  }
+
+  const rawHost = String(headers['x-forwarded-host'] || '').trim().toLowerCase();
+  if (rawHost) {
+    const host = rawHost.split(',')[0].trim().replace(/:\d+$/, '');
+    const allowedHosts = new Set(Array.from(DIRAC_CENTRAL_ALLOWED_ORIGINS_V146).map((origin) => {
+      try { return new URL(origin).hostname.toLowerCase(); } catch (_) { return ''; }
+    }).filter(Boolean));
+    if (!allowedHosts.has(host)) return { ok: false };
+  }
+
   return { ok: true };
 }
 
