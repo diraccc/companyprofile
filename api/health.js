@@ -24491,6 +24491,7 @@ function diracCentralProxyHeaderGuardV146(headers) {
 async function diracCentralIdorBolaGuardV146(req, ctx) {
   const ids = diracCentralCollectIdsV146(req, ctx.body);
   if (diracCentralIsAuthBootstrapIdentityOnlyV146(ctx.action, ids)) return { ok: true, skipped: 'auth_bootstrap_identity_only' };
+  if (diracCentralIsAuthSelfReadOnlyV146(ctx.action, ids)) return { ok: true, skipped: 'auth_self_read_only' };
   const needsOwner = ids.length > 0 || DIRAC_CENTRAL_USER_DATA_ACTIONS_V146.has(ctx.action);
   if (!needsOwner) return { ok: true, skipped: 'no_sensitive_id_and_not_user_data' };
   if (ids.length > 12) return { ok: false, reason: 'idor_too_many_ids' };
@@ -24514,6 +24515,14 @@ async function diracCentralIdorBolaGuardV146(req, ctx) {
 function diracCentralIsAuthBootstrapIdentityOnlyV146(action, ids) {
   const clean = String(action || '').toLowerCase();
   if (clean !== 'domain_login' && clean !== 'domain_register') return false;
+  const list = Array.isArray(ids) ? ids : [];
+  if (!list.length) return true;
+  return list.every((item) => /^(email|slug)$/i.test(String(item && item.key || '')));
+}
+
+function diracCentralIsAuthSelfReadOnlyV146(action, ids) {
+  const clean = String(action || '').toLowerCase();
+  if (clean !== 'domain_me') return false;
   const list = Array.isArray(ids) ? ids : [];
   if (!list.length) return true;
   return list.every((item) => /^(email|slug)$/i.test(String(item && item.key || '')));
