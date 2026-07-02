@@ -19837,7 +19837,10 @@ async function diracBolaIdorV128DirectSupabaseServiceGet(path) {
   const serviceKey = target && target.serviceKey ? String(target.serviceKey) : fallbackKey;
   if (!url || !serviceKey) return { ok: false, status: 0, data: null };
 
-  const response = await fetch(url + String(path || ''), {
+  const timeoutMs = Math.max(1000, Number(process.env.DIRAC_BOLA_IDOR_DIRECT_FETCH_TIMEOUT_MS || process.env.DIRAC_SUPABASE_FETCH_TIMEOUT_MS || 6500) || 6500);
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  let timer = null;
+  const fetchOptions = {
     method: 'GET',
     headers: {
       apikey: serviceKey,
@@ -19845,8 +19848,33 @@ async function diracBolaIdorV128DirectSupabaseServiceGet(path) {
       Accept: 'application/json',
       'Content-Type': 'application/json'
     }
-  });
-  const text = await response.text();
+  };
+  if (controller) {
+    fetchOptions.signal = controller.signal;
+    timer = setTimeout(() => {
+      try { controller.abort(); } catch (_) {}
+    }, timeoutMs);
+  }
+
+  let response = null;
+  let text = '';
+  try {
+    response = await fetch(url + String(path || ''), fetchOptions);
+    text = await response.text();
+  } catch (error) {
+    return {
+      ok: false,
+      status: error && error.name === 'AbortError' ? 504 : 502,
+      data: {
+        ok: false,
+        code: error && error.name === 'AbortError' ? 'BOLA_IDOR_DIRECT_SUPABASE_TIMEOUT' : 'BOLA_IDOR_DIRECT_SUPABASE_FAILED'
+      },
+      error: error && (error.code || error.name || error.message) || 'BOLA_IDOR_DIRECT_SUPABASE_FAILED'
+    };
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+
   let data = null;
   try { data = text ? JSON.parse(text) : null; } catch (_) { data = text; }
   return { ok: response.ok, status: response.status, data };
@@ -21264,6 +21292,9 @@ async function diracBolaIdorV133InspectSupabaseAccess(path, options = {}) {
 
   const table = diracBolaIdorV133ExtractRestTable(rawPath);
   if (!diracBolaIdorV133IsOwnedTable(table)) return { ok: true };
+  if (diracBolaIdorV133IsCentralPassedSelfSessionRead(action, method, table, ctx)) {
+    return { ok: true, skipped: 'central_passed_self_session_read' };
+  }
 
   const owner = await diracBolaIdorV133ResolveStrictOwner(ctx.req).catch(() => null);
   const allowed = owner && owner.ok ? owner.customerIds : [];
@@ -21369,6 +21400,16 @@ async function diracBolaIdorV133InspectSupabaseAccess(path, options = {}) {
   }
 
   return { ok: true };
+}
+
+function diracBolaIdorV133IsCentralPassedSelfSessionRead(action, method, table, ctx) {
+  const cleanAction = diracBolaIdorV133NormalizeAction(action);
+  const cleanMethod = String(method || 'GET').toUpperCase();
+  const cleanTable = String(table || '').toLowerCase();
+  if (cleanMethod !== 'GET' && cleanMethod !== 'HEAD') return false;
+  if (cleanAction !== 'domain_me' && cleanAction !== 'domain_dashboard_me') return false;
+  if (!ctx || !ctx.req || !ctx.req.__diracCentralSecurityGuardPassedV146) return false;
+  return /^(customers|security_customer_auth_links|security_customer_sessions|security_customer_mfa|security_customer_devices|security_customer_login_history)$/i.test(cleanTable);
 }
 
 async function diracBolaIdorV133ResolveStrictOwner(req) {
@@ -23926,6 +23967,7 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
 function diracCentralApplyHeadersV146(res) {
   if (!res || typeof res.setHeader !== 'function') return;
   try { res.setHeader('X-Dirac-Central-Security-Guard', DIRAC_CENTRAL_SECURITY_GUARD_V146); } catch (_) {}
+  try { res.setHeader('X-Dirac-Dashboard-Session-Fix', 'v147-bola-direct-timeout-fast-self-read'); } catch (_) {}
   try { res.setHeader('Cache-Control', 'no-store'); } catch (_) {}
   try { res.setHeader('X-Content-Type-Options', 'nosniff'); } catch (_) {}
   try { res.setHeader('Content-Security-Policy', "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://diracgroup.store https://www.diracgroup.store"); } catch (_) {}
