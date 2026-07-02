@@ -25159,7 +25159,7 @@ function diracCentralContractForActionV146(action) {
     domain_register: authRegisterPost,
     domain_logout: postOnly,
     domain_checkout: { ...postOnly, required: ['domain'] },
-    checkout_order: postOnly,
+    checkout_order: { ...postOnly, allowed: commonPost.concat(['service_type', 'product_title', 'total', 'payment_method', 'customer_address', 'customer_note', 'source', 'product_id', 'title', 'qty', 'client_price', 'client_subtotal']) },
     create_payment: postOnly,
     customer_security_revoke_session: { ...postOnly, required: ['session_id'] },
     customer_security_revoke_other_sessions: postOnly,
