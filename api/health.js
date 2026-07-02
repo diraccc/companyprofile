@@ -24574,6 +24574,7 @@ async function diracCentralInspectServiceRoleAccessV146(path, options = {}) {
   const table = diracCentralExtractRestTableV146(path);
   if (!diracCentralOwnedTableV146(table)) return { ok: true };
   const method = String(options.method || 'GET').toUpperCase();
+  if (diracCentralIsRegisterBootstrapServiceRoleV146(ctx, table, path, options, method)) return { ok: true, skipped: 'domain_register_bootstrap_service_role' };
   const hasOwnerScope = diracCentralPathHasOwnerScopeV146(path, options.body);
   const hasObjectScope = diracCentralPathHasObjectScopeV146(path, options.body);
   if (!hasOwnerScope && !hasObjectScope) {
@@ -24588,6 +24589,53 @@ async function diracCentralInspectServiceRoleAccessV146(path, options = {}) {
     }
   }
   return { ok: true };
+}
+
+function diracCentralIsRegisterBootstrapServiceRoleV146(ctx, table, path, options = {}, method) {
+  if (!ctx || String(ctx.action || '').toLowerCase() !== 'domain_register') return false;
+  const cleanTable = String(table || '').toLowerCase();
+  const cleanMethod = String(method || options.method || 'GET').toUpperCase();
+  const rawPath = String(path || '').toLowerCase();
+  const body = options.body;
+
+  if (cleanTable === 'customers') {
+    if (cleanMethod === 'GET') return /[?&]email=eq\./.test(rawPath);
+    if (cleanMethod !== 'POST') return false;
+    return diracCentralBodyRowsSafeV146(body, ['name', 'email', 'phone'], (row) => {
+      const email = String(row.email || '').trim();
+      return !!email && diracCentralValidateFieldFormatV146('email', email).ok;
+    });
+  }
+
+  if (cleanTable === 'security_customer_auth_links') {
+    if (cleanMethod !== 'POST' && cleanMethod !== 'PATCH') return false;
+    return diracCentralBodyRowsSafeV146(body, ['auth_user_id', 'customer_id', 'email', 'link_status', 'link_method', 'match_confidence'], (row) => {
+      if (row.auth_user_id && !diracCentralLooksLikeUuidV146(row.auth_user_id)) return false;
+      if (row.customer_id && !diracCentralLooksLikeUuidV146(row.customer_id)) return false;
+      if (row.email && !diracCentralValidateFieldFormatV146('email', row.email).ok) return false;
+      if (row.link_status && String(row.link_status).toLowerCase() !== 'active') return false;
+      return true;
+    });
+  }
+
+  return false;
+}
+
+function diracCentralBodyRowsSafeV146(body, allowedKeys, validateRow) {
+  const rows = Array.isArray(body) ? body : [body];
+  const allowed = new Set((allowedKeys || []).map((key) => String(key || '').toLowerCase()));
+  if (!rows.length || rows.length > 3) return false;
+  return rows.every((row) => {
+    if (!row || typeof row !== 'object' || Array.isArray(row)) return false;
+    const keys = Object.keys(row);
+    if (!keys.length || keys.length > allowed.size) return false;
+    if (keys.some((key) => !allowed.has(String(key || '').toLowerCase()))) return false;
+    if (keys.some(diracCentralProtectedFieldV146)) {
+      const unsafe = keys.filter(diracCentralProtectedFieldV146).some((key) => !/^(auth_user_id)$/i.test(String(key || '')));
+      if (unsafe) return false;
+    }
+    return typeof validateRow === 'function' ? validateRow(row) !== false : true;
+  });
 }
 
 function diracCentralBlockedSupabaseResultV146(decision) {
