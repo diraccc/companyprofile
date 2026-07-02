@@ -24489,6 +24489,7 @@ function diracCentralProxyHeaderGuardV146(headers) {
 
 async function diracCentralIdorBolaGuardV146(req, ctx) {
   const ids = diracCentralCollectIdsV146(req, ctx.body);
+  if (diracCentralIsAuthBootstrapIdentityOnlyV146(ctx.action, ids)) return { ok: true, skipped: 'auth_bootstrap_identity_only' };
   const needsOwner = ids.length > 0 || DIRAC_CENTRAL_USER_DATA_ACTIONS_V146.has(ctx.action);
   if (!needsOwner) return { ok: true, skipped: 'no_sensitive_id_and_not_user_data' };
   if (ids.length > 12) return { ok: false, reason: 'idor_too_many_ids' };
@@ -24507,6 +24508,14 @@ async function diracCentralIdorBolaGuardV146(req, ctx) {
   const foreign = rows.find((row) => row.customer_id && !allowedCustomers.has(String(row.customer_id)));
   if (foreign) return { ok: false, reason: 'idor_object_owner_mismatch' };
   return { ok: true };
+}
+
+function diracCentralIsAuthBootstrapIdentityOnlyV146(action, ids) {
+  const clean = String(action || '').toLowerCase();
+  if (clean !== 'domain_login' && clean !== 'domain_register') return false;
+  const list = Array.isArray(ids) ? ids : [];
+  if (!list.length) return true;
+  return list.every((item) => /^(email|slug)$/i.test(String(item && item.key || '')));
 }
 
 async function diracCentralResolveOwnerV146(req) {
@@ -24799,6 +24808,8 @@ function diracCentralContractForActionV146(action) {
   const commonPost = ['action', 'email', 'password', 'fullName', 'full_name', 'name', 'phone', 'domain', 'domain_name', 'quantity', 'items', 'order_id', 'order_code', 'domain_order_id', 'payment_id', 'transaction_id', 'invoice_id', 'gateway_reference', 'session_id', 'recovery_code', 'recovery_code_id', 'credential_id', 'user_id', 'challenge', 'response', 'setupToken', 'mfaSetupToken', 'code', 'reason', 'csrf', 'nonce', 'idempotency_key'];
   const getOnly = { methods: ['GET', 'HEAD'], allowed: commonGet, required: [], maxBodyBytes: 1024, maxFieldBytes: 3000, mutation: false };
   const postOnly = { methods: ['POST'], allowed: commonPost, required: [], maxBodyBytes: 20 * 1024, maxFieldBytes: 3000, mutation: true };
+  const authLoginPost = { methods: ['POST'], allowed: ['email', 'password', 'fullName', 'full_name', 'name', 'phone'], required: ['email', 'password'], maxBodyBytes: 20 * 1024, maxFieldBytes: 3000, mutation: true };
+  const authRegisterPost = { methods: ['POST'], allowed: ['email', 'password', 'fullName', 'full_name', 'name', 'phone'], required: ['email', 'password'], maxBodyBytes: 20 * 1024, maxFieldBytes: 3000, mutation: true };
   const contracts = {
     domain_health: getOnly,
     hostinger_check: { ...getOnly, required: ['domain'] },
@@ -24839,8 +24850,8 @@ function diracCentralContractForActionV146(action) {
     domain_mfa_passkey_status: getOnly,
     dirac_passkey_status: getOnly,
     domain_passkey_status: getOnly,
-    domain_login: { ...postOnly, required: ['email', 'password'] },
-    domain_register: { ...postOnly, required: ['email', 'password'] },
+    domain_login: authLoginPost,
+    domain_register: authRegisterPost,
     domain_logout: postOnly,
     domain_checkout: { ...postOnly, required: ['domain'] },
     checkout_order: postOnly,
