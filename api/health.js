@@ -24009,6 +24009,15 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
     return await nextHandler(req, res);
   } catch (error) {
     try { console.error('[dirac-central-security-v146]', diracCentralSafeErrorV146(error)); } catch (_) {}
+    if (ctx && req && req.__diracCentralSecurityGuardPassedV146 && ctx.action === 'domain_dashboard_me') {
+      diracCentralApplyHeadersV146(res);
+      return res.status(500).json({
+        ok: false,
+        code: 'DOMAIN_DASHBOARD_HANDLER_ERROR',
+        message: 'Dashboard belum bisa dimuat. Silakan coba lagi.',
+        source: DIRAC_CENTRAL_SECURITY_GUARD_V146
+      });
+    }
     if (ctx) return await diracCentralBanAndBlockV146(req, res, ctx, ctx.action || 'central_guard_error', method, 'central_guard_error');
     return diracCentralBlockedResponseV146(res, 'CENTRAL_GUARD_ERROR');
   } finally {
