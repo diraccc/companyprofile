@@ -24673,6 +24673,7 @@ function diracCentralProxyHeaderGuardV146(headers) {
 }
 
 async function diracCentralIdorBolaGuardV146(req, ctx) {
+  if (ctx && ctx.classification === 'server' && ctx.action === 'midtrans_webhook') return { ok: true, skipped: 'server_to_server_signed_webhook' };
   const ids = diracCentralCollectIdsV146(req, ctx.body);
   if (diracCentralIsAuthBootstrapIdentityOnlyV146(ctx.action, ids)) return { ok: true, skipped: 'auth_bootstrap_identity_only' };
   if (diracCentralIsAuthSelfReadOnlyV146(ctx.action, ids)) return { ok: true, skipped: 'auth_self_read_only' };
