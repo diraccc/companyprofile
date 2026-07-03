@@ -23905,20 +23905,19 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
     };
     DIRAC_CENTRAL_CONTEXT_STACK_V146.push(ctx);
 
-    const rawAction = String(req && req.query && req.query.action || '').trim();
-    const lowerAction = rawAction.toLowerCase();
-    const earlyAlias = diracCentralNormalizeAliasV146(lowerAction);
-    const earlyServerAction = earlyAlias && earlyAlias.ok && DIRAC_CENTRAL_SERVER_ACTIONS_V146.has(earlyAlias.action);
-
     const memoryBan = diracCentralCheckMemoryBanV146(identity);
-    if (memoryBan.blocked && !earlyServerAction) return diracCentralBlockedResponseV146(res, 'MEMORY_BAN_ACTIVE');
+    if (memoryBan.blocked) return diracCentralBlockedResponseV146(res, 'MEMORY_BAN_ACTIVE');
 
-    const persistentBan = earlyServerAction ? { blocked: false, skipped: 'server_action_validated_by_signature_guard' } : await diracCentralCheckPersistentBanV146(req, identity);
+    const persistentBan = await diracCentralCheckPersistentBanV146(req, identity);
     if (persistentBan.blocked) {
       diracCentralSetMemoryBanV146(identity, persistentBan.blockedUntilMs, 'persistent_ban');
       return diracCentralBlockedResponseV146(res, 'PERSISTENT_BAN_ACTIVE');
     }
     diracCentralSetNegativeCacheV146(identity);
+
+    const rawAction = String(req && req.query && req.query.action || '').trim();
+    const lowerAction = rawAction.toLowerCase();
+    if (method === 'OPTIONS') return await nextHandler(req, res);
 
     const format = diracCentralValidateActionFormatV146(rawAction, lowerAction);
     if (!format.ok) return await diracCentralBanAndBlockV146(req, res, ctx, lowerAction || 'missing_action', method, format.reason);
@@ -23942,6 +23941,7 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
 
     const serverGuard = await diracCentralServerToServerGuardV146(req, res, ctx);
     if (!serverGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, serverGuard.reason);
+    if (ctx.classification === 'server') ctx.skipHeavyScan = true;
 
     const pageGuard = diracCentralPageBrowserAuthenticityGuardV146(req, ctx);
     if (!pageGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, pageGuard.reason);
@@ -23999,8 +23999,10 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
       if (!zeroDay.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, zeroDay.reason);
     }
 
-    const idor = await diracCentralIdorBolaGuardV146(req, ctx);
-    if (!idor.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, idor.reason);
+    if (ctx.classification !== 'server') {
+      const idor = await diracCentralIdorBolaGuardV146(req, ctx);
+      if (!idor.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, idor.reason);
+    }
 
     const circuit = await diracCentralCircuitBreakerV146(req, ctx, 'allow');
     if (!circuit.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, circuit.reason);
@@ -24591,6 +24593,7 @@ function diracCentralNormalizeSampleV146(sample) {
 }
 
 function diracCentralThreatPatternGuardV146(normalized, ctx) {
+  if (ctx && ctx.classification === 'server' && ctx.action === 'midtrans_webhook') return { detected: false, skipped: 'server_webhook_contract_guarded' };
   const spaced = normalized.spacedText || '';
   const compact = normalized.compactText || '';
   const checks = [
