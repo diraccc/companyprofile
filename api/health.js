@@ -24298,12 +24298,25 @@ function diracCentralPageNonceGuardV146(req, res, ctx) {
   }
   if (!diracCentralNeedsCsrfNonceV146(ctx)) return { ok: true };
   if (diracCentralIsPreAuthActionV146(ctx)) return { ok: true };
+  if (diracCentralIsPasskeyBrowserActionV146(ctx)) {
+    const passkeyCsrf = typeof diracV142VerifyHeaderCsrfToken === 'function'
+      ? diracV142VerifyHeaderCsrfToken(req)
+      : { ok: false };
+    if (passkeyCsrf && passkeyCsrf.ok) return { ok: true, source: 'passkey_csrf_header_nonce_compat_v142' };
+  }
   const headers = req && req.headers || {};
   const nonce = String(headers['x-dirac-page-nonce'] || headers['x-page-nonce'] || '').trim();
   if (!nonce) return { ok: false, reason: 'page_nonce_missing' };
   const verified = diracCentralVerifyPageNonceV146(req, nonce, ctx.action);
   if (!verified.ok) return { ok: false, reason: verified.reason || 'page_nonce_invalid' };
   return { ok: true };
+}
+
+function diracCentralIsPasskeyBrowserActionV146(ctx) {
+  const action = String(ctx && ctx.action || '').toLowerCase();
+  const method = String(ctx && ctx.method || '').toUpperCase();
+  return method === 'POST'
+    && /^(dirac_mfa_passkey_start|dirac_mfa_passkey_verify|domain_mfa_passkey_start|domain_mfa_passkey_verify)$/.test(action);
 }
 
 function diracCentralPageNonceIssueTargetV146(req, ctx) {
@@ -25265,7 +25278,7 @@ function diracCentralContractForActionV146(action) {
   const commonPost = ['action', 'email', 'password', 'fullName', 'full_name', 'name', 'phone', 'domain', 'domain_name', 'quantity', 'items', 'order_id', 'order_code', 'domain_order_id', 'payment_id', 'transaction_id', 'invoice_id', 'gateway_reference', 'session_id', 'recovery_code', 'recovery_code_id', 'credential_id', 'user_id', 'challenge', 'response', 'setupToken', 'mfaSetupToken', 'code', 'reason', 'csrf', 'nonce', 'idempotency_key'];
   const getOnly = { methods: ['GET', 'HEAD'], allowed: commonGet, required: [], maxBodyBytes: 1024, maxFieldBytes: 3000, mutation: false };
   const postOnly = { methods: ['POST'], allowed: commonPost, required: [], maxBodyBytes: 20 * 1024, maxFieldBytes: 3000, mutation: true };
-  const passkeyPost = { methods: ['POST'], allowed: ['action', 'method', 'identifier', 'email', 'setupToken', 'mfaSetupToken', 'token', 'passkeyMode', 'credential', 'id', 'rawId', 'type', 'response', 'clientExtensionResults', 'clientDataJSON', 'attestationObject', 'authenticatorData', 'signature', 'userHandle', 'transports', 'authenticatorAttachment', 'challenge', 'code', 'csrf', 'nonce', 'idempotency_key'], required: [], maxBodyBytes: 48 * 1024, maxFieldBytes: 12000, mutation: true, allowArrayItems: true };
+  const passkeyPost = { methods: ['POST'], allowed: ['action', 'method', 'identifier', 'email', 'setupToken', 'mfaSetupToken', 'token', 'passkeyMode', 'credential', 'id', 'rawId', 'type', 'response', 'clientExtensionResults', 'clientDataJSON', 'attestationObject', 'authenticatorData', 'signature', 'userHandle', 'transports', 'authenticatorAttachment', 'challenge', 'code', 'csrf', 'nonce', 'idempotency_key'], required: [], maxBodyBytes: 512 * 1024, maxFieldBytes: 128 * 1024, mutation: true, allowArrayItems: true };
   const authLoginPost = { methods: ['POST'], allowed: ['email', 'password', 'fullName', 'full_name', 'name', 'phone'], required: ['email', 'password'], maxBodyBytes: 20 * 1024, maxFieldBytes: 3000, mutation: true };
   const authRegisterPost = { methods: ['POST'], allowed: ['email', 'password', 'fullName', 'full_name', 'name', 'phone'], required: ['email', 'password'], maxBodyBytes: 20 * 1024, maxFieldBytes: 3000, mutation: true };
   const contracts = {
