@@ -2490,18 +2490,31 @@ html[data-effective-theme="light"] .app-search-result-copy strong,html[data-effe
     function logoutRedirectUrl(){
       return 'masuk.html?logout=1&t='+Date.now();
     }
-    function postBackendLogout(){
+    function fetchDomainLogoutPageNonce(){
       return Promise.race([
-        fetch(withCacheBust(DOMAIN_LOGOUT_ENDPOINT),{
-          method:'POST',
-          mode:'same-origin',
-          credentials:'include',
-          cache:'no-store',
-          keepalive:true,
-          headers:sessionHeaders()
-        }).catch(function(){return null;}),
-        delay(1800).then(function(){return null;})
+        fetchWithTimeout(withCacheBust(DOMAIN_AUTH_API+'?action=domain_health&_dirac_page_nonce_for=domain_logout'),{method:'GET',mode:'same-origin',credentials:'include',cache:'no-store',headers:{'Accept':'application/json'}},2500).then(function(res){
+          return res&&res.headers?String(res.headers.get('X-Dirac-Page-Nonce')||'').trim():'';
+        }).catch(function(){return '';}),
+        delay(1200).then(function(){return '';})
       ]);
+    }
+    function postBackendLogout(){
+      return fetchDomainLogoutPageNonce().then(function(pageNonce){
+        if(!pageNonce) return null;
+        var headers=sessionHeaders();
+        headers['X-Dirac-Page-Nonce']=pageNonce;
+        return Promise.race([
+          fetch(withCacheBust(DOMAIN_LOGOUT_ENDPOINT),{
+            method:'POST',
+            mode:'same-origin',
+            credentials:'include',
+            cache:'no-store',
+            keepalive:true,
+            headers:headers
+          }).catch(function(){return null;}),
+          delay(1800).then(function(){return null;})
+        ]);
+      });
     }
     function mergeRefreshedTokens(res){
       // PATCH 3A: backend-only. Token refresh header tidak dibaca/ditulis ke frontend.
@@ -3852,6 +3865,19 @@ html[data-effective-theme="light"] .app-search-result-copy strong,html[data-effe
 
   async function postBackendLogout(){
     try{
+      var pageNonce = await Promise.race([
+        fetchSessionWithTimeout(withCacheBust(API_BASE + '?action=domain_health&_dirac_page_nonce_for=domain_logout'), {
+          method: 'GET',
+          mode: 'same-origin',
+          credentials: 'include',
+          cache: 'no-store',
+          headers: { 'Accept': 'application/json' }
+        }, 2500).then(function(res){
+          return res && res.headers ? String(res.headers.get('X-Dirac-Page-Nonce') || '').trim() : '';
+        }).catch(function(){ return ''; }),
+        new Promise(function(resolve){ setTimeout(function(){ resolve(''); }, 1200); })
+      ]);
+      if(!pageNonce) return;
       await Promise.race([
         fetch(withCacheBust(LOGOUT_ENDPOINT), {
           method: 'POST',
@@ -3859,7 +3885,7 @@ html[data-effective-theme="light"] .app-search-result-copy strong,html[data-effe
           credentials: 'include',
           cache: 'no-store',
           keepalive: true,
-          headers: { 'Accept': 'application/json' }
+          headers: { 'Accept': 'application/json', 'X-Dirac-Page-Nonce': pageNonce }
         }).catch(function(){ return null; }),
         new Promise(function(resolve){ setTimeout(resolve, 1800); })
       ]);
