@@ -24785,6 +24785,7 @@ async function diracCentralInspectServiceRoleAccessV146(path, options = {}) {
   const method = String(options.method || 'GET').toUpperCase();
   if (diracCentralIsRegisterBootstrapServiceRoleV146(ctx, table, path, options, method)) return { ok: true, skipped: 'domain_register_bootstrap_service_role' };
   if (diracCentralIsCheckoutOwnerBootstrapServiceRoleV146(ctx, table, path, options, method)) return { ok: true, skipped: 'checkout_owner_bootstrap_service_role' };
+  if (diracCentralIsCheckoutOrderCreateServiceRoleV146(ctx, table, path, options, method)) return { ok: true, skipped: 'checkout_order_create_service_role' };
   if (diracCentralIsPasskeyServiceRoleV146(ctx, table, path, options, method)) return { ok: true, skipped: 'passkey_owner_scoped_service_role' };
   const hasOwnerScope = diracCentralPathHasOwnerScopeV146(path, options.body);
   const hasObjectScope = diracCentralPathHasObjectScopeV146(path, options.body);
@@ -24863,6 +24864,56 @@ function diracCentralIsCheckoutOwnerBootstrapServiceRoleV146(ctx, table, path, o
     });
   }
   return false;
+}
+
+function diracCentralIsCheckoutOrderCreateServiceRoleV146(ctx, table, path, options = {}, method) {
+  if (!ctx || ctx.action !== 'checkout_order' || !ctx.req || ctx.req.__diracCentralSecurityGuardPassedV146 !== true) return false;
+  const cleanTable = String(table || '').toLowerCase();
+  const cleanMethod = String(method || options.method || 'GET').toUpperCase();
+  if (cleanMethod !== 'POST') return false;
+  if (cleanTable === 'orders') {
+    return diracCentralCheckoutOrderRowsSafeV146(options.body);
+  }
+  return false;
+}
+
+function diracCentralCheckoutOrderRowsSafeV146(body) {
+  const rows = Array.isArray(body) ? body : [body];
+  const allowed = new Set([
+    'order_id',
+    'customer_id',
+    'customer_name',
+    'customer_phone',
+    'customer_email',
+    'shipping_address',
+    'service_type',
+    'subtotal',
+    'shipping_cost',
+    'discount',
+    'total',
+    'note',
+    'payment_method',
+    'payment_status',
+    'order_status'
+  ]);
+  if (rows.length !== 1) return false;
+  return rows.every((row) => {
+    if (!row || typeof row !== 'object' || Array.isArray(row)) return false;
+    const keys = Object.keys(row);
+    if (!keys.length || keys.some((key) => !allowed.has(String(key || '').toLowerCase()))) return false;
+    if (!/^[a-zA-Z0-9._:@-]{3,120}$/.test(String(row.order_id || '').trim())) return false;
+    if (!diracCentralLooksLikeUuidV146(row.customer_id)) return false;
+    if (row.customer_email && !diracCentralValidateFieldFormatV146('email', row.customer_email).ok) return false;
+    if (String(row.payment_method || '') !== 'Belum dipilih') return false;
+    if (String(row.payment_status || '').toLowerCase() !== 'unpaid') return false;
+    if (String(row.order_status || '').toLowerCase() !== 'pending') return false;
+    return ['subtotal', 'shipping_cost', 'discount', 'total'].every((key) => diracCentralIsNonNegativeNumberV146(row[key]));
+  });
+}
+
+function diracCentralIsNonNegativeNumberV146(value) {
+  const number = Number(value);
+  return Number.isFinite(number) && number >= 0;
 }
 
 function diracCentralIsPasskeyServiceRoleV146(ctx, table, path, options = {}, method) {
