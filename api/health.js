@@ -24908,6 +24908,9 @@ function diracCentralIsCheckoutOrderCreateServiceRoleV146(ctx, table, path, opti
   if (cleanTable === 'orders') {
     return diracCentralCheckoutOrderRowsSafeV146(options.body);
   }
+  if (cleanTable === 'order_items') {
+    return diracCentralCheckoutOrderItemRowsSafeV146(options.body);
+  }
   return false;
 }
 
@@ -24948,6 +24951,26 @@ function diracCentralCheckoutOrderRowsSafeV146(body) {
 function diracCentralIsNonNegativeNumberV146(value) {
   const number = Number(value);
   return Number.isFinite(number) && number >= 0;
+}
+
+function diracCentralCheckoutOrderItemRowsSafeV146(body) {
+  const rows = Array.isArray(body) ? body : [body];
+  const allowed = new Set(['order_id', 'product_doc_id', 'product_title', 'quantity', 'unit_price', 'cost_price']);
+  if (!rows.length || rows.length > 50) return false;
+  return rows.every((row) => {
+    if (!row || typeof row !== 'object' || Array.isArray(row)) return false;
+    const keys = Object.keys(row);
+    if (!keys.length || keys.some((key) => !allowed.has(String(key || '').toLowerCase()))) return false;
+    if (!diracCentralLooksLikeUuidV146(row.order_id)) return false;
+    const title = String(row.product_title || '').trim();
+    if (!title || title.length > 180 || /[\u0000-\u001f\u007f]/.test(title)) return false;
+    if (row.product_doc_id && !/^[A-Za-z0-9._:@-]{1,80}$/.test(String(row.product_doc_id || '').trim())) return false;
+    const quantity = Number(row.quantity);
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 999) return false;
+    const unitPrice = Number(row.unit_price);
+    if (!Number.isFinite(unitPrice) || unitPrice <= 0) return false;
+    return diracCentralIsNonNegativeNumberV146(row.cost_price);
+  });
 }
 
 function diracCentralIsPasskeyServiceRoleV146(ctx, table, path, options = {}, method) {
