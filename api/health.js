@@ -24796,8 +24796,29 @@ async function diracCentralInspectServiceRoleAccessV146(path, options = {}) {
   if (['POST', 'PUT', 'PATCH'].includes(method)) {
     const fields = diracCentralFlattenObjectV146(options.body || {}, 0, '', 200).map((item) => item.key.split('.').pop());
     if (fields.some(diracCentralProtectedFieldV146)) {
-      await diracCentralBanCurrentContextV146('service_role_protected_field').catch(() => null);
-      return { block: true, reason: 'service_role_protected_field', status: 403 };
+      const protectedFields = fields.filter(diracCentralProtectedFieldV146);
+      const rows = Array.isArray(options.body) ? options.body : [options.body];
+      const allowCreatePaymentUnpaid = String(ctx && ctx.action || '').toLowerCase() === 'create_payment'
+        && String(table || '').toLowerCase() === 'payment_transactions'
+        && method === 'POST'
+        && protectedFields.every((key) => /^payment_status$/i.test(String(key || '')))
+        && rows.length > 0
+        && rows.length <= 3
+        && rows.every((row) => {
+          const amount = Number(row && row.amount);
+          const status = String(row && row.payment_status || '').trim().toLowerCase();
+          const customerId = String(row && row.customer_id || '').trim();
+          const reference = String(row && row.gateway_reference || '').trim();
+          return row && typeof row === 'object' && !Array.isArray(row)
+            && status === 'unpaid'
+            && Number.isFinite(amount) && amount > 0
+            && diracCentralLooksLikeUuidV146(customerId)
+            && /^[A-Za-z0-9._:@-]{3,120}$/.test(reference);
+        });
+      if (!allowCreatePaymentUnpaid) {
+        await diracCentralBanCurrentContextV146('service_role_protected_field').catch(() => null);
+        return { block: true, reason: 'service_role_protected_field', status: 403 };
+      }
     }
   }
   return { ok: true };
