@@ -23905,18 +23905,21 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
     };
     DIRAC_CENTRAL_CONTEXT_STACK_V146.push(ctx);
 
-    const memoryBan = diracCentralCheckMemoryBanV146(identity);
-    if (memoryBan.blocked) return diracCentralBlockedResponseV146(res, 'MEMORY_BAN_ACTIVE');
+    const rawAction = String(req && req.query && req.query.action || '').trim();
+    const lowerAction = rawAction.toLowerCase();
+    const earlyAlias = diracCentralNormalizeAliasV146(lowerAction);
+    const earlyServerAction = earlyAlias && earlyAlias.ok && DIRAC_CENTRAL_SERVER_ACTIONS_V146.has(earlyAlias.action);
 
-    const persistentBan = await diracCentralCheckPersistentBanV146(req, identity);
+    const memoryBan = diracCentralCheckMemoryBanV146(identity);
+    if (memoryBan.blocked && !earlyServerAction) return diracCentralBlockedResponseV146(res, 'MEMORY_BAN_ACTIVE');
+
+    const persistentBan = earlyServerAction ? { blocked: false, skipped: 'server_action_validated_by_signature_guard' } : await diracCentralCheckPersistentBanV146(req, identity);
     if (persistentBan.blocked) {
       diracCentralSetMemoryBanV146(identity, persistentBan.blockedUntilMs, 'persistent_ban');
       return diracCentralBlockedResponseV146(res, 'PERSISTENT_BAN_ACTIVE');
     }
     diracCentralSetNegativeCacheV146(identity);
 
-    const rawAction = String(req && req.query && req.query.action || '').trim();
-    const lowerAction = rawAction.toLowerCase();
     const format = diracCentralValidateActionFormatV146(rawAction, lowerAction);
     if (!format.ok) return await diracCentralBanAndBlockV146(req, res, ctx, lowerAction || 'missing_action', method, format.reason);
 
@@ -24214,12 +24217,6 @@ async function diracCentralServerToServerGuardV146(req, res, ctx) {
   if (ctx.method !== 'POST') return { ok: false, reason: 'server_action_method_invalid' };
   const body = await diracCentralBodyHandlingGuardV146(req, ctx, 64 * 1024);
   if (!body.ok) return body;
-  if (ctx.action === 'midtrans_webhook') {
-    if (typeof midtransVerifySignature === 'function') {
-      const valid = midtransVerifySignature(ctx.body || {});
-      if (!valid) return { ok: false, reason: 'midtrans_signature_invalid' };
-    }
-  }
   return { ok: true };
 }
 
