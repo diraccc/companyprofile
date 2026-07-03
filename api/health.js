@@ -23917,8 +23917,6 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
 
     const rawAction = String(req && req.query && req.query.action || '').trim();
     const lowerAction = rawAction.toLowerCase();
-    if (method === 'OPTIONS') return await nextHandler(req, res);
-
     const format = diracCentralValidateActionFormatV146(rawAction, lowerAction);
     if (!format.ok) return await diracCentralBanAndBlockV146(req, res, ctx, lowerAction || 'missing_action', method, format.reason);
 
@@ -23941,7 +23939,6 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
 
     const serverGuard = await diracCentralServerToServerGuardV146(req, res, ctx);
     if (!serverGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, serverGuard.reason);
-    if (ctx.classification === 'server') ctx.skipHeavyScan = true;
 
     const pageGuard = diracCentralPageBrowserAuthenticityGuardV146(req, ctx);
     if (!pageGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, pageGuard.reason);
@@ -23999,10 +23996,8 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
       if (!zeroDay.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, zeroDay.reason);
     }
 
-    if (ctx.classification !== 'server') {
-      const idor = await diracCentralIdorBolaGuardV146(req, ctx);
-      if (!idor.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, idor.reason);
-    }
+    const idor = await diracCentralIdorBolaGuardV146(req, ctx);
+    if (!idor.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, idor.reason);
 
     const circuit = await diracCentralCircuitBreakerV146(req, ctx, 'allow');
     if (!circuit.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, circuit.reason);
@@ -24219,6 +24214,12 @@ async function diracCentralServerToServerGuardV146(req, res, ctx) {
   if (ctx.method !== 'POST') return { ok: false, reason: 'server_action_method_invalid' };
   const body = await diracCentralBodyHandlingGuardV146(req, ctx, 64 * 1024);
   if (!body.ok) return body;
+  if (ctx.action === 'midtrans_webhook') {
+    if (typeof midtransVerifySignature === 'function') {
+      const valid = midtransVerifySignature(ctx.body || {});
+      if (!valid) return { ok: false, reason: 'midtrans_signature_invalid' };
+    }
+  }
   return { ok: true };
 }
 
@@ -24593,7 +24594,6 @@ function diracCentralNormalizeSampleV146(sample) {
 }
 
 function diracCentralThreatPatternGuardV146(normalized, ctx) {
-  if (ctx && ctx.classification === 'server' && ctx.action === 'midtrans_webhook') return { detected: false, skipped: 'server_webhook_contract_guarded' };
   const spaced = normalized.spacedText || '';
   const compact = normalized.compactText || '';
   const checks = [
@@ -24908,9 +24908,6 @@ function diracCentralIsCheckoutOrderCreateServiceRoleV146(ctx, table, path, opti
   if (cleanTable === 'orders') {
     return diracCentralCheckoutOrderRowsSafeV146(options.body);
   }
-  if (cleanTable === 'order_items') {
-    return diracCentralCheckoutOrderItemRowsSafeV146(options.body);
-  }
   return false;
 }
 
@@ -24951,26 +24948,6 @@ function diracCentralCheckoutOrderRowsSafeV146(body) {
 function diracCentralIsNonNegativeNumberV146(value) {
   const number = Number(value);
   return Number.isFinite(number) && number >= 0;
-}
-
-function diracCentralCheckoutOrderItemRowsSafeV146(body) {
-  const rows = Array.isArray(body) ? body : [body];
-  const allowed = new Set(['order_id', 'product_doc_id', 'product_title', 'quantity', 'unit_price', 'cost_price']);
-  if (!rows.length || rows.length > 50) return false;
-  return rows.every((row) => {
-    if (!row || typeof row !== 'object' || Array.isArray(row)) return false;
-    const keys = Object.keys(row);
-    if (!keys.length || keys.some((key) => !allowed.has(String(key || '').toLowerCase()))) return false;
-    if (!diracCentralLooksLikeUuidV146(row.order_id)) return false;
-    const title = String(row.product_title || '').trim();
-    if (!title || title.length > 180 || /[\u0000-\u001f\u007f]/.test(title)) return false;
-    if (row.product_doc_id && !/^[A-Za-z0-9._:@-]{1,80}$/.test(String(row.product_doc_id || '').trim())) return false;
-    const quantity = Number(row.quantity);
-    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 999) return false;
-    const unitPrice = Number(row.unit_price);
-    if (!Number.isFinite(unitPrice) || unitPrice <= 0) return false;
-    return diracCentralIsNonNegativeNumberV146(row.cost_price);
-  });
 }
 
 function diracCentralIsPasskeyServiceRoleV146(ctx, table, path, options = {}, method) {
