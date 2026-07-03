@@ -24667,7 +24667,11 @@ async function diracCentralIdorBolaGuardV146(req, ctx) {
   if (!needsOwner) return { ok: true, skipped: 'no_sensitive_id_and_not_user_data' };
   if (ids.length > 12) return { ok: false, reason: 'idor_too_many_ids' };
 
-  const owner = await diracCentralResolveOwnerV146(req);
+  let owner = await diracCentralResolveOwnerV146(req);
+  if (!owner || !owner.ok || !owner.customerIds || !owner.customerIds.length) {
+    const boot = await diracCentralBootstrapCheckoutOwnerV146(req, ctx).catch(() => null);
+    if (boot && boot.ok) owner = await diracCentralResolveOwnerV146(req);
+  }
   if (!owner || !owner.ok || !owner.customerIds || !owner.customerIds.length) return { ok: false, reason: 'idor_owner_unavailable' };
   const allowedCustomers = new Set(owner.customerIds.map(String));
   const requestedCustomer = ids.filter((item) => item.key === 'customer_id').map((item) => item.value).filter(diracCentralLooksLikeUuidV146);
@@ -24727,6 +24731,29 @@ async function diracCentralResolveOwnerV146(req) {
   return { ok: true, authUserId, customerIds };
 }
 
+async function diracCentralBootstrapCheckoutOwnerV146(req, ctx) {
+  if (!ctx || ctx.action !== 'checkout_order' || ctx.method !== 'POST') return { ok: false };
+  if (typeof requireDomainDashboardAccess !== 'function' || typeof sessionOwnershipCheckoutResolveCustomerOwner !== 'function') return { ok: false };
+  const fake = diracCentralFakeResponseV146();
+  const access = await requireDomainDashboardAccess(req, fake).catch(() => null);
+  if (!access || !access.user || Number(fake.statusCode || 200) >= 400) return { ok: false };
+  const body = ctx.body && typeof ctx.body === 'object' ? ctx.body : {};
+  const user = access.user || {};
+  const authUserId = String(user.id || '').trim();
+  const userEmail = typeof normalizeAuthEmail === 'function' ? normalizeAuthEmail(user.email || '') : String(user.email || '').trim().toLowerCase();
+  const submittedEmail = typeof normalizeAuthEmail === 'function' ? normalizeAuthEmail(body.customer_email || body.email || '') : String(body.customer_email || body.email || '').trim().toLowerCase();
+  if (!diracCentralLooksLikeUuidV146(authUserId) || !userEmail || (submittedEmail && submittedEmail !== userEmail)) return { ok: false };
+  ctx.__diracCentralCheckoutOwnerBootstrapV146 = true;
+  try {
+    const fullName = typeof sessionOwnershipCheckoutSafeName === 'function' ? sessionOwnershipCheckoutSafeName(body.customer_name || body.name || body.full_name || userEmail) : String(body.customer_name || body.name || body.full_name || userEmail).trim().slice(0, 120);
+    const phone = typeof normalizePhone === 'function' ? normalizePhone(body.customer_phone || body.phone || body.whatsapp || body.customer_whatsapp || '') : String(body.customer_phone || body.phone || body.whatsapp || body.customer_whatsapp || '').trim();
+    const owner = await sessionOwnershipCheckoutResolveCustomerOwner({ authUserId, email: userEmail, fullName, phone });
+    return { ok: Boolean(owner && owner.ok && owner.customer && diracCentralLooksLikeUuidV146(owner.customer.id)) };
+  } finally {
+    ctx.__diracCentralCheckoutOwnerBootstrapV146 = false;
+  }
+}
+
 async function diracCentralLookupOwnerRowsV146(objects) {
   const cacheKey = diracCentralHashV146(JSON.stringify(objects || []));
   const cached = DIRAC_CENTRAL_OWNER_LOOKUP_CACHE_V146.get(cacheKey);
@@ -24757,6 +24784,7 @@ async function diracCentralInspectServiceRoleAccessV146(path, options = {}) {
   if (!diracCentralOwnedTableV146(table)) return { ok: true };
   const method = String(options.method || 'GET').toUpperCase();
   if (diracCentralIsRegisterBootstrapServiceRoleV146(ctx, table, path, options, method)) return { ok: true, skipped: 'domain_register_bootstrap_service_role' };
+  if (diracCentralIsCheckoutOwnerBootstrapServiceRoleV146(ctx, table, path, options, method)) return { ok: true, skipped: 'checkout_owner_bootstrap_service_role' };
   if (diracCentralIsPasskeyServiceRoleV146(ctx, table, path, options, method)) return { ok: true, skipped: 'passkey_owner_scoped_service_role' };
   const hasOwnerScope = diracCentralPathHasOwnerScopeV146(path, options.body);
   const hasObjectScope = diracCentralPathHasObjectScopeV146(path, options.body);
@@ -24806,6 +24834,34 @@ function diracCentralIsRegisterBootstrapServiceRoleV146(ctx, table, path, option
     return diracCentralIsAuthPasswordHashServiceRoleV146(ctx, path, body, cleanMethod);
   }
 
+  return false;
+}
+
+function diracCentralIsCheckoutOwnerBootstrapServiceRoleV146(ctx, table, path, options = {}, method) {
+  if (!ctx || ctx.action !== 'checkout_order' || ctx.__diracCentralCheckoutOwnerBootstrapV146 !== true) return false;
+  const cleanTable = String(table || '').toLowerCase();
+  const cleanMethod = String(method || options.method || 'GET').toUpperCase();
+  const rawPath = String(path || '').toLowerCase();
+  const body = options.body;
+  if (cleanTable === 'customers') {
+    if (cleanMethod === 'GET') return /[?&]email=eq\./.test(rawPath);
+    if (cleanMethod !== 'POST') return false;
+    return diracCentralBodyRowsSafeV146(body, ['name', 'email', 'phone'], (row) => {
+      const email = String(row.email || '').trim();
+      return !!email && diracCentralValidateFieldFormatV146('email', email).ok;
+    });
+  }
+  if (cleanTable === 'security_customer_auth_links') {
+    if (cleanMethod === 'GET') return /[?&]auth_user_id=eq\./.test(rawPath);
+    if (cleanMethod !== 'POST' && cleanMethod !== 'PATCH') return false;
+    return diracCentralBodyRowsSafeV146(body, ['auth_user_id', 'customer_id', 'email', 'link_status', 'link_method', 'match_confidence'], (row) => {
+      if (row.auth_user_id && !diracCentralLooksLikeUuidV146(row.auth_user_id)) return false;
+      if (row.customer_id && !diracCentralLooksLikeUuidV146(row.customer_id)) return false;
+      if (row.email && !diracCentralValidateFieldFormatV146('email', row.email).ok) return false;
+      if (row.link_status && String(row.link_status).toLowerCase() !== 'active') return false;
+      return true;
+    });
+  }
   return false;
 }
 
