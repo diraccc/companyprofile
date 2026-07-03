@@ -1726,7 +1726,7 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
     return { ok: true, skipped: true, reason: 'auth_link_unavailable_fail_open', status: linkResult.status };
   }
 
-  const link = Array.isArray(linkResult.data) && linkResult.data.length ? linkResult.data[0] : null;
+  const link = customerSecurityPickSingleActiveAuthLink(linkResult);
   const customerId = String(link && link.customer_id || '').trim();
   if (!link || link.link_status !== 'active' || !customerSecurityLooksLikeUuid(customerId)) {
     return { ok: true, skipped: true, reason: 'customer_link_not_ready_fail_open' };
@@ -1828,7 +1828,7 @@ async function revokeCurrentDomainProtectedSessionSafe(req, reason) {
   const linkResult = await customerSecurityFetchAuthLink(authUserId);
   if (!linkResult.ok) return { ok: false, reason: 'auth_link_read_failed', status: linkResult.status };
 
-  const link = Array.isArray(linkResult.data) && linkResult.data.length ? linkResult.data[0] : null;
+  const link = customerSecurityPickSingleActiveAuthLink(linkResult);
   const customerId = String(link && link.customer_id || '').trim();
   if (!link || link.link_status !== 'active' || !customerSecurityLooksLikeUuid(customerId)) {
     return { ok: false, reason: 'auth_link_inactive' };
@@ -4103,7 +4103,7 @@ async function customerSecurityStatus(req, res) {
       });
     }
 
-    const link = Array.isArray(linkResult.data) && linkResult.data.length ? linkResult.data[0] : null;
+    const link = customerSecurityPickSingleActiveAuthLink(linkResult);
     const linked = Boolean(link && link.link_status === 'active' && link.customer_id);
 
     return res.status(200).json({
@@ -4135,20 +4135,42 @@ async function customerSecurityStatus(req, res) {
 }
 
 async function customerSecurityFetchAuthLink(authUserId) {
+  const cleanAuthUserId = String(authUserId || '').trim();
+  if (!customerSecurityLooksLikeUuid(cleanAuthUserId)) {
+    return { ok: false, status: 400, data: [], reason: 'invalid_auth_user_id' };
+  }
+
   const select = [
     'id',
     'auth_user_id',
     'customer_id',
+    'email',
     'link_status',
-    'match_confidence'
+    'match_confidence',
+    'disabled_at',
+    'revoked_at',
+    'updated_at'
   ].join(',');
 
-  const path = `/rest/v1/security_customer_auth_links?select=${encodeURIComponent(select)}&auth_user_id=eq.${encodeURIComponent(authUserId)}&limit=1`;
+  const path = '/rest/v1/security_customer_auth_links?select=' + encodeURIComponent(select)
+    + '&auth_user_id=eq.' + encodeURIComponent(cleanAuthUserId)
+    + '&link_status=eq.active'
+    + '&disabled_at=is.null'
+    + '&revoked_at=is.null'
+    + '&order=updated_at.desc'
+    + '&limit=2';
 
   return supabaseFetch(path, {
     method: 'GET',
     auth: 'service'
   });
+}
+
+function customerSecurityPickSingleActiveAuthLink(linkResult) {
+  const rows = linkResult && linkResult.ok && Array.isArray(linkResult.data)
+    ? linkResult.data.filter((row) => row && row.link_status === 'active' && !row.disabled_at && !row.revoked_at && customerSecurityLooksLikeUuid(row.customer_id))
+    : [];
+  return rows.length === 1 ? rows[0] : null;
 }
 
 function customerSecuritySafeUpstreamError(data) {
@@ -4258,7 +4280,7 @@ async function customerSecurityOverview(req, res) {
       });
     }
 
-    const link = Array.isArray(linkResult.data) && linkResult.data.length ? linkResult.data[0] : null;
+    const link = customerSecurityPickSingleActiveAuthLink(linkResult);
     const linked = Boolean(link && link.link_status === 'active' && link.customer_id);
 
     if (!linked) {
@@ -4590,7 +4612,9 @@ async function customerSecurityBootstrapRegisteredUser(req, responseUser) {
     const existingLinkResult = await customerSecurityFetchAuthLink(authUserId);
     if (!existingLinkResult.ok) return { ok: false, reason: 'auth_link_read_failed', status: existingLinkResult.status };
 
-    const existingLink = Array.isArray(existingLinkResult.data) && existingLinkResult.data.length ? existingLinkResult.data[0] : null;
+    const existingRows = Array.isArray(existingLinkResult.data) ? existingLinkResult.data.filter((row) => row && row.link_status === 'active' && !row.disabled_at && !row.revoked_at && row.customer_id) : [];
+    if (existingRows.length > 1) return { ok: false, reason: 'auth_link_ambiguous', status: 409 };
+    const existingLink = existingRows.length === 1 ? existingRows[0] : null;
     if (existingLink && existingLink.link_status === 'active' && existingLink.customer_id) {
       const settingsReadyExisting = await customerSecurityEnsureSettingsRow(existingLink.customer_id);
       return {
@@ -4639,8 +4663,9 @@ async function customerSecurityFindOrCreateCustomer({ email, fullName, phone }) 
   const existing = await customerSecurityFetchCustomerByEmail(email);
   if (!existing.ok) return { ok: false, reason: 'customer_read_failed', status: existing.status };
 
-  const rows = Array.isArray(existing.data) ? existing.data : [];
-  if (rows.length && rows[0] && rows[0].id) {
+  const rows = Array.isArray(existing.data) ? existing.data.filter((row) => row && row.id) : [];
+  if (rows.length > 1) return { ok: false, reason: 'customer_email_ambiguous', status: 409 };
+  if (rows.length === 1 && rows[0] && rows[0].id) {
     return { ok: true, customer_id: rows[0].id, created: false };
   }
 
@@ -4668,7 +4693,10 @@ async function customerSecurityFindOrCreateCustomer({ email, fullName, phone }) 
 
 async function customerSecurityFetchCustomerByEmail(email) {
   const select = ['id', 'email', 'name', 'phone'].join(',');
-  const path = '/rest/v1/customers?select=' + encodeURIComponent(select) + '&email=eq.' + encodeURIComponent(email) + '&limit=1';
+  const path = '/rest/v1/customers?select=' + encodeURIComponent(select)
+    + '&email=eq.' + encodeURIComponent(email)
+    + '&order=updated_at.desc'
+    + '&limit=2';
   return supabaseFetch(path, { method: 'GET', auth: 'service' });
 }
 
@@ -5142,7 +5170,7 @@ async function customerSecurityRequireAccess(req, res, options = {}) {
     return null;
   }
 
-  const link = Array.isArray(linkResult.data) && linkResult.data.length ? linkResult.data[0] : null;
+  const link = customerSecurityPickSingleActiveAuthLink(linkResult);
   const customerId = String(link && link.customer_id || '').trim();
 
   if (!link || link.link_status !== 'active' || !customerSecurityLooksLikeUuid(customerId)) {
@@ -7051,9 +7079,10 @@ async function sessionOwnershipCheckoutFindProductForCheckout(body, requestedPro
   for (const id of idCandidates) {
     const path = '/rest/v1/products?select=' + encodeURIComponent(select)
       + '&or=' + encodeURIComponent(`(doc_id.eq.${id},firebase_id.eq.${id})`)
-      + '&limit=5';
+      + '&limit=2';
     const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
     if (result.ok && Array.isArray(result.data) && result.data.length) {
+      if (result.data.length > 1) return { ok: false, status: 409, message: 'Produk checkout ambigu untuk ID ini.' };
       return { ok: true, product: result.data[0], match: 'id' };
     }
   }
@@ -7467,10 +7496,12 @@ async function sessionOwnershipCheckoutResolveVoucherFromTable(table, code, subt
 
   const codeColumns = ['code', 'voucher_code', 'coupon_code', 'promo_code', 'kode', 'kode_voucher', 'name'];
   for (const column of codeColumns) {
-    const path = `/rest/v1/${encodeURIComponent(safeTable)}?select=*&${encodeURIComponent(column)}=eq.${encodeURIComponent(code)}&limit=1`;
+    const path = `/rest/v1/${encodeURIComponent(safeTable)}?select=*&${encodeURIComponent(column)}=eq.${encodeURIComponent(code)}&limit=2`;
     const result = await supabaseFetch(path, { method: 'GET', auth: 'service' }).catch(() => null);
     if (!result || !result.ok) continue;
-    const row = Array.isArray(result.data) && result.data.length ? result.data[0] : null;
+    const rows = Array.isArray(result.data) ? result.data.filter(Boolean) : [];
+    if (rows.length > 1) return { ok: false, discount: 0, source: `${safeTable}.${column}`, hardFail: true, reason: 'voucher_ambiguous' };
+    const row = rows.length === 1 ? rows[0] : null;
     if (!row) continue;
 
     // Voucher parfum bertingkat: parent code lives in public.vouchers, discount rules live in public.voucher_tiers.
@@ -13423,7 +13454,7 @@ async function customerSecurityOverviewSessionLimitV3(req, res) {
     });
   }
 
-  const link = Array.isArray(linkResult.data) && linkResult.data.length ? linkResult.data[0] : null;
+  const link = customerSecurityPickSingleActiveAuthLink(linkResult);
   const linked = Boolean(link && link.link_status === 'active' && link.customer_id);
 
   if (!linked) {
@@ -16063,9 +16094,10 @@ async function sessionOwnershipCheckoutFindProductForCheckout(body, requestedPro
     if (!id) continue;
     const path = '/rest/v1/products?select=' + encodeURIComponent(select)
       + '&or=' + encodeURIComponent(`(slug.eq.${id},doc_id.eq.${id},firebase_id.eq.${id})`)
-      + '&limit=5';
+      + '&limit=2';
     const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
     if (result.ok && Array.isArray(result.data) && result.data.length) {
+      if (result.data.length > 1) return { ok: false, status: 409, message: 'Produk checkout ambigu untuk slug atau ID ini.' };
       const product = { ...result.data[0] };
       if (!product.doc_id && product.slug) product.doc_id = product.slug;
       return { ok: true, product, match: 'slug_or_id' };
@@ -21424,10 +21456,12 @@ async function diracBolaIdorV133ResolveStrictOwner(req) {
 
   const linkResult = await diracBolaIdorV133FetchValidAuthLinks(authUserId).catch(() => null);
   const rows = linkResult && linkResult.ok && Array.isArray(linkResult.data) ? linkResult.data : [];
-  const customerIds = Array.from(new Set(rows
-    .filter(diracBolaIdorV133IsValidActiveAuthLinkRow)
+  const validRows = rows.filter(diracBolaIdorV133IsValidActiveAuthLinkRow);
+  const customerIds = Array.from(new Set(validRows
     .map((row) => String(row.customer_id || '').trim())
-    .filter(diracBolaIdorV133LooksLikeUuid))).slice(0, 25);
+    .filter(diracBolaIdorV133LooksLikeUuid)));
+  if (validRows.length === 0 || customerIds.length === 0) return { ok: false, reason: 'owner_unavailable' };
+  if (validRows.length > 1 || customerIds.length > 1) return { ok: false, reason: 'owner_ambiguous' };
 
   const owner = { ok: true, authUserId, customerIds, source: 'security_customer_auth_links.v133.active_not_disabled_not_revoked' };
   if (ctx && typeof ctx === 'object') {
@@ -21445,10 +21479,13 @@ async function diracBolaIdorV133FetchValidAuthLinks(authUserId) {
   const uid = String(authUserId || '').trim();
   if (!diracBolaIdorV133LooksLikeUuid(uid)) return { ok: false, status: 400, data: [] };
 
-  const select = 'id,auth_user_id,customer_id,link_status,match_confidence,verified_at,disabled_at,revoked_at';
+  const select = 'id,auth_user_id,customer_id,link_status,match_confidence,verified_at,disabled_at,revoked_at,updated_at';
   const path = '/rest/v1/security_customer_auth_links?select=' + encodeURIComponent(select) +
     '&auth_user_id=eq.' + encodeURIComponent(uid) +
-    '&order=updated_at.desc&limit=5';
+    '&link_status=eq.active' +
+    '&disabled_at=is.null' +
+    '&revoked_at=is.null' +
+    '&order=updated_at.desc&limit=2';
 
   const result = await diracBolaIdorV133DirectSupabaseServiceGet(path).catch(() => null);
   if (result && result.ok && Array.isArray(result.data)) {
@@ -24672,11 +24709,12 @@ async function diracCentralResolveOwnerV146(req) {
   const authUserId = String(user && user.id || '').trim();
   if (!diracCentralLooksLikeUuidV146(authUserId)) return { ok: false };
   const link = await customerSecurityFetchAuthLink(authUserId).catch(() => null);
-  const rows = link && link.ok && Array.isArray(link.data) ? link.data : [];
+  const rows = link && link.ok && Array.isArray(link.data) ? link.data.filter((row) => row && String(row.link_status || '').toLowerCase() === 'active' && !row.disabled_at && !row.revoked_at) : [];
   const customerIds = Array.from(new Set(rows
-    .filter((row) => row && String(row.link_status || '').toLowerCase() === 'active')
     .map((row) => String(row.customer_id || '').trim())
-    .filter(diracCentralLooksLikeUuidV146))).slice(0, 25);
+    .filter(diracCentralLooksLikeUuidV146)));
+  if (rows.length === 0 || customerIds.length === 0) return { ok: false, reason: 'owner_unavailable' };
+  if (rows.length > 1 || customerIds.length > 1) return { ok: false, reason: 'owner_ambiguous' };
   return { ok: true, authUserId, customerIds };
 }
 
