@@ -10666,33 +10666,6 @@ async function diracPasskeyA2FMarkSettingsActive(owner) {
   }
 }
 
-async function diracPasskeyA2FEnsureOwnerReadyAtStart(req, user, email) {
-  if (typeof customerSecurityBootstrapRegisteredUser === 'function') {
-    const bootstrap = await customerSecurityBootstrapRegisteredUser(req, user).catch((error) => {
-      console.error('[passkey-start-owner-bootstrap]', customerSecuritySafeLogError(error));
-      return { ok: false, reason: 'bootstrap_exception' };
-    });
-    if (!bootstrap || !bootstrap.ok || bootstrap.link_status !== 'active' || !customerSecurityLooksLikeUuid(bootstrap.customer_id)) {
-      return {
-        ok: false,
-        status: 409,
-        code: 'SECURITY_PROFILE_NOT_READY',
-        message: 'Profil keamanan akun sedang disiapkan. Silakan coba lagi beberapa detik.'
-      };
-    }
-  }
-
-  const owner = await diracPasskeyA2FResolveOwner(user, email);
-  if (!owner.ok) {
-    return {
-      ...owner,
-      code: owner.code || 'SECURITY_PROFILE_NOT_READY',
-      message: owner.message || 'Profil keamanan akun sedang disiapkan. Silakan coba lagi beberapa detik.'
-    };
-  }
-  return owner;
-}
-
 async function diracPasskeyA2FStart(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ ok: false, method: 'passkey', message: 'Gunakan POST untuk Passkey A2F.' });
 
@@ -10704,9 +10677,9 @@ async function diracPasskeyA2FStart(req, res) {
     return res.status(400).json({ ok: false, method: 'passkey', message: 'Email akun tidak valid untuk membuat passkey. Login ulang dulu.' });
   }
 
-  const owner = await diracPasskeyA2FEnsureOwnerReadyAtStart(req, user, email);
+  const owner = await diracPasskeyA2FResolveOwner(user, email);
   if (!owner.ok) {
-    return res.status(owner.status || 409).json({ ok: false, method: 'passkey', code: owner.code || 'SECURITY_PROFILE_NOT_READY', message: owner.message || 'Profil keamanan akun sedang disiapkan. Silakan coba lagi beberapa detik.' });
+    return res.status(owner.status || 409).json({ ok: false, method: 'passkey', message: owner.message || 'Akun belum siap untuk Passkey.' });
   }
 
   const now = Date.now();
@@ -25566,44 +25539,13 @@ function diracCentralIsPasskeyServiceRoleV146(ctx, table, path, options = {}, me
   const cleanMethod = String(method || options.method || 'GET').toUpperCase();
   const rawPath = String(path || '').toLowerCase();
   const body = options.body;
-  const passkeyStartBootstrap = /^(dirac_mfa_passkey_start|domain_mfa_passkey_start)$/.test(action);
 
   if (cleanTable === 'security_customer_auth_links') {
-    if (cleanMethod === 'GET') return /[?&](?:auth_user_id|customer_id|email)=eq\./.test(rawPath);
-    if (!passkeyStartBootstrap || (cleanMethod !== 'POST' && cleanMethod !== 'PATCH')) return false;
-    if ((Array.isArray(body) ? body : [body]).length !== 1) return false;
-    return diracCentralBodyRowsSafeV146(body, [
-      'auth_user_id',
-      'customer_id',
-      'email',
-      'link_status',
-      'link_method',
-      'match_confidence'
-    ], (row) => {
-      if (row.auth_user_id && !diracCentralLooksLikeUuidV146(row.auth_user_id)) return false;
-      if (row.customer_id && !diracCentralLooksLikeUuidV146(row.customer_id)) return false;
-      if (row.email && !diracCentralValidateFieldFormatV146('email', row.email).ok) return false;
-      if (row.link_status && String(row.link_status).toLowerCase() !== 'active') return false;
-      if (row.link_method && String(row.link_method).toLowerCase() !== 'system_created') return false;
-      if (row.match_confidence && String(row.match_confidence).toLowerCase() !== 'active') return false;
-      return Boolean(row.auth_user_id || row.customer_id || /[?&](?:auth_user_id|customer_id)=eq\./.test(rawPath));
-    });
+    return cleanMethod === 'GET' && /[?&](?:auth_user_id|customer_id|email)=eq\./.test(rawPath);
   }
 
   if (cleanTable === 'customers') {
-    if (cleanMethod === 'GET') return /[?&](?:id|email)=eq\./.test(rawPath);
-    if (!passkeyStartBootstrap || cleanMethod !== 'POST') return false;
-    if ((Array.isArray(body) ? body : [body]).length !== 1) return false;
-    return diracCentralBodyRowsSafeV146(body, [
-      'name',
-      'email',
-      'phone'
-    ], (row) => {
-      if (!row.email || !diracCentralValidateFieldFormatV146('email', row.email).ok) return false;
-      if (row.name && String(row.name).length > 160) return false;
-      if (row.phone && String(row.phone).length > 40) return false;
-      return true;
-    });
+    return cleanMethod === 'GET' && /[?&](?:id|email)=eq\./.test(rawPath);
   }
 
   if (cleanTable === 'domain_passkeys') {
@@ -25647,7 +25589,7 @@ function diracCentralIsPasskeyServiceRoleV146(ctx, table, path, options = {}, me
     ], (row) => {
       if (row.customer_id && !diracCentralLooksLikeUuidV146(row.customer_id)) return false;
       if (row.two_factor_enabled !== undefined && typeof row.two_factor_enabled !== 'boolean') return false;
-      if (row.two_factor_method && !(passkeyStartBootstrap ? /^(authenticator|passkey)$/i : /^passkey$/i).test(String(row.two_factor_method))) return false;
+      if (row.two_factor_method && String(row.two_factor_method).toLowerCase() !== 'passkey') return false;
       return Boolean(row.customer_id || /[?&](?:id|customer_id)=eq\./.test(rawPath));
     });
   }
