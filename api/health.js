@@ -24401,11 +24401,13 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
 
 	    const csrfGuard = diracCentralCsrfGuardV146(req, res, ctx);
 	    if (!csrfGuard.ok) {
+	      if (diracCentralIsPreAuthActionV146(ctx)) return diracCentralPreAuthSoftBlockV146(res, csrfGuard.reason);
 	      return await diracCentralBanAndBlockV146(req, res, ctx, action, method, csrfGuard.reason);
 	    }
 
 	    const nonceGuard = diracCentralPageNonceGuardV146(req, res, ctx);
 	    if (!nonceGuard.ok) {
+	      if (diracCentralIsPreAuthActionV146(ctx)) return diracCentralPreAuthSoftBlockV146(res, nonceGuard.reason);
 	      return await diracCentralBanAndBlockV146(req, res, ctx, action, method, nonceGuard.reason);
 	    }
 
