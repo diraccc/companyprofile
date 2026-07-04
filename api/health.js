@@ -4585,8 +4585,18 @@ async function customerSecurityBootstrapWrapRegisterResponse(req, res, runPrevio
     let finalPayload = payload;
     const httpStatus = Number(capturedStatus || res.statusCode || 200);
 
-    if (httpStatus >= 200 && httpStatus < 300 && payload && payload.ok === true && payload.user && payload.user.id) {
+    if (httpStatus >= 200 && httpStatus < 300 && payload && payload.ok === true) {
+      if (!payload.user || !payload.user.id) {
+        const reason = await customerSecurityBootstrapHardFail(req, null, 'missing_user_id');
+        if (originalStatus) originalStatus(403); else res.statusCode = 403;
+        return originalJson(customerSecurityBootstrapBlockedPayload(reason));
+      }
       const bootstrap = await customerSecurityBootstrapRegisteredUser(req, payload.user);
+      if (!customerSecurityBootstrapReady(bootstrap)) {
+        const reason = await customerSecurityBootstrapHardFail(req, bootstrap, 'not_ready');
+        if (originalStatus) originalStatus(403); else res.statusCode = 403;
+        return originalJson(customerSecurityBootstrapBlockedPayload(reason));
+      }
       finalPayload = customerSecurityAttachBootstrapSummary(payload, bootstrap);
     }
 
@@ -4594,6 +4604,29 @@ async function customerSecurityBootstrapWrapRegisterResponse(req, res, runPrevio
   };
 
   return runPreviousHandler();
+}
+
+function customerSecurityBootstrapReady(bootstrap) {
+  return Boolean(bootstrap && bootstrap.ok && bootstrap.customer_id && bootstrap.link_status === 'active' && bootstrap.settings_ready);
+}
+
+async function customerSecurityBootstrapHardFail(req, bootstrap, fallbackReason) {
+  const rawReason = String(bootstrap && bootstrap.reason || fallbackReason || 'failed').trim().toLowerCase();
+  const reason = ('customer_security_bootstrap_' + rawReason).replace(/[^a-z0-9_:-]/g, '_').slice(0, 100);
+  if (typeof diracCentralBanCurrentContextV146 === 'function') {
+    await diracCentralBanCurrentContextV146(reason).catch(() => null);
+  }
+  return reason;
+}
+
+function customerSecurityBootstrapBlockedPayload(reason) {
+  return {
+    ok: false,
+    code: 'CUSTOMER_SECURITY_BOOTSTRAP_BLOCKED',
+    message: 'Permintaan ditolak oleh sistem keamanan.',
+    reason,
+    source: 'customer_security_bootstrap'
+  };
 }
 
 function customerSecurityAttachBootstrapSummary(payload, bootstrap) {
