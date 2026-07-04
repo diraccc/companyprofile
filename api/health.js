@@ -2406,7 +2406,7 @@ function hashDashboardMfa(value, secret) {
 function getCustomerMfaSecret() {
   const secret = String(process.env.DIRAC_MFA_SECRET || process.env.A2F_SECRET || process.env.DIRAC_SECURITY_ROOT_SECRET || '').trim();
   if (!secret || secret === 'rahasia-test' || Buffer.byteLength(secret, 'utf8') < diracCentralMinimumSecretBytesV146()) {
-    const err = new Error('DIRAC_MFA_SECRET atau A2F_SECRET production wajib memakai root secret acak minimal 64 KB.');
+    const err = new Error('DIRAC_MFA_SECRET atau A2F_SECRET production wajib memakai root secret acak minimal 3000 byte.');
     err.statusCode = 500;
     throw err;
   }
@@ -26111,7 +26111,7 @@ function diracCentralIsProductionV146() {
 }
 
 function diracCentralMinimumSecretBytesV146() {
-  return diracCentralIsProductionV146() ? 64 * 1024 : 32;
+  return diracCentralIsProductionV146() ? 3000 : 32;
 }
 
 function diracCentralRootSecretV146() {
@@ -26125,7 +26125,7 @@ function diracCentralRootSecretV146() {
   ).trim();
   if (Buffer.byteLength(secret, 'utf8') >= diracCentralMinimumSecretBytesV146()) return secret;
   if (diracCentralIsProductionV146()) {
-    const err = new Error('DIRAC_SECURITY_ROOT_SECRET production wajib minimal 64 KB raw entropy.');
+    const err = new Error('DIRAC_SECURITY_ROOT_SECRET production wajib minimal 3000 byte raw entropy.');
     err.statusCode = 500;
     throw err;
   }
