@@ -2404,13 +2404,13 @@ function hashDashboardMfa(value, secret) {
 }
 
 function getCustomerMfaSecret() {
-  const secret = String(process.env.DIRAC_SECURITY_ROOT_SECRET || process.env.DIRAC_MFA_SECRET || process.env.A2F_SECRET || '').trim();
+  const secret = String(process.env.DIRAC_SECURITY_ROOT_SECRET || '').trim();
   if (!secret || secret === 'rahasia-test' || Buffer.byteLength(secret, 'utf8') < diracCentralMinimumSecretBytesV146()) {
     const err = new Error('DIRAC_SECURITY_ROOT_SECRET production wajib memakai root secret acak minimal 3000 byte.');
     err.statusCode = 500;
     throw err;
   }
-  return diracCentralDeriveSecretV146('customer-mfa', secret);
+  return diracCentralDeriveSecretV146('customer-mfa', secret).toString('base64url');
 }
 
 function customerMfaProfileId(email) {
@@ -3929,14 +3929,7 @@ function decodeJwtPayloadUnsafe(token) {
 }
 
 function getDomainSignedSessionSecret() {
-  return String(
-    process.env.DOMAIN_SESSION_SIGNING_SECRET ||
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.SUPABASE_JWT_SECRET ||
-    process.env.AI_ADMIN_SECRET ||
-    process.env.NEXTAUTH_SECRET ||
-    ''
-  ).trim();
+  return diracCentralDeriveSecretV146('domain-signed-session').toString('base64url');
 }
 
 function extractUserForSignedDomainSession(session) {
@@ -10065,7 +10058,7 @@ module.exports = async function diracPasskeyA2FWrapper(req, res) {
   } catch (error) {
     const status = error && error.statusCode ? error.statusCode : 500;
     const publicMessage = status >= 500
-      ? 'Passkey A2F belum bisa diproses. Cek ENV DIRAC_MFA_SECRET/A2F_SECRET dan coba deploy ulang.'
+      ? 'Passkey A2F belum bisa diproses. Cek ENV DIRAC_SECURITY_ROOT_SECRET dan coba deploy ulang.'
       : String(error && error.message ? error.message : 'Passkey A2F belum bisa diproses.');
     return res.status(status).json({ ok: false, method: 'passkey', message: publicMessage });
   }
@@ -10670,6 +10663,33 @@ async function diracPasskeyA2FMarkSettingsActive(owner) {
   }
 }
 
+async function diracPasskeyA2FEnsureOwnerReadyAtStart(req, user, email) {
+  if (typeof customerSecurityBootstrapRegisteredUser === 'function') {
+    const bootstrap = await customerSecurityBootstrapRegisteredUser(req, user).catch((error) => {
+      console.error('[passkey-start-owner-bootstrap]', customerSecuritySafeLogError(error));
+      return { ok: false, reason: 'bootstrap_exception' };
+    });
+    if (!bootstrap || !bootstrap.ok || bootstrap.link_status !== 'active' || !customerSecurityLooksLikeUuid(bootstrap.customer_id)) {
+      return {
+        ok: false,
+        status: 409,
+        code: 'SECURITY_PROFILE_NOT_READY',
+        message: 'Profil keamanan akun sedang disiapkan. Silakan coba lagi beberapa detik.'
+      };
+    }
+  }
+
+  const owner = await diracPasskeyA2FResolveOwner(user, email);
+  if (!owner.ok) {
+    return {
+      ...owner,
+      code: owner.code || 'SECURITY_PROFILE_NOT_READY',
+      message: owner.message || 'Profil keamanan akun sedang disiapkan. Silakan coba lagi beberapa detik.'
+    };
+  }
+  return owner;
+}
+
 async function diracPasskeyA2FStart(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ ok: false, method: 'passkey', message: 'Gunakan POST untuk Passkey A2F.' });
 
@@ -10681,9 +10701,9 @@ async function diracPasskeyA2FStart(req, res) {
     return res.status(400).json({ ok: false, method: 'passkey', message: 'Email akun tidak valid untuk membuat passkey. Login ulang dulu.' });
   }
 
-  const owner = await diracPasskeyA2FResolveOwner(user, email);
+  const owner = await diracPasskeyA2FEnsureOwnerReadyAtStart(req, user, email);
   if (!owner.ok) {
-    return res.status(owner.status || 409).json({ ok: false, method: 'passkey', message: owner.message || 'Akun belum siap untuk Passkey.' });
+    return res.status(owner.status || 409).json({ ok: false, method: 'passkey', code: owner.code || 'SECURITY_PROFILE_NOT_READY', message: owner.message || 'Profil keamanan akun sedang disiapkan. Silakan coba lagi beberapa detik.' });
   }
 
   const now = Date.now();
@@ -14668,15 +14688,7 @@ function diracV101ThrowBlockedThreat(threat) {
 }
 
 function diracV101SecurityHmacSecret() {
-  return String(
-    process.env.DIRAC_SECURITY_HMAC_SECRET ||
-    process.env.DIRAC_HMAC_SECRET ||
-    process.env.DOMAIN_SECURITY_HMAC_SECRET ||
-    process.env.DOMAIN_SESSION_SECRET ||
-    process.env.CUSTOMER_MFA_SECRET ||
-    process.env.AI_ADMIN_SECRET ||
-    ''
-  ).trim();
+  return diracCentralDeriveSecretV146('v101-security-hmac').toString('base64url');
 }
 
 function diracV101Fingerprint(value) {
@@ -15618,13 +15630,7 @@ function diracPasswordArgon2V4Number(names, fallback, min, max) {
 }
 
 function diracPasswordArgon2V4Pepper() {
-  return String(
-    process.env.DIRAC_PASSWORD_PEPPER_SECRET ||
-    process.env.DIRAC_SECURITY_HMAC_SECRET ||
-    process.env.LOGIN_SECURITY_HMAC_SECRET ||
-    process.env.DOMAIN_SUPABASE_SERVICE_ROLE_KEY ||
-    ''
-  ).trim();
+  return diracCentralDeriveSecretV146('password-argon2-v4-pepper').toString('base64url');
 }
 
 function diracPasswordArgon2V4Hmac(value) {
@@ -16044,9 +16050,8 @@ function diracV110NumberFromEnv(names, fallback, min, max) {
 }
 
 function diracV110Hmac(value) {
-  const secret = String(process.env.DIRAC_SECURITY_HMAC_SECRET || process.env.LOGIN_SECURITY_HMAC_SECRET || process.env.DOMAIN_SESSION_SECRET || process.env.AI_ADMIN_SECRET || process.env.DOMAIN_SUPABASE_SERVICE_ROLE_KEY || 'dirac-v110-fallback').trim();
-  try { return crypto.createHmac('sha256', secret).update(String(value || '')).digest('hex'); } catch (_) {}
-  return crypto.createHash('sha256').update(String(value || '')).digest('hex');
+  const secret = diracCentralDeriveSecretV146('auth-audit-v110');
+  return crypto.createHmac('sha256', secret).update(String(value || '')).digest('hex');
 }
 
 function diracV110SafeError(error) {
@@ -17939,15 +17944,7 @@ function diracCsrfNormalizeOrigin(value) {
 }
 
 function diracCsrfSecret() {
-  const explicit = String(process.env.CSRF_SECRET || process.env.DIRAC_CSRF_SECRET || '').trim();
-  if (explicit) return explicit;
-  try {
-    if (typeof getDomainSignedSessionSecret === 'function') {
-      const fallback = String(getDomainSignedSessionSecret() || '').trim();
-      if (fallback) return fallback;
-    }
-  } catch (_) {}
-  return '';
+  return diracCentralDeriveSecretV146('csrf-v119').toString('base64url');
 }
 
 function diracCsrfCookie(token) {
@@ -25566,13 +25563,44 @@ function diracCentralIsPasskeyServiceRoleV146(ctx, table, path, options = {}, me
   const cleanMethod = String(method || options.method || 'GET').toUpperCase();
   const rawPath = String(path || '').toLowerCase();
   const body = options.body;
+  const passkeyStartBootstrap = /^(dirac_mfa_passkey_start|domain_mfa_passkey_start)$/.test(action);
 
   if (cleanTable === 'security_customer_auth_links') {
-    return cleanMethod === 'GET' && /[?&](?:auth_user_id|customer_id|email)=eq\./.test(rawPath);
+    if (cleanMethod === 'GET') return /[?&](?:auth_user_id|customer_id|email)=eq\./.test(rawPath);
+    if (!passkeyStartBootstrap || (cleanMethod !== 'POST' && cleanMethod !== 'PATCH')) return false;
+    if ((Array.isArray(body) ? body : [body]).length !== 1) return false;
+    return diracCentralBodyRowsSafeV146(body, [
+      'auth_user_id',
+      'customer_id',
+      'email',
+      'link_status',
+      'link_method',
+      'match_confidence'
+    ], (row) => {
+      if (row.auth_user_id && !diracCentralLooksLikeUuidV146(row.auth_user_id)) return false;
+      if (row.customer_id && !diracCentralLooksLikeUuidV146(row.customer_id)) return false;
+      if (row.email && !diracCentralValidateFieldFormatV146('email', row.email).ok) return false;
+      if (row.link_status && String(row.link_status).toLowerCase() !== 'active') return false;
+      if (row.link_method && String(row.link_method).toLowerCase() !== 'system_created') return false;
+      if (row.match_confidence && String(row.match_confidence).toLowerCase() !== 'active') return false;
+      return Boolean(row.auth_user_id || row.customer_id || /[?&](?:auth_user_id|customer_id)=eq\./.test(rawPath));
+    });
   }
 
   if (cleanTable === 'customers') {
-    return cleanMethod === 'GET' && /[?&](?:id|email)=eq\./.test(rawPath);
+    if (cleanMethod === 'GET') return /[?&](?:id|email)=eq\./.test(rawPath);
+    if (!passkeyStartBootstrap || cleanMethod !== 'POST') return false;
+    if ((Array.isArray(body) ? body : [body]).length !== 1) return false;
+    return diracCentralBodyRowsSafeV146(body, [
+      'name',
+      'email',
+      'phone'
+    ], (row) => {
+      if (!row.email || !diracCentralValidateFieldFormatV146('email', row.email).ok) return false;
+      if (row.name && String(row.name).length > 160) return false;
+      if (row.phone && String(row.phone).length > 40) return false;
+      return true;
+    });
   }
 
   if (cleanTable === 'domain_passkeys') {
@@ -25616,7 +25644,7 @@ function diracCentralIsPasskeyServiceRoleV146(ctx, table, path, options = {}, me
     ], (row) => {
       if (row.customer_id && !diracCentralLooksLikeUuidV146(row.customer_id)) return false;
       if (row.two_factor_enabled !== undefined && typeof row.two_factor_enabled !== 'boolean') return false;
-      if (row.two_factor_method && String(row.two_factor_method).toLowerCase() !== 'passkey') return false;
+      if (row.two_factor_method && !(passkeyStartBootstrap ? /^(authenticator|passkey)$/i : /^passkey$/i).test(String(row.two_factor_method))) return false;
       return Boolean(row.customer_id || /[?&](?:id|customer_id)=eq\./.test(rawPath));
     });
   }
@@ -26157,21 +26185,11 @@ function diracCentralMinimumSecretBytesV146() {
 }
 
 function diracCentralRootSecretV146() {
-  const secret = String(
-    process.env.DIRAC_SECURITY_ROOT_SECRET ||
-    process.env.DIRAC_SECURITY_HMAC_SECRET ||
-    process.env.LOGIN_SECURITY_HMAC_SECRET ||
-    process.env.DOMAIN_SESSION_SECRET ||
-    process.env.AI_ADMIN_SECRET ||
-    ''
-  ).trim();
+  const secret = String(process.env.DIRAC_SECURITY_ROOT_SECRET || '').trim();
   if (Buffer.byteLength(secret, 'utf8') >= diracCentralMinimumSecretBytesV146()) return secret;
-  if (diracCentralIsProductionV146()) {
-    const err = new Error('DIRAC_SECURITY_ROOT_SECRET production wajib minimal 3000 byte raw entropy.');
-    err.statusCode = 500;
-    throw err;
-  }
-  return secret || 'dirac-central-v146-development-secret-only';
+  const err = new Error('DIRAC_SECURITY_ROOT_SECRET wajib minimal ' + diracCentralMinimumSecretBytesV146() + ' byte raw entropy.');
+  err.statusCode = 500;
+  throw err;
 }
 
 function diracCentralDeriveSecretV146(scope, inputSecret) {
