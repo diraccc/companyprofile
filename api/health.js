@@ -25422,6 +25422,7 @@ function diracCentralIsRegisterBootstrapServiceRoleV146(ctx, table, path, option
   }
 
   if (cleanTable === 'security_customer_auth_links') {
+    if (cleanMethod === 'GET') return /[?&]auth_user_id=eq\./.test(rawPath);
     if (cleanMethod !== 'POST' && cleanMethod !== 'PATCH') return false;
     return diracCentralBodyRowsSafeV146(body, ['auth_user_id', 'customer_id', 'email', 'link_status', 'link_method', 'match_confidence'], (row) => {
       if (row.auth_user_id && !diracCentralLooksLikeUuidV146(row.auth_user_id)) return false;
@@ -25434,6 +25435,47 @@ function diracCentralIsRegisterBootstrapServiceRoleV146(ctx, table, path, option
 
   if (cleanTable === 'security_customer_password_hashes') {
     return diracCentralIsAuthPasswordHashServiceRoleV146(ctx, path, body, cleanMethod);
+  }
+
+  if (cleanTable === 'security_customer_settings') {
+    if (cleanMethod === 'GET') return /[?&]customer_id=eq\./.test(rawPath);
+    if (cleanMethod === 'PATCH' && !/[?&](?:id|customer_id)=eq\./.test(rawPath)) return false;
+    if (cleanMethod !== 'POST' && cleanMethod !== 'PATCH') return false;
+    return diracCentralBodyRowsSafeV146(body, [
+      'customer_id',
+      'two_factor_enabled',
+      'two_factor_method',
+      'last_security_check_at',
+      'created_at',
+      'updated_at'
+    ], (row) => {
+      if (row.customer_id && !diracCentralLooksLikeUuidV146(row.customer_id)) return false;
+      if (row.two_factor_enabled !== undefined && typeof row.two_factor_enabled !== 'boolean') return false;
+      if (row.two_factor_method && !/^(authenticator|passkey)$/i.test(String(row.two_factor_method))) return false;
+      return Boolean(row.customer_id || /[?&](?:id|customer_id)=eq\./.test(rawPath));
+    });
+  }
+
+  if (cleanTable === 'security_customer_login_logs') {
+    if (cleanMethod !== 'POST') return false;
+    return diracCentralBodyRowsSafeV146(body, [
+      'customer_id',
+      'device_name',
+      'browser_name',
+      'operating_system',
+      'user_agent',
+      'ip_address',
+      'event_type',
+      'status',
+      'risk_level',
+      'metadata'
+    ], (row) => {
+      if (!diracCentralLooksLikeUuidV146(row.customer_id)) return false;
+      if (row.event_type && !/^(login_success|register_success)$/i.test(String(row.event_type))) return false;
+      if (row.status && String(row.status).toLowerCase() !== 'success') return false;
+      if (row.risk_level && !/^(low|medium)$/i.test(String(row.risk_level))) return false;
+      return true;
+    });
   }
 
   return false;
