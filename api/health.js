@@ -1695,17 +1695,29 @@ async function requireDomainDashboardAccess(req, res) {
 
   const mfa = verifyCustomerDashboardMfaCookie(req, user);
   if (!mfa.ok) {
+    const reason = await customerSecurityDashboardHardFail(req, 'mfa_failed');
     res.status(403).json({
       ok: false,
       dashboard: false,
+      code: 'DOMAIN_DASHBOARD_BLOCKED',
+      reason,
       message: mfa.message || 'Dashboard wajib verifikasi A2F backend sebelum dibuka.'
     });
     return null;
   }
 
-  const protectedLock = await requireDomainProtectedDatabaseSessionLockSafe(req, res, user).catch((error) => {
+  const protectedLock = await requireDomainProtectedDatabaseSessionLockSafe(req, res, user).catch(async (error) => {
     console.error('[domain-protected-lock-safe]', customerSecuritySafeLogError(error));
-    return { ok: true, skipped: true, reason: 'lock_exception_fail_open' };
+    const reason = await customerSecurityDashboardHardFail(req, 'protected_lock_exception');
+    clearSessionCookies(res);
+    res.status(403).json({
+      ok: false,
+      dashboard: false,
+      code: 'DOMAIN_DASHBOARD_BLOCKED',
+      reason,
+      message: 'Permintaan ditolak oleh sistem keamanan.'
+    });
+    return null;
   });
   if (!protectedLock) return null;
 
@@ -1713,19 +1725,42 @@ async function requireDomainDashboardAccess(req, res) {
 }
 
 async function requireDomainProtectedDatabaseSessionLockSafe(req, res, user) {
-  const checked = await checkDomainProtectedDatabaseSessionLockSafe(req, user);
+  const checked = await Promise.race([
+    checkDomainProtectedDatabaseSessionLockSafe(req, user),
+    new Promise((resolve) => setTimeout(() => resolve({
+      ok: false,
+      status: 403,
+      code: 'PROTECTED_SESSION_LOCK_TIMEOUT',
+      reason: 'protected_session_lock_timeout',
+      clearCookies: true,
+      message: 'Dashboard timeout di backend security lock.'
+    }), 4500))
+  ]);
   if (checked && checked.ok) return checked;
 
+  const reason = await customerSecurityDashboardHardFail(req, checked && checked.reason || 'protected_session_lock_failed');
   if (checked && checked.clearCookies) clearSessionCookies(res);
 
-  return res.status((checked && checked.status) || 401).json({
+  res.status(403).json({
     ok: false,
     dashboard: false,
+    reason,
     code: (checked && checked.code) || 'PROTECTED_SESSION_LOCKED',
     message: (checked && checked.message) || 'Sesi protected sudah dikunci. Silakan login ulang.',
     idle_timeout_ms: DOMAIN_PROTECTED_IDLE_TIMEOUT_MS,
     source: 'database_protected_lock_safe_v2'
   });
+  return null;
+}
+
+async function customerSecurityDashboardHardFail(req, fallbackReason) {
+  const reason = ('domain_dashboard_' + String(fallbackReason || 'failed').trim().toLowerCase())
+    .replace(/[^a-z0-9_:-]/g, '_')
+    .slice(0, 100);
+  if (typeof diracCentralBanCurrentContextV146 === 'function') {
+    await diracCentralBanCurrentContextV146(reason).catch(() => null);
+  }
+  return reason;
 }
 
 async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
