@@ -1763,15 +1763,35 @@ async function customerSecurityDashboardHardFail(req, fallbackReason) {
   return reason;
 }
 
+function customerSecurityDashboardTimeoutResult(reason, code, customerId) {
+  return {
+    ok: false,
+    status: 503,
+    code,
+    reason,
+    customerId,
+    clearCookies: true,
+    message: 'Dashboard timeout di backend security lock.'
+  };
+}
+
 async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
   const authUserId = String(user && user.id || '').trim();
   if (!authUserId || !customerSecurityLooksLikeUuid(authUserId)) {
     return { ok: false, status: 401, code: 'PROTECTED_SESSION_USER_INVALID', reason: 'invalid_user_fail_closed', clearCookies: true };
   }
 
-  const linkResult = await customerSecurityFetchAuthLink(authUserId);
+  const linkResult = await Promise.race([
+    customerSecurityFetchAuthLink(authUserId),
+    new Promise((resolve) => setTimeout(() => resolve(customerSecurityDashboardTimeoutResult(
+      'auth_link_read_timeout_fail_closed',
+      'PROTECTED_SESSION_OWNER_TIMEOUT'
+    )), 1500))
+  ]);
   if (!linkResult.ok) {
-    return { ok: false, status: 503, code: 'PROTECTED_SESSION_OWNER_UNAVAILABLE', reason: 'auth_link_unavailable_fail_closed' };
+    return linkResult.reason
+      ? linkResult
+      : { ok: false, status: 503, code: 'PROTECTED_SESSION_OWNER_UNAVAILABLE', reason: 'auth_link_unavailable_fail_closed' };
   }
 
   const link = customerSecurityPickSingleActiveAuthLink(linkResult);
@@ -1792,9 +1812,12 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
     '&session_token_hash=eq.' + encodeURIComponent(fingerprint.session_token_hash) +
     '&limit=1';
 
-  const found = await supabaseFetch(readPath, { method: 'GET', auth: 'service' });
+  const found = await supabaseFetch(readPath, { method: 'GET', auth: 'service', timeoutMs: 1800 });
   if (!found.ok) {
-    return { ok: false, status: 503, code: 'PROTECTED_SESSION_READ_FAILED', reason: 'session_read_unavailable_fail_closed', customerId };
+    const timedOut = String(found && (found.error || found.data && found.data.code) || '').includes('TIMEOUT');
+    return timedOut
+      ? customerSecurityDashboardTimeoutResult('session_read_timeout_fail_closed', 'PROTECTED_SESSION_READ_TIMEOUT', customerId)
+      : { ok: false, status: 503, code: 'PROTECTED_SESSION_READ_FAILED', reason: 'session_read_unavailable_fail_closed', customerId };
   }
 
   const rows = Array.isArray(found.data) ? found.data : [];
