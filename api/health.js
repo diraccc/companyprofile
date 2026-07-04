@@ -10433,21 +10433,38 @@ async function diracPasskeyA2FFetchCustomerById(customerId) {
 }
 
 async function diracPasskeyA2FResolveOwner(user, email) {
+  const hardFail = async (reason, message, status = 403) => {
+    if (typeof diracCentralBanCurrentContextV146 === 'function') {
+      await diracCentralBanCurrentContextV146(reason).catch(() => null);
+    }
+    return { ok: false, status, message };
+  };
   const authUserId = String(user && user.id || '').trim();
   const authEmail = normalizeAuthEmail(email || (user && user.email));
   if (!isValidAuthEmail(authEmail)) {
-    return { ok: false, status: 400, message: 'Email akun tidak valid untuk Passkey. Login ulang dulu.' };
+    return hardFail('passkey_owner_invalid_email', 'Email akun tidak valid untuk Passkey. Login ulang dulu.');
+  }
+  if (!customerSecurityLooksLikeUuid(authUserId)) {
+    return hardFail('passkey_owner_invalid_session', 'Session login tidak valid untuk Passkey. Login ulang dulu.');
   }
 
   let customerId = '';
   let customerEmail = authEmail;
 
-  if (authUserId && typeof customerSecurityFetchAuthLink === 'function') {
-    const linkResult = await customerSecurityFetchAuthLink(authUserId).catch((error) => ({ ok: false, status: 500, error }));
-    const linkRows = Array.isArray(linkResult && linkResult.data) ? linkResult.data : [];
-    const link = linkRows.find((row) => row && row.link_status === 'active' && customerSecurityLooksLikeUuid(row.customer_id));
-    if (link) customerId = String(link.customer_id);
+  if (typeof customerSecurityFetchAuthLink !== 'function') {
+    return hardFail('passkey_owner_auth_link_checker_unavailable', 'Link keamanan akun belum bisa dicek. Coba login ulang.');
   }
+
+  const linkResult = await customerSecurityFetchAuthLink(authUserId).catch((error) => ({ ok: false, status: 500, error }));
+  if (!linkResult || !linkResult.ok) {
+    return hardFail('passkey_owner_auth_link_read_failed', 'Link keamanan akun belum bisa diverifikasi. Coba login ulang.');
+  }
+
+  const linkRows = Array.isArray(linkResult.data) ? linkResult.data.filter((row) => row && row.link_status === 'active' && !row.disabled_at && !row.revoked_at && customerSecurityLooksLikeUuid(row.customer_id)) : [];
+  if (linkRows.length > 1) {
+    return hardFail('passkey_owner_auth_link_ambiguous', 'Link keamanan akun ambigu. Hubungi admin sebelum membuat Passkey.');
+  }
+  if (linkRows[0]) customerId = String(linkRows[0].customer_id);
 
   if (customerId) {
     const customerResult = await diracPasskeyA2FFetchCustomerById(customerId).catch((error) => ({ ok: false, status: 500, error }));
@@ -10458,26 +10475,7 @@ async function diracPasskeyA2FResolveOwner(user, email) {
     return { ok: true, authUserId, customerId, email: customerEmail, source: 'security_customer_auth_links' };
   }
 
-  if (typeof customerSecurityFetchCustomerByEmail === 'function') {
-    const customerResult = await customerSecurityFetchCustomerByEmail(authEmail).catch((error) => ({ ok: false, status: 500, error }));
-    const customerRows = Array.isArray(customerResult && customerResult.data) ? customerResult.data : [];
-    const customer = customerRows.find((row) => row && customerSecurityLooksLikeUuid(row.id));
-    if (customer) {
-      return {
-        ok: true,
-        authUserId,
-        customerId: String(customer.id),
-        email: isValidAuthEmail(customer.email) ? normalizeAuthEmail(customer.email) : authEmail,
-        source: 'customers.email'
-      };
-    }
-  }
-
-  return {
-    ok: false,
-    status: 409,
-    message: 'Akun login belum terhubung ke tabel customers. Passkey tidak disimpan agar tidak salah owner.'
-  };
+  return hardFail('passkey_owner_auth_link_unavailable', 'Akun login belum punya link keamanan aktif. Login ulang dulu sebelum membuat Passkey.');
 }
 
 function diracPasskeyA2FOwnerMatches(row, owner) {
