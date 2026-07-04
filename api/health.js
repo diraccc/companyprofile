@@ -4555,11 +4555,14 @@ function customerSecurityRegisterBootstrapNormalizeAction(action) {
   if (clean === 'domain-register') return 'domain_register';
   if (clean === 'domain_register') return 'domain_register';
   if (clean === 'register-domain') return 'domain_register';
+  if (clean === 'domain-login') return 'domain_login';
+  if (clean === 'domain_login') return 'domain_login';
+  if (clean === 'login-domain') return 'domain_login';
   return clean;
 }
 
 function customerSecurityRegisterBootstrapIsRegisterAction(action) {
-  return action === 'domain_register';
+  return action === 'domain_register' || action === 'domain_login';
 }
 
 async function customerSecurityBootstrapWrapRegisterResponse(req, res, runPreviousHandler) {
