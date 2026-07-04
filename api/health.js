@@ -1331,11 +1331,11 @@ async function domainRegister(req, res, preloadedBody) {
   // Supabase Auth dengan email confirmation aktif dapat mengembalikan HTTP 200
   // untuk email yang sudah terdaftar, tetapi user.identities kosong.
   // Kondisi ini tidak boleh ditampilkan sebagai akun baru berhasil dibuat.
-  if (isSupabaseRegisterExistingAccountResponse(signupData)) {
+  if (isSupabaseRegisterExistingAccountResponse(signupData, { email, precheck: existingAuthUser })) {
     return res.status(409).json(buildDomainRegisterDuplicateEmailBody());
   }
 
-  if (!hasSupabaseRegisterNewAccountEvidence(signupData)) {
+  if (!hasSupabaseRegisterNewAccountEvidence(signupData, { email, precheck: existingAuthUser })) {
     // Supabase kadang menyamarkan signup email lama sebagai respons tidak jelas.
     // Untuk halaman customer, jangan tampilkan pesan ambigu dan jangan klaim akun baru dibuat.
     // Treat as already registered agar user diarahkan masuk / lupa password / email lain.
@@ -1639,26 +1639,39 @@ function isSupabaseRegisterDuplicateEmailError(data) {
     || /email_exists|user_already_exists|duplicate_email|email_already_registered/i.test(text);
 }
 
-function isSupabaseRegisterExistingAccountResponse(data) {
+function isSupabaseRegisterExistingAccountResponse(data, context = {}) {
   const user = data && typeof data === 'object' && data.user && typeof data.user === 'object'
     ? data.user
     : null;
   if (!user) return false;
 
   // Sinyal resmi yang umum muncul pada signUp email lama saat confirmation aktif.
-  if (Array.isArray(user.identities) && user.identities.length === 0) return true;
+  if (Array.isArray(user.identities) && user.identities.length === 0) {
+    return !hasSupabaseRegisterNewAccountEvidence(data, context);
+  }
 
   return false;
 }
 
-function hasSupabaseRegisterNewAccountEvidence(data) {
+function hasSupabaseRegisterNewAccountEvidence(data, context = {}) {
   if (!data || typeof data !== 'object') return false;
   if (data.access_token && data.refresh_token) return true;
 
   const user = data.user && typeof data.user === 'object' ? data.user : null;
   if (!user || !user.id) return false;
 
-  if (Array.isArray(user.identities)) return user.identities.length > 0;
+  const expectedEmail = normalizeAuthEmail(context && context.email || '');
+  const userEmail = normalizeAuthEmail(user.email || user.email_address || '');
+  if (expectedEmail && userEmail && userEmail !== expectedEmail) return false;
+
+  if (Array.isArray(user.identities)) {
+    if (user.identities.length > 0) return true;
+    return Boolean(
+      userEmail
+      && (!expectedEmail || userEmail === expectedEmail)
+      && (user.created_at || user.confirmation_sent_at || user.aud === 'authenticated')
+    );
+  }
 
   // Kompatibilitas untuk respons Supabase Auth lama yang tidak selalu menyertakan identities.
   return Boolean(user.email || user.created_at || user.aud === 'authenticated');
