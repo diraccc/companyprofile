@@ -4750,12 +4750,20 @@ async function customerSecurityFetchCustomerByEmail(email) {
 async function customerSecurityActivateExistingAuthLink(authUserId, customerId, email) {
   const body = customerSecurityBuildActiveAuthLinkBody(customerId, email);
   const path = '/rest/v1/security_customer_auth_links?auth_user_id=eq.' + encodeURIComponent(authUserId);
-  return supabaseFetch(path, {
+  const fullWrite = await supabaseFetch(path, {
     method: 'PATCH',
     auth: 'service',
     prefer: 'return=representation',
     body
   });
+  if (fullWrite.ok) return fullWrite;
+  const coreWrite = await supabaseFetch(path, {
+    method: 'PATCH',
+    auth: 'service',
+    prefer: 'return=representation',
+    body: customerSecurityBuildCoreAuthLinkBody(customerId, email)
+  });
+  return coreWrite.ok ? coreWrite : fullWrite;
 }
 
 async function customerSecurityCreateAuthLink(authUserId, customerId, email) {
@@ -4763,12 +4771,20 @@ async function customerSecurityCreateAuthLink(authUserId, customerId, email) {
     auth_user_id: authUserId,
     ...customerSecurityBuildActiveAuthLinkBody(customerId, email)
   };
-  return supabaseFetch('/rest/v1/security_customer_auth_links', {
+  const fullWrite = await supabaseFetch('/rest/v1/security_customer_auth_links', {
     method: 'POST',
     auth: 'service',
     prefer: 'return=representation',
     body: [body]
   });
+  if (fullWrite.ok) return fullWrite;
+  const coreWrite = await supabaseFetch('/rest/v1/security_customer_auth_links', {
+    method: 'POST',
+    auth: 'service',
+    prefer: 'return=representation',
+    body: [{ auth_user_id: authUserId, ...customerSecurityBuildCoreAuthLinkBody(customerId, email) }]
+  });
+  return coreWrite.ok ? coreWrite : fullWrite;
 }
 
 function customerSecurityBuildActiveAuthLinkBody(customerId, email) {
@@ -4778,6 +4794,14 @@ function customerSecurityBuildActiveAuthLinkBody(customerId, email) {
     link_status: 'active',
     link_method: 'system_created',
     match_confidence: 'active'
+  };
+}
+
+function customerSecurityBuildCoreAuthLinkBody(customerId, email) {
+  return {
+    customer_id: customerId,
+    email,
+    link_status: 'active'
   };
 }
 
