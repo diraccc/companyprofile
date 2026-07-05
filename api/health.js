@@ -24598,9 +24598,7 @@ async function diracCentralBuildIdentityV146(req) {
   }
 
   const loggedIn = Boolean(authUserId || sessionMaterial);
-  const base = loggedIn
-    ? ['login', diracCentralHashV146(sessionMaterial || 'no-session'), diracCentralHashV146(authUserId || 'no-auth'), diracCentralHashV146(String(cookies.customer_id || 'no-customer')), diracCentralHashV146(deviceHint), diracCentralHashV146(ua), diracCentralHashV146(origin)].join('|')
-    : ['guest', diracCentralHashV146(ip || 'unknown'), diracCentralHashV146(ua || 'missing-ua'), diracCentralHashV146(origin || 'missing-origin'), diracCentralHashV146(deviceHint || 'missing-device')].join('|');
+  const base = ['global', diracCentralHashV146(ip || 'unknown'), diracCentralHashV146(ua || 'missing-ua'), diracCentralHashV146(origin || 'missing-origin'), diracCentralHashV146(deviceHint || 'missing-device')].join('|');
 
   return {
     key: 'central-ban:' + diracCentralHashV146(base),
@@ -25834,13 +25832,29 @@ function diracCentralCircuitBreakerV146(req, ctx, event) {
 
 async function diracCentralBanAndBlockV146(req, res, ctx, action, method, reason) {
   try { await Promise.resolve(diracCentralCircuitBreakerV146(req, ctx, reason || 'block')); } catch (_) {}
-  await diracCentralWritePersistentBanV146(req, res, action, method, {
+  const now = Date.now();
+  const blockedUntilMs = now + diracCentralBlockMsV146();
+  const threat = {
     detected: true,
     kind: String(reason || 'central_security_block').slice(0, 100),
     source: DIRAC_CENTRAL_SECURITY_GUARD_V146,
     risk: 'critical'
-  }).catch(() => null);
-  diracCentralSetMemoryBanV146(ctx && ctx.identity, Date.now() + diracCentralBlockMsV146(), reason);
+  };
+  await diracCentralWritePersistentBanV146(req, res, action, method, threat).catch(() => null);
+  const identityKey = String(ctx && ctx.identity && ctx.identity.key || '').trim();
+  if (identityKey && typeof writePersistentSecurityJson === 'function') {
+    await writePersistentSecurityJson(identityKey, {
+      type: 'central_guard_global_ban_v146',
+      action: String(action || '').slice(0, 80),
+      method: String(method || '').slice(0, 12),
+      reason: threat.kind,
+      source: threat.source,
+      risk: threat.risk,
+      blocked_until_ms: blockedUntilMs,
+      created_at: new Date(now).toISOString()
+    }, blockedUntilMs, Math.ceil((blockedUntilMs - now) / 1000)).catch(() => false);
+  }
+  diracCentralSetMemoryBanV146(ctx && ctx.identity, blockedUntilMs, reason);
   return diracCentralBlockedResponseV146(res, reason);
 }
 
