@@ -24895,6 +24895,7 @@ function diracCentralBrowserSignalGuardV146(req, ctx) {
   if (!lang || lang.length > 160) return { ok: false, reason: 'accept_language_invalid' };
   const contentType = String(headers['content-type'] || '').toLowerCase();
   if (['POST', 'PUT', 'PATCH'].includes(ctx.method) && !/(application\/json|multipart\/form-data|application\/x-www-form-urlencoded)/i.test(contentType)) {
+    if (ctx.action === 'domain_logout' && ctx.method === 'POST' && !contentType && Number(headers['content-length'] || 0) === 0) return { ok: true };
     return { ok: false, reason: 'content_type_invalid_browser' };
   }
   return { ok: true };
