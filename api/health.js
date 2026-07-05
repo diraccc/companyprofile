@@ -25035,7 +25035,7 @@ function diracCentralLightGuardV146(req, ctx) {
   const headers = req && req.headers || {};
   if (!['GET', 'POST', 'HEAD', 'OPTIONS'].includes(ctx.method)) return { ok: false, reason: 'method_not_allowed_global' };
   const headerNames = Object.keys(headers || {});
-  if (headerNames.some((name) => /[\u0000-\u001f\u007f]/.test(name) || String(name).length > 15)) return { ok: false, reason: 'header_name_invalid' };
+  if (headerNames.some((name) => /[\u0000-\u001f\u007f]/.test(name) || String(name).length > 64)) return { ok: false, reason: 'header_name_invalid' };
   if (Number(headers['content-length'] || 0) > contract.maxBodyBytes) return { ok: false, reason: 'body_size_contract_exceeded' };
   return { ok: true };
 }
