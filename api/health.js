@@ -25389,9 +25389,16 @@ async function diracCentralInspectServiceRoleAccessV146(path, options = {}) {
 
 async function diracCentralServiceRoleOwnerScopeGuardV146(ctx, path, body) {
   if (!ctx || ctx.classification === 'server') return { ok: true };
+  if (ctx.__diracCentralOwnerScopeResolvingV146 === true) return { ok: true, skipped: 'owner_scope_internal_lookup' };
   const ids = diracCentralExtractServiceRoleScopeIdsV146(path, body);
   if (!ids.customerIds.length && !ids.authUserIds.length && !ids.userIds.length) return { ok: true };
-  const owner = await diracCentralResolveOwnerV146(ctx.req).catch(() => null);
+  let owner = null;
+  ctx.__diracCentralOwnerScopeResolvingV146 = true;
+  try {
+    owner = await diracCentralResolveOwnerV146(ctx.req).catch(() => null);
+  } finally {
+    ctx.__diracCentralOwnerScopeResolvingV146 = false;
+  }
   if (!owner || !owner.ok || !owner.customerIds || !owner.customerIds.length) return { ok: false, reason: 'service_role_owner_unavailable' };
   const allowedCustomers = new Set(owner.customerIds.map(String));
   if (ids.customerIds.some((id) => !allowedCustomers.has(id))) return { ok: false, reason: 'service_role_customer_scope_mismatch' };
