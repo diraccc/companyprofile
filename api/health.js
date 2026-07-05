@@ -9050,6 +9050,21 @@ function midtransGatewayEventId(payload) {
   return `midtrans:${base}:${status || 'unknown'}:${code || '0'}`.slice(0, 220);
 }
 
+function midtransAlreadyHasPaymentStatus(row, mappedStatus) {
+  const current = String(row && row.payment_status || '').trim().toLowerCase();
+  const expected = String(mappedStatus || '').trim().toLowerCase();
+  return Boolean(current && expected && current === expected);
+}
+
+function midtransOrderAlreadyPaid(row) {
+  const values = [
+    row && row.payment_status,
+    row && row.order_status,
+    row && row.status
+  ].map((value) => String(value || '').trim().toLowerCase());
+  return values.includes('paid') || values.includes('settlement') || values.includes('settled');
+}
+
 function midtransBuildItemDetails(items) {
   const safeItems = Array.isArray(items) ? items : [];
   return safeItems.slice(0, 50).map((item, index) => {
@@ -9316,9 +9331,7 @@ async function midtransHandleWebhook(req, res) {
   }
 
   const existingEvent = await midtransFetchGatewayEvent(gatewayEventId);
-  if (existingEvent.ok && existingEvent.exists) {
-    return res.status(200).json({ ok: true, duplicate: true, message: 'Webhook Midtrans sudah pernah diproses.', gateway_event_id: gatewayEventId });
-  }
+  const duplicateEvent = Boolean(existingEvent.ok && existingEvent.exists);
 
   const txResult = await midtransFetchPaymentTransaction(gatewayReference);
   if (!txResult.ok) {
@@ -9345,11 +9358,13 @@ async function midtransHandleWebhook(req, res) {
   }
 
   const eventStatus = success ? 'processed' : 'received';
-  const eventInsert = await midtransInsertGatewayEventSafe(tx.id, gatewayEventId, eventStatus, body, {
-    mapped_payment_status: mappedStatus,
-    success,
-    gateway_reference: gatewayReference
-  });
+  const eventInsert = duplicateEvent
+    ? { ok: true, duplicate: true, skipped: 'gateway_event_already_exists' }
+    : await midtransInsertGatewayEventSafe(tx.id, gatewayEventId, eventStatus, body, {
+      mapped_payment_status: mappedStatus,
+      success,
+      gateway_reference: gatewayReference
+    });
 
   if (!eventInsert.ok && !eventInsert.duplicate) {
     return res.status(eventInsert.status || 500).json({ ok: false, message: 'Gagal menyimpan event webhook Midtrans.' });
@@ -9360,19 +9375,25 @@ async function midtransHandleWebhook(req, res) {
     return res.status(txPatch.status || 500).json({ ok: false, message: 'Gagal update payment transaction dari webhook Midtrans.' });
   }
 
+  const paymentAlreadyMatched = midtransAlreadyHasPaymentStatus(tx, mappedStatus);
+  const orderAlreadyPaid = midtransOrderAlreadyPaid(ownerCheck.order);
   let orderPatch = { ok: true, skipped: true };
   let orderMailNotification = orderMailPaidWebhookSkipSummary('midtrans', 'not_paid_status');
   if (success) {
-    orderPatch = await midtransPatchRelatedOrderPaid(tx, body);
+    orderPatch = orderAlreadyPaid
+      ? { ok: true, skipped: true, reason: 'order_already_paid' }
+      : await midtransPatchRelatedOrderPaid(tx, body);
     if (!orderPatch.ok) {
       return res.status(orderPatch.status || 500).json({ ok: false, message: 'Payment valid, tetapi gagal update status order.' });
     }
-    orderMailNotification = await orderMailNotifyPaidOrderFromPaymentSafe({
-      provider: 'midtrans',
-      tx,
-      webhookPayload: body,
-      paidAt: body.settlement_time || diracNowIso()
-    });
+    orderMailNotification = (duplicateEvent || paymentAlreadyMatched || orderAlreadyPaid)
+      ? orderMailPaidWebhookSkipSummary('midtrans', duplicateEvent ? 'duplicate_event_reconciled' : 'already_paid')
+      : await orderMailNotifyPaidOrderFromPaymentSafe({
+        provider: 'midtrans',
+        tx,
+        webhookPayload: body,
+        paidAt: body.settlement_time || diracNowIso()
+      });
   }
 
   return res.status(200).json({
@@ -9384,7 +9405,8 @@ async function midtransHandleWebhook(req, res) {
     payment_status: mappedStatus,
     order_updated: Boolean(success && orderPatch && orderPatch.ok),
     order_mail_notification: orderMailNotification,
-    idempotent: false
+    duplicate: duplicateEvent || Boolean(eventInsert && eventInsert.duplicate),
+    idempotent: duplicateEvent || Boolean(eventInsert && eventInsert.duplicate)
   });
 }
 
@@ -25233,7 +25255,6 @@ function diracCentralA2FRequestSignatureGuardV148(req, ctx) {
   const headers = req && req.headers || {};
   const ticket = String(headers['x-dirac-a2f-ticket'] || headers['x-dirac-a2f-signature-ticket'] || '').trim();
   const signature = String(headers['x-dirac-a2f-signature'] || '').trim();
-  const explicitSeen = Boolean(ticket || signature || headers['x-dirac-a2f-nonce'] || headers['x-dirac-a2f-timestamp']);
 
   if (!ticket && !signature) {
     if (diracCentralA2FExplicitSignatureRequiredV148()) return { ok: false, reason: 'a2f_signature_missing' };
@@ -25258,7 +25279,7 @@ function diracCentralA2FRequestSignatureGuardV148(req, ctx) {
 
   const nonce = diracCentralConsumeA2FNonceV148(expectedPayload.jti, expectedPayload.exp);
   if (!nonce.ok) return nonce;
-  return { ok: true, source: 'a2f_request_signature_v148', explicitSeen };
+  return { ok: true, source: 'a2f_request_signature_v148' };
 }
 
 function diracCentralA2FExplicitSignatureRequiredV148() {
@@ -25744,6 +25765,27 @@ async function diracCentralLookupOwnerRowsV146(objects) {
   return cleanRows;
 }
 
+function diracCentralIsDashboardSelfReadAuthLinkWriteV146(ctx, table, options, method, protectedFields) {
+  const action = String(ctx && ctx.action || '').trim().toLowerCase();
+  const requestMethod = String(ctx && ctx.method || '').trim().toUpperCase();
+  const cleanTable = String(table || '').trim().toLowerCase();
+  const fields = Array.isArray(protectedFields) ? protectedFields : [];
+  if (action !== 'domain_me' && action !== 'domain_dashboard_me') return false;
+  if (requestMethod !== 'GET' && requestMethod !== 'HEAD') return false;
+  if (!ctx || !ctx.req || ctx.req.__diracCentralSecurityGuardPassedV146 !== true) return false;
+  if (cleanTable !== 'security_customer_auth_links') return false;
+  if (method !== 'POST' && method !== 'PATCH') return false;
+  if (!fields.length || fields.some((key) => !/^auth_user_id$/i.test(String(key || '')))) return false;
+  const rows = Array.isArray(options && options.body) ? options.body : [options && options.body];
+  return rows.length > 0 && rows.length <= 3 && rows.every((row) => {
+    if (!row || typeof row !== 'object' || Array.isArray(row)) return false;
+    const authUserId = String(row.auth_user_id || '').trim();
+    const customerId = String(row.customer_id || '').trim();
+    if (!diracCentralLooksLikeUuidV146(authUserId) || !diracCentralLooksLikeUuidV146(customerId)) return false;
+    return Object.keys(row).every((key) => /^(auth_user_id|customer_id|email|link_status|link_method|match_confidence|verified_at|updated_at)$/i.test(String(key || '')));
+  });
+}
+
 async function diracCentralInspectServiceRoleAccessV146(path, options = {}) {
   if (!options || options.auth !== 'service') return { ok: true };
   const ctx = DIRAC_CENTRAL_CONTEXT_STACK_V146[DIRAC_CENTRAL_CONTEXT_STACK_V146.length - 1];
@@ -25788,7 +25830,8 @@ async function diracCentralInspectServiceRoleAccessV146(path, options = {}) {
             && diracCentralLooksLikeUuidV146(customerId)
             && /^[A-Za-z0-9._:@-]{3,120}$/.test(reference);
         });
-      if (!allowCreatePaymentUnpaid) {
+      const allowDashboardSelfReadAuthLink = diracCentralIsDashboardSelfReadAuthLinkWriteV146(ctx, table, options, method, protectedFields);
+      if (!allowCreatePaymentUnpaid && !allowDashboardSelfReadAuthLink) {
         await diracCentralBanCurrentContextV146('service_role_protected_field').catch(() => null);
         return { block: true, reason: 'service_role_protected_field', status: 403 };
       }
