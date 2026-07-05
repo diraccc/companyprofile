@@ -9335,12 +9335,14 @@ async function midtransHandleWebhook(req, res) {
 
   const txResult = await midtransFetchPaymentTransaction(gatewayReference);
   if (!txResult.ok) {
+    await diracCentralBanCurrentContextV146('midtrans_transaction_not_found').catch(() => null);
     return res.status(txResult.status || 404).json({ ok: false, message: txResult.message || 'Payment transaction tidak ditemukan.' });
   }
 
   const tx = txResult.transaction;
   const transactionAmount = midtransMoney(tx.amount);
   if (transactionAmount !== grossAmount) {
+    await diracCentralBanCurrentContextV146('midtrans_amount_mismatch').catch(() => null);
     await midtransInsertGatewayEventSafe(tx.id, gatewayEventId, 'failed', body, {
       reason: 'amount_mismatch',
       expected_amount: transactionAmount,
@@ -9351,6 +9353,7 @@ async function midtransHandleWebhook(req, res) {
 
   const ownerCheck = await midtransVerifyTransactionOwnerAndAmount(tx, grossAmount);
   if (!ownerCheck.ok) {
+    await diracCentralBanCurrentContextV146(ownerCheck.reason || 'midtrans_owner_or_amount_mismatch').catch(() => null);
     await midtransInsertGatewayEventSafe(tx.id, gatewayEventId, 'failed', body, {
       reason: ownerCheck.reason || 'owner_or_amount_mismatch'
     });
@@ -24021,6 +24024,14 @@ const DIRAC_CENTRAL_OWNER_LOOKUP_CACHE_V146 = globalThis.__DIRAC_CENTRAL_OWNER_L
 const DIRAC_CENTRAL_CIRCUIT_V146 = globalThis.__DIRAC_CENTRAL_CIRCUIT_V146__ || new Map();
 const DIRAC_CENTRAL_DNS_CACHE_V146 = globalThis.__DIRAC_CENTRAL_DNS_CACHE_V146__ || new Map();
 const DIRAC_CENTRAL_CONTEXT_STACK_V146 = globalThis.__DIRAC_CENTRAL_CONTEXT_STACK_V146__ || [];
+const DIRAC_CENTRAL_ASYNC_CONTEXT_V149 = globalThis.__DIRAC_CENTRAL_ASYNC_CONTEXT_V149__ || (() => {
+  try {
+    const { AsyncLocalStorage } = require('async_hooks');
+    return new AsyncLocalStorage();
+  } catch (_) {
+    return null;
+  }
+})();
 const DIRAC_CENTRAL_SECRET_CACHE_V146 = globalThis.__DIRAC_CENTRAL_SECRET_CACHE_V146__ || new Map();
 const DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148 = globalThis.__DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148__ || new Map();
 globalThis.__DIRAC_CENTRAL_MEMORY_BAN_V146__ = DIRAC_CENTRAL_MEMORY_BAN_V146;
@@ -24030,6 +24041,7 @@ globalThis.__DIRAC_CENTRAL_OWNER_LOOKUP_CACHE_V146__ = DIRAC_CENTRAL_OWNER_LOOKU
 globalThis.__DIRAC_CENTRAL_CIRCUIT_V146__ = DIRAC_CENTRAL_CIRCUIT_V146;
 globalThis.__DIRAC_CENTRAL_DNS_CACHE_V146__ = DIRAC_CENTRAL_DNS_CACHE_V146;
 globalThis.__DIRAC_CENTRAL_CONTEXT_STACK_V146__ = DIRAC_CENTRAL_CONTEXT_STACK_V146;
+globalThis.__DIRAC_CENTRAL_ASYNC_CONTEXT_V149__ = DIRAC_CENTRAL_ASYNC_CONTEXT_V149;
 globalThis.__DIRAC_CENTRAL_SECRET_CACHE_V146__ = DIRAC_CENTRAL_SECRET_CACHE_V146;
 globalThis.__DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148__ = DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148;
 
@@ -24542,7 +24554,7 @@ try {
     supabaseFetch = async function supabaseFetchCentralServiceRoleGuardV146(path, options = {}) {
       const decision = await diracCentralInspectServiceRoleAccessV146(path, options).catch(() => ({ ok: true }));
       if (decision && decision.block) return diracCentralBlockedSupabaseResultV146(decision);
-      const ctx = DIRAC_CENTRAL_CONTEXT_STACK_V146[DIRAC_CENTRAL_CONTEXT_STACK_V146.length - 1];
+      const ctx = diracCentralCurrentContextV149();
       if (ctx && options && options.auth === 'service') ctx.__diracCentralSafeServiceRoleFetchV146 = true;
       try {
         return await __diracCentralPreviousSupabaseFetchV146(path, options);
@@ -24575,11 +24587,32 @@ try {
   const __diracCentralPreviousHandlerV146 = module.exports;
   if (typeof __diracCentralPreviousHandlerV146 === 'function' && !__diracCentralPreviousHandlerV146.__diracCentralSecurityGuardV146) {
     module.exports = async function diracCentralSecurityGuardWrapperV146(req, res) {
-      return diracCentralSecurityGuardV146(req, res, __diracCentralPreviousHandlerV146);
+      return diracCentralRunWithAsyncContextV149(() => diracCentralSecurityGuardV146(req, res, __diracCentralPreviousHandlerV146));
     };
     Object.defineProperty(module.exports, '__diracCentralSecurityGuardV146', { value: true, enumerable: false });
   }
 } catch (_) {}
+
+function diracCentralRunWithAsyncContextV149(fn) {
+  if (!DIRAC_CENTRAL_ASYNC_CONTEXT_V149 || typeof fn !== 'function') return fn();
+  if (DIRAC_CENTRAL_ASYNC_CONTEXT_V149.getStore()) return fn();
+  return DIRAC_CENTRAL_ASYNC_CONTEXT_V149.run({ ctx: null }, fn);
+}
+
+function diracCentralSetCurrentContextV149(ctx) {
+  try {
+    const store = DIRAC_CENTRAL_ASYNC_CONTEXT_V149 && DIRAC_CENTRAL_ASYNC_CONTEXT_V149.getStore();
+    if (store) store.ctx = ctx || null;
+  } catch (_) {}
+}
+
+function diracCentralCurrentContextV149() {
+  try {
+    const store = DIRAC_CENTRAL_ASYNC_CONTEXT_V149 && DIRAC_CENTRAL_ASYNC_CONTEXT_V149.getStore();
+    if (store && store.ctx) return store.ctx;
+  } catch (_) {}
+  return DIRAC_CENTRAL_CONTEXT_STACK_V146[DIRAC_CENTRAL_CONTEXT_STACK_V146.length - 1];
+}
 
 async function diracCentralSecurityGuardV146(req, res, nextHandler) {
   const method = String(req && req.method || 'GET').toUpperCase();
@@ -24603,6 +24636,7 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
       guardPassport: Object.create(null)
     };
     DIRAC_CENTRAL_CONTEXT_STACK_V146.push(ctx);
+    diracCentralSetCurrentContextV149(ctx);
 
     const memoryBan = diracCentralCheckMemoryBanV146(identity);
     if (memoryBan.blocked) return diracCentralBlockedResponseV146(res, 'MEMORY_BAN_ACTIVE');
@@ -24756,6 +24790,7 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
         const idx = DIRAC_CENTRAL_CONTEXT_STACK_V146.indexOf(ctx);
         if (idx >= 0) DIRAC_CENTRAL_CONTEXT_STACK_V146.splice(idx, 1);
       }
+      diracCentralSetCurrentContextV149(null);
     }
   }
 }
@@ -25788,7 +25823,7 @@ function diracCentralIsDashboardSelfReadAuthLinkWriteV146(ctx, table, options, m
 
 async function diracCentralInspectServiceRoleAccessV146(path, options = {}) {
   if (!options || options.auth !== 'service') return { ok: true };
-  const ctx = DIRAC_CENTRAL_CONTEXT_STACK_V146[DIRAC_CENTRAL_CONTEXT_STACK_V146.length - 1];
+  const ctx = diracCentralCurrentContextV149();
   if (!ctx || !ctx.__serviceGuardActive && ctx.action === 'midtrans_webhook') return { ok: true };
   const table = diracCentralExtractRestTableV146(path);
   if (!diracCentralOwnedTableV146(table)) return { ok: true };
@@ -26207,7 +26242,7 @@ async function diracCentralFetchWithRedirectGuardV146(fetchImpl, input, options,
 
 function diracCentralDirectServiceRoleFetchV146(url, input, options = {}) {
   try {
-    const ctx = DIRAC_CENTRAL_CONTEXT_STACK_V146[DIRAC_CENTRAL_CONTEXT_STACK_V146.length - 1];
+    const ctx = diracCentralCurrentContextV149();
     if (!ctx || ctx.__diracCentralSafeServiceRoleFetchV146) return { ok: true };
     const host = String(url && url.hostname || '').toLowerCase();
     if (!/\.supabase\.co$/i.test(host)) return { ok: true };
@@ -26314,7 +26349,7 @@ async function diracCentralBanAndBlockV146(req, res, ctx, action, method, reason
 }
 
 async function diracCentralBanCurrentContextV146(reason) {
-  const ctx = DIRAC_CENTRAL_CONTEXT_STACK_V146[DIRAC_CENTRAL_CONTEXT_STACK_V146.length - 1];
+  const ctx = diracCentralCurrentContextV149();
   if (!ctx) return { ok: false };
   return diracCentralWritePersistentBanV146(ctx.req, ctx.res, ctx.action, ctx.method, {
     detected: true,
@@ -26809,6 +26844,6 @@ try {
 } catch (_) {}
 
 function diracCentralCurrentContextPassedV146() {
-  const ctx = DIRAC_CENTRAL_CONTEXT_STACK_V146[DIRAC_CENTRAL_CONTEXT_STACK_V146.length - 1];
+  const ctx = diracCentralCurrentContextV149();
   return Boolean(ctx && ctx.req && ctx.req.__diracCentralSecurityGuardPassedV146);
 }
