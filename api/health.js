@@ -1718,7 +1718,7 @@ async function requireDomainProtectedDatabaseSessionLockSafe(req, res, user) {
 
   if (checked && checked.clearCookies) clearSessionCookies(res);
 
-  return res.status((checked && checked.status) || 401).json({
+  res.status((checked && checked.status) || 401).json({
     ok: false,
     dashboard: false,
     code: (checked && checked.code) || 'PROTECTED_SESSION_LOCKED',
@@ -1726,6 +1726,7 @@ async function requireDomainProtectedDatabaseSessionLockSafe(req, res, user) {
     idle_timeout_ms: DOMAIN_PROTECTED_IDLE_TIMEOUT_MS,
     source: 'database_protected_lock_safe_v2'
   });
+  return null;
 }
 
 async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
@@ -1782,10 +1783,36 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
   const idleMs = hasLastSeen ? nowMs - lastSeenMs : 0;
   const idleExpired = hasLastSeen && idleMs >= DOMAIN_PROTECTED_IDLE_TIMEOUT_MS;
 
-  if (revoked || expired || idleExpired) {
+  if (idleExpired) {
+    await customerSecurityWriteGuardEvent(customerId, {
+      event_type: 'session_idle_timeout',
+      status: 'warning',
+      risk_level: 'medium',
+      description: 'Sesi protected ditolak karena idle lebih dari batas aman.',
+      req,
+      metadata: {
+        source: 'domain_dashboard_me_safe_v2',
+        reason: DOMAIN_PROTECTED_SESSION_REVOKE_REASON,
+        idle_ms: idleMs,
+        idle_timeout_ms: DOMAIN_PROTECTED_IDLE_TIMEOUT_MS
+      }
+    }).catch(() => null);
+
+    return {
+      ok: false,
+      status: 401,
+      code: 'PROTECTED_SESSION_IDLE_TIMEOUT',
+      clearCookies: true,
+      customerId,
+      sessionId: row.id,
+      message: 'Sesi dikunci karena tidak aktif lebih dari 5 menit. Silakan login ulang.'
+    };
+  }
+
+  if (revoked || expired) {
     const reason = revoked
       ? String(row.revoke_reason || 'session_revoked')
-      : (expired ? 'session_expired' : DOMAIN_PROTECTED_SESSION_REVOKE_REASON);
+      : 'session_expired';
 
     await supabaseFetch('/rest/v1/security_customer_sessions?id=eq.' + encodeURIComponent(row.id), {
       method: 'PATCH',
@@ -1801,15 +1828,13 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
     await customerSecurityWriteGuardEvent(customerId, {
       event_type: 'session_revoked',
       status: 'warning',
-      risk_level: idleExpired ? 'medium' : 'low',
-      description: idleExpired
-        ? 'Sesi protected dikunci database karena idle lebih dari batas aman.'
-        : 'Sesi protected ditolak karena revoked/expired.',
+      risk_level: 'low',
+      description: 'Sesi protected ditolak karena revoked/expired.',
       req,
       metadata: {
         source: 'domain_dashboard_me_safe_v2',
         reason,
-        idle_ms: idleExpired ? idleMs : 0,
+        idle_ms: 0,
         idle_timeout_ms: DOMAIN_PROTECTED_IDLE_TIMEOUT_MS
       }
     }).catch(() => null);
@@ -1817,13 +1842,11 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
     return {
       ok: false,
       status: 401,
-      code: idleExpired ? 'PROTECTED_SESSION_IDLE_TIMEOUT' : 'PROTECTED_SESSION_REVOKED',
+      code: 'PROTECTED_SESSION_REVOKED',
       clearCookies: true,
       customerId,
       sessionId: row.id,
-      message: idleExpired
-        ? 'Sesi dikunci database karena tidak aktif lebih dari 5 menit. Silakan login ulang.'
-        : 'Sesi sudah dicabut/expired. Silakan login ulang.'
+      message: 'Sesi sudah dicabut/expired. Silakan login ulang.'
     };
   }
 
@@ -26418,7 +26441,7 @@ function diracCentralContractForActionV146(action) {
   const commonPost = ['action', 'email', 'password', 'fullName', 'full_name', 'name', 'phone', 'domain', 'domain_name', 'quantity', 'items', 'order_id', 'order_code', 'domain_order_id', 'payment_id', 'transaction_id', 'invoice_id', 'gateway_reference', 'session_id', 'recovery_code', 'recovery_code_id', 'credential_id', 'user_id', 'challenge', 'response', 'setupToken', 'mfaSetupToken', 'code', 'reason', 'csrf', 'nonce', 'idempotency_key'];
   const getOnly = { methods: ['GET', 'HEAD'], allowed: commonGet, required: [], maxBodyBytes: 1024, maxFieldBytes: 3000, mutation: false };
   const postOnly = { methods: ['POST'], allowed: commonPost, required: [], maxBodyBytes: 20 * 1024, maxFieldBytes: 3000, mutation: true };
-  const passkeyPost = { methods: ['POST'], allowed: ['action', 'method', 'identifier', 'email', 'setupToken', 'mfaSetupToken', 'token', 'passkeyMode', 'credential', 'id', 'rawId', 'type', 'response', 'clientExtensionResults', 'clientDataJSON', 'attestationObject', 'authenticatorData', 'signature', 'userHandle', 'transports', 'authenticatorAttachment', 'challenge', 'code', 'csrf', 'nonce', 'idempotency_key'], required: [], maxBodyBytes: 192 * 1024, maxFieldBytes: 80 * 1024, mutation: true, allowArrayItems: true };
+  const passkeyPost = { methods: ['POST'], allowed: ['action', 'method', 'identifier', 'email', 'setupToken', 'mfaSetupToken', 'token', 'passkeyMode', 'credential', 'id', 'rawId', 'type', 'response', 'clientExtensionResults', 'credProps', 'rk', 'clientDataJSON', 'attestationObject', 'authenticatorData', 'signature', 'userHandle', 'transports', 'authenticatorAttachment', 'challenge', 'code', 'csrf', 'nonce', 'idempotency_key'], required: [], maxBodyBytes: 192 * 1024, maxFieldBytes: 80 * 1024, mutation: true, allowArrayItems: true };
   const authLoginPost = { methods: ['POST'], allowed: ['email', 'password', 'fullName', 'full_name', 'name', 'phone'], required: ['email', 'password'], maxBodyBytes: 20 * 1024, maxFieldBytes: 3000, mutation: true };
   const authRegisterPost = { methods: ['POST'], allowed: ['email', 'password', 'fullName', 'full_name', 'name', 'phone'], required: ['email', 'password'], maxBodyBytes: 20 * 1024, maxFieldBytes: 3000, mutation: true };
   const contracts = {
