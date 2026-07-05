@@ -3645,6 +3645,10 @@ async function readBody(req) {
 
 function parseCookies(req) {
   const header = req.headers && req.headers.cookie ? req.headers.cookie : '';
+  if (req && req.__diracParseCookiesCache && req.__diracParseCookiesCache.header === header) {
+    return req.__diracParseCookiesCache.cookies;
+  }
+
   const cookies = {};
 
   Object.defineProperty(cookies, '__all', {
@@ -3680,6 +3684,19 @@ function parseCookies(req) {
     cookies[key] = value;
   });
 
+  if (req) {
+    try {
+      Object.defineProperty(req, '__diracParseCookiesCache', {
+        value: { header, cookies },
+        enumerable: false,
+        configurable: true,
+        writable: true
+      });
+    } catch (_) {
+      req.__diracParseCookiesCache = { header, cookies };
+    }
+  }
+
   return cookies;
 }
 
@@ -3698,6 +3715,14 @@ function normalizeCookieDomain(value) {
 }
 
 function getDomainCookieDomainCandidates() {
+  const fingerprint = [
+    process.env.DOMAIN_COOKIE_DOMAIN || '',
+    process.env.DOMAIN_SITE_URL || '',
+    process.env.SITE_URL || ''
+  ].join('\0');
+  const cached = getDomainCookieDomainCandidates.__diracCache;
+  if (cached && cached.fingerprint === fingerprint) return cached.value.slice();
+
   const candidates = [];
   const add = (value) => {
     const domain = normalizeCookieDomain(value);
@@ -3709,6 +3734,7 @@ function getDomainCookieDomainCandidates() {
   add(process.env.SITE_URL ? (() => { try { return new URL(process.env.SITE_URL).hostname; } catch (_) { return ''; } })() : '');
   add('diracgroup.store');
 
+  getDomainCookieDomainCandidates.__diracCache = { fingerprint, value: candidates.slice() };
   return candidates;
 }
 
@@ -3766,6 +3792,10 @@ const DOMAIN_COOKIE_CHUNK_SIZE = 3400;
 const DOMAIN_COOKIE_MAX_CHUNKS = 12;
 
 function getCompactCookieDomainsForSession() {
+  const fingerprint = String(process.env.DOMAIN_COOKIE_DOMAIN || '');
+  const cached = getCompactCookieDomainsForSession.__diracCache;
+  if (cached && cached.fingerprint === fingerprint) return cached.value.slice();
+
   const domains = [];
   const add = (value) => {
     const domain = normalizeCookieDomain(value);
@@ -3778,6 +3808,7 @@ function getCompactCookieDomainsForSession() {
   add('');
   add(process.env.DOMAIN_COOKIE_DOMAIN);
   add('diracgroup.store');
+  getCompactCookieDomainsForSession.__diracCache = { fingerprint, value: domains.slice() };
   return domains;
 }
 
