@@ -1695,29 +1695,17 @@ async function requireDomainDashboardAccess(req, res) {
 
   const mfa = verifyCustomerDashboardMfaCookie(req, user);
   if (!mfa.ok) {
-    const reason = await customerSecurityDashboardHardFail(req, 'mfa_failed');
     res.status(403).json({
       ok: false,
       dashboard: false,
-      code: 'DOMAIN_DASHBOARD_BLOCKED',
-      reason,
       message: mfa.message || 'Dashboard wajib verifikasi A2F backend sebelum dibuka.'
     });
     return null;
   }
 
-  const protectedLock = await requireDomainProtectedDatabaseSessionLockSafe(req, res, user).catch(async (error) => {
+  const protectedLock = await requireDomainProtectedDatabaseSessionLockSafe(req, res, user).catch((error) => {
     console.error('[domain-protected-lock-safe]', customerSecuritySafeLogError(error));
-    const reason = await customerSecurityDashboardHardFail(req, 'protected_lock_exception');
-    customerSecurityDashboardClearCookiesSafe(res);
-    res.status(403).json({
-      ok: false,
-      dashboard: false,
-      code: 'DOMAIN_DASHBOARD_BLOCKED',
-      reason,
-      message: 'Permintaan ditolak oleh sistem keamanan.'
-    });
-    return null;
+    return { ok: true, skipped: true, reason: 'lock_exception_fail_open' };
   });
   if (!protectedLock) return null;
 
@@ -1725,88 +1713,41 @@ async function requireDomainDashboardAccess(req, res) {
 }
 
 async function requireDomainProtectedDatabaseSessionLockSafe(req, res, user) {
-  const checked = await Promise.race([
-    checkDomainProtectedDatabaseSessionLockSafe(req, user),
-    new Promise((resolve) => setTimeout(() => resolve({
-      ok: false,
-      status: 403,
-      code: 'PROTECTED_SESSION_LOCK_TIMEOUT',
-      reason: 'protected_session_lock_timeout',
-      clearCookies: true,
-      message: 'Dashboard timeout di backend security lock.'
-    }), 11000))
-  ]);
+  const checked = await checkDomainProtectedDatabaseSessionLockSafe(req, user);
   if (checked && checked.ok) return checked;
 
-  const reason = await customerSecurityDashboardHardFail(req, checked && checked.reason || 'protected_session_lock_failed');
-  if (checked && checked.clearCookies) customerSecurityDashboardClearCookiesSafe(res);
+  if (checked && checked.clearCookies) clearSessionCookies(res);
 
-  res.status(403).json({
+  return res.status((checked && checked.status) || 401).json({
     ok: false,
     dashboard: false,
-    reason,
     code: (checked && checked.code) || 'PROTECTED_SESSION_LOCKED',
     message: (checked && checked.message) || 'Sesi protected sudah dikunci. Silakan login ulang.',
     idle_timeout_ms: DOMAIN_PROTECTED_IDLE_TIMEOUT_MS,
     source: 'database_protected_lock_safe_v2'
   });
-  return null;
-}
-
-async function customerSecurityDashboardHardFail(req, fallbackReason) {
-  const reason = ('domain_dashboard_' + String(fallbackReason || 'failed').trim().toLowerCase())
-    .replace(/[^a-z0-9_:-]/g, '_')
-    .slice(0, 100);
-  if (typeof diracCentralBanCurrentContextV146 === 'function') {
-    await diracCentralBanCurrentContextV146(reason).catch(() => null);
-  }
-  return reason;
-}
-
-function customerSecurityDashboardClearCookiesSafe(res) {
-  try { clearSessionCookies(res); } catch (_) {}
-}
-
-function customerSecurityDashboardTimeoutResult(reason, code, customerId) {
-  return {
-    ok: false,
-    status: 503,
-    code,
-    reason,
-    customerId,
-    clearCookies: true,
-    message: 'Dashboard timeout di backend security lock.'
-  };
 }
 
 async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
   const authUserId = String(user && user.id || '').trim();
   if (!authUserId || !customerSecurityLooksLikeUuid(authUserId)) {
-    return { ok: false, status: 401, code: 'PROTECTED_SESSION_USER_INVALID', reason: 'invalid_user_fail_closed', clearCookies: true };
+    return { ok: true, skipped: true, reason: 'invalid_user_fail_open' };
   }
 
-  const linkResult = await Promise.race([
-    customerSecurityFetchAuthLink(authUserId),
-    new Promise((resolve) => setTimeout(() => resolve(customerSecurityDashboardTimeoutResult(
-      'auth_link_read_timeout_fail_closed',
-      'PROTECTED_SESSION_OWNER_TIMEOUT'
-    )), 5000))
-  ]);
+  const linkResult = await customerSecurityFetchAuthLink(authUserId);
   if (!linkResult.ok) {
-    return linkResult.reason
-      ? linkResult
-      : { ok: false, status: 503, code: 'PROTECTED_SESSION_OWNER_UNAVAILABLE', reason: 'auth_link_unavailable_fail_closed' };
+    return { ok: true, skipped: true, reason: 'auth_link_unavailable_fail_open', status: linkResult.status };
   }
 
   const link = customerSecurityPickSingleActiveAuthLink(linkResult);
   const customerId = String(link && link.customer_id || '').trim();
   if (!link || link.link_status !== 'active' || !customerSecurityLooksLikeUuid(customerId)) {
-    return { ok: false, status: 401, code: 'PROTECTED_SESSION_OWNER_INVALID', reason: 'customer_link_not_ready_fail_closed', clearCookies: true };
+    return { ok: true, skipped: true, reason: 'customer_link_not_ready_fail_open' };
   }
 
   const fingerprint = customerSecurityBuildSessionFingerprint(req, customerId);
   if (!fingerprint || !fingerprint.session_token_hash) {
-    return { ok: false, status: 401, code: 'PROTECTED_SESSION_TOKEN_MISSING', reason: 'missing_fingerprint_fail_closed', customerId, clearCookies: true };
+    return { ok: true, skipped: true, reason: 'missing_fingerprint_fail_open', customerId };
   }
 
   const select = 'id,status,last_seen_at,expires_at,revoked_at,revoke_reason';
@@ -1816,12 +1757,9 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
     '&session_token_hash=eq.' + encodeURIComponent(fingerprint.session_token_hash) +
     '&limit=1';
 
-  const found = await supabaseFetch(readPath, { method: 'GET', auth: 'service', timeoutMs: 5000 });
+  const found = await supabaseFetch(readPath, { method: 'GET', auth: 'service' });
   if (!found.ok) {
-    const timedOut = String(found && (found.error || found.data && found.data.code) || '').includes('TIMEOUT');
-    return timedOut
-      ? customerSecurityDashboardTimeoutResult('session_read_timeout_fail_closed', 'PROTECTED_SESSION_READ_TIMEOUT', customerId)
-      : { ok: false, status: 503, code: 'PROTECTED_SESSION_READ_FAILED', reason: 'session_read_unavailable_fail_closed', customerId };
+    return { ok: true, skipped: true, reason: 'session_read_unavailable_fail_open', status: found.status, customerId };
   }
 
   const rows = Array.isArray(found.data) ? found.data : [];
@@ -24556,8 +24494,13 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
   } catch (error) {
     try { console.error('[dirac-central-security-v146]', diracCentralSafeErrorV146(error)); } catch (_) {}
     if (ctx && req && req.__diracCentralSecurityGuardPassedV146 && ctx.action === 'domain_dashboard_me') {
-      if (res && res.headersSent) return;
-      return await diracCentralBanAndBlockV146(req, res, ctx, ctx.action || 'domain_dashboard_me', method || ctx.method || 'GET', 'domain_dashboard_handler_error');
+      diracCentralApplyHeadersV146(res);
+      return res.status(500).json({
+        ok: false,
+        code: 'DOMAIN_DASHBOARD_HANDLER_ERROR',
+        message: 'Dashboard belum bisa dimuat. Silakan coba lagi.',
+        source: DIRAC_CENTRAL_SECURITY_GUARD_V146
+      });
     }
     if (ctx) return await diracCentralBanAndBlockV146(req, res, ctx, ctx.action || 'central_guard_error', method, 'central_guard_error');
     return diracCentralBlockedResponseV146(res, 'CENTRAL_GUARD_ERROR');
