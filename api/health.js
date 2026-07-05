@@ -23854,8 +23854,7 @@ globalThis.__DIRAC_CENTRAL_CONTEXT_STACK_V146__ = DIRAC_CENTRAL_CONTEXT_STACK_V1
 globalThis.__DIRAC_CENTRAL_SECRET_CACHE_V146__ = DIRAC_CENTRAL_SECRET_CACHE_V146;
 
 const DIRAC_CENTRAL_ALLOWED_ORIGINS_V146 = new Set([
-  'https://diracgroup.store',
-  'https://www.diracgroup.store'
+  'https://diracgroup.store'
 ]);
 
 const DIRAC_CENTRAL_ALLOWED_REFERER_PATHS_V146 = new Set([
@@ -24429,13 +24428,11 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
 
 	    const csrfGuard = diracCentralCsrfGuardV146(req, res, ctx);
 	    if (!csrfGuard.ok) {
-	      if (diracCentralIsPreAuthActionV146(ctx)) return diracCentralPreAuthSoftBlockV146(res, csrfGuard.reason);
 	      return await diracCentralBanAndBlockV146(req, res, ctx, action, method, csrfGuard.reason);
 	    }
 
 	    const nonceGuard = diracCentralPageNonceGuardV146(req, res, ctx);
 	    if (!nonceGuard.ok) {
-	      if (diracCentralIsPreAuthActionV146(ctx)) return diracCentralPreAuthSoftBlockV146(res, nonceGuard.reason);
 	      return await diracCentralBanAndBlockV146(req, res, ctx, action, method, nonceGuard.reason);
 	    }
 
@@ -24487,20 +24484,14 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
     if (!circuit.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, circuit.reason);
 
     const stableMfaGate = diracCentralStableMfaReadGateV146(req, res, ctx);
-    if (stableMfaGate.handled) return stableMfaGate.response;
+    if (stableMfaGate.handled) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, stableMfaGate.reason || 'mfa_required');
 
     req.__diracCentralSecurityGuardPassedV146 = true;
     return await nextHandler(req, res);
   } catch (error) {
     try { console.error('[dirac-central-security-v146]', diracCentralSafeErrorV146(error)); } catch (_) {}
     if (ctx && req && req.__diracCentralSecurityGuardPassedV146 && ctx.action === 'domain_dashboard_me') {
-      diracCentralApplyHeadersV146(res);
-      return res.status(500).json({
-        ok: false,
-        code: 'DOMAIN_DASHBOARD_HANDLER_ERROR',
-        message: 'Dashboard belum bisa dimuat. Silakan coba lagi.',
-        source: DIRAC_CENTRAL_SECURITY_GUARD_V146
-      });
+      return await diracCentralBanAndBlockV146(req, res, ctx, ctx.action, method, 'domain_dashboard_handler_error');
     }
     if (ctx) return await diracCentralBanAndBlockV146(req, res, ctx, ctx.action || 'central_guard_error', method, 'central_guard_error');
     return diracCentralBlockedResponseV146(res, 'CENTRAL_GUARD_ERROR');
@@ -24770,6 +24761,7 @@ function diracCentralSecFetchGuardV146(req, ctx) {
 }
 
 function diracCentralCsrfGuardV146(req, res, ctx) {
+  try { diracCentralRootSecretV146(); } catch (_) { return { ok: false, reason: 'csrf_root_secret_invalid' }; }
   if (!diracCentralNeedsCsrfNonceV146(ctx)) {
     if ((ctx.method === 'GET' || ctx.method === 'HEAD') && typeof diracCsrfIssueToken === 'function') {
       try { diracCsrfIssueToken(req, res, ctx.action); } catch (_) {}
@@ -24795,6 +24787,7 @@ function diracCentralNeedsCsrfNonceV146(ctx) {
 }
 
 function diracCentralPageNonceGuardV146(req, res, ctx) {
+  try { diracCentralRootSecretV146(); } catch (_) { return { ok: false, reason: 'page_nonce_root_secret_invalid' }; }
   if ((ctx.method === 'GET' || ctx.method === 'HEAD') && ctx.classification !== 'server') {
     diracCentralIssuePageNonceV146(req, res, diracCentralPageNonceIssueTargetV146(req, ctx));
   }
@@ -24961,10 +24954,17 @@ function diracCentralPublicReadGuardV146(req, ctx) {
   const len = Number(headers['content-length'] || 0);
   if (len > 1024) return { ok: false, reason: 'public_body_too_large' };
   if (/^(hostinger_check|domain_check)$/.test(ctx.action)) {
+    try { diracCentralRootSecretV146(); } catch (_) { return { ok: false, reason: 'public_root_secret_invalid' }; }
     const nonce = String(headers['x-dirac-public-nonce'] || headers['x-dirac-page-nonce'] || (req && req.query && req.query.nonce) || '').trim();
     if (!nonce) return { ok: false, reason: 'public_nonce_missing' };
     const verified = diracCentralVerifyPageNonceV146(req, nonce, ctx.action);
     if (!verified.ok) return { ok: false, reason: verified.reason || 'public_nonce_invalid' };
+    if (typeof diracV138CsrfForceVerify === 'function') {
+      const csrf = diracV138CsrfForceVerify(req, ctx.action);
+      if (!csrf || !csrf.ok) return { ok: false, reason: csrf && csrf.code || 'public_csrf_invalid' };
+    } else {
+      return { ok: false, reason: 'public_csrf_guard_missing' };
+    }
   }
   const rate = diracCentralRateLimitV146(ctx.identity.key + ':public:' + ctx.action, 60 * 1000, 120);
   if (!rate.ok) return { ok: false, reason: 'public_rate_limit' };
@@ -25035,7 +25035,7 @@ function diracCentralLightGuardV146(req, ctx) {
   const headers = req && req.headers || {};
   if (!['GET', 'POST', 'HEAD', 'OPTIONS'].includes(ctx.method)) return { ok: false, reason: 'method_not_allowed_global' };
   const headerNames = Object.keys(headers || {});
-  if (headerNames.some((name) => /[\u0000-\u001f\u007f]/.test(name) || String(name).length > 80)) return { ok: false, reason: 'header_name_invalid' };
+  if (headerNames.some((name) => /[\u0000-\u001f\u007f]/.test(name) || String(name).length > 15)) return { ok: false, reason: 'header_name_invalid' };
   if (Number(headers['content-length'] || 0) > contract.maxBodyBytes) return { ok: false, reason: 'body_size_contract_exceeded' };
   return { ok: true };
 }
@@ -25086,7 +25086,7 @@ function diracCentralSecurityReportGuardV146(req, ctx) {
 function diracCentralSampleCollectorV146(req, ctx) {
   const out = [];
   const push = (key, value) => {
-    if (out.join('\n').length > 50 * 1024) return;
+    if (out.join('\n').length > 10 * 1024) return;
     const cleanKey = String(key || '').toLowerCase();
     if (diracCentralSensitiveKeyV146(cleanKey)) {
       out.push(cleanKey + '=[redacted-structure]');
@@ -25103,7 +25103,7 @@ function diracCentralSampleCollectorV146(req, ctx) {
   ['origin', 'referer', 'referrer', 'user-agent', 'sec-fetch-site', 'sec-fetch-mode', 'sec-fetch-dest', 'content-type', 'accept', 'accept-language'].forEach((key) => push(key, headers[key]));
   Object.entries(req && req.query || {}).slice(0, 80).forEach(([key, value]) => push('query.' + key, Array.isArray(value) ? value.join(',') : value));
   diracCentralFlattenObjectV146(ctx.body || {}, 0, '', 200).forEach((item) => push('body.' + item.key, item.value));
-  if (out.join('\n').length > 50 * 1024) return { ok: false, reason: 'sample_total_too_large' };
+  if (out.join('\n').length > 10 * 1024) return { ok: false, reason: 'sample_total_too_large' };
   ctx.sample = out.join('\n');
   return { ok: true };
 }
@@ -25176,7 +25176,7 @@ function diracCentralZeroDayShieldV146(req, ctx, normalized) {
   const flat = diracCentralFlattenObjectV146(ctx.body || {}, 0, '', 1000);
   if (flat.length > 80) return { ok: false, reason: 'zeroday_field_too_many' };
   if (flat.some((item) => item.depth > 5)) return { ok: false, reason: 'zeroday_nested_too_deep' };
-  if (String(ctx.sample || '').length > 50 * 1024) return { ok: false, reason: 'zeroday_payload_too_long' };
+  if (String(ctx.sample || '').length > 10 * 1024) return { ok: false, reason: 'zeroday_payload_too_long' };
   const headers = req && req.headers || {};
   if (!diracCentralProxyHeaderGuardV146(headers).ok) {
     return { ok: false, reason: 'zeroday_manipulative_header' };
@@ -25919,16 +25919,7 @@ function diracCentralStableMfaReadGateV146(req, res, ctx) {
   } catch (_) {
     return { handled: false };
   }
-  diracCentralApplyHeadersV146(res);
-  return {
-    handled: true,
-    response: res.status(403).json({
-      ok: false,
-      code: 'MFA_REQUIRED',
-      message: 'Aksi ini membutuhkan verifikasi A2F/MFA ulang dari dashboard resmi.',
-      source: DIRAC_CENTRAL_SECURITY_GUARD_V146
-    })
-  };
+  return { handled: true, reason: 'mfa_required' };
 }
 
 function diracCentralContractForActionV146(action) {
