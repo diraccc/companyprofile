@@ -23853,6 +23853,30 @@ globalThis.__DIRAC_CENTRAL_DNS_CACHE_V146__ = DIRAC_CENTRAL_DNS_CACHE_V146;
 globalThis.__DIRAC_CENTRAL_CONTEXT_STACK_V146__ = DIRAC_CENTRAL_CONTEXT_STACK_V146;
 globalThis.__DIRAC_CENTRAL_SECRET_CACHE_V146__ = DIRAC_CENTRAL_SECRET_CACHE_V146;
 
+const DIRAC_CENTRAL_SCANNER_UA_REGEX_V146 = /\b(?:curl|wget|httpie|fetch-cli|python|python-requests|aiohttp|urllib|requests|mechanize|scrapy|node-fetch|axios|got|undici|go-http-client|java|okhttp|apache-httpclient|libwww-perl|lwp|ruby|php|powershell|httpclient|postman|postmanruntime|insomnia|paw|hoppscotch|burp|burp\s*suite|owasp\s*zap|zap|mitmproxy|fiddler|charles|caido|sqlmap|nuclei|nikto|acunetix|netsparker|invicti|nessus|openvas|qualys|appscan|webinspect|w3af|arachni|skipfish|jaeles|xray|x-ray|whatweb|wpscan|joomscan|droopescan|ffuf|gobuster|dirb|dirbuster|feroxbuster|wfuzz|dirsearch|hydra|medusa|patator|nmap|masscan|zgrab|zmap|shodan|censys|binaryedge|commix|havij|xsser|dalfox|tplmap|ysoserial|metasploit|msfconsole|headlesschrome|phantomjs|selenium|playwright|puppeteer|chromedriver|geckodriver)\b/i;
+const DIRAC_CENTRAL_BROWSER_UA_REGEX_V146 = /\b(chrome|chromium|crios|edg|firefox|fxios|safari|mobile safari)\b/i;
+const DIRAC_CENTRAL_THREAT_CHECKS_V146 = [
+  ['sql_injection', /\bunion\s+(?:all\s+)?select\b|(?:^|[\s'"`])(?:or|and)\s+1\s*=\s*1(?:$|[\s'"`])|true\s*=\s*true|' or '1'='1|" or "1"="1|--\s|#\s|(?<!\*)\/\*|\*\/(?!\*)|;\s*(?:select|insert|update|delete|drop|alter|truncate|create|grant|revoke)\b|\binformation_schema\b|\bpg_catalog\b|\bsqlite_master\b|\bmysql\.user\b|\bsysobjects\b|\bsyscolumns\b|\bsleep\s*\(|\bpg_sleep\s*\(|\bbenchmark\s*\(|\bwaitfor\s+delay\b|\bload_file\s*\(|\binto\s+outfile\b|\bxp_cmdshell\b|\bextractvalue\s*\(|\bupdatexml\s*\(|\bcopy\s+.*\bto\s+program\b/i],
+  ['xss', /<\s*script\b|<\s*\/\s*script\b|\bjavascript\s*:|\bon(?:error|load|click|mouseover|focus|blur|submit|toggle|pointerenter)\s*=|<\s*(?:img|svg|iframe|object|embed|body|meta|link|math|video|audio)\b|\bsrcdoc\s*=|\bdata:text\/html\b|\bdocument\.cookie\b|\blocalstorage\b|\bsessionstorage\b|\b(?:alert|confirm|prompt|eval|function|settimeout|setinterval)\s*\(|\binnerhtml\b/i],
+  ['ssrf', /\blocalhost\b|\b127\.0\.0\.1\b|\b0\.0\.0\.0\b|(?:^|[^a-f0-9])::1(?:[^a-f0-9]|$)|\[::1\]|\b10\.\d+\.\d+\.\d+\b|\b172\.(?:1[6-9]|2\d|3[0-1])\.\d+\.\d+\b|\b192\.168\.\d+\.\d+\b|\b169\.254\.169\.254\b|\b169\.254\.\d+\.\d+\b|\bmetadata\.google\.internal\b|\binstance-data\b|\bmetadata\b|\b(?:file|gopher|dict|ftp|ldap|sftp|tftp):\/\//i],
+  ['path_traversal_lfi_rfi', /\.\.\/|\.\.\\|%2e%2e%2f|%252e%252e%252f|\/etc\/passwd|\/etc\/shadow|\/proc\/self\/environ|\bboot\.ini\b|\bwin\.ini\b|\bWEB-INF\b|php:\/\/|zip:\/\/|expect:\/\//i],
+  ['command_injection_rce', /(?:;|\||&&|`|\$\()\s*(?:whoami|id|uname|cat|ls|pwd)\b|\b(?:bash|sh|cmd\.exe|powershell|pwsh|nc|ncat|netcat|wget|curl|perl|python|php|ruby|lua)\b|\b(?:shell_exec|passthru|proc_open|popen|system)\s*\(/i],
+  ['prototype_pollution', /__proto__|constructor\.prototype|prototype\s*=|prototype\[|constructor\[/i],
+  ['nosql_injection', /\$(?:ne|gt|gte|lt|lte|where|regex|or|and|nor|expr|jsonschema)\b/i],
+  ['xxe', /<!DOCTYPE|<!ENTITY|\bSYSTEM\b|\bPUBLIC\b|file:\/\/\/etc\/passwd/i],
+  ['ssti_template_injection', /\{\{7\*7\}\}|\$\{7\*7\}|<%=\s*7\*7\s*%>|#\{7\*7\}|\{\{.*(?:config|self|class|mro|subclasses).*\}\}/i],
+  ['log4shell', /\$\{jndi:|\b(?:ldap|rmi|dns):\/\//i],
+  ['crlf_header_injection', /%0d%0a|\\r\\n|\bSet-Cookie:|\bLocation:|\bContent-Length:|\bTransfer-Encoding:/i],
+  ['request_smuggling', /transfer-encoding[\s\S]{0,80}transfer-encoding|content-length[\s\S]{0,80}content-length|content-length[\s\S]{0,80}transfer-encoding|transfer-encoding[\s\S]{0,80}content-length|\bchunked\b[\s\S]{0,80}\bchunked\b/i],
+  ['upload_webshell', /\.phtml\b|\.phar\b|\.jspx?\b|\.aspx?\b|<\?php|\bbase64_decode\b|\beval\s*\(|\bshell_exec\b|\bsystem\s*\(|\bpassthru\s*\(/i],
+  ['secret_file_probing', /\.env\b|\.git\b|\.svn\b|\.hg\b|\.aws\/credentials\b|\bid_rsa\b|\bwp-config\.php\b|\bconfig\.php\b|\bcomposer\.json\b|\bpackage-lock\.json\b|\/\.well-known\/security\.txt/i],
+  ['csv_formula_injection', /(?:^|[\n\r=,\t ])(?:=cmd|=hyperlink|\+cmd|-cmd|@cmd)\b/i],
+  ['open_redirect', /\b(?:redirect|return|next|url|target|continue|callback)\s*=\s*(?:https?:)?\/\/(?!diracgroup\.store\b)/i],
+  ['oauth_token_probe', /\b(?:access_token|refresh_token|id_token|client_secret|authorization_code)\b\s*[:=]/i],
+  ['graphql_introspection', /\b__schema\b|\b__type\b|\bintrospectionquery\b/i],
+  ['jwt_tampering', /\beyJ[a-zA-Z0-9_-]{20,}\.[a-zA-Z0-9_-]{10,}\.?[a-zA-Z0-9_-]*\b.*\b(?:none|alg|kid|jku|x5u)\b/i]
+];
+
 const DIRAC_CENTRAL_ALLOWED_ORIGINS_V146 = new Set([
   'https://diracgroup.store'
 ]);
@@ -24381,27 +24405,33 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
       startedAt: Date.now(),
       skipHeavyScan: false,
       body: null,
-      sample: null
+      sample: null,
+      guardPassport: Object.create(null)
     };
     DIRAC_CENTRAL_CONTEXT_STACK_V146.push(ctx);
 
     const memoryBan = diracCentralCheckMemoryBanV146(identity);
     if (memoryBan.blocked) return diracCentralBlockedResponseV146(res, 'MEMORY_BAN_ACTIVE');
+    diracCentralStampV146(ctx, 'identity_checked');
+    diracCentralStampV146(ctx, 'memory_ban_checked');
 
     const persistentBan = await diracCentralCheckPersistentBanV146(req, identity);
     if (persistentBan.blocked) {
       diracCentralSetMemoryBanV146(identity, persistentBan.blockedUntilMs, 'persistent_ban');
       return diracCentralBlockedResponseV146(res, 'PERSISTENT_BAN_ACTIVE');
     }
+    diracCentralStampV146(ctx, 'persistent_ban_checked');
     diracCentralSetNegativeCacheV146(identity);
 
     const rawAction = String(req && req.query && req.query.action || '');
     const lowerAction = rawAction.toLowerCase();
     const format = diracCentralValidateActionFormatV146(rawAction, lowerAction);
     if (!format.ok) return await diracCentralBanAndBlockV146(req, res, ctx, lowerAction || 'missing_action', method, format.reason);
+    diracCentralStampV146(ctx, 'action_format_checked');
 
     const aliasResult = diracCentralNormalizeAliasV146(lowerAction);
     if (!aliasResult.ok) return await diracCentralBanAndBlockV146(req, res, ctx, lowerAction, method, aliasResult.reason);
+    diracCentralStampV146(ctx, 'alias_checked');
 
     const action = aliasResult.action;
     ctx.action = action;
@@ -24410,56 +24440,71 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
     if (!DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.has(action) && !DIRAC_CENTRAL_DISABLED_ACTIONS_V146.has(action)) {
       return await diracCentralBanAndBlockV146(req, res, ctx, action, method, 'action_not_in_global_whitelist');
     }
+    diracCentralStampV146(ctx, 'whitelist_checked');
 
     if (DIRAC_CENTRAL_DISABLED_ACTIONS_V146.has(action)) {
       return diracCentralDisabledResponseV146(res);
     }
 
     ctx.classification = diracCentralClassifyActionV146(action);
+    diracCentralStampV146(ctx, 'classification_checked');
 
     const distributedRate = await diracCentralDistributedRateLimitGuardV146(req, ctx);
     if (!distributedRate.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, distributedRate.reason);
+    diracCentralStampV146(ctx, 'rate_checked');
 
     const serverGuard = await diracCentralServerToServerGuardV146(req, res, ctx);
     if (!serverGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, serverGuard.reason);
+    diracCentralStampV146(ctx, 'server_guard_checked');
 
     const pageGuard = diracCentralPageBrowserAuthenticityGuardV146(req, ctx);
     if (!pageGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, pageGuard.reason);
+    diracCentralStampV146(ctx, 'browser_auth_checked');
 
 	    const csrfGuard = diracCentralCsrfGuardV146(req, res, ctx);
 	    if (!csrfGuard.ok) {
 	      return await diracCentralBanAndBlockV146(req, res, ctx, action, method, csrfGuard.reason);
 	    }
+    diracCentralStampV146(ctx, 'csrf_checked');
 
 	    const nonceGuard = diracCentralPageNonceGuardV146(req, res, ctx);
 	    if (!nonceGuard.ok) {
 	      return await diracCentralBanAndBlockV146(req, res, ctx, action, method, nonceGuard.reason);
 	    }
+    diracCentralStampV146(ctx, 'page_nonce_checked');
 
     const browserSignal = diracCentralBrowserSignalGuardV146(req, ctx);
     if (!browserSignal.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, browserSignal.reason);
+    diracCentralStampV146(ctx, 'browser_signal_checked');
 
     const deviceGuard = diracCentralDeviceConsistencyGuardV146(req, ctx);
     if (!deviceGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, deviceGuard.reason);
+    diracCentralStampV146(ctx, 'device_checked');
 
     const adminGuard = await diracCentralAdminAuthGuardV146(req, res, ctx);
     if (!adminGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, adminGuard.reason);
+    diracCentralStampV146(ctx, 'admin_checked');
 
     const publicGuard = diracCentralPublicReadGuardV146(req, ctx);
     if (!publicGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, publicGuard.reason);
+    diracCentralStampV146(ctx, 'public_read_checked');
 
     const bodyGuard = await diracCentralBodyHandlingGuardV146(req, ctx);
     if (!bodyGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, bodyGuard.reason);
+    diracCentralStampV146(ctx, 'body_checked');
 
     const lightGuard = diracCentralLightGuardV146(req, ctx);
     if (!lightGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, lightGuard.reason);
+    diracCentralStampV146(ctx, 'light_checked');
 
     const contractGuard = diracCentralContractGuardV146(req, ctx);
     if (!contractGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, contractGuard.reason);
+    diracCentralStampV146(ctx, 'contract_checked');
 
     if (action === 'security_report') {
       const reportGuard = diracCentralSecurityReportGuardV146(req, ctx);
       if (!reportGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, reportGuard.reason);
+      diracCentralStampV146(ctx, 'security_report_checked');
       return await diracCentralBanAndBlockV146(req, res, ctx, action, method, 'html_security_report');
     }
 
@@ -24468,23 +24513,32 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
     if (!ctx.skipHeavyScan) {
       const sampleGuard = diracCentralSampleCollectorV146(req, ctx);
       if (!sampleGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, sampleGuard.reason);
+      diracCentralStampV146(ctx, 'sample_checked');
 
       const normalized = diracCentralNormalizeSampleV146(ctx.sample);
       const threat = diracCentralThreatPatternGuardV146(normalized, ctx);
       if (threat.detected) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, threat.kind);
+      diracCentralStampV146(ctx, 'threat_checked');
 
       const zeroDay = diracCentralZeroDayShieldV146(req, ctx, normalized);
       if (!zeroDay.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, zeroDay.reason);
+      diracCentralStampV146(ctx, 'zeroday_checked');
     }
 
     const idor = await diracCentralIdorBolaGuardV146(req, ctx);
     if (!idor.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, idor.reason);
+    diracCentralStampV146(ctx, 'idor_checked');
 
     const circuit = await diracCentralCircuitBreakerV146(req, ctx, 'allow');
     if (!circuit.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, circuit.reason);
+    diracCentralStampV146(ctx, 'circuit_checked');
 
     const stableMfaGate = diracCentralStableMfaReadGateV146(req, res, ctx);
     if (stableMfaGate.handled) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, stableMfaGate.reason || 'mfa_required');
+    diracCentralStampV146(ctx, 'mfa_checked');
+
+    const integrity = diracCentralIntegrityVerifierV146(ctx);
+    if (!integrity.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, integrity.reason);
 
     req.__diracCentralSecurityGuardPassedV146 = true;
     return await nextHandler(req, res);
@@ -24702,6 +24756,45 @@ function diracCentralClassifyActionV146(action) {
   return 'browser';
 }
 
+function diracCentralStampV146(ctx, name) {
+  if (!ctx) return;
+  if (!ctx.guardPassport || typeof ctx.guardPassport !== 'object') ctx.guardPassport = Object.create(null);
+  ctx.guardPassport[String(name || '')] = true;
+}
+
+function diracCentralIntegrityVerifierV146(ctx) {
+  const pass = ctx && ctx.guardPassport || {};
+  const required = [
+    'identity_checked',
+    'memory_ban_checked',
+    'persistent_ban_checked',
+    'action_format_checked',
+    'alias_checked',
+    'whitelist_checked',
+    'classification_checked',
+    'rate_checked',
+    'body_checked',
+    'light_checked',
+    'contract_checked',
+    'idor_checked',
+    'circuit_checked',
+    'mfa_checked'
+  ];
+  if (ctx && ctx.classification === 'server') required.push('server_guard_checked');
+  if (ctx && ctx.classification === 'public_read') required.push('public_read_checked', 'sample_checked', 'threat_checked', 'zeroday_checked');
+  if (ctx && (ctx.classification === 'browser' || ctx.classification === 'admin' || DIRAC_CENTRAL_SENSITIVE_ACTIONS_V146.has(ctx.action))) {
+    required.push('browser_auth_checked', 'csrf_checked', 'page_nonce_checked', 'browser_signal_checked', 'device_checked');
+  }
+  if (ctx && ctx.classification === 'admin') required.push('admin_checked');
+  if (ctx && !ctx.skipHeavyScan && ctx.classification !== 'server' && ctx.classification !== 'public_read') {
+    required.push('sample_checked', 'threat_checked', 'zeroday_checked');
+  }
+  for (const stamp of required) {
+    if (!pass[stamp]) return { ok: false, reason: 'central_guard_integrity_missing_' + stamp };
+  }
+  return { ok: true };
+}
+
 async function diracCentralServerToServerGuardV146(req, res, ctx) {
   if (ctx.classification !== 'server') return { ok: true };
   if (ctx.method !== 'POST') return { ok: false, reason: 'server_action_method_invalid' };
@@ -24886,18 +24979,47 @@ function diracCentralBrowserSignalGuardV146(req, ctx) {
   const ua = String(headers['user-agent'] || '').toLowerCase();
   if (!ua) return { ok: false, reason: 'user_agent_missing' };
   if (diracCentralScannerRegexV146().test(ua)) return { ok: false, reason: 'scanner_user_agent' };
-  if (!/\b(chrome|chromium|crios|edg|firefox|fxios|safari|mobile safari)\b/i.test(ua)) return { ok: false, reason: 'browser_not_official' };
+  if (!DIRAC_CENTRAL_BROWSER_UA_REGEX_V146.test(ua)) return { ok: false, reason: 'browser_not_official' };
   const ch = String(headers['sec-ch-ua'] || '').trim();
   if (ch && /chrome|chromium|crios|edg/i.test(ua) && !/Chromium|Google Chrome|Microsoft Edge/i.test(ch)) return { ok: false, reason: 'sec_ch_ua_mismatch' };
   const accept = String(headers.accept || '').toLowerCase();
   const lang = String(headers['accept-language'] || '').toLowerCase();
   if (!accept || !/(application\/json|\*\/\*|text\/html)/i.test(accept)) return { ok: false, reason: 'accept_header_invalid' };
   if (!lang || lang.length > 160) return { ok: false, reason: 'accept_language_invalid' };
+  const advanced = diracCentralAdvancedBrowserSignalV146(req, ctx, ua, headers);
+  if (!advanced.ok) return advanced;
   const contentType = String(headers['content-type'] || '').toLowerCase();
   if (['POST', 'PUT', 'PATCH'].includes(ctx.method) && !/(application\/json|multipart\/form-data|application\/x-www-form-urlencoded)/i.test(contentType)) {
     if (ctx.action === 'domain_logout' && ctx.method === 'POST' && !contentType && Number(headers['content-length'] || 0) === 0) return { ok: true };
     return { ok: false, reason: 'content_type_invalid_browser' };
   }
+  return { ok: true };
+}
+
+function diracCentralAdvancedBrowserSignalV146(req, ctx, ua, headers) {
+  const names = Object.keys(headers || {}).map((name) => String(name || '').toLowerCase());
+  if (names.some((name) => /^(x-scan|x-scanner|x-burp|x-zap|x-forwarded-scheme|x-http-method|x-method-override)$/i.test(name))) {
+    return { ok: false, reason: 'browser_signal_scanner_header' };
+  }
+  const secSite = String(headers['sec-fetch-site'] || '').toLowerCase();
+  const secMode = String(headers['sec-fetch-mode'] || '').toLowerCase();
+  const secDest = String(headers['sec-fetch-dest'] || '').toLowerCase();
+  if ((ctx.method === 'POST' || DIRAC_CENTRAL_SENSITIVE_ACTIONS_V146.has(ctx.action)) && (!secSite || !secMode)) {
+    return { ok: false, reason: 'browser_signal_sec_fetch_missing' };
+  }
+  if (/headless|phantom|selenium|playwright|puppeteer|webdriver|chromedriver|geckodriver/i.test(ua)) {
+    return { ok: false, reason: 'automation_user_agent' };
+  }
+  if (/chrome|chromium|crios|edg/i.test(ua)) {
+    const platform = String(headers['sec-ch-ua-platform'] || '').trim();
+    if (platform && !/^"?(?:Windows|macOS|Linux|Android|Chrome OS|iOS)"?$/i.test(platform)) {
+      return { ok: false, reason: 'sec_ch_platform_invalid' };
+    }
+  }
+  if (/safari/i.test(ua) && !/chrome|chromium|crios|edg|fxios/i.test(ua) && String(headers['sec-ch-ua'] || '').trim()) {
+    return { ok: false, reason: 'safari_sec_ch_unexpected' };
+  }
+  if (secDest && !['empty', 'document'].includes(secDest)) return { ok: false, reason: 'sec_fetch_dest_invalid' };
   return { ok: true };
 }
 
@@ -25139,25 +25261,8 @@ function diracCentralNormalizeSampleV146(sample) {
 function diracCentralThreatPatternGuardV146(normalized, ctx) {
   const spaced = normalized.spacedText || '';
   const compact = normalized.compactText || '';
-  const checks = [
-    ['sql_injection', /\bunion\s+(?:all\s+)?select\b|(?:^|[\s'"`])(?:or|and)\s+1\s*=\s*1(?:$|[\s'"`])|true\s*=\s*true|' or '1'='1|" or "1"="1|--\s|#\s|(?<!\*)\/\*|\*\/(?!\*)|;\s*(?:select|insert|update|delete|drop|alter|truncate)\b|\binformation_schema\b|\bpg_catalog\b|\bsqlite_master\b|\bmysql\.user\b|\bsysobjects\b|\bsyscolumns\b|\bsleep\s*\(|\bpg_sleep\s*\(|\bbenchmark\s*\(|\bwaitfor\s+delay\b|\bload_file\s*\(|\binto\s+outfile\b|\bxp_cmdshell\b|\bextractvalue\s*\(|\bupdatexml\s*\(/i],
-    ['xss', /<\s*script\b|<\s*\/\s*script\b|\bjavascript\s*:|\bon(?:error|load|click|mouseover)\s*=|<\s*(?:img|svg|iframe|object|embed|body|meta|link)\b|\bsrcdoc\s*=|\bdata:text\/html\b|\bdocument\.cookie\b|\blocalstorage\b|\bsessionstorage\b|\b(?:alert|confirm|prompt|eval|function)\s*\(/i],
-    ['ssrf', /\blocalhost\b|\b127\.0\.0\.1\b|\b0\.0\.0\.0\b|(?:^|[^a-f0-9])::1(?:[^a-f0-9]|$)|\[::1\]|\b10\.\d+\.\d+\.\d+\b|\b172\.(?:1[6-9]|2\d|3[0-1])\.\d+\.\d+\b|\b192\.168\.\d+\.\d+\b|\b169\.254\.169\.254\b|\b169\.254\.\d+\.\d+\b|\bmetadata\.google\.internal\b|\binstance-data\b|\bmetadata\b|\b(?:file|gopher|dict|ftp|ldap):\/\//i],
-    ['path_traversal_lfi_rfi', /\.\.\/|\.\.\\|%2e%2e%2f|%252e%252e%252f|\/etc\/passwd|\/etc\/shadow|\bboot\.ini\b|\bwin\.ini\b|\bWEB-INF\b/i],
-    ['command_injection_rce', /(?:;|\||&&|`|\$\()\s*(?:whoami|id)\b|\b(?:bash|sh|cmd\.exe|powershell|pwsh|nc|netcat|wget|curl|perl|python|php|ruby)\b/i],
-    ['prototype_pollution', /__proto__|constructor\.prototype|prototype\s*=|prototype\[|constructor\[/i],
-    ['nosql_injection', /\$(?:ne|gt|gte|lt|lte|where|regex|or|and)\b/i],
-    ['xxe', /<!DOCTYPE|<!ENTITY|\bSYSTEM\b|\bPUBLIC\b|file:\/\/\/etc\/passwd/i],
-    ['ssti_template_injection', /\{\{7\*7\}\}|\$\{7\*7\}|<%=\s*7\*7\s*%>|#\{7\*7\}/i],
-    ['log4shell', /\$\{jndi:|\b(?:ldap|rmi|dns):\/\//i],
-    ['crlf_header_injection', /%0d%0a|\\r\\n|\bSet-Cookie:|\bLocation:|\bContent-Length:|\bTransfer-Encoding:/i],
-    ['request_smuggling', /transfer-encoding[\s\S]{0,80}transfer-encoding|content-length[\s\S]{0,80}content-length|content-length[\s\S]{0,80}transfer-encoding|transfer-encoding[\s\S]{0,80}content-length|\bchunked\b[\s\S]{0,80}\bchunked\b/i],
-    ['upload_webshell', /\.phtml\b|\.jspx?\b|\.aspx?\b|<\?php|\bbase64_decode\b|\beval\s*\(|\bshell_exec\b|\bsystem\s*\(|\bpassthru\s*\(/i],
-    ['secret_file_probing', /\.env\b|\.git\b|\.aws\/credentials\b|\bid_rsa\b|\bwp-config\.php\b|\bconfig\.php\b|\bcomposer\.json\b|\bpackage-lock\.json\b/i],
-    ['csv_formula_injection', /(?:^|[\n\r=,\t ])(?:=cmd|=hyperlink|\+cmd|-cmd|@cmd)\b/i]
-  ];
   if (spaced.includes('\u0000') || /[\u202a-\u202e\u2066-\u2069]/.test(spaced)) return { detected: true, kind: 'unicode_control_or_bidi' };
-  for (const [kind, pattern] of checks) {
+  for (const [kind, pattern] of DIRAC_CENTRAL_THREAT_CHECKS_V146) {
     if (pattern.test(spaced) || pattern.test(compact)) return { detected: true, kind };
   }
   const mass = diracCentralMassAssignmentThreatV146(ctx);
@@ -25182,13 +25287,23 @@ function diracCentralZeroDayShieldV146(req, ctx, normalized) {
   if (!diracCentralProxyHeaderGuardV146(headers).ok) {
     return { ok: false, reason: 'zeroday_manipulative_header' };
   }
+  const query = req && req.query && typeof req.query === 'object' ? req.query : {};
+  if (Object.keys(query).length > 80) return { ok: false, reason: 'zeroday_query_key_too_many' };
+  if (String(req && req.url || '').length > 1800) return { ok: false, reason: 'zeroday_query_too_wide' };
+  if ((ctx.method === 'GET' || ctx.method === 'HEAD') && Number(headers['content-length'] || 0) > 0) return { ok: false, reason: 'zeroday_read_body_unexpected' };
+  if (Object.keys(headers || {}).some((name) => String(name || '').length > 64 || /[\u0000-\u001f\u007f]/.test(String(name || '')))) {
+    return { ok: false, reason: 'zeroday_header_name_invalid' };
+  }
   if (/\b[A-Za-z0-9+/]{240,}={0,2}\b/.test(normalized.spacedText || '')) return { ok: false, reason: 'zeroday_base64_unusual' };
   if (/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(normalized.spacedText || '')) return { ok: false, reason: 'zeroday_binary_unusual' };
+  if (/[\u202a-\u202e\u2066-\u2069]/.test(normalized.spacedText || '')) return { ok: false, reason: 'zeroday_bidi_control' };
+  if (/(?:\b[a-z0-9_-]{20,}\.){2}[a-z0-9_-]{20,}/i.test(normalized.spacedText || '') && /\b(?:none|jku|x5u|kid)\b/i.test(normalized.spacedText || '')) {
+    return { ok: false, reason: 'zeroday_jwt_tamper_shape' };
+  }
   const rate = diracCentralRateLimitV146(ctx.identity.key + ':action:' + ctx.action, 10 * 1000, 20);
   if (!rate.ok) return { ok: false, reason: 'zeroday_request_too_fast' };
   const idCount = diracCentralCollectIdsV146(req, ctx.body).length;
   if (idCount > 8) return { ok: false, reason: 'zeroday_many_ids' };
-  if (String(req && req.url || '').length > 1800) return { ok: false, reason: 'zeroday_query_too_wide' };
   return { ok: true };
 }
 
@@ -26113,7 +26228,7 @@ function diracCentralHtmlEntityDecodeV146(value) {
 }
 
 function diracCentralScannerRegexV146() {
-  return /\b(?:curl|wget|python|python-requests|httpie|postman|postmanruntime|insomnia|burp|burp\s*suite|owasp\s*zap|zap|sqlmap|nuclei|nikto|acunetix|netsparker|nessus|openvas|nmap|masscan|zgrab|ffuf|gobuster|dirb|dirbuster|commix|whatweb|jaeles|xray|x-ray|termux|node-fetch|axios|go-http-client|java|okhttp|libwww-perl|havij|w3af|arachni|skipfish|appscan|webinspect)\b/i;
+  return DIRAC_CENTRAL_SCANNER_UA_REGEX_V146;
 }
 
 function diracCentralOwnedTableV146(table) {
