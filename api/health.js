@@ -1709,7 +1709,7 @@ async function requireDomainDashboardAccess(req, res) {
   const protectedLock = await requireDomainProtectedDatabaseSessionLockSafe(req, res, user).catch(async (error) => {
     console.error('[domain-protected-lock-safe]', customerSecuritySafeLogError(error));
     const reason = await customerSecurityDashboardHardFail(req, 'protected_lock_exception');
-    clearSessionCookies(res);
+    customerSecurityDashboardClearCookiesSafe(res);
     res.status(403).json({
       ok: false,
       dashboard: false,
@@ -1734,12 +1734,12 @@ async function requireDomainProtectedDatabaseSessionLockSafe(req, res, user) {
       reason: 'protected_session_lock_timeout',
       clearCookies: true,
       message: 'Dashboard timeout di backend security lock.'
-    }), 4500))
+    }), 11000))
   ]);
   if (checked && checked.ok) return checked;
 
   const reason = await customerSecurityDashboardHardFail(req, checked && checked.reason || 'protected_session_lock_failed');
-  if (checked && checked.clearCookies) clearSessionCookies(res);
+  if (checked && checked.clearCookies) customerSecurityDashboardClearCookiesSafe(res);
 
   res.status(403).json({
     ok: false,
@@ -1761,6 +1761,10 @@ async function customerSecurityDashboardHardFail(req, fallbackReason) {
     await diracCentralBanCurrentContextV146(reason).catch(() => null);
   }
   return reason;
+}
+
+function customerSecurityDashboardClearCookiesSafe(res) {
+  try { clearSessionCookies(res); } catch (_) {}
 }
 
 function customerSecurityDashboardTimeoutResult(reason, code, customerId) {
@@ -1786,7 +1790,7 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
     new Promise((resolve) => setTimeout(() => resolve(customerSecurityDashboardTimeoutResult(
       'auth_link_read_timeout_fail_closed',
       'PROTECTED_SESSION_OWNER_TIMEOUT'
-    )), 1500))
+    )), 5000))
   ]);
   if (!linkResult.ok) {
     return linkResult.reason
@@ -1812,7 +1816,7 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
     '&session_token_hash=eq.' + encodeURIComponent(fingerprint.session_token_hash) +
     '&limit=1';
 
-  const found = await supabaseFetch(readPath, { method: 'GET', auth: 'service', timeoutMs: 1800 });
+  const found = await supabaseFetch(readPath, { method: 'GET', auth: 'service', timeoutMs: 5000 });
   if (!found.ok) {
     const timedOut = String(found && (found.error || found.data && found.data.code) || '').includes('TIMEOUT');
     return timedOut
@@ -24552,13 +24556,8 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
   } catch (error) {
     try { console.error('[dirac-central-security-v146]', diracCentralSafeErrorV146(error)); } catch (_) {}
     if (ctx && req && req.__diracCentralSecurityGuardPassedV146 && ctx.action === 'domain_dashboard_me') {
-      diracCentralApplyHeadersV146(res);
-      return res.status(500).json({
-        ok: false,
-        code: 'DOMAIN_DASHBOARD_HANDLER_ERROR',
-        message: 'Dashboard belum bisa dimuat. Silakan coba lagi.',
-        source: DIRAC_CENTRAL_SECURITY_GUARD_V146
-      });
+      if (res && res.headersSent) return;
+      return await diracCentralBanAndBlockV146(req, res, ctx, ctx.action || 'domain_dashboard_me', method || ctx.method || 'GET', 'domain_dashboard_handler_error');
     }
     if (ctx) return await diracCentralBanAndBlockV146(req, res, ctx, ctx.action || 'central_guard_error', method, 'central_guard_error');
     return diracCentralBlockedResponseV146(res, 'CENTRAL_GUARD_ERROR');
