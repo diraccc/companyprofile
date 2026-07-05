@@ -2472,6 +2472,8 @@ function verifyCustomerDashboardMfaCookie(req, user) {
   const proof = getCustomerDashboardMfaToken(req);
   const payload = decodeCustomerDashboardMfaToken(proof.token);
   const email = normalizeAuthEmail(user && user.email);
+  const userId = String(user && user.id || '').trim();
+  const customerId = String(user && (user.customer_id || user.customerId || user.customer || '') || '').trim();
 
   if (!payload || payload.type !== CUSTOMER_MFA_SESSION_TYPE) {
     return { ok: false, code: proof && proof.token ? 'mfa_cookie_invalid_or_unsigned' : 'mfa_cookie_missing', message: proof && proof.token ? 'Sesi A2F backend tidak valid. Login dan verifikasi A2F ulang dari domain resmi.' : 'Sesi A2F backend tidak ditemukan. Login dan verifikasi A2F ulang dari domain resmi.' };
@@ -2483,6 +2485,22 @@ function verifyCustomerDashboardMfaCookie(req, user) {
 
   if (!email || !payload.emailHash || !safeEqual(String(payload.emailHash), customerMfaProfileId(email))) {
     return { ok: false, code: 'mfa_cookie_user_mismatch', message: 'Sesi A2F backend tidak cocok dengan akun login.' };
+  }
+
+  if (!payload.authUserIdHash || !userId || !safeEqual(String(payload.authUserIdHash), customerMfaBindingHash('auth_user_id', userId))) {
+    return { ok: false, code: 'mfa_cookie_auth_user_mismatch', message: 'Sesi A2F backend tidak cocok dengan akun login.' };
+  }
+
+  if (payload.customerIdHash && customerId && !safeEqual(String(payload.customerIdHash), customerMfaBindingHash('customer_id', customerId))) {
+    return { ok: false, code: 'mfa_cookie_customer_mismatch', message: 'Sesi A2F backend tidak cocok dengan customer login.' };
+  }
+
+  if (payload.sessionHash) {
+    let expectedSessionHash = '';
+    try { expectedSessionHash = typeof diracCentralRequestSessionHashV146 === 'function' ? diracCentralRequestSessionHashV146(req) : ''; } catch (_) {}
+    if (expectedSessionHash && !safeEqual(String(payload.sessionHash), expectedSessionHash)) {
+      return { ok: false, code: 'mfa_cookie_session_mismatch', message: 'Sesi A2F backend tidak cocok dengan sesi login.' };
+    }
   }
 
   if (payload.originHash) {
@@ -5942,11 +5960,19 @@ async function customerSecurityGenerateRecoveryCodes(req, res, action) {
 function customerSecurityCreateDashboardMfaToken(req, user, method = 'recovery_code') {
   const email = normalizeAuthEmail(user && user.email);
   const now = Date.now();
-  const maxAgeSeconds = 60 * 60 * 12;
+  const maxAgeSeconds = Math.max(15 * 60, Math.min(60 * 60, Number(process.env.DIRAC_DASHBOARD_MFA_MAX_AGE_SECONDS || 30 * 60)));
+  const userId = String(user && user.id || '').trim();
+  const customerId = String(user && (user.customer_id || user.customerId || user.customer || '') || '').trim();
+  let sessionHash = '';
+  try { sessionHash = typeof diracCentralRequestSessionHashV146 === 'function' ? diracCentralRequestSessionHashV146(req) : ''; } catch (_) {}
   const payload = {
     type: CUSTOMER_MFA_SESSION_TYPE,
     method,
     emailHash: customerMfaProfileId(email),
+    authUserIdHash: userId ? customerMfaBindingHash('auth_user_id', userId) : '',
+    customerIdHash: customerId ? customerMfaBindingHash('customer_id', customerId) : '',
+    sessionHash,
+    jti: crypto.randomBytes(24).toString('base64url'),
     activeAtMs: now,
     expiresAtMs: now + maxAgeSeconds * 1000,
     originHash: customerMfaBindingHash('origin', requestOrigin(req)),
@@ -9734,7 +9760,9 @@ const DIRAC_EMAIL_A2F_ACTIONS = new Set([
   'domain_mfa_email_verify'
 ]);
 const DIRAC_EMAIL_A2F_STORE = globalThis.__DIRAC_EMAIL_A2F_STORE__ || new Map();
+const DIRAC_EMAIL_A2F_RATE_STORE = globalThis.__DIRAC_EMAIL_A2F_RATE_STORE__ || new Map();
 globalThis.__DIRAC_EMAIL_A2F_STORE__ = DIRAC_EMAIL_A2F_STORE;
+globalThis.__DIRAC_EMAIL_A2F_RATE_STORE__ = DIRAC_EMAIL_A2F_RATE_STORE;
 const DIRAC_EMAIL_A2F_TTL_MS = Math.max(60_000, Number(process.env.DIRAC_EMAIL_A2F_TTL_MS || 5 * 60_000));
 const DIRAC_EMAIL_A2F_MAX_ATTEMPTS = Math.max(3, Number(process.env.DIRAC_EMAIL_A2F_MAX_ATTEMPTS || 5));
 
@@ -9769,7 +9797,7 @@ function diracEmailA2FCleanup(now = Date.now()) {
 }
 
 async function diracEmailA2FStoreChallenge(setupToken, record) {
-  await diracEmailA2FStoreChallenge(setupToken, record);
+  DIRAC_EMAIL_A2F_STORE.set(setupToken, record);
   try {
     if (typeof writePersistentSecurityJson === 'function') {
       await writePersistentSecurityJson('email-a2f-jti:' + setupToken, record, 0, Math.max(60, Math.ceil((Number(record && record.expiresAtMs || 0) - Date.now()) / 1000) + 30)).catch(() => false);
@@ -9804,11 +9832,84 @@ function diracEmailA2FMaskEmail(email) {
   const parts = value.split('@');
   if (parts.length !== 2) return 'e••••@mail';
   const name = parts[0] || 'e';
-  return `${name.slice(0, 1)}••••${name.length > 4 ? name.slice(-2) : ''}@${parts[1]}`;
+  const domain = parts[1] || 'mail';
+  const domainParts = domain.split('.');
+  const domainName = domainParts[0] || 'mail';
+  const tld = domainParts.length > 1 ? domainParts.slice(1).join('.') : '';
+  const maskedDomain = `${domainName.slice(0, 1)}••••${tld ? '.' + tld : ''}`;
+  return `${name.slice(0, 1)}••••${name.length > 4 ? name.slice(-2) : ''}@${maskedDomain}`;
 }
 
 function diracEmailA2FGenerateCode() {
   return String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+}
+
+function diracA2FHardBanCurrentRequest(reason) {
+  try {
+    if (typeof diracCentralBanCurrentContextV146 === 'function') {
+      return diracCentralBanCurrentContextV146(String(reason || 'a2f_security_violation').slice(0, 100));
+    }
+  } catch (_) {}
+  return Promise.resolve({ ok: false });
+}
+
+function diracA2FUserBinding(req, user, email) {
+  const userId = String(user && user.id || '').trim();
+  const customerId = String(user && (user.customer_id || user.customerId || user.customer || '') || '').trim();
+  let sessionHash = '';
+  try { sessionHash = typeof diracCentralRequestSessionHashV146 === 'function' ? diracCentralRequestSessionHashV146(req) : ''; } catch (_) {}
+  return {
+    authUserIdHash: userId ? customerMfaBindingHash('auth_user_id', userId) : '',
+    customerIdHash: customerId ? customerMfaBindingHash('customer_id', customerId) : '',
+    sessionHash,
+    emailHash: customerMfaProfileId(email || (user && user.email))
+  };
+}
+
+function diracA2FCheckUserBinding(req, user, record, email) {
+  const binding = diracA2FUserBinding(req, user, email);
+  if (!record || !binding.authUserIdHash || !record.authUserIdHash || !safeEqual(String(record.authUserIdHash), binding.authUserIdHash)) {
+    return { ok: false, reason: 'a2f_auth_user_binding_mismatch' };
+  }
+  if (record.customerIdHash && binding.customerIdHash && !safeEqual(String(record.customerIdHash), binding.customerIdHash)) {
+    return { ok: false, reason: 'a2f_customer_binding_mismatch' };
+  }
+  if (record.sessionHash && binding.sessionHash && !safeEqual(String(record.sessionHash), binding.sessionHash)) {
+    return { ok: false, reason: 'a2f_session_binding_mismatch' };
+  }
+  return { ok: true };
+}
+
+function diracEmailA2FRateLimit(key, windowMs, max) {
+  const now = Date.now();
+  const clean = String(key || 'email-a2f-rate').slice(0, 180);
+  const row = DIRAC_EMAIL_A2F_RATE_STORE.get(clean) || { count: 0, resetAt: now + windowMs };
+  if (Number(row.resetAt || 0) <= now) {
+    row.count = 0;
+    row.resetAt = now + windowMs;
+  }
+  row.count += 1;
+  DIRAC_EMAIL_A2F_RATE_STORE.set(clean, row);
+  if (DIRAC_EMAIL_A2F_RATE_STORE.size > 2000) {
+    for (const [itemKey, item] of DIRAC_EMAIL_A2F_RATE_STORE.entries()) {
+      if (Number(item && item.resetAt || 0) <= now) DIRAC_EMAIL_A2F_RATE_STORE.delete(itemKey);
+      if (DIRAC_EMAIL_A2F_RATE_STORE.size <= 1200) break;
+    }
+  }
+  return { ok: row.count <= max, count: row.count, resetAt: row.resetAt };
+}
+
+function diracEmailA2FRateGuard(req, user, email, phase) {
+  const binding = diracA2FUserBinding(req, user, email);
+  const identity = binding.authUserIdHash || binding.emailHash || customerMfaBindingHash('ua', requestUserAgent(req));
+  const cleanPhase = String(phase || 'start');
+  const shortLimit = cleanPhase === 'verify' ? 12 : 5;
+  const dayLimit = cleanPhase === 'verify' ? 80 : 20;
+  const shortHit = diracEmailA2FRateLimit(`email-a2f:${cleanPhase}:short:${identity}`, 10 * 60_000, shortLimit);
+  if (!shortHit.ok) return { ok: false, reason: 'email_a2f_rate_short' };
+  const dayHit = diracEmailA2FRateLimit(`email-a2f:${cleanPhase}:day:${identity}`, 24 * 60 * 60_000, dayLimit);
+  if (!dayHit.ok) return { ok: false, reason: 'email_a2f_rate_day' };
+  return { ok: true };
 }
 
 
@@ -9889,6 +9990,8 @@ async function diracEmailA2FStart(req, res) {
 
   const email = normalizeAuthEmail(user.email);
   if (!isValidAuthEmail(email)) return res.status(400).json({ ok: false, message: 'Email akun tidak valid.' });
+  const rate = diracEmailA2FRateGuard(req, user, email, 'start');
+  if (!rate.ok) return res.status(429).json({ ok: false, message: 'Terlalu banyak permintaan kode A2F. Coba lagi sebentar lagi.' });
 
   const passkeyGate = await diracEmailA2FHasActivePasskeyForUser(user, email);
   if (!passkeyGate.ok) {
@@ -9903,13 +10006,18 @@ async function diracEmailA2FStart(req, res) {
   const code = diracEmailA2FGenerateCode();
   const setupToken = crypto.randomBytes(32).toString('base64url');
   const now = Date.now();
+  const binding = diracA2FUserBinding(req, user, email);
   const record = {
     codeHash: diracEmailA2FHash(`email-a2f-code:${email}:${setupToken}:${code}`),
-    emailHash: customerMfaProfileId(email),
+    emailHash: binding.emailHash,
+    authUserIdHash: binding.authUserIdHash,
+    customerIdHash: binding.customerIdHash,
+    sessionHash: binding.sessionHash,
     originHash: customerMfaBindingHash('origin', requestOrigin(req)),
     uaHash: customerMfaBindingHash('ua', requestUserAgent(req)),
     expiresAtMs: now + DIRAC_EMAIL_A2F_TTL_MS,
     attempts: 0,
+    jti: crypto.randomBytes(24).toString('base64url'),
     createdAtMs: now
   };
 
@@ -9926,7 +10034,7 @@ async function diracEmailA2FStart(req, res) {
     });
   }
 
-  DIRAC_EMAIL_A2F_STORE.set(setupToken, record);
+  await diracEmailA2FStoreChallenge(setupToken, record);
 
   return res.status(200).json({
     ok: true,
@@ -9947,6 +10055,8 @@ async function diracEmailA2FVerify(req, res) {
 
   const body = await readBody(req);
   const email = normalizeAuthEmail(user.email);
+  const rate = diracEmailA2FRateGuard(req, user, email, 'verify');
+  if (!rate.ok) return res.status(429).json({ ok: false, message: 'Terlalu banyak percobaan kode A2F. Coba lagi sebentar lagi.' });
   const setupToken = String(body.setupToken || body.mfaSetupToken || body.token || '').trim();
   const code = String(body.code || body.otp || body.email_code || '').replace(/\D/g, '').slice(0, 6);
 
@@ -9955,7 +10065,10 @@ async function diracEmailA2FVerify(req, res) {
   }
 
   const record = await diracEmailA2FReadChallenge(setupToken);
-  if (!record || record.used === true) return res.status(403).json({ ok: false, message: 'Kode email sudah expired. Kirim ulang kode.' });
+  if (!record || record.used === true) {
+    await diracA2FHardBanCurrentRequest('email_a2f_challenge_missing_or_used');
+    return res.status(403).json({ ok: false, message: 'Kode email sudah expired. Kirim ulang kode.' });
+  }
 
   const now = Date.now();
   if (Number(record.expiresAtMs || 0) <= now) {
@@ -9965,12 +10078,20 @@ async function diracEmailA2FVerify(req, res) {
 
   if (!record.emailHash || !safeEqual(String(record.emailHash), customerMfaProfileId(email))) {
     await diracEmailA2FMarkChallengeUsed(setupToken, record, 'email_mismatch');
+    await diracA2FHardBanCurrentRequest('email_a2f_email_mismatch');
     return res.status(403).json({ ok: false, message: 'Kode email tidak cocok dengan akun login.' });
+  }
+  const bindingCheck = diracA2FCheckUserBinding(req, user, record, email);
+  if (!bindingCheck.ok) {
+    await diracEmailA2FMarkChallengeUsed(setupToken, record, bindingCheck.reason);
+    await diracA2FHardBanCurrentRequest(bindingCheck.reason);
+    return res.status(403).json({ ok: false, message: 'Kode email tidak cocok dengan sesi login ini.' });
   }
 
   if (record.originHash) {
     const expectedOriginHash = customerMfaBindingHash('origin', requestOrigin(req));
     if (!expectedOriginHash || !safeEqual(String(record.originHash), expectedOriginHash)) {
+      await diracA2FHardBanCurrentRequest('email_a2f_origin_mismatch');
       return res.status(403).json({ ok: false, message: 'Kode email harus diverifikasi dari origin yang sama.' });
     }
   }
@@ -9978,6 +10099,7 @@ async function diracEmailA2FVerify(req, res) {
   if (record.uaHash) {
     const expectedUaHash = customerMfaBindingHash('ua', requestUserAgent(req));
     if (!expectedUaHash || !safeEqual(String(record.uaHash), expectedUaHash)) {
+      await diracA2FHardBanCurrentRequest('email_a2f_ua_mismatch');
       return res.status(403).json({ ok: false, message: 'Kode email harus diverifikasi dari perangkat/browser yang sama.' });
     }
   }
@@ -10098,7 +10220,9 @@ const DIRAC_PASSKEY_A2F_ACTIONS = new Set([
 const DIRAC_PASSKEY_A2F_TOKEN_TYPE = 'dirac-passkey-a2f-challenge-v2';
 const DIRAC_PASSKEY_A2F_TTL_MS = Math.max(60_000, Number(process.env.DIRAC_PASSKEY_A2F_TTL_MS || 5 * 60_000));
 const DIRAC_PASSKEY_A2F_CHALLENGE_STORE = globalThis.__DIRAC_PASSKEY_A2F_CHALLENGE_STORE__ || new Map();
+const DIRAC_PASSKEY_A2F_CONSUME_LOCKS = globalThis.__DIRAC_PASSKEY_A2F_CONSUME_LOCKS__ || new Set();
 globalThis.__DIRAC_PASSKEY_A2F_CHALLENGE_STORE__ = DIRAC_PASSKEY_A2F_CHALLENGE_STORE;
+globalThis.__DIRAC_PASSKEY_A2F_CONSUME_LOCKS__ = DIRAC_PASSKEY_A2F_CONSUME_LOCKS;
 
 module.exports = async function diracPasskeyA2FWrapper(req, res) {
   const rawAction = String((req.query && req.query.action) || '').trim();
@@ -10163,6 +10287,11 @@ function diracPasskeyA2FRpId(req) {
 
 function diracPasskeyA2FRpName() {
   return String(process.env.WEBAUTHN_RP_NAME || process.env.DIRAC_WEBAUTHN_RP_NAME || 'Dirac Secure').trim() || 'Dirac Secure';
+}
+
+function diracPasskeyA2FAttestationPolicy() {
+  const value = String(process.env.DIRAC_PASSKEY_ATTESTATION || process.env.WEBAUTHN_ATTESTATION || 'none').trim().toLowerCase();
+  return ['none', 'indirect', 'direct', 'enterprise'].includes(value) ? value : 'none';
 }
 
 function diracPasskeyA2FUserHandle(user) {
@@ -10429,20 +10558,28 @@ async function diracPasskeyA2FConsumeChallenge(setupToken, payload) {
   const jti = String(payload && payload.jti || '');
   const expectedHash = customerMfaBindingHash('passkey_token', setupToken);
   const now = Date.now();
+  if (!jti || DIRAC_PASSKEY_A2F_CONSUME_LOCKS.has(jti)) return { ok: false, reason: 'passkey_challenge_replay_lock' };
+  DIRAC_PASSKEY_A2F_CONSUME_LOCKS.add(jti);
   let record = DIRAC_PASSKEY_A2F_CHALLENGE_STORE.get(jti) || null;
-  if (!record && typeof readPersistentSecurityJson === 'function') {
-    record = await readPersistentSecurityJson('passkey-a2f-jti:' + jti).catch(() => null);
-  }
-  if (!jti || !record || record.used === true) return { ok: false, reason: 'passkey_challenge_missing_or_used' };
-  if (Number(record.expiresAtMs || 0) <= now) return { ok: false, reason: 'passkey_challenge_expired' };
-  if (!expectedHash || !record.token_hash || !safeEqual(String(record.token_hash), expectedHash)) return { ok: false, reason: 'passkey_challenge_token_mismatch' };
-  DIRAC_PASSKEY_A2F_CHALLENGE_STORE.set(jti, { ...record, used: true, expiresAtMs: now + 1000 });
   try {
-    if (typeof writePersistentSecurityJson === 'function') {
-      await writePersistentSecurityJson('passkey-a2f-jti:' + jti, { ...record, used: true, usedAtMs: now }, 0, 60).catch(() => false);
+    if (!record && typeof readPersistentSecurityJson === 'function') {
+      record = await readPersistentSecurityJson('passkey-a2f-jti:' + jti).catch(() => null);
     }
-  } catch (_) {}
-  return { ok: true };
+    if (!record || record.used === true) return { ok: false, reason: 'passkey_challenge_missing_or_used' };
+    if (Number(record.expiresAtMs || 0) <= now) return { ok: false, reason: 'passkey_challenge_expired' };
+    if (!expectedHash || !record.token_hash || !safeEqual(String(record.token_hash), expectedHash)) return { ok: false, reason: 'passkey_challenge_token_mismatch' };
+    DIRAC_PASSKEY_A2F_CHALLENGE_STORE.set(jti, { ...record, used: true, expiresAtMs: now + 1000 });
+    try {
+      if (typeof writePersistentSecurityJson === 'function') {
+        await writePersistentSecurityJson('passkey-a2f-jti:' + jti, { ...record, used: true, usedAtMs: now }, 0, 60).catch(() => false);
+      }
+    } catch (_) {}
+    return { ok: true };
+  } finally {
+    setTimeout(() => {
+      try { DIRAC_PASSKEY_A2F_CONSUME_LOCKS.delete(jti); } catch (_) {}
+    }, 60_000).unref?.();
+  }
 }
 
 function diracPasskeyA2FMinimalCredentialJson({ credential, response, clientData, payload, owner, req, mode }) {
@@ -10455,19 +10592,19 @@ function diracPasskeyA2FMinimalCredentialJson({ credential, response, clientData
     auth_user_id: owner && owner.authUserId ? String(owner.authUserId) : null,
     customer_id: owner && owner.customerId ? String(owner.customerId) : null,
     credential: {
-      id: diracPasskeyA2FCredentialId(credential),
-      rawId: diracPasskeyA2FSafeString(credential && credential.rawId, 4096),
+      id_hash: crypto.createHash('sha256').update(diracPasskeyA2FCredentialId(credential)).digest('hex'),
+      id_hint: crypto.createHash('sha256').update(diracPasskeyA2FCredentialId(credential)).digest('hex').slice(0, 12),
       type: diracPasskeyA2FSafeString(credential && credential.type, 64) || 'public-key',
-      clientExtensionResults: credential && credential.clientExtensionResults && typeof credential.clientExtensionResults === 'object'
-        ? credential.clientExtensionResults
-        : {}
+      clientExtensionResultKeys: credential && credential.clientExtensionResults && typeof credential.clientExtensionResults === 'object'
+        ? Object.keys(credential.clientExtensionResults).slice(0, 20)
+        : []
     },
     response: {
-      clientDataJSON: diracPasskeyA2FSafeString(response && response.clientDataJSON, 8192),
-      attestationObject: diracPasskeyA2FSafeString(response && response.attestationObject, 65536),
-      authenticatorData: diracPasskeyA2FSafeString(response && response.authenticatorData, 16384),
-      signature: diracPasskeyA2FSafeString(response && response.signature, 16384),
-      userHandle: diracPasskeyA2FSafeString(response && response.userHandle, 4096),
+      clientDataJSON_sha256: crypto.createHash('sha256').update(String(response && response.clientDataJSON || '')).digest('hex'),
+      attestationObject_sha256: response && response.attestationObject ? crypto.createHash('sha256').update(String(response.attestationObject)).digest('hex') : '',
+      authenticatorData_sha256: response && response.authenticatorData ? crypto.createHash('sha256').update(String(response.authenticatorData)).digest('hex') : '',
+      signature_sha256: response && response.signature ? crypto.createHash('sha256').update(String(response.signature)).digest('hex') : '',
+      userHandle_hash: response && response.userHandle ? crypto.createHash('sha256').update(String(response.userHandle)).digest('hex') : '',
       transports: diracPasskeyA2FTransports(credential, response)
     },
     client_data: {
@@ -10539,10 +10676,14 @@ function diracPasskeyA2FOwnerMatches(row, owner) {
   if (!row || !owner) return false;
   const rowCustomer = String(row.user_id || '').trim();
   const rowEmail = normalizeAuthEmail(row.email || '');
-  return Boolean(
-    (owner.customerId && rowCustomer && rowCustomer === String(owner.customerId)) ||
-    (owner.email && rowEmail && rowEmail === normalizeAuthEmail(owner.email))
-  );
+  const ownerCustomer = String(owner.customerId || '').trim();
+  const ownerEmail = normalizeAuthEmail(owner.email || '');
+  if (rowCustomer && rowEmail && ownerCustomer && ownerEmail) {
+    return rowCustomer === ownerCustomer && rowEmail === ownerEmail;
+  }
+  if (rowCustomer && ownerCustomer) return rowCustomer === ownerCustomer;
+  if (rowEmail && ownerEmail) return rowEmail === ownerEmail;
+  return false;
 }
 
 async function diracPasskeyA2FListActivePasskeys(owner) {
@@ -10811,7 +10952,7 @@ async function diracPasskeyA2FStart(req, res) {
         { type: 'public-key', alg: -257 }
       ],
       timeout: 60000,
-      attestation: 'none',
+      attestation: diracPasskeyA2FAttestationPolicy(),
       authenticatorSelection: {
         authenticatorAttachment: 'platform',
         residentKey: 'preferred',
@@ -10840,24 +10981,30 @@ async function diracPasskeyA2FVerify(req, res) {
   const setupToken = String(body.setupToken || body.mfaSetupToken || body.token || '').trim();
   const payload = diracPasskeyA2FDecodeToken(setupToken);
   if (!payload || payload.type !== DIRAC_PASSKEY_A2F_TOKEN_TYPE || payload.method !== 'passkey') {
+    await diracA2FHardBanCurrentRequest('passkey_a2f_token_invalid');
     return res.status(403).json({ ok: false, method: 'passkey', message: 'Challenge Passkey tidak valid. Tekan Buat passkey sekarang sekali lagi.' });
   }
   if (Number(payload.expiresAtMs || 0) <= Date.now()) {
+    await diracA2FHardBanCurrentRequest('passkey_a2f_token_expired');
     return res.status(403).json({ ok: false, method: 'passkey', message: 'Challenge Passkey sudah expired. Ulangi dari tombol Passkey.' });
   }
   const challengeUse = await diracPasskeyA2FConsumeChallenge(setupToken, payload);
   if (!challengeUse.ok) {
+    await diracA2FHardBanCurrentRequest(challengeUse.reason || 'passkey_a2f_challenge_replay');
     return res.status(403).json({ ok: false, method: 'passkey', message: 'Challenge Passkey sudah dipakai atau tidak valid. Ulangi dari tombol Passkey.' });
   }
   if (!payload.emailHash || !safeEqual(String(payload.emailHash), customerMfaProfileId(owner.email))) {
+    await diracA2FHardBanCurrentRequest('passkey_a2f_email_mismatch');
     return res.status(403).json({ ok: false, method: 'passkey', message: 'Passkey harus dibuat dari akun login yang sama.' });
   }
   if (payload.customerId && owner.customerId && String(payload.customerId) !== String(owner.customerId)) {
+    await diracA2FHardBanCurrentRequest('passkey_a2f_customer_mismatch');
     return res.status(403).json({ ok: false, method: 'passkey', message: 'Customer owner Passkey tidak cocok. Login ulang dulu.' });
   }
   if (payload.uaHash) {
     const expectedUaHash = customerMfaBindingHash('ua', requestUserAgent(req));
     if (!expectedUaHash || !safeEqual(String(payload.uaHash), expectedUaHash)) {
+      await diracA2FHardBanCurrentRequest('passkey_a2f_ua_mismatch');
       return res.status(403).json({ ok: false, method: 'passkey', message: 'Passkey harus diselesaikan dari browser/perangkat yang sama.' });
     }
   }
@@ -10870,9 +11017,11 @@ async function diracPasskeyA2FVerify(req, res) {
     return res.status(400).json({ ok: false, method: 'passkey', message: 'Data Passkey dari browser tidak lengkap. Coba ulangi Face ID/sidik jari/PIN.' });
   }
   if (String(clientData.challenge || '') !== String(payload.challenge || '')) {
+    await diracA2FHardBanCurrentRequest('passkey_a2f_challenge_mismatch');
     return res.status(403).json({ ok: false, method: 'passkey', message: 'Challenge Passkey tidak cocok. Minta challenge baru.' });
   }
   if (clientData.crossOrigin === true) {
+    await diracA2FHardBanCurrentRequest('passkey_a2f_cross_origin');
     return res.status(403).json({ ok: false, method: 'passkey', message: 'Passkey harus dibuat dari origin website utama.' });
   }
   const clientType = String(clientData.type || '').toLowerCase();
@@ -10887,6 +11036,7 @@ async function diracPasskeyA2FVerify(req, res) {
   const clientOrigin = normalizeDashboardMfaOrigin(clientData.origin || '');
   const expectedOrigin = normalizeDashboardMfaOrigin(payload.origin || requestOrigin(req));
   if (expectedOrigin && clientOrigin && clientOrigin !== expectedOrigin) {
+    await diracA2FHardBanCurrentRequest('passkey_a2f_origin_mismatch');
     return res.status(403).json({ ok: false, method: 'passkey', message: 'Origin Passkey tidak cocok dengan domain login.' });
   }
   if (!isAuthentication && !response.attestationObject) {
@@ -10907,6 +11057,7 @@ async function diracPasskeyA2FVerify(req, res) {
     const existingResult = await diracPasskeyA2FFetchByCredentialId(credentialId);
     const row = existingResult.ok && Array.isArray(existingResult.data) ? existingResult.data[0] : null;
     if (!row || row.is_active !== true || !diracPasskeyA2FOwnerMatches(row, owner)) {
+      await diracA2FHardBanCurrentRequest('passkey_a2f_credential_owner_mismatch');
       return res.status(403).json({ ok: false, method: 'passkey', message: 'Passkey tidak terdaftar untuk akun ini. Buat Passkey dulu dari akun yang benar.' });
     }
     dbWrite = await diracPasskeyA2FUpdateUsage({ row, owner, response, credential, clientData, payload, req });
@@ -17680,8 +17831,16 @@ const __diracCsrfHmacPreviousHandler = module.exports;
 const DIRAC_CSRF_DEFAULT_ACTIONS = new Set([
   // Order/domain write. Bukan payment gateway wrapper.
   'domain_checkout',
+  'dirac_mfa_email_start',
+  'dirac_mfa_email_verify',
+  'domain_mfa_email_start',
+  'domain_mfa_email_verify',
+  'dirac_mfa_passkey_start',
+  'dirac_mfa_passkey_verify',
+  'domain_mfa_passkey_start',
+  'domain_mfa_passkey_verify',
 
-  // Customer security write actions. Logout, login, A2F/MFA, passkey, email template,
+  // Customer security write actions. Login, email template,
   // payment gateway, dan webhook sengaja tidak dimasukkan.
   'customer_security_revoke_session',
   'customer_security_revoke_other_sessions',
@@ -17796,10 +17955,7 @@ function diracCsrfIsNeverTouchAction(action) {
     || clean === 'payment_callback'
     || clean === 'ipaymu_webhook'
     || clean === 'ipaymu_callback'
-    || clean === 'ipaymu_notification'
-    || /(^|_)mfa(_|$)/i.test(clean)
-    || /(^|_)a2f(_|$)/i.test(clean)
-    || /passkey/i.test(clean);
+    || clean === 'ipaymu_notification';
 }
 
 function diracCsrfIsDisabledForAction(action) {
@@ -23844,6 +24000,7 @@ const DIRAC_CENTRAL_CIRCUIT_V146 = globalThis.__DIRAC_CENTRAL_CIRCUIT_V146__ || 
 const DIRAC_CENTRAL_DNS_CACHE_V146 = globalThis.__DIRAC_CENTRAL_DNS_CACHE_V146__ || new Map();
 const DIRAC_CENTRAL_CONTEXT_STACK_V146 = globalThis.__DIRAC_CENTRAL_CONTEXT_STACK_V146__ || [];
 const DIRAC_CENTRAL_SECRET_CACHE_V146 = globalThis.__DIRAC_CENTRAL_SECRET_CACHE_V146__ || new Map();
+const DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148 = globalThis.__DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148__ || new Map();
 globalThis.__DIRAC_CENTRAL_MEMORY_BAN_V146__ = DIRAC_CENTRAL_MEMORY_BAN_V146;
 globalThis.__DIRAC_CENTRAL_NEGATIVE_BAN_V146__ = DIRAC_CENTRAL_NEGATIVE_BAN_V146;
 globalThis.__DIRAC_CENTRAL_DEVICE_BINDINGS_V146__ = DIRAC_CENTRAL_DEVICE_BINDINGS_V146;
@@ -23852,6 +24009,7 @@ globalThis.__DIRAC_CENTRAL_CIRCUIT_V146__ = DIRAC_CENTRAL_CIRCUIT_V146;
 globalThis.__DIRAC_CENTRAL_DNS_CACHE_V146__ = DIRAC_CENTRAL_DNS_CACHE_V146;
 globalThis.__DIRAC_CENTRAL_CONTEXT_STACK_V146__ = DIRAC_CENTRAL_CONTEXT_STACK_V146;
 globalThis.__DIRAC_CENTRAL_SECRET_CACHE_V146__ = DIRAC_CENTRAL_SECRET_CACHE_V146;
+globalThis.__DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148__ = DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148;
 
 const DIRAC_CENTRAL_SCANNER_UA_REGEX_V146 = /\b(?:curl|wget|httpie|fetch-cli|python|python-requests|aiohttp|urllib|requests|mechanize|scrapy|node-fetch|axios|got|undici|go-http-client|java|okhttp|apache-httpclient|libwww-perl|lwp|ruby|php|powershell|httpclient|postman|postmanruntime|insomnia|paw|hoppscotch|burp|burp\s*suite|owasp\s*zap|zap|mitmproxy|fiddler|charles|caido|sqlmap|nuclei|nikto|acunetix|netsparker|invicti|nessus|openvas|qualys|appscan|webinspect|w3af|arachni|skipfish|jaeles|xray|x-ray|whatweb|wpscan|joomscan|droopescan|ffuf|gobuster|dirb|dirbuster|feroxbuster|wfuzz|dirsearch|hydra|medusa|patator|nmap|masscan|zgrab|zmap|shodan|censys|binaryedge|commix|havij|xsser|dalfox|tplmap|ysoserial|metasploit|msfconsole|headlesschrome|phantomjs|selenium|playwright|puppeteer|chromedriver|geckodriver)\b/i;
 const DIRAC_CENTRAL_BROWSER_UA_REGEX_V146 = /\b(chrome|chromium|crios|edg|firefox|fxios|safari|mobile safari)\b/i;
@@ -24040,6 +24198,20 @@ const DIRAC_CENTRAL_SENSITIVE_ACTIONS_V146 = new Set([
   'customer_security_revoke_other_sessions',
   'customer_security_recovery_codes_generate',
   'customer_security_recovery_code_verify',
+  'dirac_mfa_email_start',
+  'dirac_mfa_email_verify',
+  'domain_mfa_email_start',
+  'domain_mfa_email_verify',
+  'dirac_mfa_passkey_start',
+  'dirac_mfa_passkey_verify',
+  'domain_mfa_passkey_start',
+  'domain_mfa_passkey_verify',
+  'dirac_mfa_passkey_status',
+  'domain_mfa_passkey_status',
+  'dirac_passkey_status',
+  'domain_passkey_status'
+]);
+const DIRAC_CENTRAL_A2F_ACTIONS_V148 = new Set([
   'dirac_mfa_email_start',
   'dirac_mfa_email_verify',
   'domain_mfa_email_start',
@@ -24313,7 +24485,7 @@ try {
   const __diracCentralPreviousV107ShouldSkipV146 = typeof diracV107ShouldSkip === 'function' ? diracV107ShouldSkip : null;
   if (__diracCentralPreviousV107ShouldSkipV146 && !__diracCentralPreviousV107ShouldSkipV146.__diracCentralPassthroughV146) {
     diracV107ShouldSkip = function diracV107ShouldSkipCentralPassthroughV146(req, action, method) {
-      if (req && req.__diracCentralSecurityGuardPassedV146) return true;
+      if (req && req.__diracCentralSecurityGuardPassedV146 && !diracCentralIsA2FActionV148(action)) return true;
       return __diracCentralPreviousV107ShouldSkipV146(req, action, method);
     };
     Object.defineProperty(diracV107ShouldSkip, '__diracCentralPassthroughV146', { value: true, enumerable: false });
@@ -24324,7 +24496,7 @@ try {
   const __diracCentralPreviousV143ThreatV146 = typeof diracV143DetectRequestThreat === 'function' ? diracV143DetectRequestThreat : null;
   if (__diracCentralPreviousV143ThreatV146 && !__diracCentralPreviousV143ThreatV146.__diracCentralPassthroughV146) {
     diracV143DetectRequestThreat = function diracV143DetectRequestThreatCentralPassthroughV146(req, action, method) {
-      if (req && req.__diracCentralSecurityGuardPassedV146) return { detected: false, skipped: 'central_security_guard_v146' };
+      if (req && req.__diracCentralSecurityGuardPassedV146 && !diracCentralIsA2FActionV148(action)) return { detected: false, skipped: 'central_security_guard_v146' };
       return __diracCentralPreviousV143ThreatV146(req, action, method);
     };
     Object.defineProperty(diracV143DetectRequestThreat, '__diracCentralPassthroughV146', { value: true, enumerable: false });
@@ -24335,7 +24507,7 @@ try {
   const __diracCentralPreviousV143InspectOwnershipV146 = typeof diracV143InspectOwnership === 'function' ? diracV143InspectOwnership : null;
   if (__diracCentralPreviousV143InspectOwnershipV146 && !__diracCentralPreviousV143InspectOwnershipV146.__diracCentralPassthroughV146) {
     diracV143InspectOwnership = async function diracV143InspectOwnershipCentralPassthroughV146(req, body) {
-      if (req && req.__diracCentralSecurityGuardPassedV146) return { ok: true, skipped: 'central_security_guard_v146' };
+      if (req && req.__diracCentralSecurityGuardPassedV146 && !diracCentralIsA2FActionV148(req && req.query && req.query.action)) return { ok: true, skipped: 'central_security_guard_v146' };
       return __diracCentralPreviousV143InspectOwnershipV146(req, body);
     };
     Object.defineProperty(diracV143InspectOwnership, '__diracCentralPassthroughV146', { value: true, enumerable: false });
@@ -24435,6 +24607,7 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
 
     const action = aliasResult.action;
     ctx.action = action;
+    ctx.isA2FAction = diracCentralIsA2FActionV148(action);
     if (req && req.query) req.query.action = action;
 
     if (!DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.has(action) && !DIRAC_CENTRAL_DISABLED_ACTIONS_V146.has(action)) {
@@ -24501,6 +24674,10 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
     if (!contractGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, contractGuard.reason);
     diracCentralStampV146(ctx, 'contract_checked');
 
+    const a2fSignature = diracCentralA2FRequestSignatureGuardV148(req, ctx);
+    if (!a2fSignature.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, a2fSignature.reason);
+    diracCentralStampV146(ctx, 'a2f_signature_checked');
+
     if (action === 'security_report') {
       const reportGuard = diracCentralSecurityReportGuardV146(req, ctx);
       if (!reportGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, reportGuard.reason);
@@ -24508,7 +24685,7 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
       return await diracCentralBanAndBlockV146(req, res, ctx, action, method, 'html_security_report');
     }
 
-    if (DIRAC_CENTRAL_SENSITIVE_ACTIONS_V146.has(action)) ctx.skipHeavyScan = true;
+    if (DIRAC_CENTRAL_SENSITIVE_ACTIONS_V146.has(action) && !ctx.isA2FAction) ctx.skipHeavyScan = true;
 
     if (!ctx.skipHeavyScan) {
       const sampleGuard = diracCentralSampleCollectorV146(req, ctx);
@@ -24785,6 +24962,7 @@ function diracCentralIntegrityVerifierV146(ctx) {
   if (ctx && (ctx.classification === 'browser' || ctx.classification === 'admin' || DIRAC_CENTRAL_SENSITIVE_ACTIONS_V146.has(ctx.action))) {
     required.push('browser_auth_checked', 'csrf_checked', 'page_nonce_checked', 'browser_signal_checked', 'device_checked');
   }
+  if (ctx && ctx.isA2FAction) required.push('a2f_signature_checked');
   if (ctx && ctx.classification === 'admin') required.push('admin_checked');
   if (ctx && !ctx.skipHeavyScan && ctx.classification !== 'server' && ctx.classification !== 'public_read') {
     required.push('sample_checked', 'threat_checked', 'zeroday_checked');
@@ -24971,6 +25149,124 @@ function diracCentralVerifyPageNonceV146(req, token, action) {
   const originHash = diracCentralHashV146(diracCentralNormalizeOriginV146(req && req.headers && (req.headers.origin || req.headers.referer || req.headers.referrer) || ''));
   if (payload.oh && originHash && payload.oh !== originHash) return { ok: false, reason: 'page_nonce_origin_mismatch' };
   return { ok: true };
+}
+
+function diracCentralIsA2FActionV148(action) {
+  return DIRAC_CENTRAL_A2F_ACTIONS_V148.has(String(action || '').trim().toLowerCase());
+}
+
+function diracCentralStableJsonV148(value) {
+  if (value === null || value === undefined) return 'null';
+  if (typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return '[' + value.map(diracCentralStableJsonV148).join(',') + ']';
+  return '{' + Object.keys(value).sort().map((key) => JSON.stringify(key) + ':' + diracCentralStableJsonV148(value[key])).join(',') + '}';
+}
+
+function diracCentralA2FBodyHashV148(ctx) {
+  try {
+    const body = ctx && ctx.body && typeof ctx.body === 'object' ? ctx.body : {};
+    return crypto.createHash('sha256').update(diracCentralStableJsonV148(body)).digest('hex');
+  } catch (_) {
+    return crypto.createHash('sha256').update('{}').digest('hex');
+  }
+}
+
+function diracCentralA2FSignaturePayloadV148(req, ctx, ticketPayload) {
+  const headers = req && req.headers || {};
+  const source = ticketPayload && typeof ticketPayload === 'object' ? ticketPayload : {};
+  return {
+    typ: 'dirac-a2f-request-signature-v148',
+    act: String(ctx && ctx.action || source.act || ''),
+    method: String(ctx && ctx.method || source.method || '').toUpperCase(),
+    path: '/api/health',
+    sid: diracCentralRequestSessionHashV146(req),
+    oh: diracCentralHashV146(diracCentralNormalizeOriginV146(headers.origin || headers.referer || headers.referrer || '')),
+    uah: diracCentralHashV146(String(headers['user-agent'] || '').slice(0, 500)),
+    bh: diracCentralA2FBodyHashV148(ctx),
+    iat: Number(source.iat || 0),
+    exp: Number(source.exp || 0),
+    jti: String(source.jti || '')
+  };
+}
+
+function diracCentralSignA2FPayloadV148(payload) {
+  const body = Buffer.from(diracCentralStableJsonV148(payload || {})).toString('base64url');
+  const sig = crypto.createHmac('sha256', diracCentralDeriveSecretV146('a2f-request-v148')).update(body).digest('base64url');
+  return body + '.' + sig;
+}
+
+function diracCentralDecodeA2FTicketV148(ticket) {
+  const parts = String(ticket || '').trim().split('.');
+  if (parts.length !== 2 || !parts[0] || !parts[1]) return null;
+  const expected = crypto.createHmac('sha256', diracCentralDeriveSecretV146('a2f-request-v148')).update(parts[0]).digest('base64url');
+  if (typeof safeEqual === 'function') {
+    if (!safeEqual(expected, parts[1])) return null;
+  } else if (expected !== parts[1]) return null;
+  try {
+    return JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8'));
+  } catch (_) {
+    return null;
+  }
+}
+
+function diracCentralConsumeA2FNonceV148(jti, exp) {
+  const clean = String(jti || '').trim();
+  const now = Math.floor(Date.now() / 1000);
+  if (!clean || !/^[a-zA-Z0-9_-]{16,160}$/.test(clean)) return { ok: false, reason: 'a2f_signature_nonce_invalid' };
+  for (const [key, until] of DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148.entries()) {
+    if (Number(until || 0) <= now) DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148.delete(key);
+  }
+  if (DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148.has(clean)) return { ok: false, reason: 'a2f_signature_replay' };
+  DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148.set(clean, Math.max(now + 60, Number(exp || 0)));
+  if (DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148.size > 5000) {
+    for (const key of DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148.keys()) {
+      DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148.delete(key);
+      if (DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148.size <= 3000) break;
+    }
+  }
+  return { ok: true };
+}
+
+function diracCentralA2FRequestSignatureGuardV148(req, ctx) {
+  if (!ctx || !ctx.isA2FAction) return { ok: true, source: 'not_a2f' };
+  try { diracCentralRootSecretV146(); } catch (_) { return { ok: false, reason: 'a2f_signature_root_secret_invalid' }; }
+  const headers = req && req.headers || {};
+  const ticket = String(headers['x-dirac-a2f-ticket'] || headers['x-dirac-a2f-signature-ticket'] || '').trim();
+  const signature = String(headers['x-dirac-a2f-signature'] || '').trim();
+  const explicitSeen = Boolean(ticket || signature || headers['x-dirac-a2f-nonce'] || headers['x-dirac-a2f-timestamp']);
+
+  if (!ticket && !signature) {
+    if (diracCentralA2FExplicitSignatureRequiredV148()) return { ok: false, reason: 'a2f_signature_missing' };
+    const pageNonce = String(headers['x-dirac-page-nonce'] || headers['x-page-nonce'] || '').trim();
+    const pageNonceOk = pageNonce ? diracCentralVerifyPageNonceV146(req, pageNonce, ctx.action) : { ok: false };
+    return pageNonceOk.ok ? { ok: true, source: 'signed_page_nonce_compat' } : { ok: false, reason: 'a2f_signed_nonce_missing' };
+  }
+  if (!ticket || !signature) return { ok: false, reason: 'a2f_signature_incomplete' };
+
+  const ticketPayload = diracCentralDecodeA2FTicketV148(ticket);
+  if (!ticketPayload) return { ok: false, reason: 'a2f_ticket_signature_invalid' };
+  const now = Math.floor(Date.now() / 1000);
+  if (ticketPayload.typ !== 'dirac-a2f-request-signature-v148') return { ok: false, reason: 'a2f_ticket_type_invalid' };
+  if (!ticketPayload.exp || Number(ticketPayload.exp) < now) return { ok: false, reason: 'a2f_ticket_expired' };
+  if (ticketPayload.iat && Number(ticketPayload.iat) > now + 60) return { ok: false, reason: 'a2f_ticket_iat_invalid' };
+
+  const expectedPayload = diracCentralA2FSignaturePayloadV148(req, ctx, ticketPayload);
+  const expectedSignature = diracCentralSignA2FPayloadV148(expectedPayload).split('.')[1];
+  if (typeof safeEqual === 'function') {
+    if (!safeEqual(expectedSignature, signature)) return { ok: false, reason: 'a2f_signature_invalid' };
+  } else if (expectedSignature !== signature) return { ok: false, reason: 'a2f_signature_invalid' };
+
+  const nonce = diracCentralConsumeA2FNonceV148(expectedPayload.jti, expectedPayload.exp);
+  if (!nonce.ok) return nonce;
+  return { ok: true, source: 'a2f_request_signature_v148', explicitSeen };
+}
+
+function diracCentralA2FExplicitSignatureRequiredV148() {
+  try {
+    return isEnvTrue('DIRAC_A2F_REQUEST_SIGNATURE_ENFORCE') || isEnvTrue('DIRAC_A2F_SIGNATURE_ENFORCE');
+  } catch (_) {
+    return false;
+  }
 }
 
 function diracCentralBrowserSignalGuardV146(req, ctx) {
@@ -26044,7 +26340,7 @@ function diracCentralContractForActionV146(action) {
   const commonPost = ['action', 'email', 'password', 'fullName', 'full_name', 'name', 'phone', 'domain', 'domain_name', 'quantity', 'items', 'order_id', 'order_code', 'domain_order_id', 'payment_id', 'transaction_id', 'invoice_id', 'gateway_reference', 'session_id', 'recovery_code', 'recovery_code_id', 'credential_id', 'user_id', 'challenge', 'response', 'setupToken', 'mfaSetupToken', 'code', 'reason', 'csrf', 'nonce', 'idempotency_key'];
   const getOnly = { methods: ['GET', 'HEAD'], allowed: commonGet, required: [], maxBodyBytes: 1024, maxFieldBytes: 3000, mutation: false };
   const postOnly = { methods: ['POST'], allowed: commonPost, required: [], maxBodyBytes: 20 * 1024, maxFieldBytes: 3000, mutation: true };
-  const passkeyPost = { methods: ['POST'], allowed: ['action', 'method', 'identifier', 'email', 'setupToken', 'mfaSetupToken', 'token', 'passkeyMode', 'credential', 'id', 'rawId', 'type', 'response', 'clientExtensionResults', 'clientDataJSON', 'attestationObject', 'authenticatorData', 'signature', 'userHandle', 'transports', 'authenticatorAttachment', 'challenge', 'code', 'csrf', 'nonce', 'idempotency_key'], required: [], maxBodyBytes: 512 * 1024, maxFieldBytes: 128 * 1024, mutation: true, allowArrayItems: true };
+  const passkeyPost = { methods: ['POST'], allowed: ['action', 'method', 'identifier', 'email', 'setupToken', 'mfaSetupToken', 'token', 'passkeyMode', 'credential', 'id', 'rawId', 'type', 'response', 'clientExtensionResults', 'clientDataJSON', 'attestationObject', 'authenticatorData', 'signature', 'userHandle', 'transports', 'authenticatorAttachment', 'challenge', 'code', 'csrf', 'nonce', 'idempotency_key'], required: [], maxBodyBytes: 192 * 1024, maxFieldBytes: 80 * 1024, mutation: true, allowArrayItems: true };
   const authLoginPost = { methods: ['POST'], allowed: ['email', 'password', 'fullName', 'full_name', 'name', 'phone'], required: ['email', 'password'], maxBodyBytes: 20 * 1024, maxFieldBytes: 3000, mutation: true };
   const authRegisterPost = { methods: ['POST'], allowed: ['email', 'password', 'fullName', 'full_name', 'name', 'phone'], required: ['email', 'password'], maxBodyBytes: 20 * 1024, maxFieldBytes: 3000, mutation: true };
   const contracts = {
@@ -26354,7 +26650,9 @@ function assertProductionSecurityConfigV146() {
     'DIRAC_BOLA_IDOR_STRICT_SAFE_DISABLED',
     'DIRAC_BOLA_IDOR_OWNER_BINDING_DISABLED',
     'DIRAC_BOLA_IDOR_GLOBAL_BAN_DISABLED',
-    'DIRAC_SECURITY_WRITE_COALESCER_DISABLED'
+    'DIRAC_SECURITY_WRITE_COALESCER_DISABLED',
+    'DIRAC_A2F_REQUEST_SIGNATURE_DISABLED',
+    'DIRAC_A2F_STRICT_CENTRAL_GUARD_DISABLED'
   ];
   const weakened = blockedTrue.filter((name) => {
     try { return isEnvTrue(name) || diracV143EnvTrue(name) || diracV145EnvTrue(name); } catch (_) { return false; }
@@ -26405,7 +26703,7 @@ try {
   const __diracCentralPreviousCsrfShouldCheckV146 = typeof diracCsrfShouldCheckRequest === 'function' ? diracCsrfShouldCheckRequest : null;
   if (__diracCentralPreviousCsrfShouldCheckV146 && !__diracCentralPreviousCsrfShouldCheckV146.__diracCentralPassthroughV146) {
     diracCsrfShouldCheckRequest = function diracCsrfShouldCheckRequestCentralPassthroughV146(action, method) {
-      if (diracCentralCurrentContextPassedV146()) return false;
+      if (diracCentralCurrentContextPassedV146() && !diracCentralIsA2FActionV148(action)) return false;
       return __diracCentralPreviousCsrfShouldCheckV146(action, method);
     };
     Object.defineProperty(diracCsrfShouldCheckRequest, '__diracCentralPassthroughV146', { value: true, enumerable: false });
@@ -26416,7 +26714,7 @@ try {
   const __diracCentralPreviousV137CsrfShouldForceV146 = typeof diracV137CsrfShouldForce === 'function' ? diracV137CsrfShouldForce : null;
   if (__diracCentralPreviousV137CsrfShouldForceV146 && !__diracCentralPreviousV137CsrfShouldForceV146.__diracCentralPassthroughV146) {
     diracV137CsrfShouldForce = function diracV137CsrfShouldForceCentralPassthroughV146(action, method) {
-      if (diracCentralCurrentContextPassedV146()) return false;
+      if (diracCentralCurrentContextPassedV146() && !diracCentralIsA2FActionV148(action)) return false;
       return __diracCentralPreviousV137CsrfShouldForceV146(action, method);
     };
     Object.defineProperty(diracV137CsrfShouldForce, '__diracCentralPassthroughV146', { value: true, enumerable: false });
@@ -26427,7 +26725,7 @@ try {
   const __diracCentralPreviousV138CsrfShouldForceV146 = typeof diracV138CsrfShouldForce === 'function' ? diracV138CsrfShouldForce : null;
   if (__diracCentralPreviousV138CsrfShouldForceV146 && !__diracCentralPreviousV138CsrfShouldForceV146.__diracCentralPassthroughV146) {
     diracV138CsrfShouldForce = function diracV138CsrfShouldForceCentralPassthroughV146(action, method) {
-      if (diracCentralCurrentContextPassedV146()) return false;
+      if (diracCentralCurrentContextPassedV146() && !diracCentralIsA2FActionV148(action)) return false;
       return __diracCentralPreviousV138CsrfShouldForceV146(action, method);
     };
     Object.defineProperty(diracV138CsrfShouldForce, '__diracCentralPassthroughV146', { value: true, enumerable: false });
@@ -26438,7 +26736,7 @@ try {
   const __diracCentralPreviousV128InspectHttpV146 = typeof diracBolaIdorV128InspectHttpRequest === 'function' ? diracBolaIdorV128InspectHttpRequest : null;
   if (__diracCentralPreviousV128InspectHttpV146 && !__diracCentralPreviousV128InspectHttpV146.__diracCentralPassthroughV146) {
     diracBolaIdorV128InspectHttpRequest = async function diracBolaIdorV128InspectHttpRequestCentralPassthroughV146(req) {
-      if (req && req.__diracCentralSecurityGuardPassedV146) return { ok: true, skipped: 'central_security_guard_v146' };
+      if (req && req.__diracCentralSecurityGuardPassedV146 && !diracCentralIsA2FActionV148(req && req.query && req.query.action)) return { ok: true, skipped: 'central_security_guard_v146' };
       return __diracCentralPreviousV128InspectHttpV146(req);
     };
     Object.defineProperty(diracBolaIdorV128InspectHttpRequest, '__diracCentralPassthroughV146', { value: true, enumerable: false });
@@ -26449,7 +26747,7 @@ try {
   const __diracCentralPreviousV132InspectHttpV146 = typeof diracBolaIdorV132InspectHttpQuery === 'function' ? diracBolaIdorV132InspectHttpQuery : null;
   if (__diracCentralPreviousV132InspectHttpV146 && !__diracCentralPreviousV132InspectHttpV146.__diracCentralPassthroughV146) {
     diracBolaIdorV132InspectHttpQuery = async function diracBolaIdorV132InspectHttpQueryCentralPassthroughV146(req) {
-      if (req && req.__diracCentralSecurityGuardPassedV146) return { ok: true, skipped: 'central_security_guard_v146' };
+      if (req && req.__diracCentralSecurityGuardPassedV146 && !diracCentralIsA2FActionV148(req && req.query && req.query.action)) return { ok: true, skipped: 'central_security_guard_v146' };
       return __diracCentralPreviousV132InspectHttpV146(req);
     };
     Object.defineProperty(diracBolaIdorV132InspectHttpQuery, '__diracCentralPassthroughV146', { value: true, enumerable: false });
@@ -26460,7 +26758,7 @@ try {
   const __diracCentralPreviousV133InspectHttpV146 = typeof diracBolaIdorV133InspectHttpRequest === 'function' ? diracBolaIdorV133InspectHttpRequest : null;
   if (__diracCentralPreviousV133InspectHttpV146 && !__diracCentralPreviousV133InspectHttpV146.__diracCentralPassthroughV146) {
     diracBolaIdorV133InspectHttpRequest = async function diracBolaIdorV133InspectHttpRequestCentralPassthroughV146(req) {
-      if (req && req.__diracCentralSecurityGuardPassedV146) return { ok: true, skipped: 'central_security_guard_v146' };
+      if (req && req.__diracCentralSecurityGuardPassedV146 && !diracCentralIsA2FActionV148(req && req.query && req.query.action)) return { ok: true, skipped: 'central_security_guard_v146' };
       return __diracCentralPreviousV133InspectHttpV146(req);
     };
     Object.defineProperty(diracBolaIdorV133InspectHttpRequest, '__diracCentralPassthroughV146', { value: true, enumerable: false });
