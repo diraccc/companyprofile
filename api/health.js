@@ -5954,6 +5954,8 @@ const LOST_PASSKEY_RECOVERY_RANDOM_BYTES = 300;
 const LOST_PASSKEY_RECOVERY_HKDF_BYTES = 1000;
 const LOST_PASSKEY_RECOVERY_FILE_KEY_MIN_BYTES = 3000;
 const LOST_PASSKEY_RECOVERY_ATTEMPT_LIMIT = 5;
+const DIRAC_RECOVERY_WORKER_ACTION = 'dirac_recovery_worker_generate';
+const DIRAC_RECOVERY_WORKER_TASK_GENERATE = 'lost_passkey_generate';
 
 function customerSecurityNormalizeLostPasskeyRequestId(value) {
   const clean = String(value || '').trim();
@@ -6002,6 +6004,64 @@ function customerSecurityLostPasskeyB64(value) {
 
 function customerSecurityLostPasskeySha256B64(value) {
   return crypto.createHash('sha256').update(value).digest('base64url');
+}
+
+function customerSecurityRecoveryWorkerUrl() {
+  const raw = String(process.env.DIRAC_RECOVERY_WORKER_URL || '').trim();
+  if (!raw) return '';
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== 'https:') return '';
+    return url.origin + url.pathname.replace(/\/+$/, '');
+  } catch (_) {
+    return '';
+  }
+}
+
+function customerSecurityRecoveryWorkerSecret() {
+  const secret = String(process.env.DIRAC_RECOVERY_WORKER_SECRET || '').trim();
+  if (Buffer.byteLength(secret, 'utf8') < 64) return '';
+  return secret;
+}
+
+function customerSecurityRecoveryWorkerCaller() {
+  return String(process.env.DIRAC_RECOVERY_WORKER_CALLER || '').trim();
+}
+
+function customerSecurityRecoveryWorkerAllowedCaller() {
+  return String(process.env.DIRAC_RECOVERY_WORKER_ALLOWED_CALLER || '').trim();
+}
+
+function customerSecurityRecoveryWorkerMaxBodyBytes() {
+  const raw = Number(process.env.DIRAC_RECOVERY_WORKER_MAX_BODY_BYTES || 32768);
+  if (!Number.isFinite(raw)) return 32768;
+  return Math.max(4096, Math.min(128 * 1024, Math.floor(raw)));
+}
+
+function customerSecurityRecoveryWorkerClockSkewMs() {
+  const raw = Number(process.env.DIRAC_RECOVERY_WORKER_CLOCK_SKEW_SECONDS || 120);
+  if (!Number.isFinite(raw)) return 120 * 1000;
+  return Math.max(30, Math.min(600, Math.floor(raw))) * 1000;
+}
+
+function customerSecurityRecoveryWorkerSign(caller, timestamp, canonicalBody) {
+  return crypto.createHmac('sha256', customerSecurityRecoveryWorkerSecret())
+    .update(String(caller || ''))
+    .update('\n')
+    .update(String(timestamp || ''))
+    .update('\n')
+    .update(String(canonicalBody || ''))
+    .digest('base64url');
+}
+
+function customerSecurityRecoveryWorkerHeaderValue(req, name) {
+  return String(req && req.headers && req.headers[String(name || '').toLowerCase()] || '').trim();
+}
+
+function customerSecurityRecoveryWorkerLocalEnabled() {
+  return !customerSecurityRecoveryWorkerUrl()
+    && Boolean(customerSecurityRecoveryWorkerSecret())
+    && Boolean(customerSecurityRecoveryWorkerAllowedCaller());
 }
 
 function customerSecurityLostPasskeyCanonical(value) {
@@ -6216,9 +6276,146 @@ async function customerSecurityWrapLostPasskeyFileKey(input) {
   };
 }
 
+function customerSecurityRecoverySmtpConfig() {
+  const host = String(process.env.DIRAC_RECOVERY_SMTP_HOST || '').trim();
+  const port = Number(process.env.DIRAC_RECOVERY_SMTP_PORT || 465);
+  const secure = String(process.env.DIRAC_RECOVERY_SMTP_SECURE || 'true').trim().toLowerCase() !== 'false';
+  const user = String(process.env.DIRAC_RECOVERY_SMTP_USER || '').trim();
+  const pass = String(process.env.DIRAC_RECOVERY_SMTP_APP_PASSWORD || '').trim();
+  if (!host || !port || !secure || !user || !pass) return null;
+  return { host, port, secure, user, pass };
+}
+
+function customerSecurityRecoveryEmailAddress(value) {
+  const text = String(value || '').trim();
+  const match = text.match(/<([^<>@\s]+@[^<>\s]+)>/);
+  return normalizeAuthEmail(match ? match[1] : text);
+}
+
+function customerSecurityRecoveryBase64Lines(value) {
+  return Buffer.from(value).toString('base64').replace(/.{1,76}/g, '$&\r\n').trim();
+}
+
+function customerSecurityRecoveryMimeHeader(value) {
+  return '=?UTF-8?B?' + Buffer.from(String(value || ''), 'utf8').toString('base64') + '?=';
+}
+
+function customerSecurityRecoveryDotStuff(value) {
+  return String(value || '').replace(/\r?\n/g, '\r\n').replace(/^\./gm, '..');
+}
+
+async function customerSecuritySmtpRead(socket) {
+  return await new Promise((resolve, reject) => {
+    let buffer = '';
+    const onData = (chunk) => {
+      buffer += chunk.toString('utf8');
+      const lines = buffer.split(/\r?\n/).filter(Boolean);
+      const last = lines[lines.length - 1] || '';
+      if (/^\d{3}\s/.test(last)) cleanup(resolve, { code: Number(last.slice(0, 3)), text: buffer });
+    };
+    const onError = (error) => cleanup(reject, error);
+    const onTimeout = () => cleanup(reject, new Error('SMTP_TIMEOUT'));
+    const cleanup = (done, value) => {
+      socket.off('data', onData);
+      socket.off('error', onError);
+      socket.off('timeout', onTimeout);
+      done(value);
+    };
+    socket.on('data', onData);
+    socket.on('error', onError);
+    socket.on('timeout', onTimeout);
+  });
+}
+
+async function customerSecuritySmtpCommand(socket, command, allowed) {
+  if (command) socket.write(command + '\r\n');
+  const response = await customerSecuritySmtpRead(socket);
+  const allowedCodes = Array.isArray(allowed) ? allowed : [allowed];
+  if (!allowedCodes.includes(response.code)) {
+    const error = new Error('SMTP_UNEXPECTED_RESPONSE');
+    error.smtpCode = response.code;
+    throw error;
+  }
+  return response;
+}
+
+async function customerSecuritySendRecoveryEmailViaSmtp(to, fileName, fileBuffer, context = {}) {
+  const config = customerSecurityRecoverySmtpConfig();
+  if (!config) return { ok: false, status: 503, code: 'RECOVERY_SMTP_NOT_CONFIGURED', message: 'SMTP recovery belum dikonfigurasi.' };
+  const email = normalizeAuthEmail(to);
+  if (!isValidAuthEmail(email)) return { ok: false, status: 400, code: 'RECOVERY_EMAIL_INVALID', message: 'Email resmi customer tidak valid.' };
+  const from = String(process.env.DIRAC_RECOVERY_EMAIL_FROM || config.user).trim();
+  const fromEmail = customerSecurityRecoveryEmailAddress(from);
+  if (!isValidAuthEmail(fromEmail)) return { ok: false, status: 503, code: 'RECOVERY_SMTP_FROM_INVALID', message: 'Email pengirim recovery tidak valid.' };
+
+  const subject = 'File Recovery Passkey Dirac Secure';
+  const text = [
+    'File recovery Passkey terenkripsi terlampir.',
+    'Request ID: ' + String(context.requestId || ''),
+    'Berlaku sampai: ' + String(context.expiresAt || ''),
+    'Jangan kirimkan file ini ke pihak lain. Kata sandi file hanya diberikan owner setelah verifikasi SOP.'
+  ].join('\r\n\r\n');
+  const html = '<div style="font-family:Arial,sans-serif;line-height:1.55;color:#111827"><h2>File Recovery Passkey Dirac Secure</h2><p>File recovery Passkey terenkripsi terlampir.</p><p><b>Request ID:</b> ' + String(context.requestId || '') + '</p><p><b>Berlaku sampai:</b> ' + String(context.expiresAt || '') + '</p><p>Jangan kirimkan file ini ke pihak lain. Kata sandi file hanya diberikan owner setelah verifikasi SOP.</p></div>';
+  const boundary = 'dirac-recovery-' + crypto.randomBytes(18).toString('hex');
+  const mime = [
+    'From: ' + from,
+    'To: ' + email,
+    'Subject: ' + customerSecurityRecoveryMimeHeader(subject),
+    'MIME-Version: 1.0',
+    'Content-Type: multipart/mixed; boundary="' + boundary + '"',
+    '',
+    '--' + boundary,
+    'Content-Type: multipart/alternative; boundary="' + boundary + '-alt"',
+    '',
+    '--' + boundary + '-alt',
+    'Content-Type: text/plain; charset=UTF-8',
+    'Content-Transfer-Encoding: base64',
+    '',
+    customerSecurityRecoveryBase64Lines(Buffer.from(text, 'utf8')),
+    '--' + boundary + '-alt',
+    'Content-Type: text/html; charset=UTF-8',
+    'Content-Transfer-Encoding: base64',
+    '',
+    customerSecurityRecoveryBase64Lines(Buffer.from(html, 'utf8')),
+    '--' + boundary + '-alt--',
+    '',
+    '--' + boundary,
+    'Content-Type: application/octet-stream; name="' + String(fileName || 'recovery.enc').replace(/["\r\n]/g, '') + '"',
+    'Content-Disposition: attachment; filename="' + String(fileName || 'recovery.enc').replace(/["\r\n]/g, '') + '"',
+    'Content-Transfer-Encoding: base64',
+    '',
+    customerSecurityRecoveryBase64Lines(Buffer.from(fileBuffer)),
+    '--' + boundary + '--',
+    ''
+  ].join('\r\n');
+
+  let socket = null;
+  try {
+    const tls = require('tls');
+    socket = tls.connect({ host: config.host, port: config.port, servername: config.host, timeout: 20_000 });
+    await customerSecuritySmtpCommand(socket, '', 220);
+    await customerSecuritySmtpCommand(socket, 'EHLO diracgroup.store', 250);
+    const auth = Buffer.from('\u0000' + config.user + '\u0000' + config.pass, 'utf8').toString('base64');
+    await customerSecuritySmtpCommand(socket, 'AUTH PLAIN ' + auth, 235);
+    await customerSecuritySmtpCommand(socket, 'MAIL FROM:<' + fromEmail + '>', 250);
+    await customerSecuritySmtpCommand(socket, 'RCPT TO:<' + email + '>', [250, 251]);
+    await customerSecuritySmtpCommand(socket, 'DATA', 354);
+    await customerSecuritySmtpCommand(socket, customerSecurityRecoveryDotStuff(mime) + '\r\n.', 250);
+    await customerSecuritySmtpCommand(socket, 'QUIT', [221, 250]);
+    return { ok: true, provider: 'smtp' };
+  } catch (error) {
+    return { ok: false, status: 502, code: 'RECOVERY_SMTP_DELIVERY_FAILED', message: 'Gagal mengirim file recovery lewat SMTP.' };
+  } finally {
+    try { if (socket) socket.end(); } catch (_) {}
+  }
+}
+
 async function customerSecuritySendLostPasskeyRecoveryEmail(to, fileName, fileBuffer, context = {}) {
   const email = normalizeAuthEmail(to);
   if (!isValidAuthEmail(email)) return { ok: false, status: 400, code: 'RECOVERY_EMAIL_INVALID', message: 'Email resmi customer tidak valid.' };
+  if (customerSecurityRecoverySmtpConfig()) {
+    return customerSecuritySendRecoveryEmailViaSmtp(email, fileName, fileBuffer, context);
+  }
   const from = String(process.env.DIRAC_RECOVERY_EMAIL_FROM || process.env.DIRAC_EMAIL_FROM || process.env.RESEND_FROM || 'Dirac Secure <no-reply@diracgroup.store>').trim();
   const subject = 'File Recovery Passkey Dirac Secure';
   const text = [
@@ -6280,17 +6477,108 @@ async function customerSecurityRecoveryCodesStatus(req, res, action) {
   return res.status(200).json({ ok: true, ready: true, total: activeRows.length, pending, verified, used, locked, generated: activeRows.length > 0, message: activeRows.length ? 'Lost passkey recovery request tersedia.' : 'Lost passkey recovery belum dibuat.', direct_frontend_table_access: false, time: diracNowIso() });
 }
 
-async function customerSecurityGenerateRecoveryCodes(req, res, action) {
-  const access = await customerSecurityRequireAccess(req, res, { action, requireMfa: false, rateLimit: { limit: 2, windowMs: 10 * 60_000 } });
+async function customerSecurityGenerateRecoveryCodesViaWorker(req, res, action, access, owner, activePasskeys, bindings) {
+  const workerUrl = customerSecurityRecoveryWorkerUrl();
+  const secret = customerSecurityRecoveryWorkerSecret();
+  const caller = customerSecurityRecoveryWorkerCaller();
+  if (!workerUrl || !secret || !caller) {
+    return res.status(503).json({
+      ok: false,
+      code: 'RECOVERY_WORKER_REQUIRED',
+      message: 'Recovery worker belum dikonfigurasi. Generate recovery tidak dijalankan di backend utama.'
+    });
+  }
+
+  const payload = {
+    action: DIRAC_RECOVERY_WORKER_ACTION,
+    worker_action: DIRAC_RECOVERY_WORKER_TASK_GENERATE,
+    auth_user_id: owner.authUserId,
+    customer_id: owner.customerId,
+    email: owner.email,
+    email_binding_hash: bindings.emailBindingHash,
+    customer_binding_hash: bindings.customerBindingHash,
+    auth_user_binding_hash: bindings.authUserBindingHash,
+    device_binding_hash: bindings.deviceBindingHash,
+    ip_hash: bindings.ipHash,
+    user_agent_hash: bindings.userAgentHash,
+    active_passkey_count: Math.max(0, activePasskeys.length),
+    requested_at: diracNowIso()
+  };
+  const canonical = customerSecurityLostPasskeyCanonical(payload);
+  const timestamp = String(Date.now());
+  const signature = customerSecurityRecoveryWorkerSign(caller, timestamp, canonical);
+  const target = new URL(workerUrl);
+  target.searchParams.set('action', DIRAC_RECOVERY_WORKER_ACTION);
+  const timeoutMs = Math.max(5000, Math.min(290000, Number(process.env.DIRAC_RECOVERY_WORKER_TIMEOUT_MS || 280000)));
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+
+  try {
+    const response = await fetch(target.toString(), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-Dirac-Worker-Caller': caller,
+        'X-Dirac-Worker-Timestamp': timestamp,
+        'X-Dirac-Worker-Signature': signature
+      },
+      body: JSON.stringify(payload),
+      signal: controller ? controller.signal : undefined
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data || data.ok !== true) {
+      return res.status(response.status || data.status || 502).json({
+        ok: false,
+        code: data && data.code || 'RECOVERY_WORKER_FAILED',
+        message: data && data.message || 'Recovery worker belum dapat memproses permintaan.'
+      });
+    }
+    return res.status(200).json({
+      ok: true,
+      request_id: String(data.request_id || ''),
+      expires_at: String(data.expires_at || ''),
+      delivery: 'encrypted_email_attachment',
+      message: data.message || 'File recovery terenkripsi sudah dikirim ke email resmi akun.',
+      time: data.time || diracNowIso()
+    });
+  } catch (_) {
+    return res.status(502).json({
+      ok: false,
+      code: 'RECOVERY_WORKER_UNREACHABLE',
+      message: 'Recovery worker belum bisa dihubungi.'
+    });
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+async function customerSecurityGenerateRecoveryCodes(req, res, action, override = null) {
+  const localWorker = Boolean(override && override.localWorker === true);
+  const access = localWorker && override && override.access
+    ? override.access
+    : await customerSecurityRequireAccess(req, res, { action, requireMfa: false, rateLimit: { limit: 2, windowMs: 10 * 60_000 } });
   if (!access) return;
 
-  await readBody(req);
-  const owner = await customerSecurityResolveLostPasskeyOwner(access);
+  if (!localWorker) await readBody(req);
+  const owner = localWorker && override && override.owner
+    ? override.owner
+    : await customerSecurityResolveLostPasskeyOwner(access);
   if (!owner.ok) return res.status(owner.status || 403).json({ ok: false, message: owner.message || 'Recovery passkey tidak dapat dibuat.' });
 
-  const activePasskeys = await customerSecurityLostPasskeyActivePasskeys(owner);
+  const activePasskeys = localWorker && override && Array.isArray(override.activePasskeys)
+    ? override.activePasskeys
+    : await customerSecurityLostPasskeyActivePasskeys(owner);
   if (!activePasskeys.length) {
     return res.status(409).json({ ok: false, code: 'ACTIVE_PASSKEY_NOT_FOUND', message: 'Passkey aktif untuk akun ini belum ditemukan. Gunakan flow pembuatan Passkey normal.' });
+  }
+
+  const bindings = localWorker && override && override.bindings
+    ? override.bindings
+    : customerSecurityLostPasskeyBindings(req, owner);
+
+  if (!localWorker) {
+    return customerSecurityGenerateRecoveryCodesViaWorker(req, res, action, access, owner, activePasskeys, bindings);
   }
 
   const nowMs = Date.now();
@@ -6303,7 +6591,6 @@ async function customerSecurityGenerateRecoveryCodes(req, res, action) {
   const salt = crypto.randomBytes(LOST_PASSKEY_RECOVERY_RANDOM_BYTES);
   const ownerKeySalt = crypto.randomBytes(LOST_PASSKEY_RECOVERY_RANDOM_BYTES);
   const dekSeed = crypto.randomBytes(LOST_PASSKEY_RECOVERY_RANDOM_BYTES);
-  const bindings = customerSecurityLostPasskeyBindings(req, owner);
   const recoveryCodeHash = customerSecurityLostPasskeyRecoveryCodeHash(requestId, owner.customerId, recoveryCode);
   const encrypted = await customerSecurityBuildLostPasskeyFile({
     requestId,
@@ -24036,6 +24323,94 @@ function diracV145EnvTrue(name) {
   return value === '1' || value === 'true' || value === 'yes' || value === 'on';
 }
 
+function customerSecurityLostPasskeyWorkerHash(value) {
+  const clean = String(value || '').trim().toLowerCase();
+  return /^[a-f0-9]{64}$/.test(clean) ? clean : '';
+}
+
+function customerSecurityLostPasskeyWorkerBindings(body, owner) {
+  const bindings = {
+    emailBindingHash: customerSecurityLostPasskeyWorkerHash(body && body.email_binding_hash),
+    customerBindingHash: customerSecurityLostPasskeyWorkerHash(body && body.customer_binding_hash),
+    authUserBindingHash: customerSecurityLostPasskeyWorkerHash(body && body.auth_user_binding_hash),
+    deviceBindingHash: customerSecurityLostPasskeyWorkerHash(body && body.device_binding_hash),
+    ipHash: customerSecurityLostPasskeyWorkerHash(body && body.ip_hash),
+    userAgentHash: customerSecurityLostPasskeyWorkerHash(body && body.user_agent_hash)
+  };
+  if (Object.values(bindings).some((value) => !value)) return null;
+  const expectedEmail = customerSecurityLostPasskeyHashHex('email-binding', normalizeAuthEmail(owner && owner.email));
+  const expectedCustomer = customerSecurityLostPasskeyHashHex('customer-binding', String(owner && owner.customerId || ''));
+  const expectedAuthUser = customerSecurityLostPasskeyHashHex('auth-user-binding', String(owner && owner.authUserId || ''));
+  if (!safeEqual(bindings.emailBindingHash, expectedEmail)) return null;
+  if (!safeEqual(bindings.customerBindingHash, expectedCustomer)) return null;
+  if (!safeEqual(bindings.authUserBindingHash, expectedAuthUser)) return null;
+  return bindings;
+}
+
+async function customerSecurityResolveLostPasskeyWorkerOwner(body) {
+  const authUserId = String(body && body.auth_user_id || '').trim();
+  const customerId = String(body && body.customer_id || '').trim();
+  const email = normalizeAuthEmail(body && body.email);
+  if (!customerSecurityLooksLikeUuid(authUserId) || !customerSecurityLooksLikeUuid(customerId) || !isValidAuthEmail(email)) {
+    return { ok: false, status: 400, message: 'Payload worker recovery tidak valid.' };
+  }
+  const linkResult = await customerSecurityFetchAuthLink(authUserId);
+  if (!linkResult.ok) return { ok: false, status: linkResult.status || 500, message: 'Gagal membaca auth link recovery.' };
+  const link = customerSecurityPickSingleActiveAuthLink(linkResult);
+  if (!link || link.link_status !== 'active' || String(link.customer_id || '') !== customerId) {
+    return { ok: false, status: 403, message: 'Auth link recovery tidak cocok.' };
+  }
+  const customerResult = await diracPasskeyA2FFetchCustomerById(customerId);
+  if (!customerResult.ok) return { ok: false, status: customerResult.status || 500, message: 'Gagal membaca customer resmi.' };
+  const customer = Array.isArray(customerResult.data) ? customerResult.data[0] : null;
+  const customerEmail = normalizeAuthEmail(customer && customer.email);
+  if (!customer || !isValidAuthEmail(customerEmail) || customerEmail !== email) {
+    return { ok: false, status: 403, message: 'Email worker tidak cocok dengan customer resmi.' };
+  }
+  return { ok: true, authUserId, customerId, email: customerEmail, customer };
+}
+
+async function customerSecurityHandleRecoveryWorkerGenerate(req, res, action) {
+  if (!customerSecurityRecoveryWorkerLocalEnabled()) {
+    return res.status(404).json({ ok: false, code: 'RECOVERY_WORKER_DISABLED', message: 'Recovery worker tidak aktif di deployment ini.' });
+  }
+  if (req.__diracRecoveryWorkerVerified !== true) {
+    return res.status(403).json({ ok: false, code: 'RECOVERY_WORKER_SIGNATURE_REQUIRED', message: 'Worker signature tidak valid.' });
+  }
+  const body = await readBody(req);
+  if (!body || body.action !== DIRAC_RECOVERY_WORKER_ACTION || body.worker_action !== DIRAC_RECOVERY_WORKER_TASK_GENERATE) {
+    return res.status(404).json({ ok: false, code: 'RECOVERY_WORKER_ACTION_INVALID', message: 'Worker action tidak valid.' });
+  }
+  const owner = await customerSecurityResolveLostPasskeyWorkerOwner(body);
+  if (!owner.ok) return res.status(owner.status || 403).json({ ok: false, message: owner.message || 'Worker recovery ditolak.' });
+  const bindings = customerSecurityLostPasskeyWorkerBindings(body, owner);
+  if (!bindings) return res.status(403).json({ ok: false, code: 'RECOVERY_WORKER_BINDING_INVALID', message: 'Binding recovery tidak valid.' });
+  const activePasskeys = await customerSecurityLostPasskeyActivePasskeys(owner);
+  if (!activePasskeys.length) {
+    return res.status(409).json({ ok: false, code: 'ACTIVE_PASSKEY_NOT_FOUND', message: 'Passkey aktif untuk akun ini belum ditemukan.' });
+  }
+  return customerSecurityGenerateRecoveryCodes(req, res, 'customer_security_recovery_codes_generate', {
+    localWorker: true,
+    access: { customerId: owner.customerId },
+    owner,
+    activePasskeys,
+    bindings
+  });
+}
+
+const __diracRecoveryWorkerPreviousHandler = module.exports;
+module.exports = async function diracRecoveryWorkerWrapper(req, res) {
+  const rawAction = String(req && req.query && req.query.action || '').trim().toLowerCase();
+  const action = rawAction === DIRAC_RECOVERY_WORKER_ACTION ? DIRAC_RECOVERY_WORKER_ACTION : rawAction;
+  if (action === DIRAC_RECOVERY_WORKER_ACTION) {
+    return customerSecurityHandleRecoveryWorkerGenerate(req, res, action);
+  }
+  if (customerSecurityRecoveryWorkerLocalEnabled()) {
+    return res.status(404).json({ ok: false, code: 'RECOVERY_WORKER_ONLY', message: 'Endpoint worker hanya menerima action internal recovery.' });
+  }
+  return __diracRecoveryWorkerPreviousHandler(req, res);
+};
+
 /* ============================================================
    DIRAC CENTRAL SECURITY GUARD v146 - FINAL CENTRAL FLOW
    Pusat guard /api/health:
@@ -24216,6 +24591,7 @@ const DIRAC_CENTRAL_ACTIVE_ACTIONS_V146 = new Set([
   'katalog_parfum',
   'katalog_produk',
   'lihat_produk',
+  DIRAC_RECOVERY_WORKER_ACTION,
   'security_report'
 ]);
 
@@ -24225,7 +24601,7 @@ const DIRAC_CENTRAL_DISABLED_ACTIONS_V146 = new Set([
   'ipaymu_webhook'
 ]);
 
-const DIRAC_CENTRAL_SERVER_ACTIONS_V146 = new Set(['midtrans_webhook']);
+const DIRAC_CENTRAL_SERVER_ACTIONS_V146 = new Set(['midtrans_webhook', DIRAC_RECOVERY_WORKER_ACTION]);
 const DIRAC_CENTRAL_PUBLIC_READ_ACTIONS_V146 = new Set([
   'domain_health',
   'hostinger_check',
@@ -25050,14 +25426,41 @@ function diracCentralIntegrityVerifierV146(ctx) {
 async function diracCentralServerToServerGuardV146(req, res, ctx) {
   if (ctx.classification !== 'server') return { ok: true };
   if (ctx.method !== 'POST') return { ok: false, reason: 'server_action_method_invalid' };
-  const body = await diracCentralBodyHandlingGuardV146(req, ctx, 64 * 1024);
+  const serverBodyLimit = ctx.action === DIRAC_RECOVERY_WORKER_ACTION ? customerSecurityRecoveryWorkerMaxBodyBytes() : 64 * 1024;
+  const body = await diracCentralBodyHandlingGuardV146(req, ctx, serverBodyLimit);
   if (!body.ok) return body;
+  if (ctx.action === DIRAC_RECOVERY_WORKER_ACTION) {
+    return diracCentralRecoveryWorkerSignatureGuardV146(req, ctx);
+  }
   if (ctx.action === 'midtrans_webhook') {
     if (typeof midtransVerifySignature === 'function') {
       const valid = midtransVerifySignature(ctx.body || {});
       if (!valid) return { ok: false, reason: 'midtrans_signature_invalid' };
     }
   }
+  return { ok: true };
+}
+
+function diracCentralRecoveryWorkerSignatureGuardV146(req, ctx) {
+  if (!customerSecurityRecoveryWorkerLocalEnabled()) return { ok: false, reason: 'recovery_worker_not_enabled' };
+  const allowedCaller = customerSecurityRecoveryWorkerAllowedCaller();
+  const caller = customerSecurityRecoveryWorkerHeaderValue(req, 'x-dirac-worker-caller');
+  if (!caller || !allowedCaller || !safeEqual(caller, allowedCaller)) return { ok: false, reason: 'recovery_worker_caller_invalid' };
+
+  const timestampText = customerSecurityRecoveryWorkerHeaderValue(req, 'x-dirac-worker-timestamp');
+  const timestamp = Number(timestampText);
+  if (!Number.isFinite(timestamp) || timestamp <= 0) return { ok: false, reason: 'recovery_worker_timestamp_invalid' };
+  if (Math.abs(Date.now() - timestamp) > customerSecurityRecoveryWorkerClockSkewMs()) return { ok: false, reason: 'recovery_worker_timestamp_stale' };
+
+  const signature = customerSecurityRecoveryWorkerHeaderValue(req, 'x-dirac-worker-signature');
+  if (!/^[a-zA-Z0-9_-]{32,120}$/.test(signature)) return { ok: false, reason: 'recovery_worker_signature_missing' };
+  const body = ctx.body || {};
+  if (body.action !== DIRAC_RECOVERY_WORKER_ACTION || body.worker_action !== DIRAC_RECOVERY_WORKER_TASK_GENERATE) {
+    return { ok: false, reason: 'recovery_worker_body_action_invalid' };
+  }
+  const expected = customerSecurityRecoveryWorkerSign(caller, timestampText, customerSecurityLostPasskeyCanonical(body));
+  if (!safeEqual(signature, expected)) return { ok: false, reason: 'recovery_worker_signature_invalid' };
+  req.__diracRecoveryWorkerVerified = true;
   return { ok: true };
 }
 
@@ -25701,6 +26104,9 @@ function diracCentralProxyHeaderGuardV146(headers) {
 
 async function diracCentralIdorBolaGuardV146(req, ctx) {
   if (ctx && ctx.classification === 'server' && ctx.action === 'midtrans_webhook') return { ok: true, skipped: 'server_to_server_signed_webhook' };
+  if (ctx && ctx.classification === 'server' && ctx.action === DIRAC_RECOVERY_WORKER_ACTION && req && req.__diracRecoveryWorkerVerified === true) {
+    return { ok: true, skipped: 'signed_recovery_worker' };
+  }
   const ids = diracCentralCollectIdsV146(req, ctx.body);
   if (diracCentralIsAuthBootstrapIdentityOnlyV146(ctx.action, ids)) return { ok: true, skipped: 'auth_bootstrap_identity_only' };
   if (diracCentralIsAuthSelfReadOnlyV146(ctx.action, ids)) return { ok: true, skipped: 'auth_self_read_only' };
@@ -26319,7 +26725,7 @@ function diracCentralAllowedEgressHostV146(host) {
     'whoisjsonapi.com'
   ]);
   try {
-    ['DOMAIN_SUPABASE_URL', 'SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL'].forEach((name) => {
+    ['DOMAIN_SUPABASE_URL', 'SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'DIRAC_RECOVERY_WORKER_URL'].forEach((name) => {
       const value = String(process.env[name] || '').trim();
       if (value) allowed.add(new URL(value).hostname.toLowerCase());
     });
@@ -26438,6 +26844,15 @@ function diracCentralContractForActionV146(action) {
   const passkeyPost = { methods: ['POST'], allowed: ['action', 'method', 'identifier', 'email', 'setupToken', 'mfaSetupToken', 'token', 'passkeyMode', 'credential', 'id', 'rawId', 'type', 'response', 'clientExtensionResults', 'credProps', 'rk', 'clientDataJSON', 'attestationObject', 'authenticatorData', 'signature', 'userHandle', 'transports', 'authenticatorAttachment', 'challenge', 'code', 'csrf', 'nonce', 'idempotency_key'], required: [], maxBodyBytes: 192 * 1024, maxFieldBytes: 80 * 1024, mutation: true, allowArrayItems: true };
   const recoveryGeneratePost = { methods: ['POST'], allowed: ['action', 'csrf', 'nonce', 'idempotency_key'], required: [], maxBodyBytes: 1024, maxFieldBytes: 512, mutation: true };
   const recoveryVerifyPost = { methods: ['POST'], allowed: ['action', 'request_id', 'recovery_code', 'code', 'csrf', 'nonce', 'idempotency_key'], required: ['request_id'], maxBodyBytes: 4096, maxFieldBytes: 1200, mutation: true };
+  const recoveryWorkerPost = {
+    methods: ['POST'],
+    allowed: ['action', 'worker_action', 'auth_user_id', 'customer_id', 'email', 'email_binding_hash', 'customer_binding_hash', 'auth_user_binding_hash', 'device_binding_hash', 'ip_hash', 'user_agent_hash', 'active_passkey_count', 'requested_at'],
+    required: ['action', 'worker_action', 'auth_user_id', 'customer_id', 'email', 'email_binding_hash', 'customer_binding_hash', 'auth_user_binding_hash', 'device_binding_hash', 'ip_hash', 'user_agent_hash'],
+    maxBodyBytes: customerSecurityRecoveryWorkerMaxBodyBytes(),
+    maxFieldBytes: 512,
+    mutation: true,
+    allowProtectedFields: true
+  };
   const authLoginPost = { methods: ['POST'], allowed: ['email', 'password', 'fullName', 'full_name', 'name', 'phone'], required: ['email', 'password'], maxBodyBytes: 20 * 1024, maxFieldBytes: 3000, mutation: true };
   const authRegisterPost = { methods: ['POST'], allowed: ['email', 'password', 'fullName', 'full_name', 'name', 'phone'], required: ['email', 'password'], maxBodyBytes: 20 * 1024, maxFieldBytes: 3000, mutation: true };
   const contracts = {
@@ -26513,6 +26928,7 @@ function diracCentralContractForActionV146(action) {
     customer_security_account_request: postOnly,
     customer_security_recovery_codes_generate: recoveryGeneratePost,
     customer_security_recovery_code_verify: recoveryVerifyPost,
+    [DIRAC_RECOVERY_WORKER_ACTION]: recoveryWorkerPost,
     customer_security_trust_current_device: postOnly,
     customer_security_untrust_device: postOnly,
     customer_security_prune_login_history: postOnly,
