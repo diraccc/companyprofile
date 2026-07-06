@@ -5843,6 +5843,15 @@ function customerSecurityGeneratePlainRecoveryCode() {
   return customerSecurityShuffleRecoveryChars(chars).join('');
 }
 
+function customerSecurityGenerateLostPasskeyRecoveryCode() {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+  let out = '';
+  while (out.length < CUSTOMER_SECURITY_RECOVERY_CODE_LENGTH) {
+    out += customerSecurityPickRecoveryChar(alphabet);
+  }
+  return out;
+}
+
 function customerSecurityNormalizeRecoveryCodeInput(code) {
   // Recovery code alphabet intentionally excludes whitespace.
   // This makes verification tolerant when mobile copy/paste inserts spaces/newlines.
@@ -5936,79 +5945,477 @@ async function customerSecurityVerifyRecoveryCodeHash(code, storedHash, customer
   return await argon2.verify(hash, customerSecurityRecoveryCodeArgon2Input(code, customerId));
 }
 
+const LOST_PASSKEY_RECOVERY_REQUEST_TABLE = 'security_lost_passkey_recovery_requests';
+const LOST_PASSKEY_RECOVERY_SESSION_TABLE = 'security_lost_passkey_recovery_sessions';
+const LOST_PASSKEY_RECOVERY_FILE_TYPE = 'dirac_lost_passkey_recovery_file';
+const LOST_PASSKEY_RECOVERY_PAYLOAD_TYPE = 'lost_passkey_recovery_v1';
+const LOST_PASSKEY_RECOVERY_PURPOSE = 'register_new_passkey';
+const LOST_PASSKEY_RECOVERY_RANDOM_BYTES = 300;
+const LOST_PASSKEY_RECOVERY_HKDF_BYTES = 1000;
+const LOST_PASSKEY_RECOVERY_FILE_KEY_MIN_BYTES = 3000;
+const LOST_PASSKEY_RECOVERY_ATTEMPT_LIMIT = 5;
+
+function customerSecurityNormalizeLostPasskeyRequestId(value) {
+  const clean = String(value || '').trim();
+  return /^[a-zA-Z0-9_-]{16,120}$/.test(clean) ? clean : '';
+}
+
+function customerSecurityLostPasskeyRequestId() {
+  return crypto.randomBytes(24).toString('base64url');
+}
+
+function customerSecurityLostPasskeySecret(scope) {
+  try {
+    return diracCentralDeriveSecretV146('lost-passkey-recovery:' + String(scope || 'default'));
+  } catch (_) {
+    return crypto.createHash('sha256').update(String(getCustomerMfaSecret()) + ':lost-passkey-recovery:' + String(scope || 'default')).digest();
+  }
+}
+
+function customerSecurityLostPasskeyHashHex(scope, value) {
+  return crypto.createHmac('sha256', customerSecurityLostPasskeySecret(scope)).update(String(value || '')).digest('hex');
+}
+
+function customerSecurityLostPasskeyRecoveryCodeHash(requestId, customerId, code) {
+  return customerSecurityLostPasskeyHashHex('recovery-code', [
+    String(requestId || ''),
+    String(customerId || ''),
+    customerSecurityNormalizeRecoveryCodeInput(code)
+  ].join(':'));
+}
+
+function customerSecurityLostPasskeyRecoverySessionHash(token) {
+  return customerSecurityLostPasskeyHashHex('recovery-session', token);
+}
+
+function customerSecurityGenerateFileKeyText() {
+  let out = '';
+  while (Buffer.byteLength(out.normalize('NFC'), 'utf8') < LOST_PASSKEY_RECOVERY_FILE_KEY_MIN_BYTES) {
+    out += customerSecurityPickRecoveryChar(CUSTOMER_SECURITY_RECOVERY_ALPHABET);
+  }
+  return out.normalize('NFC');
+}
+
+function customerSecurityLostPasskeyB64(value) {
+  return Buffer.from(value || Buffer.alloc(0)).toString('base64url');
+}
+
+function customerSecurityLostPasskeySha256B64(value) {
+  return crypto.createHash('sha256').update(value).digest('base64url');
+}
+
+function customerSecurityLostPasskeyCanonical(value) {
+  if (value === null || value === undefined) return 'null';
+  if (Array.isArray(value)) return '[' + value.map(customerSecurityLostPasskeyCanonical).join(',') + ']';
+  if (typeof value === 'object') {
+    return '{' + Object.keys(value).sort().map((key) => JSON.stringify(key) + ':' + customerSecurityLostPasskeyCanonical(value[key])).join(',') + '}';
+  }
+  return JSON.stringify(value);
+}
+
+async function customerSecurityLostPasskeyArgon2Raw(input, salt, hashLength) {
+  const argon2 = customerSecurityGetArgon2();
+  const memoryCost = Math.max(65536, Math.min(1048576, Number(process.env.DIRAC_LOST_PASSKEY_ARGON2_MEMORY_KIB || 262144)));
+  const timeCost = Math.max(3, Math.min(10, Number(process.env.DIRAC_LOST_PASSKEY_ARGON2_TIME_COST || 4)));
+  return Buffer.from(await argon2.hash(input, {
+    type: argon2.argon2id,
+    memoryCost,
+    timeCost,
+    parallelism: 1,
+    hashLength: Math.max(32, Number(hashLength || 32)),
+    salt: Buffer.from(salt),
+    raw: true
+  }));
+}
+
+function customerSecurityLostPasskeyHkdf(ikm, salt, info, length) {
+  return Buffer.from(crypto.hkdfSync('sha256', Buffer.from(ikm), Buffer.from(salt), Buffer.from(String(info || 'dirac-lost-passkey')), Math.max(32, Number(length || 32))));
+}
+
+function customerSecurityLostPasskeyAesGcmEncrypt(key, plaintext, aad) {
+  const nonce = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', Buffer.from(key).subarray(0, 32), nonce);
+  if (aad) cipher.setAAD(Buffer.from(aad));
+  const ciphertext = Buffer.concat([cipher.update(Buffer.from(plaintext)), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return { nonce, ciphertext, tag };
+}
+
+function customerSecurityLostPasskeySign(data) {
+  const raw = String(process.env.DIRAC_RECOVERY_FILE_SIGNING_PRIVATE_KEY || '').trim();
+  if (!raw) {
+    const err = new Error('DIRAC_RECOVERY_FILE_SIGNING_PRIVATE_KEY belum diatur.');
+    err.statusCode = 500;
+    throw err;
+  }
+  const pem = raw.includes('-----BEGIN') ? raw.replace(/\\n/g, '\n') : Buffer.from(raw, 'base64').toString('utf8');
+  const key = crypto.createPrivateKey(pem);
+  return crypto.sign(null, Buffer.from(data), key).toString('base64url');
+}
+
+function customerSecurityLostPasskeyBindings(req, owner) {
+  const email = normalizeAuthEmail(owner && owner.email);
+  const customerId = String(owner && owner.customerId || '');
+  const authUserId = String(owner && owner.authUserId || '');
+  const ip = customerSecurityRequestIp(req) || '';
+  const ua = requestUserAgent(req);
+  const acceptLanguage = String(req && req.headers && req.headers['accept-language'] || '');
+  const secChUa = String(req && req.headers && req.headers['sec-ch-ua'] || '');
+  const origin = requestOrigin(req);
+  let sessionHash = '';
+  try { sessionHash = typeof diracCentralRequestSessionHashV146 === 'function' ? diracCentralRequestSessionHashV146(req) : ''; } catch (_) {}
+  const deviceMaterial = [ip, ua, acceptLanguage, secChUa, origin, sessionHash].join('|');
+  return {
+    emailBindingHash: customerSecurityLostPasskeyHashHex('email-binding', email),
+    customerBindingHash: customerSecurityLostPasskeyHashHex('customer-binding', customerId),
+    authUserBindingHash: customerSecurityLostPasskeyHashHex('auth-user-binding', authUserId),
+    deviceBindingHash: customerSecurityLostPasskeyHashHex('device-binding', deviceMaterial),
+    ipHash: customerSecurityLostPasskeyHashHex('ip', ip),
+    userAgentHash: customerSecurityLostPasskeyHashHex('ua', ua)
+  };
+}
+
+async function customerSecurityResolveLostPasskeyOwner(access) {
+  const user = access && access.user;
+  const authUserId = String(access && access.authUserId || user && user.id || '').trim();
+  const sessionEmail = normalizeAuthEmail(user && user.email);
+  const customerId = String(access && access.customerId || access && access.link && access.link.customer_id || '').trim();
+  if (!customerSecurityLooksLikeUuid(authUserId) || !isValidAuthEmail(sessionEmail) || !customerSecurityLooksLikeUuid(customerId)) {
+    return { ok: false, status: 401, message: 'Sesi recovery tidak valid.' };
+  }
+  if (!access.link || access.link.link_status !== 'active' || String(access.link.customer_id) !== customerId) {
+    return { ok: false, status: 403, message: 'Auth link recovery tidak aktif.' };
+  }
+  const customerResult = await diracPasskeyA2FFetchCustomerById(customerId);
+  if (!customerResult.ok) return { ok: false, status: customerResult.status || 500, message: 'Gagal membaca customer resmi.' };
+  const customer = Array.isArray(customerResult.data) ? customerResult.data[0] : null;
+  const customerEmail = normalizeAuthEmail(customer && customer.email);
+  if (!customer || !isValidAuthEmail(customerEmail) || customerEmail !== sessionEmail) {
+    return { ok: false, status: 403, message: 'Email session tidak cocok dengan email resmi customer.' };
+  }
+  return { ok: true, authUserId, customerId, email: customerEmail, customer };
+}
+
+async function customerSecurityLostPasskeyActivePasskeys(owner) {
+  if (typeof diracPasskeyA2FListActivePasskeys !== 'function') return [];
+  const rows = await diracPasskeyA2FListActivePasskeys(owner).catch(() => []);
+  return (Array.isArray(rows) ? rows : []).filter((row) => row && row.is_active === true && diracPasskeyA2FOwnerMatches(row, owner));
+}
+
+async function customerSecurityBuildLostPasskeyFile(input) {
+  const bindings = input.bindings;
+  const kdfContext = {
+    customer_binding_hash: bindings.customerBindingHash,
+    auth_user_binding_hash: bindings.authUserBindingHash,
+    email_binding_hash: bindings.emailBindingHash,
+    device_binding_hash: bindings.deviceBindingHash
+  };
+  const aadObject = {
+    version: 1,
+    type: LOST_PASSKEY_RECOVERY_FILE_TYPE,
+    request_id: input.requestId,
+    purpose: LOST_PASSKEY_RECOVERY_PURPOSE,
+    customer_binding_hash: bindings.customerBindingHash,
+    auth_user_binding_hash: bindings.authUserBindingHash,
+    email_binding_hash: bindings.emailBindingHash,
+    created_at: input.createdAt,
+    expires_at: input.expiresAt
+  };
+  const aad = Buffer.from(customerSecurityLostPasskeyCanonical(aadObject), 'utf8');
+  const ikmInput = [
+    input.fileKeyText.normalize('NFC'),
+    input.requestId,
+    bindings.customerBindingHash,
+    bindings.emailBindingHash,
+    bindings.authUserBindingHash
+  ].join(':');
+  const ikm = await customerSecurityLostPasskeyArgon2Raw(ikmInput, input.salt, 32);
+  const wrapMaterial = customerSecurityLostPasskeyHkdf(ikm, input.salt, 'dirac-lost-passkey-wrap:' + input.requestId, LOST_PASSKEY_RECOVERY_HKDF_BYTES);
+  const dekWrapKey = wrapMaterial.subarray(0, 32);
+  const wrapCommitmentKey = wrapMaterial.subarray(32, 64);
+  const payloadMaterial = customerSecurityLostPasskeyHkdf(input.dekSeed, input.salt, 'dirac-lost-passkey-payload:' + input.requestId, LOST_PASSKEY_RECOVERY_HKDF_BYTES);
+  const payloadKey = payloadMaterial.subarray(0, 32);
+  const payloadCommitmentKey = payloadMaterial.subarray(64, 96);
+  const payload = {
+    type: LOST_PASSKEY_RECOVERY_PAYLOAD_TYPE,
+    request_id: input.requestId,
+    recovery_code: input.recoveryCode,
+    purpose: LOST_PASSKEY_RECOVERY_PURPOSE,
+    one_time: true,
+    customer_binding_hash: bindings.customerBindingHash,
+    auth_user_binding_hash: bindings.authUserBindingHash,
+    email_binding_hash: bindings.emailBindingHash,
+    device_binding_hash: bindings.deviceBindingHash,
+    created_at: input.createdAt,
+    expires_at: input.expiresAt
+  };
+  const encryptedPayload = customerSecurityLostPasskeyAesGcmEncrypt(payloadKey, Buffer.from(customerSecurityLostPasskeyCanonical(payload), 'utf8'), aad);
+  const wrappedDekSeed = customerSecurityLostPasskeyAesGcmEncrypt(dekWrapKey, input.dekSeed, aad);
+  const keyCommitment = crypto.createHmac('sha256', Buffer.concat([payloadCommitmentKey, wrapCommitmentKey]))
+    .update(aad)
+    .update(wrappedDekSeed.ciphertext)
+    .update(encryptedPayload.ciphertext)
+    .digest('base64url');
+  const unsignedFile = {
+    version: 1,
+    type: LOST_PASSKEY_RECOVERY_FILE_TYPE,
+    algorithm: 'AES-256-GCM',
+    kdf: 'Argon2id',
+    expand: 'HKDF-SHA256',
+    signature: 'Ed25519',
+    request_id: input.requestId,
+    created_at: input.createdAt,
+    expires_at: input.expiresAt,
+    kdf_params: {
+      memory_cost_kib: Math.max(65536, Math.min(1048576, Number(process.env.DIRAC_LOST_PASSKEY_ARGON2_MEMORY_KIB || 262144))),
+      time_cost: Math.max(3, Math.min(10, Number(process.env.DIRAC_LOST_PASSKEY_ARGON2_TIME_COST || 4))),
+      parallelism: 1,
+      hash_length: 32
+    },
+    salt: customerSecurityLostPasskeyB64(input.salt),
+    kdf_context: kdfContext,
+    dek_seed_wrapped: customerSecurityLostPasskeyB64(wrappedDekSeed.ciphertext),
+    dek_wrap_nonce: customerSecurityLostPasskeyB64(wrappedDekSeed.nonce),
+    dek_wrap_tag: customerSecurityLostPasskeyB64(wrappedDekSeed.tag),
+    payload_nonce: customerSecurityLostPasskeyB64(encryptedPayload.nonce),
+    aad_hash: customerSecurityLostPasskeySha256B64(aad),
+    ciphertext: customerSecurityLostPasskeyB64(encryptedPayload.ciphertext),
+    payload_auth_tag: customerSecurityLostPasskeyB64(encryptedPayload.tag),
+    key_commitment: keyCommitment
+  };
+  const canonicalUnsigned = customerSecurityLostPasskeyCanonical(unsignedFile);
+  const signature = customerSecurityLostPasskeySign(canonicalUnsigned);
+  const file = { ...unsignedFile, file_sha256: customerSecurityLostPasskeySha256B64(Buffer.from(canonicalUnsigned)), server_signature: signature };
+  return { file, fileSha256: file.file_sha256, aadHash: unsignedFile.aad_hash, signature };
+}
+
+function customerSecurityOwnerMasterKeyMaterial() {
+  const names = ['OWNER_MASTER_KEY_1', 'OWNER_MASTER_KEY_2', 'OWNER_MASTER_KEY_3', 'OWNER_MASTER_KEY_4', 'OWNER_MASTER_KEY_5'];
+  const values = names.map((name) => String(process.env[name] || '').trim());
+  if (values.some((value) => Buffer.byteLength(value, 'utf8') < 32)) {
+    const err = new Error('OWNER_MASTER_KEY_1 sampai OWNER_MASTER_KEY_5 wajib diatur minimal 32 byte.');
+    err.statusCode = 500;
+    throw err;
+  }
+  return values.join('\n');
+}
+
+async function customerSecurityWrapLostPasskeyFileKey(input) {
+  const material = [
+    customerSecurityOwnerMasterKeyMaterial(),
+    input.requestId,
+    'dirac-lost-passkey-owner-wrap-v1'
+  ].join('\n');
+  const finalOwnerKey = await customerSecurityLostPasskeyArgon2Raw(material, input.ownerKeySalt, 32);
+  const aad = Buffer.from('dirac-lost-passkey-file-key:' + input.requestId, 'utf8');
+  const encrypted = customerSecurityLostPasskeyAesGcmEncrypt(finalOwnerKey, Buffer.from(input.fileKeyText.normalize('NFC'), 'utf8'), aad);
+  return {
+    ciphertext: customerSecurityLostPasskeyB64(encrypted.ciphertext),
+    nonce: customerSecurityLostPasskeyB64(encrypted.nonce),
+    tag: customerSecurityLostPasskeyB64(encrypted.tag)
+  };
+}
+
+async function customerSecuritySendLostPasskeyRecoveryEmail(to, fileName, fileBuffer, context = {}) {
+  const email = normalizeAuthEmail(to);
+  if (!isValidAuthEmail(email)) return { ok: false, status: 400, code: 'RECOVERY_EMAIL_INVALID', message: 'Email resmi customer tidak valid.' };
+  const from = String(process.env.DIRAC_RECOVERY_EMAIL_FROM || process.env.DIRAC_EMAIL_FROM || process.env.RESEND_FROM || 'Dirac Secure <no-reply@diracgroup.store>').trim();
+  const subject = 'File Recovery Passkey Dirac Secure';
+  const text = [
+    'File recovery Passkey terenkripsi terlampir.',
+    'Request ID: ' + String(context.requestId || ''),
+    'Berlaku sampai: ' + String(context.expiresAt || ''),
+    'Jangan kirimkan file ini ke pihak lain. Kata sandi file hanya diberikan owner setelah verifikasi SOP.'
+  ].join('\n\n');
+  const html = '<div style="font-family:Arial,sans-serif;line-height:1.55;color:#111827"><h2>File Recovery Passkey Dirac Secure</h2><p>File recovery Passkey terenkripsi terlampir.</p><p><b>Request ID:</b> ' + String(context.requestId || '') + '</p><p><b>Berlaku sampai:</b> ' + String(context.expiresAt || '') + '</p><p>Jangan kirimkan file ini ke pihak lain. Kata sandi file hanya diberikan owner setelah verifikasi SOP.</p></div>';
+  const content = Buffer.from(fileBuffer).toString('base64');
+  if (process.env.RESEND_API_KEY) {
+    try {
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from, to: email, subject, text, html, attachments: [{ filename: fileName, content }] })
+      });
+      if (response.ok) return { ok: true, provider: 'resend' };
+      return { ok: false, status: 502, code: 'RESEND_RECOVERY_DELIVERY_FAILED', message: 'Gagal mengirim file recovery dari Resend.' };
+    } catch (_) {
+      return { ok: false, status: 502, code: 'RESEND_RECOVERY_DELIVERY_FAILED', message: 'Gagal menghubungi layanan email recovery.' };
+    }
+  }
+  if (process.env.BREVO_API_KEY) {
+    try {
+      const senderEmail = String(process.env.BREVO_SENDER_EMAIL || process.env.DIRAC_RECOVERY_SENDER_EMAIL || '').trim();
+      const senderName = String(process.env.BREVO_SENDER_NAME || 'Dirac Secure').trim();
+      if (!senderEmail) return { ok: false, status: 503, code: 'BREVO_SENDER_MISSING', message: 'BREVO_SENDER_EMAIL belum diatur.' };
+      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: { 'api-key': process.env.BREVO_API_KEY, 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ sender: { name: senderName, email: senderEmail }, to: [{ email }], subject, htmlContent: html, textContent: text, attachment: [{ name: fileName, content }] })
+      });
+      if (response.ok) return { ok: true, provider: 'brevo' };
+      return { ok: false, status: 502, code: 'BREVO_RECOVERY_DELIVERY_FAILED', message: 'Gagal mengirim file recovery dari Brevo.' };
+    } catch (_) {
+      return { ok: false, status: 502, code: 'BREVO_RECOVERY_DELIVERY_FAILED', message: 'Gagal menghubungi layanan email recovery.' };
+    }
+  }
+  return { ok: false, status: 503, code: 'RECOVERY_EMAIL_PROVIDER_NOT_CONFIGURED', message: 'Provider email recovery belum dikonfigurasi.' };
+}
+
 async function customerSecurityRecoveryCodesStatus(req, res, action) {
   const access = await customerSecurityRequireAccess(req, res, { action, requireMfa: true, rateLimit: { limit: 20, windowMs: 60_000 } });
   if (!access) return;
 
-  const path = '/rest/v1/security_customer_recovery_codes?select=' + encodeURIComponent('id,created_at,used_at,revoked_at') + '&customer_id=eq.' + encodeURIComponent(access.customerId);
+  const path = '/rest/v1/' + LOST_PASSKEY_RECOVERY_REQUEST_TABLE + '?select=' + encodeURIComponent('request_id,status,created_at,expires_at,used_at,revoked_at,locked_at') + '&customer_id=eq.' + encodeURIComponent(access.customerId) + '&order=created_at.desc&limit=20';
   const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
   if (!result.ok) {
-    return res.status(200).json({ ok: true, ready: false, total: 0, unused: 0, used: 0, message: 'Recovery codes storage belum siap.', direct_frontend_table_access: false });
+    return res.status(200).json({ ok: true, ready: false, total: 0, pending: 0, verified: 0, used: 0, locked: 0, message: 'Lost passkey recovery storage belum siap.', direct_frontend_table_access: false });
   }
 
   const rows = Array.isArray(result.data) ? result.data : [];
   const activeRows = rows.filter(row => !row.revoked_at);
-  const unused = activeRows.filter(row => !row.used_at).length;
-  const used = activeRows.filter(row => row.used_at).length;
-  return res.status(200).json({ ok: true, ready: true, total: activeRows.length, unused, used, generated: activeRows.length > 0, message: activeRows.length ? 'Recovery codes tersedia.' : 'Recovery codes belum dibuat.', direct_frontend_table_access: false, time: diracNowIso() });
+  const pending = activeRows.filter(row => row.status === 'pending').length;
+  const verified = activeRows.filter(row => row.status === 'verified').length;
+  const used = activeRows.filter(row => row.status === 'used' || row.used_at).length;
+  const locked = activeRows.filter(row => row.status === 'locked' || row.locked_at).length;
+  return res.status(200).json({ ok: true, ready: true, total: activeRows.length, pending, verified, used, locked, generated: activeRows.length > 0, message: activeRows.length ? 'Lost passkey recovery request tersedia.' : 'Lost passkey recovery belum dibuat.', direct_frontend_table_access: false, time: diracNowIso() });
 }
 
 async function customerSecurityGenerateRecoveryCodes(req, res, action) {
-  const access = await customerSecurityRequireAccess(req, res, { action, requireMfa: true, rateLimit: { limit: 2, windowMs: 10 * 60_000 } });
+  const access = await customerSecurityRequireAccess(req, res, { action, requireMfa: false, rateLimit: { limit: 2, windowMs: 10 * 60_000 } });
   if (!access) return;
 
-  const body = await readBody(req);
-  const count = CUSTOMER_SECURITY_RECOVERY_CODE_COUNT;
-  const now = diracNowIso();
-  const batchId = customerSecuritySha256('recovery-batch:' + access.customerId + ':' + now + ':' + crypto.randomBytes(16).toString('hex')).slice(0, 32);
+  await readBody(req);
+  const owner = await customerSecurityResolveLostPasskeyOwner(access);
+  if (!owner.ok) return res.status(owner.status || 403).json({ ok: false, message: owner.message || 'Recovery passkey tidak dapat dibuat.' });
 
-  await supabaseFetch('/rest/v1/security_customer_recovery_codes?customer_id=eq.' + encodeURIComponent(access.customerId) + '&revoked_at=is.null', {
-    method: 'PATCH',
-    auth: 'service',
-    body: { revoked_at: now, revoke_reason: 'rotated' }
-  }).catch(() => null);
-
-  const plainCodes = Array.from({ length: count }, () => customerSecurityGeneratePlainRecoveryCode());
-  const rows = await Promise.all(plainCodes.map(async (code, index) => ({
-    customer_id: access.customerId,
-    code_hash: await customerSecurityHashRecoveryCode(code, access.customerId),
-    code_hint: code.slice(-4),
-    batch_id: batchId,
-    status: 'active',
-    used_at: null,
-    revoked_at: null,
-    metadata: {
-      source: 'customer_security_generate_recovery_codes',
-      order: index + 1,
-      hash_algorithm: 'argon2id',
-      code_length: CUSTOMER_SECURITY_RECOVERY_CODE_LENGTH
-    }
-  })));
-
-  const created = await supabaseFetch('/rest/v1/security_customer_recovery_codes', { method: 'POST', auth: 'service', prefer: 'return=representation', body: rows });
-  if (!created.ok) {
-    return res.status(500).json({ ok: false, message: 'Gagal membuat recovery codes. Pastikan tabel security_customer_recovery_codes sudah tersedia.' });
+  const activePasskeys = await customerSecurityLostPasskeyActivePasskeys(owner);
+  if (!activePasskeys.length) {
+    return res.status(409).json({ ok: false, code: 'ACTIVE_PASSKEY_NOT_FOUND', message: 'Passkey aktif untuk akun ini belum ditemukan. Gunakan flow pembuatan Passkey normal.' });
   }
 
+  const nowMs = Date.now();
+  const nowIso = new Date(nowMs).toISOString();
+  const ttlMinutes = Math.max(5, Math.min(1440, Number(process.env.DIRAC_LOST_PASSKEY_RECOVERY_TTL_MINUTES || 60)));
+  const expiresAt = new Date(nowMs + ttlMinutes * 60 * 1000).toISOString();
+  const requestId = customerSecurityLostPasskeyRequestId();
+  const recoveryCode = customerSecurityGenerateLostPasskeyRecoveryCode();
+  const fileKeyText = customerSecurityGenerateFileKeyText();
+  const salt = crypto.randomBytes(LOST_PASSKEY_RECOVERY_RANDOM_BYTES);
+  const ownerKeySalt = crypto.randomBytes(LOST_PASSKEY_RECOVERY_RANDOM_BYTES);
+  const dekSeed = crypto.randomBytes(LOST_PASSKEY_RECOVERY_RANDOM_BYTES);
+  const bindings = customerSecurityLostPasskeyBindings(req, owner);
+  const recoveryCodeHash = customerSecurityLostPasskeyRecoveryCodeHash(requestId, owner.customerId, recoveryCode);
+  const encrypted = await customerSecurityBuildLostPasskeyFile({
+    requestId,
+    recoveryCode,
+    fileKeyText,
+    salt,
+    dekSeed,
+    bindings,
+    createdAt: nowIso,
+    expiresAt
+  });
+  const wrappedFileKey = await customerSecurityWrapLostPasskeyFileKey({
+    requestId,
+    ownerKeySalt,
+    fileKeyText
+  });
+  const fileName = 'recovery-' + requestId + '.enc';
+  const fileBuffer = Buffer.from(JSON.stringify(encrypted.file, null, 2), 'utf8');
+  const insertBody = [{
+    request_id: requestId,
+    customer_id: owner.customerId,
+    auth_user_id: owner.authUserId,
+    email_hash: bindings.emailBindingHash,
+    customer_binding_hash: bindings.customerBindingHash,
+    auth_user_binding_hash: bindings.authUserBindingHash,
+    device_binding_hash: bindings.deviceBindingHash,
+    ip_hash: bindings.ipHash,
+    user_agent_hash: bindings.userAgentHash,
+    recovery_code_hash: recoveryCodeHash,
+    encrypted_file_key_text: wrappedFileKey.ciphertext,
+    file_key_wrap_nonce: wrappedFileKey.nonce,
+    file_key_wrap_tag: wrappedFileKey.tag,
+    salt: salt.toString('base64url'),
+    owner_key_salt: ownerKeySalt.toString('base64url'),
+    file_sha256: encrypted.fileSha256,
+    aad_hash: encrypted.aadHash,
+    server_signature: encrypted.signature,
+    old_passkey_ids: activePasskeys.map((row) => row.id).filter(Boolean),
+    status: 'pending',
+    attempt_count: 0,
+    created_at: nowIso,
+    sent_at: null,
+    expires_at: expiresAt,
+    metadata: {
+      source: 'lost_passkey_recovery',
+      delivery: 'encrypted_email_attachment',
+      file_name: fileName,
+      passkey_count: activePasskeys.length,
+      file_key_min_bytes: LOST_PASSKEY_RECOVERY_FILE_KEY_MIN_BYTES,
+      recovery_code_length: CUSTOMER_SECURITY_RECOVERY_CODE_LENGTH,
+      salt_bytes: LOST_PASSKEY_RECOVERY_RANDOM_BYTES,
+      dek_seed_bytes: LOST_PASSKEY_RECOVERY_RANDOM_BYTES
+    }
+  }];
+
+  const created = await supabaseFetch('/rest/v1/' + LOST_PASSKEY_RECOVERY_REQUEST_TABLE, { method: 'POST', auth: 'service', prefer: 'return=representation', body: insertBody });
+  if (!created.ok) {
+    return res.status(created.status || 500).json({ ok: false, message: 'Gagal menyimpan lost passkey recovery request.' });
+  }
+
+  const sent = await customerSecuritySendLostPasskeyRecoveryEmail(owner.email, fileName, fileBuffer, { requestId, expiresAt });
+  if (!sent.ok) {
+    await supabaseFetch('/rest/v1/' + LOST_PASSKEY_RECOVERY_REQUEST_TABLE + '?request_id=eq.' + encodeURIComponent(requestId), {
+      method: 'PATCH',
+      auth: 'service',
+      body: {
+        status: 'revoked',
+        revoked_at: diracNowIso(),
+        metadata: {
+          source: 'lost_passkey_recovery',
+          delivery: 'encrypted_email_attachment',
+          delivery_failed: true,
+          delivery_failed_at: diracNowIso(),
+          file_name: fileName
+        }
+      }
+    }).catch(() => null);
+    return res.status(sent.status || 503).json({ ok: false, code: sent.code || 'RECOVERY_EMAIL_SEND_FAILED', message: sent.message || 'File recovery belum bisa dikirim ke email resmi.' });
+  }
+
+  await supabaseFetch('/rest/v1/' + LOST_PASSKEY_RECOVERY_REQUEST_TABLE + '?request_id=eq.' + encodeURIComponent(requestId), {
+    method: 'PATCH',
+    auth: 'service',
+    body: { sent_at: nowIso }
+  }).catch(() => null);
+
   await customerSecurityWriteGuardEvent(access.customerId, {
-    event_type: 'recovery_codes_generated',
+    event_type: 'lost_passkey_recovery_file_sent',
     status: 'success',
     risk_level: 'high',
-    description: 'Customer membuat recovery codes baru. Kode lama dicabut.',
+    description: 'File recovery passkey terenkripsi dikirim ke email resmi customer.',
     req,
-    metadata: { action, count, batch_id: batchId }
+    metadata: { action, request_id: requestId, file_sha256: encrypted.fileSha256, delivery_provider: sent.provider || null }
   });
 
-  return res.status(200).json({ ok: true, message: '3 recovery codes berhasil dibuat. Download file TXT sekarang; kode hanya dikirim sekali.', codes: plainCodes, count: plainCodes.length, code_length: CUSTOMER_SECURITY_RECOVERY_CODE_LENGTH, active_code_limit: CUSTOMER_SECURITY_RECOVERY_CODE_COUNT, show_once: true, delivery: 'download_txt_only', recovery_policy_version: '500x3-v2', batch_id: batchId, time: diracNowIso() });
+  return res.status(200).json({
+    ok: true,
+    request_id: requestId,
+    expires_at: expiresAt,
+    delivery: 'encrypted_email_attachment',
+    message: 'File recovery terenkripsi sudah dikirim ke email resmi akun.',
+    time: nowIso
+  });
 }
 
 
 
 /* ============================================================
-   RECOVERY CODE VERIFY + ARGON2ID MFA PROOF
-   - Verifikasi recovery code dari masuk.html.
-   - Recovery code hash wajib Argon2id.
-   - Setelah cocok: used_at diisi, status=used, proof MFA dibuat.
+   LOST PASSKEY RECOVERY VERIFY
+   - Verifikasi request_id + recovery code dari file .enc.
+   - Setelah cocok: recovery session terbatas dibuat untuk register Passkey baru.
+   - Tidak membuat dashboard MFA/full login session.
    ============================================================ */
 
 function customerSecurityCreateDashboardMfaToken(req, user, method = 'recovery_code') {
@@ -6061,74 +6468,115 @@ async function customerSecurityVerifyRecoveryCode(req, res, action) {
   if (!access) return;
 
   const body = await readBody(req);
+  const requestId = customerSecurityNormalizeLostPasskeyRequestId(body.request_id || body.requestId || '');
   const code = customerSecurityNormalizeRecoveryCodeInput(body.code || body.recovery_code || body.recoveryCode || '');
 
+  if (!requestId) {
+    await customerSecurityRegisterFailedVerification(req, action, 'invalid_recovery_request_id', access.customerId);
+    return res.status(400).json({ ok: false, message: 'Request recovery tidak valid.' });
+  }
   if (Array.from(code).length !== CUSTOMER_SECURITY_RECOVERY_CODE_LENGTH) {
     await customerSecurityRegisterFailedVerification(req, action, 'invalid_recovery_code_length', access.customerId);
     return res.status(400).json({
       ok: false,
-      message: 'Recovery code tidak valid. Masukkan tepat 500 karakter dari file TXT.'
+      message: 'Recovery code tidak valid. Masukkan tepat 500 karakter dari file recovery terenkripsi.'
     });
   }
 
-  const path = '/rest/v1/security_customer_recovery_codes?select=' +
-    encodeURIComponent('id,code_hash,used_at,revoked_at,status,batch_id,created_at') +
-    '&customer_id=eq.' + encodeURIComponent(access.customerId) +
-    '&used_at=is.null' +
-    '&revoked_at=is.null' +
-    '&status=eq.active' +
-    '&order=created_at.desc&limit=10';
+  const path = '/rest/v1/' + LOST_PASSKEY_RECOVERY_REQUEST_TABLE + '?select=' +
+    encodeURIComponent('id,request_id,customer_id,auth_user_id,email_hash,customer_binding_hash,auth_user_binding_hash,device_binding_hash,recovery_code_hash,status,attempt_count,expires_at,used_at,revoked_at,locked_at,old_passkey_ids') +
+    '&request_id=eq.' + encodeURIComponent(requestId) +
+    '&limit=1';
 
   const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
   if (!result.ok) {
     return res.status(500).json({
       ok: false,
-      message: 'Gagal membaca recovery codes.'
+      message: 'Gagal membaca recovery request.'
     });
   }
 
-  const rows = Array.isArray(result.data) ? result.data : [];
-  let matched = null;
-
-  for (const row of rows) {
-    try {
-      const ok = await customerSecurityVerifyRecoveryCodeHash(code, row.code_hash, access.customerId);
-      if (ok) {
-        matched = row;
-        break;
-      }
-    } catch (error) {
-      if (error && error.code === 'ARGON2ID_DEPENDENCY_MISSING') {
-        return res.status(500).json({
-          ok: false,
-          code: 'ARGON2ID_DEPENDENCY_MISSING',
-          message: 'Dependency argon2 belum terpasang di backend.'
-        });
-      }
-      throw error;
-    }
+  const row = Array.isArray(result.data) ? result.data[0] : null;
+  if (!row || !row.id) {
+    await customerSecurityRegisterFailedVerification(req, action, 'recovery_request_not_found', access.customerId);
+    return res.status(404).json({ ok: false, message: 'Recovery request tidak ditemukan.' });
   }
 
-  if (!matched || !matched.id) {
-    await customerSecurityRegisterFailedVerification(req, action, 'recovery_code_not_matched', access.customerId);
-    return res.status(403).json({
-      ok: false,
-      message: 'Recovery code salah, sudah dipakai, atau sudah expired.'
-    });
+  const nowMs = Date.now();
+  if (row.status !== 'pending' || row.used_at || row.revoked_at || row.locked_at || new Date(row.expires_at).getTime() <= nowMs) {
+    return customerSecuritySendRecoveryError(res, 403, row.status === 'used' || row.used_at ? 'used' : 'expired');
+  }
+
+  const expectedHash = customerSecurityLostPasskeyRecoveryCodeHash(requestId, row.customer_id, code);
+  if (!safeEqual(String(row.recovery_code_hash || ''), expectedHash)) {
+    const nextAttempts = Number(row.attempt_count || 0) + 1;
+    const lock = nextAttempts >= LOST_PASSKEY_RECOVERY_ATTEMPT_LIMIT;
+    await supabaseFetch('/rest/v1/' + LOST_PASSKEY_RECOVERY_REQUEST_TABLE + '?request_id=eq.' + encodeURIComponent(requestId), {
+      method: 'PATCH',
+      auth: 'service',
+      body: {
+        attempt_count: nextAttempts,
+        status: lock ? 'locked' : row.status,
+        locked_at: lock ? diracNowIso() : row.locked_at || null,
+        metadata: { last_failed_verify_at: diracNowIso(), failed_verify_source: action }
+      }
+    }).catch(() => null);
+    await customerSecurityRegisterFailedVerification(req, action, lock ? 'recovery_code_locked' : 'recovery_code_not_matched', access.customerId);
+    return res.status(lock ? 423 : 403).json({ ok: false, message: lock ? 'Recovery request dikunci karena terlalu banyak percobaan.' : 'Recovery code salah, sudah dipakai, atau sudah expired.' });
+  }
+
+  const owner = await customerSecurityResolveLostPasskeyOwner(access);
+  if (!owner.ok || String(owner.customerId) !== String(row.customer_id) || String(owner.authUserId) !== String(row.auth_user_id)) {
+    await customerSecurityRegisterFailedVerification(req, action, 'recovery_owner_mismatch', access.customerId);
+    return res.status(403).json({ ok: false, message: 'Recovery request tidak cocok dengan sesi login ini.' });
+  }
+  const bindings = customerSecurityLostPasskeyBindings(req, owner);
+  if (!safeEqual(String(row.email_hash || ''), bindings.emailBindingHash)
+    || !safeEqual(String(row.customer_binding_hash || ''), bindings.customerBindingHash)
+    || !safeEqual(String(row.auth_user_binding_hash || ''), bindings.authUserBindingHash)) {
+    await customerSecurityRegisterFailedVerification(req, action, 'recovery_binding_mismatch', access.customerId);
+    return res.status(403).json({ ok: false, message: 'Recovery binding tidak cocok dengan akun login.' });
+  }
+
+  const activePasskeys = await customerSecurityLostPasskeyActivePasskeys(owner);
+  if (!activePasskeys.length) {
+    return res.status(409).json({ ok: false, message: 'Passkey lama tidak ditemukan untuk akun ini.' });
   }
 
   const now = diracNowIso();
-  const patched = await supabaseFetch('/rest/v1/security_customer_recovery_codes?id=eq.' + encodeURIComponent(matched.id), {
+  const recoverySessionToken = crypto.randomBytes(32).toString('base64url');
+  const recoverySessionHash = customerSecurityLostPasskeyRecoverySessionHash(recoverySessionToken);
+  const sessionExpiresAt = new Date(Date.now() + Math.max(5, Math.min(30, Number(process.env.DIRAC_LOST_PASSKEY_SESSION_MINUTES || 10))) * 60 * 1000).toISOString();
+  const sessionCreated = await supabaseFetch('/rest/v1/' + LOST_PASSKEY_RECOVERY_SESSION_TABLE, {
+    method: 'POST',
+    auth: 'service',
+    prefer: 'return=representation',
+    body: [{
+      request_id: requestId,
+      customer_id: owner.customerId,
+      auth_user_id: owner.authUserId,
+      recovery_session_hash: recoverySessionHash,
+      purpose: LOST_PASSKEY_RECOVERY_PURPOSE,
+      status: 'verified',
+      created_at: now,
+      expires_at: sessionExpiresAt,
+      metadata: { source: action, old_passkey_count: activePasskeys.length }
+    }]
+  });
+  if (!sessionCreated.ok) {
+    return res.status(sessionCreated.status || 500).json({ ok: false, message: 'Gagal membuat recovery session.' });
+  }
+
+  const patched = await supabaseFetch('/rest/v1/' + LOST_PASSKEY_RECOVERY_REQUEST_TABLE + '?request_id=eq.' + encodeURIComponent(requestId), {
     method: 'PATCH',
     auth: 'service',
     prefer: 'return=representation',
     body: {
-      used_at: now,
-      status: 'used',
+      status: 'verified',
       metadata: {
-        source: 'customer_security_recovery_code_verify',
-        used_by_endpoint: action,
-        used_at: now
+        source: 'lost_passkey_recovery_code_verify',
+        verified_by_endpoint: action,
+        verified_at: now
       }
     }
   });
@@ -6136,35 +6584,29 @@ async function customerSecurityVerifyRecoveryCode(req, res, action) {
   if (!patched.ok) {
     return res.status(500).json({
       ok: false,
-      message: 'Gagal menandai recovery code sebagai used.'
+      message: 'Gagal menandai recovery request sebagai verified.'
     });
   }
 
-  const proof = customerSecurityCreateDashboardMfaToken(req, access.user, 'recovery_code');
-  customerSecuritySetDashboardMfaCookie(res, proof);
-
   await customerSecurityWriteGuardEvent(access.customerId, {
-    event_type: 'recovery_code_used',
+    event_type: 'lost_passkey_recovery_verified',
     status: 'success',
     risk_level: 'high',
-    description: 'Customer memakai recovery code untuk verifikasi A2F/MFA.',
+    description: 'Customer memverifikasi recovery code terenkripsi untuk pemulihan Passkey.',
     req,
-    metadata: { action, recovery_code_id: matched.id, batch_id: matched.batch_id || null }
+    metadata: { action, request_id: requestId }
   });
 
   return res.status(200).json({
     ok: true,
     active: true,
     method: 'recovery_code',
-    message: 'Recovery code valid. Akses dashboard diverifikasi.',
-    dashboardSession: {
-      verified: true,
-      expiresAtMs: proof.expiresAtMs,
-      activeAtMs: proof.activeAtMs,
-      method: 'recovery_code',
-      transport: 'httponly-secure-cookie-only'
-    },
-    recovery_code_used: true,
+    purpose: LOST_PASSKEY_RECOVERY_PURPOSE,
+    message: 'Recovery code valid. Recovery session terbatas untuk daftar Passkey baru sudah dibuat.',
+    recovery_session_token: recoverySessionToken,
+    recovery_session_expires_at: sessionExpiresAt,
+    dashboard_access: false,
+    recovery_code_verified: true,
     time: now
   });
 }
@@ -9822,106 +10264,10 @@ async function ipaymuHandleWebhook(req, res) {
 }
 
 /* ============================================================
-   DIRAC EMAIL A2F RESTORE PATCH v1
-   - Adds backend email-code 2FA actions for masuk.html restore patch.
-   - Routes:
-     POST /api/health?action=dirac_mfa_email_start
-     POST /api/health?action=dirac_mfa_email_verify
-   - Passkey/Auth flow stays on the existing /api/2fa endpoints.
-   - Dashboard proof is still HttpOnly cookie only.
+   DIRAC A2F SHARED HARD-BAN HELPER
+   Email-code A2F removed. Passkey A2F still uses this helper to
+   hard-ban invalid token/challenge attempts.
    ============================================================ */
-
-const __diracEmailA2FPreviousHandler = module.exports;
-const DIRAC_EMAIL_A2F_ACTIONS = new Set([
-  'dirac_mfa_email_start',
-  'dirac_mfa_email_verify',
-  'domain_mfa_email_start',
-  'domain_mfa_email_verify'
-]);
-const DIRAC_EMAIL_A2F_STORE = globalThis.__DIRAC_EMAIL_A2F_STORE__ || new Map();
-const DIRAC_EMAIL_A2F_RATE_STORE = globalThis.__DIRAC_EMAIL_A2F_RATE_STORE__ || new Map();
-globalThis.__DIRAC_EMAIL_A2F_STORE__ = DIRAC_EMAIL_A2F_STORE;
-globalThis.__DIRAC_EMAIL_A2F_RATE_STORE__ = DIRAC_EMAIL_A2F_RATE_STORE;
-const DIRAC_EMAIL_A2F_TTL_MS = Math.max(60_000, Number(process.env.DIRAC_EMAIL_A2F_TTL_MS || 5 * 60_000));
-const DIRAC_EMAIL_A2F_MAX_ATTEMPTS = Math.max(3, Number(process.env.DIRAC_EMAIL_A2F_MAX_ATTEMPTS || 5));
-
-module.exports = async function diracEmailA2FRestoreWrapper(req, res) {
-  const rawAction = String((req.query && req.query.action) || '').trim();
-  if (!DIRAC_EMAIL_A2F_ACTIONS.has(rawAction)) {
-    return __diracEmailA2FPreviousHandler(req, res);
-  }
-
-  const cors = setCors(req, res, { isDomainAction: true });
-  if (req.method === 'OPTIONS') return res.status(cors.allowed ? 200 : 403).end();
-  if (!cors.allowed) return res.status(403).json({ ok: false, message: 'Origin tidak diizinkan.' });
-
-  try {
-    if (rawAction === 'dirac_mfa_email_start' || rawAction === 'domain_mfa_email_start') {
-      return diracEmailA2FStart(req, res);
-    }
-    return diracEmailA2FVerify(req, res);
-  } catch (error) {
-    return res.status(error && error.statusCode ? error.statusCode : 500).json({
-      ok: false,
-      message: 'Verifikasi A2F email belum bisa diproses. Silakan coba lagi sebentar lagi.'
-    });
-  }
-};
-
-function diracEmailA2FCleanup(now = Date.now()) {
-  if (DIRAC_EMAIL_A2F_STORE.size < 1000) return;
-  for (const [key, row] of DIRAC_EMAIL_A2F_STORE.entries()) {
-    if (!row || Number(row.expiresAtMs || 0) <= now) DIRAC_EMAIL_A2F_STORE.delete(key);
-  }
-}
-
-async function diracEmailA2FStoreChallenge(setupToken, record) {
-  DIRAC_EMAIL_A2F_STORE.set(setupToken, record);
-  try {
-    if (typeof writePersistentSecurityJson === 'function') {
-      await writePersistentSecurityJson('email-a2f-jti:' + setupToken, record, 0, Math.max(60, Math.ceil((Number(record && record.expiresAtMs || 0) - Date.now()) / 1000) + 30)).catch(() => false);
-    }
-  } catch (_) {}
-}
-
-async function diracEmailA2FReadChallenge(setupToken) {
-  let record = DIRAC_EMAIL_A2F_STORE.get(setupToken);
-  if (!record && typeof readPersistentSecurityJson === 'function') {
-    record = await readPersistentSecurityJson('email-a2f-jti:' + setupToken).catch(() => null);
-    if (record && typeof record === 'object') DIRAC_EMAIL_A2F_STORE.set(setupToken, record);
-  }
-  return record || null;
-}
-
-async function diracEmailA2FMarkChallengeUsed(setupToken, record, status) {
-  DIRAC_EMAIL_A2F_STORE.delete(setupToken);
-  try {
-    if (typeof writePersistentSecurityJson === 'function') {
-      await writePersistentSecurityJson('email-a2f-jti:' + setupToken, { ...(record || {}), used: true, used_status: status || 'used', usedAtMs: Date.now() }, 0, 60).catch(() => false);
-    }
-  } catch (_) {}
-}
-
-function diracEmailA2FHash(value) {
-  return crypto.createHmac('sha256', getCustomerMfaSecret()).update(String(value || '')).digest('hex');
-}
-
-function diracEmailA2FMaskEmail(email) {
-  const value = normalizeAuthEmail(email);
-  const parts = value.split('@');
-  if (parts.length !== 2) return 'e••••@mail';
-  const name = parts[0] || 'e';
-  const domain = parts[1] || 'mail';
-  const domainParts = domain.split('.');
-  const domainName = domainParts[0] || 'mail';
-  const tld = domainParts.length > 1 ? domainParts.slice(1).join('.') : '';
-  const maskedDomain = `${domainName.slice(0, 1)}••••${tld ? '.' + tld : ''}`;
-  return `${name.slice(0, 1)}••••${name.length > 4 ? name.slice(-2) : ''}@${maskedDomain}`;
-}
-
-function diracEmailA2FGenerateCode() {
-  return String(crypto.randomInt(0, 1000000)).padStart(6, '0');
-}
 
 function diracA2FHardBanCurrentRequest(reason) {
   try {
@@ -9932,353 +10278,6 @@ function diracA2FHardBanCurrentRequest(reason) {
   return Promise.resolve({ ok: false });
 }
 
-function diracA2FUserBinding(req, user, email) {
-  const userId = String(user && user.id || '').trim();
-  const customerId = String(user && (user.customer_id || user.customerId || user.customer || '') || '').trim();
-  let sessionHash = '';
-  try { sessionHash = typeof diracCentralRequestSessionHashV146 === 'function' ? diracCentralRequestSessionHashV146(req) : ''; } catch (_) {}
-  return {
-    authUserIdHash: userId ? customerMfaBindingHash('auth_user_id', userId) : '',
-    customerIdHash: customerId ? customerMfaBindingHash('customer_id', customerId) : '',
-    sessionHash,
-    emailHash: customerMfaProfileId(email || (user && user.email))
-  };
-}
-
-function diracA2FCheckUserBinding(req, user, record, email) {
-  const binding = diracA2FUserBinding(req, user, email);
-  if (!record || !binding.authUserIdHash || !record.authUserIdHash || !safeEqual(String(record.authUserIdHash), binding.authUserIdHash)) {
-    return { ok: false, reason: 'a2f_auth_user_binding_mismatch' };
-  }
-  if (record.customerIdHash && binding.customerIdHash && !safeEqual(String(record.customerIdHash), binding.customerIdHash)) {
-    return { ok: false, reason: 'a2f_customer_binding_mismatch' };
-  }
-  if (record.sessionHash && binding.sessionHash && !safeEqual(String(record.sessionHash), binding.sessionHash)) {
-    return { ok: false, reason: 'a2f_session_binding_mismatch' };
-  }
-  return { ok: true };
-}
-
-function diracEmailA2FRateLimit(key, windowMs, max) {
-  const now = Date.now();
-  const clean = String(key || 'email-a2f-rate').slice(0, 180);
-  const row = DIRAC_EMAIL_A2F_RATE_STORE.get(clean) || { count: 0, resetAt: now + windowMs };
-  if (Number(row.resetAt || 0) <= now) {
-    row.count = 0;
-    row.resetAt = now + windowMs;
-  }
-  row.count += 1;
-  DIRAC_EMAIL_A2F_RATE_STORE.set(clean, row);
-  if (DIRAC_EMAIL_A2F_RATE_STORE.size > 2000) {
-    for (const [itemKey, item] of DIRAC_EMAIL_A2F_RATE_STORE.entries()) {
-      if (Number(item && item.resetAt || 0) <= now) DIRAC_EMAIL_A2F_RATE_STORE.delete(itemKey);
-      if (DIRAC_EMAIL_A2F_RATE_STORE.size <= 1200) break;
-    }
-  }
-  return { ok: row.count <= max, count: row.count, resetAt: row.resetAt };
-}
-
-function diracEmailA2FRateGuard(req, user, email, phase) {
-  const binding = diracA2FUserBinding(req, user, email);
-  const identity = binding.authUserIdHash || binding.emailHash || customerMfaBindingHash('ua', requestUserAgent(req));
-  const cleanPhase = String(phase || 'start');
-  const shortLimit = cleanPhase === 'verify' ? 12 : 5;
-  const dayLimit = cleanPhase === 'verify' ? 80 : 20;
-  const shortHit = diracEmailA2FRateLimit(`email-a2f:${cleanPhase}:short:${identity}`, 10 * 60_000, shortLimit);
-  if (!shortHit.ok) return { ok: false, reason: 'email_a2f_rate_short' };
-  const dayHit = diracEmailA2FRateLimit(`email-a2f:${cleanPhase}:day:${identity}`, 24 * 60 * 60_000, dayLimit);
-  if (!dayHit.ok) return { ok: false, reason: 'email_a2f_rate_day' };
-  return { ok: true };
-}
-
-
-async function diracEmailA2FHasActivePasskeyForUser(user, email) {
-  const cleanEmail = normalizeAuthEmail(email || (user && user.email));
-  if (!isValidAuthEmail(cleanEmail)) {
-    return { ok: false, status: 400, message: 'Email akun tidak valid.' };
-  }
-
-  const seen = new Set();
-  const rows = [];
-  const select = 'id,user_id,email,is_active,created_at,last_used_at';
-  const addRows = (list) => {
-    for (const row of (Array.isArray(list) ? list : [])) {
-      if (!row || row.is_active !== true) continue;
-      const key = String(row.id || row.user_id || row.email || '');
-      if (!key || seen.has(key)) continue;
-      seen.add(key);
-      rows.push(row);
-    }
-  };
-  const fetchPasskeyRows = async (filter) => {
-    if (!filter) return;
-    const path = '/rest/v1/domain_passkeys?select=' + encodeURIComponent(select) + '&is_active=eq.true&' + filter + '&order=created_at.desc&limit=10';
-    const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
-    if (result && result.ok) addRows(result.data);
-  };
-
-  // Utama: cocokkan email login dengan domain_passkeys.email.
-  await fetchPasskeyRows('email=eq.' + encodeURIComponent(cleanEmail));
-
-  // Cadangan aman: kalau requireDomainUser mengembalikan id customer langsung.
-  const userId = String(user && user.id || '').trim();
-  if (userId && typeof customerSecurityLooksLikeUuid === 'function' && customerSecurityLooksLikeUuid(userId)) {
-    await fetchPasskeyRows('user_id=eq.' + encodeURIComponent(userId));
-  }
-
-  // Cadangan aman: kalau akun auth terhubung ke customers lewat security_customer_auth_links.
-  try {
-    if (typeof customerSecurityFetchAuthLink === 'function' && userId) {
-      const linkResult = await customerSecurityFetchAuthLink(userId).catch(() => null);
-      const linkRows = Array.isArray(linkResult && linkResult.data) ? linkResult.data : [];
-      for (const link of linkRows) {
-        const cid = String(link && link.customer_id || '').trim();
-        if (link && link.link_status === 'active' && customerSecurityLooksLikeUuid(cid)) {
-          await fetchPasskeyRows('user_id=eq.' + encodeURIComponent(cid));
-        }
-      }
-    }
-  } catch (_) {}
-
-  // Cadangan final: pakai resolver Passkey yang sudah ada, tapi jangan jadikan gagal fatal.
-  try {
-    if (typeof diracPasskeyA2FResolveOwner === 'function' && typeof diracPasskeyA2FListActivePasskeys === 'function') {
-      const owner = await diracPasskeyA2FResolveOwner(user, cleanEmail).catch(() => null);
-      if (owner && owner.ok) {
-        const ownerRows = await diracPasskeyA2FListActivePasskeys(owner).catch(() => []);
-        addRows(ownerRows);
-      }
-    }
-  } catch (_) {}
-
-  if (rows.length > 0) {
-    return { ok: true, count: rows.length };
-  }
-  return {
-    ok: false,
-    status: 403,
-    message: 'Passkey aktif belum ditemukan untuk email akun ini. Login ulang lalu coba lagi.'
-  };
-}
-
-async function diracEmailA2FStart(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
-
-  const user = await requireDomainUser(req, res);
-  if (!user) return;
-
-  const email = normalizeAuthEmail(user.email);
-  if (!isValidAuthEmail(email)) return res.status(400).json({ ok: false, message: 'Email akun tidak valid.' });
-  const rate = diracEmailA2FRateGuard(req, user, email, 'start');
-  if (!rate.ok) return res.status(429).json({ ok: false, message: 'Terlalu banyak permintaan kode A2F. Coba lagi sebentar lagi.' });
-
-  const passkeyGate = await diracEmailA2FHasActivePasskeyForUser(user, email);
-  if (!passkeyGate.ok) {
-    return res.status(passkeyGate.status || 403).json({
-      ok: false,
-      code: 'PASSKEY_REQUIRED_FIRST',
-      message: passkeyGate.message || 'Email A2F hanya boleh dipakai setelah Passkey aktif di database.'
-    });
-  }
-
-  diracEmailA2FCleanup();
-  const code = diracEmailA2FGenerateCode();
-  const setupToken = crypto.randomBytes(32).toString('base64url');
-  const now = Date.now();
-  const binding = diracA2FUserBinding(req, user, email);
-  const record = {
-    codeHash: diracEmailA2FHash(`email-a2f-code:${email}:${setupToken}:${code}`),
-    emailHash: binding.emailHash,
-    authUserIdHash: binding.authUserIdHash,
-    customerIdHash: binding.customerIdHash,
-    sessionHash: binding.sessionHash,
-    originHash: customerMfaBindingHash('origin', requestOrigin(req)),
-    uaHash: customerMfaBindingHash('ua', requestUserAgent(req)),
-    expiresAtMs: now + DIRAC_EMAIL_A2F_TTL_MS,
-    attempts: 0,
-    jti: crypto.randomBytes(24).toString('base64url'),
-    createdAtMs: now
-  };
-
-  const delivered = await diracEmailA2FSendCode(email, code, {
-    ttlMinutes: Math.max(1, Math.ceil(DIRAC_EMAIL_A2F_TTL_MS / 60_000)),
-    user
-  });
-
-  if (!delivered.ok) {
-    return res.status(delivered.status || 503).json({
-      ok: false,
-      code: delivered.code || 'EMAIL_A2F_DELIVERY_NOT_READY',
-      message: delivered.message || 'Layanan email A2F belum siap. Set RESEND_API_KEY dan DIRAC_MFA_EMAIL_FROM di environment.'
-    });
-  }
-
-  await diracEmailA2FStoreChallenge(setupToken, record);
-
-  return res.status(200).json({
-    ok: true,
-    method: 'email',
-    setupToken,
-    mfaSetupToken: setupToken,
-    expires_in: Math.floor(DIRAC_EMAIL_A2F_TTL_MS / 1000),
-    masked_email: diracEmailA2FMaskEmail(email),
-    message: `Kode A2F sudah dikirim ke ${diracEmailA2FMaskEmail(email)}.`
-  });
-}
-
-async function diracEmailA2FVerify(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
-
-  const user = await requireDomainUser(req, res);
-  if (!user) return;
-
-  const body = await readBody(req);
-  const email = normalizeAuthEmail(user.email);
-  const rate = diracEmailA2FRateGuard(req, user, email, 'verify');
-  if (!rate.ok) return res.status(429).json({ ok: false, message: 'Terlalu banyak percobaan kode A2F. Coba lagi sebentar lagi.' });
-  const setupToken = String(body.setupToken || body.mfaSetupToken || body.token || '').trim();
-  const code = String(body.code || body.otp || body.email_code || '').replace(/\D/g, '').slice(0, 6);
-
-  if (!setupToken || !/^\d{6}$/.test(code)) {
-    return res.status(400).json({ ok: false, message: 'Masukkan kode email 6 digit terbaru.' });
-  }
-
-  const record = await diracEmailA2FReadChallenge(setupToken);
-  if (!record || record.used === true) {
-    await diracA2FHardBanCurrentRequest('email_a2f_challenge_missing_or_used');
-    return res.status(403).json({ ok: false, message: 'Kode email sudah expired. Kirim ulang kode.' });
-  }
-
-  const now = Date.now();
-  if (Number(record.expiresAtMs || 0) <= now) {
-    await diracEmailA2FMarkChallengeUsed(setupToken, record, 'expired');
-    return res.status(403).json({ ok: false, message: 'Kode email sudah expired. Kirim ulang kode.' });
-  }
-
-  if (!record.emailHash || !safeEqual(String(record.emailHash), customerMfaProfileId(email))) {
-    await diracEmailA2FMarkChallengeUsed(setupToken, record, 'email_mismatch');
-    await diracA2FHardBanCurrentRequest('email_a2f_email_mismatch');
-    return res.status(403).json({ ok: false, message: 'Kode email tidak cocok dengan akun login.' });
-  }
-  const bindingCheck = diracA2FCheckUserBinding(req, user, record, email);
-  if (!bindingCheck.ok) {
-    await diracEmailA2FMarkChallengeUsed(setupToken, record, bindingCheck.reason);
-    await diracA2FHardBanCurrentRequest(bindingCheck.reason);
-    return res.status(403).json({ ok: false, message: 'Kode email tidak cocok dengan sesi login ini.' });
-  }
-
-  if (record.originHash) {
-    const expectedOriginHash = customerMfaBindingHash('origin', requestOrigin(req));
-    if (!expectedOriginHash || !safeEqual(String(record.originHash), expectedOriginHash)) {
-      await diracA2FHardBanCurrentRequest('email_a2f_origin_mismatch');
-      return res.status(403).json({ ok: false, message: 'Kode email harus diverifikasi dari origin yang sama.' });
-    }
-  }
-
-  if (record.uaHash) {
-    const expectedUaHash = customerMfaBindingHash('ua', requestUserAgent(req));
-    if (!expectedUaHash || !safeEqual(String(record.uaHash), expectedUaHash)) {
-      await diracA2FHardBanCurrentRequest('email_a2f_ua_mismatch');
-      return res.status(403).json({ ok: false, message: 'Kode email harus diverifikasi dari perangkat/browser yang sama.' });
-    }
-  }
-
-  record.attempts = Number(record.attempts || 0) + 1;
-  if (record.attempts > DIRAC_EMAIL_A2F_MAX_ATTEMPTS) {
-    await diracEmailA2FMarkChallengeUsed(setupToken, record, 'too_many_attempts');
-    return res.status(429).json({ ok: false, message: 'Terlalu banyak percobaan. Kirim ulang kode email.' });
-  }
-
-  const expectedHash = diracEmailA2FHash(`email-a2f-code:${email}:${setupToken}:${code}`);
-  if (!safeEqual(String(record.codeHash || ''), expectedHash)) {
-    await diracEmailA2FStoreChallenge(setupToken, record);
-    return res.status(403).json({ ok: false, message: 'Kode email belum cocok. Masukkan 6 digit terbaru dari email.' });
-  }
-
-  await diracEmailA2FMarkChallengeUsed(setupToken, record, 'verified');
-  const proof = customerSecurityCreateDashboardMfaToken(req, user, 'email');
-  customerSecuritySetDashboardMfaCookie(res, proof);
-
-  return res.status(200).json({
-    ok: true,
-    verified: true,
-    active: true,
-    method: 'email',
-    message: 'Kode email valid. Akses dashboard sudah diverifikasi.',
-    dashboardSession: {
-      verified: true,
-      expiresAtMs: proof.expiresAtMs,
-      activeAtMs: proof.activeAtMs,
-      method: 'email',
-      transport: 'httponly-secure-cookie-only'
-    },
-    time: diracNowIso()
-  });
-}
-
-async function diracEmailA2FSendCode(to, code, options = {}) {
-  const ttlMinutes = Number(options.ttlMinutes || 5);
-  const from = String(process.env.DIRAC_MFA_EMAIL_FROM || process.env.DIRAC_EMAIL_FROM || process.env.RESEND_FROM || 'Dirac Secure <no-reply@diracgroup.store>').trim();
-  const subject = 'Kode A2F Dirac Secure';
-  const text = `Kode A2F Dirac Secure Anda: ${code}\n\nKode berlaku ${ttlMinutes} menit. Jangan berikan kode ini kepada siapa pun.`;
-  const html = `
-    <div style="font-family:Arial,sans-serif;line-height:1.55;color:#111827">
-      <h2 style="margin:0 0 12px">Kode A2F Dirac Secure</h2>
-      <p>Masukkan kode berikut untuk melanjutkan ke dashboard:</p>
-      <div style="font-size:30px;font-weight:800;letter-spacing:8px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:14px;padding:14px 18px;width:max-content">${code}</div>
-      <p>Kode berlaku ${ttlMinutes} menit. Jangan berikan kode ini kepada siapa pun.</p>
-    </div>`;
-
-  if (process.env.RESEND_API_KEY) {
-    try {
-      const response = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ from, to, subject, text, html })
-      });
-      if (response.ok) return { ok: true, provider: 'resend' };
-      return { ok: false, status: 502, code: 'RESEND_DELIVERY_FAILED', message: 'Gagal mengirim kode email A2F dari Resend.' };
-    } catch (_) {
-      return { ok: false, status: 502, code: 'RESEND_DELIVERY_FAILED', message: 'Gagal menghubungi layanan email A2F.' };
-    }
-  }
-
-  if (process.env.BREVO_API_KEY) {
-    try {
-      const senderEmail = String(process.env.BREVO_SENDER_EMAIL || process.env.DIRAC_MFA_SENDER_EMAIL || '').trim();
-      const senderName = String(process.env.BREVO_SENDER_NAME || 'Dirac Secure').trim();
-      if (!senderEmail) return { ok: false, status: 503, code: 'BREVO_SENDER_MISSING', message: 'BREVO_SENDER_EMAIL belum diatur.' };
-      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: {
-          'api-key': process.env.BREVO_API_KEY,
-          'Content-Type': 'application/json',
-          Accept: 'application/json'
-        },
-        body: JSON.stringify({ sender: { name: senderName, email: senderEmail }, to: [{ email: to }], subject, htmlContent: html, textContent: text })
-      });
-      if (response.ok) return { ok: true, provider: 'brevo' };
-      return { ok: false, status: 502, code: 'BREVO_DELIVERY_FAILED', message: 'Gagal mengirim kode email A2F dari Brevo.' };
-    } catch (_) {
-      return { ok: false, status: 502, code: 'BREVO_DELIVERY_FAILED', message: 'Gagal menghubungi layanan email A2F.' };
-    }
-  }
-
-  if (process.env.NODE_ENV !== 'production' && isEnvTrue('DIRAC_DEV_EMAIL_A2F_ECHO')) {
-    console.log('[DEV-EMAIL-A2F]', { to, code, ttlMinutes });
-    return { ok: true, provider: 'dev_echo' };
-  }
-
-  return {
-    ok: false,
-    status: 503,
-    code: 'EMAIL_PROVIDER_NOT_CONFIGURED',
-    message: 'Provider email A2F belum dikonfigurasi. Set RESEND_API_KEY + DIRAC_MFA_EMAIL_FROM, atau BREVO_API_KEY + BREVO_SENDER_EMAIL.'
-  };
-}
 /* ============================================================
    DIRAC PASSKEY A2F REAL HOTFIX v2
    - Adds lightweight WebAuthn/Passkey actions through /api/health.
@@ -13002,8 +13001,6 @@ const DIRAC_SENSITIVE_POST_ORIGIN_ACTIONS = new Set([
   'customer_security_account_request',
   'customer_security_recovery_codes_generate',
   'customer_security_recovery_code_verify',
-  'dirac_mfa_email_start',
-  'dirac_mfa_email_verify',
   'dirac_mfa_passkey_start',
   'dirac_mfa_passkey_verify'
 ]);
@@ -13060,10 +13057,6 @@ function diracSensitivePostOriginNormalizeAction(action) {
     customer_security_account_request: 'customer_security_account_request',
     customer_security_recovery_codes_generate: 'customer_security_recovery_codes_generate',
     customer_security_recovery_code_verify: 'customer_security_recovery_code_verify',
-    dirac_mfa_email_start: 'dirac_mfa_email_start',
-    domain_mfa_email_start: 'dirac_mfa_email_start',
-    dirac_mfa_email_verify: 'dirac_mfa_email_verify',
-    domain_mfa_email_verify: 'dirac_mfa_email_verify',
     dirac_mfa_passkey_start: 'dirac_mfa_passkey_start',
     domain_mfa_passkey_start: 'dirac_mfa_passkey_start',
     dirac_mfa_passkey_verify: 'dirac_mfa_passkey_verify',
@@ -14449,11 +14442,7 @@ function diracUltraNormalizeAction(action) {
     'dirac_mfa_passkey_start': 'dirac_mfa_passkey_start',
     'domain_mfa_passkey_start': 'dirac_mfa_passkey_start',
     'dirac_mfa_passkey_verify': 'dirac_mfa_passkey_verify',
-    'domain_mfa_passkey_verify': 'dirac_mfa_passkey_verify',
-    'dirac_mfa_email_start': 'dirac_mfa_email_start',
-    'domain_mfa_email_start': 'dirac_mfa_email_start',
-    'dirac_mfa_email_verify': 'dirac_mfa_email_verify',
-    'domain_mfa_email_verify': 'dirac_mfa_email_verify'
+    'domain_mfa_passkey_verify': 'dirac_mfa_passkey_verify'
   };
   return aliases[clean] || clean;
 }
@@ -16182,8 +16171,6 @@ function diracV110NormalizeAction(action) {
     'login-domain': 'domain_login',
     'domain-register': 'domain_register',
     'register-domain': 'domain_register',
-    'dirac_mfa_email_verify': 'dirac_mfa_email_verify',
-    'domain_mfa_email_verify': 'dirac_mfa_email_verify',
     'dirac_mfa_passkey_verify': 'dirac_mfa_passkey_verify',
     'domain_mfa_passkey_verify': 'dirac_mfa_passkey_verify'
   };
@@ -16198,7 +16185,6 @@ function diracV110ShouldAuditAction(action, method) {
   if (method !== 'POST') return false;
   return action === 'domain_login'
     || action === 'domain_register'
-    || action === 'dirac_mfa_email_verify'
     || action === 'dirac_mfa_passkey_verify';
 }
 
@@ -16287,7 +16273,6 @@ async function requireDomainUserForAuditV110(req) {
 function diracV110AuditEventType(action) {
   if (action === 'domain_register') return 'register_success';
   if (action === 'domain_login') return 'login_success';
-  if (action === 'dirac_mfa_email_verify') return 'mfa_email_verify_success';
   if (action === 'dirac_mfa_passkey_verify') return 'mfa_passkey_verify_success';
   return 'auth_success';
 }
@@ -16295,7 +16280,6 @@ function diracV110AuditEventType(action) {
 function diracV110AuditDescription(action) {
   if (action === 'domain_register') return 'Register berhasil dan dicatat oleh audit keamanan.';
   if (action === 'domain_login') return 'Login berhasil dan dicatat oleh audit keamanan.';
-  if (action === 'dirac_mfa_email_verify') return 'Verifikasi A2F email berhasil dan dicatat oleh audit keamanan.';
   if (action === 'dirac_mfa_passkey_verify') return 'Verifikasi A2F passkey berhasil dan dicatat oleh audit keamanan.';
   return 'Aktivitas autentikasi berhasil dan dicatat oleh audit keamanan.';
 }
@@ -17910,10 +17894,6 @@ const __diracCsrfHmacPreviousHandler = module.exports;
 const DIRAC_CSRF_DEFAULT_ACTIONS = new Set([
   // Order/domain write. Bukan payment gateway wrapper.
   'domain_checkout',
-  'dirac_mfa_email_start',
-  'dirac_mfa_email_verify',
-  'domain_mfa_email_start',
-  'domain_mfa_email_verify',
   'dirac_mfa_passkey_start',
   'dirac_mfa_passkey_verify',
   'domain_mfa_passkey_start',
@@ -18275,12 +18255,8 @@ function diracCsrfNormalizeAction(action) {
     domain_logout: 'domain_logout',
     domain_login: 'domain_login',
     domain_register: 'domain_register',
-    dirac_mfa_email_start: 'dirac_mfa_email_start',
-    dirac_mfa_email_verify: 'dirac_mfa_email_verify',
     dirac_mfa_passkey_start: 'dirac_mfa_passkey_start',
     dirac_mfa_passkey_verify: 'dirac_mfa_passkey_verify',
-    domain_mfa_email_start: 'dirac_mfa_email_start',
-    domain_mfa_email_verify: 'dirac_mfa_email_verify',
     domain_mfa_passkey_start: 'dirac_mfa_passkey_start',
     domain_mfa_passkey_verify: 'dirac_mfa_passkey_verify',
     midtrans_webhook: 'midtrans_webhook',
@@ -24221,10 +24197,6 @@ const DIRAC_CENTRAL_ACTIVE_ACTIONS_V146 = new Set([
   'create_payment',
   'midtrans_health',
   'midtrans_webhook',
-  'dirac_mfa_email_start',
-  'dirac_mfa_email_verify',
-  'domain_mfa_email_start',
-  'domain_mfa_email_verify',
   'dirac_mfa_passkey_start',
   'dirac_mfa_passkey_verify',
   'domain_mfa_passkey_start',
@@ -24286,10 +24258,6 @@ const DIRAC_CENTRAL_SENSITIVE_ACTIONS_V146 = new Set([
   'customer_security_revoke_other_sessions',
   'customer_security_recovery_codes_generate',
   'customer_security_recovery_code_verify',
-  'dirac_mfa_email_start',
-  'dirac_mfa_email_verify',
-  'domain_mfa_email_start',
-  'domain_mfa_email_verify',
   'dirac_mfa_passkey_start',
   'dirac_mfa_passkey_verify',
   'domain_mfa_passkey_start',
@@ -24300,10 +24268,6 @@ const DIRAC_CENTRAL_SENSITIVE_ACTIONS_V146 = new Set([
   'domain_passkey_status'
 ]);
 const DIRAC_CENTRAL_A2F_ACTIONS_V148 = new Set([
-  'dirac_mfa_email_start',
-  'dirac_mfa_email_verify',
-  'domain_mfa_email_start',
-  'domain_mfa_email_verify',
   'dirac_mfa_passkey_start',
   'dirac_mfa_passkey_verify',
   'domain_mfa_passkey_start',
@@ -24428,8 +24392,6 @@ const DIRAC_CENTRAL_KNOWN_JS_ACTION_INPUTS_V146 = [
   'dashboard_summary',
   'digital-checkout',
   'digital_checkout',
-  'dirac_mfa_email_start',
-  'dirac_mfa_email_verify',
   'dirac_mfa_passkey_start',
   'dirac_mfa_passkey_status',
   'dirac_mfa_passkey_verify',
@@ -24451,8 +24413,6 @@ const DIRAC_CENTRAL_KNOWN_JS_ACTION_INPUTS_V146 = [
   'domain_login',
   'domain_logout',
   'domain_me',
-  'domain_mfa_email_start',
-  'domain_mfa_email_verify',
   'domain_mfa_passkey_start',
   'domain_mfa_passkey_status',
   'domain_mfa_passkey_verify',
@@ -24795,7 +24755,10 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
       return await diracCentralBanAndBlockV146(req, res, ctx, action, method, 'html_security_report');
     }
 
-    if (DIRAC_CENTRAL_SENSITIVE_ACTIONS_V146.has(action) && !ctx.isA2FAction) ctx.skipHeavyScan = true;
+	    if (DIRAC_CENTRAL_SENSITIVE_ACTIONS_V146.has(action)
+      && !ctx.isA2FAction
+      && action !== 'customer_security_recovery_codes_generate'
+      && action !== 'customer_security_recovery_code_verify') ctx.skipHeavyScan = true;
 
     if (!ctx.skipHeavyScan) {
       const sampleGuard = diracCentralSampleCollectorV146(req, ctx);
@@ -25526,7 +25489,7 @@ async function diracCentralDistributedRateLimitGuardV146(req, ctx) {
 }
 
 function diracCentralNeedsDistributedRateLimitV146(action) {
-  return /^(domain_login|domain_register|domain_check|hostinger_check|checkout_order|domain_checkout|create_payment|dirac_mfa_email_start|dirac_mfa_email_verify|domain_mfa_email_start|domain_mfa_email_verify|dirac_mfa_passkey_start|dirac_mfa_passkey_verify|domain_mfa_passkey_start|domain_mfa_passkey_verify)$/.test(String(action || ''));
+  return /^(domain_login|domain_register|domain_check|hostinger_check|checkout_order|domain_checkout|create_payment|customer_security_recovery_codes_generate|customer_security_recovery_code_verify|dirac_mfa_passkey_start|dirac_mfa_passkey_verify|domain_mfa_passkey_start|domain_mfa_passkey_verify)$/.test(String(action || ''));
 }
 
 function diracCentralDistributedRateLimitMaxV146(action) {
@@ -26473,6 +26436,8 @@ function diracCentralContractForActionV146(action) {
   const getOnly = { methods: ['GET', 'HEAD'], allowed: commonGet, required: [], maxBodyBytes: 1024, maxFieldBytes: 3000, mutation: false };
   const postOnly = { methods: ['POST'], allowed: commonPost, required: [], maxBodyBytes: 20 * 1024, maxFieldBytes: 3000, mutation: true };
   const passkeyPost = { methods: ['POST'], allowed: ['action', 'method', 'identifier', 'email', 'setupToken', 'mfaSetupToken', 'token', 'passkeyMode', 'credential', 'id', 'rawId', 'type', 'response', 'clientExtensionResults', 'credProps', 'rk', 'clientDataJSON', 'attestationObject', 'authenticatorData', 'signature', 'userHandle', 'transports', 'authenticatorAttachment', 'challenge', 'code', 'csrf', 'nonce', 'idempotency_key'], required: [], maxBodyBytes: 192 * 1024, maxFieldBytes: 80 * 1024, mutation: true, allowArrayItems: true };
+  const recoveryGeneratePost = { methods: ['POST'], allowed: ['action', 'csrf', 'nonce', 'idempotency_key'], required: [], maxBodyBytes: 1024, maxFieldBytes: 512, mutation: true };
+  const recoveryVerifyPost = { methods: ['POST'], allowed: ['action', 'request_id', 'recovery_code', 'code', 'csrf', 'nonce', 'idempotency_key'], required: ['request_id'], maxBodyBytes: 4096, maxFieldBytes: 1200, mutation: true };
   const authLoginPost = { methods: ['POST'], allowed: ['email', 'password', 'fullName', 'full_name', 'name', 'phone'], required: ['email', 'password'], maxBodyBytes: 20 * 1024, maxFieldBytes: 3000, mutation: true };
   const authRegisterPost = { methods: ['POST'], allowed: ['email', 'password', 'fullName', 'full_name', 'name', 'phone'], required: ['email', 'password'], maxBodyBytes: 20 * 1024, maxFieldBytes: 3000, mutation: true };
   const contracts = {
@@ -26546,16 +26511,12 @@ function diracCentralContractForActionV146(action) {
     customer_security_revoke_session: { ...postOnly, required: ['session_id'] },
     customer_security_revoke_other_sessions: postOnly,
     customer_security_account_request: postOnly,
-    customer_security_recovery_codes_generate: postOnly,
-    customer_security_recovery_code_verify: postOnly,
+    customer_security_recovery_codes_generate: recoveryGeneratePost,
+    customer_security_recovery_code_verify: recoveryVerifyPost,
     customer_security_trust_current_device: postOnly,
     customer_security_untrust_device: postOnly,
     customer_security_prune_login_history: postOnly,
     admin_security_unblock_user: postOnly,
-    dirac_mfa_email_start: postOnly,
-    dirac_mfa_email_verify: postOnly,
-    domain_mfa_email_start: postOnly,
-    domain_mfa_email_verify: postOnly,
     dirac_mfa_passkey_start: passkeyPost,
     dirac_mfa_passkey_verify: passkeyPost,
     domain_mfa_passkey_start: passkeyPost,
