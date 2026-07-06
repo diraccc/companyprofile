@@ -6024,12 +6024,17 @@ function customerSecurityRecoveryWorkerSecret() {
   return secret;
 }
 
+function customerSecurityRecoveryWorkerAsciiToken(value) {
+  const clean = String(value || '').trim();
+  return /^[A-Za-z0-9_.-]{1,80}$/.test(clean) ? clean : '';
+}
+
 function customerSecurityRecoveryWorkerCaller() {
-  return String(process.env.DIRAC_RECOVERY_WORKER_CALLER || '').trim();
+  return customerSecurityRecoveryWorkerAsciiToken(process.env.DIRAC_RECOVERY_WORKER_CALLER);
 }
 
 function customerSecurityRecoveryWorkerAllowedCaller() {
-  return String(process.env.DIRAC_RECOVERY_WORKER_ALLOWED_CALLER || '').trim();
+  return customerSecurityRecoveryWorkerAsciiToken(process.env.DIRAC_RECOVERY_WORKER_ALLOWED_CALLER);
 }
 
 function customerSecurityRecoveryWorkerMaxBodyBytes() {
@@ -26118,6 +26123,13 @@ function diracCentralZeroDayShieldV146(req, ctx, normalized) {
   return { ok: true };
 }
 
+function diracCentralNormalizeHostV146(value) {
+  const clean = String(value || '').trim().toLowerCase().split(',')[0].trim().replace(/:\d+$/, '');
+  if (!clean || /[\/\s\u0000-\u001f\u007f]/.test(clean)) return '';
+  if (!/^[a-z0-9.-]+$/.test(clean)) return '';
+  return clean;
+}
+
 function diracCentralProxyHeaderGuardV146(headers) {
   headers = headers || {};
   const names = Object.keys(headers).map((name) => String(name || '').toLowerCase());
@@ -26129,22 +26141,34 @@ function diracCentralProxyHeaderGuardV146(headers) {
     if (proto !== 'https') return { ok: false };
   }
 
-  const rawHost = String(headers['x-forwarded-host'] || '').trim().toLowerCase();
-  if (rawHost) {
-    const host = rawHost.split(',')[0].trim().replace(/:\d+$/, '');
+  const rawForwardedHost = String(headers['x-forwarded-host'] || '').trim();
+  if (rawForwardedHost) {
+    const host = diracCentralNormalizeHostV146(rawForwardedHost);
+    if (!host) return { ok: false };
     const allowedHosts = new Set(Array.from(DIRAC_CENTRAL_ALLOWED_ORIGINS_V146).map((origin) => {
       try { return new URL(origin).hostname.toLowerCase(); } catch (_) { return ''; }
     }).filter(Boolean));
-    if (!allowedHosts.has(host)) return { ok: false };
+    const runtimeHost = diracCentralNormalizeHostV146(headers.host || process.env.VERCEL_URL || '');
+    const vercelHost = diracCentralNormalizeHostV146(process.env.VERCEL_URL || '');
+    if (!allowedHosts.has(host) && host !== runtimeHost && host !== vercelHost) return { ok: false };
   }
 
   return { ok: true };
 }
 
+async function diracCentralRecoveryWorkerIdorGuardV146(req, ctx) {
+  if (!req || req.__diracRecoveryWorkerVerified !== true) return { ok: false, reason: 'recovery_worker_signature_required' };
+  if (typeof customerSecurityResolveLostPasskeyWorkerOwner !== 'function') return { ok: false, reason: 'recovery_worker_owner_guard_missing' };
+  const owner = await customerSecurityResolveLostPasskeyWorkerOwner(ctx && ctx.body || {}).catch(() => null);
+  if (!owner || owner.ok !== true) return { ok: false, reason: 'recovery_worker_owner_invalid' };
+  ctx.__diracRecoveryWorkerOwnerCheckedV146 = true;
+  return { ok: true };
+}
+
 async function diracCentralIdorBolaGuardV146(req, ctx) {
   if (ctx && ctx.classification === 'server' && ctx.action === 'midtrans_webhook') return { ok: true, skipped: 'server_to_server_signed_webhook' };
-  if (ctx && ctx.classification === 'server' && ctx.action === DIRAC_RECOVERY_WORKER_ACTION && req && req.__diracRecoveryWorkerVerified === true) {
-    return { ok: true, skipped: 'signed_recovery_worker' };
+  if (ctx && ctx.classification === 'server' && ctx.action === DIRAC_RECOVERY_WORKER_ACTION) {
+    return await diracCentralRecoveryWorkerIdorGuardV146(req, ctx);
   }
   const ids = diracCentralCollectIdsV146(req, ctx.body);
   if (diracCentralIsAuthBootstrapIdentityOnlyV146(ctx.action, ids)) return { ok: true, skipped: 'auth_bootstrap_identity_only' };
