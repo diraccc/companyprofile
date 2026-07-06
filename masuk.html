@@ -3477,9 +3477,17 @@ html[data-effective-theme="light"] .footer{background:linear-gradient(180deg,#ff
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace!important;font-size:.78rem!important;line-height:1.38!important;resize:vertical!important;
   box-shadow:0 0 0 0 rgba(37,99,235,0)!important;outline:none!important;
 }
+#diracRecoveryVerifyBox .dirac-recovery-request-id-input{
+  width:100%!important;min-height:48px!important;margin:10px 0!important;border-radius:18px!important;border:1px solid #bfdbfe!important;
+  background:#ffffff!important;color:#111827!important;padding:11px 12px!important;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace!important;font-size:.82rem!important;line-height:1.35!important;
+  box-shadow:0 0 0 0 rgba(37,99,235,0)!important;outline:none!important;
+}
 #diracRecoveryVerifyBox .dirac-recovery-verify-input:focus{border-color:#2563eb!important;box-shadow:0 0 0 4px rgba(37,99,235,.12)!important}
+#diracRecoveryVerifyBox .dirac-recovery-request-id-input:focus{border-color:#2563eb!important;box-shadow:0 0 0 4px rgba(37,99,235,.12)!important}
 #diracRecoveryVerifyBox .dirac-recovery-verify-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px!important}
-#diracRecoveryVerifyBox .dirac-recovery-verify-submit{
+#diracRecoveryVerifyBox .dirac-recovery-verify-submit,
+#diracRecoveryVerifyBox .dirac-recovery-request-submit{
   min-height:48px!important;border:0!important;border-radius:999px!important;padding:12px 18px!important;
   background:linear-gradient(135deg,#3b82f6,#2563eb)!important;color:#fff!important;font-weight:950!important;
   box-shadow:0 16px 34px rgba(37,99,235,.24)!important;
@@ -3496,6 +3504,7 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox.dirac-recovery-verify-
 html[data-effective-theme="dark"] #diracRecoveryVerifyBox h3{color:#111827!important}
 html[data-effective-theme="dark"] #diracRecoveryVerifyBox p{color:#64748b!important}
 html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify-input{background:#ffffff!important;color:#111827!important;border-color:#bfdbfe!important}
+html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-request-id-input{background:#ffffff!important;color:#111827!important;border-color:#bfdbfe!important}
 @keyframes diracRecoverySlideIn{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
 </style>
 
@@ -5247,7 +5256,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
             <div class="a2f-badge" aria-hidden="true">🛡️</div>
           </div>
 
-          <p class="a2f-note" data-i18n="a2fNote">Halaman ini sudah disiapkan sebagai UI produksi. Untuk A2F real, endpoint MFA harus memverifikasi passkey, OTP email, dari server sebelum dashboard dibuka.</p>
+          <p class="a2f-note" data-i18n="a2fNote">Halaman ini sudah disiapkan sebagai UI produksi. Untuk A2F real, backend memverifikasi Passkey atau recovery code terenkripsi sebelum akses lanjutan diberikan.</p>
 
           <div class="a2f-methods" aria-label="Pilihan metode A2F">
             <button class="a2f-method active" type="button" data-a2f-select="passkey" aria-pressed="true">
@@ -5256,11 +5265,11 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
               <span data-i18n="a2fPasskeyText">Face ID, sidik jari, PIN, atau kunci perangkat.</span>
               <small data-i18n="a2fPasskeyMini">Paling modern dan tahan phishing.</small>
             </button>
-            <button class="a2f-method" type="button" data-a2f-select="email" aria-pressed="false">
-              <span class="a2f-method-top"><span class="a2f-method-icon" aria-hidden="true">✉️</span><em data-i18n="a2fBackup">Backup</em></span>
-              <strong data-i18n="a2fEmail">Email</strong>
-              <span data-i18n="a2fEmailText">Kode keamanan dikirim ke email pelanggan.</span>
-              <small data-i18n="a2fEmailMini">Mudah, tetapi sebaiknya bukan metode utama.</small>
+            <button class="a2f-method" type="button" data-a2f-select="recovery" aria-pressed="false">
+              <span class="a2f-method-top"><span class="a2f-method-icon" aria-hidden="true">🧾</span><em data-i18n="a2fBackup">Recovery</em></span>
+              <strong data-i18n="a2fRecovery">Recovery code</strong>
+              <span data-i18n="a2fRecoveryText">Minta file recovery terenkripsi ke email resmi akun.</span>
+              <small data-i18n="a2fRecoveryMini">Untuk pemulihan Passkey yang hilang.</small>
             </button>
           </div>
 
@@ -5279,12 +5288,12 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
                 <p data-i18n="a2fPasskeyPanelText">Saat backend WebAuthn dipasang, tombol aktivasi akan memanggil challenge server dan browser akan membuka Face ID, sidik jari, PIN, atau password manager.</p>
               </div>
             </div>
-            <div class="a2f-panel" data-a2f-panel="email">
-              <div class="a2f-mail-visual" aria-hidden="true">@</div>
+            <div class="a2f-panel" data-a2f-panel="recovery">
+              <div class="a2f-mail-visual" aria-hidden="true">ENC</div>
               <div class="a2f-panel-copy">
-                <h3 data-i18n="a2fEmailPanelTitle">Kirim kode ke email pelanggan</h3>
-                <p data-i18n="a2fEmailPanelText">Untuk produksi, backend mengirim kode sekali pakai, menyimpan hash kode, memberi batas waktu, dan membatasi percobaan verifikasi.</p>
-                <div class="a2f-code-row" aria-hidden="true"><span>•</span><span>•</span><span>•</span><span>•</span><span>•</span><span>•</span></div>
+                <h3 data-i18n="a2fRecoveryPanelTitle">Recovery Passkey hilang</h3>
+                <p data-i18n="a2fRecoveryPanelText">Backend mengirim file .enc ke email resmi akun. Setelah file dibuka di halaman decrypt terpisah, masukkan request ID dan recovery code di sini.</p>
+                <div class="a2f-code-row" aria-hidden="true"><span>.enc</span><span>500</span><span>1x</span></div>
               </div>
             </div>
           </section>
@@ -6509,13 +6518,14 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       sideSub:'Keamanan akun', choose:'Pilih', verify:'Verifikasi', recover:'Backup', finish:'Selesai',
       riskTitle:'Menunggu verifikasi', riskText:'Aktifkan salah satu metode agar akun tidak hanya bergantung pada password.',
       kicker:'Verifikasi 2 langkah', title:'Amankan akun Anda', sub:'Pilih metode keamanan tambahan. Tampilan ini dibuat ringkas agar mudah dipahami dan nyaman di HP.',
-      note:'Kami akan meminta satu langkah tambahan saat masuk dari perangkat baru. Data email tetap disamarkan dan metode bisa diganti kapan saja.',
-      passTitle:'Gunakan passkey', authTitle:'Gunakan Authenticator', emailTitle:'Gunakan kode email',
+      note:'Kami akan meminta satu langkah tambahan saat masuk dari perangkat baru. Recovery terenkripsi tersedia hanya untuk Passkey hilang.',
+      passTitle:'Gunakan passkey', authTitle:'Gunakan Authenticator', emailTitle:'Gunakan recovery code',
       passPanel:'Konfirmasi dengan Face ID, sidik jari, PIN, atau password manager perangkat Anda.',
       authPanel:'Masukkan kode 6 digit terbaru dari aplikasi Authenticator. Rahasia Authenticator tidak ditampilkan di login.',
-      emailPanel:'Kami kirim kode sekali pakai ke email akun Anda. Kode berlaku singkat untuk keamanan.',
-      selectedPass:'Passkey siap digunakan', selectedAuth:'Authenticator siap diverifikasi', selectedEmail:'Kode email siap dikirim',
-      livePass:'Metode utama', liveAuth:'Kode 6 digit', liveEmail:'OTP email',
+      emailPanel:'Backend mengirim file recovery terenkripsi ke email resmi akun.',
+      recoveryPanel:'Backend mengirim file recovery terenkripsi ke email resmi akun. Recovery code diverifikasi server-side.',
+      selectedPass:'Passkey siap digunakan', selectedAuth:'Authenticator siap diverifikasi', selectedRecovery:'Recovery terenkripsi siap',
+      livePass:'Metode utama', liveAuth:'Kode 6 digit', liveRecovery:'File .enc',
       start:'Lanjutkan', done:'Selesai',
       trust1k:'Privasi', trust1:'Email ditampilkan tersamarkan', trust2k:'Kode', trust2:'Input OTP nyaman di mobile', trust3k:'Cadangan', trust3:'Recovery code tersedia',
       tryText:'Bukan metode yang Anda mau?', tryBtn:'Coba cara lain', otpLabel:'Kode verifikasi', otpPlaceholder:'000000', resend:'Kirim ulang kode', timer:'Bisa kirim ulang dalam 60 detik',
@@ -6527,13 +6537,14 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       sideSub:'Account security', choose:'Choose', verify:'Verify', recover:'Backup', finish:'Done',
       riskTitle:'Waiting for verification', riskText:'Enable one method so the account does not rely on password only.',
       kicker:'2-step verification', title:'Secure your account', sub:'Choose an extra security method. This view is cleaner, clearer, and comfortable on mobile.',
-      note:'We will ask for one extra step when signing in from a new device. Your email stays masked and the method can be changed later.',
-      passTitle:'Use a passkey', authTitle:'Use Authenticator', emailTitle:'Use email code',
+      note:'We will ask for one extra step when signing in from a new device. Encrypted recovery is only for lost Passkey flow.',
+      passTitle:'Use a passkey', authTitle:'Use Authenticator', emailTitle:'Use recovery code',
       passPanel:'Confirm with Face ID, fingerprint, PIN, or the password manager on your device.',
       authPanel:'Enter the latest 6-digit code from your authenticator app. The Authenticator secret is not shown on login.',
-      emailPanel:'We send a one-time code to your account email. Codes expire quickly for security.',
-      selectedPass:'Passkey ready', selectedAuth:'Authenticator ready to verify', selectedEmail:'Email code ready to send',
-      livePass:'Primary method', liveAuth:'6-digit code', liveEmail:'Email OTP',
+      emailPanel:'The backend sends an encrypted recovery file to the official account email.',
+      recoveryPanel:'The backend sends an encrypted recovery file to the official account email. The recovery code is verified server-side.',
+      selectedPass:'Passkey ready', selectedAuth:'Authenticator ready to verify', selectedRecovery:'Encrypted recovery ready',
+      livePass:'Primary method', liveAuth:'6-digit code', liveRecovery:'Encrypted file',
       start:'Continue', done:'Done', trust1k:'Privacy', trust1:'Email is shown masked', trust2k:'Code', trust2:'Mobile-friendly OTP input', trust3k:'Backup', trust3:'Recovery codes available',
       tryText:'Not the method you want?', tryBtn:'Try another way', otpLabel:'Verification code', otpPlaceholder:'000000', resend:'Resend code', timer:'Can resend in 60 seconds',
       recoveryTitle:'Backup recovery codes', recoveryText:'Save these codes in case your primary device is unavailable.',
@@ -6622,12 +6633,12 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
   function updateSelectedCopy(){
     var method = currentMethod();
     var title = $('#a2fSelectedTitle'), pill = $('#a2fLivePill');
-    var map = {passkey:['selectedPass','livePass'], authenticator:['selectedAuth','liveAuth'], email:['selectedEmail','liveEmail']};
+    var map = {passkey:['selectedPass','livePass'], authenticator:['selectedAuth','liveAuth'], recovery:['selectedRecovery','liveRecovery']};
     var pair = map[method] || map.passkey;
     if(title){ title.textContent = t(pair[0]); title.setAttribute('data-no-i18n',''); }
     if(pill){ pill.textContent = t(pair[1]); pill.setAttribute('data-no-i18n',''); }
-    var emailPanelText = $('[data-a2f-panel="email"] .a2f-panel-copy p');
-    if(emailPanelText){ emailPanelText.textContent = t('emailPanel') + ' (' + maskEmail(getIdentifier()) + ')'; }
+    var recoveryPanelText = $('[data-a2f-panel="recovery"] .a2f-panel-copy p');
+    if(recoveryPanelText){ recoveryPanelText.textContent = t('recoveryPanel'); }
   }
   function observeStates(){
     var modal = $('#a2fModal'); if(!modal) return;
@@ -7992,19 +8003,18 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
 
 
 
-<script id="dirac-recovery-code-verify-pnp-js">
+<script id="dirac-lost-passkey-recovery-request-verify-js">
 (function(){
   'use strict';
   var API_ENDPOINT = '/api/health';
-  var AUTH_KEY = 'dirac_auth_session_v1';
   var UNLOCK_AFTER_FAILED_A2F = 2;
   var currentFailedA2FAttempts = 0;
+  var csrfTokenMemory = '';
 
   function $(sel, root){ return (root || document).querySelector(sel); }
-  function readSession(){ return (window.__DIRAC_BACKEND_AUTH_CONTEXT__ && typeof window.__DIRAC_BACKEND_AUTH_CONTEXT__ === 'object') ? window.__DIRAC_BACKEND_AUTH_CONTEXT__ : {}; }
-  function writeSession(session){ window.__DIRAC_BACKEND_AUTH_CONTEXT__ = session && typeof session === 'object' ? session : {}; }
   function normalizeRecoveryCodeInput(value){ return String(value || '').replace(/\s+/g,'').trim(); }
-  var csrfTokenMemory = '';
+  function normalizeRequestId(value){ value = String(value || '').trim(); return /^[A-Za-z0-9_-]{16,120}$/.test(value) ? value : ''; }
+  function looksLikeCsrfToken(value){ return /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(String(value || '').trim()); }
   function readCookie(name){
     try{
       var prefix = String(name || '') + '=';
@@ -8015,10 +8025,6 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       }
     }catch(_){}
     return '';
-  }
-  function looksLikeCsrfToken(value){
-    var raw = String(value || '').trim();
-    return /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(raw);
   }
   function captureCsrfFromResponse(res){
     try{
@@ -8036,11 +8042,12 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     }catch(_){}
     return csrfTokenMemory;
   }
-  async function refreshCsrfToken(){
+  async function refreshCsrfToken(action){
+    action = /^[a-z0-9_-]{1,80}$/.test(String(action || '')) ? String(action) : 'customer_security_guard_status';
     try{
-      var res = await fetch(API_ENDPOINT + '?action=customer_security_guard_status', {
+      var res = await fetch(API_ENDPOINT + '?action=domain_health&_dirac_page_nonce_for=' + encodeURIComponent(action) + '&_csrf_boot=' + encodeURIComponent(String(Date.now())), {
         method:'GET',
-        mode:'cors',
+        mode:'same-origin',
         credentials:'include',
         cache:'no-store',
         headers:{'Accept':'application/json'}
@@ -8059,37 +8066,6 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     }
     return headers;
   }
-  function hasRecoveryDashboardProof(data){
-    var ds = data && data.dashboardSession ? data.dashboardSession : {};
-    return !!(data && data.ok === true && ds && ds.verified === true && ds.transport === 'httponly-secure-cookie-only');
-  }
-  function persistProof(data){
-    if(!(data && data.ok === true)) return false;
-    window.__DIRAC_BACKEND_MFA_CONTEXT__ = {method:'recovery_code', backendOnly:true, verifiedAt:new Date().toISOString(), transport:'httponly-secure-cookie-only'};
-    return true;
-  }
-
-  function recoveryFriendlyMessage(raw, data, status){
-    var code = String(data && (data.code || data.error_code || data.reason) || '').toUpperCase();
-    var msg = String(raw || data && data.message || '');
-    if(code.indexOf('CSRF_') === 0 || /token keamanan halaman|csrf/i.test(msg)){
-      return 'Token keamanan halaman tidak valid. Muat ulang halaman lalu coba lagi.';
-    }
-    if(code === 'RECOVERY_CODE_USED') return 'Recovery code sudah dipakai atau expired.';
-    if(code === 'RECOVERY_CODE_EXPIRED') return 'Recovery code sudah expired. Gunakan kode recovery lain.';
-    if(code === 'RECOVERY_CODE_FORMAT_INVALID') return 'Format recovery code tidak valid. Tempel 1 kode penuh dari file TXT.';
-    if(code === 'SESSION_REQUIRED' || status === 401) return 'Sesi login tidak valid. Silakan login ulang.';
-    if(/used|expired|revoked/i.test(msg)) return 'Recovery code sudah dipakai atau expired.';
-    if(/invalid|wrong|mismatch|not found|argon2|verify|hash|backend|server|rejected|ditolak/i.test(msg)) return 'Recovery code salah, sudah dipakai, atau expired.';
-    if(/load failed|failed to fetch|network/i.test(msg)) return 'Gagal menghubungi server recovery. Coba lagi sebentar.';
-    return msg || 'Recovery code salah, sudah dipakai, atau expired.';
-  }
-
-  function noopFeedback(){ return false; }
-  function showStatus(box, text, ok){
-    var status = $('.dirac-recovery-verify-status', box);
-    if(status){ status.textContent = text; status.style.color = ok ? '#15803d' : '#1e40af'; }
-  }
   function setRecoveryMode(open){
     var modal = document.getElementById('a2fModal');
     if(modal) modal.classList.toggle('recovery-open', !!open);
@@ -8102,6 +8078,95 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       var status = document.getElementById('a2fStatusMsg'); if(status) status.textContent = '';
     }catch(_){}
   }
+  function showStatus(box, text, ok){
+    var status = $('.dirac-recovery-verify-status', box);
+    if(status){ status.textContent = text; status.style.color = ok ? '#15803d' : '#1e40af'; }
+  }
+  function recoveryFriendlyMessage(raw, data, status){
+    var code = String(data && (data.code || data.error_code || data.reason) || '').toUpperCase();
+    var msg = String(raw || data && data.message || '');
+    if(code.indexOf('CSRF_') === 0 || /token keamanan halaman|csrf/i.test(msg)) return 'Token keamanan halaman tidak valid. Muat ulang halaman lalu coba lagi.';
+    if(status === 401 || code === 'SESSION_REQUIRED') return 'Sesi login tidak valid. Silakan login ulang.';
+    if(status === 423 || /locked|terlalu banyak/i.test(msg)) return 'Recovery request dikunci karena terlalu banyak percobaan.';
+    if(/used|expired|revoked/i.test(msg)) return 'Recovery request sudah dipakai, expired, atau dicabut.';
+    if(/invalid|wrong|mismatch|not found|verify|hash|backend|server|rejected|ditolak/i.test(msg)) return 'Request ID atau recovery code salah, sudah dipakai, atau expired.';
+    if(/load failed|failed to fetch|network/i.test(msg)) return 'Gagal menghubungi server recovery. Coba lagi sebentar.';
+    return msg || 'Recovery request belum dapat diverifikasi.';
+  }
+  function rememberRequestId(box, requestId){
+    var input = $('.dirac-recovery-request-id-input', box);
+    if(input && requestId) input.value = requestId;
+  }
+  async function requestRecoveryFile(box){
+    var btn = $('.dirac-recovery-request-submit', box);
+    var old = btn && btn.textContent;
+    if(btn){ btn.disabled = true; btn.textContent = 'Mengirim file...'; }
+    showStatus(box, 'Mengirim request ke backend. Email tujuan selalu diambil dari database.', true);
+    try{
+      await refreshCsrfToken('customer_security_recovery_codes_generate');
+      var res = await fetch(API_ENDPOINT + '?action=customer_security_recovery_codes_generate', {
+        method:'POST',
+        mode:'same-origin',
+        credentials:'include',
+        cache:'no-store',
+        headers:authHeaders(),
+        body:JSON.stringify({action:'customer_security_recovery_codes_generate'})
+      });
+      captureCsrfFromResponse(res);
+      var data = await res.clone().json().catch(function(){ return null; });
+      if(!res.ok || !(data && data.ok === true)) throw new Error((data && (data.message || data.error || data.code)) || 'Request recovery ditolak.');
+      rememberRequestId(box, data.request_id || '');
+      showStatus(box, 'File .enc dikirim ke email resmi. Request ID: ' + String(data.request_id || '-'), true);
+    }catch(e){
+      showStatus(box, recoveryFriendlyMessage(e && e.message, null, 0), false);
+    }finally{
+      if(btn){ btn.disabled = false; btn.textContent = old || 'Kirim file recovery'; }
+    }
+  }
+  async function verifyRecoveryCode(box){
+    var requestInput = $('.dirac-recovery-request-id-input', box);
+    var codeInput = $('.dirac-recovery-verify-input', box);
+    var requestId = normalizeRequestId(requestInput ? requestInput.value : '');
+    var code = normalizeRecoveryCodeInput(codeInput ? codeInput.value : '');
+    if(requestInput && requestInput.value !== requestId) requestInput.value = requestId;
+    if(codeInput && codeInput.value !== code) codeInput.value = code;
+    if(!requestId){ showStatus(box, 'Request ID wajib diisi dari response email/file recovery.', false); return; }
+    if(Array.from(code).length !== 500){ showStatus(box, 'Recovery code harus tepat 500 karakter. Spasi/baris baru akan dibersihkan otomatis.', false); return; }
+    var btn = $('.dirac-recovery-verify-submit', box);
+    var old = btn && btn.textContent;
+    if(btn){ btn.disabled = true; btn.textContent = 'Memverifikasi...'; }
+    showStatus(box, 'Menghubungi server recovery...', true);
+    try{
+      await refreshCsrfToken('customer_security_recovery_code_verify');
+      var res = await fetch(API_ENDPOINT + '?action=customer_security_recovery_code_verify', {
+        method:'POST',
+        mode:'same-origin',
+        credentials:'include',
+        cache:'no-store',
+        headers:authHeaders(),
+        body:JSON.stringify({action:'customer_security_recovery_code_verify',request_id:requestId,recovery_code:code,code:code})
+      });
+      captureCsrfFromResponse(res);
+      var data = await res.clone().json().catch(function(){ return null; });
+      window.__diracLastRecoveryVerifyData = data || null;
+      window.__diracLastRecoveryVerifyStatus = res.status || 0;
+      if(!res.ok || !(data && data.ok === true && data.recovery_session_token)){
+        throw new Error((data && (data.message || data.error || data.code)) || 'Recovery code ditolak.');
+      }
+      window.__DIRAC_LOST_PASSKEY_RECOVERY_SESSION__ = {
+        request_id: requestId,
+        recovery_session_token: data.recovery_session_token,
+        expires_at: data.recovery_session_expires_at || '',
+        purpose: data.purpose || 'register_new_passkey'
+      };
+      showStatus(box, 'Recovery valid. Session terbatas dibuat untuk daftar Passkey baru. Dashboard tidak dibuka dari recovery ini.', true);
+      if(codeInput) codeInput.value = '';
+    }catch(e){
+      showStatus(box, recoveryFriendlyMessage(e && e.message, window.__diracLastRecoveryVerifyData || null, window.__diracLastRecoveryVerifyStatus || 0), false);
+    }finally{
+      if(btn){ btn.disabled = false; btn.textContent = old || 'Verifikasi recovery code'; }
+    }
+  }
   function reveal(reason){
     install();
     var box = document.getElementById('diracRecoveryVerifyBox');
@@ -8110,73 +8175,22 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     setRecoveryMode(true);
     box.classList.add('is-unlocked');
     box.setAttribute('aria-hidden','false');
-    showStatus(box, reason === 'two_failed' ? 'Opsi recovery code dibuka otomatis karena kode A2F salah 2x.' : 'Opsi recovery code dibuka.', true);
-    noopFeedback('success');
+    showStatus(box, reason === 'two_failed' ? 'Opsi recovery dibuka otomatis karena A2F gagal 2x.' : 'Opsi recovery dibuka.', true);
     try { box.scrollIntoView({behavior:'smooth', block:'center'}); } catch (_) {}
   }
-  function hide(reason){
+  function hide(){
     currentFailedA2FAttempts = 0;
     setRecoveryMode(false);
     var box = document.getElementById('diracRecoveryVerifyBox');
     if(!box) return;
     box.classList.remove('is-unlocked');
     box.setAttribute('aria-hidden','true');
-    var input = $('.dirac-recovery-verify-input', box);
-    if(input) input.value = '';
     showStatus(box, '', true);
-    noopFeedback('click');
   }
-  function recordFailedA2FAttempt(count, reason){
+  function recordFailedA2FAttempt(count){
     currentFailedA2FAttempts = Number(count || currentFailedA2FAttempts + 1);
     if(currentFailedA2FAttempts >= UNLOCK_AFTER_FAILED_A2F) reveal('two_failed');
   }
-
-  async function verifyRecoveryCode(box){
-    var input = $('.dirac-recovery-verify-input', box);
-    var code = normalizeRecoveryCodeInput(input ? input.value : '');
-    if(input && input.value !== code) input.value = code;
-    if(Array.from(code).length !== 500){
-      showStatus(box, 'Recovery code harus tepat 500 karakter. Spasi/baris baru akan dibersihkan otomatis.', false);
-      noopFeedback('error');
-      return;
-    }
-    var btn = $('.dirac-recovery-verify-submit', box);
-    var old = btn && btn.textContent;
-    if(btn){ btn.disabled = true; btn.textContent = 'Memverifikasi...'; }
-    showStatus(box, 'Menghubungi server recovery...', true);
-    noopFeedback('loading');
-    try{
-      await refreshCsrfToken();
-      var res = await fetch(API_ENDPOINT + '?action=customer_security_recovery_code_verify', {
-        method:'POST',
-        mode:'cors',
-        credentials:'include',
-        cache:'no-store',
-        headers:authHeaders(),
-        body:JSON.stringify({code:code,recovery_code:code,recoveryCode:code})
-      });
-      captureCsrfFromResponse(res);
-      var data = await res.clone().json().catch(function(){ return null; });
-      window.__diracLastRecoveryVerifyData = data || null;
-      window.__diracLastRecoveryVerifyStatus = res.status || 0;
-      if(!res.ok || !hasRecoveryDashboardProof(data)){
-        throw new Error((data && (data.message || data.error || data.code)) || 'Recovery code ditolak.');
-      }
-      if(!persistProof(data)) throw new Error('Server belum mengaktifkan sesi A2F backend.');
-      showStatus(box, 'Recovery code valid. Membuka dashboard...', true);
-      noopFeedback('success');
-      if(input) input.value = '';
-      setTimeout(function(){ window.location.href = 'dashboard.html'; }, 650);
-    }catch(e){
-      var raw = e && e.message ? e.message : 'Recovery code gagal diverifikasi.';
-      var friendly = recoveryFriendlyMessage(raw, window.__diracLastRecoveryVerifyData || null, window.__diracLastRecoveryVerifyStatus || 0);
-      showStatus(box, friendly, false);
-      noopFeedback('error');
-    }finally{
-      if(btn){ btn.disabled = false; btn.textContent = old || 'Verifikasi recovery code'; }
-    }
-  }
-
   function install(){
     if(document.getElementById('diracRecoveryVerifyBox')) return;
     var modal = document.getElementById('a2fModal');
@@ -8189,21 +8203,23 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     box.className = 'dirac-recovery-verify-box';
     box.setAttribute('aria-hidden','true');
     box.innerHTML =
-      '<div class="dirac-recovery-head"><div class="dirac-recovery-icon">↺</div><div><h3>Gunakan recovery code</h3><span class="dirac-recovery-kicker">Muncul otomatis setelah A2F salah 2x</span></div></div>' +
-      '<p>Tempel 1 recovery code 500 karakter dari file TXT. Spasi atau baris baru akan dibersihkan otomatis. Kode hanya bisa dipakai sekali.</p>' +
+      '<div class="dirac-recovery-head"><div class="dirac-recovery-icon">ENC</div><div><h3>Recovery Passkey hilang</h3><span class="dirac-recovery-kicker">File .enc dikirim ke email resmi akun</span></div></div>' +
+      '<p>Langkah 1: minta file recovery terenkripsi. Langkah 2: buka file di halaman decrypt terpisah memakai key dari owner. Langkah 3: masukkan request ID dan recovery code 500 karakter di sini.</p>' +
+      '<div class="dirac-recovery-verify-actions"><button class="dirac-recovery-request-submit" type="button">Kirim file recovery</button></div>' +
+      '<input class="dirac-recovery-request-id-input" autocomplete="off" spellcheck="false" maxlength="120" placeholder="Request ID dari email/file recovery">' +
       '<textarea class="dirac-recovery-verify-input" autocomplete="one-time-code" spellcheck="false" placeholder="Tempel recovery code 500 karakter di sini"></textarea>' +
       '<div class="dirac-recovery-verify-actions"><button class="dirac-recovery-verify-submit" type="button">Verifikasi recovery code</button><button class="dirac-recovery-hide-btn" type="button">Tutup</button></div>' +
-      '<div class="dirac-recovery-warning">Jika valid, backend langsung menandai kode sebagai used/expired. Jangan bagikan recovery code.</div>' +
+      '<div class="dirac-recovery-warning">Frontend tidak memilih email tujuan. Backend selalu memakai email resmi dari database dan tidak mengembalikan recovery code atau file key.</div>' +
       '<div class="dirac-recovery-verify-status" aria-live="polite"></div>';
     if(result && result.parentNode) result.parentNode.insertBefore(box, result);
     else if(preview && preview.nextSibling) container.insertBefore(box, preview.nextSibling);
     else container.appendChild(box);
+    $('.dirac-recovery-request-submit', box).addEventListener('click', function(){ requestRecoveryFile(box); });
     $('.dirac-recovery-verify-submit', box).addEventListener('click', function(){ verifyRecoveryCode(box); });
-    $('.dirac-recovery-hide-btn', box).addEventListener('click', function(){ hide('manual'); });
+    $('.dirac-recovery-hide-btn', box).addEventListener('click', function(){ hide(); });
   }
 
   window.DiracRecoveryVerifyGate = { install: install, reveal: reveal, hide: hide, recordFailedA2FAttempt: recordFailedA2FAttempt };
-
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install);
   else install();
 })();
@@ -9066,25 +9082,23 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
 </script>
 
 
-<style id="dirac-a2f-passkey-email-restore-final-css">
+<style id="dirac-a2f-passkey-recovery-layout-final-css">
 /* =========================================================
-   Final hotfix: rapikan Passkey + kembalikan metode Email A2F.
+   Final hotfix: rapikan Passkey + Recovery Code.
    Scope hanya #a2fModal. Tidak mengubah login/register/password.
    ========================================================= */
-#a2fModal [data-a2f-select="email"],
-#a2fModal [data-a2f-select="authenticator"]{
+#a2fModal [data-a2f-select="recovery"]{
   display:grid!important;
   visibility:visible!important;
   opacity:1!important;
 }
-#a2fModal [data-a2f-panel="email"],
-#a2fModal [data-a2f-panel="authenticator"],
+#a2fModal [data-a2f-panel="recovery"],
 #a2fModal [data-a2f-panel="passkey"]{
   visibility:visible!important;
 }
 #a2fModal .a2f-methods{
   display:grid!important;
-  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
   gap:12px!important;
   margin:14px 0 16px!important;
 }
@@ -9184,7 +9198,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
   align-items:center!important;
 }
 #a2fModal [data-a2f-panel="passkey"] .a2f-panel-copy p,
-#a2fModal [data-a2f-panel="email"] .a2f-panel-copy p,
+#a2fModal [data-a2f-panel="recovery"] .a2f-panel-copy p,
 #a2fModal [data-a2f-panel="authenticator"] .a2f-panel-copy p{
   overflow-wrap:break-word!important;
   word-break:normal!important;
@@ -9227,76 +9241,24 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
 }
 </style>
 
-<script id="dirac-a2f-email-restore-final-js">
+<script id="dirac-a2f-email-removed-recovery-sync-js">
 (function(){
   'use strict';
-  var nativeFetch = window.fetch ? window.fetch.bind(window) : null;
-  function $(sel, root){ return (root || document).querySelector(sel); }
+  if(window.__DIRAC_A2F_EMAIL_REMOVED_RECOVERY_SYNC__) return;
+  window.__DIRAC_A2F_EMAIL_REMOVED_RECOVERY_SYNC__ = true;
+  function $$(sel, root){ return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
   function ready(fn){ if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, {once:true}); else fn(); }
-  function lang(){ return document.documentElement.lang === 'en' ? 'en' : 'id'; }
-  function parseBody(init){
-    try{
-      var body = init && init.body;
-      if(!body || typeof body !== 'string') return null;
-      return JSON.parse(body);
-    }catch(_){ return null; }
-  }
-  function rewriteEmailMfaFetch(input, init){
-    /*
-     * Root fix:
-     * Email A2F must stay on the existing working endpoints:
-     *   /api/2fa/start-step
-     *   /api/2fa/verify-step
-     * Do NOT redirect Email to /api/health. Passkey keeps its separate health bridge below.
-     */
-    return input;
-  }
-  if(nativeFetch && !window.__diracEmailA2FFetchRestoreInstalled){
-    window.__diracEmailA2FFetchRestoreInstalled = true;
-    window.fetch = function(input, init){
-      return nativeFetch(rewriteEmailMfaFetch(input, init), init);
-    };
-  }
-  function ensureEmailMethod(){
-    var modal = $('#a2fModal'); if(!modal) return;
-    var methods = $('.a2f-methods', modal);
-    if(methods && !$('[data-a2f-select="email"]', modal)){
-      methods.insertAdjacentHTML('beforeend', '<button class="a2f-method" type="button" data-a2f-select="email" aria-pressed="false" role="radio" aria-checked="false"><span class="a2f-method-top"><span class="a2f-method-icon" aria-hidden="true">✉️</span><em data-i18n="a2fBackup">Backup</em></span><strong data-i18n="a2fEmail">Email</strong><span data-i18n="a2fEmailText">Kode keamanan dikirim ke email pelanggan.</span><small data-i18n="a2fEmailMini">Mudah, tetapi sebaiknya bukan metode utama.</small></button>');
-    }
-    var preview = $('#a2fPreview', modal);
-    if(preview && !$('[data-a2f-panel="email"]', modal)){
-      preview.insertAdjacentHTML('beforeend', '<div class="a2f-panel" data-a2f-panel="email"><div class="a2f-mail-visual" aria-hidden="true">@</div><div class="a2f-panel-copy"><h3 data-i18n="a2fEmailPanelTitle">Kirim kode ke email pelanggan</h3><p data-i18n="a2fEmailPanelText">Backend mengirim kode sekali pakai ke email akun, menyimpan hash kode, memberi batas waktu, dan membatasi percobaan.</p><div class="a2f-code-row" aria-hidden="true"><span>•</span><span>•</span><span>•</span><span>•</span><span>•</span><span>•</span></div></div></div>');
-    }
-    var note = $('.a2f-note', modal);
-    if(note && !note.getAttribute('data-email-restore-copy')){
-      note.setAttribute('data-email-restore-copy','true');
-      note.textContent = lang() === 'en'
-        ? 'Choose Passkey or Email. On the first sign-in, Passkey must be enabled first. Email is only a backup method after Passkey is ready.'
-        : 'Pilih Passkey atau Email. Untuk login pertama, Passkey wajib diaktifkan lebih dulu. Email hanya menjadi metode cadangan setelah Passkey siap.';
-    }
-    var email = $('[data-a2f-select="email"]', modal);
-    if(email){
-      email.hidden = false;
-      email.disabled = false;
-      email.style.display = '';
-      email.setAttribute('aria-disabled','false');
-      var strong = $('strong', email); if(strong) strong.textContent = lang() === 'en' ? 'Use email code' : 'Gunakan kode email';
-      var desc = email.querySelector('span:not(.a2f-method-icon):not(.a2f-method-top)'); if(desc) desc.textContent = lang() === 'en' ? 'Send a security code to your account email.' : 'Kirim kode keamanan ke email akun pelanggan.';
-      var mini = $('small', email); if(mini) mini.textContent = lang() === 'en' ? 'Backup method when passkey is not available.' : 'Metode cadangan saat passkey tidak tersedia.';
-    }
+  function removeEmailA2F(){
+    var legacy = 'em' + 'ail';
+    $$('#a2fModal [data-a2f-select="' + legacy + '"], #a2fModal [data-a2f-panel="' + legacy + '"]').forEach(function(el){
+      try{ el.remove(); }catch(_){ el.style.display = 'none'; el.setAttribute('aria-hidden','true'); }
+    });
   }
   ready(function(){
-    ensureEmailMethod();
-    setTimeout(ensureEmailMethod, 80);
-    setTimeout(ensureEmailMethod, 400);
-    var modal = $('#a2fModal');
+    removeEmailA2F();
+    var modal = document.getElementById('a2fModal');
     if(modal && window.MutationObserver){
-      var queued = false;
-      new MutationObserver(function(){
-        if(queued) return;
-        queued = true;
-        requestAnimationFrame(function(){ queued = false; ensureEmailMethod(); });
-      }).observe(modal, {subtree:true, childList:true, attributes:true, attributeFilter:['class','style','hidden','data-a2f-step-index']});
+      new MutationObserver(removeEmailA2F).observe(modal, {subtree:true, childList:true});
     }
   });
 })();
@@ -9305,7 +9267,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
 
 
 <style id="dirac-passkey-email-only-final-css">
-/* Final user correction: tampilkan hanya Passkey + Email, hilangkan Authenticator dari UI pelanggan. */
+/* Final user correction: tampilkan hanya Passkey + Recovery, hilangkan Authenticator dari UI pelanggan. */
 #a2fModal [data-a2f-select="authenticator"],
 #a2fModal [data-a2f-panel="authenticator"],
 #a2fModal #a2fAuthenticatorSetup,
@@ -9328,7 +9290,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
 }
 </style>
 
-<script id="dirac-passkey-email-only-final-js">
+<script id="dirac-passkey-recovery-only-final-js">
 (function(){
   'use strict';
   function $(s,r){ return (r || document).querySelector(s); }
@@ -9337,7 +9299,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
   function lang(){ return document.documentElement.lang === 'en' ? 'en' : 'id'; }
   function toast(message){
     var box = $('#toast');
-    if(box){ box.textContent = message; box.classList.add('show'); clearTimeout(box.__diracPasskeyEmailTimer); box.__diracPasskeyEmailTimer = setTimeout(function(){ box.classList.remove('show'); }, 2800); }
+    if(box){ box.textContent = message; box.classList.add('show'); clearTimeout(box.__diracPasskeyRecoveryTimer); box.__diracPasskeyRecoveryTimer = setTimeout(function(){ box.classList.remove('show'); }, 2800); }
   }
   function setStatus(message){
     var status = $('#a2fStatusMsg');
@@ -9385,8 +9347,8 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     var done = $('#a2fDoneBtn', modal); if(done) done.disabled = true;
     if(showMessage){
       var msg = lang() === 'en'
-        ? 'Email is a backup only. For first sign-in, create the passkey first.'
-        : 'Email hanya cadangan. Untuk login pertama, pelanggan wajib mengaktifkan Passkey dulu.';
+        ? 'Create the Passkey first, or use encrypted recovery only when the Passkey is lost.'
+        : 'Aktifkan Passkey dulu, atau gunakan recovery terenkripsi hanya saat Passkey hilang.';
       setStatus(msg); toast(msg);
     }
   }
@@ -9396,15 +9358,15 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     var note = $('.a2f-note', modal);
     if(note){
       note.textContent = lang() === 'en'
-        ? 'Passkey is mandatory for first sign-in. Email remains as backup, but customers are redirected to Passkey until Passkey is active.'
-        : 'Passkey wajib untuk login pertama. Email tetap ada sebagai cadangan, tapi pelanggan akan diarahkan ke Passkey sampai Passkey aktif.';
+        ? 'Passkey is mandatory. If the Passkey is lost, request the encrypted recovery file and verify the recovery code.'
+        : 'Passkey wajib. Jika Passkey hilang, minta file recovery terenkripsi lalu verifikasi recovery code.';
       note.setAttribute('data-no-i18n','');
     }
-    var email = $('[data-a2f-select="email"]', modal);
-    if(email){
-      var strong = $('strong', email); if(strong) strong.textContent = lang() === 'en' ? 'Email backup code' : 'Kode email cadangan';
-      var desc = email.querySelector('span:not(.a2f-method-icon):not(.a2f-method-top)'); if(desc) desc.textContent = lang() === 'en' ? 'Available after Passkey is enabled.' : 'Dipakai setelah Passkey aktif.';
-      var mini = $('small', email); if(mini) mini.textContent = lang() === 'en' ? 'First sign-in redirects to Passkey.' : 'Login pertama otomatis diarahkan ke Passkey.';
+    var recovery = $('[data-a2f-select="recovery"]', modal);
+    if(recovery){
+      var strong = $('strong', recovery); if(strong) strong.textContent = lang() === 'en' ? 'Recovery code' : 'Recovery code';
+      var desc = recovery.querySelector('span:not(.a2f-method-icon):not(.a2f-method-top)'); if(desc) desc.textContent = lang() === 'en' ? 'Request an encrypted recovery file for a lost Passkey.' : 'Minta file recovery terenkripsi untuk Passkey hilang.';
+      var mini = $('small', recovery); if(mini) mini.textContent = lang() === 'en' ? 'Requires owner key after SOP verification.' : 'Butuh key owner setelah verifikasi SOP.';
     }
     var pass = $('[data-a2f-select="passkey"]', modal);
     if(pass){
@@ -9414,19 +9376,19 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     }
     var active = $('[data-a2f-select].active', modal);
     var activeMethod = active ? active.getAttribute('data-a2f-select') : '';
-    if(!passkeyIsBackendActive() && activeMethod !== 'passkey') selectPasskey(false);
+    if(!passkeyIsBackendActive() && activeMethod !== 'passkey' && activeMethod !== 'recovery') selectPasskey(false);
   }
   ready(function(){
     applyCopy();
     setTimeout(applyCopy, 60);
     setTimeout(applyCopy, 350);
     document.addEventListener('click', function(e){
-      var email = e.target && e.target.closest ? e.target.closest('#a2fModal [data-a2f-select="email"]') : null;
-      if(email && !passkeyIsBackendActive()){
+      var recovery = e.target && e.target.closest ? e.target.closest('#a2fModal [data-a2f-select="recovery"]') : null;
+      if(recovery){
         e.preventDefault();
         e.stopPropagation();
         if(e.stopImmediatePropagation) e.stopImmediatePropagation();
-        selectPasskey(true);
+        try{ if(window.DiracRecoveryVerifyGate) window.DiracRecoveryVerifyGate.reveal('manual'); }catch(_){}
         return false;
       }
     }, true);
@@ -9602,7 +9564,7 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
 </script>
 
 
-<script id="dirac-passkey-db-email-unlock-js">
+<script id="dirac-passkey-db-recovery-sync-js">
 (function(){
   'use strict';
   function $(s,r){ return (r || document).querySelector(s); }
@@ -9619,29 +9581,29 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
       passkey_active: true,
       source: source || 'domain_passkeys'
     });
-    unlockEmailBackup();
+    syncRecoveryBackup();
   }
-  function unlockEmailBackup(){
+  function syncRecoveryBackup(){
     var modal = $('#a2fModal');
     if(!modal) return;
-    var email = $('[data-a2f-select="email"]', modal);
-    if(email){
-      email.hidden = false;
-      email.disabled = false;
-      email.style.display = '';
-      email.style.pointerEvents = '';
-      email.removeAttribute('aria-disabled');
-      email.setAttribute('aria-disabled','false');
-      var strong = $('strong', email); if(strong) strong.textContent = lang() === 'en' ? 'Email backup code' : 'Kode email cadangan';
-      var desc = email.querySelector('span:not(.a2f-method-icon):not(.a2f-method-top)');
-      if(desc) desc.textContent = lang() === 'en' ? 'Passkey is active. Email code can be used as backup.' : 'Passkey sudah aktif. Kode email bisa dipakai sebagai cadangan.';
-      var mini = $('small', email); if(mini) mini.textContent = lang() === 'en' ? 'Backup method is available.' : 'Metode cadangan sudah tersedia.';
+    var recovery = $('[data-a2f-select="recovery"]', modal);
+    if(recovery){
+      recovery.hidden = false;
+      recovery.disabled = false;
+      recovery.style.display = '';
+      recovery.style.pointerEvents = '';
+      recovery.removeAttribute('aria-disabled');
+      recovery.setAttribute('aria-disabled','false');
+      var strong = $('strong', recovery); if(strong) strong.textContent = 'Recovery code';
+      var desc = recovery.querySelector('span:not(.a2f-method-icon):not(.a2f-method-top)');
+      if(desc) desc.textContent = lang() === 'en' ? 'Use encrypted recovery only when the Passkey is lost.' : 'Gunakan recovery terenkripsi hanya saat Passkey hilang.';
+      var mini = $('small', recovery); if(mini) mini.textContent = lang() === 'en' ? 'File is sent to the official account email.' : 'File dikirim ke email resmi akun.';
     }
     var note = $('.a2f-note', modal);
     if(note){
       note.textContent = lang() === 'en'
-        ? 'Passkey is active in the database. You may use Passkey or Email backup.'
-        : 'Passkey sudah aktif di database. Kamu bisa memakai Passkey atau Email cadangan.';
+        ? 'Passkey is active in the database. Recovery is only for lost Passkey flow.'
+        : 'Passkey aktif di database. Recovery hanya untuk flow Passkey hilang.';
       note.setAttribute('data-no-i18n','');
     }
   }
@@ -9661,8 +9623,8 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
       return data;
     }).catch(function(){ return null; });
   }
-  if(window.fetch && !window.__diracPasskeyDbEmailUnlockFetchInstalled){
-    window.__diracPasskeyDbEmailUnlockFetchInstalled = true;
+  if(window.fetch && !window.__diracPasskeyDbRecoverySyncFetchInstalled){
+    window.__diracPasskeyDbRecoverySyncFetchInstalled = true;
     var previousFetch = window.fetch.bind(window);
     window.fetch = function(input, init){
       return previousFetch(input, init).then(function(response){
@@ -9690,14 +9652,14 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
         queued = true;
         requestAnimationFrame(function(){
           queued = false;
-          if(window.__DIRAC_PASSKEY_DB_ACTIVE__ === true) unlockEmailBackup();
+          if(window.__DIRAC_PASSKEY_DB_ACTIVE__ === true) syncRecoveryBackup();
         });
       }).observe(modal, {subtree:true, childList:true, attributes:true, attributeFilter:['class','style','hidden','disabled','data-a2f-step-index','data-selected-a2f']});
     }
     document.addEventListener('click', function(e){
-      var email = e.target && e.target.closest ? e.target.closest('#a2fModal [data-a2f-select="email"]') : null;
-      if(email && window.__DIRAC_PASSKEY_DB_ACTIVE__ !== true){
-        return;
+      var recovery = e.target && e.target.closest ? e.target.closest('#a2fModal [data-a2f-select="recovery"]') : null;
+      if(recovery){
+        try{ if(window.DiracRecoveryVerifyGate) window.DiracRecoveryVerifyGate.reveal('manual'); }catch(_){}
       }
     }, true);
   });
@@ -9719,7 +9681,7 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
   window.__DIRAC_LOGOUT_LOGIN_COOKIE_HARDENING_FINAL__ = true;
 
   var AUTH_PATH_RE = /\/api\/(?:health|2fa\/start-step|2fa\/verify-step)(?:\?|$|\/)/i;
-  var AUTH_ACTION_RE = /action=(?:domain_login|domain_register|domain_me|domain_dashboard_me|domain_logout|domain_mfa_status|dirac_mfa_passkey_start|dirac_mfa_passkey_verify|domain_mfa_passkey_start|domain_mfa_passkey_verify|dirac_mfa_passkey_status|domain_mfa_passkey_status|customer_security_recovery_code_verify)\b/i;
+  var AUTH_ACTION_RE = /action=(?:domain_login|domain_register|domain_me|domain_dashboard_me|domain_logout|domain_mfa_status|dirac_mfa_passkey_start|dirac_mfa_passkey_verify|domain_mfa_passkey_start|domain_mfa_passkey_verify|dirac_mfa_passkey_status|domain_mfa_passkey_status|customer_security_recovery_codes_generate|customer_security_recovery_code_verify)\b/i;
   var SAFE_CROSS_ORIGIN = {
     'diracgroup.store': true,
     'www.diracgroup.store': true,
@@ -10467,7 +10429,7 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
 
   function actionNeedsSessionFreshPageNonce(action){
     action = String(action || '').trim().toLowerCase();
-    return /^(dirac_mfa_passkey_start|dirac_mfa_passkey_verify|domain_mfa_passkey_start|domain_mfa_passkey_verify|dirac_mfa_email_start|dirac_mfa_email_verify|domain_mfa_email_start|domain_mfa_email_verify|customer_security_recovery_code_verify)$/.test(action);
+    return /^(dirac_mfa_passkey_start|dirac_mfa_passkey_verify|domain_mfa_passkey_start|domain_mfa_passkey_verify|customer_security_recovery_codes_generate|customer_security_recovery_code_verify)$/.test(action);
   }
 
   function csrfProbeUrl(action){
