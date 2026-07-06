@@ -5272,9 +5272,11 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
               <span data-i18n="a2fPasskeyText">Face ID, sidik jari, PIN, atau kunci perangkat.</span>
               <small data-i18n="a2fPasskeyMini">Paling modern dan tahan phishing.</small>
             </button>
-            <button class="a2f-recovery-text-link" type="button" data-a2f-select="recovery" aria-pressed="false">
-              <strong data-i18n="a2fRecovery">Anda kehilangan Passkey?</strong>
-              <span data-i18n="a2fRecoveryText">Minta file recovery terenkripsi lewat email resmi akun.</span>
+            <button class="a2f-method" type="button" data-a2f-select="recovery" aria-pressed="false">
+              <span class="a2f-method-top"><span class="a2f-method-icon" aria-hidden="true">🧾</span><em data-i18n="a2fBackup">Recovery</em></span>
+              <strong data-i18n="a2fRecovery">Recovery code</strong>
+              <span data-i18n="a2fRecoveryText">Minta file recovery terenkripsi untuk Passkey hilang.</span>
+              <small data-i18n="a2fRecoveryMini">Butuh key owner setelah verifikasi SOP.</small>
             </button>
           </div>
 
@@ -9324,64 +9326,6 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
 }
 </style>
 
-<style id="dirac-recovery-text-cta-final-css">
-/* Recovery bukan kartu metode: hanya CTA teks untuk Passkey hilang. */
-#a2fModal .a2f-recovery-text-link[data-a2f-select="recovery"]{
-  display:inline-flex!important;
-  flex-direction:column!important;
-  align-items:flex-start!important;
-  gap:4px!important;
-  width:max-content!important;
-  max-width:100%!important;
-  min-height:0!important;
-  margin:2px 0 0!important;
-  padding:6px 2px!important;
-  border:0!important;
-  border-radius:0!important;
-  background:transparent!important;
-  box-shadow:none!important;
-  color:#2563eb!important;
-  text-align:left!important;
-  cursor:pointer!important;
-}
-#a2fModal .a2f-recovery-text-link strong{
-  display:block!important;
-  margin:0!important;
-  color:#2563eb!important;
-  font-size:.94rem!important;
-  line-height:1.25!important;
-  font-weight:900!important;
-}
-#a2fModal .a2f-recovery-text-link span{
-  display:block!important;
-  margin:0!important;
-  max-width:460px!important;
-  color:#64748b!important;
-  font-size:.8rem!important;
-  line-height:1.38!important;
-  font-weight:700!important;
-}
-#a2fModal .a2f-recovery-text-link:hover strong,
-#a2fModal .a2f-recovery-text-link.active strong{
-  text-decoration:underline!important;
-  text-underline-offset:3px!important;
-}
-#a2fModal .a2f-recovery-text-link:focus-visible{
-  outline:3px solid rgba(37,99,235,.24)!important;
-  outline-offset:4px!important;
-  border-radius:10px!important;
-}
-#a2fModal .a2f-recovery-text-link:disabled{
-  opacity:.56!important;
-  cursor:not-allowed!important;
-}
-#a2fModal .a2f-recovery-text-link:after,
-#a2fModal .a2f-recovery-text-link .a2f-method-top,
-#a2fModal .a2f-recovery-text-link small{
-  display:none!important;
-}
-</style>
-
 <script id="dirac-passkey-recovery-only-final-js">
 (function(){
   'use strict';
@@ -9456,8 +9400,8 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     }
     var recovery = $('[data-a2f-select="recovery"]', modal);
     if(recovery){
-      var strong = $('strong', recovery); if(strong) strong.textContent = lang() === 'en' ? 'Lost your Passkey?' : 'Anda kehilangan Passkey?';
-      var desc = recovery.querySelector('span:not(.a2f-method-icon):not(.a2f-method-top)'); if(desc) desc.textContent = lang() === 'en' ? 'Request an encrypted recovery file by official account email.' : 'Minta file recovery terenkripsi lewat email resmi akun.';
+      var strong = $('strong', recovery); if(strong) strong.textContent = 'Recovery code';
+      var desc = recovery.querySelector('span:not(.a2f-method-icon):not(.a2f-method-top)'); if(desc) desc.textContent = lang() === 'en' ? 'Request an encrypted recovery file for a lost Passkey.' : 'Minta file recovery terenkripsi untuk Passkey hilang.';
       var mini = $('small', recovery); if(mini) mini.textContent = lang() === 'en' ? 'Requires owner key after SOP verification.' : 'Butuh key owner setelah verifikasi SOP.';
     }
     var pass = $('[data-a2f-select="passkey"]', modal);
@@ -9686,10 +9630,10 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
       recovery.style.pointerEvents = '';
       recovery.removeAttribute('aria-disabled');
       recovery.setAttribute('aria-disabled','false');
-      var strong = $('strong', recovery); if(strong) strong.textContent = lang() === 'en' ? 'Lost your Passkey?' : 'Anda kehilangan Passkey?';
+      var strong = $('strong', recovery); if(strong) strong.textContent = 'Recovery code';
       var desc = recovery.querySelector('span:not(.a2f-method-icon):not(.a2f-method-top)');
-      if(desc) desc.textContent = lang() === 'en' ? 'Request an encrypted recovery file by official account email.' : 'Minta file recovery terenkripsi lewat email resmi akun.';
-      var mini = $('small', recovery); if(mini) mini.textContent = lang() === 'en' ? 'File is sent to the official account email.' : 'File dikirim ke email resmi akun.';
+      if(desc) desc.textContent = lang() === 'en' ? 'Request an encrypted recovery file for a lost Passkey.' : 'Minta file recovery terenkripsi untuk Passkey hilang.';
+      var mini = $('small', recovery); if(mini) mini.textContent = lang() === 'en' ? 'Requires owner key after SOP verification.' : 'Butuh key owner setelah verifikasi SOP.';
     }
     var note = $('.a2f-note', modal);
     if(note){
