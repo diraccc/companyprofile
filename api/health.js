@@ -6513,6 +6513,8 @@ async function customerSecurityGenerateRecoveryCodesViaWorker(req, res, action, 
   const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
   const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
 
+  const workerDebugEnabled = String(process.env.DIRAC_RECOVERY_WORKER_DEBUG || '').trim().toLowerCase() === 'true';
+
   try {
     const response = await fetch(target.toString(), {
       method: 'POST',
@@ -6526,13 +6528,31 @@ async function customerSecurityGenerateRecoveryCodesViaWorker(req, res, action, 
       body: JSON.stringify(payload),
       signal: controller ? controller.signal : undefined
     });
-    const data = await response.json().catch(() => ({}));
+    const workerResponseText = await response.text().catch(() => '');
+    let data = {};
+    try { data = workerResponseText ? JSON.parse(workerResponseText) : {}; } catch (_) { data = {}; }
     if (!response.ok || !data || data.ok !== true) {
-      return res.status(response.status || data.status || 502).json({
+      const workerFailureBody = {
         ok: false,
         code: data && data.code || 'RECOVERY_WORKER_FAILED',
         message: data && data.message || 'Recovery worker belum dapat memproses permintaan.'
-      });
+      };
+      try {
+        console.error('[recovery-worker-response-failed]', JSON.stringify({
+          status: response.status,
+          statusText: response.statusText,
+          code: workerFailureBody.code,
+          message: String(workerFailureBody.message || '').slice(0, 200),
+          workerHost: target.hostname,
+          workerPath: target.pathname
+        }));
+      } catch (_) {}
+      if (workerDebugEnabled) {
+        workerFailureBody.worker_status = response.status;
+        workerFailureBody.worker_status_text = String(response.statusText || '').slice(0, 80);
+        workerFailureBody.worker_body_preview = String(workerResponseText || '').replace(/[<>]/g, '').slice(0, 800);
+      }
+      return res.status(response.status || data.status || 502).json(workerFailureBody);
     }
     return res.status(200).json({
       ok: true,
@@ -6542,12 +6562,31 @@ async function customerSecurityGenerateRecoveryCodesViaWorker(req, res, action, 
       message: data.message || 'File recovery terenkripsi sudah dikirim ke email resmi akun.',
       time: data.time || diracNowIso()
     });
-  } catch (_) {
-    return res.status(502).json({
+  } catch (error) {
+    const workerErrorName = String(error && error.name || '').slice(0, 80);
+    const workerErrorMessage = String(error && error.message || '').slice(0, 240);
+    try {
+      console.error('[recovery-worker-unreachable]', JSON.stringify({
+        name: workerErrorName,
+        message: workerErrorMessage,
+        workerHost: target.hostname,
+        workerPath: target.pathname,
+        timeoutMs
+      }));
+    } catch (_) {}
+    const unreachableBody = {
       ok: false,
       code: 'RECOVERY_WORKER_UNREACHABLE',
       message: 'Recovery worker belum bisa dihubungi.'
-    });
+    };
+    if (workerDebugEnabled) {
+      unreachableBody.worker_error_name = workerErrorName;
+      unreachableBody.worker_error_message = workerErrorMessage;
+      unreachableBody.worker_host = target.hostname;
+      unreachableBody.worker_path = target.pathname;
+      unreachableBody.worker_timeout_ms = timeoutMs;
+    }
+    return res.status(502).json(unreachableBody);
   } finally {
     if (timer) clearTimeout(timer);
   }
