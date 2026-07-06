@@ -25185,6 +25185,10 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
       return diracCentralDisabledResponseV146(res);
     }
 
+    const vercel2OnlyGuard = diracCentralVercel2OnlyActionGuardV150(action);
+    if (!vercel2OnlyGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, vercel2OnlyGuard.reason);
+    diracCentralStampV146(ctx, 'vercel2_action_checked');
+
     ctx.classification = diracCentralClassifyActionV146(action);
     diracCentralStampV146(ctx, 'classification_checked');
 
@@ -25251,25 +25255,20 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
       return await diracCentralBanAndBlockV146(req, res, ctx, action, method, 'html_security_report');
     }
 
-	    if (DIRAC_CENTRAL_SENSITIVE_ACTIONS_V146.has(action)
-      && !ctx.isA2FAction
-      && action !== 'customer_security_recovery_codes_generate'
-      && action !== 'customer_security_recovery_code_verify') ctx.skipHeavyScan = true;
+    ctx.skipHeavyScan = false;
 
-    if (!ctx.skipHeavyScan) {
-      const sampleGuard = diracCentralSampleCollectorV146(req, ctx);
-      if (!sampleGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, sampleGuard.reason);
-      diracCentralStampV146(ctx, 'sample_checked');
+    const sampleGuard = diracCentralSampleCollectorV146(req, ctx);
+    if (!sampleGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, sampleGuard.reason);
+    diracCentralStampV146(ctx, 'sample_checked');
 
-      const normalized = diracCentralNormalizeSampleV146(ctx.sample);
-      const threat = diracCentralThreatPatternGuardV146(normalized, ctx);
-      if (threat.detected) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, threat.kind);
-      diracCentralStampV146(ctx, 'threat_checked');
+    const normalized = diracCentralNormalizeSampleV146(ctx.sample);
+    const threat = diracCentralThreatPatternGuardV146(normalized, ctx);
+    if (threat.detected) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, threat.kind);
+    diracCentralStampV146(ctx, 'threat_checked');
 
-      const zeroDay = diracCentralZeroDayShieldV146(req, ctx, normalized);
-      if (!zeroDay.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, zeroDay.reason);
-      diracCentralStampV146(ctx, 'zeroday_checked');
-    }
+    const zeroDay = diracCentralZeroDayShieldV146(req, ctx, normalized);
+    if (!zeroDay.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, zeroDay.reason);
+    diracCentralStampV146(ctx, 'zeroday_checked');
 
     const idor = await diracCentralIdorBolaGuardV146(req, ctx);
     if (!idor.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, idor.reason);
@@ -25503,6 +25502,48 @@ function diracCentralClassifyActionV146(action) {
   return 'browser';
 }
 
+function diracCentralVercel2OnlyActionGuardV150(action) {
+  const clean = String(action || '').trim().toLowerCase();
+  if (!clean) return { ok: false, reason: 'vercel2_action_empty' };
+
+  const vercel2OnlyActions = diracCentralVercel2OnlyActionsV150();
+  if (!vercel2OnlyActions.has(clean)) return { ok: true };
+
+  if (diracCentralEnvTrueV150('DIRAC_CENTRAL_VERCEL2_ACTIONS_ENABLED')) return { ok: true };
+  if (diracCentralEnvTrueV150('DIRAC_VERCEL2_ACTIONS_ENABLED')) return { ok: true };
+  if (diracCentralEnvValueV150('DIRAC_CENTRAL_DEPLOYMENT_ROLE') === 'vercel2') return { ok: true };
+  if (diracCentralEnvValueV150('DIRAC_DEPLOYMENT_ROLE') === 'vercel2') return { ok: true };
+
+  return { ok: false, reason: 'vercel2_only_action_blocked' };
+}
+
+function diracCentralVercel2OnlyActionsV150() {
+  const actions = new Set([
+    'customer_security_recovery_codes_generate',
+    'customer_security_recovery_code_verify',
+    String(typeof DIRAC_RECOVERY_WORKER_ACTION !== 'undefined' ? DIRAC_RECOVERY_WORKER_ACTION : '').trim().toLowerCase()
+  ].filter(Boolean));
+
+  for (const item of diracCentralEnvCsvV150('DIRAC_CENTRAL_VERCEL2_ONLY_ACTIONS')) actions.add(item);
+  for (const item of diracCentralEnvCsvV150('DIRAC_VERCEL2_ONLY_ACTIONS')) actions.add(item);
+  return actions;
+}
+
+function diracCentralEnvCsvV150(name) {
+  return String(process.env[name] || '')
+    .split(/[\s,]+/)
+    .map((item) => item.trim().toLowerCase())
+    .filter((item) => /^[a-z0-9_-]{1,80}$/.test(item));
+}
+
+function diracCentralEnvValueV150(name) {
+  return String(process.env[name] || '').trim().toLowerCase();
+}
+
+function diracCentralEnvTrueV150(name) {
+  return /^(1|true|yes|on|enabled|enable)$/i.test(String(process.env[name] || '').trim());
+}
+
 function diracCentralStampV146(ctx, name) {
   if (!ctx) return;
   if (!ctx.guardPassport || typeof ctx.guardPassport !== 'object') ctx.guardPassport = Object.create(null);
@@ -25525,7 +25566,8 @@ function diracCentralIntegrityVerifierV146(ctx) {
     'contract_checked',
     'idor_checked',
     'circuit_checked',
-    'mfa_checked'
+    'mfa_checked',
+    'vercel2_action_checked'
   ];
   if (ctx && ctx.classification === 'server') required.push('server_guard_checked');
   if (ctx && ctx.classification === 'public_read') required.push('public_read_checked', 'sample_checked', 'threat_checked', 'zeroday_checked');
