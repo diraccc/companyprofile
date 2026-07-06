@@ -26507,7 +26507,7 @@ function diracCentralIsNonNegativeNumberV146(value) {
 
 function diracCentralIsPasskeyServiceRoleV146(ctx, table, path, options = {}, method) {
   const action = String(ctx && ctx.action || '').toLowerCase();
-  if (!/^(dirac_mfa_passkey_start|dirac_mfa_passkey_verify|domain_mfa_passkey_start|domain_mfa_passkey_verify|dirac_mfa_passkey_status|domain_mfa_passkey_status|dirac_passkey_status|domain_passkey_status)$/.test(action)) return false;
+  if (!/^(dirac_mfa_passkey_start|dirac_mfa_passkey_verify|domain_mfa_passkey_start|domain_mfa_passkey_verify|dirac_mfa_passkey_status|domain_mfa_passkey_status|dirac_passkey_status|domain_passkey_status|customer_security_recovery_codes_generate|customer_security_recovery_code_verify)$/.test(action)) return false;
   const cleanTable = String(table || '').toLowerCase();
   const cleanMethod = String(method || options.method || 'GET').toUpperCase();
   const rawPath = String(path || '').toLowerCase();
@@ -26564,6 +26564,80 @@ function diracCentralIsPasskeyServiceRoleV146(ctx, table, path, options = {}, me
       if (row.two_factor_enabled !== undefined && typeof row.two_factor_enabled !== 'boolean') return false;
       if (row.two_factor_method && String(row.two_factor_method).toLowerCase() !== 'passkey') return false;
       return Boolean(row.customer_id || /[?&](?:id|customer_id)=eq\./.test(rawPath));
+    });
+  }
+
+  if (cleanTable === 'security_lost_passkey_recovery_requests') {
+    if (cleanMethod === 'GET') return /[?&](?:request_id|customer_id|auth_user_id)=eq\./.test(rawPath);
+    if (cleanMethod === 'PATCH' && !/[?&](?:request_id|customer_id|auth_user_id)=eq\./.test(rawPath)) return false;
+    if (cleanMethod !== 'POST' && cleanMethod !== 'PATCH') return false;
+    return diracCentralBodyRowsSafeV146(body, [
+      'request_id',
+      'customer_id',
+      'auth_user_id',
+      'email_hash',
+      'customer_binding_hash',
+      'auth_user_binding_hash',
+      'device_binding_hash',
+      'ip_hash',
+      'user_agent_hash',
+      'recovery_code_hash',
+      'encrypted_file_key_text',
+      'file_key_wrap_nonce',
+      'file_key_wrap_tag',
+      'salt',
+      'owner_key_salt',
+      'dek_seed_wrapped',
+      'dek_wrap_nonce',
+      'dek_wrap_tag',
+      'payload_nonce',
+      'payload_auth_tag',
+      'file_sha256',
+      'aad_hash',
+      'server_signature',
+      'old_passkey_ids',
+      'status',
+      'attempt_count',
+      'sent_at',
+      'locked_at',
+      'used_at',
+      'revoked_at',
+      'created_at',
+      'expires_at',
+      'metadata'
+    ], (row) => {
+      if (row.request_id && !/^[a-zA-Z0-9_-]{16,120}$/.test(String(row.request_id))) return false;
+      if (row.customer_id && !diracCentralLooksLikeUuidV146(row.customer_id)) return false;
+      if (row.auth_user_id && !diracCentralLooksLikeUuidV146(row.auth_user_id)) return false;
+      if (row.status && !/^(pending|verified|used|locked|revoked)$/i.test(String(row.status))) return false;
+      if (row.attempt_count !== undefined && (!Number.isFinite(Number(row.attempt_count)) || Number(row.attempt_count) < 0)) return false;
+      return Boolean(row.request_id || row.customer_id || row.auth_user_id || /[?&](?:request_id|customer_id|auth_user_id)=eq\./.test(rawPath));
+    });
+  }
+
+  if (cleanTable === 'security_lost_passkey_recovery_sessions') {
+    if (cleanMethod === 'GET') return /[?&](?:request_id|customer_id|auth_user_id)=eq\./.test(rawPath);
+    if (cleanMethod === 'PATCH' && !/[?&](?:request_id|customer_id|auth_user_id)=eq\./.test(rawPath)) return false;
+    if (cleanMethod !== 'POST' && cleanMethod !== 'PATCH') return false;
+    return diracCentralBodyRowsSafeV146(body, [
+      'request_id',
+      'customer_id',
+      'auth_user_id',
+      'recovery_session_hash',
+      'purpose',
+      'status',
+      'created_at',
+      'expires_at',
+      'used_at',
+      'revoked_at',
+      'metadata'
+    ], (row) => {
+      if (row.request_id && !/^[a-zA-Z0-9_-]{16,120}$/.test(String(row.request_id))) return false;
+      if (row.customer_id && !diracCentralLooksLikeUuidV146(row.customer_id)) return false;
+      if (row.auth_user_id && !diracCentralLooksLikeUuidV146(row.auth_user_id)) return false;
+      if (row.purpose && String(row.purpose) !== LOST_PASSKEY_RECOVERY_PURPOSE) return false;
+      if (row.status && !/^(verified|used|revoked|expired)$/i.test(String(row.status))) return false;
+      return Boolean(row.request_id || row.customer_id || row.auth_user_id || /[?&](?:request_id|customer_id|auth_user_id)=eq\./.test(rawPath));
     });
   }
 
@@ -27037,7 +27111,7 @@ function diracCentralScannerRegexV146() {
 }
 
 function diracCentralOwnedTableV146(table) {
-  return /^(orders|order_items|domain_orders|domain_order_items|payment_transactions|security_customer_sessions|security_customer_settings|security_customer_recovery_codes|security_customer_auth_links|security_customer_password_hashes|customer_security_events|domain_passkeys|security_customer_login_logs|security_customer_account_requests|customers)$/i.test(String(table || ''));
+  return /^(orders|order_items|domain_orders|domain_order_items|payment_transactions|security_customer_sessions|security_customer_settings|security_customer_recovery_codes|security_customer_auth_links|security_customer_password_hashes|security_lost_passkey_recovery_requests|security_lost_passkey_recovery_sessions|customer_security_events|domain_passkeys|security_customer_login_logs|security_customer_account_requests|customers)$/i.test(String(table || ''));
 }
 
 function diracCentralExtractRestTableV146(path) {
