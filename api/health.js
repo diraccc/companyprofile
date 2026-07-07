@@ -15833,7 +15833,7 @@ async function diracV107RegisterHardBan(req, res, action, method, threat) {
   }));
 
   const write = await diracV107WriteRows(rows);
-  return { ok: write.ok || rows.length > 0, wrote: write.wrote || 0, total: rows.length, blockedUntilMs };
+  return { ok: !!(write && write.ok), wrote: write && write.wrote || 0, total: rows.length, blockedUntilMs };
 }
 
 function diracV107BuildKeys(req) {
@@ -17761,6 +17761,33 @@ try {
       return __diracSqlPrecisionV108PreviousHandler(req, res);
     };
     Object.defineProperty(module.exports, '__diracSqlPrecisionV108HeaderWrapped', { value: true, enumerable: false });
+  }
+} catch (_) {}
+
+
+/* ============================================================
+   DIRAC CROSS-DEPLOY BAN KEY SYNC v151 - NARROW PATCH
+   Tujuan:
+   - Menambah satu key hard-ban stabil lintas Vercel deployment.
+   - Key tidak memakai origin/host, sehingga Vercel 1 dan Vercel 2 membaca ban DB yang sama.
+   - Tidak mengubah endpoint, login/hash, A2F, payment, email template, atau cookie SameSite.
+   ============================================================ */
+const DIRAC_CROSS_DEPLOY_BAN_KEY_SYNC_V151 = 'dirac-cross-deploy-ban-key-sync-v151';
+
+try {
+  if (typeof diracV107BuildKeys === 'function' && !diracV107BuildKeys.__diracCrossDeployV151Wrapped) {
+    const __diracCrossDeployV151OriginalBuildKeys = diracV107BuildKeys;
+    diracV107BuildKeys = function diracV107BuildKeysCrossDeployV151(req) {
+      const keys = __diracCrossDeployV151OriginalBuildKeys(req) || [];
+      try {
+        const ip = typeof diracV107Ip === 'function' ? String(diracV107Ip(req) || '').trim() : '';
+        if (ip && ip !== 'unknown' && typeof diracV107KeysForValue === 'function') {
+          keys.push(...diracV107KeysForValue('stable_ip', 'stable-ip-v151|' + ip));
+        }
+      } catch (_) {}
+      return Array.from(new Map(keys.map((item) => [String(item && item.key || ''), item])).values()).filter((item) => item && item.key);
+    };
+    Object.defineProperty(diracV107BuildKeys, '__diracCrossDeployV151Wrapped', { value: true, enumerable: false });
   }
 } catch (_) {}
 
@@ -24310,7 +24337,7 @@ try {
 
       const result = await __diracV145OriginalRegisterHardBan(req, res, action, method, threat);
       const blockedUntilMs = Number(result && result.blockedUntilMs || 0);
-      if (blockedUntilMs > now) {
+      if (blockedUntilMs > now && result && result.ok && Number(result.wrote || 0) > 0) {
         DIRAC_SECURITY_WRITE_CACHE_V145.set(cacheKey, {
           until: now + diracV145WriteCoalesceMs(),
           blockedUntilMs,
