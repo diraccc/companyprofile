@@ -7101,132 +7101,14 @@ async function customerSecurityVerifyRecoveryCode(req, res, action) {
     });
   }
 
-  const path = '/rest/v1/' + LOST_PASSKEY_RECOVERY_REQUEST_TABLE + '?select=' +
-    encodeURIComponent('id,request_id,customer_id,auth_user_id,email_hash,customer_binding_hash,auth_user_binding_hash,device_binding_hash,recovery_code_hash,status,attempt_count,expires_at,used_at,revoked_at,locked_at,old_passkey_ids') +
-    '&request_id=eq.' + encodeURIComponent(requestId) +
-    '&limit=1';
-
-  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
-  if (!result.ok) {
-    return res.status(500).json({
-      ok: false,
-      message: 'Gagal membaca recovery request.'
-    });
-  }
-
-  const row = Array.isArray(result.data) ? result.data[0] : null;
-  if (!row || !row.id) {
-    await customerSecurityRegisterFailedVerification(req, action, 'recovery_request_not_found', access.customerId);
-    return res.status(404).json({ ok: false, message: 'Recovery request tidak ditemukan.' });
-  }
-
-  const nowMs = Date.now();
-  if (row.status !== 'pending' || row.used_at || row.revoked_at || row.locked_at || new Date(row.expires_at).getTime() <= nowMs) {
-    return customerSecuritySendRecoveryError(res, 403, row.status === 'used' || row.used_at ? 'used' : 'expired');
-  }
-
-  const expectedHash = customerSecurityLostPasskeyRecoveryCodeHash(requestId, row.customer_id, code);
-  if (!safeEqual(String(row.recovery_code_hash || ''), expectedHash)) {
-    const nextAttempts = Number(row.attempt_count || 0) + 1;
-    const lock = nextAttempts >= LOST_PASSKEY_RECOVERY_ATTEMPT_LIMIT;
-    await supabaseFetch('/rest/v1/' + LOST_PASSKEY_RECOVERY_REQUEST_TABLE + '?request_id=eq.' + encodeURIComponent(requestId), {
-      method: 'PATCH',
-      auth: 'service',
-      body: {
-        attempt_count: nextAttempts,
-        status: lock ? 'locked' : row.status,
-        locked_at: lock ? diracNowIso() : row.locked_at || null,
-        metadata: { last_failed_verify_at: diracNowIso(), failed_verify_source: action }
-      }
-    }).catch(() => null);
-    await customerSecurityRegisterFailedVerification(req, action, lock ? 'recovery_code_locked' : 'recovery_code_not_matched', access.customerId);
-    return res.status(lock ? 423 : 403).json({ ok: false, message: lock ? 'Recovery request dikunci karena terlalu banyak percobaan.' : 'Recovery code salah, sudah dipakai, atau sudah expired.' });
-  }
-
   const owner = await customerSecurityResolveLostPasskeyOwner(access);
-  if (!owner.ok || String(owner.customerId) !== String(row.customer_id) || String(owner.authUserId) !== String(row.auth_user_id)) {
-    await customerSecurityRegisterFailedVerification(req, action, 'recovery_owner_mismatch', access.customerId);
-    return res.status(403).json({ ok: false, message: 'Recovery request tidak cocok dengan sesi login ini.' });
-  }
+  if (!owner.ok) return res.status(owner.status || 403).json({ ok: false, message: owner.message || 'Recovery request tidak cocok dengan sesi login ini.' });
   const bindings = customerSecurityLostPasskeyBindings(req, owner);
-  if (!safeEqual(String(row.email_hash || ''), bindings.emailBindingHash)
-    || !safeEqual(String(row.customer_binding_hash || ''), bindings.customerBindingHash)
-    || !safeEqual(String(row.auth_user_binding_hash || ''), bindings.authUserBindingHash)) {
-    await customerSecurityRegisterFailedVerification(req, action, 'recovery_binding_mismatch', access.customerId);
-    return res.status(403).json({ ok: false, message: 'Recovery binding tidak cocok dengan akun login.' });
-  }
 
-  const activePasskeys = await customerSecurityLostPasskeyActivePasskeys(owner);
-  if (!activePasskeys.length) {
-    return res.status(409).json({ ok: false, message: 'Passkey lama tidak ditemukan untuk akun ini.' });
-  }
-
-  const now = diracNowIso();
-  const recoverySessionToken = crypto.randomBytes(32).toString('base64url');
-  const recoverySessionHash = customerSecurityLostPasskeyRecoverySessionHash(recoverySessionToken);
-  const sessionExpiresAt = new Date(Date.now() + Math.max(5, Math.min(30, Number(process.env.DIRAC_LOST_PASSKEY_SESSION_MINUTES || 10))) * 60 * 1000).toISOString();
-  const sessionCreated = await supabaseFetch('/rest/v1/' + LOST_PASSKEY_RECOVERY_SESSION_TABLE, {
-    method: 'POST',
-    auth: 'service',
-    prefer: 'return=representation',
-    body: [{
-      request_id: requestId,
-      customer_id: owner.customerId,
-      auth_user_id: owner.authUserId,
-      recovery_session_hash: recoverySessionHash,
-      purpose: LOST_PASSKEY_RECOVERY_PURPOSE,
-      status: 'verified',
-      created_at: now,
-      expires_at: sessionExpiresAt,
-      metadata: { source: action, old_passkey_count: activePasskeys.length }
-    }]
-  });
-  if (!sessionCreated.ok) {
-    return res.status(sessionCreated.status || 500).json({ ok: false, message: 'Gagal membuat recovery session.' });
-  }
-
-  const patched = await supabaseFetch('/rest/v1/' + LOST_PASSKEY_RECOVERY_REQUEST_TABLE + '?request_id=eq.' + encodeURIComponent(requestId), {
-    method: 'PATCH',
-    auth: 'service',
-    prefer: 'return=representation',
-    body: {
-      status: 'verified',
-      metadata: {
-        source: 'lost_passkey_recovery_code_verify',
-        verified_by_endpoint: action,
-        verified_at: now
-      }
-    }
-  });
-
-  if (!patched.ok) {
-    return res.status(500).json({
-      ok: false,
-      message: 'Gagal menandai recovery request sebagai verified.'
-    });
-  }
-
-  await customerSecurityWriteGuardEvent(access.customerId, {
-    event_type: 'lost_passkey_recovery_verified',
-    status: 'success',
-    risk_level: 'high',
-    description: 'Customer memverifikasi recovery code terenkripsi untuk pemulihan Passkey.',
-    req,
-    metadata: { action, request_id: requestId }
-  });
-
-  return res.status(200).json({
-    ok: true,
-    active: true,
-    method: 'recovery_code',
-    purpose: LOST_PASSKEY_RECOVERY_PURPOSE,
-    message: 'Recovery code valid. Recovery session terbatas untuk daftar Passkey baru sudah dibuat.',
-    recovery_session_token: recoverySessionToken,
-    recovery_session_expires_at: sessionExpiresAt,
-    dashboard_access: false,
-    recovery_code_verified: true,
-    time: now
-  });
+  // Server 1 tidak melakukan verify/hash recovery sendiri.
+  // Semua verifikasi recovery passkey wajib diteruskan ke Server 2 melalui signed worker call
+  // agar generate dan verify memakai otak recovery yang sama dan tetap lewat Central Guard.
+  return customerSecurityVerifyRecoveryCodeViaWorker(req, res, action, access, owner, bindings, requestId, code);
 }
 
 
