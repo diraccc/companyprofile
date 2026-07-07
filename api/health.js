@@ -25176,6 +25176,7 @@ function diracCentralIsRequestCacheableSupabaseReadV151(path) {
   const value = String(path || '');
   return /^\/auth\/v1\/user(?:$|[?#])/.test(value)
     || /^\/rest\/v1\/security_customer_auth_links(?:$|[?#])/.test(value)
+    || /^\/rest\/v1\/security_customer_sessions(?:$|[?#])/.test(value)
     || /^\/rest\/v1\/products(?:$|[?#])/.test(value)
     || /^\/rest\/v1\/domain_tld_prices(?:$|[?#])/.test(value);
 }
@@ -26739,6 +26740,9 @@ function diracCentralIsCheckoutOrderCreateServiceRoleV146(ctx, table, path, opti
   if (cleanTable === 'orders') {
     return diracCentralCheckoutOrderRowsSafeV146(options.body);
   }
+  if (cleanTable === 'order_items') {
+    return diracCentralCheckoutOrderItemRowsSafeV152(options.body);
+  }
   return false;
 }
 
@@ -26773,6 +26777,34 @@ function diracCentralCheckoutOrderRowsSafeV146(body) {
     if (String(row.payment_status || '').toLowerCase() !== 'unpaid') return false;
     if (String(row.order_status || '').toLowerCase() !== 'pending') return false;
     return ['subtotal', 'shipping_cost', 'discount', 'total'].every((key) => diracCentralIsNonNegativeNumberV146(row[key]));
+  });
+}
+
+
+function diracCentralCheckoutOrderItemRowsSafeV152(body) {
+  const rows = Array.isArray(body) ? body : [body];
+  const allowed = new Set([
+    'order_id',
+    'product_doc_id',
+    'product_title',
+    'quantity',
+    'unit_price',
+    'cost_price'
+  ]);
+  if (!rows.length || rows.length > 50) return false;
+  return rows.every((row) => {
+    if (!row || typeof row !== 'object' || Array.isArray(row)) return false;
+    const keys = Object.keys(row);
+    if (!keys.length || keys.some((key) => !allowed.has(String(key || '').toLowerCase()))) return false;
+    if (!diracCentralLooksLikeUuidV146(row.order_id)) return false;
+    if (row.product_doc_id && !/^[A-Za-z0-9._:@-]{1,120}$/.test(String(row.product_doc_id || '').trim())) return false;
+    const title = String(row.product_title || '').trim();
+    if (!title || title.length > 180 || /[<>]/.test(title)) return false;
+    const quantity = Number(row.quantity);
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 999) return false;
+    if (!diracCentralIsNonNegativeNumberV146(row.unit_price)) return false;
+    if (!diracCentralIsNonNegativeNumberV146(row.cost_price)) return false;
+    return true;
   });
 }
 
