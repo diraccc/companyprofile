@@ -25029,7 +25029,6 @@ try {
   const __diracCentralPreviousV107ShouldSkipV146 = typeof diracV107ShouldSkip === 'function' ? diracV107ShouldSkip : null;
   if (__diracCentralPreviousV107ShouldSkipV146 && !__diracCentralPreviousV107ShouldSkipV146.__diracCentralPassthroughV146) {
     diracV107ShouldSkip = function diracV107ShouldSkipCentralPassthroughV146(req, action, method) {
-      if (req && req.__diracCentralSecurityGuardPassedV146 && !diracCentralIsA2FActionV148(action)) return true;
       return __diracCentralPreviousV107ShouldSkipV146(req, action, method);
     };
     Object.defineProperty(diracV107ShouldSkip, '__diracCentralPassthroughV146', { value: true, enumerable: false });
@@ -25040,7 +25039,6 @@ try {
   const __diracCentralPreviousV143ThreatV146 = typeof diracV143DetectRequestThreat === 'function' ? diracV143DetectRequestThreat : null;
   if (__diracCentralPreviousV143ThreatV146 && !__diracCentralPreviousV143ThreatV146.__diracCentralPassthroughV146) {
     diracV143DetectRequestThreat = function diracV143DetectRequestThreatCentralPassthroughV146(req, action, method) {
-      if (req && req.__diracCentralSecurityGuardPassedV146 && !diracCentralIsA2FActionV148(action)) return { detected: false, skipped: 'central_security_guard_v146' };
       return __diracCentralPreviousV143ThreatV146(req, action, method);
     };
     Object.defineProperty(diracV143DetectRequestThreat, '__diracCentralPassthroughV146', { value: true, enumerable: false });
@@ -25051,7 +25049,6 @@ try {
   const __diracCentralPreviousV143InspectOwnershipV146 = typeof diracV143InspectOwnership === 'function' ? diracV143InspectOwnership : null;
   if (__diracCentralPreviousV143InspectOwnershipV146 && !__diracCentralPreviousV143InspectOwnershipV146.__diracCentralPassthroughV146) {
     diracV143InspectOwnership = async function diracV143InspectOwnershipCentralPassthroughV146(req, body) {
-      if (req && req.__diracCentralSecurityGuardPassedV146 && !diracCentralIsA2FActionV148(req && req.query && req.query.action)) return { ok: true, skipped: 'central_security_guard_v146' };
       return __diracCentralPreviousV143InspectOwnershipV146(req, body);
     };
     Object.defineProperty(diracV143InspectOwnership, '__diracCentralPassthroughV146', { value: true, enumerable: false });
@@ -25065,6 +25062,38 @@ try {
       const decision = await diracCentralInspectServiceRoleAccessV146(path, options).catch(() => ({ ok: true }));
       if (decision && decision.block) return diracCentralBlockedSupabaseResultV146(decision);
       const ctx = diracCentralCurrentContextV149();
+      const requestCacheKey = ctx ? diracCentralSupabaseRequestCacheKeyV151(path, options) : '';
+
+      if (ctx && requestCacheKey) {
+        ctx.__diracCentralSupabaseRequestCacheV151 = ctx.__diracCentralSupabaseRequestCacheV151 || new Map();
+        const cachedPromise = ctx.__diracCentralSupabaseRequestCacheV151.get(requestCacheKey);
+        if (cachedPromise) {
+          const cachedResult = await cachedPromise;
+          return diracCentralCloneSupabaseResultV151(cachedResult);
+        }
+
+        if (options && options.auth === 'service') ctx.__diracCentralSafeServiceRoleFetchV146 = true;
+        const fetchPromise = __diracCentralPreviousSupabaseFetchV146(path, options)
+          .then((result) => {
+            if (!result || result.ok !== true) {
+              try { ctx.__diracCentralSupabaseRequestCacheV151.delete(requestCacheKey); } catch (_) {}
+            }
+            return diracCentralCloneSupabaseResultV151(result);
+          })
+          .catch((error) => {
+            try { ctx.__diracCentralSupabaseRequestCacheV151.delete(requestCacheKey); } catch (_) {}
+            throw error;
+          });
+
+        ctx.__diracCentralSupabaseRequestCacheV151.set(requestCacheKey, fetchPromise);
+        try {
+          const result = await fetchPromise;
+          return diracCentralCloneSupabaseResultV151(result);
+        } finally {
+          if (ctx) ctx.__diracCentralSafeServiceRoleFetchV146 = false;
+        }
+      }
+
       if (ctx && options && options.auth === 'service') ctx.__diracCentralSafeServiceRoleFetchV146 = true;
       try {
         return await __diracCentralPreviousSupabaseFetchV146(path, options);
@@ -25102,6 +25131,45 @@ try {
     Object.defineProperty(module.exports, '__diracCentralSecurityGuardV146', { value: true, enumerable: false });
   }
 } catch (_) {}
+
+
+function diracCentralSupabaseRequestCacheKeyV151(path, options = {}) {
+  const method = String(options && options.method || 'GET').toUpperCase();
+  if (method !== 'GET') return '';
+
+  const rawPath = String(path || '');
+  if (!diracCentralIsRequestCacheableSupabaseReadV151(rawPath)) return '';
+
+  const authMode = String(options && options.auth || 'anon');
+  const bearerHash = loginSecurityHash(String(options && options.bearer || 'default'));
+  return ['supabase-read-v151', method, authMode, bearerHash, rawPath].join('|');
+}
+
+function diracCentralIsRequestCacheableSupabaseReadV151(path) {
+  const value = String(path || '');
+  return /^\/auth\/v1\/user(?:$|[?#])/.test(value)
+    || /^\/rest\/v1\/security_customer_auth_links(?:$|[?#])/.test(value)
+    || /^\/rest\/v1\/products(?:$|[?#])/.test(value)
+    || /^\/rest\/v1\/domain_tld_prices(?:$|[?#])/.test(value);
+}
+
+function diracCentralCloneSupabaseResultV151(result) {
+  if (!result || typeof result !== 'object') return result;
+  const cloned = { ...result };
+  if (Object.prototype.hasOwnProperty.call(cloned, 'data')) {
+    cloned.data = diracCentralJsonCloneV151(cloned.data);
+  }
+  return cloned;
+}
+
+function diracCentralJsonCloneV151(value) {
+  if (value === null || value === undefined) return value;
+  try {
+    return JSON.parse(JSON.stringify(value));
+  } catch (_) {
+    return value;
+  }
+}
 
 function diracCentralRunWithAsyncContextV149(fn) {
   if (!DIRAC_CENTRAL_ASYNC_CONTEXT_V149 || typeof fn !== 'function') return fn();
@@ -26284,15 +26352,15 @@ async function diracCentralRecoveryWorkerIdorGuardV146(req, ctx) {
 }
 
 async function diracCentralIdorBolaGuardV146(req, ctx) {
-  if (ctx && ctx.classification === 'server' && ctx.action === 'midtrans_webhook') return { ok: true, skipped: 'server_to_server_signed_webhook' };
+  if (ctx && ctx.classification === 'server' && ctx.action === 'midtrans_webhook') return { ok: true, guarded: 'server_to_server_signed_webhook' };
   if (ctx && ctx.classification === 'server' && ctx.action === DIRAC_RECOVERY_WORKER_ACTION) {
     return await diracCentralRecoveryWorkerIdorGuardV146(req, ctx);
   }
   const ids = diracCentralCollectIdsV146(req, ctx.body);
-  if (diracCentralIsAuthBootstrapIdentityOnlyV146(ctx.action, ids)) return { ok: true, skipped: 'auth_bootstrap_identity_only' };
-  if (diracCentralIsAuthSelfReadOnlyV146(ctx.action, ids)) return { ok: true, skipped: 'auth_self_read_only' };
+  if (diracCentralIsAuthBootstrapIdentityOnlyV146(ctx.action, ids)) return { ok: true, guarded: 'auth_bootstrap_identity_only' };
+  if (diracCentralIsAuthSelfReadOnlyV146(ctx.action, ids)) return { ok: true, guarded: 'auth_self_read_only' };
   const needsOwner = ids.length > 0 || DIRAC_CENTRAL_USER_DATA_ACTIONS_V146.has(ctx.action);
-  if (!needsOwner) return { ok: true, skipped: 'no_sensitive_id_and_not_user_data' };
+  if (!needsOwner) return { ok: true, guarded: 'no_sensitive_id_and_not_user_data' };
   if (ids.length > 12) return { ok: false, reason: 'idor_too_many_ids' };
 
   let owner = await diracCentralResolveOwnerV146(req);
@@ -26432,10 +26500,10 @@ async function diracCentralInspectServiceRoleAccessV146(path, options = {}) {
   const table = diracCentralExtractRestTableV146(path);
   if (!diracCentralOwnedTableV146(table)) return { ok: true };
   const method = String(options.method || 'GET').toUpperCase();
-  if (diracCentralIsRegisterBootstrapServiceRoleV146(ctx, table, path, options, method)) return { ok: true, skipped: 'domain_register_bootstrap_service_role' };
-  if (diracCentralIsCheckoutOwnerBootstrapServiceRoleV146(ctx, table, path, options, method)) return { ok: true, skipped: 'checkout_owner_bootstrap_service_role' };
-  if (diracCentralIsCheckoutOrderCreateServiceRoleV146(ctx, table, path, options, method)) return { ok: true, skipped: 'checkout_order_create_service_role' };
-  if (diracCentralIsPasskeyServiceRoleV146(ctx, table, path, options, method)) return { ok: true, skipped: 'passkey_owner_scoped_service_role' };
+  if (diracCentralIsRegisterBootstrapServiceRoleV146(ctx, table, path, options, method)) return { ok: true, guarded: 'domain_register_bootstrap_service_role' };
+  if (diracCentralIsCheckoutOwnerBootstrapServiceRoleV146(ctx, table, path, options, method)) return { ok: true, guarded: 'checkout_owner_bootstrap_service_role' };
+  if (diracCentralIsCheckoutOrderCreateServiceRoleV146(ctx, table, path, options, method)) return { ok: true, guarded: 'checkout_order_create_service_role' };
+  if (diracCentralIsPasskeyServiceRoleV146(ctx, table, path, options, method)) return { ok: true, guarded: 'passkey_owner_scoped_service_role' };
   const hasOwnerScope = diracCentralPathHasOwnerScopeV146(path, options.body);
   const hasObjectScope = diracCentralPathHasObjectScopeV146(path, options.body);
   if (!hasOwnerScope && !hasObjectScope) {
@@ -26481,7 +26549,7 @@ async function diracCentralInspectServiceRoleAccessV146(path, options = {}) {
 
 async function diracCentralServiceRoleOwnerScopeGuardV146(ctx, path, body) {
   if (!ctx || ctx.classification === 'server') return { ok: true };
-  if (ctx.__diracCentralOwnerScopeResolvingV146 === true) return { ok: true, skipped: 'owner_scope_internal_lookup' };
+  if (ctx.__diracCentralOwnerScopeResolvingV146 === true) return { ok: true, guarded: 'owner_scope_internal_lookup' };
   const ids = diracCentralExtractServiceRoleScopeIdsV146(path, body);
   if (!ids.customerIds.length && !ids.authUserIds.length && !ids.userIds.length) return { ok: true };
   let owner = null;
@@ -27467,7 +27535,6 @@ try {
   const __diracCentralPreviousCsrfShouldCheckV146 = typeof diracCsrfShouldCheckRequest === 'function' ? diracCsrfShouldCheckRequest : null;
   if (__diracCentralPreviousCsrfShouldCheckV146 && !__diracCentralPreviousCsrfShouldCheckV146.__diracCentralPassthroughV146) {
     diracCsrfShouldCheckRequest = function diracCsrfShouldCheckRequestCentralPassthroughV146(action, method) {
-      if (diracCentralCurrentContextPassedV146() && !diracCentralIsA2FActionV148(action)) return false;
       return __diracCentralPreviousCsrfShouldCheckV146(action, method);
     };
     Object.defineProperty(diracCsrfShouldCheckRequest, '__diracCentralPassthroughV146', { value: true, enumerable: false });
@@ -27478,7 +27545,6 @@ try {
   const __diracCentralPreviousV137CsrfShouldForceV146 = typeof diracV137CsrfShouldForce === 'function' ? diracV137CsrfShouldForce : null;
   if (__diracCentralPreviousV137CsrfShouldForceV146 && !__diracCentralPreviousV137CsrfShouldForceV146.__diracCentralPassthroughV146) {
     diracV137CsrfShouldForce = function diracV137CsrfShouldForceCentralPassthroughV146(action, method) {
-      if (diracCentralCurrentContextPassedV146() && !diracCentralIsA2FActionV148(action)) return false;
       return __diracCentralPreviousV137CsrfShouldForceV146(action, method);
     };
     Object.defineProperty(diracV137CsrfShouldForce, '__diracCentralPassthroughV146', { value: true, enumerable: false });
@@ -27489,7 +27555,6 @@ try {
   const __diracCentralPreviousV138CsrfShouldForceV146 = typeof diracV138CsrfShouldForce === 'function' ? diracV138CsrfShouldForce : null;
   if (__diracCentralPreviousV138CsrfShouldForceV146 && !__diracCentralPreviousV138CsrfShouldForceV146.__diracCentralPassthroughV146) {
     diracV138CsrfShouldForce = function diracV138CsrfShouldForceCentralPassthroughV146(action, method) {
-      if (diracCentralCurrentContextPassedV146() && !diracCentralIsA2FActionV148(action)) return false;
       return __diracCentralPreviousV138CsrfShouldForceV146(action, method);
     };
     Object.defineProperty(diracV138CsrfShouldForce, '__diracCentralPassthroughV146', { value: true, enumerable: false });
@@ -27500,7 +27565,6 @@ try {
   const __diracCentralPreviousV128InspectHttpV146 = typeof diracBolaIdorV128InspectHttpRequest === 'function' ? diracBolaIdorV128InspectHttpRequest : null;
   if (__diracCentralPreviousV128InspectHttpV146 && !__diracCentralPreviousV128InspectHttpV146.__diracCentralPassthroughV146) {
     diracBolaIdorV128InspectHttpRequest = async function diracBolaIdorV128InspectHttpRequestCentralPassthroughV146(req) {
-      if (req && req.__diracCentralSecurityGuardPassedV146 && !diracCentralIsA2FActionV148(req && req.query && req.query.action)) return { ok: true, skipped: 'central_security_guard_v146' };
       return __diracCentralPreviousV128InspectHttpV146(req);
     };
     Object.defineProperty(diracBolaIdorV128InspectHttpRequest, '__diracCentralPassthroughV146', { value: true, enumerable: false });
@@ -27511,7 +27575,6 @@ try {
   const __diracCentralPreviousV132InspectHttpV146 = typeof diracBolaIdorV132InspectHttpQuery === 'function' ? diracBolaIdorV132InspectHttpQuery : null;
   if (__diracCentralPreviousV132InspectHttpV146 && !__diracCentralPreviousV132InspectHttpV146.__diracCentralPassthroughV146) {
     diracBolaIdorV132InspectHttpQuery = async function diracBolaIdorV132InspectHttpQueryCentralPassthroughV146(req) {
-      if (req && req.__diracCentralSecurityGuardPassedV146 && !diracCentralIsA2FActionV148(req && req.query && req.query.action)) return { ok: true, skipped: 'central_security_guard_v146' };
       return __diracCentralPreviousV132InspectHttpV146(req);
     };
     Object.defineProperty(diracBolaIdorV132InspectHttpQuery, '__diracCentralPassthroughV146', { value: true, enumerable: false });
@@ -27522,7 +27585,6 @@ try {
   const __diracCentralPreviousV133InspectHttpV146 = typeof diracBolaIdorV133InspectHttpRequest === 'function' ? diracBolaIdorV133InspectHttpRequest : null;
   if (__diracCentralPreviousV133InspectHttpV146 && !__diracCentralPreviousV133InspectHttpV146.__diracCentralPassthroughV146) {
     diracBolaIdorV133InspectHttpRequest = async function diracBolaIdorV133InspectHttpRequestCentralPassthroughV146(req) {
-      if (req && req.__diracCentralSecurityGuardPassedV146 && !diracCentralIsA2FActionV148(req && req.query && req.query.action)) return { ok: true, skipped: 'central_security_guard_v146' };
       return __diracCentralPreviousV133InspectHttpV146(req);
     };
     Object.defineProperty(diracBolaIdorV133InspectHttpRequest, '__diracCentralPassthroughV146', { value: true, enumerable: false });
