@@ -3512,6 +3512,19 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox h3{color:#111827!impor
 html[data-effective-theme="dark"] #diracRecoveryVerifyBox p{color:#64748b!important}
 html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify-input{background:#ffffff!important;color:#111827!important;border-color:#bfdbfe!important}
 html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-request-id-input{background:#ffffff!important;color:#111827!important;border-color:#bfdbfe!important}
+#diracRecoveryVerifyBox .dirac-recovery-account-password-input{
+  width:100%!important;min-height:48px!important;margin:10px 0!important;border-radius:18px!important;border:1px solid #bfdbfe!important;
+  background:#ffffff!important;color:#111827!important;padding:11px 12px!important;font-size:.86rem!important;line-height:1.35!important;
+  box-shadow:0 0 0 0 rgba(37,99,235,0)!important;outline:none!important;
+}
+#diracRecoveryVerifyBox .dirac-recovery-account-password-input:focus{border-color:#2563eb!important;box-shadow:0 0 0 4px rgba(37,99,235,.12)!important}
+#diracRecoveryVerifyBox .dirac-recovery-website-code-box{
+  display:none;margin:10px 0 0!important;padding:10px 12px!important;border-radius:16px!important;
+  background:#ecfdf5!important;border:1px solid #bbf7d0!important;color:#14532d!important;font-size:.8rem!important;line-height:1.45!important;font-weight:850!important;
+}
+#diracRecoveryVerifyBox .dirac-recovery-website-code-box.is-shown{display:block!important}
+#diracRecoveryVerifyBox .dirac-recovery-website-code-text{font-family:ui-monospace,SFMono-Regular,Menlo,monospace!important;font-weight:950!important;color:#166534!important}
+html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-account-password-input{background:#ffffff!important;color:#111827!important;border-color:#bfdbfe!important}
 @keyframes diracRecoverySlideIn{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
 </style>
 
@@ -5297,8 +5310,8 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
               <div class="a2f-mail-visual" aria-hidden="true">ENC</div>
               <div class="a2f-panel-copy">
                 <h3 data-i18n="a2fRecoveryPanelTitle">Recovery Passkey hilang</h3>
-                <p data-i18n="a2fRecoveryPanelText">Tekan opsi recovery untuk meminta file .enc. Kolom Request ID dan recovery code baru muncul setelah backend menyetujui request dan email berhasil dikirim.</p>
-                <div class="a2f-code-row" aria-hidden="true"><span>.enc</span><span>500</span><span>1x</span></div>
+                <p data-i18n="a2fRecoveryPanelText">Tekan opsi recovery untuk meminta PDF recovery terenkripsi. Satu kolom Request ID + recovery code bisa dipakai setelah PDF diterima.</p>
+                <div class="a2f-code-row" aria-hidden="true"><span>PDF</span><span>REQ+CODE</span><span>1x</span></div>
               </div>
             </div>
           </section>
@@ -6530,7 +6543,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       emailPanel:'Backend mengirim file recovery terenkripsi ke email resmi akun.',
       recoveryPanel:'Backend mengirim file recovery terenkripsi ke email resmi akun. Recovery code diverifikasi server-side.',
       selectedPass:'Passkey siap digunakan', selectedAuth:'Authenticator siap diverifikasi', selectedRecovery:'Recovery terenkripsi siap',
-      livePass:'Metode utama', liveAuth:'Kode 6 digit', liveRecovery:'File .enc',
+      livePass:'Metode utama', liveAuth:'Kode 6 digit', liveRecovery:'PDF recovery',
       start:'Lanjutkan', done:'Selesai',
       trust1k:'Privasi', trust1:'Email ditampilkan tersamarkan', trust2k:'Kode', trust2:'Input OTP nyaman di mobile', trust3k:'Cadangan', trust3:'Recovery code tersedia',
       tryText:'Bukan metode yang Anda mau?', tryBtn:'Coba cara lain', otpLabel:'Kode verifikasi', otpPlaceholder:'000000', resend:'Kirim ulang kode', timer:'Bisa kirim ulang dalam 60 detik',
@@ -8107,57 +8120,104 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     if(/load failed|failed to fetch|network/i.test(msg)) return 'Gagal menghubungi server recovery. Coba lagi sebentar.';
     return msg || 'Recovery request belum dapat diverifikasi.';
   }
-  function rememberRequestId(box, requestId){
-    var input = $('.dirac-recovery-request-id-input', box);
-    if(input && requestId) input.value = requestId;
-  }
   function setVerifyStage(box, open){
     var stage = $('.dirac-recovery-verify-stage', box);
     if(stage) stage.hidden = !open;
-    [$('.dirac-recovery-request-id-input', box), $('.dirac-recovery-verify-input', box), $('.dirac-recovery-verify-submit', box)].forEach(function(el){
-      if(el) el.disabled = !open;
+    [$('.dirac-recovery-combined-input', box), $('.dirac-recovery-verify-submit', box)].forEach(function(el){
+      if(el) el.disabled = false;
     });
   }
+  function setWebsiteCode(box, value){
+    var wrap = $('.dirac-recovery-website-code-box', box);
+    var text = $('.dirac-recovery-website-code-text', box);
+    value = String(value || '').trim();
+    if(text) text.textContent = value || '-';
+    if(wrap) wrap.classList.toggle('is-shown', !!value);
+  }
+  function pickWebsiteCode(data){
+    if(!data || typeof data !== 'object') return '';
+    return String(data.website_recovery_code || data.websiteRecoveryCode || data.recovery_website_code || data.pdf_website_code || data.pdf_code || '').trim();
+  }
+  function pickRequestId(data){
+    if(!data || typeof data !== 'object') return '';
+    return normalizeRequestId(data.request_id || data.requestId || data.recovery_request_id || data.recoveryRequestId || '');
+  }
+  function prefillCombinedInput(box, requestId){
+    var input = $('.dirac-recovery-combined-input', box);
+    if(!input || !requestId) return;
+    if(String(input.value || '').trim()) return;
+    input.value = 'Request ID: ' + requestId + '\nRecovery code/token dari PDF: ';
+  }
+  function parseCombinedRecoveryInput(value){
+    var raw = String(value || '').trim();
+    var requestId = '';
+    var code = '';
+    var reqLabel = raw.match(/(?:request[_\s-]*id|req(?:uest)?\s*id)\s*[:=\-]\s*([A-Za-z0-9_-]{16,120})/i);
+    if(reqLabel) requestId = normalizeRequestId(reqLabel[1]);
+    if(!requestId){
+      var reqAny = raw.match(/\b[A-Za-z0-9_-]{16,120}\b/);
+      if(reqAny) requestId = normalizeRequestId(reqAny[0]);
+    }
+    var codeLabel = raw.match(/(?:recovery[_\s-]*(?:code|token)|kode[_\s-]*recovery|reco(?:very)?\s*code|token)\s*[:=\-]\s*([A-Za-z0-9._~+\/=\-\s]{20,4000})/i);
+    if(codeLabel) code = normalizeRecoveryCodeInput(codeLabel[1]);
+    if(!code){
+      var cleaned = raw;
+      if(requestId) cleaned = cleaned.replace(requestId, ' ');
+      var tokens = cleaned.match(/[A-Za-z0-9._~+\/=\-]{20,4000}/g) || [];
+      tokens = tokens.filter(function(item){ return normalizeRequestId(item) !== requestId; });
+      tokens.sort(function(a,b){ return String(b).length - String(a).length; });
+      if(tokens.length) code = normalizeRecoveryCodeInput(tokens[0]);
+    }
+    return {requestId:requestId, code:code};
+  }
   async function requestRecoveryFile(box){
+    var passwordInput = $('.dirac-recovery-account-password-input', box);
+    var accountPassword = passwordInput ? String(passwordInput.value || '') : '';
+    if(!accountPassword){ showStatus(box, 'Masukkan password akun sekarang untuk membuat password PDF gabungan.', false); if(passwordInput) passwordInput.focus(); return; }
     var btn = $('.dirac-recovery-request-submit', box);
     var old = btn && btn.textContent;
-    if(btn){ btn.disabled = true; btn.textContent = 'Mengirim file...'; }
-    setVerifyStage(box, false);
+    if(btn){ btn.disabled = true; btn.textContent = 'Mengirim PDF...'; }
+    setVerifyStage(box, true);
+    setWebsiteCode(box, '');
     showStatus(box, 'Mengirim request ke backend. Email tujuan selalu diambil dari database.', true);
     try{
       await refreshCsrfToken('customer_security_recovery_codes_generate');
+      var body = {
+        action:'customer_security_recovery_codes_generate',
+        account_password:accountPassword,
+        current_password:accountPassword
+      };
       var res = await fetch(API_ENDPOINT + '?action=customer_security_recovery_codes_generate', {
         method:'POST',
         mode:'same-origin',
         credentials:'include',
         cache:'no-store',
         headers:authHeaders(),
-        body:JSON.stringify({action:'customer_security_recovery_codes_generate'})
+        body:JSON.stringify(body)
       });
       captureCsrfFromResponse(res);
       var data = await res.clone().json().catch(function(){ return null; });
       if(!res.ok || !(data && data.ok === true)) throw new Error((data && (data.message || data.error || data.code)) || 'Request recovery ditolak.');
-      rememberRequestId(box, data.request_id || '');
+      var requestId = pickRequestId(data);
+      var websiteCode = pickWebsiteCode(data);
+      setWebsiteCode(box, websiteCode);
+      prefillCombinedInput(box, requestId);
       setVerifyStage(box, true);
-      showStatus(box, 'Request disetujui. File .enc sudah dikirim ke email resmi akun. Kolom verifikasi sekarang dibuka.', true);
+      showStatus(box, 'Request disetujui. PDF terenkripsi sudah dikirim ke email resmi akun. Tempel Request ID + recovery code/token dari PDF pada satu kolom di bawah.', true);
     }catch(e){
-      setVerifyStage(box, false);
+      setVerifyStage(box, true);
       showStatus(box, recoveryFriendlyMessage(e && e.message, null, 0), false);
     }finally{
-      if(btn){ btn.disabled = false; btn.textContent = old || 'Kirim file recovery'; }
+      if(btn){ btn.disabled = false; btn.textContent = old || 'Kirim PDF recovery'; }
     }
   }
   async function verifyRecoveryCode(box){
-    var requestInput = $('.dirac-recovery-request-id-input', box);
-    var codeInput = $('.dirac-recovery-verify-input', box);
-    var stage = $('.dirac-recovery-verify-stage', box);
-    if(stage && stage.hidden){ showStatus(box, 'Minta file recovery dulu. Kolom verifikasi baru dibuka setelah backend menyetujui request dan email berhasil dikirim.', false); return; }
-    var requestId = normalizeRequestId(requestInput ? requestInput.value : '');
-    var code = normalizeRecoveryCodeInput(codeInput ? codeInput.value : '');
-    if(requestInput && requestInput.value !== requestId) requestInput.value = requestId;
-    if(codeInput && codeInput.value !== code) codeInput.value = code;
-    if(!requestId){ showStatus(box, 'Request ID wajib diisi dari response email/file recovery.', false); return; }
-    if(Array.from(code).length !== 500){ showStatus(box, 'Recovery code harus tepat 500 karakter. Spasi/baris baru akan dibersihkan otomatis.', false); return; }
+    var combinedInput = $('.dirac-recovery-combined-input', box);
+    var parsed = parseCombinedRecoveryInput(combinedInput ? combinedInput.value : '');
+    var requestId = parsed.requestId;
+    var code = parsed.code;
+    if(!requestId){ showStatus(box, 'Request ID wajib ada di kolom yang sama dengan recovery code/token.', false); if(combinedInput) combinedInput.focus(); return; }
+    if(!code || code.length < 32){ showStatus(box, 'Recovery code/token belum valid. Tempel isi dari PDF bersama Request ID pada satu kolom.', false); if(combinedInput) combinedInput.focus(); return; }
     var btn = $('.dirac-recovery-verify-submit', box);
     var old = btn && btn.textContent;
     if(btn){ btn.disabled = true; btn.textContent = 'Memverifikasi...'; }
@@ -8170,7 +8230,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
         credentials:'include',
         cache:'no-store',
         headers:authHeaders(),
-        body:JSON.stringify({action:'customer_security_recovery_code_verify',request_id:requestId,recovery_code:code,code:code})
+        body:JSON.stringify({action:'customer_security_recovery_code_verify',request_id:requestId,recovery_code:code,code:code,recovery_token:code})
       });
       captureCsrfFromResponse(res);
       var data = await res.clone().json().catch(function(){ return null; });
@@ -8186,11 +8246,11 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
         purpose: data.purpose || 'register_new_passkey'
       };
       showStatus(box, 'Recovery valid. Session terbatas dibuat untuk daftar Passkey baru. Dashboard tidak dibuka dari recovery ini.', true);
-      if(codeInput) codeInput.value = '';
+      if(combinedInput) combinedInput.value = '';
     }catch(e){
       showStatus(box, recoveryFriendlyMessage(e && e.message, window.__diracLastRecoveryVerifyData || null, window.__diracLastRecoveryVerifyStatus || 0), false);
     }finally{
-      if(btn){ btn.disabled = false; btn.textContent = old || 'Verifikasi recovery code'; }
+      if(btn){ btn.disabled = false; btn.textContent = old || 'Verifikasi recovery'; }
     }
   }
   function reveal(reason){
@@ -8201,8 +8261,8 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     setRecoveryMode(true);
     box.classList.add('is-unlocked');
     box.setAttribute('aria-hidden','false');
-    setVerifyStage(box, false);
-    showStatus(box, reason === 'two_failed' ? 'Opsi recovery dibuka otomatis karena A2F gagal 2x. Minta file recovery dulu agar kolom verifikasi muncul.' : 'Minta file recovery dulu. Kolom verifikasi muncul setelah backend menyetujui request dan email berhasil dikirim.', true);
+    setVerifyStage(box, true);
+    showStatus(box, reason === 'two_failed' ? 'Opsi recovery dibuka otomatis karena A2F gagal 2x. Kolom Request ID + recovery code tidak dikunci.' : 'Kolom Request ID + recovery code tidak dikunci. Minta PDF recovery lalu tempel data dari PDF di satu kolom.', true);
     try { box.scrollIntoView({behavior:'smooth', block:'center'}); } catch (_) {}
   }
   function hide(){
@@ -8212,9 +8272,10 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     if(!box) return;
     box.classList.remove('is-unlocked');
     box.setAttribute('aria-hidden','true');
-    setVerifyStage(box, false);
-    var requestInput = $('.dirac-recovery-request-id-input', box); if(requestInput) requestInput.value = '';
-    var codeInput = $('.dirac-recovery-verify-input', box); if(codeInput) codeInput.value = '';
+    setVerifyStage(box, true);
+    var passwordInput = $('.dirac-recovery-account-password-input', box); if(passwordInput) passwordInput.value = '';
+    var combinedInput = $('.dirac-recovery-combined-input', box); if(combinedInput) combinedInput.value = '';
+    setWebsiteCode(box, '');
     showStatus(box, '', true);
   }
   function recordFailedA2FAttempt(count){
@@ -8233,16 +8294,17 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     box.className = 'dirac-recovery-verify-box';
     box.setAttribute('aria-hidden','true');
     box.innerHTML =
-      '<div class="dirac-recovery-head"><div class="dirac-recovery-icon">ENC</div><div><h3>Anda kehilangan Passkey?</h3><span class="dirac-recovery-kicker">File .enc dikirim ke email resmi akun</span></div></div>' +
-      '<p>Tekan tombol di bawah untuk meminta file recovery terenkripsi. Backend akan memeriksa sesi, kepemilikan akun, dan Passkey aktif sebelum mengirim email.</p>' +
-      '<div class="dirac-recovery-verify-actions"><button class="dirac-recovery-request-submit" type="button">Minta file recovery</button><button class="dirac-recovery-hide-btn" type="button">Tutup</button></div>' +
-      '<div class="dirac-recovery-next-info">Request ID dan kolom recovery code belum dibuka. Kolom ini baru muncul setelah backend menyetujui request dan file recovery berhasil dikirim ke email resmi akun.</div>' +
-      '<div class="dirac-recovery-verify-stage" hidden>' +
-      '<input class="dirac-recovery-request-id-input" autocomplete="off" spellcheck="false" maxlength="120" placeholder="Request ID dari backend/email recovery" disabled>' +
-      '<textarea class="dirac-recovery-verify-input" autocomplete="one-time-code" spellcheck="false" placeholder="Tempel recovery code 500 karakter di sini" disabled></textarea>' +
-      '<div class="dirac-recovery-verify-actions"><button class="dirac-recovery-verify-submit" type="button" disabled>Verifikasi recovery code</button></div>' +
+      '<div class="dirac-recovery-head"><div class="dirac-recovery-icon">PDF</div><div><h3>Anda kehilangan Passkey?</h3><span class="dirac-recovery-kicker">PDF recovery terenkripsi dikirim ke email resmi akun</span></div></div>' +
+      '<p>Masukkan password akun sekarang untuk membuat password PDF gabungan. Backend tetap memeriksa sesi, kepemilikan akun, dan Passkey aktif sebelum mengirim email.</p>' +
+      '<input class="dirac-recovery-account-password-input" type="password" autocomplete="current-password" placeholder="Password akun sekarang untuk password PDF gabungan">' +
+      '<div class="dirac-recovery-verify-actions"><button class="dirac-recovery-request-submit" type="button">Kirim PDF recovery</button><button class="dirac-recovery-hide-btn" type="button">Tutup</button></div>' +
+      '<div class="dirac-recovery-website-code-box">Kode website untuk password PDF: <span class="dirac-recovery-website-code-text">-</span>. Gabungkan: password akun + kode website + 2 digit kode email.</div>' +
+      '<div class="dirac-recovery-next-info">Satu kolom di bawah dipakai untuk Request ID dan recovery code/token dari PDF. Kolom tidak dikunci; backend tetap menjadi validasi final.</div>' +
+      '<div class="dirac-recovery-verify-stage">' +
+      '<textarea class="dirac-recovery-verify-input dirac-recovery-combined-input" autocomplete="one-time-code" spellcheck="false" placeholder="Tempel Request ID dan recovery code/token dari PDF di sini. Contoh:\nRequest ID: ...\nRecovery code: ..."></textarea>' +
+      '<div class="dirac-recovery-verify-actions"><button class="dirac-recovery-verify-submit" type="button">Verifikasi recovery</button></div>' +
       '</div>' +
-      '<div class="dirac-recovery-warning">Frontend tidak memilih email tujuan. Backend selalu memakai email resmi dari database dan tidak mengembalikan recovery code atau file key.</div>' +
+      '<div class="dirac-recovery-warning">Frontend tidak memilih email tujuan. Backend selalu memakai email resmi dari database. Password penuh PDF tidak ditampilkan di HTML.</div>' +
       '<div class="dirac-recovery-verify-status" aria-live="polite"></div>';
     if(result && result.parentNode) result.parentNode.insertBefore(box, result);
     else if(preview && preview.nextSibling) container.insertBefore(box, preview.nextSibling);
@@ -8250,7 +8312,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     $('.dirac-recovery-request-submit', box).addEventListener('click', function(){ requestRecoveryFile(box); });
     $('.dirac-recovery-verify-submit', box).addEventListener('click', function(){ verifyRecoveryCode(box); });
     $('.dirac-recovery-hide-btn', box).addEventListener('click', function(){ hide(); });
-    setVerifyStage(box, false);
+    setVerifyStage(box, true);
   }
 
   window.DiracRecoveryVerifyGate = { install: install, reveal: reveal, hide: hide, recordFailedA2FAttempt: recordFailedA2FAttempt };
