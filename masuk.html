@@ -8230,7 +8230,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
         credentials:'include',
         cache:'no-store',
         headers:authHeaders(),
-        body:JSON.stringify({action:'customer_security_recovery_code_verify',request_id:requestId,recovery_code:code,code:code,recovery_token:code})
+        body:JSON.stringify({action:'customer_security_recovery_code_verify',request_id:requestId,recovery_code:code,code:code})
       });
       captureCsrfFromResponse(res);
       var data = await res.clone().json().catch(function(){ return null; });
