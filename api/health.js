@@ -25615,8 +25615,9 @@ function diracCentralVercel2OnlyActionGuardV150(action) {
 
 function diracCentralVercel2OnlyActionsV150() {
   const actions = new Set([
-    'customer_security_recovery_codes_generate',
-    'customer_security_recovery_code_verify',
+    // Only internal/server-side worker action is hardcoded as Vercel 2 only.
+    // User-facing recovery actions must pass the full Server 1 central guard first;
+    // their handler then calls the signed recovery worker on Vercel 2.
     String(typeof DIRAC_RECOVERY_WORKER_ACTION !== 'undefined' ? DIRAC_RECOVERY_WORKER_ACTION : '').trim().toLowerCase()
   ].filter(Boolean));
 
