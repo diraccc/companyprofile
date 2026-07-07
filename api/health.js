@@ -7355,20 +7355,8 @@ async function customerSecurityVerifyRecoveryCode(req, res, action) {
   if (!access) return;
 
   const body = await readBody(req);
-  const requestId = customerSecurityNormalizeLostPasskeyRequestId(body.request_id || body.requestId || '');
-  const code = customerSecurityNormalizeRecoveryCodeInput(body.code || body.recovery_code || body.recoveryCode || '');
-
-  if (!requestId) {
-    await customerSecurityRegisterFailedVerification(req, action, 'invalid_recovery_request_id', access.customerId);
-    return res.status(400).json({ ok: false, message: 'Request recovery tidak valid.' });
-  }
-  if (Array.from(code).length !== CUSTOMER_SECURITY_RECOVERY_CODE_LENGTH) {
-    await customerSecurityRegisterFailedVerification(req, action, 'invalid_recovery_code_length', access.customerId);
-    return res.status(400).json({
-      ok: false,
-      message: 'Recovery code tidak valid. Masukkan tepat 500 karakter dari file recovery terenkripsi.'
-    });
-  }
+  const requestId = String(body.request_id || body.requestId || '');
+  const code = String(body.code || body.recovery_code || body.recoveryCode || '');
 
   const owner = await customerSecurityResolveLostPasskeyOwner(access);
   if (!owner.ok) {
