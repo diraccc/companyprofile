@@ -6047,7 +6047,10 @@ function customerSecurityRecoveryWorkerMainEnvDiagnostics() {
     'DIRAC_RECOVERY_WORKER_MAX_BODY_BYTES',
     'DIRAC_RECOVERY_WORKER_CLOCK_SKEW_SECONDS',
     'DIRAC_LOST_PASSKEY_ARGON2_MEMORY_KIB',
-    'DIRAC_LOST_PASSKEY_ARGON2_TIME_COST'
+    'DIRAC_LOST_PASSKEY_ARGON2_TIME_COST',
+    'DIRAC_LOST_PASSKEY_MAX_RUNNING',
+    'DIRAC_LOST_PASSKEY_QUEUE_MAX',
+    'DIRAC_LOST_PASSKEY_PROCESSING_LOCK_TTL_SECONDS'
   ];
   const diagnostics = {
     role: 'server1_main_recovery_caller',
@@ -6547,7 +6550,45 @@ async function customerSecurityRecoveryCodesStatus(req, res, action) {
   return res.status(200).json({ ok: true, ready: true, total: activeRows.length, pending, verified, used, locked, generated: activeRows.length > 0, message: activeRows.length ? 'Lost passkey recovery request tersedia.' : 'Lost passkey recovery belum dibuat.', direct_frontend_table_access: false, time: diracNowIso() });
 }
 
-async function customerSecurityGenerateRecoveryCodesViaWorker(req, res, action, access, owner, activePasskeys, bindings) {
+
+function customerSecurityGenerateWebsiteRecoveryCodeV156() {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const part = (n) => {
+    let out = '';
+    for (let i = 0; i < n; i += 1) out += alphabet[crypto.randomInt(0, alphabet.length)];
+    return out;
+  };
+  return 'DG-' + part(4) + '-' + part(4) + '-' + part(4);
+}
+
+function customerSecurityGenerateEmailPdfCodeV156() {
+  return String(crypto.randomInt(0, 100)).padStart(2, '0');
+}
+
+function customerSecurityExtractAccountPasswordForPdfV156(body) {
+  const value = String(body && (body.account_password || body.current_password || body.currentPassword || '') || '').normalize('NFC');
+  if (Buffer.byteLength(value, 'utf8') < 6) return '';
+  if (Buffer.byteLength(value, 'utf8') > 512) return '';
+  return value;
+}
+
+function customerSecurityBuildPdfPasswordV156(accountPassword, websiteRecoveryCode, emailPdfCode) {
+  return String(accountPassword || '').normalize('NFC') + String(websiteRecoveryCode || '').trim() + String(emailPdfCode || '').trim();
+}
+
+async function customerSecurityVerifyAccountPasswordForPdfV156(email, accountPassword) {
+  const normalizedEmail = normalizeAuthEmail(email);
+  const password = String(accountPassword || '');
+  if (!isValidAuthEmail(normalizedEmail) || !password) return { ok: false, status: 400 };
+  const result = await supabaseFetch('/auth/v1/token?grant_type=password', {
+    method: 'POST',
+    auth: 'anon',
+    body: { email: normalizedEmail, password }
+  });
+  return { ok: !!result.ok, status: result.status || (result.ok ? 200 : 403) };
+}
+
+async function customerSecurityGenerateRecoveryCodesViaWorker(req, res, action, access, owner, activePasskeys, bindings, pdfOptions = {}) {
   const workerEnvDiagnostics = customerSecurityRecoveryWorkerMainEnvDiagnostics();
   if (!workerEnvDiagnostics.ok) {
     try { console.error('[recovery-worker-main-env-invalid]', JSON.stringify(workerEnvDiagnostics)); } catch (_) {}
@@ -6583,7 +6624,10 @@ async function customerSecurityGenerateRecoveryCodesViaWorker(req, res, action, 
     ip_hash: bindings.ipHash,
     user_agent_hash: bindings.userAgentHash,
     active_passkey_count: Math.max(0, activePasskeys.length),
-    requested_at: diracNowIso()
+    requested_at: diracNowIso(),
+    pdf_password: String(pdfOptions.pdfPassword || ''),
+    website_recovery_code: String(pdfOptions.websiteRecoveryCode || ''),
+    email_pdf_code: String(pdfOptions.emailPdfCode || '')
   };
   const canonical = customerSecurityLostPasskeyCanonical(payload);
   const timestamp = String(Date.now());
@@ -6639,8 +6683,10 @@ async function customerSecurityGenerateRecoveryCodesViaWorker(req, res, action, 
       ok: true,
       request_id: String(data.request_id || ''),
       expires_at: String(data.expires_at || ''),
-      delivery: 'encrypted_email_attachment',
-      message: data.message || 'File recovery terenkripsi sudah dikirim ke email resmi akun.',
+      delivery: 'encrypted_pdf_email_attachment',
+      website_recovery_code: String(pdfOptions.websiteRecoveryCode || ''),
+      email_code_delivery: 'included_in_email',
+      message: data.message || 'PDF recovery terenkripsi sudah dikirim ke email resmi akun.',
       time: data.time || diracNowIso()
     });
   } catch (error) {
@@ -6680,7 +6726,7 @@ async function customerSecurityGenerateRecoveryCodes(req, res, action, override 
     : await customerSecurityRequireAccess(req, res, { action, requireMfa: false, rateLimit: { limit: 2, windowMs: 10 * 60_000 } });
   if (!access) return;
 
-  if (!localWorker) await readBody(req);
+  const requestBody = localWorker ? {} : await readBody(req);
   const owner = localWorker && override && override.owner
     ? override.owner
     : await customerSecurityResolveLostPasskeyOwner(access);
@@ -6697,8 +6743,29 @@ async function customerSecurityGenerateRecoveryCodes(req, res, action, override 
     ? override.bindings
     : customerSecurityLostPasskeyBindings(req, owner);
 
+  let recoveryPdfOptions = null;
   if (!localWorker) {
-    return customerSecurityGenerateRecoveryCodesViaWorker(req, res, action, access, owner, activePasskeys, bindings);
+    const accountPassword = customerSecurityExtractAccountPasswordForPdfV156(requestBody);
+    if (!accountPassword) {
+      return res.status(400).json({
+        ok: false,
+        code: 'ACCOUNT_PASSWORD_REQUIRED_FOR_RECOVERY_PDF',
+        message: 'Password akun wajib diisi untuk membuat password PDF recovery.'
+      });
+    }
+    const verifiedPassword = await customerSecurityVerifyAccountPasswordForPdfV156(owner.email, accountPassword);
+    if (!verifiedPassword.ok) {
+      await customerSecurityRegisterFailedVerification(req, action, 'recovery_pdf_account_password_invalid', access.customerId);
+      return res.status(403).json({ ok: false, code: 'ACCOUNT_PASSWORD_INVALID', message: 'Password akun tidak sesuai.' });
+    }
+    const websiteRecoveryCode = customerSecurityGenerateWebsiteRecoveryCodeV156();
+    const emailPdfCode = customerSecurityGenerateEmailPdfCodeV156();
+    recoveryPdfOptions = {
+      websiteRecoveryCode,
+      emailPdfCode,
+      pdfPassword: customerSecurityBuildPdfPasswordV156(accountPassword, websiteRecoveryCode, emailPdfCode)
+    };
+    return customerSecurityGenerateRecoveryCodesViaWorker(req, res, action, access, owner, activePasskeys, bindings, recoveryPdfOptions);
   }
 
   const nowMs = Date.now();
@@ -27225,14 +27292,14 @@ function diracCentralContractForActionV146(action) {
   const getOnly = { methods: ['GET', 'HEAD'], allowed: commonGet, required: [], maxBodyBytes: 1024, maxFieldBytes: 3000, mutation: false };
   const postOnly = { methods: ['POST'], allowed: commonPost, required: [], maxBodyBytes: 20 * 1024, maxFieldBytes: 3000, mutation: true };
   const passkeyPost = { methods: ['POST'], allowed: ['action', 'method', 'identifier', 'email', 'setupToken', 'mfaSetupToken', 'token', 'passkeyMode', 'credential', 'id', 'rawId', 'type', 'response', 'clientExtensionResults', 'credProps', 'rk', 'clientDataJSON', 'attestationObject', 'authenticatorData', 'signature', 'userHandle', 'transports', 'authenticatorAttachment', 'challenge', 'code', 'csrf', 'nonce', 'idempotency_key'], required: [], maxBodyBytes: 192 * 1024, maxFieldBytes: 80 * 1024, mutation: true, allowArrayItems: true };
-  const recoveryGeneratePost = { methods: ['POST'], allowed: ['action', 'csrf', 'nonce', 'idempotency_key'], required: [], maxBodyBytes: 1024, maxFieldBytes: 512, mutation: true };
+  const recoveryGeneratePost = { methods: ['POST'], allowed: ['action', 'csrf', 'nonce', 'idempotency_key', 'account_password', 'current_password', 'currentPassword'], required: [], maxBodyBytes: 2048, maxFieldBytes: 1024, mutation: true };
   const recoveryVerifyPost = { methods: ['POST'], allowed: ['action', 'request_id', 'recovery_code', 'code', 'csrf', 'nonce', 'idempotency_key'], required: ['request_id'], maxBodyBytes: 4096, maxFieldBytes: 1200, mutation: true };
   const recoveryWorkerPost = {
     methods: ['POST'],
-    allowed: ['action', 'worker_action', 'auth_user_id', 'customer_id', 'email', 'email_binding_hash', 'customer_binding_hash', 'auth_user_binding_hash', 'device_binding_hash', 'ip_hash', 'user_agent_hash', 'active_passkey_count', 'requested_at'],
+    allowed: ['action', 'worker_action', 'auth_user_id', 'customer_id', 'email', 'email_binding_hash', 'customer_binding_hash', 'auth_user_binding_hash', 'device_binding_hash', 'ip_hash', 'user_agent_hash', 'active_passkey_count', 'requested_at', 'pdf_password', 'website_recovery_code', 'email_pdf_code'],
     required: ['action', 'worker_action', 'auth_user_id', 'customer_id', 'email', 'email_binding_hash', 'customer_binding_hash', 'auth_user_binding_hash', 'device_binding_hash', 'ip_hash', 'user_agent_hash'],
     maxBodyBytes: customerSecurityRecoveryWorkerMaxBodyBytes(),
-    maxFieldBytes: 512,
+    maxFieldBytes: 1024,
     mutation: true,
     allowProtectedFields: true
   };
