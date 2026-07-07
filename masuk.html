@@ -8173,7 +8173,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
   async function requestRecoveryFile(box){
     var passwordInput = $('.dirac-recovery-account-password-input', box);
     var accountPassword = passwordInput ? String(passwordInput.value || '') : '';
-    if(!accountPassword){ showStatus(box, 'Masukkan password akun sekarang. Password PDF final adalah kode website + 2 digit kode email + password akun.', false); if(passwordInput) passwordInput.focus(); return; }
+    if(!accountPassword){ showStatus(box, 'Masukkan password akun sekarang. Password PDF final adalah kode website + 2 digit kode email + password akun, diketik berurutan tanpa spasi.', false); if(passwordInput) passwordInput.focus(); return; }
     var btn = $('.dirac-recovery-request-submit', box);
     var old = btn && btn.textContent;
     if(btn){ btn.disabled = true; btn.textContent = 'Mengirim PDF...'; }
@@ -8295,10 +8295,10 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     box.setAttribute('aria-hidden','true');
     box.innerHTML =
       '<div class="dirac-recovery-head"><div class="dirac-recovery-icon">PDF</div><div><h3>Anda kehilangan Passkey?</h3><span class="dirac-recovery-kicker">PDF recovery terenkripsi dikirim ke email resmi akun</span></div></div>' +
-      '<p>Masukkan password akun sekarang. Password PDF final adalah kode website + 2 digit kode email + password akun. Backend tetap memeriksa sesi, kepemilikan akun, dan Passkey aktif sebelum mengirim email.</p>' +
+      '<p>Masukkan password akun sekarang. Password PDF final adalah kode website + 2 digit kode email + password akun, diketik berurutan tanpa spasi. Backend tetap memeriksa sesi, kepemilikan akun, dan Passkey aktif sebelum mengirim email.</p>' +
       '<input class="dirac-recovery-account-password-input" type="password" autocomplete="current-password" placeholder="Password akun sekarang">' +
       '<div class="dirac-recovery-verify-actions"><button class="dirac-recovery-request-submit" type="button">Kirim PDF recovery</button><button class="dirac-recovery-hide-btn" type="button">Tutup</button></div>' +
-      '<div class="dirac-recovery-website-code-box">Kode website untuk password PDF: <span class="dirac-recovery-website-code-text">-</span>. Gabungkan: kode website + 2 digit kode email + password akun.</div>' +
+      '<div class="dirac-recovery-website-code-box">Kode website untuk password PDF: <span class="dirac-recovery-website-code-text">-</span>. Gabungkan tanpa spasi: kode website + 2 digit kode email + password akun.</div>' +
       '<div class="dirac-recovery-next-info">Satu kolom di bawah dipakai untuk Request ID dan recovery code/token dari PDF. Kolom tidak dikunci; backend tetap menjadi validasi final.</div>' +
       '<div class="dirac-recovery-verify-stage">' +
       '<textarea class="dirac-recovery-verify-input dirac-recovery-combined-input" autocomplete="one-time-code" spellcheck="false" placeholder="Tempel Request ID dan recovery code/token dari PDF di sini. Contoh:\nRequest ID: ...\nRecovery code: ..."></textarea>' +
