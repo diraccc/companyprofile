@@ -5938,12 +5938,37 @@ function customerSecuritySendRecoveryError(res, status, reason) {
   return res.status(status || 400).json(payload);
 }
 
-async function customerSecurityVerifyRecoveryCodeHash(code, storedHash, customerId) {
-  const hash = String(storedHash || '');
-  if (!hash.startsWith('$argon2id$')) return false;
-  const argon2 = customerSecurityGetArgon2();
-  return await argon2.verify(hash, customerSecurityRecoveryCodeArgon2Input(code, customerId));
+async function customerSecurityVerifyRecoveryCode(req, res, action) {
+  const access = await customerSecurityRequireAccess(req, res, {
+    action,
+    requireMfa: false,
+    rateLimit: { limit: 3, windowMs: 10 * 60_000 }
+  });
+  if (!access) return;
+
+  const body = await readBody(req);
+  const requestId = customerSecurityNormalizeLostPasskeyRequestId(body.request_id || body.requestId || '');
+  const code = customerSecurityNormalizeRecoveryCodeInput(body.code || body.recovery_code || body.recoveryCode || '');
+
+  if (!requestId) {
+    await customerSecurityRegisterFailedVerification(req, action, 'invalid_recovery_request_id', access.customerId);
+    return res.status(400).json({ ok: false, message: 'Request recovery tidak valid.' });
+  }
+  if (Array.from(code).length !== CUSTOMER_SECURITY_RECOVERY_CODE_LENGTH) {
+    await customerSecurityRegisterFailedVerification(req, action, 'invalid_recovery_code_length', access.customerId);
+    return res.status(400).json({
+      ok: false,
+      message: 'Recovery code tidak valid. Masukkan tepat 500 karakter dari file recovery terenkripsi.'
+    });
+  }
+
+  const owner = await customerSecurityResolveLostPasskeyOwner(access);
+  if (!owner.ok) return res.status(owner.status || 403).json({ ok: false, message: owner.message || 'Recovery request tidak cocok dengan sesi login ini.' });
+  const bindings = customerSecurityLostPasskeyBindings(req, owner);
+
+  return customerSecurityVerifyRecoveryCodeViaWorker(req, res, action, access, owner, bindings, requestId, code);
 }
+
 
 const LOST_PASSKEY_RECOVERY_REQUEST_TABLE = 'security_lost_passkey_recovery_requests';
 const LOST_PASSKEY_RECOVERY_SESSION_TABLE = 'security_lost_passkey_recovery_sessions';
@@ -5956,6 +5981,7 @@ const LOST_PASSKEY_RECOVERY_FILE_KEY_MIN_BYTES = 3000;
 const LOST_PASSKEY_RECOVERY_ATTEMPT_LIMIT = 5;
 const DIRAC_RECOVERY_WORKER_ACTION = 'dirac_recovery_worker_generate';
 const DIRAC_RECOVERY_WORKER_TASK_GENERATE = 'lost_passkey_generate';
+const DIRAC_RECOVERY_WORKER_TASK_VERIFY = 'lost_passkey_verify';
 
 function customerSecurityNormalizeLostPasskeyRequestId(value) {
   const clean = String(value || '').trim();
@@ -6692,6 +6718,137 @@ async function customerSecurityGenerateRecoveryCodesViaWorker(req, res, action, 
     const workerErrorMessage = String(error && error.message || '').slice(0, 240);
     try {
       console.error('[recovery-worker-unreachable]', JSON.stringify({
+        name: workerErrorName,
+        message: workerErrorMessage,
+        workerHost: target.hostname,
+        workerPath: target.pathname,
+        timeoutMs
+      }));
+    } catch (_) {}
+    const unreachableBody = {
+      ok: false,
+      code: 'RECOVERY_WORKER_UNREACHABLE',
+      message: 'Recovery worker belum bisa dihubungi.'
+    };
+    if (workerDebugEnabled) {
+      unreachableBody.worker_error_name = workerErrorName;
+      unreachableBody.worker_error_message = workerErrorMessage;
+      unreachableBody.worker_host = target.hostname;
+      unreachableBody.worker_path = target.pathname;
+      unreachableBody.worker_timeout_ms = timeoutMs;
+    }
+    return res.status(502).json(unreachableBody);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+
+async function customerSecurityVerifyRecoveryCodeViaWorker(req, res, action, access, owner, bindings, requestId, recoveryCode) {
+  const workerEnvDiagnostics = customerSecurityRecoveryWorkerMainEnvDiagnostics();
+  if (!workerEnvDiagnostics.ok) {
+    try { console.error('[recovery-worker-main-env-invalid]', JSON.stringify(workerEnvDiagnostics)); } catch (_) {}
+    return res.status(503).json({
+      ok: false,
+      code: 'RECOVERY_WORKER_ENV_INVALID',
+      message: 'Konfigurasi recovery worker di Vercel 1 belum valid.',
+      worker_env: workerEnvDiagnostics
+    });
+  }
+
+  const workerUrl = customerSecurityRecoveryWorkerUrl();
+  const secret = customerSecurityRecoveryWorkerSecret();
+  const caller = customerSecurityRecoveryWorkerCaller();
+  if (!workerUrl || !secret || !caller) {
+    return res.status(503).json({
+      ok: false,
+      code: 'RECOVERY_WORKER_REQUIRED',
+      message: 'Recovery worker belum dikonfigurasi. Verifikasi recovery tidak dijalankan di backend utama.'
+    });
+  }
+
+  const payload = {
+    action: DIRAC_RECOVERY_WORKER_ACTION,
+    worker_action: DIRAC_RECOVERY_WORKER_TASK_VERIFY,
+    auth_user_id: owner.authUserId,
+    customer_id: owner.customerId,
+    email: owner.email,
+    email_binding_hash: bindings.emailBindingHash,
+    customer_binding_hash: bindings.customerBindingHash,
+    auth_user_binding_hash: bindings.authUserBindingHash,
+    device_binding_hash: bindings.deviceBindingHash,
+    ip_hash: bindings.ipHash,
+    user_agent_hash: bindings.userAgentHash,
+    requested_at: diracNowIso(),
+    request_id: requestId,
+    recovery_code: recoveryCode
+  };
+  const canonical = customerSecurityLostPasskeyCanonical(payload);
+  const timestamp = String(Date.now());
+  const signature = customerSecurityRecoveryWorkerSign(caller, timestamp, canonical);
+  const target = new URL(workerUrl);
+  target.searchParams.set('action', DIRAC_RECOVERY_WORKER_ACTION);
+  const timeoutMs = Math.max(5000, Math.min(290000, Number(process.env.DIRAC_RECOVERY_WORKER_TIMEOUT_MS || 280000)));
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+  const workerDebugEnabled = String(process.env.DIRAC_RECOVERY_WORKER_DEBUG || '').trim().toLowerCase() === 'true';
+
+  try {
+    const response = await fetch(target.toString(), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-Dirac-Worker-Caller': caller,
+        'X-Dirac-Worker-Timestamp': timestamp,
+        'X-Dirac-Worker-Signature': signature
+      },
+      body: JSON.stringify(payload),
+      signal: controller ? controller.signal : undefined
+    });
+    const workerResponseText = await response.text().catch(() => '');
+    let data = {};
+    try { data = workerResponseText ? JSON.parse(workerResponseText) : {}; } catch (_) { data = {}; }
+    if (!response.ok || !data || data.ok !== true) {
+      const workerFailureBody = {
+        ok: false,
+        code: data && data.code || 'RECOVERY_WORKER_FAILED',
+        message: data && data.message || 'Recovery worker belum dapat memverifikasi kode recovery.'
+      };
+      try {
+        console.error('[recovery-worker-verify-response-failed]', JSON.stringify({
+          status: response.status,
+          statusText: response.statusText,
+          code: workerFailureBody.code,
+          message: String(workerFailureBody.message || '').slice(0, 200),
+          workerHost: target.hostname,
+          workerPath: target.pathname
+        }));
+      } catch (_) {}
+      if (workerDebugEnabled) {
+        workerFailureBody.worker_status = response.status;
+        workerFailureBody.worker_status_text = String(response.statusText || '').slice(0, 80);
+        workerFailureBody.worker_body_preview = String(workerResponseText || '').replace(/[<>]/g, '').slice(0, 800);
+      }
+      return res.status(response.status || data.status || 502).json(workerFailureBody);
+    }
+    return res.status(200).json({
+      ok: true,
+      active: data.active === true,
+      method: String(data.method || 'recovery_code'),
+      purpose: String(data.purpose || LOST_PASSKEY_RECOVERY_PURPOSE),
+      message: data.message || 'Recovery code valid. Recovery session terbatas untuk daftar Passkey baru sudah dibuat.',
+      recovery_session_token: String(data.recovery_session_token || ''),
+      recovery_session_expires_at: String(data.recovery_session_expires_at || ''),
+      dashboard_access: data.dashboard_access === true,
+      recovery_code_verified: data.recovery_code_verified === true,
+      time: data.time || diracNowIso()
+    });
+  } catch (error) {
+    const workerErrorName = String(error && error.name || '').slice(0, 80);
+    const workerErrorMessage = String(error && error.message || '').slice(0, 240);
+    try {
+      console.error('[recovery-worker-verify-unreachable]', JSON.stringify({
         name: workerErrorName,
         message: workerErrorMessage,
         workerHost: target.hostname,
@@ -25768,7 +25925,8 @@ function diracCentralRecoveryWorkerSignatureGuardV146(req, ctx) {
   const signature = customerSecurityRecoveryWorkerHeaderValue(req, 'x-dirac-worker-signature');
   if (!/^[a-zA-Z0-9_-]{32,120}$/.test(signature)) return { ok: false, reason: 'recovery_worker_signature_missing' };
   const body = ctx.body || {};
-  if (body.action !== DIRAC_RECOVERY_WORKER_ACTION || body.worker_action !== DIRAC_RECOVERY_WORKER_TASK_GENERATE) {
+  if (body.action !== DIRAC_RECOVERY_WORKER_ACTION
+    || ![DIRAC_RECOVERY_WORKER_TASK_GENERATE, DIRAC_RECOVERY_WORKER_TASK_VERIFY].includes(String(body.worker_action || ''))) {
     return { ok: false, reason: 'recovery_worker_body_action_invalid' };
   }
   const expected = customerSecurityRecoveryWorkerSign(caller, timestampText, customerSecurityLostPasskeyCanonical(body));
@@ -27283,7 +27441,7 @@ function diracCentralContractForActionV146(action) {
   const recoveryVerifyPost = { methods: ['POST'], allowed: ['action', 'request_id', 'recovery_code', 'code', 'csrf', 'nonce', 'idempotency_key'], required: ['request_id'], maxBodyBytes: 4096, maxFieldBytes: 1200, mutation: true };
   const recoveryWorkerPost = {
     methods: ['POST'],
-    allowed: ['action', 'worker_action', 'auth_user_id', 'customer_id', 'email', 'email_binding_hash', 'customer_binding_hash', 'auth_user_binding_hash', 'device_binding_hash', 'ip_hash', 'user_agent_hash', 'active_passkey_count', 'requested_at', 'account_password'],
+    allowed: ['action', 'worker_action', 'auth_user_id', 'customer_id', 'email', 'email_binding_hash', 'customer_binding_hash', 'auth_user_binding_hash', 'device_binding_hash', 'ip_hash', 'user_agent_hash', 'active_passkey_count', 'requested_at', 'account_password', 'request_id', 'recovery_code', 'code'],
     required: ['action', 'worker_action', 'auth_user_id', 'customer_id', 'email', 'email_binding_hash', 'customer_binding_hash', 'auth_user_binding_hash', 'device_binding_hash', 'ip_hash', 'user_agent_hash'],
     maxBodyBytes: customerSecurityRecoveryWorkerMaxBodyBytes(),
     maxFieldBytes: 1024,
