@@ -7355,8 +7355,20 @@ async function customerSecurityVerifyRecoveryCode(req, res, action) {
   if (!access) return;
 
   const body = await readBody(req);
-  const requestId = String(body.request_id || body.requestId || '');
-  const code = String(body.code || body.recovery_code || body.recoveryCode || '');
+  const requestId = customerSecurityNormalizeLostPasskeyRequestId(body.request_id || body.requestId || '');
+  const code = customerSecurityNormalizeRecoveryCodeInput(body.code || body.recovery_code || body.recoveryCode || '');
+
+  if (!requestId) {
+    await customerSecurityRegisterFailedVerification(req, action, 'invalid_recovery_request_id', access.customerId);
+    return res.status(400).json({ ok: false, message: 'Request recovery tidak valid.' });
+  }
+  if (Array.from(code).length !== CUSTOMER_SECURITY_RECOVERY_CODE_LENGTH) {
+    await customerSecurityRegisterFailedVerification(req, action, 'invalid_recovery_code_length', access.customerId);
+    return res.status(400).json({
+      ok: false,
+      message: 'Recovery code tidak valid. Masukkan tepat 500 karakter dari file recovery terenkripsi.'
+    });
+  }
 
   const owner = await customerSecurityResolveLostPasskeyOwner(access);
   if (!owner.ok) {
@@ -11722,6 +11734,173 @@ async function diracPasskeyA2FMarkSettingsActive(owner) {
   }
 }
 
+
+function diracPasskeyA2FLostRecoveryTokenFromBody(body) {
+  const raw = String(
+    body && (
+      body.recovery_session_token
+      || body.recoverySessionToken
+      || body.lost_passkey_recovery_session_token
+      || body.lostPasskeyRecoverySessionToken
+      || body.dirac_lost_passkey_recovery_session
+    ) || ''
+  ).trim();
+  return /^[A-Za-z0-9_-]{24,256}$/.test(raw) ? raw : '';
+}
+
+function diracPasskeyA2FLostRecoveryPayloadClean(payload) {
+  const recovery = payload && payload.lostPasskeyRecovery && typeof payload.lostPasskeyRecovery === 'object'
+    ? payload.lostPasskeyRecovery
+    : null;
+  if (!recovery) return null;
+  const requestId = customerSecurityNormalizeLostPasskeyRequestId(recovery.requestId || recovery.request_id || '');
+  const sessionHash = String(recovery.sessionHash || recovery.recovery_session_hash || '').trim().toLowerCase();
+  if (!requestId || !/^[a-f0-9]{64}$/.test(sessionHash)) return null;
+  return { requestId, sessionHash };
+}
+
+async function diracPasskeyA2FValidateLostRecoverySession(owner, recoverySessionToken) {
+  const token = diracPasskeyA2FLostRecoveryTokenFromBody({ recovery_session_token: recoverySessionToken });
+  if (!token) return { ok: false, reason: 'lost_passkey_recovery_session_token_invalid' };
+  const sessionHash = customerSecurityLostPasskeyRecoverySessionHash(token);
+  return diracPasskeyA2FValidateLostRecoverySessionHash(owner, { sessionHash });
+}
+
+async function diracPasskeyA2FValidateLostRecoverySessionPayload(owner, payload) {
+  const recovery = diracPasskeyA2FLostRecoveryPayloadClean(payload);
+  if (!recovery) return { ok: false, reason: 'lost_passkey_recovery_session_payload_invalid' };
+  return diracPasskeyA2FValidateLostRecoverySessionHash(owner, recovery);
+}
+
+async function diracPasskeyA2FValidateLostRecoverySessionHash(owner, recovery) {
+  if (!owner || !owner.customerId || !owner.authUserId) {
+    return { ok: false, reason: 'lost_passkey_recovery_owner_missing' };
+  }
+  const sessionHash = String(recovery && recovery.sessionHash || '').trim().toLowerCase();
+  if (!/^[a-f0-9]{64}$/.test(sessionHash)) {
+    return { ok: false, reason: 'lost_passkey_recovery_session_hash_invalid' };
+  }
+
+  const select = 'id,request_id,customer_id,auth_user_id,recovery_session_hash,purpose,status,created_at,expires_at,used_at,revoked_at,metadata';
+  let path = '/rest/v1/' + LOST_PASSKEY_RECOVERY_SESSION_TABLE
+    + '?select=' + encodeURIComponent(select)
+    + '&customer_id=eq.' + encodeURIComponent(owner.customerId)
+    + '&auth_user_id=eq.' + encodeURIComponent(owner.authUserId)
+    + '&purpose=eq.' + encodeURIComponent(LOST_PASSKEY_RECOVERY_PURPOSE)
+    + '&status=eq.verified'
+    + '&order=created_at.desc&limit=10';
+  if (recovery && recovery.requestId) {
+    path += '&request_id=eq.' + encodeURIComponent(customerSecurityNormalizeLostPasskeyRequestId(recovery.requestId));
+  }
+
+  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+  if (!result.ok) return { ok: false, status: result.status || 500, reason: 'lost_passkey_recovery_session_read_failed' };
+
+  const rows = Array.isArray(result.data) ? result.data : [];
+  const row = rows.find((item) => item && item.recovery_session_hash && safeEqual(String(item.recovery_session_hash), sessionHash)) || null;
+  if (!row || !row.id) return { ok: false, status: 403, reason: 'lost_passkey_recovery_session_not_found' };
+  if (String(row.customer_id || '') !== String(owner.customerId || '') || String(row.auth_user_id || '') !== String(owner.authUserId || '')) {
+    return { ok: false, status: 403, reason: 'lost_passkey_recovery_session_owner_mismatch' };
+  }
+  if (String(row.purpose || '') !== LOST_PASSKEY_RECOVERY_PURPOSE || String(row.status || '') !== 'verified') {
+    return { ok: false, status: 403, reason: 'lost_passkey_recovery_session_status_invalid' };
+  }
+  if (row.used_at || row.revoked_at) {
+    return { ok: false, status: 403, reason: 'lost_passkey_recovery_session_already_closed' };
+  }
+  const expiresAtMs = Date.parse(row.expires_at || '');
+  if (!Number.isFinite(expiresAtMs) || expiresAtMs <= Date.now()) {
+    return { ok: false, status: 403, reason: 'lost_passkey_recovery_session_expired' };
+  }
+
+  return {
+    ok: true,
+    id: String(row.id),
+    requestId: String(row.request_id || ''),
+    sessionHash,
+    row
+  };
+}
+
+async function diracPasskeyA2FCompleteLostRecoveryRotation({ owner, newCredentialId, recoverySession, req }) {
+  if (!owner || !owner.customerId || !owner.authUserId || !recoverySession || !recoverySession.ok) {
+    return { ok: false, reason: 'lost_passkey_rotation_context_invalid' };
+  }
+  const credentialId = diracPasskeyA2FSafeString(newCredentialId, 4096);
+  if (!credentialId) return { ok: false, reason: 'lost_passkey_rotation_new_credential_missing' };
+
+  const nowIso = diracNowIso();
+  const credentialHint = crypto.createHash('sha256').update(String(credentialId)).digest('hex').slice(0, 12);
+  const oldPasskeysPath = '/rest/v1/domain_passkeys'
+    + '?user_id=eq.' + encodeURIComponent(owner.customerId)
+    + '&is_active=eq.true'
+    + '&credential_id=neq.' + encodeURIComponent(credentialId);
+
+  const oldPasskeysPatched = await supabaseFetch(oldPasskeysPath, {
+    method: 'PATCH',
+    auth: 'service',
+    prefer: 'return=representation',
+    body: {
+      is_active: false,
+      updated_at: nowIso
+    }
+  });
+  if (!oldPasskeysPatched.ok) {
+    console.error('[lost-passkey-old-passkeys-disable-failed]', customerSecuritySafeLogError(oldPasskeysPatched.data));
+    return { ok: false, status: oldPasskeysPatched.status || 500, reason: 'lost_passkey_old_passkeys_disable_failed' };
+  }
+
+  const disabledRows = Array.isArray(oldPasskeysPatched.data) ? oldPasskeysPatched.data.length : 0;
+  const sessionPath = '/rest/v1/' + LOST_PASSKEY_RECOVERY_SESSION_TABLE
+    + '?request_id=eq.' + encodeURIComponent(recoverySession.requestId)
+    + '&customer_id=eq.' + encodeURIComponent(owner.customerId)
+    + '&auth_user_id=eq.' + encodeURIComponent(owner.authUserId)
+    + '&recovery_session_hash=eq.' + encodeURIComponent(recoverySession.sessionHash);
+  const sessionPatched = await supabaseFetch(sessionPath, {
+    method: 'PATCH',
+    auth: 'service',
+    prefer: 'return=representation',
+    body: {
+      status: 'used',
+      used_at: nowIso,
+      metadata: {
+        source: 'lost_passkey_passkey_replacement',
+        completed_at: nowIso,
+        new_credential_id_hint: credentialHint,
+        old_passkeys_deactivated: disabledRows
+      }
+    }
+  });
+  if (!sessionPatched.ok) {
+    console.error('[lost-passkey-session-close-failed]', customerSecuritySafeLogError(sessionPatched.data));
+    return { ok: false, status: sessionPatched.status || 500, reason: 'lost_passkey_recovery_session_close_failed' };
+  }
+
+  await supabaseFetch('/rest/v1/' + LOST_PASSKEY_RECOVERY_REQUEST_TABLE
+    + '?request_id=eq.' + encodeURIComponent(recoverySession.requestId)
+    + '&customer_id=eq.' + encodeURIComponent(owner.customerId)
+    + '&auth_user_id=eq.' + encodeURIComponent(owner.authUserId), {
+      method: 'PATCH',
+      auth: 'service',
+      body: {
+        status: 'used',
+        used_at: nowIso,
+        metadata: {
+          source: 'lost_passkey_passkey_replacement',
+          completed_at: nowIso,
+          new_credential_id_hint: credentialHint,
+          old_passkeys_deactivated: disabledRows
+        }
+      }
+    }).catch(() => null);
+
+  return {
+    ok: true,
+    oldPasskeysDeactivated: disabledRows,
+    recoverySessionClosed: true
+  };
+}
+
 async function diracPasskeyA2FStart(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ ok: false, method: 'passkey', message: 'Gunakan POST untuk Passkey A2F.' });
 
@@ -11738,6 +11917,23 @@ async function diracPasskeyA2FStart(req, res) {
     return res.status(owner.status || 409).json({ ok: false, method: 'passkey', message: owner.message || 'Akun belum siap untuk Passkey.' });
   }
 
+  let body = {};
+  try { body = await readBody(req); } catch (_) { body = {}; }
+  const recoverySessionToken = diracPasskeyA2FLostRecoveryTokenFromBody(body);
+  let lostRecoverySession = null;
+  if (recoverySessionToken) {
+    lostRecoverySession = await diracPasskeyA2FValidateLostRecoverySession(owner, recoverySessionToken);
+    if (!lostRecoverySession.ok) {
+      await diracA2FHardBanCurrentRequest(lostRecoverySession.reason || 'lost_passkey_recovery_session_invalid');
+      return res.status(lostRecoverySession.status || 403).json({
+        ok: false,
+        method: 'passkey',
+        code: 'LOST_PASSKEY_RECOVERY_SESSION_INVALID',
+        message: 'Recovery session tidak valid atau sudah expired. Ulangi verifikasi recovery code.'
+      });
+    }
+  }
+
   const now = Date.now();
   const challenge = crypto.randomBytes(32).toString('base64url');
   const rpId = diracPasskeyA2FRpId(req);
@@ -11745,7 +11941,8 @@ async function diracPasskeyA2FStart(req, res) {
   const userHandle = diracPasskeyA2FUserHandle({ id: owner.customerId, email: owner.email });
   const activePasskeys = await diracPasskeyA2FListActivePasskeys(owner);
   const hasActivePasskey = activePasskeys.length > 0;
-  const mode = hasActivePasskey ? 'authentication' : 'registration';
+  const isLostPasskeyRecoveryRegistration = Boolean(lostRecoverySession && lostRecoverySession.ok);
+  const mode = isLostPasskeyRecoveryRegistration ? 'registration' : (hasActivePasskey ? 'authentication' : 'registration');
   const jti = crypto.randomBytes(32).toString('base64url');
   const payload = {
     type: DIRAC_PASSKEY_A2F_TOKEN_TYPE,
@@ -11759,6 +11956,10 @@ async function diracPasskeyA2FStart(req, res) {
     customerId: owner.customerId,
     emailHash: customerMfaProfileId(owner.email),
     uaHash: customerMfaBindingHash('ua', requestUserAgent(req)),
+    lostPasskeyRecovery: isLostPasskeyRecoveryRegistration ? {
+      requestId: lostRecoverySession.requestId,
+      sessionHash: lostRecoverySession.sessionHash
+    } : undefined,
     issuedAtMs: now,
     expiresAtMs: now + DIRAC_PASSKEY_A2F_TTL_MS
   };
@@ -11772,7 +11973,7 @@ async function diracPasskeyA2FStart(req, res) {
     userVerification: 'required'
   };
 
-  if (hasActivePasskey) {
+  if (hasActivePasskey && !isLostPasskeyRecoveryRegistration) {
     return res.status(200).json({
       ok: true,
       method: 'passkey',
@@ -11819,9 +12020,19 @@ async function diracPasskeyA2FStart(req, res) {
         requireResidentKey: false,
         userVerification: 'required'
       },
-      extensions: { credProps: true }
+      extensions: { credProps: true },
+      excludeCredentials: isLostPasskeyRecoveryRegistration ? activePasskeys
+        .filter((row) => row && row.credential_id)
+        .map((row) => ({
+          type: 'public-key',
+          id: String(row.credential_id),
+          transports: Array.isArray(row.transports) ? row.transports : []
+        })) : undefined
     },
-    message: 'Browser akan membuka Face ID, sidik jari, atau PIN untuk membuat Passkey.'
+    recovery_replacement: isLostPasskeyRecoveryRegistration,
+    message: isLostPasskeyRecoveryRegistration
+      ? 'Recovery valid. Browser akan membuka Face ID, sidik jari, atau PIN untuk membuat Passkey pengganti.'
+      : 'Browser akan membuka Face ID, sidik jari, atau PIN untuk membuat Passkey.'
   });
 }
 
@@ -11860,6 +12071,20 @@ async function diracPasskeyA2FVerify(req, res) {
   if (payload.customerId && owner.customerId && String(payload.customerId) !== String(owner.customerId)) {
     await diracA2FHardBanCurrentRequest('passkey_a2f_customer_mismatch');
     return res.status(403).json({ ok: false, method: 'passkey', message: 'Customer owner Passkey tidak cocok. Login ulang dulu.' });
+  }
+
+  let lostRecoverySession = null;
+  if (payload.lostPasskeyRecovery) {
+    lostRecoverySession = await diracPasskeyA2FValidateLostRecoverySessionPayload(owner, payload);
+    if (!lostRecoverySession.ok) {
+      await diracA2FHardBanCurrentRequest(lostRecoverySession.reason || 'lost_passkey_recovery_session_invalid_at_verify');
+      return res.status(lostRecoverySession.status || 403).json({
+        ok: false,
+        method: 'passkey',
+        code: 'LOST_PASSKEY_RECOVERY_SESSION_INVALID',
+        message: 'Recovery session tidak valid atau sudah expired. Ulangi verifikasi recovery code.'
+      });
+    }
   }
   if (payload.uaHash) {
     const expectedUaHash = customerMfaBindingHash('ua', requestUserAgent(req));
@@ -11934,6 +12159,24 @@ async function diracPasskeyA2FVerify(req, res) {
     });
   }
 
+  let lostRecoveryRotation = null;
+  if (!isAuthentication && lostRecoverySession && lostRecoverySession.ok) {
+    lostRecoveryRotation = await diracPasskeyA2FCompleteLostRecoveryRotation({
+      owner,
+      newCredentialId: credentialId,
+      recoverySession: lostRecoverySession,
+      req
+    });
+    if (!lostRecoveryRotation.ok) {
+      return res.status(lostRecoveryRotation.status || 500).json({
+        ok: false,
+        method: 'passkey',
+        code: 'LOST_PASSKEY_ROTATION_INCOMPLETE',
+        message: 'Passkey baru tersimpan, tetapi passkey lama belum berhasil dinonaktifkan. Ulangi proses daftar Passkey baru dari halaman recovery.'
+      });
+    }
+  }
+
   await diracPasskeyA2FMarkSettingsActive(owner);
 
   const proof = customerSecurityCreateDashboardMfaToken(req, user, 'passkey');
@@ -11949,6 +12192,8 @@ async function diracPasskeyA2FVerify(req, res) {
     needsRegistration: false,
     database_saved: true,
     registered_now: registeredNow,
+    lost_passkey_recovery_replacement: Boolean(lostRecoveryRotation && lostRecoveryRotation.ok),
+    old_passkeys_deactivated: lostRecoveryRotation && lostRecoveryRotation.ok ? lostRecoveryRotation.oldPasskeysDeactivated : 0,
     owner_bound: true,
     owner_source: owner.source,
     credential_id_hint: crypto.createHash('sha256').update(String(credentialId)).digest('hex').slice(0, 12),
@@ -27771,7 +28016,7 @@ function diracCentralContractForActionV146(action) {
   const commonPost = ['action', 'email', 'password', 'fullName', 'full_name', 'name', 'phone', 'domain', 'domain_name', 'quantity', 'items', 'order_id', 'order_code', 'domain_order_id', 'payment_id', 'transaction_id', 'invoice_id', 'gateway_reference', 'session_id', 'recovery_code', 'recovery_code_id', 'credential_id', 'user_id', 'challenge', 'response', 'setupToken', 'mfaSetupToken', 'code', 'reason', 'csrf', 'nonce', 'idempotency_key'];
   const getOnly = { methods: ['GET', 'HEAD'], allowed: commonGet, required: [], maxBodyBytes: 1024, maxFieldBytes: 3000, mutation: false };
   const postOnly = { methods: ['POST'], allowed: commonPost, required: [], maxBodyBytes: 20 * 1024, maxFieldBytes: 3000, mutation: true };
-  const passkeyPost = { methods: ['POST'], allowed: ['action', 'method', 'identifier', 'email', 'setupToken', 'mfaSetupToken', 'token', 'passkeyMode', 'credential', 'id', 'rawId', 'type', 'response', 'clientExtensionResults', 'credProps', 'rk', 'clientDataJSON', 'attestationObject', 'authenticatorData', 'signature', 'userHandle', 'transports', 'authenticatorAttachment', 'challenge', 'code', 'csrf', 'nonce', 'idempotency_key'], required: [], maxBodyBytes: 192 * 1024, maxFieldBytes: 80 * 1024, mutation: true, allowArrayItems: true };
+  const passkeyPost = { methods: ['POST'], allowed: ['action', 'method', 'identifier', 'email', 'setupToken', 'mfaSetupToken', 'token', 'passkeyMode', 'credential', 'id', 'rawId', 'type', 'response', 'clientExtensionResults', 'credProps', 'rk', 'clientDataJSON', 'attestationObject', 'authenticatorData', 'signature', 'userHandle', 'transports', 'authenticatorAttachment', 'challenge', 'code', 'recovery_session_token', 'recoverySessionToken', 'lost_passkey_recovery_session_token', 'lostPasskeyRecoverySessionToken', 'dirac_lost_passkey_recovery_session', 'csrf', 'nonce', 'idempotency_key'], required: [], maxBodyBytes: 192 * 1024, maxFieldBytes: 80 * 1024, mutation: true, allowArrayItems: true };
   const recoveryGeneratePost = { methods: ['POST'], allowed: ['action', 'csrf', 'nonce', 'idempotency_key', 'account_password', 'current_password', 'currentPassword'], required: [], maxBodyBytes: 2048, maxFieldBytes: 1024, mutation: true };
   const recoveryVerifyPost = { methods: ['POST'], allowed: ['action', 'request_id', 'recovery_code', 'code', 'csrf', 'nonce', 'idempotency_key'], required: ['request_id'], maxBodyBytes: 4096, maxFieldBytes: 1200, mutation: true };
   const recoveryWorkerPost = {
