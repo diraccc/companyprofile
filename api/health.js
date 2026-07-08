@@ -12021,13 +12021,13 @@ async function diracPasskeyA2FStart(req, res) {
         userVerification: 'required'
       },
       extensions: { credProps: true },
-      excludeCredentials: isLostPasskeyRecoveryRegistration ? activePasskeys
+      excludeCredentials: isLostPasskeyRecoveryRegistration ? undefined : activePasskeys
         .filter((row) => row && row.credential_id)
         .map((row) => ({
           type: 'public-key',
           id: String(row.credential_id),
           transports: Array.isArray(row.transports) ? row.transports : []
-        })) : undefined
+        }))
     },
     recovery_replacement: isLostPasskeyRecoveryRegistration,
     message: isLostPasskeyRecoveryRegistration
