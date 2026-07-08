@@ -3507,6 +3507,28 @@ html[data-effective-theme="light"] .footer{background:linear-gradient(180deg,#ff
 #diracRecoveryVerifyBox .dirac-recovery-warning{
   margin-top:10px;padding:10px 12px;border-radius:16px;background:#eff6ff;border:1px solid #dbeafe;color:#1e3a8a;font-size:.76rem;line-height:1.45;font-weight:700;
 }
+#diracRecoveryVerifyBox .dirac-recovery-step-list{
+  display:grid!important;gap:8px!important;margin:10px 0 12px!important;
+}
+#diracRecoveryVerifyBox .dirac-recovery-step-item{
+  display:flex!important;gap:9px!important;align-items:flex-start!important;padding:10px 12px!important;border-radius:16px!important;
+  background:#f8fafc!important;border:1px solid #dbeafe!important;color:#334155!important;font-size:.78rem!important;line-height:1.42!important;font-weight:800!important;
+}
+#diracRecoveryVerifyBox .dirac-recovery-step-no{
+  width:24px!important;height:24px!important;border-radius:999px!important;display:grid!important;place-items:center!important;flex:0 0 auto!important;
+  background:#2563eb!important;color:#fff!important;font-size:.72rem!important;font-weight:950!important;
+}
+#diracRecoveryVerifyBox .dirac-recovery-field-label{
+  display:block!important;margin:10px 0 6px!important;color:#1e3a8a!important;font-size:.78rem!important;line-height:1.35!important;font-weight:950!important;
+}
+#diracRecoveryVerifyBox .dirac-recovery-code-counter{
+  display:flex!important;justify-content:space-between!important;gap:10px!important;margin:6px 0 0!important;color:#64748b!important;font-size:.76rem!important;font-weight:900!important;
+}
+#diracRecoveryVerifyBox .dirac-recovery-code-counter.is-ok{color:#15803d!important}
+#diracRecoveryVerifyBox .dirac-recovery-code-counter.is-bad{color:#b91c1c!important}
+#diracRecoveryVerifyBox .dirac-recovery-request-id-input[readonly]{
+  background:#f8fafc!important;color:#334155!important;cursor:text!important;
+}
 html[data-effective-theme="dark"] #diracRecoveryVerifyBox.dirac-recovery-verify-box{background:linear-gradient(180deg,#ffffff,#f8fafc)!important;border-color:#dbeafe!important;color:#111827!important}
 html[data-effective-theme="dark"] #diracRecoveryVerifyBox h3{color:#111827!important}
 html[data-effective-theme="dark"] #diracRecoveryVerifyBox p{color:#64748b!important}
@@ -8039,7 +8061,13 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
   var csrfTokenMemory = '';
 
   function $(sel, root){ return (root || document).querySelector(sel); }
-  function normalizeRecoveryCodeInput(value){ return String(value || '').replace(/\s+/g,'').trim(); }
+  function normalizeRecoveryCodeInput(value){
+    return String(value || '')
+      .replace(/[\u200B-\u200F\u202A-\u202E\u2060\uFEFF]/g,'')
+      .replace(/[\u2010\u2011\u2012\u2013\u2014\u2015\u2212\uFE58\uFE63\uFF0D]/g,'-')
+      .replace(/\s+/g,'')
+      .trim();
+  }
   function normalizeRequestId(value){ value = String(value || '').trim(); return /^[A-Za-z0-9_-]{16,120}$/.test(value) ? value : ''; }
   function looksLikeCsrfToken(value){ return /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(String(value || '').trim()); }
   function readCookie(name){
@@ -8143,32 +8171,64 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     return normalizeRequestId(data.request_id || data.requestId || data.recovery_request_id || data.recoveryRequestId || '');
   }
   function prefillCombinedInput(box, requestId){
-    var input = $('.dirac-recovery-combined-input', box);
-    if(!input || !requestId) return;
-    if(String(input.value || '').trim()) return;
-    input.value = 'Request ID: ' + requestId + '\nRecovery code/token dari PDF: ';
+    var requestInput = $('.dirac-recovery-request-id-input', box);
+    requestId = normalizeRequestId(requestId);
+    if(requestInput && requestId) requestInput.value = requestId;
+    updateRecoveryCodeCounter(box);
   }
   function parseCombinedRecoveryInput(value){
     var raw = String(value || '').trim();
+    var normalizedRaw = normalizeRecoveryCodeInput(raw);
     var requestId = '';
     var code = '';
     var reqLabel = raw.match(/(?:request[_\s-]*id|req(?:uest)?\s*id)\s*[:=\-]\s*([A-Za-z0-9_-]{16,120})/i);
     if(reqLabel) requestId = normalizeRequestId(reqLabel[1]);
-    if(!requestId){
+    if(!requestId && normalizedRaw.length < 300){
       var reqAny = raw.match(/\b[A-Za-z0-9_-]{16,120}\b/);
       if(reqAny) requestId = normalizeRequestId(reqAny[0]);
     }
-    var codeLabel = raw.match(/(?:recovery[_\s-]*(?:code|token)|kode[_\s-]*recovery|reco(?:very)?\s*code|token)\s*[:=\-]\s*([A-Za-z0-9._~+\/=\-\s]{20,4000})/i);
+    var codeLabel = raw.match(/(?:recovery[_\s-]*(?:code|token)|kode[_\s-]*recovery|reco(?:very)?\s*code|token)\s*[:=\-]\s*([A-Za-z0-9._~+\/=\-\u2010-\u2015\u2212\uFE58\uFE63\uFF0D\s]{20,4000})/i);
     if(codeLabel) code = normalizeRecoveryCodeInput(codeLabel[1]);
     if(!code){
       var cleaned = raw;
       if(requestId) cleaned = cleaned.replace(requestId, ' ');
-      var tokens = cleaned.match(/[A-Za-z0-9._~+\/=\-]{20,4000}/g) || [];
+      var tokens = cleaned.match(/[A-Za-z0-9._~+\/=\-\u2010-\u2015\u2212\uFE58\uFE63\uFF0D]{20,4000}/g) || [];
       tokens = tokens.filter(function(item){ return normalizeRequestId(item) !== requestId; });
-      tokens.sort(function(a,b){ return String(b).length - String(a).length; });
+      tokens.sort(function(a,b){ return normalizeRecoveryCodeInput(b).length - normalizeRecoveryCodeInput(a).length; });
       if(tokens.length) code = normalizeRecoveryCodeInput(tokens[0]);
     }
+    if(!code && /^[A-Za-z0-9._~+\/=\-\u2010-\u2015\u2212\uFE58\uFE63\uFF0D\s]{20,4000}$/.test(raw)) code = normalizedRaw;
     return {requestId:requestId, code:code};
+  }
+  function readRecoveryFields(box){
+    var requestInput = $('.dirac-recovery-request-id-input', box);
+    var codeInput = $('.dirac-recovery-combined-input', box);
+    var requestId = normalizeRequestId(requestInput ? requestInput.value : '');
+    var parsedFromCode = parseCombinedRecoveryInput(codeInput ? codeInput.value : '');
+    if(!requestId && parsedFromCode.requestId){
+      requestId = parsedFromCode.requestId;
+      if(requestInput) requestInput.value = requestId;
+    }
+    var code = parsedFromCode.code || normalizeRecoveryCodeInput(codeInput ? codeInput.value : '');
+    if(codeInput && code && code !== String(codeInput.value || '')) codeInput.value = code;
+    updateRecoveryCodeCounter(box);
+    return {requestId:requestId, code:code};
+  }
+  function updateRecoveryCodeCounter(box){
+    var input = $('.dirac-recovery-combined-input', box);
+    var counter = $('.dirac-recovery-code-counter', box);
+    if(!counter) return;
+    var code = normalizeRecoveryCodeInput(input ? input.value : '');
+    counter.classList.remove('is-ok','is-bad');
+    if(code.length === 500) counter.classList.add('is-ok');
+    else if(code.length > 0) counter.classList.add('is-bad');
+    counter.innerHTML = '<span>Recovery Code: ' + code.length + '/500 karakter</span><span>' + (code.length === 500 ? 'Siap diverifikasi' : 'Tempel 500 karakter penuh') + '</span>';
+  }
+  function handleRecoveryFieldInput(box){
+    var fields = readRecoveryFields(box);
+    var input = $('.dirac-recovery-combined-input', box);
+    if(input && fields.code && fields.code !== String(input.value || '')) input.value = fields.code;
+    updateRecoveryCodeCounter(box);
   }
   async function requestRecoveryFile(box){
     var passwordInput = $('.dirac-recovery-account-password-input', box);
@@ -8203,7 +8263,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       setWebsiteCode(box, websiteCode);
       prefillCombinedInput(box, requestId);
       setVerifyStage(box, true);
-      showStatus(box, 'Request disetujui. PDF terenkripsi sudah dikirim ke email resmi akun. Tempel Request ID + recovery code/token dari PDF pada satu kolom di bawah.', true);
+      showStatus(box, 'Request disetujui. PDF terenkripsi sudah dikirim. Request ID sudah otomatis terisi; kamu cukup tempel Recovery Code 500 karakter dari PDF di kotak besar.', true);
     }catch(e){
       setVerifyStage(box, true);
       showStatus(box, recoveryFriendlyMessage(e && e.message, null, 0), false);
@@ -8213,11 +8273,12 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
   }
   async function verifyRecoveryCode(box){
     var combinedInput = $('.dirac-recovery-combined-input', box);
-    var parsed = parseCombinedRecoveryInput(combinedInput ? combinedInput.value : '');
+    var requestInput = $('.dirac-recovery-request-id-input', box);
+    var parsed = readRecoveryFields(box);
     var requestId = parsed.requestId;
     var code = parsed.code;
-    if(!requestId){ showStatus(box, 'Request ID wajib ada di kolom yang sama dengan recovery code/token.', false); if(combinedInput) combinedInput.focus(); return; }
-    if(!code || code.length < 32){ showStatus(box, 'Recovery code/token belum valid. Tempel isi dari PDF bersama Request ID pada satu kolom.', false); if(combinedInput) combinedInput.focus(); return; }
+    if(!requestId){ showStatus(box, 'Request ID belum ada. Klik Kirim PDF recovery dulu. Kalau sudah punya Request ID, tempel di kolom Request ID.', false); if(requestInput) requestInput.focus(); return; }
+    if(!code || code.length !== 500){ showStatus(box, 'Recovery Code harus tepat 500 karakter. Saat ini: ' + (code ? code.length : 0) + '/500. Salin Recovery Code penuh dari PDF, bukan password PDF.', false); if(combinedInput) combinedInput.focus(); return; }
     var btn = $('.dirac-recovery-verify-submit', box);
     var old = btn && btn.textContent;
     if(btn){ btn.disabled = true; btn.textContent = 'Memverifikasi...'; }
@@ -8262,7 +8323,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     box.classList.add('is-unlocked');
     box.setAttribute('aria-hidden','false');
     setVerifyStage(box, true);
-    showStatus(box, reason === 'two_failed' ? 'Opsi recovery dibuka otomatis karena A2F gagal 2x. Kolom Request ID + recovery code tidak dikunci.' : 'Kolom Request ID + recovery code tidak dikunci. Minta PDF recovery lalu tempel data dari PDF di satu kolom.', true);
+    showStatus(box, reason === 'two_failed' ? 'Opsi recovery dibuka otomatis karena A2F gagal 2x. Klik Kirim PDF recovery, lalu tempel Recovery Code 500 karakter dari PDF.' : 'Klik Kirim PDF recovery, buka PDF dari email, lalu tempel Recovery Code 500 karakter di kotak besar.', true);
     try { box.scrollIntoView({behavior:'smooth', block:'center'}); } catch (_) {}
   }
   function hide(){
@@ -8274,7 +8335,9 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     box.setAttribute('aria-hidden','true');
     setVerifyStage(box, true);
     var passwordInput = $('.dirac-recovery-account-password-input', box); if(passwordInput) passwordInput.value = '';
+    var requestInput = $('.dirac-recovery-request-id-input', box); if(requestInput) requestInput.value = '';
     var combinedInput = $('.dirac-recovery-combined-input', box); if(combinedInput) combinedInput.value = '';
+    updateRecoveryCodeCounter(box);
     setWebsiteCode(box, '');
     showStatus(box, '', true);
   }
@@ -8294,17 +8357,27 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     box.className = 'dirac-recovery-verify-box';
     box.setAttribute('aria-hidden','true');
     box.innerHTML =
-      '<div class="dirac-recovery-head"><div class="dirac-recovery-icon">PDF</div><div><h3>Anda kehilangan Passkey?</h3><span class="dirac-recovery-kicker">PDF recovery terenkripsi dikirim ke email resmi akun</span></div></div>' +
-      '<p>Masukkan password akun sekarang. Password PDF final adalah kode website + 2 digit kode email + password akun, diketik berurutan tanpa spasi. Backend tetap memeriksa sesi, kepemilikan akun, dan Passkey aktif sebelum mengirim email.</p>' +
-      '<input class="dirac-recovery-account-password-input" type="password" autocomplete="current-password" placeholder="Password akun sekarang">' +
+      '<div class="dirac-recovery-head"><div class="dirac-recovery-icon">PDF</div><div><h3>Recovery Passkey hilang</h3><span class="dirac-recovery-kicker">Ikuti 4 langkah ini saja</span></div></div>' +
+      '<div class="dirac-recovery-step-list">' +
+      '<div class="dirac-recovery-step-item"><span class="dirac-recovery-step-no">1</span><span>Isi password akun sekarang, lalu tekan <b>Kirim PDF recovery</b>.</span></div>' +
+      '<div class="dirac-recovery-step-item"><span class="dirac-recovery-step-no">2</span><span>Buka email resmi akun. Password PDF = <b>kode website + 2 digit kode email + password akun</b>, tanpa spasi.</span></div>' +
+      '<div class="dirac-recovery-step-item"><span class="dirac-recovery-step-no">3</span><span>Salin <b>Recovery Code 500 karakter</b> dari PDF. Jangan salin password PDF.</span></div>' +
+      '<div class="dirac-recovery-step-item"><span class="dirac-recovery-step-no">4</span><span>Tempel Recovery Code di kotak besar, lalu tekan <b>Verifikasi recovery</b>.</span></div>' +
+      '</div>' +
+      '<label class="dirac-recovery-field-label">Password akun sekarang</label>' +
+      '<input class="dirac-recovery-account-password-input" type="password" autocomplete="current-password" placeholder="Password login akun ini">' +
       '<div class="dirac-recovery-verify-actions"><button class="dirac-recovery-request-submit" type="button">Kirim PDF recovery</button><button class="dirac-recovery-hide-btn" type="button">Tutup</button></div>' +
       '<div class="dirac-recovery-website-code-box">Kode website untuk password PDF: <span class="dirac-recovery-website-code-text">-</span>. Gabungkan tanpa spasi: kode website + 2 digit kode email + password akun.</div>' +
-      '<div class="dirac-recovery-next-info">Satu kolom di bawah dipakai untuk Request ID dan recovery code/token dari PDF. Kolom tidak dikunci; backend tetap menjadi validasi final.</div>' +
+      '<div class="dirac-recovery-next-info">Request ID diisi otomatis setelah PDF dikirim. User cukup menempel Recovery Code 500 karakter dari PDF.</div>' +
       '<div class="dirac-recovery-verify-stage">' +
-      '<textarea class="dirac-recovery-verify-input dirac-recovery-combined-input" autocomplete="one-time-code" spellcheck="false" placeholder="Tempel Request ID dan recovery code/token dari PDF di sini. Contoh:\nRequest ID: ...\nRecovery code: ..."></textarea>' +
+      '<label class="dirac-recovery-field-label">Request ID</label>' +
+      '<input class="dirac-recovery-request-id-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Otomatis terisi setelah Kirim PDF recovery">' +
+      '<label class="dirac-recovery-field-label">Recovery Code dari PDF — 500 karakter</label>' +
+      '<textarea class="dirac-recovery-verify-input dirac-recovery-combined-input" autocomplete="one-time-code" autocapitalize="off" spellcheck="false" placeholder="Tempel Recovery Code 500 karakter dari PDF di sini. Bukan password PDF."></textarea>' +
+      '<div class="dirac-recovery-code-counter" aria-live="polite"><span>Recovery Code: 0/500 karakter</span><span>Tempel 500 karakter penuh</span></div>' +
       '<div class="dirac-recovery-verify-actions"><button class="dirac-recovery-verify-submit" type="button">Verifikasi recovery</button></div>' +
       '</div>' +
-      '<div class="dirac-recovery-warning">Frontend tidak memilih email tujuan. Backend selalu memakai email resmi dari database. Password penuh PDF tidak ditampilkan di HTML.</div>' +
+      '<div class="dirac-recovery-warning">Frontend tidak memilih email tujuan. Backend memakai email resmi dari database. Password penuh PDF tidak ditampilkan di HTML.</div>' +
       '<div class="dirac-recovery-verify-status" aria-live="polite"></div>';
     if(result && result.parentNode) result.parentNode.insertBefore(box, result);
     else if(preview && preview.nextSibling) container.insertBefore(box, preview.nextSibling);
@@ -8312,7 +8385,17 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     $('.dirac-recovery-request-submit', box).addEventListener('click', function(){ requestRecoveryFile(box); });
     $('.dirac-recovery-verify-submit', box).addEventListener('click', function(){ verifyRecoveryCode(box); });
     $('.dirac-recovery-hide-btn', box).addEventListener('click', function(){ hide(); });
+    var codeInput = $('.dirac-recovery-combined-input', box);
+    if(codeInput){
+      codeInput.addEventListener('input', function(){ handleRecoveryFieldInput(box); });
+      codeInput.addEventListener('paste', function(){ setTimeout(function(){ handleRecoveryFieldInput(box); }, 0); });
+    }
+    var requestInput = $('.dirac-recovery-request-id-input', box);
+    if(requestInput){
+      requestInput.addEventListener('input', function(){ requestInput.value = normalizeRequestId(requestInput.value) || String(requestInput.value || '').replace(/[^A-Za-z0-9_-]/g,''); });
+    }
     setVerifyStage(box, true);
+    updateRecoveryCodeCounter(box);
   }
 
   window.DiracRecoveryVerifyGate = { install: install, reveal: reveal, hide: hide, recordFailedA2FAttempt: recordFailedA2FAttempt };
