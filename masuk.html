@@ -8176,6 +8176,33 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     if(requestInput && requestId) requestInput.value = requestId;
     updateRecoveryCodeCounter(box);
   }
+  function buildRecoveryCodeFromWrappedTokens(raw, requestId){
+    var cleaned = String(raw || '');
+    if(requestId) cleaned = cleaned.split(requestId).join(' ');
+    var matches = cleaned.match(/[A-Za-z0-9._~+\/=\-\u2010-\u2015\u2212\uFE58\uFE63\uFF0D]{1,4000}/g) || [];
+    var parts = matches.map(function(item){ return normalizeRecoveryCodeInput(item); }).filter(function(item){
+      return item && normalizeRequestId(item) !== requestId;
+    });
+    var best = '';
+    for(var i=0;i<parts.length;i++){
+      if(parts[i].length < 20) continue;
+      var joined = '';
+      for(var j=i;j<parts.length;j++){
+        var piece = parts[j];
+        if(!piece) continue;
+        if(piece.length < 20 && (joined.length < 450 || joined.length >= 500)) continue;
+        joined += piece;
+        if(joined.length >= 500){
+          if(!best || joined.length < best.length) best = joined;
+          break;
+        }
+      }
+    }
+    if(best) return best.slice(0, 500);
+    var longOnly = parts.filter(function(item){ return item.length >= 20; }).join('');
+    if(longOnly.length >= 500) return longOnly.slice(0, 500);
+    return '';
+  }
   function parseCombinedRecoveryInput(value){
     var raw = String(value || '').trim();
     var normalizedRaw = normalizeRecoveryCodeInput(raw);
@@ -8189,15 +8216,12 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     }
     var codeLabel = raw.match(/(?:recovery[_\s-]*(?:code|token)|kode[_\s-]*recovery|reco(?:very)?\s*code|token)\s*[:=\-]\s*([A-Za-z0-9._~+\/=\-\u2010-\u2015\u2212\uFE58\uFE63\uFF0D\s]{20,4000})/i);
     if(codeLabel) code = normalizeRecoveryCodeInput(codeLabel[1]);
-    if(!code){
-      var cleaned = raw;
-      if(requestId) cleaned = cleaned.replace(requestId, ' ');
-      var tokens = cleaned.match(/[A-Za-z0-9._~+\/=\-\u2010-\u2015\u2212\uFE58\uFE63\uFF0D]{20,4000}/g) || [];
-      tokens = tokens.filter(function(item){ return normalizeRequestId(item) !== requestId; });
-      tokens.sort(function(a,b){ return normalizeRecoveryCodeInput(b).length - normalizeRecoveryCodeInput(a).length; });
-      if(tokens.length) code = normalizeRecoveryCodeInput(tokens[0]);
+    if(!code || code.length < 500){
+      var wrapped = buildRecoveryCodeFromWrappedTokens(raw, requestId);
+      if(wrapped.length === 500) code = wrapped;
     }
     if(!code && /^[A-Za-z0-9._~+\/=\-\u2010-\u2015\u2212\uFE58\uFE63\uFF0D\s]{20,4000}$/.test(raw)) code = normalizedRaw;
+    if(code && code.length > 500) code = code.slice(0, 500);
     return {requestId:requestId, code:code};
   }
   function readRecoveryFields(box){
