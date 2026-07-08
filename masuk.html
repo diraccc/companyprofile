@@ -8370,8 +8370,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
         action:'dirac_mfa_passkey_start',
         method:'passkey',
         recovery_session_token:session.recovery_session_token,
-        recoverySessionToken:session.recovery_session_token,
-        request_id:session.request_id
+        recoverySessionToken:session.recovery_session_token
       });
       if(!start || !start.publicKey || String(start.passkeyMode || '').toLowerCase() === 'authentication'){
         throw new Error('Server belum mengirim challenge pendaftaran Passkey baru.');
@@ -8391,8 +8390,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
         passkeyMode:'registration',
         credential:serialized,
         recovery_session_token:session.recovery_session_token,
-        recoverySessionToken:session.recovery_session_token,
-        request_id:session.request_id
+        recoverySessionToken:session.recovery_session_token
       });
       if(!(verify && (verify.ok === true || verify.verified === true))){ throw new Error('Server belum menerima Passkey baru.'); }
       window.__DIRAC_LOST_PASSKEY_RECOVERY_SESSION__ = Object.assign({}, session, {completed:true, completed_at:String(Date.now())});
