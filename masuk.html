@@ -3494,7 +3494,8 @@ html[data-effective-theme="light"] .footer{background:linear-gradient(180deg,#ff
 #diracRecoveryVerifyBox .dirac-recovery-verify-stage[hidden]{display:none!important}
 #diracRecoveryVerifyBox .dirac-recovery-verify-stage{margin-top:10px!important}
 #diracRecoveryVerifyBox .dirac-recovery-verify-submit,
-#diracRecoveryVerifyBox .dirac-recovery-request-submit{
+#diracRecoveryVerifyBox .dirac-recovery-request-submit,
+#diracRecoveryVerifyBox .dirac-recovery-passkey-submit{
   min-height:48px!important;border:0!important;border-radius:999px!important;padding:12px 18px!important;
   background:linear-gradient(135deg,#3b82f6,#2563eb)!important;color:#fff!important;font-weight:950!important;
   box-shadow:0 16px 34px rgba(37,99,235,.24)!important;
@@ -3528,6 +3529,17 @@ html[data-effective-theme="light"] .footer{background:linear-gradient(180deg,#ff
 #diracRecoveryVerifyBox .dirac-recovery-code-counter.is-bad{color:#b91c1c!important}
 #diracRecoveryVerifyBox .dirac-recovery-request-id-input[readonly]{
   background:#f8fafc!important;color:#334155!important;cursor:text!important;
+}
+#diracRecoveryVerifyBox .dirac-recovery-passkey-stage[hidden]{display:none!important}
+#diracRecoveryVerifyBox .dirac-recovery-passkey-stage{
+  margin-top:12px!important;padding:12px!important;border-radius:18px!important;
+  background:#ecfdf5!important;border:1px solid #bbf7d0!important;color:#065f46!important;
+}
+#diracRecoveryVerifyBox .dirac-recovery-passkey-stage strong{display:block!important;margin-bottom:4px!important;color:#065f46!important;font-size:.9rem!important;font-weight:950!important}
+#diracRecoveryVerifyBox .dirac-recovery-passkey-stage span{display:block!important;color:#047857!important;font-size:.78rem!important;line-height:1.45!important;font-weight:800!important}
+#diracRecoveryVerifyBox .dirac-recovery-passkey-submit{
+  margin-top:10px!important;background:linear-gradient(135deg,#22c55e,#16a34a)!important;
+  box-shadow:0 16px 34px rgba(22,163,74,.24)!important;
 }
 html[data-effective-theme="dark"] #diracRecoveryVerifyBox.dirac-recovery-verify-box{background:linear-gradient(180deg,#ffffff,#f8fafc)!important;border-color:#dbeafe!important;color:#111827!important}
 html[data-effective-theme="dark"] #diracRecoveryVerifyBox h3{color:#111827!important}
@@ -8121,6 +8133,57 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     }
     return headers;
   }
+  function b64UrlToArrayBuffer(value){
+    value = String(value || '').replace(/-/g,'+').replace(/_/g,'/');
+    while(value.length % 4) value += '=';
+    var binary = atob(value);
+    var bytes = new Uint8Array(binary.length);
+    for(var i=0;i<bytes.length;i++) bytes[i] = binary.charCodeAt(i);
+    return bytes.buffer;
+  }
+  function arrayBufferToB64Url(buffer){
+    var bytes = new Uint8Array(buffer || new ArrayBuffer(0));
+    var binary = '';
+    for(var i=0;i<bytes.length;i++) binary += String.fromCharCode(bytes[i]);
+    return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  }
+  function normalizePasskeyCreationOptions(publicKey){
+    publicKey = Object.assign({}, publicKey || {});
+    if(typeof publicKey.challenge === 'string') publicKey.challenge = b64UrlToArrayBuffer(publicKey.challenge);
+    if(publicKey.user && typeof publicKey.user.id === 'string') publicKey.user.id = b64UrlToArrayBuffer(publicKey.user.id);
+    if(Array.isArray(publicKey.excludeCredentials)){
+      publicKey.excludeCredentials = publicKey.excludeCredentials.map(function(item){
+        item = Object.assign({}, item || {});
+        if(typeof item.id === 'string') item.id = b64UrlToArrayBuffer(item.id);
+        return item;
+      });
+    }
+    if(Array.isArray(publicKey.allowCredentials)){
+      publicKey.allowCredentials = publicKey.allowCredentials.map(function(item){
+        item = Object.assign({}, item || {});
+        if(typeof item.id === 'string') item.id = b64UrlToArrayBuffer(item.id);
+        return item;
+      });
+    }
+    return publicKey;
+  }
+  function serializePublicKeyCredential(credential){
+    if(!credential || !credential.response) return null;
+    var out = {
+      id: credential.id || '',
+      rawId: credential.rawId ? arrayBufferToB64Url(credential.rawId) : '',
+      type: credential.type || 'public-key',
+      response: {},
+      clientExtensionResults: credential.getClientExtensionResults ? credential.getClientExtensionResults() : {}
+    };
+    if(credential.response.clientDataJSON) out.response.clientDataJSON = arrayBufferToB64Url(credential.response.clientDataJSON);
+    if(credential.response.attestationObject) out.response.attestationObject = arrayBufferToB64Url(credential.response.attestationObject);
+    if(credential.response.authenticatorData) out.response.authenticatorData = arrayBufferToB64Url(credential.response.authenticatorData);
+    if(credential.response.signature) out.response.signature = arrayBufferToB64Url(credential.response.signature);
+    if(credential.response.userHandle) out.response.userHandle = arrayBufferToB64Url(credential.response.userHandle);
+    if(credential.response.getTransports){ try{ out.response.transports = credential.response.getTransports(); }catch(_e){} }
+    return out;
+  }
   function setRecoveryMode(open){
     var modal = document.getElementById('a2fModal');
     if(modal) modal.classList.toggle('recovery-open', !!open);
@@ -8254,6 +8317,92 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     if(input && fields.code && fields.code !== String(input.value || '')) input.value = fields.code;
     updateRecoveryCodeCounter(box);
   }
+  function readRecoverySession(){
+    var session = window.__DIRAC_LOST_PASSKEY_RECOVERY_SESSION__;
+    if(!session || typeof session !== 'object') return null;
+    var token = String(session.recovery_session_token || session.recoverySessionToken || '').trim();
+    if(!/^[A-Za-z0-9_-]{24,256}$/.test(token)) return null;
+    return {
+      request_id: normalizeRequestId(session.request_id || session.requestId || ''),
+      recovery_session_token: token,
+      expires_at: String(session.expires_at || session.expiresAt || ''),
+      purpose: String(session.purpose || 'register_new_passkey')
+    };
+  }
+  function showRecoveryPasskeyStage(box){
+    var stage = $('.dirac-recovery-passkey-stage', box);
+    if(stage) stage.hidden = false;
+    var btn = $('.dirac-recovery-passkey-submit', box);
+    if(btn) btn.disabled = false;
+    try { if(stage) stage.scrollIntoView({behavior:'smooth', block:'center'}); } catch (_) {}
+  }
+  async function callRecoveryPasskeyAction(action, payload){
+    action = String(action || '').trim();
+    await refreshCsrfToken(action);
+    var res = await fetch(API_ENDPOINT + '?action=' + encodeURIComponent(action), {
+      method:'POST',
+      mode:'same-origin',
+      credentials:'include',
+      cache:'no-store',
+      headers:authHeaders(),
+      body:JSON.stringify(payload || {})
+    });
+    captureCsrfFromResponse(res);
+    var data = await res.clone().json().catch(function(){ return null; });
+    if(!res.ok || !(data && data.ok !== false)){
+      var err = new Error((data && (data.message || data.error || data.code)) || 'Passkey baru belum bisa dibuat.');
+      err.response = data;
+      err.status = res.status;
+      throw err;
+    }
+    return data;
+  }
+  async function registerRecoveryPasskey(box){
+    var session = readRecoverySession();
+    if(!session){ showStatus(box, 'Recovery session belum ada atau sudah hilang. Verifikasi recovery code ulang.', false); return; }
+    if(!navigator.credentials || !window.PublicKeyCredential){ showStatus(box, 'Browser/perangkat ini belum mendukung Passkey. Gunakan Chrome/Safari/Edge terbaru.', false); return; }
+    var btn = $('.dirac-recovery-passkey-submit', box);
+    var old = btn && btn.textContent;
+    if(btn){ btn.disabled = true; btn.textContent = 'Membuka Passkey...'; }
+    showStatus(box, 'Menyiapkan pendaftaran Passkey baru...', true);
+    try{
+      var start = await callRecoveryPasskeyAction('dirac_mfa_passkey_start', {
+        action:'dirac_mfa_passkey_start',
+        method:'passkey',
+        recovery_session_token:session.recovery_session_token,
+        recoverySessionToken:session.recovery_session_token,
+        request_id:session.request_id
+      });
+      if(!start || !start.publicKey || String(start.passkeyMode || '').toLowerCase() === 'authentication'){
+        throw new Error('Server belum mengirim challenge pendaftaran Passkey baru.');
+      }
+      showStatus(box, 'Ikuti Face ID, sidik jari, atau PIN untuk membuat Passkey baru.', true);
+      var credential = await navigator.credentials.create({publicKey:normalizePasskeyCreationOptions(start.publicKey)});
+      var serialized = serializePublicKeyCredential(credential);
+      if(!serialized){ throw new Error('Browser tidak mengirim data Passkey lengkap.'); }
+      if(btn) btn.textContent = 'Menyimpan Passkey...';
+      var setupToken = String(start.setupToken || start.mfaSetupToken || start.token || '').trim();
+      var verify = await callRecoveryPasskeyAction('dirac_mfa_passkey_verify', {
+        action:'dirac_mfa_passkey_verify',
+        method:'passkey',
+        setupToken:setupToken,
+        mfaSetupToken:setupToken,
+        token:setupToken,
+        passkeyMode:'registration',
+        credential:serialized,
+        recovery_session_token:session.recovery_session_token,
+        recoverySessionToken:session.recovery_session_token,
+        request_id:session.request_id
+      });
+      if(!(verify && (verify.ok === true || verify.verified === true))){ throw new Error('Server belum menerima Passkey baru.'); }
+      window.__DIRAC_LOST_PASSKEY_RECOVERY_SESSION__ = Object.assign({}, session, {completed:true, completed_at:String(Date.now())});
+      showStatus(box, 'Passkey baru berhasil dibuat. Passkey lama dinonaktifkan oleh server. Silakan lanjut login/dashboard sesuai alur halaman.', true);
+      if(btn){ btn.textContent = 'Passkey baru berhasil dibuat'; btn.disabled = true; }
+    }catch(e){
+      showStatus(box, e && e.message ? e.message : 'Pendaftaran Passkey baru gagal. Coba lagi.', false);
+      if(btn){ btn.disabled = false; btn.textContent = old || 'Daftar Passkey Baru'; }
+    }
+  }
   async function requestRecoveryFile(box){
     var passwordInput = $('.dirac-recovery-account-password-input', box);
     var accountPassword = passwordInput ? String(passwordInput.value || '') : '';
@@ -8330,7 +8479,8 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
         expires_at: data.recovery_session_expires_at || '',
         purpose: data.purpose || 'register_new_passkey'
       };
-      showStatus(box, 'Recovery valid. Session terbatas dibuat untuk daftar Passkey baru. Dashboard tidak dibuka dari recovery ini.', true);
+      showStatus(box, 'Recovery valid. Lanjutkan dengan tombol Daftar Passkey Baru di bawah. Dashboard tidak dibuka dari recovery ini.', true);
+      showRecoveryPasskeyStage(box);
       if(combinedInput) combinedInput.value = '';
     }catch(e){
       showStatus(box, recoveryFriendlyMessage(e && e.message, window.__diracLastRecoveryVerifyData || null, window.__diracLastRecoveryVerifyStatus || 0), false);
@@ -8363,6 +8513,8 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     var combinedInput = $('.dirac-recovery-combined-input', box); if(combinedInput) combinedInput.value = '';
     updateRecoveryCodeCounter(box);
     setWebsiteCode(box, '');
+    var passkeyStage = $('.dirac-recovery-passkey-stage', box); if(passkeyStage) passkeyStage.hidden = true;
+    var passkeyBtn = $('.dirac-recovery-passkey-submit', box); if(passkeyBtn){ passkeyBtn.disabled = false; passkeyBtn.textContent = 'Daftar Passkey Baru'; }
     showStatus(box, '', true);
   }
   function recordFailedA2FAttempt(count){
@@ -8401,6 +8553,11 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       '<div class="dirac-recovery-code-counter" aria-live="polite"><span>Recovery Code: 0/500 karakter</span><span>Tempel 500 karakter penuh</span></div>' +
       '<div class="dirac-recovery-verify-actions"><button class="dirac-recovery-verify-submit" type="button">Verifikasi recovery</button></div>' +
       '</div>' +
+      '<div class="dirac-recovery-passkey-stage" hidden>' +
+      '<strong>Langkah 5: Daftar Passkey baru</strong>' +
+      '<span>Recovery sudah valid. Tekan tombol ini, lalu ikuti Face ID, sidik jari, atau PIN. Passkey lama akan dinonaktifkan oleh server setelah Passkey baru berhasil tersimpan.</span>' +
+      '<button class="dirac-recovery-passkey-submit" type="button">Daftar Passkey Baru</button>' +
+      '</div>' +
       '<div class="dirac-recovery-warning">Frontend tidak memilih email tujuan. Backend memakai email resmi dari database. Password penuh PDF tidak ditampilkan di HTML.</div>' +
       '<div class="dirac-recovery-verify-status" aria-live="polite"></div>';
     if(result && result.parentNode) result.parentNode.insertBefore(box, result);
@@ -8408,6 +8565,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     else container.appendChild(box);
     $('.dirac-recovery-request-submit', box).addEventListener('click', function(){ requestRecoveryFile(box); });
     $('.dirac-recovery-verify-submit', box).addEventListener('click', function(){ verifyRecoveryCode(box); });
+    $('.dirac-recovery-passkey-submit', box).addEventListener('click', function(){ registerRecoveryPasskey(box); });
     $('.dirac-recovery-hide-btn', box).addEventListener('click', function(){ hide(); });
     var codeInput = $('.dirac-recovery-combined-input', box);
     if(codeInput){
