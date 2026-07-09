@@ -6072,9 +6072,6 @@ function customerSecurityRecoveryWorkerMainEnvDiagnostics() {
     'DIRAC_RECOVERY_WORKER_CLOCK_SKEW_SECONDS',
     'DIRAC_LOST_PASSKEY_ARGON2_MEMORY_KIB',
     'DIRAC_LOST_PASSKEY_ARGON2_TIME_COST',
-    'DIRAC_LOST_PASSKEY_ARGON2_PARALLELISM',
-    'DIRAC_LOST_PASSKEY_ROOT_SECRET',
-    'DIRAC_LOST_PASSKEY_DB_PEPPER',
     'DIRAC_LOST_PASSKEY_MAX_RUNNING',
     'DIRAC_LOST_PASSKEY_QUEUE_MAX',
     'DIRAC_LOST_PASSKEY_PROCESSING_LOCK_TTL_SECONDS'
@@ -28031,10 +28028,10 @@ function diracCentralContractForActionV146(action) {
   const recoveryVerifyPost = { methods: ['POST'], allowed: ['action', 'request_id', 'recovery_code', 'code', 'csrf', 'nonce', 'idempotency_key'], required: ['request_id'], maxBodyBytes: 4096, maxFieldBytes: 1200, mutation: true };
   const recoveryWorkerPost = {
     methods: ['POST'],
-    allowed: ['action', 'worker_action', 'caller_id', 'nonce', 'auth_user_id', 'customer_id', 'email', 'email_binding_hash', 'customer_binding_hash', 'auth_user_binding_hash', 'device_binding_hash', 'session_hash', 'ip_hash', 'user_agent_hash', 'active_passkey_count', 'requested_at', 'password_latest_material', 'password_latest_proof', 'request_id', 'recovery_code', 'code'],
-    required: ['action', 'worker_action', 'caller_id', 'nonce', 'auth_user_id', 'customer_id', 'email', 'email_binding_hash', 'customer_binding_hash', 'auth_user_binding_hash', 'device_binding_hash', 'session_hash', 'ip_hash', 'user_agent_hash'],
+    allowed: ['action', 'worker_action', 'auth_user_id', 'customer_id', 'email', 'email_binding_hash', 'customer_binding_hash', 'auth_user_binding_hash', 'device_binding_hash', 'ip_hash', 'user_agent_hash', 'active_passkey_count', 'requested_at', 'account_password', 'request_id', 'recovery_code', 'code'],
+    required: ['action', 'worker_action', 'auth_user_id', 'customer_id', 'email', 'email_binding_hash', 'customer_binding_hash', 'auth_user_binding_hash', 'device_binding_hash', 'ip_hash', 'user_agent_hash'],
     maxBodyBytes: customerSecurityRecoveryWorkerMaxBodyBytes(),
-    maxFieldBytes: 4096,
+    maxFieldBytes: 1024,
     mutation: true,
     allowProtectedFields: true
   };
