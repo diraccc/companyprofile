@@ -8268,9 +8268,45 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     if(!data || typeof data !== 'object') return '';
     return String(data.website_recovery_code || data.websiteRecoveryCode || data.recovery_website_code || data.pdf_website_code || data.pdf_code || '').trim();
   }
+  function pickRecoveryFieldDeep(data, keys){
+    var seen = [];
+    function valueFrom(obj){
+      if(!obj || typeof obj !== 'object') return '';
+      for(var i=0;i<keys.length;i++){
+        var key = keys[i];
+        if(Object.prototype.hasOwnProperty.call(obj, key)){
+          var value = String(obj[key] == null ? '' : obj[key]).trim();
+          if(value) return value;
+        }
+      }
+      return '';
+    }
+    function walk(obj, depth){
+      if(!obj || typeof obj !== 'object' || depth > 4) return '';
+      if(seen.indexOf(obj) !== -1) return '';
+      seen.push(obj);
+      var direct = valueFrom(obj);
+      if(direct) return direct;
+      var preferred = ['data','result','payload','response','body','worker','worker_result','workerResult','server2','server_2','recovery','recovery_data','recoveryData'];
+      for(var i=0;i<preferred.length;i++){
+        var nested = walk(obj[preferred[i]], depth + 1);
+        if(nested) return nested;
+      }
+      var names;
+      try{ names = Object.keys(obj); }catch(_){ names = []; }
+      for(var j=0;j<names.length;j++){
+        var child = obj[names[j]];
+        if(child && typeof child === 'object'){
+          var found = walk(child, depth + 1);
+          if(found) return found;
+        }
+      }
+      return '';
+    }
+    return walk(data, 0);
+  }
   function pickActivationCode(data){
-    if(!data || typeof data !== 'object') return '';
-    return String(data.activation_code || data.activationCode || data.recovery_activation_code || data.recoveryActivationCode || data.package_activation_code || data.packageActivationCode || data.offline_activation_code || data.offlineActivationCode || data.pdf_activation_code || data.pdfActivationCode || '').trim();
+    return pickRecoveryFieldDeep(data, ['activation_code','activationCode','recovery_activation_code','recoveryActivationCode','package_activation_code','packageActivationCode','offline_activation_code','offlineActivationCode','pdf_activation_code','pdfActivationCode']);
   }
   async function copyRecoverySecret(box, kind){
     kind = String(kind || '').trim();
@@ -8498,7 +8534,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       setRecoverySecrets(box, websiteCode, activationCode);
       prefillCombinedInput(box, requestId);
       setVerifyStage(box, true);
-      showStatus(box, 'Request disetujui. PDF terenkripsi sudah dikirim. Kode website dan Activation code sudah muncul; gunakan tombol Salin agar tidak salah copy.', true);
+      showStatus(box, activationCode ? 'Request disetujui. PDF terenkripsi sudah dikirim. Kode website dan Activation code sudah muncul; gunakan tombol Salin agar tidak salah copy.' : 'Request disetujui. PDF terenkripsi sudah dikirim. Kode website muncul, tetapi Activation code belum diterima dari response backend.', true);
     }catch(e){
       setVerifyStage(box, true);
       showStatus(box, recoveryFriendlyMessage(e && e.message, null, 0), false);
