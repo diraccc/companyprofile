@@ -3553,11 +3553,35 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-reques
 }
 #diracRecoveryVerifyBox .dirac-recovery-account-password-input:focus{border-color:#2563eb!important;box-shadow:0 0 0 4px rgba(37,99,235,.12)!important}
 #diracRecoveryVerifyBox .dirac-recovery-website-code-box{
-  display:none;margin:10px 0 0!important;padding:10px 12px!important;border-radius:16px!important;
+  display:none;margin:10px 0 0!important;padding:12px!important;border-radius:18px!important;
   background:#ecfdf5!important;border:1px solid #bbf7d0!important;color:#14532d!important;font-size:.8rem!important;line-height:1.45!important;font-weight:850!important;
+  max-width:100%!important;overflow:hidden!important;
 }
 #diracRecoveryVerifyBox .dirac-recovery-website-code-box.is-shown{display:block!important}
-#diracRecoveryVerifyBox .dirac-recovery-website-code-text{font-family:ui-monospace,SFMono-Regular,Menlo,monospace!important;font-weight:950!important;color:#166534!important}
+#diracRecoveryVerifyBox .dirac-recovery-secret-grid{display:grid!important;gap:10px!important;max-width:100%!important;overflow:hidden!important}
+#diracRecoveryVerifyBox .dirac-recovery-secret-card{
+  display:grid!important;gap:7px!important;padding:10px 11px!important;border-radius:16px!important;
+  background:#f0fdf4!important;border:1px solid #bbf7d0!important;max-width:100%!important;overflow:hidden!important;
+}
+#diracRecoveryVerifyBox .dirac-recovery-secret-card.is-hidden{display:none!important}
+#diracRecoveryVerifyBox .dirac-recovery-secret-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;min-width:0!important}
+#diracRecoveryVerifyBox .dirac-recovery-secret-label{color:#14532d!important;font-size:.78rem!important;font-weight:950!important;line-height:1.25!important}
+#diracRecoveryVerifyBox .dirac-recovery-secret-value{
+  display:block!important;width:100%!important;max-width:100%!important;margin:0!important;padding:9px 10px!important;border-radius:13px!important;
+  background:#ffffff!important;border:1px dashed #86efac!important;color:#166534!important;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace!important;font-size:.78rem!important;font-weight:950!important;line-height:1.38!important;
+  white-space:normal!important;overflow-wrap:anywhere!important;word-break:break-word!important;user-select:all!important;overflow:hidden!important;
+}
+#diracRecoveryVerifyBox .dirac-recovery-website-code-text{color:#166534!important}
+#diracRecoveryVerifyBox .dirac-recovery-copy-btn{
+  flex:0 0 auto!important;min-height:32px!important;border:1px solid #bbf7d0!important;border-radius:999px!important;background:#ffffff!important;
+  color:#166534!important;padding:6px 10px!important;font-size:.74rem!important;font-weight:950!important;box-shadow:none!important;
+}
+#diracRecoveryVerifyBox .dirac-recovery-secret-hint{display:block!important;margin-top:7px!important;color:#047857!important;font-size:.74rem!important;line-height:1.38!important;font-weight:850!important}
+@media(max-width:430px){
+  #diracRecoveryVerifyBox .dirac-recovery-secret-head{align-items:flex-start!important;flex-direction:column!important}
+  #diracRecoveryVerifyBox .dirac-recovery-copy-btn{width:100%!important}
+}
 html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-account-password-input{background:#ffffff!important;color:#111827!important;border-color:#bfdbfe!important}
 @keyframes diracRecoverySlideIn{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
 </style>
@@ -8218,16 +8242,55 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       if(el) el.disabled = false;
     });
   }
-  function setWebsiteCode(box, value){
-    var wrap = $('.dirac-recovery-website-code-box', box);
-    var text = $('.dirac-recovery-website-code-text', box);
+  function setSecretText(box, selector, value){
+    var el = $(selector, box);
     value = String(value || '').trim();
-    if(text) text.textContent = value || '-';
-    if(wrap) wrap.classList.toggle('is-shown', !!value);
+    if(el){
+      el.textContent = value || '-';
+      el.setAttribute('data-copy-value', value);
+      el.setAttribute('title', value || '');
+    }
+  }
+  function setRecoverySecrets(box, websiteCode, activationCode){
+    var wrap = $('.dirac-recovery-website-code-box', box);
+    var activationCard = $('[data-recovery-secret-card="activation"]', box);
+    websiteCode = String(websiteCode || '').trim();
+    activationCode = String(activationCode || '').trim();
+    setSecretText(box, '.dirac-recovery-website-code-text', websiteCode);
+    setSecretText(box, '.dirac-recovery-activation-code-text', activationCode);
+    if(activationCard) activationCard.classList.toggle('is-hidden', !activationCode);
+    if(wrap) wrap.classList.toggle('is-shown', !!(websiteCode || activationCode));
+  }
+  function setWebsiteCode(box, value){
+    setRecoverySecrets(box, value, '');
   }
   function pickWebsiteCode(data){
     if(!data || typeof data !== 'object') return '';
     return String(data.website_recovery_code || data.websiteRecoveryCode || data.recovery_website_code || data.pdf_website_code || data.pdf_code || '').trim();
+  }
+  function pickActivationCode(data){
+    if(!data || typeof data !== 'object') return '';
+    return String(data.activation_code || data.activationCode || data.recovery_activation_code || data.recoveryActivationCode || data.package_activation_code || data.packageActivationCode || data.offline_activation_code || data.offlineActivationCode || data.pdf_activation_code || data.pdfActivationCode || '').trim();
+  }
+  async function copyRecoverySecret(box, kind){
+    kind = String(kind || '').trim();
+    var selector = kind === 'activation' ? '.dirac-recovery-activation-code-text' : '.dirac-recovery-website-code-text';
+    var label = kind === 'activation' ? 'Activation code' : 'Kode website';
+    var el = $(selector, box);
+    var value = el ? String(el.getAttribute('data-copy-value') || el.textContent || '').trim() : '';
+    if(!value || value === '-'){ showStatus(box, label + ' belum tersedia.', false); return; }
+    try{
+      if(navigator.clipboard && window.isSecureContext){
+        await navigator.clipboard.writeText(value);
+      }else{
+        var ta = document.createElement('textarea');
+        ta.value = value; ta.setAttribute('readonly',''); ta.style.position='fixed'; ta.style.left='-9999px';
+        document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+      }
+      showStatus(box, label + ' berhasil disalin.', true);
+    }catch(_){
+      showStatus(box, 'Gagal menyalin otomatis. Tekan dan tahan kode, lalu salin manual.', false);
+    }
   }
   function pickRequestId(data){
     if(!data || typeof data !== 'object') return '';
@@ -8409,7 +8472,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     var old = btn && btn.textContent;
     if(btn){ btn.disabled = true; btn.textContent = 'Mengirim PDF...'; }
     setVerifyStage(box, true);
-    setWebsiteCode(box, '');
+    setRecoverySecrets(box, '', '');
     showStatus(box, 'Mengirim request ke backend. Email tujuan selalu diambil dari database.', true);
     try{
       await refreshCsrfToken('customer_security_recovery_codes_generate');
@@ -8431,10 +8494,11 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       if(!res.ok || !(data && data.ok === true)) throw new Error((data && (data.message || data.error || data.code)) || 'Request recovery ditolak.');
       var requestId = pickRequestId(data);
       var websiteCode = pickWebsiteCode(data);
-      setWebsiteCode(box, websiteCode);
+      var activationCode = pickActivationCode(data);
+      setRecoverySecrets(box, websiteCode, activationCode);
       prefillCombinedInput(box, requestId);
       setVerifyStage(box, true);
-      showStatus(box, 'Request disetujui. PDF terenkripsi sudah dikirim. Request ID sudah otomatis terisi; kamu cukup tempel Recovery Code 500 karakter dari PDF di kotak besar.', true);
+      showStatus(box, 'Request disetujui. PDF terenkripsi sudah dikirim. Kode website dan Activation code sudah muncul; gunakan tombol Salin agar tidak salah copy.', true);
     }catch(e){
       setVerifyStage(box, true);
       showStatus(box, recoveryFriendlyMessage(e && e.message, null, 0), false);
@@ -8510,7 +8574,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     var requestInput = $('.dirac-recovery-request-id-input', box); if(requestInput) requestInput.value = '';
     var combinedInput = $('.dirac-recovery-combined-input', box); if(combinedInput) combinedInput.value = '';
     updateRecoveryCodeCounter(box);
-    setWebsiteCode(box, '');
+    setRecoverySecrets(box, '', '');
     var passkeyStage = $('.dirac-recovery-passkey-stage', box); if(passkeyStage) passkeyStage.hidden = true;
     var passkeyBtn = $('.dirac-recovery-passkey-submit', box); if(passkeyBtn){ passkeyBtn.disabled = false; passkeyBtn.textContent = 'Daftar Passkey Baru'; }
     showStatus(box, '', true);
@@ -8541,7 +8605,20 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       '<label class="dirac-recovery-field-label">Password akun sekarang</label>' +
       '<input class="dirac-recovery-account-password-input" type="password" autocomplete="current-password" placeholder="Password login akun ini">' +
       '<div class="dirac-recovery-verify-actions"><button class="dirac-recovery-request-submit" type="button">Kirim PDF recovery</button><button class="dirac-recovery-hide-btn" type="button">Tutup</button></div>' +
-      '<div class="dirac-recovery-website-code-box">Kode website untuk password PDF: <span class="dirac-recovery-website-code-text">-</span>. Gabungkan tanpa spasi: kode website + 2 digit kode email + password akun.</div>' +
+      '<div class="dirac-recovery-website-code-box" aria-live="polite">' +
+      '<div class="dirac-recovery-secret-grid">' +
+      '<div class="dirac-recovery-secret-card" data-recovery-secret-card="website">' +
+      '<div class="dirac-recovery-secret-head"><span class="dirac-recovery-secret-label">Kode website untuk password PDF</span><button class="dirac-recovery-copy-btn" type="button" data-dirac-recovery-copy="website">Salin</button></div>' +
+      '<code class="dirac-recovery-website-code-text dirac-recovery-secret-value">-</code>' +
+      '<small class="dirac-recovery-secret-hint">Gabungkan tanpa spasi: kode website + 2 digit kode email + password akun.</small>' +
+      '</div>' +
+      '<div class="dirac-recovery-secret-card is-hidden" data-recovery-secret-card="activation">' +
+      '<div class="dirac-recovery-secret-head"><span class="dirac-recovery-secret-label">Activation code</span><button class="dirac-recovery-copy-btn" type="button" data-dirac-recovery-copy="activation">Salin</button></div>' +
+      '<code class="dirac-recovery-activation-code-text dirac-recovery-secret-value">-</code>' +
+      '<small class="dirac-recovery-secret-hint">Dipakai untuk membuka package recovery offline. Jangan kirim ke orang lain.</small>' +
+      '</div>' +
+      '</div>' +
+      '</div>' +
       '<div class="dirac-recovery-next-info">Request ID diisi otomatis setelah PDF dikirim. User cukup menempel Recovery Code 500 karakter dari PDF.</div>' +
       '<div class="dirac-recovery-verify-stage">' +
       '<label class="dirac-recovery-field-label">Request ID</label>' +
@@ -8565,6 +8642,12 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     $('.dirac-recovery-verify-submit', box).addEventListener('click', function(){ verifyRecoveryCode(box); });
     $('.dirac-recovery-passkey-submit', box).addEventListener('click', function(){ registerRecoveryPasskey(box); });
     $('.dirac-recovery-hide-btn', box).addEventListener('click', function(){ hide(); });
+    box.addEventListener('click', function(e){
+      var copyBtn = e.target && e.target.closest ? e.target.closest('[data-dirac-recovery-copy]') : null;
+      if(!copyBtn || !box.contains(copyBtn)) return;
+      e.preventDefault(); e.stopPropagation();
+      copyRecoverySecret(box, copyBtn.getAttribute('data-dirac-recovery-copy'));
+    }, true);
     var codeInput = $('.dirac-recovery-combined-input', box);
     if(codeInput){
       codeInput.addEventListener('input', function(){ handleRecoveryFieldInput(box); });
