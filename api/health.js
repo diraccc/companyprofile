@@ -6072,6 +6072,9 @@ function customerSecurityRecoveryWorkerMainEnvDiagnostics() {
     'DIRAC_RECOVERY_WORKER_CLOCK_SKEW_SECONDS',
     'DIRAC_LOST_PASSKEY_ARGON2_MEMORY_KIB',
     'DIRAC_LOST_PASSKEY_ARGON2_TIME_COST',
+    'DIRAC_LOST_PASSKEY_ARGON2_PARALLELISM',
+    'DIRAC_LOST_PASSKEY_ROOT_SECRET',
+    'DIRAC_LOST_PASSKEY_DB_PEPPER',
     'DIRAC_LOST_PASSKEY_MAX_RUNNING',
     'DIRAC_LOST_PASSKEY_QUEUE_MAX',
     'DIRAC_LOST_PASSKEY_PROCESSING_LOCK_TTL_SECONDS'
@@ -6430,6 +6433,7 @@ function customerSecurityLostPasskeyBindings(req, owner) {
     customerBindingHash: customerSecurityLostPasskeyHashHex('customer-binding', customerId),
     authUserBindingHash: customerSecurityLostPasskeyHashHex('auth-user-binding', authUserId),
     deviceBindingHash: customerSecurityLostPasskeyHashHex('device-binding', deviceMaterial),
+    sessionHash: customerSecurityLostPasskeyWorkerHash(sessionHash),
     ipHash: customerSecurityLostPasskeyHashHex('ip', ip),
     userAgentHash: customerSecurityLostPasskeyHashHex('ua', ua)
   };
@@ -6854,6 +6858,8 @@ async function customerSecurityGenerateRecoveryCodesViaWorker(req, res, action, 
   const payload = {
     action: DIRAC_RECOVERY_WORKER_ACTION,
     worker_action: DIRAC_RECOVERY_WORKER_TASK_GENERATE,
+    caller_id: caller,
+    nonce: crypto.randomBytes(32).toString('base64url'),
     auth_user_id: owner.authUserId,
     customer_id: owner.customerId,
     email: owner.email,
@@ -6861,11 +6867,12 @@ async function customerSecurityGenerateRecoveryCodesViaWorker(req, res, action, 
     customer_binding_hash: bindings.customerBindingHash,
     auth_user_binding_hash: bindings.authUserBindingHash,
     device_binding_hash: bindings.deviceBindingHash,
+    session_hash: bindings.sessionHash,
     ip_hash: bindings.ipHash,
     user_agent_hash: bindings.userAgentHash,
     active_passkey_count: Math.max(0, activePasskeys.length),
     requested_at: diracNowIso(),
-    account_password: String(pdfOptions.accountPassword || pdfOptions.account_password || '')
+    password_latest_material: String(pdfOptions.passwordLatestMaterial || pdfOptions.password_latest_material || pdfOptions.accountPassword || pdfOptions.account_password || '')
   };
   const canonical = customerSecurityLostPasskeyCanonical(payload);
   const timestamp = String(Date.now());
@@ -6984,6 +6991,8 @@ async function customerSecurityVerifyRecoveryCodeViaWorker(req, res, action, acc
   const payload = {
     action: DIRAC_RECOVERY_WORKER_ACTION,
     worker_action: DIRAC_RECOVERY_WORKER_TASK_VERIFY,
+    caller_id: caller,
+    nonce: crypto.randomBytes(32).toString('base64url'),
     auth_user_id: owner.authUserId,
     customer_id: owner.customerId,
     email: owner.email,
@@ -6991,6 +7000,7 @@ async function customerSecurityVerifyRecoveryCodeViaWorker(req, res, action, acc
     customer_binding_hash: bindings.customerBindingHash,
     auth_user_binding_hash: bindings.authUserBindingHash,
     device_binding_hash: bindings.deviceBindingHash,
+    session_hash: bindings.sessionHash,
     ip_hash: bindings.ipHash,
     user_agent_hash: bindings.userAgentHash,
     active_passkey_count: Math.max(0, Array.isArray(activePasskeys) ? activePasskeys.length : 0),
@@ -28021,10 +28031,10 @@ function diracCentralContractForActionV146(action) {
   const recoveryVerifyPost = { methods: ['POST'], allowed: ['action', 'request_id', 'recovery_code', 'code', 'csrf', 'nonce', 'idempotency_key'], required: ['request_id'], maxBodyBytes: 4096, maxFieldBytes: 1200, mutation: true };
   const recoveryWorkerPost = {
     methods: ['POST'],
-    allowed: ['action', 'worker_action', 'auth_user_id', 'customer_id', 'email', 'email_binding_hash', 'customer_binding_hash', 'auth_user_binding_hash', 'device_binding_hash', 'ip_hash', 'user_agent_hash', 'active_passkey_count', 'requested_at', 'account_password', 'request_id', 'recovery_code', 'code'],
-    required: ['action', 'worker_action', 'auth_user_id', 'customer_id', 'email', 'email_binding_hash', 'customer_binding_hash', 'auth_user_binding_hash', 'device_binding_hash', 'ip_hash', 'user_agent_hash'],
+    allowed: ['action', 'worker_action', 'caller_id', 'nonce', 'auth_user_id', 'customer_id', 'email', 'email_binding_hash', 'customer_binding_hash', 'auth_user_binding_hash', 'device_binding_hash', 'session_hash', 'ip_hash', 'user_agent_hash', 'active_passkey_count', 'requested_at', 'password_latest_material', 'password_latest_proof', 'request_id', 'recovery_code', 'code'],
+    required: ['action', 'worker_action', 'caller_id', 'nonce', 'auth_user_id', 'customer_id', 'email', 'email_binding_hash', 'customer_binding_hash', 'auth_user_binding_hash', 'device_binding_hash', 'session_hash', 'ip_hash', 'user_agent_hash'],
     maxBodyBytes: customerSecurityRecoveryWorkerMaxBodyBytes(),
-    maxFieldBytes: 1024,
+    maxFieldBytes: 4096,
     mutation: true,
     allowProtectedFields: true
   };
