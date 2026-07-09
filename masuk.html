@@ -8251,22 +8251,21 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       el.setAttribute('title', value || '');
     }
   }
-  function setRecoverySecrets(box, websiteCode, activationCode){
+  function setRecoverySecrets(box, websiteCode){
     var wrap = $('.dirac-recovery-website-code-box', box);
-    var activationCard = $('[data-recovery-secret-card="activation"]', box);
     websiteCode = String(websiteCode || '').trim();
-    activationCode = String(activationCode || '').trim();
     setSecretText(box, '.dirac-recovery-website-code-text', websiteCode);
-    setSecretText(box, '.dirac-recovery-activation-code-text', activationCode);
-    if(activationCard) activationCard.classList.toggle('is-hidden', !activationCode);
-    if(wrap) wrap.classList.toggle('is-shown', !!(websiteCode || activationCode));
+    if(wrap) wrap.classList.toggle('is-shown', !!websiteCode);
   }
   function setWebsiteCode(box, value){
     setRecoverySecrets(box, value, '');
   }
   function pickWebsiteCode(data){
-    if(!data || typeof data !== 'object') return '';
-    return String(data.website_recovery_code || data.websiteRecoveryCode || data.recovery_website_code || data.pdf_website_code || data.pdf_code || '').trim();
+    var value = pickRecoveryFieldDeep(data, ['website_recovery_code','websiteRecoveryCode','recovery_website_code','recoveryWebsiteCode','pdf_website_code','pdfWebsiteCode','pdf_code','pdfCode']);
+    value = String(value || '').trim();
+    if(!value || /\[redacted/i.test(value)) return '';
+    if(!/^[A-Za-z0-9_-]{100}$/.test(value)) return '';
+    return value;
   }
   function pickRecoveryFieldDeep(data, keys){
     var seen = [];
@@ -8305,13 +8304,10 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     }
     return walk(data, 0);
   }
-  function pickActivationCode(data){
-    return pickRecoveryFieldDeep(data, ['activation_code','activationCode','recovery_activation_code','recoveryActivationCode','package_activation_code','packageActivationCode','offline_activation_code','offlineActivationCode','pdf_activation_code','pdfActivationCode']);
-  }
   async function copyRecoverySecret(box, kind){
-    kind = String(kind || '').trim();
-    var selector = kind === 'activation' ? '.dirac-recovery-activation-code-text' : '.dirac-recovery-website-code-text';
-    var label = kind === 'activation' ? 'Activation code' : 'Kode website';
+    kind = 'website';
+    var selector = '.dirac-recovery-website-code-text';
+    var label = 'Kode website';
     var el = $(selector, box);
     var value = el ? String(el.getAttribute('data-copy-value') || el.textContent || '').trim() : '';
     if(!value || value === '-'){ showStatus(box, label + ' belum tersedia.', false); return; }
@@ -8530,11 +8526,10 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       if(!res.ok || !(data && data.ok === true)) throw new Error((data && (data.message || data.error || data.code)) || 'Request recovery ditolak.');
       var requestId = pickRequestId(data);
       var websiteCode = pickWebsiteCode(data);
-      var activationCode = pickActivationCode(data);
-      setRecoverySecrets(box, websiteCode, activationCode);
+      setRecoverySecrets(box, websiteCode);
       prefillCombinedInput(box, requestId);
       setVerifyStage(box, true);
-      showStatus(box, activationCode ? 'Request disetujui. PDF terenkripsi sudah dikirim. Kode website dan Activation code sudah muncul; gunakan tombol Salin agar tidak salah copy.' : 'Request disetujui. PDF terenkripsi sudah dikirim. Kode website muncul, tetapi Activation code belum diterima dari response backend.', true);
+      showStatus(box, websiteCode ? 'Request disetujui. PDF terenkripsi sudah dikirim. Kode website 100 karakter sudah muncul; gunakan tombol Salin agar tidak salah copy.' : 'Request disetujui. PDF terenkripsi sudah dikirim, tetapi kode website 100 karakter belum diterima lengkap dari backend.', !!websiteCode);
     }catch(e){
       setVerifyStage(box, true);
       showStatus(box, recoveryFriendlyMessage(e && e.message, null, 0), false);
@@ -8648,11 +8643,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       '<code class="dirac-recovery-website-code-text dirac-recovery-secret-value">-</code>' +
       '<small class="dirac-recovery-secret-hint">Gabungkan tanpa spasi: kode website + 2 digit kode email + password akun.</small>' +
       '</div>' +
-      '<div class="dirac-recovery-secret-card is-hidden" data-recovery-secret-card="activation">' +
-      '<div class="dirac-recovery-secret-head"><span class="dirac-recovery-secret-label">Activation code</span><button class="dirac-recovery-copy-btn" type="button" data-dirac-recovery-copy="activation">Salin</button></div>' +
-      '<code class="dirac-recovery-activation-code-text dirac-recovery-secret-value">-</code>' +
-      '<small class="dirac-recovery-secret-hint">Dipakai untuk membuka package recovery offline. Jangan kirim ke orang lain.</small>' +
-      '</div>' +
+
       '</div>' +
       '</div>' +
       '<div class="dirac-recovery-next-info">Request ID diisi otomatis setelah PDF dikirim. User cukup menempel Recovery Code 500 karakter dari PDF.</div>' +
