@@ -3531,6 +3531,7 @@ html[data-effective-theme="light"] .footer{background:linear-gradient(180deg,#ff
   background:#f8fafc!important;color:#334155!important;cursor:text!important;
 }
 #diracRecoveryVerifyBox .dirac-recovery-passkey-stage[hidden]{display:none!important}
+#diracRecoveryVerifyBox .dirac-recovery-passkey-stage.is-ready{display:block!important}
 #diracRecoveryVerifyBox .dirac-recovery-passkey-stage{
   margin-top:12px!important;padding:12px!important;border-radius:18px!important;
   background:#ecfdf5!important;border:1px solid #bbf7d0!important;color:#065f46!important;
@@ -8268,6 +8269,19 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     if(!/^[A-Za-z0-9_-]{100}$/.test(value)) return '';
     return value;
   }
+  function pickRecoverySessionToken(data){
+    var value = pickRecoveryFieldDeep(data, [
+      'recovery_session_token','recoverySessionToken',
+      'lost_passkey_recovery_session_token','lostPasskeyRecoverySessionToken',
+      'dirac_lost_passkey_recovery_session','diracLostPasskeyRecoverySession'
+    ]);
+    value = String(value || '').trim();
+    return /^[A-Za-z0-9_-]{24,256}$/.test(value) ? value : '';
+  }
+  function pickRecoverySessionExpiresAt(data){
+    var value = pickRecoveryFieldDeep(data, ['recovery_session_expires_at','recoverySessionExpiresAt','expires_at','expiresAt']);
+    return String(value || '').trim();
+  }
   function pickRecoveryFieldDeep(data, keys){
     var seen = [];
     function valueFrom(obj){
@@ -8427,10 +8441,21 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
   }
   function showRecoveryPasskeyStage(box){
     var stage = $('.dirac-recovery-passkey-stage', box);
-    if(stage) stage.hidden = false;
+    if(stage){
+      stage.hidden = false;
+      stage.removeAttribute('hidden');
+      stage.setAttribute('aria-hidden','false');
+      stage.classList.add('is-ready');
+      stage.style.display = 'block';
+    }
     var btn = $('.dirac-recovery-passkey-submit', box);
-    if(btn) btn.disabled = false;
+    if(btn){
+      btn.disabled = false;
+      btn.removeAttribute('disabled');
+      if(!String(btn.textContent || '').trim()) btn.textContent = 'Daftar Passkey Baru';
+    }
     try { if(stage) stage.scrollIntoView({behavior:'smooth', block:'center'}); } catch (_) {}
+    setTimeout(function(){ try{ if(stage) stage.scrollIntoView({behavior:'smooth', block:'center'}); }catch(_){} }, 80);
   }
   async function callRecoveryPasskeyAction(action, payload){
     action = String(action || '').trim();
@@ -8564,17 +8589,21 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       var data = await res.clone().json().catch(function(){ return null; });
       window.__diracLastRecoveryVerifyData = data || null;
       window.__diracLastRecoveryVerifyStatus = res.status || 0;
-      if(!res.ok || !(data && data.ok === true && data.recovery_session_token)){
+      var recoverySessionToken = pickRecoverySessionToken(data);
+      if(!res.ok || !(data && data.ok === true)){
         throw new Error((data && (data.message || data.error || data.code)) || 'Recovery code ditolak.');
+      }
+      if(!recoverySessionToken){
+        throw new Error('Recovery valid, tetapi recovery session token belum diterima HTML. Pastikan server1.js terbaru sudah ter-deploy.');
       }
       window.__DIRAC_LOST_PASSKEY_RECOVERY_SESSION__ = {
         request_id: requestId,
-        recovery_session_token: data.recovery_session_token,
-        expires_at: data.recovery_session_expires_at || '',
+        recovery_session_token: recoverySessionToken,
+        expires_at: pickRecoverySessionExpiresAt(data),
         purpose: data.purpose || 'register_new_passkey'
       };
-      showStatus(box, 'Recovery valid. Lanjutkan dengan tombol Daftar Passkey Baru di bawah. Dashboard tidak dibuka dari recovery ini.', true);
       showRecoveryPasskeyStage(box);
+      showStatus(box, 'Recovery valid. Tombol Daftar Passkey Baru sudah dibuka di bawah. Dashboard tidak dibuka dari recovery ini.', true);
       if(combinedInput) combinedInput.value = '';
     }catch(e){
       showStatus(box, recoveryFriendlyMessage(e && e.message, window.__diracLastRecoveryVerifyData || null, window.__diracLastRecoveryVerifyStatus || 0), false);
@@ -8607,7 +8636,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     var combinedInput = $('.dirac-recovery-combined-input', box); if(combinedInput) combinedInput.value = '';
     updateRecoveryCodeCounter(box);
     setRecoverySecrets(box, '', '');
-    var passkeyStage = $('.dirac-recovery-passkey-stage', box); if(passkeyStage) passkeyStage.hidden = true;
+    var passkeyStage = $('.dirac-recovery-passkey-stage', box); if(passkeyStage){ passkeyStage.hidden = true; passkeyStage.setAttribute('hidden',''); passkeyStage.setAttribute('aria-hidden','true'); passkeyStage.classList.remove('is-ready'); passkeyStage.style.display = ''; }
     var passkeyBtn = $('.dirac-recovery-passkey-submit', box); if(passkeyBtn){ passkeyBtn.disabled = false; passkeyBtn.textContent = 'Daftar Passkey Baru'; }
     showStatus(box, '', true);
   }
