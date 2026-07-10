@@ -8091,6 +8091,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
 <script id="dirac-lost-passkey-recovery-request-verify-js">
 (function(){
   'use strict';
+  var DIRAC_LOST_PASSKEY_RECOVERY_CODE_LENGTH = 1200;
   var API_ENDPOINT = '/api/health';
   var UNLOCK_AFTER_FAILED_A2F = 2;
   var currentFailedA2FAttempts = 0;
@@ -8348,17 +8349,17 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       for(var j=i;j<parts.length;j++){
         var piece = parts[j];
         if(!piece) continue;
-        if(piece.length < 20 && (joined.length < 450 || joined.length >= 500)) continue;
+        if(piece.length < 20 && (joined.length < (DIRAC_LOST_PASSKEY_RECOVERY_CODE_LENGTH - 50) || joined.length >= DIRAC_LOST_PASSKEY_RECOVERY_CODE_LENGTH)) continue;
         joined += piece;
-        if(joined.length >= 500){
+        if(joined.length >= DIRAC_LOST_PASSKEY_RECOVERY_CODE_LENGTH){
           if(!best || joined.length < best.length) best = joined;
           break;
         }
       }
     }
-    if(best) return best.slice(0, 500);
+    if(best) return best.slice(0, DIRAC_LOST_PASSKEY_RECOVERY_CODE_LENGTH);
     var longOnly = parts.filter(function(item){ return item.length >= 20; }).join('');
-    if(longOnly.length >= 500) return longOnly.slice(0, 500);
+    if(longOnly.length >= DIRAC_LOST_PASSKEY_RECOVERY_CODE_LENGTH) return longOnly.slice(0, DIRAC_LOST_PASSKEY_RECOVERY_CODE_LENGTH);
     return '';
   }
   function parseCombinedRecoveryInput(value){
@@ -8374,12 +8375,12 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     }
     var codeLabel = raw.match(/(?:recovery[_\s-]*(?:code|token)|kode[_\s-]*recovery|reco(?:very)?\s*code|token)\s*[:=\-]\s*([A-Za-z0-9._~+\/=\-\u2010-\u2015\u2212\uFE58\uFE63\uFF0D\s]{20,4000})/i);
     if(codeLabel) code = normalizeRecoveryCodeInput(codeLabel[1]);
-    if(!code || code.length < 500){
+    if(!code || code.length < DIRAC_LOST_PASSKEY_RECOVERY_CODE_LENGTH){
       var wrapped = buildRecoveryCodeFromWrappedTokens(raw, requestId);
-      if(wrapped.length === 500) code = wrapped;
+      if(wrapped.length === DIRAC_LOST_PASSKEY_RECOVERY_CODE_LENGTH) code = wrapped;
     }
     if(!code && /^[A-Za-z0-9._~+\/=\-\u2010-\u2015\u2212\uFE58\uFE63\uFF0D\s]{20,4000}$/.test(raw)) code = normalizedRaw;
-    if(code && code.length > 500) code = code.slice(0, 500);
+    if(code && code.length > DIRAC_LOST_PASSKEY_RECOVERY_CODE_LENGTH) code = code.slice(0, DIRAC_LOST_PASSKEY_RECOVERY_CODE_LENGTH);
     return {requestId:requestId, code:code};
   }
   function readRecoveryFields(box){
@@ -8402,9 +8403,9 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     if(!counter) return;
     var code = normalizeRecoveryCodeInput(input ? input.value : '');
     counter.classList.remove('is-ok','is-bad');
-    if(code.length === 500) counter.classList.add('is-ok');
+    if(code.length === DIRAC_LOST_PASSKEY_RECOVERY_CODE_LENGTH) counter.classList.add('is-ok');
     else if(code.length > 0) counter.classList.add('is-bad');
-    counter.innerHTML = '<span>Recovery Code: ' + code.length + '/500 karakter</span><span>' + (code.length === 500 ? 'Siap diverifikasi' : 'Tempel 500 karakter penuh') + '</span>';
+    counter.innerHTML = '<span>Recovery Code: ' + code.length + '/' + DIRAC_LOST_PASSKEY_RECOVERY_CODE_LENGTH + ' karakter</span><span>' + (code.length === DIRAC_LOST_PASSKEY_RECOVERY_CODE_LENGTH ? 'Siap diverifikasi' : 'Tempel ' + DIRAC_LOST_PASSKEY_RECOVERY_CODE_LENGTH + ' karakter penuh') + '</span>';
   }
   function handleRecoveryFieldInput(box){
     var fields = readRecoveryFields(box);
@@ -8544,7 +8545,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     var requestId = parsed.requestId;
     var code = parsed.code;
     if(!requestId){ showStatus(box, 'Request ID belum ada. Klik Kirim PDF recovery dulu. Kalau sudah punya Request ID, tempel di kolom Request ID.', false); if(requestInput) requestInput.focus(); return; }
-    if(!code || code.length !== 500){ showStatus(box, 'Recovery Code harus tepat 500 karakter. Saat ini: ' + (code ? code.length : 0) + '/500. Salin Recovery Code penuh dari PDF, bukan password PDF.', false); if(combinedInput) combinedInput.focus(); return; }
+    if(!code || code.length !== DIRAC_LOST_PASSKEY_RECOVERY_CODE_LENGTH){ showStatus(box, 'Recovery Code harus tepat ' + DIRAC_LOST_PASSKEY_RECOVERY_CODE_LENGTH + ' karakter. Saat ini: ' + (code ? code.length : 0) + '/' + DIRAC_LOST_PASSKEY_RECOVERY_CODE_LENGTH + '. Salin Recovery Code penuh dari file recovery, bukan password PDF.', false); if(combinedInput) combinedInput.focus(); return; }
     var btn = $('.dirac-recovery-verify-submit', box);
     var old = btn && btn.textContent;
     if(btn){ btn.disabled = true; btn.textContent = 'Memverifikasi...'; }
@@ -8590,7 +8591,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     box.classList.add('is-unlocked');
     box.setAttribute('aria-hidden','false');
     setVerifyStage(box, true);
-    showStatus(box, reason === 'two_failed' ? 'Opsi recovery dibuka otomatis karena A2F gagal 2x. Klik Kirim PDF recovery, lalu tempel Recovery Code 500 karakter dari PDF.' : 'Klik Kirim PDF recovery, buka PDF dari email, lalu tempel Recovery Code 500 karakter di kotak besar.', true);
+    showStatus(box, reason === 'two_failed' ? 'Opsi recovery dibuka otomatis karena A2F gagal 2x. Klik Kirim PDF recovery, lalu tempel Recovery Code 1200 karakter dari PDF.' : 'Klik Kirim PDF recovery, buka PDF dari email, lalu tempel Recovery Code 1200 karakter di kotak besar.', true);
     try { box.scrollIntoView({behavior:'smooth', block:'center'}); } catch (_) {}
   }
   function hide(){
@@ -8630,7 +8631,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       '<div class="dirac-recovery-step-list">' +
       '<div class="dirac-recovery-step-item"><span class="dirac-recovery-step-no">1</span><span>Isi password akun sekarang, lalu tekan <b>Kirim PDF recovery</b>.</span></div>' +
       '<div class="dirac-recovery-step-item"><span class="dirac-recovery-step-no">2</span><span>Buka email resmi akun. Password PDF = <b>kode website + 2 digit kode email + password akun</b>, tanpa spasi.</span></div>' +
-      '<div class="dirac-recovery-step-item"><span class="dirac-recovery-step-no">3</span><span>Salin <b>Recovery Code 500 karakter</b> dari PDF. Jangan salin password PDF.</span></div>' +
+      '<div class="dirac-recovery-step-item"><span class="dirac-recovery-step-no">3</span><span>Salin <b>Recovery Code 1200 karakter</b> dari PDF. Jangan salin password PDF.</span></div>' +
       '<div class="dirac-recovery-step-item"><span class="dirac-recovery-step-no">4</span><span>Tempel Recovery Code di kotak besar, lalu tekan <b>Verifikasi recovery</b>.</span></div>' +
       '</div>' +
       '<label class="dirac-recovery-field-label">Password akun sekarang</label>' +
@@ -8646,13 +8647,13 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
 
       '</div>' +
       '</div>' +
-      '<div class="dirac-recovery-next-info">Request ID diisi otomatis setelah PDF dikirim. User cukup menempel Recovery Code 500 karakter dari PDF.</div>' +
+      '<div class="dirac-recovery-next-info">Request ID diisi otomatis setelah PDF dikirim. User cukup menempel Recovery Code 1200 karakter dari PDF.</div>' +
       '<div class="dirac-recovery-verify-stage">' +
       '<label class="dirac-recovery-field-label">Request ID</label>' +
       '<input class="dirac-recovery-request-id-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Otomatis terisi setelah Kirim PDF recovery">' +
-      '<label class="dirac-recovery-field-label">Recovery Code dari PDF — 500 karakter</label>' +
-      '<textarea class="dirac-recovery-verify-input dirac-recovery-combined-input" autocomplete="one-time-code" autocapitalize="off" spellcheck="false" placeholder="Tempel Recovery Code 500 karakter dari PDF di sini. Bukan password PDF."></textarea>' +
-      '<div class="dirac-recovery-code-counter" aria-live="polite"><span>Recovery Code: 0/500 karakter</span><span>Tempel 500 karakter penuh</span></div>' +
+      '<label class="dirac-recovery-field-label">Recovery Code dari PDF — 1200 karakter</label>' +
+      '<textarea class="dirac-recovery-verify-input dirac-recovery-combined-input" autocomplete="one-time-code" autocapitalize="off" spellcheck="false" placeholder="Tempel Recovery Code 1200 karakter dari PDF di sini. Bukan password PDF."></textarea>' +
+      '<div class="dirac-recovery-code-counter" aria-live="polite"><span>Recovery Code: 0/1200 karakter</span><span>Tempel 1200 karakter penuh</span></div>' +
       '<div class="dirac-recovery-verify-actions"><button class="dirac-recovery-verify-submit" type="button">Verifikasi recovery</button></div>' +
       '</div>' +
       '<div class="dirac-recovery-passkey-stage" hidden>' +
@@ -8778,13 +8779,13 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
   };
 
   var PLACEHOLDERS = {
-    en:{identifier:'nama@gmail.com',fullName:'Dirac Group customer name',password:'Minimum 6 characters',confirmPassword:'Repeat password',forgotEmail:'email@example.com',forgotCode:'12345678',forgotNewPassword:'Minimum 12 characters + symbol',forgotConfirmPassword:'Repeat new password',aiInput:'Type a question...',recovery:'Paste the 500-character recovery code here'},
-    zh:{identifier:'nama@gmail.com',fullName:'Dirac Group 客户姓名',password:'至少 6 个字符',confirmPassword:'再次输入密码',forgotEmail:'email@example.com',forgotCode:'12345678',forgotNewPassword:'至少 12 个字符 + 符号',forgotConfirmPassword:'重复新密码',aiInput:'输入问题...',recovery:'在此粘贴 500 字符恢复代码'},
-    ar:{identifier:'nama@gmail.com',fullName:'اسم عميل Dirac Group',password:'6 أحرف على الأقل',confirmPassword:'أعد كلمة المرور',forgotEmail:'email@example.com',forgotCode:'12345678',forgotNewPassword:'12 حرفاً على الأقل + رمز',forgotConfirmPassword:'أعد كلمة المرور الجديدة',aiInput:'اكتب سؤالاً...',recovery:'الصق رمز الاسترداد المكون من 500 حرف هنا'},
-    ja:{identifier:'nama@gmail.com',fullName:'Dirac Groupのお客様名',password:'6文字以上',confirmPassword:'パスワードを再入力',forgotEmail:'email@example.com',forgotCode:'12345678',forgotNewPassword:'12文字以上 + 記号',forgotConfirmPassword:'新しいパスワードを再入力',aiInput:'質問を入力...',recovery:'500文字のリカバリーコードをここに貼り付け'},
-    ko:{identifier:'nama@gmail.com',fullName:'Dirac Group 고객 이름',password:'최소 6자',confirmPassword:'비밀번호 다시 입력',forgotEmail:'email@example.com',forgotCode:'12345678',forgotNewPassword:'최소 12자 + 기호',forgotConfirmPassword:'새 비밀번호 다시 입력',aiInput:'질문 입력...',recovery:'500자 복구 코드를 여기에 붙여넣기'},
-    es:{identifier:'nama@gmail.com',fullName:'Nombre del cliente Dirac Group',password:'Mínimo 6 caracteres',confirmPassword:'Repetir contraseña',forgotEmail:'email@example.com',forgotCode:'12345678',forgotNewPassword:'Mínimo 12 caracteres + símbolo',forgotConfirmPassword:'Repetir nueva contraseña',aiInput:'Escribe una pregunta...',recovery:'Pega aquí el código de recuperación de 500 caracteres'},
-    fr:{identifier:'nama@gmail.com',fullName:'Nom du client Dirac Group',password:'Minimum 6 caractères',confirmPassword:'Répéter le mot de passe',forgotEmail:'email@example.com',forgotCode:'12345678',forgotNewPassword:'Minimum 12 caractères + symbole',forgotConfirmPassword:'Répéter le nouveau mot de passe',aiInput:'Écrire une question...',recovery:'Collez ici le code de récupération de 500 caractères'}
+    en:{identifier:'nama@gmail.com',fullName:'Dirac Group customer name',password:'Minimum 6 characters',confirmPassword:'Repeat password',forgotEmail:'email@example.com',forgotCode:'12345678',forgotNewPassword:'Minimum 12 characters + symbol',forgotConfirmPassword:'Repeat new password',aiInput:'Type a question...',recovery:'Paste the 1200-character recovery code here'},
+    zh:{identifier:'nama@gmail.com',fullName:'Dirac Group 客户姓名',password:'至少 6 个字符',confirmPassword:'再次输入密码',forgotEmail:'email@example.com',forgotCode:'12345678',forgotNewPassword:'至少 12 个字符 + 符号',forgotConfirmPassword:'重复新密码',aiInput:'输入问题...',recovery:'在此粘贴 1200 字符恢复代码'},
+    ar:{identifier:'nama@gmail.com',fullName:'اسم عميل Dirac Group',password:'6 أحرف على الأقل',confirmPassword:'أعد كلمة المرور',forgotEmail:'email@example.com',forgotCode:'12345678',forgotNewPassword:'12 حرفاً على الأقل + رمز',forgotConfirmPassword:'أعد كلمة المرور الجديدة',aiInput:'اكتب سؤالاً...',recovery:'الصق رمز الاسترداد المكون من 1200 حرف هنا'},
+    ja:{identifier:'nama@gmail.com',fullName:'Dirac Groupのお客様名',password:'6文字以上',confirmPassword:'パスワードを再入力',forgotEmail:'email@example.com',forgotCode:'12345678',forgotNewPassword:'12文字以上 + 記号',forgotConfirmPassword:'新しいパスワードを再入力',aiInput:'質問を入力...',recovery:'1200文字のリカバリーコードをここに貼り付け'},
+    ko:{identifier:'nama@gmail.com',fullName:'Dirac Group 고객 이름',password:'최소 6자',confirmPassword:'비밀번호 다시 입력',forgotEmail:'email@example.com',forgotCode:'12345678',forgotNewPassword:'최소 12자 + 기호',forgotConfirmPassword:'새 비밀번호 다시 입력',aiInput:'질문 입력...',recovery:'1200자 복구 코드를 여기에 붙여넣기'},
+    es:{identifier:'nama@gmail.com',fullName:'Nombre del cliente Dirac Group',password:'Mínimo 6 caracteres',confirmPassword:'Repetir contraseña',forgotEmail:'email@example.com',forgotCode:'12345678',forgotNewPassword:'Mínimo 12 caracteres + símbolo',forgotConfirmPassword:'Repetir nueva contraseña',aiInput:'Escribe una pregunta...',recovery:'Pega aquí el código de recuperación de 1200 caracteres'},
+    fr:{identifier:'nama@gmail.com',fullName:'Nom du client Dirac Group',password:'Minimum 6 caractères',confirmPassword:'Répéter le mot de passe',forgotEmail:'email@example.com',forgotCode:'12345678',forgotNewPassword:'Minimum 12 caractères + symbole',forgotConfirmPassword:'Répéter le nouveau mot de passe',aiInput:'Écrire une question...',recovery:'Collez ici le code de récupération de 1200 caractères'}
   };
 
   var TOAST = {
