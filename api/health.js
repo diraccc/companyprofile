@@ -5846,7 +5846,7 @@ function customerSecurityGeneratePlainRecoveryCode() {
 function customerSecurityGenerateLostPasskeyRecoveryCode() {
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
   let out = '';
-  while (out.length < CUSTOMER_SECURITY_RECOVERY_CODE_LENGTH) {
+  while (out.length < LOST_PASSKEY_RECOVERY_CODE_LENGTH_V157) {
     out += customerSecurityPickRecoveryChar(alphabet);
   }
   return out;
@@ -5957,6 +5957,7 @@ const LOST_PASSKEY_RECOVERY_ATTEMPT_LIMIT = 5;
 const DIRAC_RECOVERY_WORKER_ACTION = 'dirac_recovery_worker_generate';
 const DIRAC_RECOVERY_WORKER_TASK_GENERATE = 'lost_passkey_generate';
 const DIRAC_RECOVERY_WORKER_TASK_VERIFY = 'lost_passkey_verify';
+const LOST_PASSKEY_RECOVERY_CODE_LENGTH_V157 = 1200;
 
 function customerSecurityNormalizeLostPasskeyRequestId(value) {
   const clean = String(value || '').trim();
@@ -7245,7 +7246,7 @@ async function customerSecurityGenerateRecoveryCodes(req, res, action, override 
       inner_encrypted_file_sha256: encrypted.fileSha256,
       passkey_count: activePasskeys.length,
       file_key_min_bytes: LOST_PASSKEY_RECOVERY_FILE_KEY_MIN_BYTES,
-      recovery_code_length: CUSTOMER_SECURITY_RECOVERY_CODE_LENGTH,
+      recovery_code_length: LOST_PASSKEY_RECOVERY_CODE_LENGTH_V157,
       salt_bytes: LOST_PASSKEY_RECOVERY_RANDOM_BYTES,
       dek_seed_bytes: LOST_PASSKEY_RECOVERY_RANDOM_BYTES
     }
@@ -7369,11 +7370,11 @@ async function customerSecurityVerifyRecoveryCode(req, res, action) {
     await customerSecurityRegisterFailedVerification(req, action, 'invalid_recovery_request_id', access.customerId);
     return res.status(400).json({ ok: false, message: 'Request recovery tidak valid.' });
   }
-  if (Array.from(code).length !== CUSTOMER_SECURITY_RECOVERY_CODE_LENGTH) {
+  if (Array.from(code).length !== LOST_PASSKEY_RECOVERY_CODE_LENGTH_V157) {
     await customerSecurityRegisterFailedVerification(req, action, 'invalid_recovery_code_length', access.customerId);
     return res.status(400).json({
       ok: false,
-      message: 'Recovery code tidak valid. Masukkan tepat 500 karakter dari file recovery terenkripsi.'
+      message: 'Recovery code tidak valid. Masukkan tepat ' + LOST_PASSKEY_RECOVERY_CODE_LENGTH_V157 + ' karakter dari file recovery terenkripsi.'
     });
   }
 
@@ -25160,11 +25161,11 @@ async function customerSecurityVerifyRecoveryCodeLocalWorker(req, res, action, o
     await customerSecurityRegisterFailedVerification(req, action, 'invalid_recovery_worker_verify_payload', access && access.customerId).catch(() => null);
     return res.status(400).json({ ok: false, message: 'Request recovery tidak valid.' });
   }
-  if (Array.from(code).length !== CUSTOMER_SECURITY_RECOVERY_CODE_LENGTH) {
+  if (Array.from(code).length !== LOST_PASSKEY_RECOVERY_CODE_LENGTH_V157) {
     await customerSecurityRegisterFailedVerification(req, action, 'invalid_recovery_code_length', access.customerId).catch(() => null);
     return res.status(400).json({
       ok: false,
-      message: 'Recovery code tidak valid. Masukkan tepat 500 karakter dari file recovery terenkripsi.'
+      message: 'Recovery code tidak valid. Masukkan tepat ' + LOST_PASSKEY_RECOVERY_CODE_LENGTH_V157 + ' karakter dari file recovery terenkripsi.'
     });
   }
 
@@ -25533,6 +25534,9 @@ const DIRAC_CENTRAL_ACTIVE_ACTIONS_V146 = new Set([
   DIRAC_RECOVERY_WORKER_ACTION,
   'security_report'
 ]);
+
+for (const item of diracCentralEnvCsvV150('DIRAC_CENTRAL_VERCEL2_ONLY_ACTIONS')) DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.add(item);
+for (const item of diracCentralEnvCsvV150('DIRAC_VERCEL2_ONLY_ACTIONS')) DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.add(item);
 
 const DIRAC_CENTRAL_DISABLED_ACTIONS_V146 = new Set([
   'checkout_order_hp_test',
