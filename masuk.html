@@ -8497,21 +8497,32 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       purpose: String(session.purpose || 'register_new_passkey')
     };
   }
-  function showRecoveryPasskeyStage(box){
+  function setRecoveryReceiptStage(box, received){
     var stage = $('.dirac-recovery-passkey-stage', box);
     if(stage){
       stage.hidden = false;
       stage.removeAttribute('hidden');
       stage.setAttribute('aria-hidden','false');
-      stage.classList.add('is-ready');
+      stage.classList.toggle('is-ready', !!received);
       stage.style.display = 'block';
+      var title = $('strong', stage);
+      var detail = $('span', stage);
+      if(title) title.textContent = received ? 'Status masuk.html: SUDAH DITERIMA' : 'Status masuk.html: BELUM DITERIMA';
+      if(detail) detail.textContent = received
+        ? 'Bukti verifikasi dan recovery session dari Server 1 sudah sampai ke HTML. Recovery code tidak ditampilkan. Tekan Verify untuk melanjutkan.'
+        : 'Recovery session belum diterima oleh HTML. Selesaikan verifikasi pada halaman pemulihan resmi terlebih dahulu.';
     }
     var btn = $('.dirac-recovery-passkey-submit', box);
     if(btn){
-      btn.disabled = false;
-      btn.removeAttribute('disabled');
-      if(!String(btn.textContent || '').trim()) btn.textContent = 'Daftar Passkey Baru';
+      btn.textContent = 'Verify';
+      btn.disabled = !received;
+      if(received) btn.removeAttribute('disabled');
+      else btn.setAttribute('disabled','');
     }
+    return stage;
+  }
+  function showRecoveryPasskeyStage(box){
+    var stage = setRecoveryReceiptStage(box, true);
     try { if(stage) stage.scrollIntoView({behavior:'smooth', block:'center'}); } catch (_) {}
     setTimeout(function(){ try{ if(stage) stage.scrollIntoView({behavior:'smooth', block:'center'}); }catch(_){} }, 80);
   }
@@ -8577,7 +8588,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       if(btn){ btn.textContent = 'Passkey baru berhasil dibuat'; btn.disabled = true; }
     }catch(e){
       showStatus(box, e && e.message ? e.message : 'Pendaftaran Passkey baru gagal. Coba lagi.', false);
-      if(btn){ btn.disabled = false; btn.textContent = old || 'Daftar Passkey Baru'; }
+      if(btn){ btn.disabled = false; btn.textContent = old || 'Verify'; }
     }
   }
   async function requestRecoveryFile(box){
@@ -8668,7 +8679,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
         purpose: data.purpose || 'register_new_passkey'
       };
       showRecoveryPasskeyStage(box);
-      showStatus(box, 'Recovery valid. Tombol Daftar Passkey Baru sudah dibuka di bawah. Dashboard tidak dibuka dari recovery ini.', true);
+      showStatus(box, 'Recovery valid. Recovery session sudah sampai di masuk.html dan tombol Verify sudah aktif.', true);
       if(combinedInput) combinedInput.value = '';
     }catch(e){
       showStatus(box, recoveryFriendlyMessage(e && e.message, window.__diracLastRecoveryVerifyData || null, window.__diracLastRecoveryVerifyStatus || 0), false);
@@ -8680,8 +8691,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     clearBaseA2FError();
     var box = document.getElementById('diracRecoveryVerifyBox');
     if(!openRecoveryBox(box)) return;
-    var passkeyStage = $('.dirac-recovery-passkey-stage', box);
-    if(passkeyStage){ passkeyStage.hidden = true; passkeyStage.setAttribute('hidden',''); passkeyStage.setAttribute('aria-hidden','true'); passkeyStage.classList.remove('is-ready'); }
+    setRecoveryReceiptStage(box, false);
     setRecoverySecrets(box, '');
     var requestInput = $('.dirac-recovery-request-id-input', box); if(requestInput) requestInput.value = '';
     var combinedInput = $('.dirac-recovery-combined-input', box); if(combinedInput) combinedInput.value = '';
@@ -8703,8 +8713,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     var combinedInput = $('.dirac-recovery-combined-input', box); if(combinedInput) combinedInput.value = '';
     updateRecoveryCodeCounter(box);
     setRecoverySecrets(box, '', '');
-    var passkeyStage = $('.dirac-recovery-passkey-stage', box); if(passkeyStage){ passkeyStage.hidden = true; passkeyStage.setAttribute('hidden',''); passkeyStage.setAttribute('aria-hidden','true'); passkeyStage.classList.remove('is-ready'); passkeyStage.style.display = ''; }
-    var passkeyBtn = $('.dirac-recovery-passkey-submit', box); if(passkeyBtn){ passkeyBtn.disabled = false; passkeyBtn.textContent = 'Daftar Passkey Baru'; }
+    setRecoveryReceiptStage(box, false);
     showStatus(box, '', true);
   }
   function recordFailedA2FAttempt(count){
@@ -8752,10 +8761,10 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       '<div class="dirac-recovery-code-counter" aria-live="polite"><span>Recovery Code: 0/1200 karakter</span><span>Tempel 1200 karakter penuh</span></div>' +
       '<div class="dirac-recovery-verify-actions"><button class="dirac-recovery-verify-submit" type="button">Verifikasi recovery</button></div>' +
       '</div>' +
-      '<div class="dirac-recovery-passkey-stage" hidden>' +
-      '<strong>Langkah 5: Daftar Passkey baru</strong>' +
-      '<span>Recovery sudah valid. Tekan tombol ini, lalu ikuti Face ID, sidik jari, atau PIN. Passkey lama akan dinonaktifkan oleh server setelah Passkey baru berhasil tersimpan.</span>' +
-      '<button class="dirac-recovery-passkey-submit" type="button">Daftar Passkey Baru</button>' +
+      '<div class="dirac-recovery-passkey-stage" aria-hidden="false">' +
+      '<strong>Status masuk.html: BELUM DITERIMA</strong>' +
+      '<span>Recovery session belum diterima oleh HTML. Selesaikan verifikasi pada halaman pemulihan resmi terlebih dahulu.</span>' +
+      '<button class="dirac-recovery-passkey-submit" type="button" disabled>Verify</button>' +
       '</div>' +
       '<div class="dirac-recovery-warning">Informasi akun diproses melalui layanan resmi dan tidak ditampilkan secara terbuka pada halaman ini.</div>' +
       '<div class="dirac-recovery-verify-status" aria-live="polite"></div>';
