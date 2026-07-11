@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; base-uri 'none'; object-src 'none'; connect-src https://secure.diracgroup.store; img-src 'self' data:; style-src 'sha512-6awwdI5W3+pA59vuDqcg5jXBstigRTTMQFMLsIlr3TNb3+QIAbofZfrAgS06Qgwj3yQmNbS8gnT6PE4B2+Gb7g=='; script-src 'self' 'wasm-unsafe-eval' 'sha512-7TYwqC3QZWccG1sgQlxqWb+kF0aH44+1wSKhL66c/bDQRwCDODANL0Q5+g2k3h5D8LmQ+bWNnhenX9MUCFG0Bw==' 'sha512-ddLB99ivoA95boI+MZdu0qZRedqSskisaquMLN4We54ueAyRAePUyJGniHBys9ie9y2xuAg0HtO+uXqxx5i8mw=='; worker-src 'none'; form-action 'none';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; base-uri 'none'; object-src 'none'; connect-src https://secure.diracgroup.store; img-src 'self' data:; style-src 'sha512-6awwdI5W3+pA59vuDqcg5jXBstigRTTMQFMLsIlr3TNb3+QIAbofZfrAgS06Qgwj3yQmNbS8gnT6PE4B2+Gb7g=='; script-src 'self' 'wasm-unsafe-eval' 'sha512-7TYwqC3QZWccG1sgQlxqWb+kF0aH44+1wSKhL66c/bDQRwCDODANL0Q5+g2k3h5D8LmQ+bWNnhenX9MUCFG0Bw==' 'sha512-2Hzavhhl7bepdnRw5u2ekb/8R3AOn0fqdPzST2kOvtyJhRcs22ZO9viIvTf0NYoiXc4vc4eByIJH5XVVyghFqA=='; worker-src 'none'; form-action 'none';">
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
   <meta http-equiv="Pragma" content="no-cache">
@@ -24,7 +24,7 @@
     Cross-Origin-Opener-Policy: same-origin
     Cross-Origin-Resource-Policy: same-origin
     Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), bluetooth=(), clipboard-read=(), clipboard-write=()
-    Content-Security-Policy: default-src 'none'; base-uri 'none'; object-src 'none'; connect-src https://secure.diracgroup.store; img-src 'self' data:; style-src 'sha512-6awwdI5W3+pA59vuDqcg5jXBstigRTTMQFMLsIlr3TNb3+QIAbofZfrAgS06Qgwj3yQmNbS8gnT6PE4B2+Gb7g=='; script-src 'self' 'wasm-unsafe-eval' 'sha512-7TYwqC3QZWccG1sgQlxqWb+kF0aH44+1wSKhL66c/bDQRwCDODANL0Q5+g2k3h5D8LmQ+bWNnhenX9MUCFG0Bw==' 'sha512-ddLB99ivoA95boI+MZdu0qZRedqSskisaquMLN4We54ueAyRAePUyJGniHBys9ie9y2xuAg0HtO+uXqxx5i8mw=='; worker-src 'none'; frame-ancestors 'none'; form-action 'none';
+    Content-Security-Policy: default-src 'none'; base-uri 'none'; object-src 'none'; connect-src https://secure.diracgroup.store; img-src 'self' data:; style-src 'sha512-6awwdI5W3+pA59vuDqcg5jXBstigRTTMQFMLsIlr3TNb3+QIAbofZfrAgS06Qgwj3yQmNbS8gnT6PE4B2+Gb7g=='; script-src 'self' 'wasm-unsafe-eval' 'sha512-7TYwqC3QZWccG1sgQlxqWb+kF0aH44+1wSKhL66c/bDQRwCDODANL0Q5+g2k3h5D8LmQ+bWNnhenX9MUCFG0Bw==' 'sha512-2Hzavhhl7bepdnRw5u2ekb/8R3AOn0fqdPzST2kOvtyJhRcs22ZO9viIvTf0NYoiXc4vc4eByIJH5XVVyghFqA=='; worker-src 'none'; frame-ancestors 'none'; form-action 'none';
 
     HTML ini sengaja fail-closed bila:
     - Ed25519 public key belum diisi.
@@ -234,7 +234,7 @@
       minArgon2id: Object.freeze({
         memoryCost: 1024000,
         timeCost: 4,
-        parallelism: 3,
+        parallelism: 1,
         hashLength: 32
       }),
       expectedPurpose: 'lost_passkey_recovery',
