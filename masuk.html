@@ -5154,7 +5154,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
               <div class="form-row form-row-clean dirac-auth-row-secure">
                 <label class="check"><input type="checkbox" id="remember" name="remember" checked> <span data-i18n="remember">Ingat perangkat ini</span></label>
                 <button class="forgot-link" type="button" id="forgotPasswordBtn">Lupa password?</button>
-                <a class="forgot-link" href="https://secure.diracgroup.store/lost-passkey.html" referrerpolicy="no-referrer" data-no-i18n>Pulihkan akses akun</a>
+                <a class="forgot-link" href="#pemulihan-passkey" referrerpolicy="no-referrer" data-no-i18n>Kehilangan Passkey?</a>
               </div>
               <button class="btn-primary auth-submit" id="submitBtn" type="submit" data-i18n="submitLogin">Masuk sekarang</button>
               <button class="forgot-link dirac-resend-verification is-register-only is-hidden" type="button" id="resendVerificationBtn" aria-describedby="statusBox">Kirim ulang verifikasi email</button>
@@ -8215,6 +8215,43 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     var modal = document.getElementById('a2fModal');
     if(modal) modal.classList.toggle('recovery-open', !!open);
   }
+  function openRecoveryBox(box){
+    var modal = document.getElementById('a2fModal');
+    if(!box || !modal) return false;
+    modal.classList.add('open','recovery-open');
+    modal.setAttribute('aria-hidden','false');
+    document.body.classList.add('modal-open');
+    box.classList.add('is-unlocked');
+    box.setAttribute('aria-hidden','false');
+    setVerifyStage(box, false);
+    try { box.scrollIntoView({behavior:'smooth', block:'center'}); } catch (_) {}
+    return true;
+  }
+  function cleanRecoveryReturnFragment(){
+    try { history.replaceState(null, document.title, location.pathname + location.search); } catch (_) {}
+  }
+  function readRecoveryReturnFragment(){
+    var raw = String(location.hash || '').replace(/^#/,'');
+    if(!raw) return null;
+    var params;
+    try { params = new URLSearchParams(raw); } catch (_) { return null; }
+    var token = String(params.get('dirac_lost_passkey_recovery_session') || '').trim();
+    var requestId = normalizeRequestId(params.get('request_id') || '');
+    if(!/^[A-Za-z0-9_-]{32,160}$/.test(token) || !requestId) return null;
+    cleanRecoveryReturnFragment();
+    return {request_id:requestId,recovery_session_token:token,purpose:'register_new_passkey'};
+  }
+  function resumeRecoveryPasskeyFromFragment(box){
+    var session = readRecoveryReturnFragment();
+    if(!session) return false;
+    window.__DIRAC_LOST_PASSKEY_RECOVERY_SESSION__ = session;
+    if(!openRecoveryBox(box)) return false;
+    var passwordInput = $('.dirac-recovery-account-password-input', box); if(passwordInput) passwordInput.value = '';
+    setRecoverySecrets(box, '');
+    showRecoveryPasskeyStage(box);
+    showStatus(box, 'Kode pemulihan berhasil diverifikasi. Silakan daftarkan Passkey baru untuk menyelesaikan pemulihan akun.', true);
+    return true;
+  }
   function clearBaseA2FError(){
     try{
       var result = document.getElementById('a2fResult');
@@ -8530,9 +8567,9 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     var btn = $('.dirac-recovery-request-submit', box);
     var old = btn && btn.textContent;
     if(btn){ btn.disabled = true; btn.textContent = 'Memproses pemulihan...'; }
-    setVerifyStage(box, true);
-    setRecoverySecrets(box, '', '');
-    showStatus(box, 'Memproses permintaan melalui layanan pemulihan resmi.', true);
+    setVerifyStage(box, false);
+    setRecoverySecrets(box, '');
+    showStatus(box, 'Memvalidasi kata sandi dan menyiapkan pemulihan akun melalui layanan resmi.', true);
     try{
       await refreshCsrfToken('customer_security_recovery_codes_generate');
       var body = {
@@ -8555,10 +8592,17 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       var websiteCode = pickWebsiteCode(data);
       setRecoverySecrets(box, websiteCode);
       prefillCombinedInput(box, requestId);
-      setVerifyStage(box, true);
-      showStatus(box, websiteCode ? 'Permintaan pemulihan telah disetujui. Ikuti petunjuk resmi yang tersedia untuk melanjutkan.' : 'Permintaan pemulihan telah diterima, tetapi informasi verifikasi belum lengkap. Silakan coba kembali.', !!websiteCode);
+      setVerifyStage(box, false);
+      var nextInfo = $('.dirac-recovery-next-info', box);
+      if(nextInfo) nextInfo.textContent = websiteCode
+        ? 'Secret Website ditampilkan di atas. Secret Email dan tautan pemulihan resmi telah dikirim ke email akun.'
+        : 'Permintaan telah diterima, tetapi Secret Website belum tersedia. Silakan ulangi proses pemulihan.';
+      if(passwordInput) passwordInput.value = '';
+      showStatus(box, websiteCode
+        ? 'Permintaan pemulihan berhasil dibuat. Simpan Secret Website, lalu buka tautan resmi dari email. Pada halaman tersebut masukkan kata sandi akun saat ini, Secret Email, dan Secret Website.'
+        : 'Permintaan pemulihan belum lengkap. Silakan coba kembali.', !!websiteCode);
     }catch(e){
-      setVerifyStage(box, true);
+      setVerifyStage(box, false);
       showStatus(box, recoveryFriendlyMessage(e && e.message, null, 0), false);
     }finally{
       if(btn){ btn.disabled = false; btn.textContent = old || 'Lanjutkan pemulihan'; }
@@ -8614,13 +8658,17 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
   }
   function reveal(reason){
     clearBaseA2FError();
-    setRecoveryMode(false);
-    var recoveryUrl = 'https://secure.diracgroup.store/lost-passkey.html';
-    try{
-      window.location.assign(recoveryUrl);
-    }catch(_){
-      window.location.href = recoveryUrl;
-    }
+    var box = document.getElementById('diracRecoveryVerifyBox');
+    if(!openRecoveryBox(box)) return;
+    var passkeyStage = $('.dirac-recovery-passkey-stage', box);
+    if(passkeyStage){ passkeyStage.hidden = true; passkeyStage.setAttribute('hidden',''); passkeyStage.setAttribute('aria-hidden','true'); passkeyStage.classList.remove('is-ready'); }
+    setRecoverySecrets(box, '');
+    var requestInput = $('.dirac-recovery-request-id-input', box); if(requestInput) requestInput.value = '';
+    var combinedInput = $('.dirac-recovery-combined-input', box); if(combinedInput) combinedInput.value = '';
+    updateRecoveryCodeCounter(box);
+    showStatus(box, 'Masukkan kata sandi akun saat ini untuk membuat permintaan pemulihan. Secret Website akan ditampilkan di halaman ini, sedangkan Secret Email dan tautan resmi akan dikirim ke email akun.', true);
+    var passwordInput = $('.dirac-recovery-account-password-input', box);
+    if(passwordInput){ passwordInput.value = ''; setTimeout(function(){ try{ passwordInput.focus({preventScroll:true}); }catch(_){ passwordInput.focus(); } }, 40); }
   }
   function hide(){
     currentFailedA2FAttempts = 0;
@@ -8629,7 +8677,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     if(!box) return;
     box.classList.remove('is-unlocked');
     box.setAttribute('aria-hidden','true');
-    setVerifyStage(box, true);
+    setVerifyStage(box, false);
     var passwordInput = $('.dirac-recovery-account-password-input', box); if(passwordInput) passwordInput.value = '';
     var requestInput = $('.dirac-recovery-request-id-input', box); if(requestInput) requestInput.value = '';
     var combinedInput = $('.dirac-recovery-combined-input', box); if(combinedInput) combinedInput.value = '';
@@ -8657,10 +8705,10 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     box.innerHTML =
       '<div class="dirac-recovery-head"><div class="dirac-recovery-icon">SEC</div><div><h3>Pemulihan akses akun</h3><span class="dirac-recovery-kicker">Gunakan layanan pemulihan resmi</span></div></div>' +
       '<div class="dirac-recovery-step-list">' +
-      '<div class="dirac-recovery-step-item"><span class="dirac-recovery-step-no">1</span><span>Konfirmasikan informasi akun melalui layanan pemulihan resmi.</span></div>' +
-      '<div class="dirac-recovery-step-item"><span class="dirac-recovery-step-no">2</span><span>Ikuti petunjuk verifikasi yang dikirim melalui saluran resmi akun.</span></div>' +
-      '<div class="dirac-recovery-step-item"><span class="dirac-recovery-step-no">3</span><span>Masukkan kode pemulihan lengkap pada halaman yang aman.</span></div>' +
-      '<div class="dirac-recovery-step-item"><span class="dirac-recovery-step-no">4</span><span>Selesaikan verifikasi untuk membuat Passkey baru.</span></div>' +
+      '<div class="dirac-recovery-step-item"><span class="dirac-recovery-step-no">1</span><span>Masukkan kata sandi akun saat ini untuk memulai pemulihan.</span></div>' +
+      '<div class="dirac-recovery-step-item"><span class="dirac-recovery-step-no">2</span><span>Simpan Secret Website yang ditampilkan pada halaman ini.</span></div>' +
+      '<div class="dirac-recovery-step-item"><span class="dirac-recovery-step-no">3</span><span>Buka tautan resmi dan Secret Email yang dikirim ke email akun.</span></div>' +
+      '<div class="dirac-recovery-step-item"><span class="dirac-recovery-step-no">4</span><span>Selesaikan decrypt aman, verifikasi kode, lalu daftarkan Passkey baru.</span></div>' +
       '</div>' +
       '<label class="dirac-recovery-field-label">Password akun sekarang</label>' +
       '<input class="dirac-recovery-account-password-input" type="password" autocomplete="current-password" placeholder="Password login akun ini">' +
@@ -8668,14 +8716,14 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       '<div class="dirac-recovery-website-code-box" aria-live="polite">' +
       '<div class="dirac-recovery-secret-grid">' +
       '<div class="dirac-recovery-secret-card" data-recovery-secret-card="website">' +
-      '<div class="dirac-recovery-secret-head"><span class="dirac-recovery-secret-label">Kode verifikasi pemulihan</span><button class="dirac-recovery-copy-btn" type="button" data-dirac-recovery-copy="website">Salin</button></div>' +
+      '<div class="dirac-recovery-secret-head"><span class="dirac-recovery-secret-label">Secret Website</span><button class="dirac-recovery-copy-btn" type="button" data-dirac-recovery-copy="website">Salin</button></div>' +
       '<code class="dirac-recovery-website-code-text dirac-recovery-secret-value">-</code>' +
-      '<small class="dirac-recovery-secret-hint">Gunakan kode hanya pada halaman pemulihan resmi.</small>' +
+      '<small class="dirac-recovery-secret-hint">Masukkan nilai ini pada halaman pemulihan resmi yang dibuka dari email.</small>' +
       '</div>' +
 
       '</div>' +
       '</div>' +
-      '<div class="dirac-recovery-next-info">Nomor permintaan akan diisi otomatis setelah proses pemulihan dimulai.</div>' +
+      '<div class="dirac-recovery-next-info">Secret Email dan tautan pemulihan resmi akan dikirim ke email akun setelah kata sandi tervalidasi.</div>' +
       '<div class="dirac-recovery-verify-stage">' +
       '<label class="dirac-recovery-field-label">Request ID</label>' +
       '<input class="dirac-recovery-request-id-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Terisi otomatis setelah pemulihan dimulai">' +
@@ -8713,8 +8761,13 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     if(requestInput){
       requestInput.addEventListener('input', function(){ requestInput.value = normalizeRequestId(requestInput.value) || String(requestInput.value || '').replace(/[^A-Za-z0-9_-]/g,''); });
     }
-    setVerifyStage(box, true);
+    var recoveryLink = document.querySelector('a.forgot-link[href="#pemulihan-passkey"]');
+    if(recoveryLink){
+      recoveryLink.addEventListener('click', function(event){ event.preventDefault(); reveal('login_link'); });
+    }
+    setVerifyStage(box, false);
     updateRecoveryCodeCounter(box);
+    resumeRecoveryPasskeyFromFragment(box);
   }
 
   window.DiracRecoveryVerifyGate = { install: install, reveal: reveal, hide: hide, recordFailedA2FAttempt: recordFailedA2FAttempt };
