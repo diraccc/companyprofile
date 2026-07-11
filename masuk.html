@@ -20,7 +20,27 @@
     safe.had_hash = url.hash ? '1' : '0';
     try{ sessionStorage.setItem('dirac_masuk_entry_state_v1', JSON.stringify(safe)); }catch(_){}
 
-    history.replaceState(null, document.title, url.origin + url.pathname);
+    var recoveryHash = '';
+    try{
+      var rawHash = String(url.hash || '').replace(/^#/, '');
+      var hashParams = new URLSearchParams(rawHash);
+      var recoveryTokens = hashParams.getAll('dirac_lost_passkey_recovery_session');
+      var requestIds = hashParams.getAll('request_id');
+      var hashKeys = [];
+      hashParams.forEach(function(_value, key){ hashKeys.push(key); });
+      var exactRecoveryFragment = hashKeys.length === 2 && hashKeys.every(function(key){
+        return key === 'dirac_lost_passkey_recovery_session' || key === 'request_id';
+      });
+      if(
+        exactRecoveryFragment &&
+        recoveryTokens.length === 1 &&
+        requestIds.length === 1 &&
+        /^[A-Za-z0-9_-]{32,160}$/.test(String(recoveryTokens[0] || '')) &&
+        /^[A-Za-z0-9_-]{16,120}$/.test(String(requestIds[0] || ''))
+      ) recoveryHash = url.hash;
+    }catch(_){}
+
+    history.replaceState(null, document.title, url.origin + url.pathname + recoveryHash);
   }catch(_){}
 })();
 </script>
@@ -8249,7 +8269,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     var passwordInput = $('.dirac-recovery-account-password-input', box); if(passwordInput) passwordInput.value = '';
     setRecoverySecrets(box, '');
     showRecoveryPasskeyStage(box);
-    showStatus(box, 'Kode pemulihan berhasil diverifikasi. Silakan daftarkan Passkey baru untuk menyelesaikan pemulihan akun.', true);
+    showStatus(box, 'Kode Sudah Diterima. Silakan Verifikasi.', true);
     return true;
   }
   function clearBaseA2FError(){
