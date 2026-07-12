@@ -11756,6 +11756,50 @@ function diracPasskeyA2FLostRecoveryTokenFromBody(body) {
   return /^[A-Za-z0-9_-]{24,256}$/.test(raw) ? raw : '';
 }
 
+const DIRAC_LOST_PASSKEY_HANDOFF_COOKIE = '__Secure-dirac_recovery_handoff';
+
+function diracPasskeyA2FLostRecoveryTokenFromCookie(req) {
+  const cookies = parseCookies(req);
+  const all = cookies && cookies.__all && Array.isArray(cookies.__all[DIRAC_LOST_PASSKEY_HANDOFF_COOKIE])
+    ? cookies.__all[DIRAC_LOST_PASSKEY_HANDOFF_COOKIE]
+    : (cookies && cookies[DIRAC_LOST_PASSKEY_HANDOFF_COOKIE] !== undefined
+      ? [cookies[DIRAC_LOST_PASSKEY_HANDOFF_COOKIE]]
+      : []);
+  if (!all.length) return '';
+  const values = all.map((value) => String(value || '').trim());
+  if (values.some((value) => !/^[A-Za-z0-9_-]{24,256}$/.test(value))) return '';
+  const unique = Array.from(new Set(values));
+  return unique.length === 1 ? unique[0] : '';
+}
+
+function diracPasskeyA2FLostRecoveryTokenFromRequest(req, body) {
+  return diracPasskeyA2FLostRecoveryTokenFromBody(body)
+    || diracPasskeyA2FLostRecoveryTokenFromCookie(req);
+}
+
+function diracPasskeyA2FClearLostRecoveryCookie(res) {
+  const domain = normalizeCookieDomain(process.env.DOMAIN_COOKIE_DOMAIN || 'diracgroup.store') || 'diracgroup.store';
+  appendSetCookie(res,
+    DIRAC_LOST_PASSKEY_HANDOFF_COOKIE + '=; Path=/api/health; Domain=' + domain
+    + '; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Strict; Priority=High'
+  );
+}
+
+async function diracPasskeyA2FLostRecoveryCookieStatus(req, res, owner) {
+  const token = diracPasskeyA2FLostRecoveryTokenFromCookie(req);
+  if (!token) return { recovery_ready: false, recovery_session_expires_at: '', recovery_session_transport: 'httponly_same_site_cookie' };
+  const checked = await diracPasskeyA2FValidateLostRecoverySession(owner, token).catch(() => null);
+  if (!checked || !checked.ok) {
+    diracPasskeyA2FClearLostRecoveryCookie(res);
+    return { recovery_ready: false, recovery_session_expires_at: '', recovery_session_transport: 'httponly_same_site_cookie' };
+  }
+  return {
+    recovery_ready: true,
+    recovery_session_expires_at: String(checked.row && checked.row.expires_at || ''),
+    recovery_session_transport: 'httponly_same_site_cookie'
+  };
+}
+
 function diracPasskeyA2FLostRecoveryPayloadClean(payload) {
   const recovery = payload && payload.lostPasskeyRecovery && typeof payload.lostPasskeyRecovery === 'object'
     ? payload.lostPasskeyRecovery
@@ -11927,7 +11971,7 @@ async function diracPasskeyA2FStart(req, res) {
 
   let body = {};
   try { body = await readBody(req); } catch (_) { body = {}; }
-  const recoverySessionToken = diracPasskeyA2FLostRecoveryTokenFromBody(body);
+  const recoverySessionToken = diracPasskeyA2FLostRecoveryTokenFromRequest(req, body);
   let lostRecoverySession = null;
   if (recoverySessionToken) {
     lostRecoverySession = await diracPasskeyA2FValidateLostRecoverySession(owner, recoverySessionToken);
@@ -12189,6 +12233,7 @@ async function diracPasskeyA2FVerify(req, res) {
 
   const proof = customerSecurityCreateDashboardMfaToken(req, user, 'passkey');
   customerSecuritySetDashboardMfaCookie(res, proof);
+  if (lostRecoveryRotation && lostRecoveryRotation.ok) diracPasskeyA2FClearLostRecoveryCookie(res);
 
   return res.status(200).json({
     ok: true,
@@ -12266,9 +12311,15 @@ module.exports = async function diracPasskeyDbStatusWrapper(req, res) {
     const directResult = await supabaseFetch(directPath, { method: 'GET', auth: 'service' }).catch(() => null);
     const directRows = directResult && directResult.ok && Array.isArray(directResult.data) ? directResult.data : [];
     if (directRows.length > 0) {
+      const recoveryStatus = await diracPasskeyA2FLostRecoveryCookieStatus(req, res, {
+        customerId: String(directRows[0] && directRows[0].user_id || ''),
+        authUserId: String(user.id || ''),
+        email
+      });
       return res.status(200).json({
         ok: true,
         method: 'passkey',
+        ...recoveryStatus,
         active: true,
         passkey_active: true,
         has_passkey: true,
@@ -12287,6 +12338,9 @@ module.exports = async function diracPasskeyDbStatusWrapper(req, res) {
         ok: true,
         active: false,
         method: 'passkey',
+        recovery_ready: false,
+        recovery_session_expires_at: '',
+        recovery_session_transport: 'httponly_same_site_cookie',
         passkey_active: false,
         has_passkey: false,
         passkey_count: 0,
@@ -12298,9 +12352,11 @@ module.exports = async function diracPasskeyDbStatusWrapper(req, res) {
 
     const rows = await diracPasskeyA2FListActivePasskeys(owner);
     const count = Array.isArray(rows) ? rows.length : 0;
+    const recoveryStatus = await diracPasskeyA2FLostRecoveryCookieStatus(req, res, owner);
     return res.status(200).json({
       ok: true,
       method: 'passkey',
+      ...recoveryStatus,
       active: count > 0,
       passkey_active: count > 0,
       has_passkey: count > 0,
