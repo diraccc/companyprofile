@@ -11111,7 +11111,7 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
 
   function actionNeedsSessionFreshPageNonce(action){
     action = String(action || '').trim().toLowerCase();
-    return /^(dirac_mfa_passkey_start|dirac_mfa_passkey_verify|domain_mfa_passkey_start|domain_mfa_passkey_verify|customer_security_recovery_codes_generate|customer_security_recovery_code_verify)$/.test(action);
+    return /^(dirac_mfa_passkey_status|dirac_mfa_passkey_start|dirac_mfa_passkey_verify|domain_mfa_passkey_start|domain_mfa_passkey_verify|customer_security_recovery_codes_generate|customer_security_recovery_code_verify)$/.test(action);
   }
 
   function csrfProbeUrl(action){
