@@ -8691,7 +8691,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     clearBaseA2FError();
     var box = document.getElementById('diracRecoveryVerifyBox');
     if(!openRecoveryBox(box)) return;
-    setRecoveryReceiptStage(box, false);
+    setRecoveryReceiptStage(box, !!readRecoverySession());
     setRecoverySecrets(box, '');
     var requestInput = $('.dirac-recovery-request-id-input', box); if(requestInput) requestInput.value = '';
     var combinedInput = $('.dirac-recovery-combined-input', box); if(combinedInput) combinedInput.value = '';
@@ -8713,7 +8713,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     var combinedInput = $('.dirac-recovery-combined-input', box); if(combinedInput) combinedInput.value = '';
     updateRecoveryCodeCounter(box);
     setRecoverySecrets(box, '', '');
-    setRecoveryReceiptStage(box, false);
+    setRecoveryReceiptStage(box, !!readRecoverySession());
     showStatus(box, '', true);
   }
   function recordFailedA2FAttempt(count){
