@@ -11756,107 +11756,6 @@ function diracPasskeyA2FLostRecoveryTokenFromBody(body) {
   return /^[A-Za-z0-9_-]{24,256}$/.test(raw) ? raw : '';
 }
 
-const DIRAC_LOST_PASSKEY_HANDOFF_COOKIE = '__Secure-dirac_recovery_handoff';
-
-function diracPasskeyA2FLostRecoveryTokenFromCookie(req) {
-  const cookies = parseCookies(req);
-  const all = cookies && cookies.__all && Array.isArray(cookies.__all[DIRAC_LOST_PASSKEY_HANDOFF_COOKIE])
-    ? cookies.__all[DIRAC_LOST_PASSKEY_HANDOFF_COOKIE]
-    : (cookies && cookies[DIRAC_LOST_PASSKEY_HANDOFF_COOKIE] !== undefined
-      ? [cookies[DIRAC_LOST_PASSKEY_HANDOFF_COOKIE]]
-      : []);
-  if (!all.length) return '';
-  const values = all.map((value) => String(value || '').trim());
-  if (values.some((value) => !/^[A-Za-z0-9_-]{24,256}$/.test(value))) return '';
-  const unique = Array.from(new Set(values));
-  return unique.length === 1 ? unique[0] : '';
-}
-
-function diracPasskeyA2FLostRecoveryTokenFromRequest(req, body) {
-  return diracPasskeyA2FLostRecoveryTokenFromBody(body)
-    || diracPasskeyA2FLostRecoveryTokenFromCookie(req);
-}
-
-function diracPasskeyA2FClearLostRecoveryCookie(res) {
-  const domain = normalizeCookieDomain(process.env.DOMAIN_COOKIE_DOMAIN || 'diracgroup.store') || 'diracgroup.store';
-  appendSetCookie(res,
-    DIRAC_LOST_PASSKEY_HANDOFF_COOKIE + '=; Path=/api/health; Domain=' + domain
-    + '; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Strict; Priority=High'
-  );
-}
-
-async function diracPasskeyA2FResolveActiveLostRecoverySession(owner) {
-  if (!owner || !customerSecurityLooksLikeUuid(owner.customerId) || !customerSecurityLooksLikeUuid(owner.authUserId)) {
-    return { ok: false, reason: 'lost_passkey_recovery_owner_missing' };
-  }
-
-  const nowIso = new Date().toISOString();
-  const select = 'id,request_id,customer_id,auth_user_id,recovery_session_hash,purpose,status,created_at,expires_at,used_at,revoked_at,metadata';
-  const path = '/rest/v1/' + LOST_PASSKEY_RECOVERY_SESSION_TABLE
-    + '?select=' + encodeURIComponent(select)
-    + '&customer_id=eq.' + encodeURIComponent(owner.customerId)
-    + '&auth_user_id=eq.' + encodeURIComponent(owner.authUserId)
-    + '&purpose=eq.' + encodeURIComponent(LOST_PASSKEY_RECOVERY_PURPOSE)
-    + '&status=eq.verified'
-    + '&used_at=is.null'
-    + '&revoked_at=is.null'
-    + '&expires_at=gt.' + encodeURIComponent(nowIso)
-    + '&order=created_at.desc&limit=2';
-
-  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' }).catch(() => null);
-  if (!result || !result.ok) {
-    return { ok: false, status: result && result.status || 500, reason: 'lost_passkey_recovery_session_read_failed' };
-  }
-
-  const rows = (Array.isArray(result.data) ? result.data : []).filter((row) => {
-    if (!row || !row.id) return false;
-    if (String(row.customer_id || '') !== String(owner.customerId || '')) return false;
-    if (String(row.auth_user_id || '') !== String(owner.authUserId || '')) return false;
-    if (String(row.purpose || '') !== LOST_PASSKEY_RECOVERY_PURPOSE || String(row.status || '') !== 'verified') return false;
-    if (row.used_at || row.revoked_at) return false;
-    const expiresAtMs = Date.parse(row.expires_at || '');
-    return Number.isFinite(expiresAtMs) && expiresAtMs > Date.now() && /^[a-f0-9]{64}$/.test(String(row.recovery_session_hash || '').trim().toLowerCase());
-  });
-
-  if (rows.length === 0) return { ok: false, status: 404, reason: 'lost_passkey_recovery_session_not_found' };
-  if (rows.length !== 1) return { ok: false, status: 409, reason: 'lost_passkey_recovery_session_ambiguous' };
-
-  const row = rows[0];
-  return {
-    ok: true,
-    id: String(row.id),
-    requestId: String(row.request_id || ''),
-    sessionHash: String(row.recovery_session_hash || '').trim().toLowerCase(),
-    row
-  };
-}
-
-async function diracPasskeyA2FLostRecoveryCookieStatus(req, res, owner) {
-  const token = diracPasskeyA2FLostRecoveryTokenFromCookie(req);
-  if (token) {
-    const checked = await diracPasskeyA2FValidateLostRecoverySession(owner, token).catch(() => null);
-    if (checked && checked.ok) {
-      return {
-        recovery_ready: true,
-        recovery_session_expires_at: String(checked.row && checked.row.expires_at || ''),
-        recovery_session_transport: 'httponly_same_site_cookie'
-      };
-    }
-    diracPasskeyA2FClearLostRecoveryCookie(res);
-  }
-
-  const ownerSession = await diracPasskeyA2FResolveActiveLostRecoverySession(owner).catch(() => null);
-  if (!ownerSession || !ownerSession.ok) {
-    return { recovery_ready: false, recovery_session_expires_at: '', recovery_session_transport: 'httponly_same_site_cookie' };
-  }
-
-  return {
-    recovery_ready: true,
-    recovery_session_expires_at: String(ownerSession.row && ownerSession.row.expires_at || ''),
-    recovery_session_transport: 'httponly_same_site_cookie'
-  };
-}
-
 function diracPasskeyA2FLostRecoveryPayloadClean(payload) {
   const recovery = payload && payload.lostPasskeyRecovery && typeof payload.lostPasskeyRecovery === 'object'
     ? payload.lostPasskeyRecovery
@@ -12028,7 +11927,7 @@ async function diracPasskeyA2FStart(req, res) {
 
   let body = {};
   try { body = await readBody(req); } catch (_) { body = {}; }
-  const recoverySessionToken = diracPasskeyA2FLostRecoveryTokenFromRequest(req, body);
+  const recoverySessionToken = diracPasskeyA2FLostRecoveryTokenFromBody(body);
   let lostRecoverySession = null;
   if (recoverySessionToken) {
     lostRecoverySession = await diracPasskeyA2FValidateLostRecoverySession(owner, recoverySessionToken);
@@ -12039,17 +11938,6 @@ async function diracPasskeyA2FStart(req, res) {
         method: 'passkey',
         code: 'LOST_PASSKEY_RECOVERY_SESSION_INVALID',
         message: 'Recovery session tidak valid atau sudah expired. Ulangi verifikasi recovery code.'
-      });
-    }
-  } else {
-    const ownerSession = await diracPasskeyA2FResolveActiveLostRecoverySession(owner).catch(() => null);
-    if (ownerSession && ownerSession.ok) lostRecoverySession = ownerSession;
-    else if (ownerSession && ownerSession.reason === 'lost_passkey_recovery_session_ambiguous') {
-      return res.status(409).json({
-        ok: false,
-        method: 'passkey',
-        code: 'LOST_PASSKEY_RECOVERY_SESSION_AMBIGUOUS',
-        message: 'Terdapat lebih dari satu recovery session aktif. Ulangi proses recovery dari awal.'
       });
     }
   }
@@ -12301,7 +12189,6 @@ async function diracPasskeyA2FVerify(req, res) {
 
   const proof = customerSecurityCreateDashboardMfaToken(req, user, 'passkey');
   customerSecuritySetDashboardMfaCookie(res, proof);
-  if (lostRecoveryRotation && lostRecoveryRotation.ok) diracPasskeyA2FClearLostRecoveryCookie(res);
 
   return res.status(200).json({
     ok: true,
@@ -12379,15 +12266,9 @@ module.exports = async function diracPasskeyDbStatusWrapper(req, res) {
     const directResult = await supabaseFetch(directPath, { method: 'GET', auth: 'service' }).catch(() => null);
     const directRows = directResult && directResult.ok && Array.isArray(directResult.data) ? directResult.data : [];
     if (directRows.length > 0) {
-      const recoveryStatus = await diracPasskeyA2FLostRecoveryCookieStatus(req, res, {
-        customerId: String(directRows[0] && directRows[0].user_id || ''),
-        authUserId: String(user.id || ''),
-        email
-      });
       return res.status(200).json({
         ok: true,
         method: 'passkey',
-        ...recoveryStatus,
         active: true,
         passkey_active: true,
         has_passkey: true,
@@ -12406,9 +12287,6 @@ module.exports = async function diracPasskeyDbStatusWrapper(req, res) {
         ok: true,
         active: false,
         method: 'passkey',
-        recovery_ready: false,
-        recovery_session_expires_at: '',
-        recovery_session_transport: 'httponly_same_site_cookie',
         passkey_active: false,
         has_passkey: false,
         passkey_count: 0,
@@ -12420,11 +12298,9 @@ module.exports = async function diracPasskeyDbStatusWrapper(req, res) {
 
     const rows = await diracPasskeyA2FListActivePasskeys(owner);
     const count = Array.isArray(rows) ? rows.length : 0;
-    const recoveryStatus = await diracPasskeyA2FLostRecoveryCookieStatus(req, res, owner);
     return res.status(200).json({
       ok: true,
       method: 'passkey',
-      ...recoveryStatus,
       active: count > 0,
       passkey_active: count > 0,
       has_passkey: count > 0,
