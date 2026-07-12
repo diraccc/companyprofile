@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="id" data-effective-theme="dark" data-motion="full" data-a2f-error-fix="friendly-v1" data-dirac-deployment="server1">
+<html lang="id" data-effective-theme="dark" data-motion="full" data-a2f-error-fix="friendly-v1">
 <head>
 <script id="dirac-masuk-exact-referer-url-cleaner-v1">
 (function(){
@@ -20,27 +20,7 @@
     safe.had_hash = url.hash ? '1' : '0';
     try{ sessionStorage.setItem('dirac_masuk_entry_state_v1', JSON.stringify(safe)); }catch(_){}
 
-    var recoveryHash = '';
-    try{
-      var rawHash = String(url.hash || '').replace(/^#/, '');
-      var hashParams = new URLSearchParams(rawHash);
-      var recoveryTokens = hashParams.getAll('dirac_lost_passkey_recovery_session');
-      var requestIds = hashParams.getAll('request_id');
-      var hashKeys = [];
-      hashParams.forEach(function(_value, key){ hashKeys.push(key); });
-      var exactRecoveryFragment = hashKeys.length === 2 && hashKeys.every(function(key){
-        return key === 'dirac_lost_passkey_recovery_session' || key === 'request_id';
-      });
-      if(
-        exactRecoveryFragment &&
-        recoveryTokens.length === 1 &&
-        requestIds.length === 1 &&
-        /^[A-Za-z0-9_-]{32,160}$/.test(String(recoveryTokens[0] || '')) &&
-        /^[A-Za-z0-9_-]{16,120}$/.test(String(requestIds[0] || ''))
-      ) recoveryHash = url.hash;
-    }catch(_){}
-
-    history.replaceState(null, document.title, url.origin + url.pathname + recoveryHash);
+    history.replaceState(null, document.title, url.origin + url.pathname);
   }catch(_){}
 })();
 </script>
@@ -63,18 +43,18 @@
   }
   function reasonMessage(reason){
     var map = {
-      dashboard_timeout: 'Sesi akun belum dapat diverifikasi. Silakan masuk kembali dan coba beberapa saat lagi.',
-      session403: 'Verifikasi keamanan akun belum lengkap atau telah berakhir. Silakan masuk kembali dan selesaikan verifikasi.',
-      session401: 'Sesi masuk Anda telah berakhir. Silakan masuk kembali untuk melanjutkan.',
-      network: 'Layanan verifikasi belum dapat dihubungi. Periksa koneksi Anda, lalu coba kembali.',
-      load: 'Sesi akun belum dapat diverifikasi saat halaman dibuka. Silakan masuk kembali.',
-      pageshow: 'Sesi akun perlu diverifikasi kembali. Silakan masuk untuk melanjutkan.',
-      focus: 'Sesi akun perlu diperbarui. Silakan masuk kembali untuk melanjutkan.',
-      visible: 'Sesi akun belum dapat dipulihkan. Silakan masuk kembali.',
-      https: 'Halaman ini hanya dapat digunakan melalui koneksi resmi yang aman.',
-      idle: 'Sesi Anda berakhir karena tidak ada aktivitas. Silakan masuk kembali.'
+      dashboard_timeout: 'Dashboard belum mendapat jawaban valid dari cek sesi backend. Penyebabnya biasanya request domain_dashboard_me terlalu lama atau tidak selesai.',
+      session403: 'Dashboard ditolak backend 403. Penyebab paling mungkin cookie A2F dashboard belum valid, hilang, expired, atau tidak cocok dengan sesi/browser.',
+      session401: 'Dashboard ditolak backend 401. Penyebab paling mungkin cookie login atau protected session lock belum valid/expired.',
+      network: 'Dashboard gagal menghubungi backend cek sesi. Periksa koneksi, CSP, atau response API.',
+      load: 'Cek sesi dashboard gagal saat halaman dimuat.',
+      pageshow: 'Cek sesi dashboard gagal saat halaman tampil kembali.',
+      focus: 'Cek sesi dashboard gagal saat halaman aktif kembali.',
+      visible: 'Cek sesi dashboard gagal saat halaman terlihat kembali.',
+      https: 'Dashboard hanya boleh dibuka dari HTTPS resmi.',
+      idle: 'Sesi dashboard terkunci karena idle timeout.'
     };
-    return map[reason] || 'Akses akun perlu diverifikasi kembali. Silakan masuk untuk melanjutkan.';
+    return map[reason] || ('Dashboard mengembalikan akses ke halaman masuk. Alasan teknis: ' + reason + '.');
   }
   function show(){
     var state = readJson(REDIRECT_STATE_KEY);
@@ -85,7 +65,7 @@
     if(!box) return;
     box.className = 'status-box show error';
     box.style.whiteSpace = 'pre-line';
-    box.textContent = reasonMessage(reason);
+    box.textContent = reasonMessage(reason) + '\n\nKode: ' + reason;
   }
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', show, {once:true});
   else show();
@@ -5174,7 +5154,6 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
               <div class="form-row form-row-clean dirac-auth-row-secure">
                 <label class="check"><input type="checkbox" id="remember" name="remember" checked> <span data-i18n="remember">Ingat perangkat ini</span></label>
                 <button class="forgot-link" type="button" id="forgotPasswordBtn">Lupa password?</button>
-                <a class="forgot-link" href="#pemulihan-passkey" referrerpolicy="no-referrer" data-no-i18n>Kehilangan Passkey?</a>
               </div>
               <button class="btn-primary auth-submit" id="submitBtn" type="submit" data-i18n="submitLogin">Masuk sekarang</button>
               <button class="forgot-link dirac-resend-verification is-register-only is-hidden" type="button" id="resendVerificationBtn" aria-describedby="statusBox">Kirim ulang verifikasi email</button>
@@ -5366,8 +5345,8 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
               <small data-i18n="a2fPasskeyMini">Paling modern dan tahan phishing.</small>
             </button>
             <button class="a2f-recovery-inline" type="button" data-a2f-select="recovery" aria-pressed="false">
-              <strong data-i18n="a2fRecovery">Tidak dapat menggunakan Passkey?</strong>
-              <span data-i18n="a2fRecoveryText">Gunakan layanan pemulihan resmi untuk memverifikasi akun Anda.</span>
+              <strong data-i18n="a2fRecovery">Anda kehilangan Passkey?</strong>
+              <span data-i18n="a2fRecoveryText">Minta file recovery terenkripsi lewat email resmi akun.</span>
             </button>
           </div>
 
@@ -5389,9 +5368,9 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
             <div class="a2f-panel" data-a2f-panel="recovery">
               <div class="a2f-mail-visual" aria-hidden="true">ENC</div>
               <div class="a2f-panel-copy">
-                <h3 data-i18n="a2fRecoveryPanelTitle">Pemulihan akses akun</h3>
-                <p data-i18n="a2fRecoveryPanelText">Buka halaman pemulihan aman untuk memverifikasi kepemilikan akun dan membuat Passkey baru.</p>
-                <div class="a2f-code-row" aria-hidden="true"><span>AMAN</span><span>TERENKRIPSI</span><span>1x</span></div>
+                <h3 data-i18n="a2fRecoveryPanelTitle">Recovery Passkey hilang</h3>
+                <p data-i18n="a2fRecoveryPanelText">Tekan opsi recovery untuk meminta PDF recovery terenkripsi. Satu kolom Request ID + recovery code bisa dipakai setelah PDF diterima.</p>
+                <div class="a2f-code-row" aria-hidden="true"><span>PDF</span><span>REQ+CODE</span><span>1x</span></div>
               </div>
             </div>
           </section>
@@ -6620,10 +6599,10 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       passTitle:'Gunakan passkey', authTitle:'Gunakan Authenticator', emailTitle:'Gunakan recovery code',
       passPanel:'Konfirmasi dengan Face ID, sidik jari, PIN, atau password manager perangkat Anda.',
       authPanel:'Masukkan kode 6 digit terbaru dari aplikasi Authenticator. Rahasia Authenticator tidak ditampilkan di login.',
-      emailPanel:'Kode verifikasi dikirim melalui saluran resmi akun.',
-      recoveryPanel:'Pemulihan dilakukan melalui halaman resmi dengan verifikasi kepemilikan akun.',
-      selectedPass:'Passkey siap digunakan', selectedAuth:'Authenticator siap diverifikasi', selectedRecovery:'Pemulihan akun tersedia',
-      livePass:'Metode utama', liveAuth:'Kode 6 digit', liveRecovery:'Akses aman',
+      emailPanel:'Backend mengirim file recovery terenkripsi ke email resmi akun.',
+      recoveryPanel:'Backend mengirim file recovery terenkripsi ke email resmi akun. Recovery code diverifikasi server-side.',
+      selectedPass:'Passkey siap digunakan', selectedAuth:'Authenticator siap diverifikasi', selectedRecovery:'Recovery terenkripsi siap',
+      livePass:'Metode utama', liveAuth:'Kode 6 digit', liveRecovery:'PDF recovery',
       start:'Lanjutkan', done:'Selesai',
       trust1k:'Privasi', trust1:'Email ditampilkan tersamarkan', trust2k:'Kode', trust2:'Input OTP nyaman di mobile', trust3k:'Cadangan', trust3:'Recovery code tersedia',
       tryText:'Bukan metode yang Anda mau?', tryBtn:'Coba cara lain', otpLabel:'Kode verifikasi', otpPlaceholder:'000000', resend:'Kirim ulang kode', timer:'Bisa kirim ulang dalam 60 detik',
@@ -6639,10 +6618,10 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       passTitle:'Use a passkey', authTitle:'Use Authenticator', emailTitle:'Use recovery code',
       passPanel:'Confirm with Face ID, fingerprint, PIN, or the password manager on your device.',
       authPanel:'Enter the latest 6-digit code from your authenticator app. The Authenticator secret is not shown on login.',
-      emailPanel:'A verification code is sent through the official account channel.',
-      recoveryPanel:'Recovery continues on the official secure page with account-ownership verification.',
-      selectedPass:'Passkey ready', selectedAuth:'Authenticator ready to verify', selectedRecovery:'Account recovery available',
-      livePass:'Primary method', liveAuth:'6-digit code', liveRecovery:'Secure access',
+      emailPanel:'The backend sends an encrypted recovery file to the official account email.',
+      recoveryPanel:'The backend sends an encrypted recovery file to the official account email. The recovery code is verified server-side.',
+      selectedPass:'Passkey ready', selectedAuth:'Authenticator ready to verify', selectedRecovery:'Encrypted recovery ready',
+      livePass:'Primary method', liveAuth:'6-digit code', liveRecovery:'Encrypted file',
       start:'Continue', done:'Done', trust1k:'Privacy', trust1:'Email is shown masked', trust2k:'Code', trust2:'Mobile-friendly OTP input', trust3k:'Backup', trust3:'Recovery codes available',
       tryText:'Not the method you want?', tryBtn:'Try another way', otpLabel:'Verification code', otpPlaceholder:'000000', resend:'Resend code', timer:'Can resend in 60 seconds',
       recoveryTitle:'Backup recovery codes', recoveryText:'Save these codes in case your primary device is unavailable.',
@@ -8235,43 +8214,6 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     var modal = document.getElementById('a2fModal');
     if(modal) modal.classList.toggle('recovery-open', !!open);
   }
-  function openRecoveryBox(box){
-    var modal = document.getElementById('a2fModal');
-    if(!box || !modal) return false;
-    modal.classList.add('open','recovery-open');
-    modal.setAttribute('aria-hidden','false');
-    document.body.classList.add('modal-open');
-    box.classList.add('is-unlocked');
-    box.setAttribute('aria-hidden','false');
-    setVerifyStage(box, false);
-    try { box.scrollIntoView({behavior:'smooth', block:'center'}); } catch (_) {}
-    return true;
-  }
-  function cleanRecoveryReturnFragment(){
-    try { history.replaceState(null, document.title, location.pathname + location.search); } catch (_) {}
-  }
-  function readRecoveryReturnFragment(){
-    var raw = String(location.hash || '').replace(/^#/,'');
-    if(!raw) return null;
-    var params;
-    try { params = new URLSearchParams(raw); } catch (_) { return null; }
-    var token = String(params.get('dirac_lost_passkey_recovery_session') || '').trim();
-    var requestId = normalizeRequestId(params.get('request_id') || '');
-    if(!/^[A-Za-z0-9_-]{32,160}$/.test(token) || !requestId) return null;
-    cleanRecoveryReturnFragment();
-    return {request_id:requestId,recovery_session_token:token,purpose:'register_new_passkey'};
-  }
-  function resumeRecoveryPasskeyFromFragment(box){
-    var session = readRecoveryReturnFragment();
-    if(!session) return false;
-    window.__DIRAC_LOST_PASSKEY_RECOVERY_SESSION__ = session;
-    if(!openRecoveryBox(box)) return false;
-    var passwordInput = $('.dirac-recovery-account-password-input', box); if(passwordInput) passwordInput.value = '';
-    setRecoverySecrets(box, '');
-    showRecoveryPasskeyStage(box);
-    showStatus(box, 'Kode Sudah Diterima. Silakan Verifikasi.', true);
-    return true;
-  }
   function clearBaseA2FError(){
     try{
       var result = document.getElementById('a2fResult');
@@ -8321,7 +8263,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     setRecoverySecrets(box, value, '');
   }
   function pickWebsiteCode(data){
-    var value = pickRecoveryFieldDeep(data, ['website_recovery_code','websiteRecoveryCode','recovery_website_code','recoveryWebsiteCode']);
+    var value = pickRecoveryFieldDeep(data, ['website_recovery_code','websiteRecoveryCode','recovery_website_code','recoveryWebsiteCode','pdf_website_code','pdfWebsiteCode','pdf_code','pdfCode']);
     value = String(value || '').trim();
     if(!value || /\[redacted/i.test(value)) return '';
     if(!/^[A-Za-z0-9_-]{100}$/.test(value)) return '';
@@ -8488,75 +8430,32 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
   function readRecoverySession(){
     var session = window.__DIRAC_LOST_PASSKEY_RECOVERY_SESSION__;
     if(!session || typeof session !== 'object') return null;
-    var expiresAt = String(session.expires_at || session.expiresAt || '').trim();
-    if(session.cookie_bound === true){
-      var expiresAtMs = Date.parse(expiresAt);
-      if(!Number.isFinite(expiresAtMs) || expiresAtMs <= Date.now()) return null;
-      return {
-        request_id:'',
-        recovery_session_token:'',
-        expires_at:expiresAt,
-        purpose:String(session.purpose || 'register_new_passkey'),
-        cookie_bound:true
-      };
-    }
     var token = String(session.recovery_session_token || session.recoverySessionToken || '').trim();
     if(!/^[A-Za-z0-9_-]{24,256}$/.test(token)) return null;
     return {
-      request_id:normalizeRequestId(session.request_id || session.requestId || ''),
-      recovery_session_token:token,
-      expires_at:expiresAt,
-      purpose:String(session.purpose || 'register_new_passkey'),
-      cookie_bound:false
+      request_id: normalizeRequestId(session.request_id || session.requestId || ''),
+      recovery_session_token: token,
+      expires_at: String(session.expires_at || session.expiresAt || ''),
+      purpose: String(session.purpose || 'register_new_passkey')
     };
   }
-  function setRecoveryReceiptStage(box, received){
+  function showRecoveryPasskeyStage(box){
     var stage = $('.dirac-recovery-passkey-stage', box);
     if(stage){
       stage.hidden = false;
       stage.removeAttribute('hidden');
       stage.setAttribute('aria-hidden','false');
-      stage.classList.toggle('is-ready', !!received);
+      stage.classList.add('is-ready');
       stage.style.display = 'block';
-      var title = $('strong', stage);
-      var detail = $('span', stage);
-      if(title) title.textContent = received ? 'Status masuk.html: SUDAH DITERIMA' : 'Status masuk.html: BELUM DITERIMA';
-      if(detail) detail.textContent = received
-        ? 'Bukti verifikasi dan recovery session dari Server 1 sudah sampai ke HTML. Recovery code tidak ditampilkan. Tekan Verify untuk melanjutkan.'
-        : 'Recovery session belum diterima oleh HTML. Selesaikan verifikasi pada halaman pemulihan resmi terlebih dahulu.';
     }
     var btn = $('.dirac-recovery-passkey-submit', box);
     if(btn){
-      btn.textContent = 'Verify';
-      btn.disabled = !received;
-      if(received) btn.removeAttribute('disabled');
-      else btn.setAttribute('disabled','');
+      btn.disabled = false;
+      btn.removeAttribute('disabled');
+      if(!String(btn.textContent || '').trim()) btn.textContent = 'Daftar Passkey Baru';
     }
-    return stage;
-  }
-  function showRecoveryPasskeyStage(box){
-    var stage = setRecoveryReceiptStage(box, true);
     try { if(stage) stage.scrollIntoView({behavior:'smooth', block:'center'}); } catch (_) {}
     setTimeout(function(){ try{ if(stage) stage.scrollIntoView({behavior:'smooth', block:'center'}); }catch(_){} }, 80);
-  }
-  function acceptRecoveryHandoff(data){
-    var expiresAt = String(data && data.recovery_session_expires_at || '').trim();
-    var expiresAtMs = Date.parse(expiresAt);
-    if(!(data && data.recovery_ready === true)
-      || data.recovery_session_transport !== 'httponly_same_site_cookie'
-      || !Number.isFinite(expiresAtMs)
-      || expiresAtMs <= Date.now()) return false;
-    window.__DIRAC_LOST_PASSKEY_RECOVERY_SESSION__ = {
-      cookie_bound:true,
-      expires_at:expiresAt,
-      purpose:'register_new_passkey'
-    };
-    var box = document.getElementById('diracRecoveryVerifyBox');
-    if(box){
-      showRecoveryPasskeyStage(box);
-      showStatus(box, 'Kode Sudah Diterima. Silakan Verifikasi.', true);
-    }
-    return true;
   }
   async function callRecoveryPasskeyAction(action, payload){
     action = String(action || '').trim();
@@ -8588,12 +8487,12 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     if(btn){ btn.disabled = true; btn.textContent = 'Membuka Passkey...'; }
     showStatus(box, 'Menyiapkan pendaftaran Passkey baru...', true);
     try{
-      var startPayload = {action:'dirac_mfa_passkey_start',method:'passkey'};
-      if(session.recovery_session_token){
-        startPayload.recovery_session_token = session.recovery_session_token;
-        startPayload.recoverySessionToken = session.recovery_session_token;
-      }
-      var start = await callRecoveryPasskeyAction('dirac_mfa_passkey_start', startPayload);
+      var start = await callRecoveryPasskeyAction('dirac_mfa_passkey_start', {
+        action:'dirac_mfa_passkey_start',
+        method:'passkey',
+        recovery_session_token:session.recovery_session_token,
+        recoverySessionToken:session.recovery_session_token
+      });
       if(!start || !start.publicKey || String(start.passkeyMode || '').toLowerCase() === 'authentication'){
         throw new Error('Server belum mengirim challenge pendaftaran Passkey baru.');
       }
@@ -8610,7 +8509,9 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
         mfaSetupToken:setupToken,
         token:setupToken,
         passkeyMode:'registration',
-        credential:serialized
+        credential:serialized,
+        recovery_session_token:session.recovery_session_token,
+        recoverySessionToken:session.recovery_session_token
       });
       if(!(verify && (verify.ok === true || verify.verified === true))){ throw new Error('Server belum menerima Passkey baru.'); }
       window.__DIRAC_LOST_PASSKEY_RECOVERY_SESSION__ = Object.assign({}, session, {completed:true, completed_at:String(Date.now())});
@@ -8618,19 +8519,19 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       if(btn){ btn.textContent = 'Passkey baru berhasil dibuat'; btn.disabled = true; }
     }catch(e){
       showStatus(box, e && e.message ? e.message : 'Pendaftaran Passkey baru gagal. Coba lagi.', false);
-      if(btn){ btn.disabled = false; btn.textContent = old || 'Verify'; }
+      if(btn){ btn.disabled = false; btn.textContent = old || 'Daftar Passkey Baru'; }
     }
   }
   async function requestRecoveryFile(box){
     var passwordInput = $('.dirac-recovery-account-password-input', box);
     var accountPassword = passwordInput ? String(passwordInput.value || '') : '';
-    if(!accountPassword){ showStatus(box, 'Masukkan kata sandi akun untuk melanjutkan verifikasi pemulihan.', false); if(passwordInput) passwordInput.focus(); return; }
+    if(!accountPassword){ showStatus(box, 'Masukkan password akun sekarang. Password PDF final adalah kode website + 2 digit kode email + password akun, diketik berurutan tanpa spasi.', false); if(passwordInput) passwordInput.focus(); return; }
     var btn = $('.dirac-recovery-request-submit', box);
     var old = btn && btn.textContent;
-    if(btn){ btn.disabled = true; btn.textContent = 'Memproses pemulihan...'; }
-    setVerifyStage(box, false);
-    setRecoverySecrets(box, '');
-    showStatus(box, 'Memvalidasi kata sandi dan menyiapkan pemulihan akun melalui layanan resmi.', true);
+    if(btn){ btn.disabled = true; btn.textContent = 'Mengirim PDF...'; }
+    setVerifyStage(box, true);
+    setRecoverySecrets(box, '', '');
+    showStatus(box, 'Mengirim request ke backend. Email tujuan selalu diambil dari database.', true);
     try{
       await refreshCsrfToken('customer_security_recovery_codes_generate');
       var body = {
@@ -8653,20 +8554,13 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       var websiteCode = pickWebsiteCode(data);
       setRecoverySecrets(box, websiteCode);
       prefillCombinedInput(box, requestId);
-      setVerifyStage(box, false);
-      var nextInfo = $('.dirac-recovery-next-info', box);
-      if(nextInfo) nextInfo.textContent = websiteCode
-        ? 'Secret Website ditampilkan di atas. Secret Email dan tautan pemulihan resmi telah dikirim ke email akun.'
-        : 'Permintaan telah diterima, tetapi Secret Website belum tersedia. Silakan ulangi proses pemulihan.';
-      if(passwordInput) passwordInput.value = '';
-      showStatus(box, websiteCode
-        ? 'Permintaan pemulihan berhasil dibuat. Simpan Secret Website, lalu buka tautan resmi dari email. Pada halaman tersebut masukkan kata sandi akun saat ini, Secret Email, dan Secret Website.'
-        : 'Permintaan pemulihan belum lengkap. Silakan coba kembali.', !!websiteCode);
+      setVerifyStage(box, true);
+      showStatus(box, websiteCode ? 'Request disetujui. PDF terenkripsi sudah dikirim. Kode website 100 karakter sudah muncul; gunakan tombol Salin agar tidak salah copy.' : 'Request disetujui. PDF terenkripsi sudah dikirim, tetapi kode website 100 karakter belum diterima lengkap dari backend.', !!websiteCode);
     }catch(e){
-      setVerifyStage(box, false);
+      setVerifyStage(box, true);
       showStatus(box, recoveryFriendlyMessage(e && e.message, null, 0), false);
     }finally{
-      if(btn){ btn.disabled = false; btn.textContent = old || 'Lanjutkan pemulihan'; }
+      if(btn){ btn.disabled = false; btn.textContent = old || 'Kirim PDF recovery'; }
     }
   }
   async function verifyRecoveryCode(box){
@@ -8675,8 +8569,8 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     var parsed = readRecoveryFields(box);
     var requestId = parsed.requestId;
     var code = parsed.code;
-    if(!requestId){ showStatus(box, 'Nomor permintaan belum tersedia. Mulai proses pemulihan terlebih dahulu.', false); if(requestInput) requestInput.focus(); return; }
-    if(!code || code.length !== DIRAC_LOST_PASSKEY_RECOVERY_CODE_LENGTH){ showStatus(box, 'Recovery Code harus tepat ' + DIRAC_LOST_PASSKEY_RECOVERY_CODE_LENGTH + ' karakter. Saat ini: ' + (code ? code.length : 0) + '/' + DIRAC_LOST_PASSKEY_RECOVERY_CODE_LENGTH + '. Masukkan kode pemulihan lengkap sesuai petunjuk resmi.', false); if(combinedInput) combinedInput.focus(); return; }
+    if(!requestId){ showStatus(box, 'Request ID belum ada. Klik Kirim PDF recovery dulu. Kalau sudah punya Request ID, tempel di kolom Request ID.', false); if(requestInput) requestInput.focus(); return; }
+    if(!code || code.length !== DIRAC_LOST_PASSKEY_RECOVERY_CODE_LENGTH){ showStatus(box, 'Recovery Code harus tepat ' + DIRAC_LOST_PASSKEY_RECOVERY_CODE_LENGTH + ' karakter. Saat ini: ' + (code ? code.length : 0) + '/' + DIRAC_LOST_PASSKEY_RECOVERY_CODE_LENGTH + '. Salin Recovery Code penuh dari file recovery, bukan password PDF.', false); if(combinedInput) combinedInput.focus(); return; }
     var btn = $('.dirac-recovery-verify-submit', box);
     var old = btn && btn.textContent;
     if(btn){ btn.disabled = true; btn.textContent = 'Memverifikasi...'; }
@@ -8709,7 +8603,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
         purpose: data.purpose || 'register_new_passkey'
       };
       showRecoveryPasskeyStage(box);
-      showStatus(box, 'Recovery valid. Recovery session sudah sampai di masuk.html dan tombol Verify sudah aktif.', true);
+      showStatus(box, 'Recovery valid. Tombol Daftar Passkey Baru sudah dibuka di bawah. Dashboard tidak dibuka dari recovery ini.', true);
       if(combinedInput) combinedInput.value = '';
     }catch(e){
       showStatus(box, recoveryFriendlyMessage(e && e.message, window.__diracLastRecoveryVerifyData || null, window.__diracLastRecoveryVerifyStatus || 0), false);
@@ -8718,17 +8612,16 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     }
   }
   function reveal(reason){
-    clearBaseA2FError();
+    install();
     var box = document.getElementById('diracRecoveryVerifyBox');
-    if(!openRecoveryBox(box)) return;
-    setRecoveryReceiptStage(box, !!readRecoverySession());
-    setRecoverySecrets(box, '');
-    var requestInput = $('.dirac-recovery-request-id-input', box); if(requestInput) requestInput.value = '';
-    var combinedInput = $('.dirac-recovery-combined-input', box); if(combinedInput) combinedInput.value = '';
-    updateRecoveryCodeCounter(box);
-    showStatus(box, 'Masukkan kata sandi akun saat ini untuk membuat permintaan pemulihan. Secret Website akan ditampilkan di halaman ini, sedangkan Secret Email dan tautan resmi akan dikirim ke email akun.', true);
-    var passwordInput = $('.dirac-recovery-account-password-input', box);
-    if(passwordInput){ passwordInput.value = ''; setTimeout(function(){ try{ passwordInput.focus({preventScroll:true}); }catch(_){ passwordInput.focus(); } }, 40); }
+    if(!box) return;
+    clearBaseA2FError();
+    setRecoveryMode(true);
+    box.classList.add('is-unlocked');
+    box.setAttribute('aria-hidden','false');
+    setVerifyStage(box, true);
+    showStatus(box, reason === 'two_failed' ? 'Opsi recovery dibuka otomatis karena A2F gagal 2x. Klik Kirim PDF recovery, lalu tempel Recovery Code 1200 karakter dari PDF.' : 'Klik Kirim PDF recovery, buka PDF dari email, lalu tempel Recovery Code 1200 karakter di kotak besar.', true);
+    try { box.scrollIntoView({behavior:'smooth', block:'center'}); } catch (_) {}
   }
   function hide(){
     currentFailedA2FAttempts = 0;
@@ -8737,13 +8630,14 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     if(!box) return;
     box.classList.remove('is-unlocked');
     box.setAttribute('aria-hidden','true');
-    setVerifyStage(box, false);
+    setVerifyStage(box, true);
     var passwordInput = $('.dirac-recovery-account-password-input', box); if(passwordInput) passwordInput.value = '';
     var requestInput = $('.dirac-recovery-request-id-input', box); if(requestInput) requestInput.value = '';
     var combinedInput = $('.dirac-recovery-combined-input', box); if(combinedInput) combinedInput.value = '';
     updateRecoveryCodeCounter(box);
     setRecoverySecrets(box, '', '');
-    setRecoveryReceiptStage(box, !!readRecoverySession());
+    var passkeyStage = $('.dirac-recovery-passkey-stage', box); if(passkeyStage){ passkeyStage.hidden = true; passkeyStage.setAttribute('hidden',''); passkeyStage.setAttribute('aria-hidden','true'); passkeyStage.classList.remove('is-ready'); passkeyStage.style.display = ''; }
+    var passkeyBtn = $('.dirac-recovery-passkey-submit', box); if(passkeyBtn){ passkeyBtn.disabled = false; passkeyBtn.textContent = 'Daftar Passkey Baru'; }
     showStatus(box, '', true);
   }
   function recordFailedA2FAttempt(count){
@@ -8762,41 +8656,41 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     box.className = 'dirac-recovery-verify-box';
     box.setAttribute('aria-hidden','true');
     box.innerHTML =
-      '<div class="dirac-recovery-head"><div class="dirac-recovery-icon">SEC</div><div><h3>Pemulihan akses akun</h3><span class="dirac-recovery-kicker">Gunakan layanan pemulihan resmi</span></div></div>' +
+      '<div class="dirac-recovery-head"><div class="dirac-recovery-icon">PDF</div><div><h3>Recovery Passkey hilang</h3><span class="dirac-recovery-kicker">Ikuti 4 langkah ini saja</span></div></div>' +
       '<div class="dirac-recovery-step-list">' +
-      '<div class="dirac-recovery-step-item"><span class="dirac-recovery-step-no">1</span><span>Masukkan kata sandi akun saat ini untuk memulai pemulihan.</span></div>' +
-      '<div class="dirac-recovery-step-item"><span class="dirac-recovery-step-no">2</span><span>Simpan Secret Website yang ditampilkan pada halaman ini.</span></div>' +
-      '<div class="dirac-recovery-step-item"><span class="dirac-recovery-step-no">3</span><span>Buka tautan resmi dan Secret Email yang dikirim ke email akun.</span></div>' +
-      '<div class="dirac-recovery-step-item"><span class="dirac-recovery-step-no">4</span><span>Selesaikan decrypt aman, verifikasi kode, lalu daftarkan Passkey baru.</span></div>' +
+      '<div class="dirac-recovery-step-item"><span class="dirac-recovery-step-no">1</span><span>Isi password akun sekarang, lalu tekan <b>Kirim PDF recovery</b>.</span></div>' +
+      '<div class="dirac-recovery-step-item"><span class="dirac-recovery-step-no">2</span><span>Buka email resmi akun. Password PDF = <b>kode website + 2 digit kode email + password akun</b>, tanpa spasi.</span></div>' +
+      '<div class="dirac-recovery-step-item"><span class="dirac-recovery-step-no">3</span><span>Salin <b>Recovery Code 1200 karakter</b> dari PDF. Jangan salin password PDF.</span></div>' +
+      '<div class="dirac-recovery-step-item"><span class="dirac-recovery-step-no">4</span><span>Tempel Recovery Code di kotak besar, lalu tekan <b>Verifikasi recovery</b>.</span></div>' +
       '</div>' +
       '<label class="dirac-recovery-field-label">Password akun sekarang</label>' +
       '<input class="dirac-recovery-account-password-input" type="password" autocomplete="current-password" placeholder="Password login akun ini">' +
-      '<div class="dirac-recovery-verify-actions"><button class="dirac-recovery-request-submit" type="button">Lanjutkan pemulihan</button><button class="dirac-recovery-hide-btn" type="button">Tutup</button></div>' +
+      '<div class="dirac-recovery-verify-actions"><button class="dirac-recovery-request-submit" type="button">Kirim PDF recovery</button><button class="dirac-recovery-hide-btn" type="button">Tutup</button></div>' +
       '<div class="dirac-recovery-website-code-box" aria-live="polite">' +
       '<div class="dirac-recovery-secret-grid">' +
       '<div class="dirac-recovery-secret-card" data-recovery-secret-card="website">' +
-      '<div class="dirac-recovery-secret-head"><span class="dirac-recovery-secret-label">Secret Website</span><button class="dirac-recovery-copy-btn" type="button" data-dirac-recovery-copy="website">Salin</button></div>' +
+      '<div class="dirac-recovery-secret-head"><span class="dirac-recovery-secret-label">Kode website untuk password PDF</span><button class="dirac-recovery-copy-btn" type="button" data-dirac-recovery-copy="website">Salin</button></div>' +
       '<code class="dirac-recovery-website-code-text dirac-recovery-secret-value">-</code>' +
-      '<small class="dirac-recovery-secret-hint">Masukkan nilai ini pada halaman pemulihan resmi yang dibuka dari email.</small>' +
+      '<small class="dirac-recovery-secret-hint">Gabungkan tanpa spasi: kode website + 2 digit kode email + password akun.</small>' +
       '</div>' +
 
       '</div>' +
       '</div>' +
-      '<div class="dirac-recovery-next-info">Secret Email dan tautan pemulihan resmi akan dikirim ke email akun setelah kata sandi tervalidasi.</div>' +
+      '<div class="dirac-recovery-next-info">Request ID diisi otomatis setelah PDF dikirim. User cukup menempel Recovery Code 1200 karakter dari PDF.</div>' +
       '<div class="dirac-recovery-verify-stage">' +
       '<label class="dirac-recovery-field-label">Request ID</label>' +
-      '<input class="dirac-recovery-request-id-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Terisi otomatis setelah pemulihan dimulai">' +
-      '<label class="dirac-recovery-field-label">Kode pemulihan</label>' +
-      '<textarea class="dirac-recovery-verify-input dirac-recovery-combined-input" autocomplete="one-time-code" autocapitalize="off" spellcheck="false" placeholder="Masukkan kode pemulihan lengkap di sini."></textarea>' +
+      '<input class="dirac-recovery-request-id-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Otomatis terisi setelah Kirim PDF recovery">' +
+      '<label class="dirac-recovery-field-label">Recovery Code dari PDF — 1200 karakter</label>' +
+      '<textarea class="dirac-recovery-verify-input dirac-recovery-combined-input" autocomplete="one-time-code" autocapitalize="off" spellcheck="false" placeholder="Tempel Recovery Code 1200 karakter dari PDF di sini. Bukan password PDF."></textarea>' +
       '<div class="dirac-recovery-code-counter" aria-live="polite"><span>Recovery Code: 0/1200 karakter</span><span>Tempel 1200 karakter penuh</span></div>' +
       '<div class="dirac-recovery-verify-actions"><button class="dirac-recovery-verify-submit" type="button">Verifikasi recovery</button></div>' +
       '</div>' +
-      '<div class="dirac-recovery-passkey-stage" aria-hidden="false">' +
-      '<strong>Status masuk.html: BELUM DITERIMA</strong>' +
-      '<span>Recovery session belum diterima oleh HTML. Selesaikan verifikasi pada halaman pemulihan resmi terlebih dahulu.</span>' +
-      '<button class="dirac-recovery-passkey-submit" type="button" disabled>Verify</button>' +
+      '<div class="dirac-recovery-passkey-stage" hidden>' +
+      '<strong>Langkah 5: Daftar Passkey baru</strong>' +
+      '<span>Recovery sudah valid. Tekan tombol ini, lalu ikuti Face ID, sidik jari, atau PIN. Passkey lama akan dinonaktifkan oleh server setelah Passkey baru berhasil tersimpan.</span>' +
+      '<button class="dirac-recovery-passkey-submit" type="button">Daftar Passkey Baru</button>' +
       '</div>' +
-      '<div class="dirac-recovery-warning">Informasi akun diproses melalui layanan resmi dan tidak ditampilkan secara terbuka pada halaman ini.</div>' +
+      '<div class="dirac-recovery-warning">Frontend tidak memilih email tujuan. Backend memakai email resmi dari database. Password penuh PDF tidak ditampilkan di HTML.</div>' +
       '<div class="dirac-recovery-verify-status" aria-live="polite"></div>';
     if(result && result.parentNode) result.parentNode.insertBefore(box, result);
     else if(preview && preview.nextSibling) container.insertBefore(box, preview.nextSibling);
@@ -8820,16 +8714,11 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     if(requestInput){
       requestInput.addEventListener('input', function(){ requestInput.value = normalizeRequestId(requestInput.value) || String(requestInput.value || '').replace(/[^A-Za-z0-9_-]/g,''); });
     }
-    var recoveryLink = document.querySelector('a.forgot-link[href="#pemulihan-passkey"]');
-    if(recoveryLink){
-      recoveryLink.addEventListener('click', function(event){ event.preventDefault(); reveal('login_link'); });
-    }
-    setVerifyStage(box, false);
+    setVerifyStage(box, true);
     updateRecoveryCodeCounter(box);
-    resumeRecoveryPasskeyFromFragment(box);
   }
 
-  window.DiracRecoveryVerifyGate = { install: install, reveal: reveal, hide: hide, recordFailedA2FAttempt: recordFailedA2FAttempt, acceptRecoveryHandoff: acceptRecoveryHandoff };
+  window.DiracRecoveryVerifyGate = { install: install, reveal: reveal, hide: hide, recordFailedA2FAttempt: recordFailedA2FAttempt };
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install);
   else install();
 })();
@@ -10018,15 +9907,15 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     var note = $('.a2f-note', modal);
     if(note){
       note.textContent = lang() === 'en'
-        ? 'Passkey is required. If it is unavailable, continue through the official secure recovery page.'
-        : 'Passkey wajib. Jika tidak dapat digunakan, lanjutkan melalui halaman pemulihan resmi yang aman.';
+        ? 'Passkey is mandatory. If the Passkey is lost, request the encrypted recovery file and verify the recovery code.'
+        : 'Passkey wajib. Jika Passkey hilang, minta file recovery terenkripsi lalu verifikasi recovery code.';
       note.setAttribute('data-no-i18n','');
     }
     var recovery = $('[data-a2f-select="recovery"]', modal);
     if(recovery){
-      var strong = $('strong', recovery); if(strong) strong.textContent = lang() === 'en' ? 'Cannot use your Passkey?' : 'Tidak dapat menggunakan Passkey?';
-      var desc = recovery.querySelector('span:not(.a2f-method-icon):not(.a2f-method-top)'); if(desc) desc.textContent = lang() === 'en' ? 'Continue through the official secure recovery page.' : 'Lanjutkan melalui halaman pemulihan resmi yang aman.';
-      var mini = $('small', recovery); if(mini) mini.textContent = lang() === 'en' ? 'Account ownership will be verified securely.' : 'Kepemilikan akun akan diverifikasi secara aman.';
+      var strong = $('strong', recovery); if(strong) strong.textContent = lang() === 'en' ? 'Lost your Passkey?' : 'Anda kehilangan Passkey?';
+      var desc = recovery.querySelector('span:not(.a2f-method-icon):not(.a2f-method-top)'); if(desc) desc.textContent = lang() === 'en' ? 'Request an encrypted recovery file by official account email.' : 'Minta file recovery terenkripsi lewat email resmi akun.';
+      var mini = $('small', recovery); if(mini) mini.textContent = lang() === 'en' ? 'Requires owner key after SOP verification.' : 'Butuh key owner setelah verifikasi SOP.';
     }
     var pass = $('[data-a2f-select="passkey"]', modal);
     if(pass){
@@ -10268,30 +10157,17 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
     }
   }
   function checkPasskeyStatus(){
-    var action = 'dirac_mfa_passkey_status';
-    var bridge = window.DiracCsrfBrowserActionBridge;
-    if(!bridge || typeof bridge.refreshForAction !== 'function') return Promise.resolve(null);
-    return Promise.resolve(bridge.refreshForAction(action)).then(function(security){
-      if(!security || !security.token || !security.pageNonce) return null;
-      var headers = new Headers({'Accept':'application/json'});
-      headers.set('X-Dirac-CSRF-Token', security.token);
-      headers.set('X-CSRF-Token', security.token);
-      headers.set('X-Dirac-Page-Nonce', security.pageNonce);
-      return fetch('/api/health?action=' + action, {
-        method:'GET',
-        credentials:'include',
-        cache:'no-store',
-        headers:headers
-      });
+    return fetch('/api/health?action=dirac_mfa_passkey_status', {
+      method: 'GET',
+      credentials: 'include',
+      cache: 'no-store',
+      headers: { 'Accept': 'application/json' }
     }).then(function(res){
       if(!res || !res.ok) return null;
       return res.json().catch(function(){ return null; });
     }).then(function(data){
       if(data && (data.active === true || data.passkey_active === true || data.has_passkey === true || Number(data.passkey_count || 0) > 0)){
         markPasskeyActive('domain_passkeys_status');
-      }
-      if(data && data.recovery_ready === true && window.DiracRecoveryVerifyGate && typeof window.DiracRecoveryVerifyGate.acceptRecoveryHandoff === 'function'){
-        window.DiracRecoveryVerifyGate.acceptRecoveryHandoff(data);
       }
       return data;
     }).catch(function(){ return null; });
@@ -10317,15 +10193,6 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
     };
   }
   ready(function(){
-    checkPasskeyStatus();
-    var recoveryPollStartedAt = Date.now();
-    var recoveryPoll = setInterval(function(){
-      if(Date.now() - recoveryPollStartedAt > 10 * 60 * 1000){ clearInterval(recoveryPoll); return; }
-      checkPasskeyStatus();
-    }, 10000);
-    window.addEventListener('focus', checkPasskeyStatus);
-    window.addEventListener('pageshow', checkPasskeyStatus);
-    document.addEventListener('visibilitychange', function(){ if(document.visibilityState === 'visible') checkPasskeyStatus(); });
     var modal = $('#a2fModal');
     if(modal && window.MutationObserver){
       var queued = false;
@@ -11111,7 +10978,7 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
 
   function actionNeedsSessionFreshPageNonce(action){
     action = String(action || '').trim().toLowerCase();
-    return /^(dirac_mfa_passkey_status|dirac_mfa_passkey_start|dirac_mfa_passkey_verify|domain_mfa_passkey_start|domain_mfa_passkey_verify|customer_security_recovery_codes_generate|customer_security_recovery_code_verify)$/.test(action);
+    return /^(dirac_mfa_passkey_start|dirac_mfa_passkey_verify|domain_mfa_passkey_start|domain_mfa_passkey_verify|customer_security_recovery_codes_generate|customer_security_recovery_code_verify)$/.test(action);
   }
 
   function csrfProbeUrl(action){
