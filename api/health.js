@@ -11785,17 +11785,74 @@ function diracPasskeyA2FClearLostRecoveryCookie(res) {
   );
 }
 
+async function diracPasskeyA2FResolveActiveLostRecoverySession(owner) {
+  if (!owner || !customerSecurityLooksLikeUuid(owner.customerId) || !customerSecurityLooksLikeUuid(owner.authUserId)) {
+    return { ok: false, reason: 'lost_passkey_recovery_owner_missing' };
+  }
+
+  const nowIso = new Date().toISOString();
+  const select = 'id,request_id,customer_id,auth_user_id,recovery_session_hash,purpose,status,created_at,expires_at,used_at,revoked_at,metadata';
+  const path = '/rest/v1/' + LOST_PASSKEY_RECOVERY_SESSION_TABLE
+    + '?select=' + encodeURIComponent(select)
+    + '&customer_id=eq.' + encodeURIComponent(owner.customerId)
+    + '&auth_user_id=eq.' + encodeURIComponent(owner.authUserId)
+    + '&purpose=eq.' + encodeURIComponent(LOST_PASSKEY_RECOVERY_PURPOSE)
+    + '&status=eq.verified'
+    + '&used_at=is.null'
+    + '&revoked_at=is.null'
+    + '&expires_at=gt.' + encodeURIComponent(nowIso)
+    + '&order=created_at.desc&limit=2';
+
+  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' }).catch(() => null);
+  if (!result || !result.ok) {
+    return { ok: false, status: result && result.status || 500, reason: 'lost_passkey_recovery_session_read_failed' };
+  }
+
+  const rows = (Array.isArray(result.data) ? result.data : []).filter((row) => {
+    if (!row || !row.id) return false;
+    if (String(row.customer_id || '') !== String(owner.customerId || '')) return false;
+    if (String(row.auth_user_id || '') !== String(owner.authUserId || '')) return false;
+    if (String(row.purpose || '') !== LOST_PASSKEY_RECOVERY_PURPOSE || String(row.status || '') !== 'verified') return false;
+    if (row.used_at || row.revoked_at) return false;
+    const expiresAtMs = Date.parse(row.expires_at || '');
+    return Number.isFinite(expiresAtMs) && expiresAtMs > Date.now() && /^[a-f0-9]{64}$/.test(String(row.recovery_session_hash || '').trim().toLowerCase());
+  });
+
+  if (rows.length === 0) return { ok: false, status: 404, reason: 'lost_passkey_recovery_session_not_found' };
+  if (rows.length !== 1) return { ok: false, status: 409, reason: 'lost_passkey_recovery_session_ambiguous' };
+
+  const row = rows[0];
+  return {
+    ok: true,
+    id: String(row.id),
+    requestId: String(row.request_id || ''),
+    sessionHash: String(row.recovery_session_hash || '').trim().toLowerCase(),
+    row
+  };
+}
+
 async function diracPasskeyA2FLostRecoveryCookieStatus(req, res, owner) {
   const token = diracPasskeyA2FLostRecoveryTokenFromCookie(req);
-  if (!token) return { recovery_ready: false, recovery_session_expires_at: '', recovery_session_transport: 'httponly_same_site_cookie' };
-  const checked = await diracPasskeyA2FValidateLostRecoverySession(owner, token).catch(() => null);
-  if (!checked || !checked.ok) {
+  if (token) {
+    const checked = await diracPasskeyA2FValidateLostRecoverySession(owner, token).catch(() => null);
+    if (checked && checked.ok) {
+      return {
+        recovery_ready: true,
+        recovery_session_expires_at: String(checked.row && checked.row.expires_at || ''),
+        recovery_session_transport: 'httponly_same_site_cookie'
+      };
+    }
     diracPasskeyA2FClearLostRecoveryCookie(res);
+  }
+
+  const ownerSession = await diracPasskeyA2FResolveActiveLostRecoverySession(owner).catch(() => null);
+  if (!ownerSession || !ownerSession.ok) {
     return { recovery_ready: false, recovery_session_expires_at: '', recovery_session_transport: 'httponly_same_site_cookie' };
   }
+
   return {
     recovery_ready: true,
-    recovery_session_expires_at: String(checked.row && checked.row.expires_at || ''),
+    recovery_session_expires_at: String(ownerSession.row && ownerSession.row.expires_at || ''),
     recovery_session_transport: 'httponly_same_site_cookie'
   };
 }
@@ -11982,6 +12039,17 @@ async function diracPasskeyA2FStart(req, res) {
         method: 'passkey',
         code: 'LOST_PASSKEY_RECOVERY_SESSION_INVALID',
         message: 'Recovery session tidak valid atau sudah expired. Ulangi verifikasi recovery code.'
+      });
+    }
+  } else {
+    const ownerSession = await diracPasskeyA2FResolveActiveLostRecoverySession(owner).catch(() => null);
+    if (ownerSession && ownerSession.ok) lostRecoverySession = ownerSession;
+    else if (ownerSession && ownerSession.reason === 'lost_passkey_recovery_session_ambiguous') {
+      return res.status(409).json({
+        ok: false,
+        method: 'passkey',
+        code: 'LOST_PASSKEY_RECOVERY_SESSION_AMBIGUOUS',
+        message: 'Terdapat lebih dari satu recovery session aktif. Ulangi proses recovery dari awal.'
       });
     }
   }
