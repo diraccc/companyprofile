@@ -12189,6 +12189,7 @@ async function diracPasskeyA2FVerify(req, res) {
 
   const proof = customerSecurityCreateDashboardMfaToken(req, user, 'passkey');
   customerSecuritySetDashboardMfaCookie(res, proof);
+  if (lostRecoveryRotation && lostRecoveryRotation.ok) diracRecoveryHandoffClearCookieV175(res);
 
   return res.status(200).json({
     ok: true,
@@ -12257,6 +12258,8 @@ module.exports = async function diracPasskeyDbStatusWrapper(req, res) {
       return res.status(400).json({ ok: false, active: false, method: 'passkey', message: 'Email akun tidak valid.' });
     }
 
+    const recoveryHandoff = await diracRecoveryHandoffStatusV175(req, res, user, email);
+
     // Primary status check: domain_passkeys.email must match the currently logged-in account email.
     // This is read-only and does not expose credential_id/credential_json.
     const directSelect = 'id,user_id,email,is_active,created_at,last_used_at';
@@ -12269,6 +12272,7 @@ module.exports = async function diracPasskeyDbStatusWrapper(req, res) {
       return res.status(200).json({
         ok: true,
         method: 'passkey',
+        ...recoveryHandoff,
         active: true,
         passkey_active: true,
         has_passkey: true,
@@ -12287,6 +12291,7 @@ module.exports = async function diracPasskeyDbStatusWrapper(req, res) {
         ok: true,
         active: false,
         method: 'passkey',
+        ...recoveryHandoff,
         passkey_active: false,
         has_passkey: false,
         passkey_count: 0,
@@ -12301,6 +12306,7 @@ module.exports = async function diracPasskeyDbStatusWrapper(req, res) {
     return res.status(200).json({
       ok: true,
       method: 'passkey',
+      ...recoveryHandoff,
       active: count > 0,
       passkey_active: count > 0,
       has_passkey: count > 0,
@@ -28963,3 +28969,90 @@ async function diracRecoveryHpkeCommitProofV159(req, res) {
     if (!requestCommitted) diracRecoveryHpkeReleaseProofV159(claim);
   }
 }
+
+/* ============================================================
+   LOST PASSKEY SAME-SITE HANDOFF v175 - NARROW PATCH
+   - No new action and no endpoint change.
+   - Server 1 reads the one-time recovery session only from an
+     HttpOnly Secure SameSite=Strict parent-domain cookie when the
+     browser body does not carry a recovery token.
+   - Existing Central Guard remains mandatory for status/start/verify.
+   ============================================================ */
+
+const DIRAC_RECOVERY_HANDOFF_PATCH_V175 = 'lost-passkey-samesite-handoff-v175';
+const DIRAC_RECOVERY_HANDOFF_COOKIE_V175 = '__Secure-dirac_recovery_handoff';
+const DIRAC_RECOVERY_HANDOFF_COOKIE_DOMAIN_V175 = 'diracgroup.store';
+const DIRAC_RECOVERY_HANDOFF_COOKIE_PATH_V175 = '/api/health';
+
+function diracRecoveryHandoffRawCookieV175(req) {
+  const cookies = typeof parseCookies === 'function' ? parseCookies(req) : {};
+  const raw = String(cookies && cookies[DIRAC_RECOVERY_HANDOFF_COOKIE_V175] || '').trim();
+  return /^[A-Za-z0-9_-]{24,256}$/.test(raw) ? raw : '';
+}
+
+function diracRecoveryHandoffClearCookieV175(res) {
+  if (!res || typeof appendSetCookie !== 'function') return;
+  appendSetCookie(res, [
+    DIRAC_RECOVERY_HANDOFF_COOKIE_V175 + '=; Path=' + DIRAC_RECOVERY_HANDOFF_COOKIE_PATH_V175
+      + '; Domain=' + DIRAC_RECOVERY_HANDOFF_COOKIE_DOMAIN_V175
+      + '; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT'
+      + '; HttpOnly; Secure; SameSite=Strict; Priority=High'
+  ]);
+}
+
+async function diracRecoveryHandoffStatusV175(req, res, user, email) {
+  const token = diracRecoveryHandoffRawCookieV175(req);
+  const empty = {
+    recovery_session_ready: false,
+    recovery_request_id: '',
+    recovery_session_expires_at: '',
+    recovery_session_transport: 'httponly_same_site_cookie'
+  };
+  if (!token) return empty;
+
+  const ctx = typeof diracCentralCurrentContextV149 === 'function' ? diracCentralCurrentContextV149() : null;
+  if (!ctx || !ctx.req || ctx.req !== req || req.__diracCentralSecurityGuardPassedV146 !== true) {
+    return empty;
+  }
+
+  const owner = await diracPasskeyA2FResolveOwner(user, email).catch(() => null);
+  if (!owner || !owner.ok) {
+    diracRecoveryHandoffClearCookieV175(res);
+    return empty;
+  }
+
+  const verified = await diracPasskeyA2FValidateLostRecoverySession(owner, token).catch(() => null);
+  if (!verified || !verified.ok) {
+    diracRecoveryHandoffClearCookieV175(res);
+    return empty;
+  }
+
+  const expiresAt = String(verified.row && verified.row.expires_at || '').trim();
+  const expiresAtMs = Date.parse(expiresAt);
+  if (!Number.isFinite(expiresAtMs) || expiresAtMs <= Date.now()) {
+    diracRecoveryHandoffClearCookieV175(res);
+    return empty;
+  }
+
+  return {
+    recovery_session_ready: true,
+    recovery_request_id: String(verified.requestId || ''),
+    recovery_session_expires_at: expiresAt,
+    recovery_session_transport: 'httponly_same_site_cookie'
+  };
+}
+
+const __diracRecoveryHandoffOriginalTokenFromBodyV175 = diracPasskeyA2FLostRecoveryTokenFromBody;
+diracPasskeyA2FLostRecoveryTokenFromBody = function diracPasskeyA2FLostRecoveryTokenFromBodyHandoffV175(body) {
+  const bodyToken = __diracRecoveryHandoffOriginalTokenFromBodyV175(body);
+  if (bodyToken) return bodyToken;
+
+  const ctx = typeof diracCentralCurrentContextV149 === 'function' ? diracCentralCurrentContextV149() : null;
+  const req = ctx && ctx.req;
+  if (!req || req.__diracCentralSecurityGuardPassedV146 !== true) return '';
+  if (!/^(dirac_mfa_passkey_start|domain_mfa_passkey_start)$/i.test(String(ctx.action || ''))) return '';
+
+  return diracRecoveryHandoffRawCookieV175(req);
+};
+Object.defineProperty(diracPasskeyA2FLostRecoveryTokenFromBody, '__diracRecoveryHandoffV175', { value: true, enumerable: false });
+
