@@ -21174,6 +21174,13 @@ function diracBolaIdorV128ShouldSkipAction(action, method, req) {
 
   const clean = String(action || '').toLowerCase();
   if (!clean) return false;
+
+  // CHECKOUT CENTRAL-GUARD NARROW FIX v160:
+  // Setelah checkout_order sudah lulus seluruh Central Guard v146, jangan ulangi
+  // resolver BOLA/IDOR legacy v128 yang melakukan owner lookup lintas banyak tabel.
+  // Tanpa passport Central Guard, legacy v128 tetap aktif seperti sebelumnya.
+  if (req && req.__diracCentralSecurityGuardPassedV146 === true && clean === 'checkout_order') return true;
+
   if (/^(domain_health|hostinger_check|domain_check|midtrans_health)$/i.test(clean)) return true;
   if (/login|register|logout|midtrans|ipaymu|webhook|callback|notification|payment_gateway|payment_notification|a2f|mfa|passkey|password|hash|email|mail|csrf|token/i.test(clean)) return true;
   if (/^(create_payment|pay_order|order_payment|create_payment_order)$/i.test(clean)) return true;
@@ -25029,6 +25036,19 @@ try {
   const __diracV145OriginalInspectOwnership = typeof diracV143InspectOwnership === 'function' ? diracV143InspectOwnership : null;
   if (__diracV145OriginalInspectOwnership && !__diracV145OriginalInspectOwnership.__diracV145Wrapped) {
     diracV143InspectOwnership = async function diracV143InspectOwnershipSensitiveIdsOnlyV145(req, body) {
+      const centralAction = typeof diracV143NormalizeAction === 'function'
+        ? diracV143NormalizeAction((req && req.query && req.query.action) || (body && (body.action || body.mode)) || '')
+        : String(req && req.query && req.query.action || '').trim().toLowerCase();
+
+      // CHECKOUT CENTRAL-GUARD NARROW FIX v160:
+      // Central Guard sudah menjalankan contract, threat, IDOR/BOLA, MFA, CSRF,
+      // page nonce, device, rate, circuit, dan integrity sebelum handler lama.
+      // Lewati hanya ownership lookup legacy v143 untuk checkout_order yang sudah
+      // memiliki passport Central Guard agar lookup orders/domain/payment tidak diulang.
+      if (req && req.__diracCentralSecurityGuardPassedV146 === true && centralAction === 'checkout_order') {
+        return { ok: true, skipped: 'checkout_order_already_guarded_by_central_v146' };
+      }
+
       if (diracV145EnvTrue('DIRAC_V143_OWNERSHIP_ALL_IDS')) {
         return __diracV145OriginalInspectOwnership(req, body);
       }
