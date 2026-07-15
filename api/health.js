@@ -13264,7 +13264,7 @@ async function diracUniversalPesananFetchRegularItems(orderId, amount, serviceTy
 async function diracUniversalPesananFetchProductsForOrderItems(rows) {
   const ids = Array.from(new Set((rows || [])
     .map((row) => lockedPaymentCleanText(row && row.product_doc_id || '', 120))
-    .filter(Boolean))).slice(0, 30);
+    .filter(Boolean)));
   const productsById = new Map();
   for (const id of ids) {
     const result = await supabaseFetch(
@@ -13754,7 +13754,7 @@ function orderMailNormalizeOrderInput(input) {
       provider: orderMailCleanText(payment.provider || payment.payment_provider || '', 60),
       invoice_id: orderMailCleanText(payment.invoice_id || payment.id || '', 120)
     },
-    items: items.slice(0, 30).map((item, index) => ({
+    items: items.map((item, index) => ({
       title: orderMailCleanText(item && (item.title || item.product_title || item.name || item.domain_name) || `Item ${index + 1}`, 180),
       quantity: orderMailPositiveInt(item && (item.quantity || item.qty || item.years) || 1, 1, 9999),
       unit_price: orderMailMoney(item && (item.unit_price ?? item.price ?? item.register_price ?? 0)),
@@ -14023,7 +14023,7 @@ function orderMailItemsHtml(items, currency = 'IDR') {
   return `<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse:separate;border-spacing:0;width:100%;border:1px solid #4b5563;border-radius:14px;overflow:hidden;background:#2b2f36;background-color:#2b2f36;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff"><thead><tr><th style="padding:12px 14px;text-align:left;background:#2b2f36;background-color:#2b2f36;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff;font-size:12px;text-transform:uppercase;letter-spacing:.04em">#</th><th style="padding:12px 14px;text-align:left;background:#2b2f36;background-color:#2b2f36;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff;font-size:12px;text-transform:uppercase;letter-spacing:.04em">Item</th><th style="padding:12px 14px;text-align:center;background:#2b2f36;background-color:#2b2f36;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff;font-size:12px;text-transform:uppercase;letter-spacing:.04em">Qty</th><th style="padding:12px 14px;text-align:right;background:#2b2f36;background-color:#2b2f36;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff;font-size:12px;text-transform:uppercase;letter-spacing:.04em">Subtotal</th></tr></thead><tbody>${body}</tbody></table>`;
 }
 function orderMailProductCardsHtml(items, currency = 'IDR') {
-  const rows = (Array.isArray(items) ? items : []).filter((item) => item && (item.image_url || item.title)).slice(0, 3);
+  const rows = (Array.isArray(items) ? items : []).filter((item) => item && (item.image_url || item.title));
   if (!rows.length) return '';
   const cards = rows.map((item) => {
     const image = orderMailAssetUrl(item.image_url || item.img || '') || orderMailDefaultProductImageUrl();
