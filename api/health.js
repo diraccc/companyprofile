@@ -15679,6 +15679,7 @@ function diracUltraRedactPayload(payload, depth = 0, parentKey = '') {
     // yang memang WAJIB sampai ke browser. Jangan dianggap JWT secret, karena
     // kalau diredact browser mengirim token palsu dan muncul "Challenge Passkey tidak valid".
     if (diracUltraIsSafeChallengeResponseKey(parent)) return payload;
+    if (parent === 'version' && payload === 'dirac-recovery-hpke-proof-response-v190') return payload;
     return diracUltraRedactString(payload);
   }
 
