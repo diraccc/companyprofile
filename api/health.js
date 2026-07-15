@@ -29134,6 +29134,12 @@ function diracRecoveryHpkeEncryptProofResponseV190(body, status, payload) {
       auth_tag_b64url: tag.toString('base64url'),
       plaintext_sha512_b64url: plaintextHash
     };
+    Object.defineProperty(response, 'version', {
+      value: 'dirac-recovery-hpke-proof-response-v190',
+      enumerable: true,
+      writable: false,
+      configurable: false
+    });
     ciphertext.fill(0);
     tag.fill(0);
     return { ok: true, proof_response_encrypted: true, proof_response: response };
