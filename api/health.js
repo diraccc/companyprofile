@@ -15540,6 +15540,7 @@ function customerSecurityFeaturePolicyV3() {
    ============================================================ */
 
 const DIRAC_ULTRA_SECURITY_PATCH = 'dirac-ultra-security-hardening-v100';
+const DIRAC_ULTRA_RECOVERY_HPKE_RESPONSE_MARKER_V191 = Symbol('dirac-ultra-recovery-hpke-proof-response-v190');
 const __diracUltraSecurityPreviousHandler = module.exports;
 const DIRAC_ULTRA_RATE_LIMIT_STORE = globalThis.__DIRAC_ULTRA_RATE_LIMIT_STORE__ || new Map();
 globalThis.__DIRAC_ULTRA_RATE_LIMIT_STORE__ = DIRAC_ULTRA_RATE_LIMIT_STORE;
@@ -15686,6 +15687,9 @@ function diracUltraRedactPayload(payload, depth = 0, parentKey = '') {
   if (typeof payload !== 'object') return payload;
   if (Array.isArray(payload)) return payload.map((item) => diracUltraRedactPayload(item, depth + 1, parentKey));
 
+  const preservedRecoveryHpkeProofResponse = diracUltraPreserveRecoveryHpkeProofResponseV191(payload);
+  if (preservedRecoveryHpkeProofResponse) return preservedRecoveryHpkeProofResponse;
+
   const out = {};
   for (const [key, value] of Object.entries(payload)) {
     const cleanKey = String(key || '');
@@ -15718,6 +15722,72 @@ function diracUltraIsSafeChallengeResponseKey(key) {
     || lower === 'csrf'
     || lower === 'csrftoken'
     || lower === 'csrf_token';
+}
+
+function diracUltraCanonicalBase64UrlV191(value, minBytes, maxBytes) {
+  const text = typeof value === 'string' ? value : '';
+  const min = Number(minBytes);
+  const max = Number(maxBytes);
+  if (!text || !Number.isSafeInteger(min) || !Number.isSafeInteger(max) || min < 0 || max < min) return false;
+  if (!/^[A-Za-z0-9_-]+$/.test(text) || text.length % 4 === 1) return false;
+  let decoded = null;
+  try {
+    decoded = Buffer.from(text, 'base64url');
+    return decoded.length >= min
+      && decoded.length <= max
+      && decoded.toString('base64url') === text;
+  } catch (_) {
+    return false;
+  } finally {
+    if (decoded) decoded.fill(0);
+  }
+}
+
+function diracUltraPreserveRecoveryHpkeProofResponseV191(payload) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return null;
+  if (payload[DIRAC_ULTRA_RECOVERY_HPKE_RESPONSE_MARKER_V191] !== true) return null;
+
+  const expectedKeys = [
+    'auth_tag_b64url',
+    'ciphertext_b64url',
+    'nonce_b64url',
+    'plaintext_sha512_b64url',
+    'proof_nonce',
+    'request_id',
+    'status',
+    'version'
+  ];
+  const actualKeys = Object.keys(payload).sort();
+  if (actualKeys.length !== expectedKeys.length || actualKeys.some((key, index) => key !== expectedKeys[index])) return null;
+
+  const version = String(payload.version || '');
+  const status = Number(payload.status);
+  const requestId = String(payload.request_id || '');
+  const proofNonce = String(payload.proof_nonce || '');
+  const nonceB64url = String(payload.nonce_b64url || '');
+  const ciphertextB64url = String(payload.ciphertext_b64url || '');
+  const authTagB64url = String(payload.auth_tag_b64url || '');
+  const plaintextSha512B64url = String(payload.plaintext_sha512_b64url || '');
+
+  if (version !== 'dirac-recovery-hpke-proof-response-v190') return null;
+  if (!Number.isSafeInteger(status) || status < 100 || status > 599) return null;
+  if (!/^[A-Za-z0-9_-]{16,120}$/.test(requestId)) return null;
+  if (!/^[A-Za-z0-9_-]{32,120}$/.test(proofNonce)) return null;
+  if (!diracUltraCanonicalBase64UrlV191(nonceB64url, 12, 12)) return null;
+  if (!diracUltraCanonicalBase64UrlV191(ciphertextB64url, 1, 128 * 1024)) return null;
+  if (!diracUltraCanonicalBase64UrlV191(authTagB64url, 16, 16)) return null;
+  if (!diracUltraCanonicalBase64UrlV191(plaintextSha512B64url, 64, 64)) return null;
+
+  return {
+    version,
+    status,
+    request_id: requestId,
+    proof_nonce: proofNonce,
+    nonce_b64url: nonceB64url,
+    ciphertext_b64url: ciphertextB64url,
+    auth_tag_b64url: authTagB64url,
+    plaintext_sha512_b64url: plaintextSha512B64url
+  };
 }
 
 function diracUltraRedactString(value) {
@@ -29138,6 +29208,12 @@ function diracRecoveryHpkeEncryptProofResponseV190(body, status, payload) {
     Object.defineProperty(response, 'version', {
       value: 'dirac-recovery-hpke-proof-response-v190',
       enumerable: true,
+      writable: false,
+      configurable: false
+    });
+    Object.defineProperty(response, DIRAC_ULTRA_RECOVERY_HPKE_RESPONSE_MARKER_V191, {
+      value: true,
+      enumerable: false,
       writable: false,
       configurable: false
     });
