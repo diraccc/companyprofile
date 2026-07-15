@@ -27556,9 +27556,71 @@ function diracCentralMassAssignmentThreatV146(ctx) {
   return forbidden ? { detected: true, kind: 'mass_assignment_' + forbidden } : { detected: false };
 }
 
+function diracCentralCheckoutOrderFieldWidthV191(ctx, flat) {
+  if (!ctx || ctx.action !== 'checkout_order' || ctx.method !== 'POST') {
+    return { ok: true, width: Array.isArray(flat) ? flat.length : 0 };
+  }
+
+  const body = ctx.body;
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return { ok: false, reason: 'zeroday_checkout_body_invalid' };
+  }
+
+  if (!Object.prototype.hasOwnProperty.call(body, 'items')) {
+    return { ok: true, width: Array.isArray(flat) ? flat.length : 0 };
+  }
+
+  const topLevelKeys = Object.keys(body);
+  if (topLevelKeys.length > 80) return { ok: false, reason: 'zeroday_field_too_many' };
+
+  const items = body.items;
+  if (!Array.isArray(items)) return { ok: false, reason: 'zeroday_checkout_items_invalid' };
+  if (items.length > 50) return { ok: false, reason: 'zeroday_checkout_items_too_many' };
+
+  const contract = diracCentralContractForActionV146(ctx.action);
+  const allowed = new Set(['action'].concat(contract.allowed || []));
+  const maxFieldBytes = contract.maxFieldBytes || 3000;
+
+  for (const item of items) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)
+      || Object.getPrototypeOf(item) !== Object.prototype) {
+      return { ok: false, reason: 'zeroday_checkout_item_invalid' };
+    }
+    const keys = Object.keys(item);
+    if (keys.length > 24) return { ok: false, reason: 'zeroday_checkout_item_field_too_many' };
+    for (const key of keys) {
+      if (key === '__proto__' || key === 'prototype' || key === 'constructor') {
+        return { ok: false, reason: 'zeroday_checkout_item_key_invalid' };
+      }
+      if (!allowed.has(key) && !contract.allowExtra) {
+        return { ok: false, reason: 'field_not_allowed_' + key };
+      }
+      if (diracCentralProtectedFieldV146(key) && !contract.allowProtectedFields) {
+        return { ok: false, reason: 'protected_field_from_frontend_' + key };
+      }
+      const value = item[key];
+      if (value !== null && typeof value === 'object') {
+        return { ok: false, reason: 'zeroday_checkout_item_nested_invalid' };
+      }
+      if (String(value === undefined || value === null ? '' : value).length > maxFieldBytes) {
+        return { ok: false, reason: 'field_too_long_' + key };
+      }
+      const format = diracCentralValidateFieldFormatV146(key, value);
+      if (!format.ok) return format;
+    }
+  }
+
+  const outsideItems = (Array.isArray(flat) ? flat : []).filter((item) => {
+    return !/^items\.\d+(?:\.|$)/.test(String(item && item.key || ''));
+  }).length;
+  return { ok: true, width: outsideItems + items.length };
+}
+
 function diracCentralZeroDayShieldV146(req, ctx, normalized) {
   const flat = diracCentralFlattenObjectV146(ctx.body || {}, 0, '', 1000);
-  if (flat.length > 80) return { ok: false, reason: 'zeroday_field_too_many' };
+  const checkoutWidth = diracCentralCheckoutOrderFieldWidthV191(ctx, flat);
+  if (!checkoutWidth.ok) return checkoutWidth;
+  if (checkoutWidth.width > 80) return { ok: false, reason: 'zeroday_field_too_many' };
   if (flat.some((item) => item.depth > 5)) return { ok: false, reason: 'zeroday_nested_too_deep' };
   if (String(ctx.sample || '').length > 10 * 1024) return { ok: false, reason: 'zeroday_payload_too_long' };
   const headers = req && req.headers || {};
