@@ -6075,14 +6075,18 @@ function customerSecurityRecoveryWorkerMainEnvDiagnostics() {
     'DIRAC_LOST_PASSKEY_ARGON2_TIME_COST',
     'DIRAC_LOST_PASSKEY_MAX_RUNNING',
     'DIRAC_LOST_PASSKEY_QUEUE_MAX',
-    'DIRAC_LOST_PASSKEY_PROCESSING_LOCK_TTL_SECONDS'
+    'DIRAC_LOST_PASSKEY_PROCESSING_LOCK_TTL_SECONDS',
+    'DIRAC_RECOVERY_WORKER_X25519_PRIVATE_KEY',
+    'DIRAC_RECOVERY_WORKER_MLKEM1024_PRIVATE_KEY'
   ];
   const diagnostics = {
     role: 'server1_main_recovery_caller',
     required_env: [
       'DIRAC_RECOVERY_WORKER_URL',
       'DIRAC_RECOVERY_WORKER_SECRET',
-      'DIRAC_RECOVERY_WORKER_CALLER'
+      'DIRAC_RECOVERY_WORKER_CALLER',
+      'DIRAC_RECOVERY_WORKER_X25519_PUBLIC_KEY',
+      'DIRAC_RECOVERY_WORKER_MLKEM1024_PUBLIC_KEY'
     ],
     server2_only_env: server2OnlyEnv,
     allowed_shared_env: [
@@ -6095,7 +6099,9 @@ function customerSecurityRecoveryWorkerMainEnvDiagnostics() {
     env_state: {
       DIRAC_RECOVERY_WORKER_URL: rawUrl ? 'present' : 'missing',
       DIRAC_RECOVERY_WORKER_SECRET: rawSecret ? 'present' : 'missing',
-      DIRAC_RECOVERY_WORKER_CALLER: rawCaller ? 'present' : 'missing'
+      DIRAC_RECOVERY_WORKER_CALLER: rawCaller ? 'present' : 'missing',
+      DIRAC_RECOVERY_WORKER_X25519_PUBLIC_KEY: String(process.env.DIRAC_RECOVERY_WORKER_X25519_PUBLIC_KEY || '').trim() ? 'present' : 'missing',
+      DIRAC_RECOVERY_WORKER_MLKEM1024_PUBLIC_KEY: String(process.env.DIRAC_RECOVERY_WORKER_MLKEM1024_PUBLIC_KEY || '').trim() ? 'present' : 'missing'
     }
   };
   for (const name of server2OnlyEnv) {
@@ -6124,6 +6130,17 @@ function customerSecurityRecoveryWorkerMainEnvDiagnostics() {
   if (!rawCaller) diagnostics.missing_env.push('DIRAC_RECOVERY_WORKER_CALLER');
   else if (!customerSecurityRecoveryWorkerAsciiToken(rawCaller)) diagnostics.invalid_env.push('DIRAC_RECOVERY_WORKER_CALLER must match ASCII /^[A-Za-z0-9_.-]{1,80}$/');
 
+  for (const [name, type] of [
+    ['DIRAC_RECOVERY_WORKER_X25519_PUBLIC_KEY', 'x25519'],
+    ['DIRAC_RECOVERY_WORKER_MLKEM1024_PUBLIC_KEY', 'ml-kem-1024']
+  ]) {
+    if (!String(process.env[name] || '').trim()) diagnostics.missing_env.push(name);
+    else {
+      try { customerSecurityRecoveryWorkerPublicKeyV190(name, type); }
+      catch (_) { diagnostics.invalid_env.push(name + ' must contain a valid ' + type + ' public key'); }
+    }
+  }
+
   diagnostics.ok = diagnostics.missing_env.length === 0
     && diagnostics.invalid_env.length === 0
     && diagnostics.wrong_server_env.length === 0;
@@ -6143,7 +6160,9 @@ function customerSecurityRecoveryWorkerClockSkewMs() {
 }
 
 function customerSecurityRecoveryWorkerSign(caller, timestamp, canonicalBody) {
-  return crypto.createHmac('sha256', customerSecurityRecoveryWorkerSecret())
+  return crypto.createHmac('sha512', customerSecurityRecoveryWorkerSecret())
+    .update('dirac-recovery-worker-transport-hmac-v190')
+    .update('\n')
     .update(String(caller || ''))
     .update('\n')
     .update(String(timestamp || ''))
@@ -6172,15 +6191,250 @@ function customerSecurityLostPasskeyCanonical(value) {
   return JSON.stringify(value);
 }
 
+// Recovery-only application-layer transport. TLS remains mandatory; this
+// envelope prevents plaintext recovery material from appearing on the
+// Server 1 -> Server 2 wire even if an intermediary terminates TLS.
+const DIRAC_RECOVERY_WORKER_TRANSPORT_VERSION_V190 = 'dirac-recovery-worker-hybrid-v190';
+const DIRAC_RECOVERY_WORKER_TRANSPORT_SUITE_V190 = 'X25519+ML-KEM-1024+HKDF-SHA512+AES-256-GCM';
+const DIRAC_RECOVERY_WORKER_RESPONSE_VERSION_V190 = 'dirac-recovery-worker-response-v190';
+const DIRAC_RECOVERY_WORKER_TRANSPORT_TTL_MS_V190 = 120000;
+
+function customerSecurityRecoveryWorkerTransportFailV190(code) {
+  const error = new Error(String(code || 'RECOVERY_WORKER_TRANSPORT_FAILED'));
+  error.code = String(code || 'RECOVERY_WORKER_TRANSPORT_FAILED');
+  return error;
+}
+
+function customerSecurityRecoveryWorkerDecodeB64uV190(value, exactLength, maximumTextLength = 64 * 1024) {
+  const clean = String(value || '').trim();
+  if (!clean || clean.length > maximumTextLength || !/^[A-Za-z0-9_-]+$/.test(clean) || clean.length % 4 === 1) {
+    throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_TRANSPORT_BASE64URL_INVALID');
+  }
+  const decoded = Buffer.from(clean, 'base64url');
+  if (decoded.toString('base64url') !== clean || (exactLength !== null && decoded.length !== exactLength)) {
+    decoded.fill(0);
+    throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_TRANSPORT_BASE64URL_LENGTH_INVALID');
+  }
+  return decoded;
+}
+
+function customerSecurityRecoveryWorkerPublicKeyV190(name, expectedType) {
+  const raw = String(process.env[name] || '').trim();
+  if (!raw) throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_TRANSPORT_PUBLIC_KEY_MISSING');
+  let key;
+  try {
+    key = raw.includes('-----BEGIN')
+      ? crypto.createPublicKey(raw.replace(/\\n/g, '\n'))
+      : crypto.createPublicKey({ key: Buffer.from(raw, 'base64'), format: 'der', type: 'spki' });
+  } catch (_) {
+    throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_TRANSPORT_PUBLIC_KEY_INVALID');
+  }
+  if (!key || key.asymmetricKeyType !== expectedType) {
+    throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_TRANSPORT_PUBLIC_KEY_TYPE_INVALID');
+  }
+  return key;
+}
+
+function customerSecurityRecoveryWorkerKeyFingerprintV190(x25519Key, mlkemKey) {
+  const xPublic = x25519Key && x25519Key.type === 'public' ? x25519Key : crypto.createPublicKey(x25519Key);
+  const mlPublic = mlkemKey && mlkemKey.type === 'public' ? mlkemKey : crypto.createPublicKey(mlkemKey);
+  const xDer = xPublic.export({ format: 'der', type: 'spki' });
+  const mlDer = mlPublic.export({ format: 'der', type: 'spki' });
+  const lengthPrefix = Buffer.alloc(8);
+  lengthPrefix.writeUInt32BE(xDer.length, 0);
+  lengthPrefix.writeUInt32BE(mlDer.length, 4);
+  try {
+    return crypto.createHash('sha512').update(lengthPrefix).update(xDer).update(mlDer).digest('base64url');
+  } finally {
+    lengthPrefix.fill(0);
+    xDer.fill(0);
+    mlDer.fill(0);
+  }
+}
+
+function customerSecurityRecoveryWorkerTransportAadV190(envelope) {
+  return {
+    action: String(envelope.action || ''),
+    worker_action: String(envelope.worker_action || ''),
+    caller_id: String(envelope.caller_id || ''),
+    nonce: String(envelope.nonce || ''),
+    transport_version: String(envelope.transport_version || ''),
+    transport_suite: String(envelope.transport_suite || ''),
+    receiver_key_fingerprint: String(envelope.receiver_key_fingerprint || ''),
+    sent_at_ms: Number(envelope.sent_at_ms),
+    expires_at_ms: Number(envelope.expires_at_ms),
+    x25519_ephemeral_public_key_b64url: String(envelope.x25519_ephemeral_public_key_b64url || ''),
+    mlkem_ciphertext_b64url: String(envelope.mlkem_ciphertext_b64url || ''),
+    hkdf_salt_b64url: String(envelope.hkdf_salt_b64url || ''),
+    aead_nonce_b64url: String(envelope.aead_nonce_b64url || ''),
+    plaintext_sha512_b64url: String(envelope.plaintext_sha512_b64url || '')
+  };
+}
+
+function customerSecurityRecoveryWorkerSealV190(innerPayload, caller, timestampText) {
+  if (typeof crypto.encapsulate !== 'function') {
+    throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_MLKEM_RUNTIME_UNAVAILABLE');
+  }
+  const timestamp = Number(timestampText);
+  if (!Number.isSafeInteger(timestamp) || timestamp <= 0) {
+    throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_TRANSPORT_TIME_INVALID');
+  }
+  const x25519Public = customerSecurityRecoveryWorkerPublicKeyV190('DIRAC_RECOVERY_WORKER_X25519_PUBLIC_KEY', 'x25519');
+  const mlkemPublic = customerSecurityRecoveryWorkerPublicKeyV190('DIRAC_RECOVERY_WORKER_MLKEM1024_PUBLIC_KEY', 'ml-kem-1024');
+  const ephemeral = crypto.generateKeyPairSync('x25519');
+  const ephemeralDer = ephemeral.publicKey.export({ format: 'der', type: 'spki' });
+  const classicShared = crypto.diffieHellman({ privateKey: ephemeral.privateKey, publicKey: x25519Public });
+  const pq = crypto.encapsulate(mlkemPublic);
+  if (!pq || !Buffer.isBuffer(pq.sharedKey) || pq.sharedKey.length !== 32 || !Buffer.isBuffer(pq.ciphertext) || pq.ciphertext.length !== 1568) {
+    classicShared.fill(0);
+    ephemeralDer.fill(0);
+    throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_MLKEM_ENCAPSULATION_INVALID');
+  }
+  const salt = crypto.randomBytes(64);
+  const aeadNonce = crypto.randomBytes(12);
+  const plaintext = Buffer.from(customerSecurityLostPasskeyCanonical(innerPayload), 'utf8');
+  const plaintextHash = crypto.createHash('sha512').update(plaintext).digest('base64url');
+  const envelope = {
+    action: DIRAC_RECOVERY_WORKER_ACTION,
+    worker_action: String(innerPayload && innerPayload.worker_action || ''),
+    caller_id: String(caller || ''),
+    nonce: String(innerPayload && innerPayload.nonce || ''),
+    transport_version: DIRAC_RECOVERY_WORKER_TRANSPORT_VERSION_V190,
+    transport_suite: DIRAC_RECOVERY_WORKER_TRANSPORT_SUITE_V190,
+    receiver_key_fingerprint: customerSecurityRecoveryWorkerKeyFingerprintV190(x25519Public, mlkemPublic),
+    sent_at_ms: timestamp,
+    expires_at_ms: timestamp + DIRAC_RECOVERY_WORKER_TRANSPORT_TTL_MS_V190,
+    x25519_ephemeral_public_key_b64url: ephemeralDer.toString('base64url'),
+    mlkem_ciphertext_b64url: pq.ciphertext.toString('base64url'),
+    hkdf_salt_b64url: salt.toString('base64url'),
+    aead_nonce_b64url: aeadNonce.toString('base64url'),
+    plaintext_sha512_b64url: plaintextHash
+  };
+  const aad = Buffer.from(customerSecurityLostPasskeyCanonical(customerSecurityRecoveryWorkerTransportAadV190(envelope)), 'utf8');
+  const transcriptHash = crypto.createHash('sha512').update(aad).digest();
+  const ikm = Buffer.concat([classicShared, pq.sharedKey]);
+  const requestKey = Buffer.from(crypto.hkdfSync('sha512', ikm, salt, Buffer.concat([
+    Buffer.from('dirac/recovery-worker/v190/request\n', 'utf8'),
+    transcriptHash
+  ]), 32));
+  const responseKey = Buffer.from(crypto.hkdfSync('sha512', ikm, salt, Buffer.concat([
+    Buffer.from('dirac/recovery-worker/v190/response\n', 'utf8'),
+    transcriptHash
+  ]), 32));
+  try {
+    const cipher = crypto.createCipheriv('aes-256-gcm', requestKey, aeadNonce, { authTagLength: 16 });
+    cipher.setAAD(aad, { plaintextLength: plaintext.length });
+    const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
+    const tag = cipher.getAuthTag();
+    envelope.ciphertext_b64url = ciphertext.toString('base64url');
+    envelope.auth_tag_b64url = tag.toString('base64url');
+    ciphertext.fill(0);
+    tag.fill(0);
+    return {
+      envelope,
+      responseKey,
+      requestNonce: envelope.nonce,
+      workerAction: envelope.worker_action,
+      caller: envelope.caller_id
+    };
+  } catch (error) {
+    responseKey.fill(0);
+    throw error;
+  } finally {
+    ephemeralDer.fill(0);
+    classicShared.fill(0);
+    pq.sharedKey.fill(0);
+    pq.ciphertext.fill(0);
+    salt.fill(0);
+    aeadNonce.fill(0);
+    plaintext.fill(0);
+    aad.fill(0);
+    transcriptHash.fill(0);
+    ikm.fill(0);
+    requestKey.fill(0);
+  }
+}
+
+function customerSecurityRecoveryWorkerResponseAadV190(context, status, plaintextHash) {
+  return {
+    version: DIRAC_RECOVERY_WORKER_RESPONSE_VERSION_V190,
+    request_nonce: String(context && context.requestNonce || ''),
+    worker_action: String(context && context.workerAction || ''),
+    caller_id: String(context && context.caller || ''),
+    status: Number(status),
+    plaintext_sha512_b64url: String(plaintextHash || '')
+  };
+}
+
+function customerSecurityRecoveryWorkerOpenResponseV190(data, context, status) {
+  const outer = data && typeof data === 'object' && !Array.isArray(data) ? data : {};
+  const expectedOuterKeys = ['ok', 'transport_encrypted', 'transport_response'];
+  const actualOuterKeys = Object.keys(outer).sort();
+  if (actualOuterKeys.length !== expectedOuterKeys.length || actualOuterKeys.some((key, index) => key !== expectedOuterKeys[index])) {
+    throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_RESPONSE_OUTER_FIELDS_INVALID');
+  }
+  const response = outer.transport_response && typeof outer.transport_response === 'object' && !Array.isArray(outer.transport_response)
+    ? outer.transport_response
+    : null;
+  if (outer.ok !== true || outer.transport_encrypted !== true || !response || response.version !== DIRAC_RECOVERY_WORKER_RESPONSE_VERSION_V190) {
+    throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_ENCRYPTED_RESPONSE_REQUIRED');
+  }
+  const expectedKeys = ['auth_tag_b64url', 'caller_id', 'ciphertext_b64url', 'nonce_b64url', 'plaintext_sha512_b64url', 'request_nonce', 'status', 'version', 'worker_action'];
+  const actualKeys = Object.keys(response).sort();
+  if (actualKeys.length !== expectedKeys.length || actualKeys.some((key, index) => key !== expectedKeys[index])) {
+    throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_RESPONSE_FIELDS_INVALID');
+  }
+  if (response.request_nonce !== context.requestNonce
+    || response.worker_action !== context.workerAction
+    || response.caller_id !== context.caller
+    || Number(response.status) !== Number(status)) {
+    throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_RESPONSE_BINDING_INVALID');
+  }
+  const nonce = customerSecurityRecoveryWorkerDecodeB64uV190(response.nonce_b64url, 12, 128);
+  const ciphertext = customerSecurityRecoveryWorkerDecodeB64uV190(response.ciphertext_b64url, null, 128 * 1024);
+  const tag = customerSecurityRecoveryWorkerDecodeB64uV190(response.auth_tag_b64url, 16, 128);
+  const expectedHash = customerSecurityRecoveryWorkerDecodeB64uV190(response.plaintext_sha512_b64url, 64, 128);
+  const aad = Buffer.from(customerSecurityLostPasskeyCanonical(customerSecurityRecoveryWorkerResponseAadV190(context, status, response.plaintext_sha512_b64url)), 'utf8');
+  let plaintext;
+  try {
+    const decipher = crypto.createDecipheriv('aes-256-gcm', context.responseKey, nonce, { authTagLength: 16 });
+    decipher.setAAD(aad, { plaintextLength: ciphertext.length });
+    decipher.setAuthTag(tag);
+    plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+    const realHash = crypto.createHash('sha512').update(plaintext).digest();
+    if (!crypto.timingSafeEqual(realHash, expectedHash)) {
+      realHash.fill(0);
+      throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_RESPONSE_HASH_INVALID');
+    }
+    realHash.fill(0);
+    const text = new TextDecoder('utf-8', { fatal: true }).decode(plaintext);
+    const parsed = JSON.parse(text);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || customerSecurityLostPasskeyCanonical(parsed) !== text) {
+      throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_RESPONSE_PLAINTEXT_INVALID');
+    }
+    return parsed;
+  } catch (error) {
+    if (error && error.code) throw error;
+    throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_RESPONSE_AUTHENTICATION_FAILED');
+  } finally {
+    nonce.fill(0);
+    ciphertext.fill(0);
+    tag.fill(0);
+    expectedHash.fill(0);
+    aad.fill(0);
+    if (plaintext) plaintext.fill(0);
+  }
+}
+
 async function customerSecurityLostPasskeyArgon2Raw(input, salt, hashLength) {
   const argon2 = customerSecurityGetArgon2();
-  const memoryCost = Math.max(65536, Math.min(1048576, Number(process.env.DIRAC_LOST_PASSKEY_ARGON2_MEMORY_KIB || 655360)));
-  const timeCost = Math.max(3, Math.min(10, Number(process.env.DIRAC_LOST_PASSKEY_ARGON2_TIME_COST || 5)));
+  const memoryCost = 1024000;
+  const timeCost = 4;
   return Buffer.from(await argon2.hash(input, {
     type: argon2.argon2id,
     memoryCost,
     timeCost,
-    parallelism: 1,
+    parallelism: 4,
     hashLength: Math.max(32, Number(hashLength || 32)),
     salt: Buffer.from(salt),
     raw: true
@@ -6529,9 +6783,9 @@ async function customerSecurityBuildLostPasskeyFile(input) {
     created_at: input.createdAt,
     expires_at: input.expiresAt,
     kdf_params: {
-      memory_cost_kib: Math.max(65536, Math.min(1048576, Number(process.env.DIRAC_LOST_PASSKEY_ARGON2_MEMORY_KIB || 655360))),
-      time_cost: Math.max(3, Math.min(10, Number(process.env.DIRAC_LOST_PASSKEY_ARGON2_TIME_COST || 5))),
-      parallelism: 1,
+      memory_cost_kib: 1024000,
+      time_cost: 4,
+      parallelism: 4,
       hash_length: 32
     },
     salt: customerSecurityLostPasskeyB64(input.salt),
@@ -6853,7 +7107,7 @@ async function customerSecurityGenerateRecoveryCodesViaWorker(req, res, action, 
     });
   }
 
-  const payload = {
+  const plaintextPayload = {
     action: DIRAC_RECOVERY_WORKER_ACTION,
     worker_action: DIRAC_RECOVERY_WORKER_TASK_GENERATE,
     caller_id: caller,
@@ -6872,8 +7126,21 @@ async function customerSecurityGenerateRecoveryCodesViaWorker(req, res, action, 
     requested_at: diracNowIso(),
     password_latest_material: String(pdfOptions.passwordLatestMaterial || pdfOptions.password_latest_material || pdfOptions.accountPassword || pdfOptions.account_password || '')
   };
-  const canonical = customerSecurityLostPasskeyCanonical(payload);
   const timestamp = String(Date.now());
+  let transportContext = null;
+  try {
+    transportContext = customerSecurityRecoveryWorkerSealV190(plaintextPayload, caller, timestamp);
+  } catch (_) {
+    return res.status(503).json({
+      ok: false,
+      code: 'RECOVERY_WORKER_TRANSPORT_CONFIGURATION_INVALID',
+      message: 'Enkripsi transport recovery belum dikonfigurasi dengan benar.'
+    });
+  } finally {
+    for (const key of Object.keys(plaintextPayload)) plaintextPayload[key] = null;
+  }
+  const payload = transportContext.envelope;
+  const canonical = customerSecurityLostPasskeyCanonical(payload);
   const signature = customerSecurityRecoveryWorkerSign(caller, timestamp, canonical);
   const target = new URL(workerUrl);
   target.searchParams.set('action', DIRAC_RECOVERY_WORKER_ACTION);
@@ -6894,11 +7161,17 @@ async function customerSecurityGenerateRecoveryCodesViaWorker(req, res, action, 
         'X-Dirac-Worker-Signature': signature
       },
       body: JSON.stringify(payload),
+      redirect: 'error',
       signal: controller ? controller.signal : undefined
     });
     const workerResponseText = await response.text().catch(() => '');
     let data = {};
     try { data = workerResponseText ? JSON.parse(workerResponseText) : {}; } catch (_) { data = {}; }
+    if (data && data.transport_encrypted === true) {
+      data = customerSecurityRecoveryWorkerOpenResponseV190(data, transportContext, response.status);
+    } else if (response.ok) {
+      throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_ENCRYPTED_RESPONSE_REQUIRED');
+    }
     if (!response.ok || !data || data.ok !== true) {
       const workerFailureBody = {
         ok: false,
@@ -6959,6 +7232,7 @@ async function customerSecurityGenerateRecoveryCodesViaWorker(req, res, action, 
     return res.status(502).json(unreachableBody);
   } finally {
     if (timer) clearTimeout(timer);
+    if (transportContext && transportContext.responseKey) transportContext.responseKey.fill(0);
   }
 }
 
@@ -6986,7 +7260,7 @@ async function customerSecurityVerifyRecoveryCodeViaWorker(req, res, action, acc
     });
   }
 
-  const payload = {
+  const plaintextPayload = {
     action: DIRAC_RECOVERY_WORKER_ACTION,
     worker_action: DIRAC_RECOVERY_WORKER_TASK_VERIFY,
     caller_id: caller,
@@ -7006,8 +7280,21 @@ async function customerSecurityVerifyRecoveryCodeViaWorker(req, res, action, acc
     recovery_code: String(recoveryCode || '')
   };
 
-  const canonical = customerSecurityLostPasskeyCanonical(payload);
   const timestamp = String(Date.now());
+  let transportContext = null;
+  try {
+    transportContext = customerSecurityRecoveryWorkerSealV190(plaintextPayload, caller, timestamp);
+  } catch (_) {
+    return res.status(503).json({
+      ok: false,
+      code: 'RECOVERY_WORKER_TRANSPORT_CONFIGURATION_INVALID',
+      message: 'Enkripsi transport recovery belum dikonfigurasi dengan benar.'
+    });
+  } finally {
+    for (const key of Object.keys(plaintextPayload)) plaintextPayload[key] = null;
+  }
+  const payload = transportContext.envelope;
+  const canonical = customerSecurityLostPasskeyCanonical(payload);
   const signature = customerSecurityRecoveryWorkerSign(caller, timestamp, canonical);
   const target = new URL(workerUrl);
   target.searchParams.set('action', DIRAC_RECOVERY_WORKER_ACTION);
@@ -7027,12 +7314,18 @@ async function customerSecurityVerifyRecoveryCodeViaWorker(req, res, action, acc
         'X-Dirac-Worker-Signature': signature
       },
       body: JSON.stringify(payload),
+      redirect: 'error',
       signal: controller ? controller.signal : undefined
     });
 
     const workerResponseText = await response.text().catch(() => '');
     let data = {};
     try { data = workerResponseText ? JSON.parse(workerResponseText) : {}; } catch (_) { data = {}; }
+    if (data && data.transport_encrypted === true) {
+      data = customerSecurityRecoveryWorkerOpenResponseV190(data, transportContext, response.status);
+    } else if (response.ok) {
+      throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_ENCRYPTED_RESPONSE_REQUIRED');
+    }
 
     if (!response.ok || !data || data.ok !== true) {
       const workerFailureBody = {
@@ -7085,6 +7378,7 @@ async function customerSecurityVerifyRecoveryCodeViaWorker(req, res, action, acc
     return res.status(502).json(unreachableBody);
   } finally {
     if (timer) clearTimeout(timer);
+    if (transportContext && transportContext.responseKey) transportContext.responseKey.fill(0);
   }
 }
 
@@ -25555,9 +25849,6 @@ const DIRAC_CENTRAL_ACTIVE_ACTIONS_V146 = new Set([
   'security_report'
 ]);
 
-for (const item of diracCentralEnvCsvV150('DIRAC_CENTRAL_VERCEL2_ONLY_ACTIONS')) DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.add(item);
-for (const item of diracCentralEnvCsvV150('DIRAC_VERCEL2_ONLY_ACTIONS')) DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.add(item);
-
 const DIRAC_CENTRAL_DISABLED_ACTIONS_V146 = new Set([
   'checkout_order_hp_test',
   'ipaymu_health',
@@ -25900,9 +26191,10 @@ try {
 
 try {
   const __diracCentralPreviousSupabaseFetchV146 = typeof supabaseFetch === 'function' ? supabaseFetch : null;
+  if (!__diracCentralPreviousSupabaseFetchV146) throw new Error('DIRAC_CENTRAL_SUPABASE_FETCH_MISSING');
   if (__diracCentralPreviousSupabaseFetchV146 && !__diracCentralPreviousSupabaseFetchV146.__diracCentralServiceRoleV146) {
     supabaseFetch = async function supabaseFetchCentralServiceRoleGuardV146(path, options = {}) {
-      const decision = await diracCentralInspectServiceRoleAccessV146(path, options).catch(() => ({ ok: true }));
+      const decision = await diracCentralInspectServiceRoleAccessV146(path, options).catch(() => ({ block: true, reason: 'service_role_guard_exception', status: 503 }));
       if (decision && decision.block) return diracCentralBlockedSupabaseResultV146(decision);
       const ctx = diracCentralCurrentContextV149();
       const requestCacheKey = ctx ? diracCentralSupabaseRequestCacheKeyV151(path, options) : '';
@@ -25946,13 +26238,16 @@ try {
     };
     Object.defineProperty(supabaseFetch, '__diracCentralServiceRoleV146', { value: true, enumerable: false });
   }
-} catch (_) {}
+} catch (error) {
+  throw new Error('DIRAC_CENTRAL_SERVICE_ROLE_GUARD_INSTALL_FAILED', { cause: error });
+}
 
 try {
   const __diracCentralPreviousFetchV146 = typeof globalThis.fetch === 'function' ? globalThis.fetch.bind(globalThis) : null;
+  if (!__diracCentralPreviousFetchV146) throw new Error('DIRAC_CENTRAL_GLOBAL_FETCH_MISSING');
   if (__diracCentralPreviousFetchV146 && !globalThis.__DIRAC_CENTRAL_FETCH_EGRESS_WRAPPED_V146__) {
     globalThis.fetch = async function fetchCentralEgressGuardV146(input, options) {
-      const decision = await diracCentralInspectEgressV146(input, options).catch(() => ({ ok: true }));
+      const decision = await diracCentralInspectEgressV146(input, options).catch(() => ({ block: true, reason: 'egress_guard_exception' }));
       if (decision && decision.block) {
         const error = new Error('DIRAC_EGRESS_BLOCKED');
         error.code = 'DIRAC_EGRESS_BLOCKED';
@@ -25963,17 +26258,22 @@ try {
     };
     globalThis.__DIRAC_CENTRAL_FETCH_EGRESS_WRAPPED_V146__ = true;
   }
-} catch (_) {}
+} catch (error) {
+  throw new Error('DIRAC_CENTRAL_EGRESS_GUARD_INSTALL_FAILED', { cause: error });
+}
 
 try {
   const __diracCentralPreviousHandlerV146 = module.exports;
+  if (typeof __diracCentralPreviousHandlerV146 !== 'function') throw new Error('DIRAC_CENTRAL_HANDLER_MISSING');
   if (typeof __diracCentralPreviousHandlerV146 === 'function' && !__diracCentralPreviousHandlerV146.__diracCentralSecurityGuardV146) {
     module.exports = async function diracCentralSecurityGuardWrapperV146(req, res) {
       return diracCentralRunWithAsyncContextV149(() => diracCentralSecurityGuardV146(req, res, __diracCentralPreviousHandlerV146));
     };
     Object.defineProperty(module.exports, '__diracCentralSecurityGuardV146', { value: true, enumerable: false });
   }
-} catch (_) {}
+} catch (error) {
+  throw new Error('DIRAC_CENTRAL_HANDLER_GUARD_INSTALL_FAILED', { cause: error });
+}
 
 
 function diracCentralSupabaseRequestCacheKeyV151(path, options = {}) {
@@ -26040,6 +26340,8 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
   const method = String(req && req.method || 'GET').toUpperCase();
   let ctx = null;
   try {
+    if (!req || typeof req !== 'object') return diracCentralBlockedResponseV146(res, 'CENTRAL_GUARD_REQUEST_INVALID');
+    req.__diracCentralSecurityGuardPassedV146 = false;
     diracCentralApplyHeadersV146(res);
     diracCentralWrapJsonResponseV146(res);
 
@@ -26100,6 +26402,10 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
     const vercel2OnlyGuard = diracCentralVercel2OnlyActionGuardV150(action);
     if (!vercel2OnlyGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, vercel2OnlyGuard.reason);
     diracCentralStampV146(ctx, 'vercel2_action_checked');
+
+    const server1EnvPartition = diracCentralServer1RecoveryEnvPartitionGuardV190(action);
+    if (!server1EnvPartition.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, server1EnvPartition.reason);
+    diracCentralStampV146(ctx, 'server1_env_partition_checked');
 
     ctx.classification = diracCentralClassifyActionV146(action);
     diracCentralStampV146(ctx, 'classification_checked');
@@ -26196,6 +26502,7 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
 
     const integrity = diracCentralIntegrityVerifierV146(ctx);
     if (!integrity.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, integrity.reason);
+    diracCentralStampV146(ctx, 'integrity_checked');
 
     req.__diracCentralSecurityGuardPassedV146 = true;
     return await nextHandler(req, res);
@@ -26331,22 +26638,26 @@ async function diracCentralCheckPersistentBanV146(req, identity) {
   let storageChecked = false;
   try {
     if (typeof diracV107CheckActiveBan === 'function') {
-      storageChecked = true;
       const existing = await diracV107CheckActiveBan(req);
+      storageChecked = true;
       if (existing && existing.blocked) {
         return { blocked: true, blockedUntilMs: now + Math.max(1, Number(existing.retryAfterSeconds || 86400)) * 1000 };
       }
     }
-  } catch (_) {}
+  } catch (_) {
+    return { blocked: true, blockedUntilMs: now + diracCentralBlockMsV146(), failClosed: true };
+  }
 
   try {
     if (typeof readPersistentSecurityJson === 'function') {
+      const record = await readPersistentSecurityJson(key);
       storageChecked = true;
-      const record = await readPersistentSecurityJson(key).catch(() => null);
       const blockedUntilMs = Number(record && (record.blocked_until_ms || record.blockedUntilMs) || 0);
       if (blockedUntilMs > now) return { blocked: true, blockedUntilMs };
     }
-  } catch (_) {}
+  } catch (_) {
+    return { blocked: true, blockedUntilMs: now + diracCentralBlockMsV146(), failClosed: true };
+  }
 
   if (diracCentralIsProductionV146() && (!storageChecked || !LOGIN_SECURITY_PERSIST_TABLE)) {
     return { blocked: true, blockedUntilMs: now + diracCentralBlockMsV146(), failClosed: true };
@@ -26423,12 +26734,11 @@ function diracCentralVercel2OnlyActionGuardV150(action) {
   const vercel2OnlyActions = diracCentralVercel2OnlyActionsV150();
   if (!vercel2OnlyActions.has(clean)) return { ok: true };
 
-  if (diracCentralEnvTrueV150('DIRAC_CENTRAL_VERCEL2_ACTIONS_ENABLED')) return { ok: true };
-  if (diracCentralEnvTrueV150('DIRAC_VERCEL2_ACTIONS_ENABLED')) return { ok: true };
-  if (diracCentralEnvValueV150('DIRAC_CENTRAL_DEPLOYMENT_ROLE') === 'vercel2') return { ok: true };
-  if (diracCentralEnvValueV150('DIRAC_DEPLOYMENT_ROLE') === 'vercel2') return { ok: true };
-
-  return { ok: false, reason: 'vercel2_only_action_blocked' };
+  const role = diracCentralEnvValueV150('DIRAC_CENTRAL_DEPLOYMENT_ROLE') || diracCentralEnvValueV150('DIRAC_DEPLOYMENT_ROLE');
+  const enabled = diracCentralEnvTrueV150('DIRAC_CENTRAL_VERCEL2_ACTIONS_ENABLED') || diracCentralEnvTrueV150('DIRAC_VERCEL2_ACTIONS_ENABLED');
+  return role === 'vercel2' && enabled
+    ? { ok: true }
+    : { ok: false, reason: 'vercel2_only_action_blocked' };
 }
 
 function diracCentralVercel2OnlyActionsV150() {
@@ -26439,9 +26749,53 @@ function diracCentralVercel2OnlyActionsV150() {
     String(typeof DIRAC_RECOVERY_WORKER_ACTION !== 'undefined' ? DIRAC_RECOVERY_WORKER_ACTION : '').trim().toLowerCase()
   ].filter(Boolean));
 
-  for (const item of diracCentralEnvCsvV150('DIRAC_CENTRAL_VERCEL2_ONLY_ACTIONS')) actions.add(item);
-  for (const item of diracCentralEnvCsvV150('DIRAC_VERCEL2_ONLY_ACTIONS')) actions.add(item);
   return actions;
+}
+
+function diracCentralServer1RecoveryEnvPartitionGuardV190(action) {
+  const role = diracCentralEnvValueV150('DIRAC_CENTRAL_DEPLOYMENT_ROLE') || diracCentralEnvValueV150('DIRAC_DEPLOYMENT_ROLE');
+  const cleanAction = String(action || '').trim().toLowerCase();
+  const server2OnlyEnv = [
+    'DIRAC_CENTRAL_VERCEL2_ACTIONS_ENABLED',
+    'DIRAC_VERCEL2_ACTIONS_ENABLED',
+    'DIRAC_CENTRAL_VERCEL2_ONLY_ACTIONS',
+    'DIRAC_VERCEL2_ONLY_ACTIONS',
+    'DIRAC_RECOVERY_WORKER_ALLOWED_CALLER',
+    'DIRAC_RECOVERY_WORKER_MAX_BODY_BYTES',
+    'DIRAC_RECOVERY_WORKER_CLOCK_SKEW_SECONDS',
+    'DIRAC_RECOVERY_WORKER_X25519_PRIVATE_KEY',
+    'DIRAC_RECOVERY_WORKER_MLKEM1024_PRIVATE_KEY',
+    'DIRAC_LOST_PASSKEY_ARGON2_MEMORY_KIB',
+    'DIRAC_LOST_PASSKEY_ARGON2_TIME_COST',
+    'DIRAC_LOST_PASSKEY_ARGON2_PARALLELISM',
+    'DIRAC_LOST_PASSKEY_LINK_OPEN_ARGON2_MEMORY_KIB',
+    'DIRAC_LOST_PASSKEY_LINK_OPEN_ARGON2_TIME_COST',
+    'DIRAC_LOST_PASSKEY_LINK_OPEN_ARGON2_PARALLELISM',
+    'DIRAC_LOST_PASSKEY_ROOT_SECRET',
+    'DIRAC_LOST_PASSKEY_ROOT_SECRET_VERSION',
+    'DIRAC_LOST_PASSKEY_DB_PEPPER',
+    'DIRAC_LOST_PASSKEY_MAX_RUNNING',
+    'DIRAC_LOST_PASSKEY_QUEUE_MAX',
+    'DIRAC_LOST_PASSKEY_PROCESSING_LOCK_TTL_SECONDS',
+    'DIRAC_RECOVERY_SERVER1_URL',
+    'DIRAC_RECOVERY_HPKE_PRIVATE_KEY',
+    'DIRAC_RECOVERY_HPKE_KEY_ID',
+    'DIRAC_RECOVERY_HPKE_PEPPER',
+    'DIRAC_RECOVERY_HPKE_PEPPER_KEY_ID',
+    'DIRAC_RECOVERY_HPKE_ARGON2_MEMORY_KIB',
+    'DIRAC_RECOVERY_HPKE_ARGON2_TIME_COST',
+    'DIRAC_LOST_PASSKEY_ED25519_PRIVATE_KEY',
+    'DIRAC_LOST_PASSKEY_ED25519_PRIVATE_KEY_PEM',
+    'DIRAC_RECOVERY_MLKEM1024_PRIVATE_KEY_PEM',
+    'DIRAC_RECOVERY_MLKEM1024_PRIVATE_KEY_DER_B64',
+    'DIRAC_RECOVERY_MLDSA87_PRIVATE_KEY_PEM',
+    'DIRAC_RECOVERY_MLDSA87_PRIVATE_KEY_DER_B64'
+  ];
+  const present = (name) => Boolean(String(process.env[name] || '').trim());
+  if (diracCentralIsProductionV146() && role !== 'vercel1') return { ok: false, reason: 'vercel1_deployment_role_required' };
+  if (cleanAction === DIRAC_RECOVERY_WORKER_ACTION) return { ok: false, reason: 'vercel2_action_forbidden_on_vercel1' };
+  if (server2OnlyEnv.some(present)) return { ok: false, reason: 'vercel2_env_present_on_vercel1' };
+  return { ok: true };
 }
 
 function diracCentralEnvCsvV150(name) {
@@ -26474,26 +26828,29 @@ function diracCentralIntegrityVerifierV146(ctx) {
     'action_format_checked',
     'alias_checked',
     'whitelist_checked',
+    'vercel2_action_checked',
+    'server1_env_partition_checked',
     'classification_checked',
     'rate_checked',
+    'server_guard_checked',
+    'browser_auth_checked',
+    'csrf_checked',
+    'page_nonce_checked',
+    'browser_signal_checked',
+    'device_checked',
+    'admin_checked',
+    'public_read_checked',
     'body_checked',
     'light_checked',
     'contract_checked',
+    'a2f_signature_checked',
+    'sample_checked',
+    'threat_checked',
+    'zeroday_checked',
     'idor_checked',
     'circuit_checked',
-    'mfa_checked',
-    'vercel2_action_checked'
+    'mfa_checked'
   ];
-  if (ctx && ctx.classification === 'server') required.push('server_guard_checked');
-  if (ctx && ctx.classification === 'public_read') required.push('public_read_checked', 'sample_checked', 'threat_checked', 'zeroday_checked');
-  if (ctx && (ctx.classification === 'browser' || ctx.classification === 'admin' || DIRAC_CENTRAL_SENSITIVE_ACTIONS_V146.has(ctx.action))) {
-    required.push('browser_auth_checked', 'csrf_checked', 'page_nonce_checked', 'browser_signal_checked', 'device_checked');
-  }
-  if (ctx && ctx.isA2FAction) required.push('a2f_signature_checked');
-  if (ctx && ctx.classification === 'admin') required.push('admin_checked');
-  if (ctx && !ctx.skipHeavyScan && ctx.classification !== 'server' && ctx.classification !== 'public_read') {
-    required.push('sample_checked', 'threat_checked', 'zeroday_checked');
-  }
   for (const stamp of required) {
     if (!pass[stamp]) return { ok: false, reason: 'central_guard_integrity_missing_' + stamp };
   }
@@ -27344,7 +27701,8 @@ function diracCentralIsDashboardSelfReadAuthLinkWriteV146(ctx, table, options, m
 async function diracCentralInspectServiceRoleAccessV146(path, options = {}) {
   if (!options || options.auth !== 'service') return { ok: true };
   const ctx = diracCentralCurrentContextV149();
-  if (!ctx || !ctx.__serviceGuardActive && ctx.action === 'midtrans_webhook') return { ok: true };
+  if (!ctx) return { block: true, reason: 'service_role_central_context_required', status: 503 };
+  if (!ctx.__serviceGuardActive && ctx.action === 'midtrans_webhook') return { ok: true };
   const table = diracCentralExtractRestTableV146(path);
   if (!diracCentralOwnedTableV146(table)) return { ok: true };
   const method = String(options.method || 'GET').toUpperCase();
@@ -27828,14 +28186,17 @@ function diracCentralBlockedSupabaseResultV146(decision) {
 
 async function diracCentralInspectEgressV146(input, options = {}) {
   let url;
-  try { url = new URL(typeof input === 'string' ? input : input && input.url || ''); } catch (_) { return { ok: true }; }
+  try { url = new URL(typeof input === 'string' ? input : input && input.url || ''); } catch (_) { return { block: true, reason: 'egress_url_invalid' }; }
   if (!/^https:$/.test(url.protocol)) return { block: true, reason: 'egress_protocol_blocked' };
   const host = url.hostname.toLowerCase();
   if (diracCentralIsUnsafeHostV146(host)) return { block: true, reason: 'egress_private_or_metadata_host' };
   if (!diracCentralAllowedEgressHostV146(host)) return { block: true, reason: 'egress_host_not_allowlisted' };
   const directService = diracCentralDirectServiceRoleFetchV146(url, input, options);
   if (directService.block) return directService;
-  const dns = await diracCentralResolveHostIpsV146(host).catch(() => []);
+  let dns;
+  try { dns = await diracCentralResolveHostIpsV146(host); }
+  catch (_) { return { block: true, reason: 'egress_dns_resolution_failed' }; }
+  if (!Array.isArray(dns) || dns.length < 1) return { block: true, reason: 'egress_dns_resolution_empty' };
   if (dns.some(diracCentralIsUnsafeIpV146)) return { block: true, reason: 'egress_dns_resolved_private_ip' };
   return { ok: true };
 }
@@ -27855,7 +28216,7 @@ async function diracCentralFetchWithRedirectGuardV146(fetchImpl, input, options,
   if (!location) return response;
   const base = new URL(typeof input === 'string' ? input : input && input.url || '');
   const nextUrl = new URL(location, base);
-  const decision = await diracCentralInspectEgressV146(nextUrl.toString()).catch(() => ({ ok: true }));
+  const decision = await diracCentralInspectEgressV146(nextUrl.toString()).catch(() => ({ block: true, reason: 'egress_redirect_guard_exception' }));
   if (decision && decision.block) {
     const error = new Error('DIRAC_EGRESS_REDIRECT_BLOCKED');
     error.code = 'DIRAC_EGRESS_REDIRECT_BLOCKED';
@@ -27868,7 +28229,8 @@ async function diracCentralFetchWithRedirectGuardV146(fetchImpl, input, options,
 function diracCentralDirectServiceRoleFetchV146(url, input, options = {}) {
   try {
     const ctx = diracCentralCurrentContextV149();
-    if (!ctx || ctx.__diracCentralSafeServiceRoleFetchV146) return { ok: true };
+    if (!ctx) return { block: true, reason: 'egress_central_context_required' };
+    if (ctx.__diracCentralSafeServiceRoleFetchV146) return { ok: true };
     const host = String(url && url.hostname || '').toLowerCase();
     if (!/\.supabase\.co$/i.test(host)) return { ok: true };
     const serviceKey = String(process.env.DOMAIN_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '').trim();
@@ -27878,7 +28240,9 @@ function diracCentralDirectServiceRoleFetchV146(url, input, options = {}) {
       ? [headers.get('authorization'), headers.get('apikey')].join('|')
       : Object.values(headers || {}).join('|');
     if (raw.includes(serviceKey)) return { block: true, reason: 'direct_service_role_fetch_blocked' };
-  } catch (_) {}
+  } catch (_) {
+    return { block: true, reason: 'direct_service_role_guard_exception' };
+  }
   return { ok: true };
 }
 
@@ -28717,6 +29081,70 @@ function diracRecoveryHpkeProofSignatureV159(caller, timestampText, body) {
   }
 }
 
+const DIRAC_RECOVERY_HPKE_PROOF_RESPONSE_VERSION_V190 = 'dirac-recovery-hpke-proof-response-v190';
+
+function diracRecoveryHpkeProofResponseKeyV190(body) {
+  const secretText = customerSecurityRecoveryWorkerSecret();
+  if (!secretText) throw new Error('RECOVERY_HPKE_PROOF_RESPONSE_SECRET_MISSING');
+  const secret = Buffer.from(secretText, 'utf8');
+  const salt = crypto.createHash('sha512').update(customerSecurityLostPasskeyCanonical(body || {})).digest();
+  const info = Buffer.from([
+    'dirac/recovery-hpke/v190/proof-response',
+    String(body && body.request_id || ''),
+    String(body && body.proof_nonce || '')
+  ].join('\n'), 'utf8');
+  try {
+    return Buffer.from(crypto.hkdfSync('sha512', secret, salt, info, 32));
+  } finally {
+    secret.fill(0);
+    salt.fill(0);
+    info.fill(0);
+  }
+}
+
+function diracRecoveryHpkeProofResponseAadV190(body, status, plaintextHash) {
+  return {
+    version: DIRAC_RECOVERY_HPKE_PROOF_RESPONSE_VERSION_V190,
+    status: Number(status),
+    request_id: String(body && body.request_id || ''),
+    proof_nonce: String(body && body.proof_nonce || ''),
+    plaintext_sha512_b64url: String(plaintextHash || '')
+  };
+}
+
+function diracRecoveryHpkeEncryptProofResponseV190(body, status, payload) {
+  const key = diracRecoveryHpkeProofResponseKeyV190(body);
+  const plaintext = Buffer.from(customerSecurityLostPasskeyCanonical(payload), 'utf8');
+  const plaintextHash = crypto.createHash('sha512').update(plaintext).digest('base64url');
+  const nonce = crypto.randomBytes(12);
+  const aadObject = diracRecoveryHpkeProofResponseAadV190(body, status, plaintextHash);
+  const aad = Buffer.from(customerSecurityLostPasskeyCanonical(aadObject), 'utf8');
+  try {
+    const cipher = crypto.createCipheriv('aes-256-gcm', key, nonce, { authTagLength: 16 });
+    cipher.setAAD(aad, { plaintextLength: plaintext.length });
+    const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
+    const tag = cipher.getAuthTag();
+    const response = {
+      version: DIRAC_RECOVERY_HPKE_PROOF_RESPONSE_VERSION_V190,
+      status: Number(status),
+      request_id: String(body && body.request_id || ''),
+      proof_nonce: String(body && body.proof_nonce || ''),
+      nonce_b64url: nonce.toString('base64url'),
+      ciphertext_b64url: ciphertext.toString('base64url'),
+      auth_tag_b64url: tag.toString('base64url'),
+      plaintext_sha512_b64url: plaintextHash
+    };
+    ciphertext.fill(0);
+    tag.fill(0);
+    return { ok: true, proof_response_encrypted: true, proof_response: response };
+  } finally {
+    key.fill(0);
+    plaintext.fill(0);
+    nonce.fill(0);
+    aad.fill(0);
+  }
+}
+
 function diracRecoveryHpkeProofSignatureGuardV159(req, ctx) {
   if (diracRecoveryHpkeServer2OnlyEnvOnServer1V159().length) {
     return { ok: false, reason: 'recovery_hpke_server2_env_present_on_server1' };
@@ -28962,7 +29390,7 @@ async function diracRecoveryHpkeCommitProofV159(req, res) {
       }
     }).catch(() => null);
 
-    return res.status(200).json({
+    const successPayload = {
       ok: true,
       active: true,
       method: 'hpke_argon2id_proof',
@@ -28975,7 +29403,8 @@ async function diracRecoveryHpkeCommitProofV159(req, res) {
       plaintext_recovery_code_received: false,
       hpke_suite: DIRAC_RECOVERY_HPKE_SUITE_V159,
       time: now
-    });
+    };
+    return res.status(200).json(diracRecoveryHpkeEncryptProofResponseV190(body, 200, successPayload));
   } catch (error) {
     if (requestCommitted) await diracRecoveryHpkeRollbackRequestV159(validated.requestId, previousMetadata);
     return res.status(500).json({ ok: false, code: 'RECOVERY_HPKE_COMMIT_FAILED', message: 'Recovery proof belum dapat diproses.' });
