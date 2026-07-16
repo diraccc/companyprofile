@@ -1860,7 +1860,7 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
 
   if (!row || !row.id) {
     // Jangan blokir login hanya karena row belum ada. Buat/touch session memakai fungsi existing.
-    customerSecurityTouchCurrentSession(req, customerId).catch(() => null);
+    await customerSecurityTouchCurrentSession(req, customerId).catch(() => null);
     return { ok: true, create_or_touch_queued: true, customerId, skipped: false, reason: 'session_create_or_touch_queued' };
   }
 
@@ -1940,7 +1940,7 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
     };
   }
 
-  customerSecurityTouchCurrentSession(req, customerId).catch(() => null);
+  await customerSecurityTouchCurrentSession(req, customerId).catch(() => null);
   return { ok: true, customerId, sessionId: row.id, idleMs, idle_timeout_ms: DOMAIN_PROTECTED_IDLE_TIMEOUT_MS, touch_queued: true };
 }
 
@@ -26403,6 +26403,7 @@ try {
         const cachedPromise = ctx.__diracCentralSupabaseRequestCacheV151.get(requestCacheKey);
         if (cachedPromise) {
           const cachedResult = await cachedPromise;
+          diracCentralBindOwnerScopedSessionRowsV197(ctx, path, options, cachedResult);
           return diracCentralCloneSupabaseResultV151(cachedResult);
         }
 
@@ -26422,6 +26423,7 @@ try {
         ctx.__diracCentralSupabaseRequestCacheV151.set(requestCacheKey, fetchPromise);
         try {
           const result = await fetchPromise;
+          diracCentralBindOwnerScopedSessionRowsV197(ctx, path, options, result);
           return diracCentralCloneSupabaseResultV151(result);
         } finally {
           if (ctx) ctx.__diracCentralSafeServiceRoleFetchV146 = false;
@@ -26430,7 +26432,9 @@ try {
 
       if (ctx && options && options.auth === 'service') ctx.__diracCentralSafeServiceRoleFetchV146 = true;
       try {
-        return await __diracCentralPreviousSupabaseFetchV146(path, options);
+        const result = await __diracCentralPreviousSupabaseFetchV146(path, options);
+        diracCentralBindOwnerScopedSessionRowsV197(ctx, path, options, result);
+        return result;
       } finally {
         if (ctx) ctx.__diracCentralSafeServiceRoleFetchV146 = false;
       }
@@ -26496,6 +26500,52 @@ function diracCentralIsRequestCacheableSupabaseReadV151(path) {
     || /^\/rest\/v1\/domain_tld_prices(?:$|[?#])/.test(value);
 }
 
+
+// PATCH v197: bind only security_customer_sessions row IDs returned by a
+// successful customer_id-scoped service-role GET in the same guarded request.
+// This preserves the object-scope fail-closed rule while allowing the normal
+// read-then-update session flow to operate on the exact row it just read.
+function diracCentralBindOwnerScopedSessionRowsV197(ctx, path, options = {}, result) {
+  try {
+    if (!ctx || !ctx.req || ctx.req.__diracCentralSecurityGuardPassedV146 !== true) return false;
+    if (!ctx.action || !options || options.auth !== 'service') return false;
+    if (String(options.method || 'GET').toUpperCase() !== 'GET') return false;
+    if (!result || result.ok !== true || !Array.isArray(result.data) || result.data.length > 100) return false;
+    if (options.body !== undefined && options.body !== null) return false;
+    if (diracCentralExtractRestTableV146(path) !== 'security_customer_sessions') return false;
+
+    const rawPath = String(path || '');
+    const queryIndex = rawPath.indexOf('?');
+    if (queryIndex <= 0 || rawPath.slice(0, queryIndex) !== '/rest/v1/security_customer_sessions') return false;
+
+    const params = new URLSearchParams(rawPath.slice(queryIndex + 1));
+    if (params.getAll('customer_id').length !== 1 || params.has('id')) return false;
+    const customerFilter = String(params.get('customer_id') || '');
+    if (!customerFilter.startsWith('eq.')) return false;
+    const customerId = customerFilter.slice(3).trim();
+    if (!diracCentralLooksLikeUuidV146(customerId)) return false;
+
+    const scope = diracCentralExtractServiceRoleScopeIdsV146(path, null);
+    if (scope.customerIds.length !== 1 || scope.customerIds[0] !== customerId) return false;
+    if (scope.authUserIds.length || scope.userIds.length || scope.objectValues.length) return false;
+
+    const rowIds = result.data
+      .map((row) => String(row && row.id || '').trim())
+      .filter((value) => diracCentralLooksLikeUuidV146(value));
+    if (!rowIds.length || rowIds.length !== result.data.length) return false;
+
+    const bound = ctx.__diracCentralOwnerBoundObjectValuesV194 instanceof Set
+      ? ctx.__diracCentralOwnerBoundObjectValuesV194
+      : new Set();
+    if (bound.size + rowIds.length > 200) return false;
+    rowIds.forEach((value) => bound.add(value));
+    ctx.__diracCentralOwnerBoundObjectValuesV194 = bound;
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
 function diracCentralCloneSupabaseResultV151(result) {
   if (!result || typeof result !== 'object') return result;
   const cloned = { ...result };
@@ -26529,10 +26579,12 @@ function diracCentralSetCurrentContextV149(ctx) {
 
 function diracCentralCurrentContextV149() {
   try {
-    const store = DIRAC_CENTRAL_ASYNC_CONTEXT_V149 && DIRAC_CENTRAL_ASYNC_CONTEXT_V149.getStore();
-    if (store && store.ctx) return store.ctx;
+    if (DIRAC_CENTRAL_ASYNC_CONTEXT_V149) {
+      const store = DIRAC_CENTRAL_ASYNC_CONTEXT_V149.getStore();
+      if (store) return store.ctx || null;
+    }
   } catch (_) {}
-  return DIRAC_CENTRAL_CONTEXT_STACK_V146[DIRAC_CENTRAL_CONTEXT_STACK_V146.length - 1];
+  return DIRAC_CENTRAL_CONTEXT_STACK_V146[DIRAC_CENTRAL_CONTEXT_STACK_V146.length - 1] || null;
 }
 
 async function diracCentralSecurityGuardV146(req, res, nextHandler) {
