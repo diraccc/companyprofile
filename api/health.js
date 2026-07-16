@@ -27016,6 +27016,7 @@ function diracCentralVercel2OnlyActionsV150() {
 function diracCentralServer1RecoveryEnvPartitionGuardV190(action) {
   const role = diracCentralEnvValueV150('DIRAC_CENTRAL_DEPLOYMENT_ROLE') || diracCentralEnvValueV150('DIRAC_DEPLOYMENT_ROLE');
   const cleanAction = String(action || '').trim().toLowerCase();
+  const vercel2OnlyAction = diracCentralVercel2OnlyActionsV150().has(cleanAction);
   const server2OnlyEnv = [
     'DIRAC_CENTRAL_VERCEL2_ACTIONS_ENABLED',
     'DIRAC_VERCEL2_ACTIONS_ENABLED',
@@ -27066,8 +27067,15 @@ function diracCentralServer1RecoveryEnvPartitionGuardV190(action) {
     'DIRAC_LOST_PASSKEY_QUEUE_POLL_MS'
   ];
   const present = (name) => Boolean(String(process.env[name] || '').trim());
+
+  if (role === 'vercel2') {
+    return vercel2OnlyAction
+      ? { ok: true }
+      : { ok: false, reason: 'vercel2_non_worker_action_forbidden' };
+  }
+
   if (diracCentralIsProductionV146() && role !== 'vercel1') return { ok: false, reason: 'vercel1_deployment_role_required' };
-  if (cleanAction === DIRAC_RECOVERY_WORKER_ACTION) return { ok: false, reason: 'vercel2_action_forbidden_on_vercel1' };
+  if (vercel2OnlyAction) return { ok: false, reason: 'vercel2_action_forbidden_on_vercel1' };
   if (server2OnlyEnv.some(present)) return { ok: false, reason: 'vercel2_env_present_on_vercel1' };
   return { ok: true };
 }
@@ -27920,6 +27928,10 @@ async function diracCentralIdorBolaGuardV146(req, ctx) {
     if (boot && boot.ok) owner = await diracCentralResolveOwnerV146(req);
   }
   if (!owner || !owner.ok || !owner.customerIds || !owner.customerIds.length) return { ok: false, reason: 'idor_owner_unavailable' };
+  if (ctx && ctx.action === 'checkout_order' && owner.customerIds.length === 1) {
+    ctx.__diracCentralCheckoutOwnerCustomerIdV196 = String(owner.customerIds[0] || '').trim();
+    ctx.__diracCentralCheckoutOwnerAuthUserIdV196 = String(owner.authUserId || '').trim();
+  }
   const allowedCustomers = new Set(owner.customerIds.map(String));
   const requestedCustomer = ids.filter((item) => item.key === 'customer_id').map((item) => item.value).filter(diracCentralLooksLikeUuidV146);
   if (requestedCustomer.some((id) => !allowedCustomers.has(id))) return { ok: false, reason: 'idor_customer_id_mismatch' };
@@ -28113,6 +28125,7 @@ async function diracCentralInspectServiceRoleAccessV146(path, options = {}) {
   }
   if (diracCentralIsRegisterBootstrapServiceRoleV146(ctx, table, path, options, method)) return { ok: true, guarded: 'domain_register_bootstrap_service_role' };
   if (diracCentralIsCheckoutOwnerBootstrapServiceRoleV146(ctx, table, path, options, method)) return { ok: true, guarded: 'checkout_owner_bootstrap_service_role' };
+  if (diracCentralIsCheckoutCustomerOwnerReadServiceRoleV196(ctx, table, path, options, method)) return { ok: true, guarded: 'checkout_customer_owner_read_service_role_v196' };
   if (diracCentralIsCheckoutOrderCreateServiceRoleV146(ctx, table, path, options, method)) return { ok: true, guarded: 'checkout_order_create_service_role' };
   if (diracCentralIsPasskeyServiceRoleV146(ctx, table, path, options, method)) return { ok: true, guarded: 'passkey_owner_scoped_service_role' };
   const hasOwnerScope = diracCentralPathHasOwnerScopeV146(path, options.body);
@@ -28336,6 +28349,38 @@ function diracCentralIsCheckoutOwnerBootstrapServiceRoleV146(ctx, table, path, o
     });
   }
   return false;
+}
+
+function diracCentralIsCheckoutCustomerOwnerReadServiceRoleV196(ctx, table, path, options = {}, method) {
+  if (!ctx || ctx.action !== 'checkout_order' || !ctx.req || ctx.req.__diracCentralSecurityGuardPassedV146 !== true) return false;
+  if (String(table || '').toLowerCase() !== 'customers' || String(method || options.method || 'GET').toUpperCase() !== 'GET') return false;
+  if (options && options.body !== undefined && options.body !== null) return false;
+
+  const boundCustomerId = String(ctx.__diracCentralCheckoutOwnerCustomerIdV196 || '').trim();
+  const boundAuthUserId = String(ctx.__diracCentralCheckoutOwnerAuthUserIdV196 || '').trim();
+  if (!diracCentralLooksLikeUuidV146(boundCustomerId) || !diracCentralLooksLikeUuidV146(boundAuthUserId)) return false;
+
+  const rawPath = String(path || '');
+  const queryIndex = rawPath.indexOf('?');
+  if (queryIndex <= 0 || rawPath.slice(0, queryIndex) !== '/rest/v1/customers') return false;
+
+  let params;
+  try {
+    params = new URLSearchParams(rawPath.slice(queryIndex + 1));
+  } catch (_) {
+    return false;
+  }
+
+  const allowedKeys = new Set(['select', 'id', 'limit']);
+  const keys = Array.from(params.keys());
+  if (keys.length !== 3 || keys.some((key) => !allowedKeys.has(String(key || '')))) return false;
+  if (Array.from(allowedKeys).some((key) => params.getAll(key).length !== 1)) return false;
+  if (params.get('select') !== 'id,email,name,phone' || params.get('limit') !== '1') return false;
+
+  const idFilter = String(params.get('id') || '');
+  if (!idFilter.startsWith('eq.')) return false;
+  const requestedCustomerId = idFilter.slice(3).trim();
+  return diracCentralLooksLikeUuidV146(requestedCustomerId) && requestedCustomerId === boundCustomerId;
 }
 
 function diracCentralIsCheckoutOrderCreateServiceRoleV146(ctx, table, path, options = {}, method) {
