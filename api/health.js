@@ -28280,6 +28280,7 @@ async function diracCentralFetchOwnerRowsV194(table, requestedValues, columns) {
   const clauses = [];
   for (const column of safeColumns) {
     for (const value of values) {
+      if (column === 'id' && !diracCentralLooksLikeUuidV146(value)) continue;
       if (!/^[A-Za-z0-9._:@-]{1,160}$/.test(value)) continue;
       clauses.push(column + '.eq.' + value);
     }
