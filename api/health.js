@@ -28253,7 +28253,7 @@ async function diracCentralLookupOwnerRowsV146(objects) {
   const rows = [];
   const values = (regex) => Array.from(new Set((objects || []).filter((item) => regex.test(item.key)).map((item) => String(item.value || '').trim()).filter(Boolean))).slice(0, 40);
   rows.push(...await diracCentralFetchOwnerRowsV194('orders', values(/^(order_id|order_code)$/i), ['id', 'order_id']));
-  rows.push(...await diracCentralFetchOwnerRowsV194('domain_orders', values(/^(domain_order_id|order_id|order_code)$/i), ['id', 'order_code', 'order_id']));
+  rows.push(...await diracCentralFetchOwnerRowsV194('domain_orders', values(/^(domain_order_id|order_id)$/i), ['id']));
   rows.push(...await diracCentralFetchOwnerRowsV194('payment_transactions', values(/^(payment_id|transaction_id|gateway_reference|invoice_id)$/i), ['id', 'gateway_reference']));
   rows.push(...await diracCentralFetchOwnerRowsV194('security_customer_sessions', values(/^session_id$/i), ['id']));
   rows.push(...await diracCentralFetchOwnerRowsV194('security_customer_recovery_codes', values(/^recovery_code_id$/i), ['id']));
@@ -28272,7 +28272,7 @@ async function diracCentralFetchOwnerRowsV194(table, requestedValues, columns) {
   }
   const selectByTable = {
     orders: 'id,customer_id,order_id',
-    domain_orders: 'id,customer_id,order_id,order_code',
+    domain_orders: 'id,customer_id',
     payment_transactions: 'id,customer_id,order_id,domain_order_id,gateway_reference',
     security_customer_sessions: 'id,customer_id',
     security_customer_recovery_codes: 'id,customer_id'
