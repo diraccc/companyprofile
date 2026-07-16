@@ -6077,7 +6077,40 @@ function customerSecurityRecoveryWorkerMainEnvDiagnostics() {
     'DIRAC_LOST_PASSKEY_QUEUE_MAX',
     'DIRAC_LOST_PASSKEY_PROCESSING_LOCK_TTL_SECONDS',
     'DIRAC_RECOVERY_WORKER_X25519_PRIVATE_KEY',
-    'DIRAC_RECOVERY_WORKER_MLKEM1024_PRIVATE_KEY'
+    'DIRAC_RECOVERY_WORKER_MLKEM1024_PRIVATE_KEY',
+    'DIRAC_LOST_PASSKEY_ARGON2_PARALLELISM',
+    'DIRAC_LOST_PASSKEY_LINK_OPEN_ARGON2_MEMORY_KIB',
+    'DIRAC_LOST_PASSKEY_LINK_OPEN_ARGON2_TIME_COST',
+    'DIRAC_LOST_PASSKEY_LINK_OPEN_ARGON2_PARALLELISM',
+    'DIRAC_LOST_PASSKEY_ROOT_SECRET',
+    'DIRAC_LOST_PASSKEY_ROOT_SECRET_VERSION',
+    'DIRAC_LOST_PASSKEY_DB_PEPPER',
+    'DIRAC_RECOVERY_SERVER1_URL',
+    'DIRAC_RECOVERY_HPKE_PRIVATE_KEY',
+    'DIRAC_RECOVERY_HPKE_KEY_ID',
+    'DIRAC_RECOVERY_HPKE_PEPPER',
+    'DIRAC_RECOVERY_HPKE_PEPPER_KEY_ID',
+    'DIRAC_RECOVERY_HPKE_ARGON2_MEMORY_KIB',
+    'DIRAC_RECOVERY_HPKE_ARGON2_TIME_COST',
+    'DIRAC_LOST_PASSKEY_ED25519_PRIVATE_KEY',
+    'DIRAC_LOST_PASSKEY_ED25519_PRIVATE_KEY_PEM',
+    'DIRAC_LOST_PASSKEY_ED25519_PUBLIC_KEY_PEM',
+    'DIRAC_LOST_PASSKEY_ED25519_PUBLIC_KEY_DER_B64',
+    'DIRAC_RECOVERY_MLKEM1024_PRIVATE_KEY_PEM',
+    'DIRAC_RECOVERY_MLKEM1024_PRIVATE_KEY_DER_B64',
+    'DIRAC_RECOVERY_MLKEM1024_PUBLIC_KEY_PEM',
+    'DIRAC_RECOVERY_MLKEM1024_PUBLIC_KEY_DER_B64',
+    'DIRAC_RECOVERY_MLKEM1024_KEY_ID',
+    'DIRAC_RECOVERY_MLDSA87_PRIVATE_KEY_PEM',
+    'DIRAC_RECOVERY_MLDSA87_PRIVATE_KEY_DER_B64',
+    'DIRAC_RECOVERY_MLDSA87_PUBLIC_KEY_PEM',
+    'DIRAC_RECOVERY_MLDSA87_PUBLIC_KEY_DER_B64',
+    'DIRAC_RECOVERY_MLDSA87_KEY_ID',
+    'DIRAC_RECOVERY_FIPS_RUNTIME_REQUIRED',
+    'DIRAC_LOST_PASSKEY_QUEUE_DISABLED',
+    'DIRAC_LOST_PASSKEY_QUEUE_LOCK_TTL_SECONDS',
+    'DIRAC_LOST_PASSKEY_QUEUE_MAX_WAIT_SECONDS',
+    'DIRAC_LOST_PASSKEY_QUEUE_POLL_MS'
   ];
   const diagnostics = {
     role: 'server1_main_recovery_caller',
@@ -6194,9 +6227,9 @@ function customerSecurityLostPasskeyCanonical(value) {
 // Recovery-only application-layer transport. TLS remains mandatory; this
 // envelope prevents plaintext recovery material from appearing on the
 // Server 1 -> Server 2 wire even if an intermediary terminates TLS.
-const DIRAC_RECOVERY_WORKER_TRANSPORT_VERSION_V190 = 'dirac-recovery-worker-hybrid-v190';
+const DIRAC_RECOVERY_WORKER_TRANSPORT_VERSION_V190 = 'dirac-recovery-worker-hybrid-v191';
 const DIRAC_RECOVERY_WORKER_TRANSPORT_SUITE_V190 = 'X25519+ML-KEM-1024+HKDF-SHA512+AES-256-GCM';
-const DIRAC_RECOVERY_WORKER_RESPONSE_VERSION_V190 = 'dirac-recovery-worker-response-v190';
+const DIRAC_RECOVERY_WORKER_RESPONSE_VERSION_V190 = 'dirac-recovery-worker-response-v191';
 const DIRAC_RECOVERY_WORKER_TRANSPORT_TTL_MS_V190 = 120000;
 
 function customerSecurityRecoveryWorkerTransportFailV190(code) {
@@ -6266,8 +6299,7 @@ function customerSecurityRecoveryWorkerTransportAadV190(envelope) {
     x25519_ephemeral_public_key_b64url: String(envelope.x25519_ephemeral_public_key_b64url || ''),
     mlkem_ciphertext_b64url: String(envelope.mlkem_ciphertext_b64url || ''),
     hkdf_salt_b64url: String(envelope.hkdf_salt_b64url || ''),
-    aead_nonce_b64url: String(envelope.aead_nonce_b64url || ''),
-    plaintext_sha512_b64url: String(envelope.plaintext_sha512_b64url || '')
+    aead_nonce_b64url: String(envelope.aead_nonce_b64url || '')
   };
 }
 
@@ -6293,7 +6325,6 @@ function customerSecurityRecoveryWorkerSealV190(innerPayload, caller, timestampT
   const salt = crypto.randomBytes(64);
   const aeadNonce = crypto.randomBytes(12);
   const plaintext = Buffer.from(customerSecurityLostPasskeyCanonical(innerPayload), 'utf8');
-  const plaintextHash = crypto.createHash('sha512').update(plaintext).digest('base64url');
   const envelope = {
     action: DIRAC_RECOVERY_WORKER_ACTION,
     worker_action: String(innerPayload && innerPayload.worker_action || ''),
@@ -6307,8 +6338,7 @@ function customerSecurityRecoveryWorkerSealV190(innerPayload, caller, timestampT
     x25519_ephemeral_public_key_b64url: ephemeralDer.toString('base64url'),
     mlkem_ciphertext_b64url: pq.ciphertext.toString('base64url'),
     hkdf_salt_b64url: salt.toString('base64url'),
-    aead_nonce_b64url: aeadNonce.toString('base64url'),
-    plaintext_sha512_b64url: plaintextHash
+    aead_nonce_b64url: aeadNonce.toString('base64url')
   };
   const aad = Buffer.from(customerSecurityLostPasskeyCanonical(customerSecurityRecoveryWorkerTransportAadV190(envelope)), 'utf8');
   const transcriptHash = crypto.createHash('sha512').update(aad).digest();
@@ -6355,14 +6385,13 @@ function customerSecurityRecoveryWorkerSealV190(innerPayload, caller, timestampT
   }
 }
 
-function customerSecurityRecoveryWorkerResponseAadV190(context, status, plaintextHash) {
+function customerSecurityRecoveryWorkerResponseAadV190(context, status) {
   return {
     version: DIRAC_RECOVERY_WORKER_RESPONSE_VERSION_V190,
     request_nonce: String(context && context.requestNonce || ''),
     worker_action: String(context && context.workerAction || ''),
     caller_id: String(context && context.caller || ''),
-    status: Number(status),
-    plaintext_sha512_b64url: String(plaintextHash || '')
+    status: Number(status)
   };
 }
 
@@ -6379,7 +6408,7 @@ function customerSecurityRecoveryWorkerOpenResponseV190(data, context, status) {
   if (outer.ok !== true || outer.transport_encrypted !== true || !response || response.version !== DIRAC_RECOVERY_WORKER_RESPONSE_VERSION_V190) {
     throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_ENCRYPTED_RESPONSE_REQUIRED');
   }
-  const expectedKeys = ['auth_tag_b64url', 'caller_id', 'ciphertext_b64url', 'nonce_b64url', 'plaintext_sha512_b64url', 'request_nonce', 'status', 'version', 'worker_action'];
+  const expectedKeys = ['auth_tag_b64url', 'caller_id', 'ciphertext_b64url', 'nonce_b64url', 'request_nonce', 'status', 'version', 'worker_action'];
   const actualKeys = Object.keys(response).sort();
   if (actualKeys.length !== expectedKeys.length || actualKeys.some((key, index) => key !== expectedKeys[index])) {
     throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_RESPONSE_FIELDS_INVALID');
@@ -6393,20 +6422,13 @@ function customerSecurityRecoveryWorkerOpenResponseV190(data, context, status) {
   const nonce = customerSecurityRecoveryWorkerDecodeB64uV190(response.nonce_b64url, 12, 128);
   const ciphertext = customerSecurityRecoveryWorkerDecodeB64uV190(response.ciphertext_b64url, null, 128 * 1024);
   const tag = customerSecurityRecoveryWorkerDecodeB64uV190(response.auth_tag_b64url, 16, 128);
-  const expectedHash = customerSecurityRecoveryWorkerDecodeB64uV190(response.plaintext_sha512_b64url, 64, 128);
-  const aad = Buffer.from(customerSecurityLostPasskeyCanonical(customerSecurityRecoveryWorkerResponseAadV190(context, status, response.plaintext_sha512_b64url)), 'utf8');
+  const aad = Buffer.from(customerSecurityLostPasskeyCanonical(customerSecurityRecoveryWorkerResponseAadV190(context, status)), 'utf8');
   let plaintext;
   try {
     const decipher = crypto.createDecipheriv('aes-256-gcm', context.responseKey, nonce, { authTagLength: 16 });
     decipher.setAAD(aad, { plaintextLength: ciphertext.length });
     decipher.setAuthTag(tag);
     plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
-    const realHash = crypto.createHash('sha512').update(plaintext).digest();
-    if (!crypto.timingSafeEqual(realHash, expectedHash)) {
-      realHash.fill(0);
-      throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_RESPONSE_HASH_INVALID');
-    }
-    realHash.fill(0);
     const text = new TextDecoder('utf-8', { fatal: true }).decode(plaintext);
     const parsed = JSON.parse(text);
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || customerSecurityLostPasskeyCanonical(parsed) !== text) {
@@ -6420,7 +6442,6 @@ function customerSecurityRecoveryWorkerOpenResponseV190(data, context, status) {
     nonce.fill(0);
     ciphertext.fill(0);
     tag.fill(0);
-    expectedHash.fill(0);
     aad.fill(0);
     if (plaintext) plaintext.fill(0);
   }
@@ -6428,7 +6449,7 @@ function customerSecurityRecoveryWorkerOpenResponseV190(data, context, status) {
 
 async function customerSecurityLostPasskeyArgon2Raw(input, salt, hashLength) {
   const argon2 = customerSecurityGetArgon2();
-  const memoryCost = 1024000;
+  const memoryCost = 1048576;
   const timeCost = 4;
   return Buffer.from(await argon2.hash(input, {
     type: argon2.argon2id,
@@ -6783,7 +6804,7 @@ async function customerSecurityBuildLostPasskeyFile(input) {
     created_at: input.createdAt,
     expires_at: input.expiresAt,
     kdf_params: {
-      memory_cost_kib: 1024000,
+      memory_cost_kib: 1048576,
       time_cost: 4,
       parallelism: 4,
       hash_length: 32
@@ -15680,7 +15701,7 @@ function diracUltraRedactPayload(payload, depth = 0, parentKey = '') {
     // yang memang WAJIB sampai ke browser. Jangan dianggap JWT secret, karena
     // kalau diredact browser mengirim token palsu dan muncul "Challenge Passkey tidak valid".
     if (diracUltraIsSafeChallengeResponseKey(parent)) return payload;
-    if (parent === 'version' && payload === 'dirac-recovery-hpke-proof-response-v190') return payload;
+    if (parent === 'version' && payload === 'dirac-recovery-hpke-proof-response-v191') return payload;
     return diracUltraRedactString(payload);
   }
 
@@ -15751,7 +15772,6 @@ function diracUltraPreserveRecoveryHpkeProofResponseV191(payload) {
     'auth_tag_b64url',
     'ciphertext_b64url',
     'nonce_b64url',
-    'plaintext_sha512_b64url',
     'proof_nonce',
     'request_id',
     'status',
@@ -15767,16 +15787,14 @@ function diracUltraPreserveRecoveryHpkeProofResponseV191(payload) {
   const nonceB64url = String(payload.nonce_b64url || '');
   const ciphertextB64url = String(payload.ciphertext_b64url || '');
   const authTagB64url = String(payload.auth_tag_b64url || '');
-  const plaintextSha512B64url = String(payload.plaintext_sha512_b64url || '');
 
-  if (version !== 'dirac-recovery-hpke-proof-response-v190') return null;
+  if (version !== 'dirac-recovery-hpke-proof-response-v191') return null;
   if (!Number.isSafeInteger(status) || status < 100 || status > 599) return null;
   if (!/^[A-Za-z0-9_-]{16,120}$/.test(requestId)) return null;
   if (!/^[A-Za-z0-9_-]{32,120}$/.test(proofNonce)) return null;
   if (!diracUltraCanonicalBase64UrlV191(nonceB64url, 12, 12)) return null;
   if (!diracUltraCanonicalBase64UrlV191(ciphertextB64url, 1, 128 * 1024)) return null;
   if (!diracUltraCanonicalBase64UrlV191(authTagB64url, 16, 16)) return null;
-  if (!diracUltraCanonicalBase64UrlV191(plaintextSha512B64url, 64, 64)) return null;
 
   return {
     version,
@@ -15785,8 +15803,7 @@ function diracUltraPreserveRecoveryHpkeProofResponseV191(payload) {
     proof_nonce: proofNonce,
     nonce_b64url: nonceB64url,
     ciphertext_b64url: ciphertextB64url,
-    auth_tag_b64url: authTagB64url,
-    plaintext_sha512_b64url: plaintextSha512B64url
+    auth_tag_b64url: authTagB64url
   };
 }
 
@@ -26860,7 +26877,20 @@ function diracCentralServer1RecoveryEnvPartitionGuardV190(action) {
     'DIRAC_RECOVERY_MLKEM1024_PRIVATE_KEY_PEM',
     'DIRAC_RECOVERY_MLKEM1024_PRIVATE_KEY_DER_B64',
     'DIRAC_RECOVERY_MLDSA87_PRIVATE_KEY_PEM',
-    'DIRAC_RECOVERY_MLDSA87_PRIVATE_KEY_DER_B64'
+    'DIRAC_RECOVERY_MLDSA87_PRIVATE_KEY_DER_B64',
+    'DIRAC_LOST_PASSKEY_ED25519_PUBLIC_KEY_PEM',
+    'DIRAC_LOST_PASSKEY_ED25519_PUBLIC_KEY_DER_B64',
+    'DIRAC_RECOVERY_MLKEM1024_PUBLIC_KEY_PEM',
+    'DIRAC_RECOVERY_MLKEM1024_PUBLIC_KEY_DER_B64',
+    'DIRAC_RECOVERY_MLKEM1024_KEY_ID',
+    'DIRAC_RECOVERY_MLDSA87_PUBLIC_KEY_PEM',
+    'DIRAC_RECOVERY_MLDSA87_PUBLIC_KEY_DER_B64',
+    'DIRAC_RECOVERY_MLDSA87_KEY_ID',
+    'DIRAC_RECOVERY_FIPS_RUNTIME_REQUIRED',
+    'DIRAC_LOST_PASSKEY_QUEUE_DISABLED',
+    'DIRAC_LOST_PASSKEY_QUEUE_LOCK_TTL_SECONDS',
+    'DIRAC_LOST_PASSKEY_QUEUE_MAX_WAIT_SECONDS',
+    'DIRAC_LOST_PASSKEY_QUEUE_POLL_MS'
   ];
   const present = (name) => Boolean(String(process.env[name] || '').trim());
   if (diracCentralIsProductionV146() && role !== 'vercel1') return { ok: false, reason: 'vercel1_deployment_role_required' };
@@ -29214,7 +29244,7 @@ function diracRecoveryHpkeProofSignatureV159(caller, timestampText, body) {
   }
 }
 
-const DIRAC_RECOVERY_HPKE_PROOF_RESPONSE_VERSION_V190 = 'dirac-recovery-hpke-proof-response-v190';
+const DIRAC_RECOVERY_HPKE_PROOF_RESPONSE_VERSION_V190 = 'dirac-recovery-hpke-proof-response-v191';
 
 function diracRecoveryHpkeProofResponseKeyV190(body) {
   const secretText = customerSecurityRecoveryWorkerSecret();
@@ -29235,22 +29265,20 @@ function diracRecoveryHpkeProofResponseKeyV190(body) {
   }
 }
 
-function diracRecoveryHpkeProofResponseAadV190(body, status, plaintextHash) {
+function diracRecoveryHpkeProofResponseAadV190(body, status) {
   return {
     version: DIRAC_RECOVERY_HPKE_PROOF_RESPONSE_VERSION_V190,
     status: Number(status),
     request_id: String(body && body.request_id || ''),
-    proof_nonce: String(body && body.proof_nonce || ''),
-    plaintext_sha512_b64url: String(plaintextHash || '')
+    proof_nonce: String(body && body.proof_nonce || '')
   };
 }
 
 function diracRecoveryHpkeEncryptProofResponseV190(body, status, payload) {
   const key = diracRecoveryHpkeProofResponseKeyV190(body);
   const plaintext = Buffer.from(customerSecurityLostPasskeyCanonical(payload), 'utf8');
-  const plaintextHash = crypto.createHash('sha512').update(plaintext).digest('base64url');
   const nonce = crypto.randomBytes(12);
-  const aadObject = diracRecoveryHpkeProofResponseAadV190(body, status, plaintextHash);
+  const aadObject = diracRecoveryHpkeProofResponseAadV190(body, status);
   const aad = Buffer.from(customerSecurityLostPasskeyCanonical(aadObject), 'utf8');
   try {
     const cipher = crypto.createCipheriv('aes-256-gcm', key, nonce, { authTagLength: 16 });
@@ -29264,11 +29292,10 @@ function diracRecoveryHpkeEncryptProofResponseV190(body, status, payload) {
       proof_nonce: String(body && body.proof_nonce || ''),
       nonce_b64url: nonce.toString('base64url'),
       ciphertext_b64url: ciphertext.toString('base64url'),
-      auth_tag_b64url: tag.toString('base64url'),
-      plaintext_sha512_b64url: plaintextHash
+      auth_tag_b64url: tag.toString('base64url')
     };
     Object.defineProperty(response, 'version', {
-      value: 'dirac-recovery-hpke-proof-response-v190',
+      value: 'dirac-recovery-hpke-proof-response-v191',
       enumerable: true,
       writable: false,
       configurable: false
@@ -29556,4 +29583,12 @@ async function diracRecoveryHpkeCommitProofV159(req, res) {
   } finally {
     if (!requestCommitted) diracRecoveryHpkeReleaseProofV159(claim);
   }
+}
+
+const __diracFinalCentralGuardExportInvariantV193 = true;
+// Final fail-closed invariant: every exported action must enter the Central Guard wrapper.
+if (typeof module === 'undefined'
+    || typeof module.exports !== 'function'
+    || module.exports.__diracCentralSecurityGuardV146 !== true) {
+  throw new Error('DIRAC_FINAL_CENTRAL_GUARD_EXPORT_REQUIRED');
 }
