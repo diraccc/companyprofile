@@ -6135,10 +6135,11 @@ function customerSecurityRecoveryWorkerAllowedCaller() {
 }
 
 function customerSecurityRecoveryWorkerLocalDeploymentAllowed() {
-  return diracCentralEnvTrueV150('DIRAC_CENTRAL_VERCEL2_ACTIONS_ENABLED')
-    || diracCentralEnvTrueV150('DIRAC_VERCEL2_ACTIONS_ENABLED')
-    || diracCentralEnvValueV150('DIRAC_CENTRAL_DEPLOYMENT_ROLE') === 'vercel2'
-    || diracCentralEnvValueV150('DIRAC_DEPLOYMENT_ROLE') === 'vercel2';
+  const role = diracCentralEnvValueV150('DIRAC_CENTRAL_DEPLOYMENT_ROLE')
+    || diracCentralEnvValueV150('DIRAC_DEPLOYMENT_ROLE');
+  const enabled = diracCentralEnvTrueV150('DIRAC_CENTRAL_VERCEL2_ACTIONS_ENABLED')
+    || diracCentralEnvTrueV150('DIRAC_VERCEL2_ACTIONS_ENABLED');
+  return role === 'vercel2' && enabled;
 }
 
 async function customerSecurityBlockLostPasskeyLocalProcessingOnServer1(req, res, action, reason) {
@@ -27296,6 +27297,10 @@ function diracCentralServer1RecoveryEnvPartitionGuardV190(action) {
       ? { ok: true }
       : { ok: false, reason: 'vercel2_non_worker_action_forbidden' };
   }
+
+  const recoveryPartitionAction = vercel2OnlyAction
+    || /^(customer_security_recovery_codes_generate|customer_security_recovery_code_verify|customer_security_recovery_hpke_submit)$/.test(cleanAction);
+  if (!recoveryPartitionAction) return { ok: true };
 
   if (diracCentralIsProductionV146() && role !== 'vercel1') return { ok: false, reason: 'vercel1_deployment_role_required' };
   if (vercel2OnlyAction) return { ok: false, reason: 'vercel2_action_forbidden_on_vercel1' };
