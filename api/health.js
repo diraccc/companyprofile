@@ -26509,14 +26509,34 @@ function diracCentralBindOwnerScopedSessionRowsV197(ctx, path, options = {}, res
   try {
     if (!ctx || !ctx.req || ctx.req.__diracCentralSecurityGuardPassedV146 !== true) return false;
     if (!ctx.action || !options || options.auth !== 'service') return false;
-    if (String(options.method || 'GET').toUpperCase() !== 'GET') return false;
-    if (!result || result.ok !== true || !Array.isArray(result.data) || result.data.length > 100) return false;
-    if (options.body !== undefined && options.body !== null) return false;
+    if (!result || result.ok !== true) return false;
 
+    const method = String(options.method || 'GET').toUpperCase();
     const table = diracCentralExtractRestTableV146(path);
     const rawPath = String(path || '');
     const queryIndex = rawPath.indexOf('?');
-    if (queryIndex <= 0 || rawPath.slice(0, queryIndex) !== '/rest/v1/' + table) return false;
+    if (queryIndex < 0) {
+      if (rawPath !== '/rest/v1/' + table) return false;
+    } else if (queryIndex === 0 || rawPath.slice(0, queryIndex) !== '/rest/v1/' + table) {
+      return false;
+    }
+
+    // A transaction ID may be bound only after the exact owner/order-bound
+    // create_payment insert contract succeeds and Supabase returns one UUID.
+    if (String(ctx.action || '').trim().toLowerCase() === 'create_payment'
+        && table === 'payment_transactions' && method === 'POST') {
+      if (!diracCentralIsCreatePaymentTransactionServiceRoleV199(ctx, table, path, options, method)) return false;
+      const rows = Array.isArray(result.data) ? result.data : [result.data];
+      if (rows.length !== 1) return false;
+      const transactionId = String(rows[0] && rows[0].id || '').trim();
+      if (!diracCentralLooksLikeUuidV146(transactionId)) return false;
+      return diracCentralAddOwnerBoundObjectValuesV198(ctx, [transactionId]);
+    }
+
+    if (method !== 'GET') return false;
+    if (!Array.isArray(result.data) || result.data.length > 100) return false;
+    if (options.body !== undefined && options.body !== null) return false;
+    if (queryIndex <= 0) return false;
     const params = new URLSearchParams(rawPath.slice(queryIndex + 1));
 
     if (table === 'security_customer_sessions') {
@@ -26537,7 +26557,116 @@ function diracCentralBindOwnerScopedSessionRowsV197(ctx, path, options = {}, res
       return diracCentralAddOwnerBoundObjectValuesV198(ctx, rowIds);
     }
 
-    if (String(ctx.action || '').trim().toLowerCase() !== 'my_orders') return false;
+    const action = String(ctx.action || '').trim().toLowerCase();
+    if (action === 'create_payment') {
+      if (String(ctx.method || '').trim().toUpperCase() !== 'POST') return false;
+      if (table !== 'orders' && table !== 'domain_orders') return false;
+
+      const ownerCustomerId = String(ctx.__diracCentralCheckoutOwnerCustomerIdV196 || '').trim();
+      if (!diracCentralLooksLikeUuidV146(ownerCustomerId)) return false;
+      if (params.getAll('customer_id').length !== 1) return false;
+      const customerFilter = String(params.get('customer_id') || '');
+      if (customerFilter !== 'eq.' + ownerCustomerId) return false;
+
+      const body = ctx.body && typeof ctx.body === 'object' ? ctx.body : {};
+      const query = ctx.req && ctx.req.query && typeof ctx.req.query === 'object' ? ctx.req.query : {};
+      const requested = String(
+        body.order_id || body.orderId || body.order_code || body.orderCode || body.invoice_code || body.invoiceCode || body.id ||
+        query.order_id || query.orderId || query.order_code || query.orderCode || query.invoice_code || query.invoiceCode || query.id || ''
+      ).trim().replace(/[\u0000-\u001f\u007f]/g, '').slice(0, 140);
+      if (!requested) return false;
+
+      if (table === 'orders') {
+        const allowedKeys = new Set(['select', 'customer_id', 'or', 'limit']);
+        if (Array.from(params.keys()).length !== 4
+            || Array.from(params.keys()).some((key) => !allowedKeys.has(String(key || '').toLowerCase()))) return false;
+        if (Array.from(allowedKeys).some((key) => params.getAll(key).length !== 1)) return false;
+        const expectedSelect = 'id,order_id,customer_id,customer_name,customer_email,customer_phone,service_type,subtotal,total,payment_method,payment_status,order_status,created_at';
+        if (params.get('select') !== expectedSelect || params.get('limit') !== '1') return false;
+        if (!/^\((?:id|order_id)\.eq\.[^,()]+(?:,(?:id|order_id)\.eq\.[^,()]+)?\)$/.test(String(params.get('or') || ''))) return false;
+        if (result.data.length !== 1) return false;
+        const row = result.data[0];
+        const rowId = String(row && row.id || '').trim();
+        const rowOrderCode = String(row && row.order_id || '').trim();
+        const rowCustomerId = String(row && row.customer_id || '').trim();
+        if (!diracCentralLooksLikeUuidV146(rowId) || rowCustomerId !== ownerCustomerId) return false;
+        if (requested !== rowId && requested !== rowOrderCode) return false;
+        const expectedAmount = typeof lockedPaymentMoney === 'function'
+          ? lockedPaymentMoney(row && (row.total ?? row.subtotal ?? 0))
+          : Number(row && (row.total ?? row.subtotal ?? 0));
+        const expectedServiceType = typeof lockedPaymentNormalizeServiceType === 'function'
+          ? lockedPaymentNormalizeServiceType(row && row.service_type || 'order')
+          : String(row && row.service_type || 'order').trim().toLowerCase();
+        const expectedOrderCode = typeof lockedPaymentCleanText === 'function'
+          ? lockedPaymentCleanText(rowOrderCode || rowId, 100)
+          : String(rowOrderCode || rowId).trim().slice(0, 100);
+        if (!Number.isFinite(expectedAmount) || expectedAmount <= 0 || !expectedServiceType || !expectedOrderCode) return false;
+        ctx.__diracCentralCreatePaymentExpectedV199 = {
+          kind: 'regular', customerId: ownerCustomerId, objectId: rowId,
+          amount: expectedAmount, serviceType: expectedServiceType,
+          orderCode: expectedOrderCode, amountSource: 'orders.total.database'
+        };
+        return diracCentralAddOwnerBoundObjectValuesV198(ctx, [rowId]);
+      }
+
+      const expectedSelect = 'id,customer_id,customer_name,customer_whatsapp,customer_email,owner_email,domain_name,total_price,currency,order_status,status,payment_status,created_at';
+      if (params.getAll('select').length !== 1 || params.get('select') !== expectedSelect) return false;
+      const candidate = requested.replace(/^DOM-/i, '');
+
+      if (params.has('or')) {
+        const allowedKeys = new Set(['select', 'customer_id', 'or', 'limit']);
+        if (Array.from(params.keys()).length !== 4
+            || Array.from(params.keys()).some((key) => !allowedKeys.has(String(key || '').toLowerCase()))) return false;
+        if (Array.from(allowedKeys).some((key) => params.getAll(key).length !== 1)) return false;
+        if (params.get('limit') !== '1' || !/^\(id\.eq\.[^,()]+(?:,id\.eq\.[^,()]+)?\)$/.test(String(params.get('or') || ''))) return false;
+        if (result.data.length !== 1) return false;
+        const row = result.data[0];
+        const rowId = String(row && row.id || '').trim();
+        if (!diracCentralLooksLikeUuidV146(rowId) || String(row && row.customer_id || '').trim() !== ownerCustomerId) return false;
+        if (rowId !== requested && rowId !== candidate) return false;
+        const expectedAmount = typeof lockedPaymentMoney === 'function'
+          ? lockedPaymentMoney(row && row.total_price || 0)
+          : Number(row && row.total_price || 0);
+        if (!Number.isFinite(expectedAmount) || expectedAmount <= 0) return false;
+        ctx.__diracCentralCreatePaymentExpectedV199 = {
+          kind: 'domain', customerId: ownerCustomerId, objectId: rowId,
+          amount: expectedAmount, serviceType: 'domain',
+          orderCode: 'DOM-' + rowId.slice(0, 8).toUpperCase(),
+          amountSource: 'domain_orders.total_price.database'
+        };
+        return diracCentralAddOwnerBoundObjectValuesV198(ctx, [rowId]);
+      }
+
+      const allowedKeys = new Set(['select', 'customer_id', 'order', 'limit']);
+      if (Array.from(params.keys()).length !== 4
+          || Array.from(params.keys()).some((key) => !allowedKeys.has(String(key || '').toLowerCase()))) return false;
+      if (Array.from(allowedKeys).some((key) => params.getAll(key).length !== 1)) return false;
+      if (params.get('order') !== 'created_at.desc' || params.get('limit') !== '100') return false;
+      if (!/^DOM-[A-F0-9]{8}$/i.test(requested)) return false;
+      const prefix = requested.slice(4).toLowerCase();
+      const matching = result.data.filter((row) => {
+        const rowId = String(row && row.id || '').trim();
+        return diracCentralLooksLikeUuidV146(rowId)
+          && String(row && row.customer_id || '').trim() === ownerCustomerId
+          && rowId.toLowerCase().startsWith(prefix);
+      });
+      if (matching.length !== 1) return false;
+      const matchedRow = matching[0];
+      const matchedId = String(matchedRow && matchedRow.id || '').trim();
+      const expectedAmount = typeof lockedPaymentMoney === 'function'
+        ? lockedPaymentMoney(matchedRow && matchedRow.total_price || 0)
+        : Number(matchedRow && matchedRow.total_price || 0);
+      if (!Number.isFinite(expectedAmount) || expectedAmount <= 0) return false;
+      ctx.__diracCentralCreatePaymentExpectedV199 = {
+        kind: 'domain', customerId: ownerCustomerId, objectId: matchedId,
+        amount: expectedAmount, serviceType: 'domain',
+        orderCode: 'DOM-' + matchedId.slice(0, 8).toUpperCase(),
+        amountSource: 'domain_orders.total_price.database'
+      };
+      return diracCentralAddOwnerBoundObjectValuesV198(ctx, [matchedId]);
+    }
+
+    if (action !== 'my_orders') return false;
     if (String(ctx.method || '').trim().toUpperCase() !== 'GET') return false;
     if (table !== 'orders' && table !== 'domain_orders') return false;
     if (result.data.length > 80) return false;
@@ -28022,7 +28151,7 @@ async function diracCentralIdorBolaGuardV146(req, ctx) {
     if (boot && boot.ok) owner = await diracCentralResolveOwnerV146(req);
   }
   if (!owner || !owner.ok || !owner.customerIds || !owner.customerIds.length) return { ok: false, reason: 'idor_owner_unavailable' };
-  if (ctx && ctx.action === 'checkout_order' && owner.customerIds.length === 1) {
+  if (ctx && (ctx.action === 'checkout_order' || ctx.action === 'create_payment') && owner.customerIds.length === 1) {
     ctx.__diracCentralCheckoutOwnerCustomerIdV196 = String(owner.customerIds[0] || '').trim();
     ctx.__diracCentralCheckoutOwnerAuthUserIdV196 = String(owner.authUserId || '').trim();
   }
@@ -28221,6 +28350,7 @@ async function diracCentralInspectServiceRoleAccessV146(path, options = {}) {
   if (diracCentralIsCheckoutOwnerBootstrapServiceRoleV146(ctx, table, path, options, method)) return { ok: true, guarded: 'checkout_owner_bootstrap_service_role' };
   if (diracCentralIsCheckoutCustomerOwnerReadServiceRoleV196(ctx, table, path, options, method)) return { ok: true, guarded: 'checkout_customer_owner_read_service_role_v196' };
   if (diracCentralIsCheckoutOrderCreateServiceRoleV146(ctx, table, path, options, method)) return { ok: true, guarded: 'checkout_order_create_service_role' };
+  if (diracCentralIsCreatePaymentTransactionServiceRoleV199(ctx, table, path, options, method)) return { ok: true, guarded: 'create_payment_transaction_service_role_v199' };
   if (diracCentralIsPasskeyServiceRoleV146(ctx, table, path, options, method)) return { ok: true, guarded: 'passkey_owner_scoped_service_role' };
   const hasOwnerScope = diracCentralPathHasOwnerScopeV146(path, options.body);
   const hasObjectScope = diracCentralPathHasObjectScopeV146(path, options.body);
@@ -28446,7 +28576,7 @@ function diracCentralIsCheckoutOwnerBootstrapServiceRoleV146(ctx, table, path, o
 }
 
 function diracCentralIsCheckoutCustomerOwnerReadServiceRoleV196(ctx, table, path, options = {}, method) {
-  if (!ctx || ctx.action !== 'checkout_order' || !ctx.req || ctx.req.__diracCentralSecurityGuardPassedV146 !== true) return false;
+  if (!ctx || (ctx.action !== 'checkout_order' && ctx.action !== 'create_payment') || !ctx.req || ctx.req.__diracCentralSecurityGuardPassedV146 !== true) return false;
   if (String(table || '').toLowerCase() !== 'customers' || String(method || options.method || 'GET').toUpperCase() !== 'GET') return false;
   if (options && options.body !== undefined && options.body !== null) return false;
 
@@ -28489,6 +28619,116 @@ function diracCentralIsCheckoutOrderCreateServiceRoleV146(ctx, table, path, opti
     return diracCentralCheckoutOrderItemRowsSafeV152(options.body);
   }
   return false;
+}
+
+
+// PATCH v199: create_payment may create and update only the payment transaction
+// generated inside the same fully guarded request. This is not a table/action
+// whitelist: customer, order and transaction identifiers must already be bound.
+function diracCentralIsCreatePaymentTransactionServiceRoleV199(ctx, table, path, options = {}, method) {
+  if (!ctx || ctx.action !== 'create_payment' || ctx.method !== 'POST') return false;
+  if (!ctx.req || ctx.req.__diracCentralSecurityGuardPassedV146 !== true) return false;
+  if (String(table || '').toLowerCase() !== 'payment_transactions') return false;
+
+  const cleanMethod = String(method || options.method || 'GET').toUpperCase();
+  const rawPath = String(path || '');
+  const boundCustomerId = String(ctx.__diracCentralCheckoutOwnerCustomerIdV196 || '').trim();
+  const boundObjects = ctx.__diracCentralOwnerBoundObjectValuesV194;
+  const expected = ctx.__diracCentralCreatePaymentExpectedV199;
+  if (!diracCentralLooksLikeUuidV146(boundCustomerId) || !(boundObjects instanceof Set)) return false;
+
+  if (cleanMethod === 'POST') {
+    if (rawPath !== '/rest/v1/payment_transactions') return false;
+    if (String(options.prefer || '') !== 'return=representation') return false;
+    const rows = Array.isArray(options.body) ? options.body : [options.body];
+    if (rows.length !== 1) return false;
+    const row = rows[0];
+    if (!row || typeof row !== 'object' || Array.isArray(row)) return false;
+    const allowed = new Set([
+      'customer_id', 'service_type', 'gateway_name', 'gateway_reference',
+      'payment_status', 'amount', 'currency', 'metadata', 'order_id', 'domain_order_id'
+    ]);
+    const keys = Object.keys(row);
+    if (!keys.length || keys.some((key) => !allowed.has(String(key || '').toLowerCase()))) return false;
+
+    const customerId = String(row.customer_id || '').trim();
+    const orderId = String(row.order_id || '').trim();
+    const domainOrderId = String(row.domain_order_id || '').trim();
+    const objectId = orderId || domainOrderId;
+    if (!expected || typeof expected !== 'object') return false;
+    if (customerId !== boundCustomerId || customerId !== String(expected.customerId || '')) return false;
+    if (Boolean(orderId) === Boolean(domainOrderId)) return false;
+    if (!diracCentralLooksLikeUuidV146(objectId) || !boundObjects.has(objectId) || objectId !== String(expected.objectId || '')) return false;
+    if (String(expected.kind || '') === 'regular' ? !orderId || !!domainOrderId : !domainOrderId || !!orderId) return false;
+    if (String(row.service_type || '').trim() !== String(expected.serviceType || '')) return false;
+    if (String(row.gateway_name || '').trim().toLowerCase() !== 'midtrans') return false;
+    const gatewayReference = String(row.gateway_reference || '').trim();
+    const expectedReferencePrefix = String(expected.kind || '') === 'domain' ? 'PAY-DOM-' : 'PAY-ORD-';
+    if (!/^[A-Za-z0-9._:@-]{3,120}$/.test(gatewayReference) || !gatewayReference.startsWith(expectedReferencePrefix)) return false;
+    if (String(row.payment_status || '').trim().toLowerCase() !== 'unpaid') return false;
+    if (!Number.isFinite(Number(row.amount)) || Number(row.amount) !== Number(expected.amount)) return false;
+    if (String(row.currency || '').trim().toUpperCase() !== 'IDR') return false;
+    if (!diracCentralCreatePaymentMetadataSafeV199(row.metadata, 'insert')) return false;
+    const metadata = row.metadata || {};
+    if (String(metadata.order_kind || '') !== String(expected.kind || '')) return false;
+    if (String(metadata.order_code || '') !== String(expected.orderCode || '')) return false;
+    if (String(metadata.amount_source || '') !== String(expected.amountSource || '')) return false;
+    if (Number(metadata.item_total) !== Number(expected.amount)) return false;
+    if (metadata.frontend_amount_ignored !== true || metadata.frontend_invoice_storage_trusted !== false) return false;
+    const startedAtMs = Date.parse(String(metadata.create_payment_started_at || ''));
+    if (!Number.isFinite(startedAtMs) || Math.abs(Date.now() - startedAtMs) > 10 * 60 * 1000) return false;
+    return true;
+  }
+
+  if (cleanMethod === 'PATCH') {
+    if (options.body === undefined || options.body === null || Array.isArray(options.body)
+        || typeof options.body !== 'object') return false;
+    const queryIndex = rawPath.indexOf('?');
+    if (queryIndex <= 0 || rawPath.slice(0, queryIndex) !== '/rest/v1/payment_transactions') return false;
+    let params;
+    try { params = new URLSearchParams(rawPath.slice(queryIndex + 1)); } catch (_) { return false; }
+    if (Array.from(params.keys()).length !== 1 || params.getAll('id').length !== 1) return false;
+    const idFilter = String(params.get('id') || '');
+    if (!idFilter.startsWith('eq.')) return false;
+    const transactionId = idFilter.slice(3).trim();
+    if (!diracCentralLooksLikeUuidV146(transactionId) || !boundObjects.has(transactionId)) return false;
+
+    const keys = Object.keys(options.body);
+    if (!keys.length || keys.some((key) => !/^(payment_url|metadata)$/.test(String(key || '').toLowerCase()))) return false;
+    if (!Object.prototype.hasOwnProperty.call(options.body, 'metadata')) return false;
+    if (!diracCentralCreatePaymentMetadataSafeV199(options.body.metadata, 'patch')) return false;
+    if (Object.prototype.hasOwnProperty.call(options.body, 'payment_url')) {
+      let paymentUrl;
+      try { paymentUrl = new URL(String(options.body.payment_url || '')); } catch (_) { return false; }
+      if (paymentUrl.protocol !== 'https:' || !/^(?:app\.)?(?:sandbox\.)?midtrans\.com$/i.test(paymentUrl.hostname)) return false;
+      if (paymentUrl.username || paymentUrl.password || (paymentUrl.port && paymentUrl.port !== '443')) return false;
+    }
+    return true;
+  }
+
+  return false;
+}
+
+function diracCentralCreatePaymentMetadataSafeV199(metadata, phase) {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return false;
+  const keys = Object.keys(metadata);
+  if (keys.length > 24) return false;
+  if (keys.some((key) => /password|authorization|service_role|server_key|private_key|secret|cookie|apikey|api_key/i.test(String(key || '')))) return false;
+  if (String(phase || '') === 'insert') {
+    const allowed = new Set([
+      'order_kind', 'order_code', 'order_status', 'amount_source', 'item_total',
+      'create_payment_started_at', 'frontend_amount_ignored',
+      'frontend_invoice_storage_trusted', 'owner_source'
+    ]);
+    if (keys.some((key) => !allowed.has(String(key || '')))) return false;
+  }
+  try {
+    const encoded = JSON.stringify(metadata);
+    if (!encoded || Buffer.byteLength(encoded, 'utf8') > 128 * 1024) return false;
+  } catch (_) {
+    return false;
+  }
+  return true;
 }
 
 function diracCentralCheckoutOrderRowsSafeV146(body) {
