@@ -26501,10 +26501,10 @@ function diracCentralIsRequestCacheableSupabaseReadV151(path) {
 }
 
 
-// PATCH v197: bind only security_customer_sessions row IDs returned by a
-// successful customer_id-scoped service-role GET in the same guarded request.
-// This preserves the object-scope fail-closed rule while allowing the normal
-// read-then-update session flow to operate on the exact row it just read.
+// PATCH v198: bind only row IDs returned by an owner-scoped service-role GET
+// in the same fully guarded request. Existing session read-then-update remains
+// unchanged. my_orders may additionally bind only orders/domain_orders rows
+// whose returned customer_id matches the already-approved customer_id filter.
 function diracCentralBindOwnerScopedSessionRowsV197(ctx, path, options = {}, result) {
   try {
     if (!ctx || !ctx.req || ctx.req.__diracCentralSecurityGuardPassedV146 !== true) return false;
@@ -26512,38 +26512,80 @@ function diracCentralBindOwnerScopedSessionRowsV197(ctx, path, options = {}, res
     if (String(options.method || 'GET').toUpperCase() !== 'GET') return false;
     if (!result || result.ok !== true || !Array.isArray(result.data) || result.data.length > 100) return false;
     if (options.body !== undefined && options.body !== null) return false;
-    if (diracCentralExtractRestTableV146(path) !== 'security_customer_sessions') return false;
 
+    const table = diracCentralExtractRestTableV146(path);
     const rawPath = String(path || '');
     const queryIndex = rawPath.indexOf('?');
-    if (queryIndex <= 0 || rawPath.slice(0, queryIndex) !== '/rest/v1/security_customer_sessions') return false;
-
+    if (queryIndex <= 0 || rawPath.slice(0, queryIndex) !== '/rest/v1/' + table) return false;
     const params = new URLSearchParams(rawPath.slice(queryIndex + 1));
-    if (params.getAll('customer_id').length !== 1 || params.has('id')) return false;
+
+    if (table === 'security_customer_sessions') {
+      if (params.getAll('customer_id').length !== 1 || params.has('id')) return false;
+      const customerFilter = String(params.get('customer_id') || '');
+      if (!customerFilter.startsWith('eq.')) return false;
+      const customerId = customerFilter.slice(3).trim();
+      if (!diracCentralLooksLikeUuidV146(customerId)) return false;
+
+      const scope = diracCentralExtractServiceRoleScopeIdsV146(path, null);
+      if (scope.customerIds.length !== 1 || scope.customerIds[0] !== customerId) return false;
+      if (scope.authUserIds.length || scope.userIds.length || scope.objectValues.length) return false;
+
+      const rowIds = result.data
+        .map((row) => String(row && row.id || '').trim())
+        .filter((value) => diracCentralLooksLikeUuidV146(value));
+      if (!rowIds.length || rowIds.length !== result.data.length) return false;
+      return diracCentralAddOwnerBoundObjectValuesV198(ctx, rowIds);
+    }
+
+    if (String(ctx.action || '').trim().toLowerCase() !== 'my_orders') return false;
+    if (String(ctx.method || '').trim().toUpperCase() !== 'GET') return false;
+    if (table !== 'orders' && table !== 'domain_orders') return false;
+    if (result.data.length > 80) return false;
+
+    const allowedKeys = new Set(['select', 'customer_id', 'order', 'limit']);
+    if (Array.from(params.keys()).some((key) => !allowedKeys.has(String(key || '').toLowerCase()))) return false;
+    if (params.getAll('select').length !== 1 || params.getAll('customer_id').length !== 1
+      || params.getAll('order').length !== 1 || params.getAll('limit').length !== 1) return false;
+    if (params.get('order') !== 'created_at.desc' || params.get('limit') !== '80') return false;
+
+    const expectedSelect = table === 'orders'
+      ? 'id,order_id,customer_id,customer_name,customer_email,customer_phone,service_type,subtotal,total,payment_method,payment_status,order_status,created_at'
+      : 'id,customer_id,customer_name,customer_whatsapp,customer_email,owner_email,dns_method,target_platform,domain_name,total_price,currency,order_status,status,payment_status,created_at';
+    if (params.get('select') !== expectedSelect) return false;
+
     const customerFilter = String(params.get('customer_id') || '');
-    if (!customerFilter.startsWith('eq.')) return false;
-    const customerId = customerFilter.slice(3).trim();
-    if (!diracCentralLooksLikeUuidV146(customerId)) return false;
-
+    if (!customerFilter.startsWith('in.(') || !customerFilter.endsWith(')')) return false;
     const scope = diracCentralExtractServiceRoleScopeIdsV146(path, null);
-    if (scope.customerIds.length !== 1 || scope.customerIds[0] !== customerId) return false;
+    if (!scope.customerIds.length || scope.customerIds.length > 40) return false;
     if (scope.authUserIds.length || scope.userIds.length || scope.objectValues.length) return false;
+    const approvedCustomers = new Set(scope.customerIds);
 
-    const rowIds = result.data
-      .map((row) => String(row && row.id || '').trim())
-      .filter((value) => diracCentralLooksLikeUuidV146(value));
-    if (!rowIds.length || rowIds.length !== result.data.length) return false;
-
-    const bound = ctx.__diracCentralOwnerBoundObjectValuesV194 instanceof Set
-      ? ctx.__diracCentralOwnerBoundObjectValuesV194
-      : new Set();
-    if (bound.size + rowIds.length > 200) return false;
-    rowIds.forEach((value) => bound.add(value));
-    ctx.__diracCentralOwnerBoundObjectValuesV194 = bound;
-    return true;
+    const rowIds = [];
+    for (const row of result.data) {
+      const rowId = String(row && row.id || '').trim();
+      const rowCustomerId = String(row && row.customer_id || '').trim();
+      if (!diracCentralLooksLikeUuidV146(rowId) || !approvedCustomers.has(rowCustomerId)) return false;
+      rowIds.push(rowId);
+    }
+    if (!rowIds.length) return false;
+    return diracCentralAddOwnerBoundObjectValuesV198(ctx, rowIds);
   } catch (_) {
     return false;
   }
+}
+
+function diracCentralAddOwnerBoundObjectValuesV198(ctx, values) {
+  const cleanValues = Array.from(new Set((values || []).map((value) => String(value || '').trim())
+    .filter((value) => diracCentralLooksLikeUuidV146(value))));
+  if (!ctx || !cleanValues.length) return false;
+  const bound = ctx.__diracCentralOwnerBoundObjectValuesV194 instanceof Set
+    ? ctx.__diracCentralOwnerBoundObjectValuesV194
+    : new Set();
+  const newValues = cleanValues.filter((value) => !bound.has(value));
+  if (bound.size + newValues.length > 200) return false;
+  newValues.forEach((value) => bound.add(value));
+  ctx.__diracCentralOwnerBoundObjectValuesV194 = bound;
+  return true;
 }
 
 function diracCentralCloneSupabaseResultV151(result) {
