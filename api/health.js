@@ -210,15 +210,11 @@ function getAllowedOrigins() {
 function isAdminRequest(req) {
   const secret = String(process.env.AI_ADMIN_SECRET || '');
   const candidate = String(req && req.headers && req.headers['x-dirac-admin'] || '');
-  const expected = Buffer.from(secret, 'utf8');
-  const received = Buffer.from(candidate, 'utf8');
-  try {
-    if (expected.length < 64 || received.length !== expected.length) return false;
-    return crypto.timingSafeEqual(received, expected);
-  } finally {
-    expected.fill(0);
-    received.fill(0);
-  }
+  if (!secret || !candidate) return false;
+  const expected = crypto.createHash('sha512').update(secret, 'utf8').digest();
+  const received = crypto.createHash('sha512').update(candidate, 'utf8').digest();
+  return Buffer.byteLength(candidate, 'utf8') === Buffer.byteLength(secret, 'utf8')
+    && crypto.timingSafeEqual(received, expected);
 }
 
 function normalizeDomainAction(action) {
@@ -836,31 +832,10 @@ function getLoginSecurityIdentity(req, actionName) {
   };
 }
 
-function diracNormalizeTrustedClientIpV204(value) {
-  let clean = String(value || '').split(',')[0].trim();
-  if (!clean) return '';
-  if (/^\[[0-9a-f:]+\](?::\d+)?$/i.test(clean)) clean = clean.slice(1, clean.indexOf(']'));
-  if (/^::ffff:\d{1,3}(?:\.\d{1,3}){3}$/i.test(clean)) clean = clean.slice(7);
-  try {
-    return require('net').isIP(clean) ? clean.toLowerCase() : '';
-  } catch (_) {
-    return '';
-  }
-}
-
 function getLoginSecurityIp(req) {
   const headers = (req && req.headers) || {};
-  const candidates = [
-    headers['x-vercel-forwarded-for'],
-    headers['x-forwarded-for'],
-    headers['x-real-ip'],
-    req && req.socket && req.socket.remoteAddress
-  ];
-  for (const candidate of candidates) {
-    const normalized = diracNormalizeTrustedClientIpV204(candidate);
-    if (normalized) return normalized;
-  }
-  return 'unknown';
+  const forwarded = String(headers['x-forwarded-for'] || '').split(',')[0].trim();
+  return forwarded || String(headers['x-real-ip'] || req.socket && req.socket.remoteAddress || '').trim() || 'unknown';
 }
 
 function maskLoginSecurityIp(ip) {
@@ -6169,6 +6144,19 @@ function customerSecurityRecoveryWorkerSecret() {
   return secret;
 }
 
+// Narrow Vercel Firewall edge-key bridge. This is only an edge-routing
+// credential; the existing signed Central Guard worker authentication remains mandatory.
+function customerSecurityFirewallEdgeKeyV204() {
+  const value = String(process.env.DIRAC_FIREWALL_EDGE_KEY || '').trim();
+  const bytes = Buffer.byteLength(value, 'utf8');
+  if (bytes < 64 || bytes > 512 || /[\r\n\0]/.test(value)) {
+    const error = new Error('DIRAC_FIREWALL_EDGE_KEY_INVALID');
+    error.code = 'DIRAC_FIREWALL_EDGE_KEY_INVALID';
+    throw error;
+  }
+  return value;
+}
+
 function customerSecurityRecoveryWorkerAsciiToken(value) {
   const clean = String(value || '').trim();
   return /^[A-Za-z0-9_.-]{1,80}$/.test(clean) ? clean : '';
@@ -7217,8 +7205,7 @@ async function customerSecuritySendRecoveryEmailViaSmtp(to, fileName, fileBuffer
 
   let socket = null;
   try {
-    const tls = require('tls');
-    socket = tls.connect({ host: config.host, port: config.port, servername: config.host, timeout: 20_000 });
+    socket = await diracCentralConnectSecureSmtpV203(config.host, config.port, 20_000);
     await customerSecuritySmtpCommand(socket, '', 220);
     await customerSecuritySmtpCommand(socket, 'EHLO diracgroup.store', 250);
     const auth = Buffer.from('\u0000' + config.user + '\u0000' + config.pass, 'utf8').toString('base64');
@@ -7383,6 +7370,7 @@ async function customerSecurityGenerateRecoveryCodesViaWorker(req, res, action, 
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        'X-Dirac-Edge-Key': customerSecurityFirewallEdgeKeyV204(),
         'X-Dirac-Worker-Caller': caller,
         'X-Dirac-Worker-Timestamp': timestamp,
         'X-Dirac-Worker-Signature': signature
@@ -7543,6 +7531,7 @@ async function customerSecurityVerifyRecoveryCodeViaWorker(req, res, action, acc
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        'X-Dirac-Edge-Key': customerSecurityFirewallEdgeKeyV204(),
         'X-Dirac-Worker-Caller': caller,
         'X-Dirac-Worker-Timestamp': timestamp,
         'X-Dirac-Worker-Signature': signature
@@ -14357,9 +14346,10 @@ async function orderMailSendViaSmtp(config, message) {
 
     const run = async () => {
       resetTimer();
+      const target = await diracCentralResolveSecureSmtpTargetV203(host, port);
       socket = config.secure
-        ? tls.connect({ host, port, servername: host, rejectUnauthorized: true })
-        : net.connect({ host, port });
+        ? tls.connect({ host: target.address, port: target.port, servername: target.host, rejectUnauthorized: true, minVersion: 'TLSv1.2' })
+        : net.connect({ host: target.address, port: target.port });
       socket.setEncoding('utf8');
       socket.on('error', fail);
       socket.on('data', (chunk) => { buffer += chunk.toString('utf8'); });
@@ -14372,7 +14362,7 @@ async function orderMailSendViaSmtp(config, message) {
         socket.removeAllListeners('data');
         socket.removeAllListeners('error');
         buffer = '';
-        socket = tls.connect({ socket, servername: host, rejectUnauthorized: true });
+        socket = tls.connect({ socket, servername: target.host, rejectUnauthorized: true, minVersion: 'TLSv1.2' });
         socket.setEncoding('utf8');
         socket.on('error', fail);
         socket.on('data', (chunk) => { buffer += chunk.toString('utf8'); });
@@ -16588,10 +16578,10 @@ function diracV101SecurityHmacSecret() {
 
 function diracV101Fingerprint(value) {
   const secret = diracV101SecurityHmacSecret();
-  const raw = String(value || '');
-  if (secret) return crypto.createHmac('sha256', secret).update(raw).digest('hex');
-  if (typeof loginSecurityHash === 'function') return loginSecurityHash(raw);
-  return crypto.createHash('sha256').update(raw).digest('hex');
+  if (!secret || Buffer.byteLength(secret, 'utf8') < 64) {
+    throw new Error('DIRAC_V101_FINGERPRINT_SECRET_INVALID');
+  }
+  return crypto.createHmac('sha256', secret).update(String(value || ''), 'utf8').digest('hex');
 }
 
 function diracV101RequestIp(req) {
@@ -17106,7 +17096,9 @@ function diracV107KeysForValue(type, value) {
 }
 
 function diracV107Ip(req) {
-  return getLoginSecurityIp(req);
+  const headers = (req && req.headers) || {};
+  const forwarded = String(headers['x-forwarded-for'] || '').split(',')[0].trim();
+  return forwarded || String(headers['x-real-ip'] || (req && req.socket && req.socket.remoteAddress) || '').trim() || 'unknown';
 }
 
 function diracV107Cookie(req, name) {
@@ -17125,12 +17117,8 @@ function diracV107BlockYears() {
 
 function diracV107Hmac(value) {
   const secret = diracCentralDeriveSecretV146('v107-hard-ban-hmac');
-  try {
-    return crypto.createHmac('sha256', secret).update(String(value || '')).digest('hex');
-  } catch (_) {
-    try { return loginSecurityHash(String(value || '')); } catch (_) {}
-    return crypto.createHash('sha256').update(String(value || '')).digest('hex');
-  }
+  if (!Buffer.isBuffer(secret) || secret.length < 64) throw new Error('DIRAC_V107_HMAC_SECRET_INVALID');
+  return crypto.createHmac('sha256', secret).update(String(value || ''), 'utf8').digest('hex');
 }
 
 async function diracV107ReadRows(keys) {
@@ -17529,8 +17517,9 @@ function diracPasswordArgon2V4Pepper() {
 }
 
 function diracPasswordArgon2V4Hmac(value) {
-  const secret = diracPasswordArgon2V4Pepper() || 'dirac-password-shadow-v4-fallback';
-  return crypto.createHmac('sha256', secret).update(String(value || '')).digest('hex');
+  const secret = diracPasswordArgon2V4Pepper();
+  if (!secret || Buffer.byteLength(secret, 'utf8') < 64) throw new Error('DIRAC_PASSWORD_PEPPER_SECRET_INVALID');
+  return crypto.createHmac('sha256', secret).update(String(value || ''), 'utf8').digest('hex');
 }
 
 function diracPasswordArgon2V4LooksLikeUuid(value) {
@@ -18880,12 +18869,9 @@ function diracUltraXssV3BlockYears() {
 }
 
 function diracUltraXssV3Fingerprint(value) {
-  try {
-    if (typeof diracV107Hmac === 'function') return diracV107Hmac(value);
-    if (typeof diracV101Fingerprint === 'function') return diracV101Fingerprint(value);
-    if (typeof loginSecurityHash === 'function') return loginSecurityHash(value);
-  } catch (_) {}
-  return crypto.createHash('sha256').update(String(value || '')).digest('hex');
+  if (typeof diracV107Hmac === 'function') return diracV107Hmac(value);
+  if (typeof diracV101Fingerprint === 'function') return diracV101Fingerprint(value);
+  return diracCentralHashV146(value);
 }
 
 function diracUltraXssV3CleanSmall(value, maxLength = 80) {
@@ -25401,9 +25387,8 @@ function diracV143ApplyHeaders(res) {
 
 function diracV143Hash(value) {
   const secret = diracCentralDeriveSecretV146('v143-global-api-hash');
-  try { return crypto.createHmac('sha256', secret).update(String(value || '')).digest('hex'); } catch (_) {}
-  try { if (typeof loginSecurityHash === 'function') return loginSecurityHash(value); } catch (_) {}
-  return crypto.createHash('sha256').update(String(value || '')).digest('hex');
+  if (!Buffer.isBuffer(secret) || secret.length < 64) throw new Error('DIRAC_V143_HASH_SECRET_INVALID');
+  return crypto.createHmac('sha256', secret).update(String(value || ''), 'utf8').digest('hex');
 }
 
 function diracV143EnvTrue(name) {
@@ -25713,14 +25698,8 @@ function diracV145FallbackRequestKey(req) {
 }
 
 function diracV145Hash(value) {
-  try {
-    if (typeof diracV143Hash === 'function') return diracV143Hash(value);
-  } catch (_) {}
-  try {
-    return crypto.createHash('sha256').update(String(value || '')).digest('hex');
-  } catch (_) {
-    return String(value || '').slice(0, 64);
-  }
+  if (typeof diracV143Hash === 'function') return diracV143Hash(value);
+  return diracCentralHashV146(value);
 }
 
 function diracV145EnvTrue(name) {
@@ -27290,12 +27269,11 @@ function diracCentralApplyHeadersV146(res) {
   try { res.setHeader('Cache-Control', 'no-store'); } catch (_) {}
   try { res.setHeader('X-Content-Type-Options', 'nosniff'); } catch (_) {}
   try { res.setHeader('Content-Security-Policy', "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self' https://diracgroup.store https://www.diracgroup.store"); } catch (_) {}
-  try { res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload'); } catch (_) {}
-  try { res.setHeader('Referrer-Policy', 'no-referrer'); } catch (_) {}
-  try { res.setHeader('X-Frame-Options', 'DENY'); } catch (_) {}
-  try { res.setHeader('Cross-Origin-Opener-Policy', 'same-origin'); } catch (_) {}
-  try { res.setHeader('Cross-Origin-Resource-Policy', 'same-origin'); } catch (_) {}
+  try { res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin'); } catch (_) {}
   try { res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), fullscreen=(self)'); } catch (_) {}
+  if (diracCentralIsProductionV146()) {
+    try { res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload'); } catch (_) {}
+  }
 }
 
 function diracCentralWrapJsonResponseV146(res) {
@@ -27303,6 +27281,18 @@ function diracCentralWrapJsonResponseV146(res) {
   const originalJson = res.json.bind(res);
   res.json = function diracCentralJsonResponseGuardV146(payload) {
     diracCentralApplyHeadersV146(res);
+    const activeContext = diracCentralCurrentContextV149();
+    if (activeContext && activeContext.__diracCentralBanPersistenceUnavailableV203 === true) {
+      try {
+        if (typeof res.setHeader === 'function') res.setHeader('Retry-After', '60');
+        if (typeof res.status === 'function') res.status(503); else res.statusCode = 503;
+      } catch (_) {}
+      return originalJson({
+        ok: false,
+        code: 'CENTRAL_BAN_PERSISTENCE_UNAVAILABLE',
+        message: 'Sistem keamanan belum dapat memastikan penyimpanan blokir. Permintaan dihentikan.'
+      });
+    }
     if (diracCentralPayloadContainsRuntimeSecretV194(payload)) {
       try { if (typeof res.status === 'function') res.status(500); else res.statusCode = 500; } catch (_) {}
       return originalJson({ ok: false, code: 'CENTRAL_OUTPUT_SECRET_BLOCKED', message: 'Respons ditolak oleh sistem keamanan.' });
@@ -29488,12 +29478,90 @@ async function diracCentralResolveHostIpsV146(host) {
 
 function diracCentralIsUnsafeIpV146(ip) {
   const clean = String(ip || '').trim().toLowerCase();
-  if (!clean) return false;
-  if (clean === '127.0.0.1' || clean === '0.0.0.0' || clean === '::1') return true;
-  if (/^10\./.test(clean) || /^192\.168\./.test(clean) || /^169\.254\./.test(clean)) return true;
-  if (/^172\.(?:1[6-9]|2\d|3[0-1])\./.test(clean)) return true;
-  if (/^(fc|fd)[0-9a-f]{2}:/i.test(clean) || /^fe80:/i.test(clean)) return true;
-  return false;
+  const net = require('net');
+  const family = net.isIP(clean);
+  if (!family) return true;
+  if (family === 6) {
+    if (clean === '::' || clean === '::1' || /^f[cd][0-9a-f]{2}:/.test(clean)
+        || /^fe[89ab][0-9a-f]:/.test(clean) || /^ff[0-9a-f]{2}:/.test(clean)
+        || /^2001:db8:/.test(clean) || /^2001:0{0,4}:/.test(clean) || /^2002:/.test(clean)
+        || /^100:/.test(clean) || /^64:ff9b:1:/.test(clean)) return true;
+    const mapped = clean.match(/^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/);
+    return mapped ? diracCentralIsUnsafeIpV146(mapped[1]) : false;
+  }
+  const parts = clean.split('.').map(Number);
+  const [a, b, c] = parts;
+  return a === 0 || a === 10 || a === 127 || a >= 224
+    || (a === 100 && b >= 64 && b <= 127)
+    || (a === 169 && b === 254)
+    || (a === 172 && b >= 16 && b <= 31)
+    || (a === 192 && b === 168)
+    || (a === 192 && b === 0 && (c === 0 || c === 2))
+    || (a === 192 && b === 88 && c === 99)
+    || (a === 198 && (b === 18 || b === 19))
+    || (a === 198 && b === 51 && c === 100)
+    || (a === 203 && b === 0 && c === 113);
+}
+
+function diracCentralSmtpAllowedHostV203(host) {
+  const clean = String(host || '').trim().toLowerCase().replace(/\.$/, '');
+  if (!clean || clean.length > 253 || require('net').isIP(clean)
+      || !/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(clean)) {
+    throw new Error('DIRAC_SMTP_HOST_POLICY_INVALID');
+  }
+  const explicit = [
+    process.env.DIRAC_SMTP_ALLOWED_HOSTS,
+    process.env.DIRAC_RECOVERY_SMTP_ALLOWED_HOSTS,
+    process.env.ORDER_SMTP_ALLOWED_HOSTS
+  ].flatMap((value) => String(value || '').split(',')).map((value) => value.trim().toLowerCase().replace(/\.$/, '')).filter(Boolean);
+  if (explicit.length && !explicit.includes(clean)) throw new Error('DIRAC_SMTP_HOST_NOT_ALLOWLISTED');
+  return clean;
+}
+
+async function diracCentralResolveSecureSmtpTargetV203(host, port) {
+  const cleanHost = diracCentralSmtpAllowedHostV203(host);
+  const cleanPort = Number(port);
+  if (!Number.isSafeInteger(cleanPort) || cleanPort < 1 || cleanPort > 65535) throw new Error('DIRAC_SMTP_PORT_INVALID');
+  const ips = await diracCentralResolveHostIpsV146(cleanHost);
+  if (!ips.length || ips.some(diracCentralIsUnsafeIpV146)) throw new Error('DIRAC_SMTP_DNS_POLICY_INVALID');
+  const address = ips.find((value) => require('net').isIP(String(value || '')) === 4)
+    || ips.find((value) => require('net').isIP(String(value || '')) === 6);
+  if (!address) throw new Error('DIRAC_SMTP_DNS_POLICY_INVALID');
+  return { host: cleanHost, address, port: cleanPort };
+}
+
+async function diracCentralConnectSecureSmtpV203(host, port, timeoutMs) {
+  const target = await diracCentralResolveSecureSmtpTargetV203(host, port);
+  const tls = require('tls');
+  return await new Promise((resolve, reject) => {
+    const socket = tls.connect({
+      host: target.address,
+      port: target.port,
+      servername: target.host,
+      rejectUnauthorized: true,
+      minVersion: 'TLSv1.2',
+      timeout: Math.max(3000, Math.min(30000, Number(timeoutMs || 20000)))
+    });
+    const cleanup = () => {
+      socket.off('secureConnect', onSecure);
+      socket.off('error', onError);
+      socket.off('timeout', onTimeout);
+    };
+    const onSecure = () => {
+      cleanup();
+      if (!socket.authorized) {
+        try { socket.destroy(); } catch (_) {}
+        reject(new Error('DIRAC_SMTP_TLS_AUTHORIZATION_FAILED'));
+        return;
+      }
+      resolve(socket);
+    };
+    const onError = (error) => { cleanup(); reject(error); };
+    const onTimeout = () => { cleanup(); try { socket.destroy(); } catch (_) {} reject(new Error('DIRAC_SMTP_TLS_TIMEOUT')); };
+    socket.once('secureConnect', onSecure);
+    socket.once('error', onError);
+    socket.once('timeout', onTimeout);
+  });
 }
 
 function diracCentralAllowedEgressHostV146(host) {
@@ -29568,7 +29636,9 @@ async function diracCentralBanAndBlockV146(req, res, ctx, action, method, reason
   }
   if (identityKey) DIRAC_CENTRAL_NEGATIVE_BAN_V146.delete(identityKey);
   diracCentralSetMemoryBanV146(ctx && ctx.identity, blockedUntilMs, reason);
-  if (ctx) ctx.__diracCentralPersistentBanWrittenV194 = Boolean(identityBanWritten || hardBanResult && hardBanResult.ok === true);
+  const persistentWritten = Boolean(identityBanWritten || hardBanResult && hardBanResult.ok === true);
+  if (ctx) ctx.__diracCentralPersistentBanWrittenV194 = persistentWritten;
+  if (!persistentWritten) return diracCentralBanPersistenceUnavailableV203(res);
   return diracCentralBlockedResponseV146(res, reason);
 }
 
@@ -29615,9 +29685,13 @@ async function diracCentralBanCurrentContextV146(reason) {
   if (identityKey) DIRAC_CENTRAL_NEGATIVE_BAN_V146.delete(identityKey);
   diracCentralSetMemoryBanV146(ctx.identity, blockedUntilMs, cleanReason);
   ctx.__diracCentralPersistentBanWrittenV194 = Boolean(identityBanWritten || hardBanResult && hardBanResult.ok === true);
+  if (!ctx.__diracCentralPersistentBanWrittenV194) {
+    ctx.__diracCentralBanPersistenceUnavailableV203 = true;
+  }
   return {
     ok: ctx.__diracCentralPersistentBanWrittenV194,
     persistent: ctx.__diracCentralPersistentBanWrittenV194,
+    persistenceUnavailable: !ctx.__diracCentralPersistentBanWrittenV194,
     blockedUntilMs
   };
 }
@@ -29653,6 +29727,16 @@ function diracCentralBlockedResponseV146(res, reason) {
     message: 'Permintaan ditolak oleh sistem keamanan.',
     reason: publicReason,
     source: DIRAC_CENTRAL_SECURITY_GUARD_V146
+  });
+}
+
+function diracCentralBanPersistenceUnavailableV203(res) {
+  diracCentralApplyHeadersV146(res);
+  try { if (res && typeof res.setHeader === 'function') res.setHeader('Retry-After', '60'); } catch (_) {}
+  return res.status(503).json({
+    ok: false,
+    code: 'CENTRAL_BAN_PERSISTENCE_UNAVAILABLE',
+    message: 'Sistem keamanan belum dapat memastikan penyimpanan blokir. Permintaan dihentikan.'
   });
 }
 
@@ -30030,7 +30114,7 @@ function assertProductionSecurityConfigV146() {
   }
   const adminSecret = String(process.env.AI_ADMIN_SECRET || '');
   if (adminSecret && Buffer.byteLength(adminSecret, 'utf8') < 64) {
-    throw new Error('AI_ADMIN_SECRET production wajib minimal 64 byte bila digunakan.');
+    throw new Error('AI_ADMIN_SECRET production wajib minimal 64 byte acak bila digunakan.');
   }
   diracCentralRootSecretV146();
   return true;
@@ -30047,15 +30131,8 @@ function diracCentralSecretV146() {
 
 function diracCentralHashV146(value) {
   const secret = diracCentralSecretV146();
-  if (!Buffer.isBuffer(secret) || secret.length < 64) {
-    const error = new Error('DIRAC_CENTRAL_HASH_KEY_INVALID');
-    error.code = 'DIRAC_CENTRAL_HASH_KEY_INVALID';
-    throw error;
-  }
-  return crypto.createHmac('sha512', secret)
-    .update('dirac-central-pseudonym-v204\n', 'utf8')
-    .update(String(value || ''), 'utf8')
-    .digest('hex');
+  if (!Buffer.isBuffer(secret) || secret.length < 64) throw new Error('DIRAC_CENTRAL_HASH_SECRET_INVALID');
+  return crypto.createHmac('sha256', secret).update(String(value || ''), 'utf8').digest('hex');
 }
 
 function diracCentralFakeResponseV146() {
@@ -30846,6 +30923,14 @@ __diracV202MarkWrapperFlag("__diracServer1RecoveryBoundaryV201");
 
 
 /* ============================================================
+   DIRAC SECURITY INVARIANT HARDENING v203
+   - Security fingerprints are keyed with 512-bit derived secrets.
+   - Database and egress gateways are bound to the active async request context.
+   - A Central Guard rejection is reported as persistent only after durable storage succeeds.
+   ============================================================ */
+const DIRAC_SECURITY_INVARIANT_HARDENING_V203 = 'dirac-security-invariant-hardening-v203';
+
+/* ============================================================
    v202 CENTRALIZED ACTION POLICY AND GATEWAYS
    ============================================================ */
 function diracV202BuildActionPolicyTable() {
@@ -30887,7 +30972,10 @@ async function secureDatabaseGateway(ctx, operation) {
   if (!op || typeof op.path !== 'string' || !op.options || typeof op.options !== 'object') {
     return { ok: false, status: 500, data: { code: 'DIRAC_DATABASE_GATEWAY_OPERATION_INVALID' } };
   }
-  if (ctx && ctx.action && !ACTION_POLICY[ctx.action]) {
+  if (!ctx || !ctx.req || diracCentralCurrentContextV149() !== ctx) {
+    return { ok: false, status: 503, data: { code: 'DIRAC_DATABASE_GATEWAY_CONTEXT_REQUIRED' } };
+  }
+  if (ctx.action && !ACTION_POLICY[ctx.action]) {
     return { ok: false, status: 403, data: { code: 'DIRAC_DATABASE_GATEWAY_POLICY_MISSING' } };
   }
   return __diracV202DatabaseGatewayDelegate(op.path, op.options);
@@ -30905,7 +30993,12 @@ async function secureEgressGateway(ctx, requestConfig) {
     error.code = 'DIRAC_EGRESS_GATEWAY_OPERATION_INVALID';
     throw error;
   }
-  if (ctx && ctx.action && !ACTION_POLICY[ctx.action]) {
+  if (!ctx || !ctx.req || diracCentralCurrentContextV149() !== ctx) {
+    const error = new Error('DIRAC_EGRESS_GATEWAY_CONTEXT_REQUIRED');
+    error.code = 'DIRAC_EGRESS_GATEWAY_CONTEXT_REQUIRED';
+    throw error;
+  }
+  if (ctx.action && !ACTION_POLICY[ctx.action]) {
     const error = new Error('DIRAC_EGRESS_GATEWAY_POLICY_MISSING');
     error.code = 'DIRAC_EGRESS_GATEWAY_POLICY_MISSING';
     throw error;
@@ -30950,6 +31043,7 @@ for (const flag of __diracV202WrapperFlags) {
 }
 Object.defineProperty(module.exports, '__diracCentralSecurityGuardV146', { value: true, enumerable: false });
 Object.defineProperty(module.exports, '__diracCentralArchitectureConsolidationV202', { value: true, enumerable: false });
+Object.defineProperty(module.exports, '__diracSecurityInvariantHardeningV203', { value: true, enumerable: false });
 Object.defineProperty(module.exports, '__diracV202MiddlewareCount', { value: __diracV202MiddlewareRegistry.length, enumerable: false });
 Object.defineProperty(module.exports, '__diracV202ActionPolicyCount', { value: Object.keys(ACTION_POLICY).length, enumerable: false });
 
