@@ -210,11 +210,15 @@ function getAllowedOrigins() {
 function isAdminRequest(req) {
   const secret = String(process.env.AI_ADMIN_SECRET || '');
   const candidate = String(req && req.headers && req.headers['x-dirac-admin'] || '');
-  if (!secret || !candidate) return false;
-  const expected = crypto.createHash('sha512').update(secret, 'utf8').digest();
-  const received = crypto.createHash('sha512').update(candidate, 'utf8').digest();
-  return Buffer.byteLength(candidate, 'utf8') === Buffer.byteLength(secret, 'utf8')
-    && crypto.timingSafeEqual(received, expected);
+  const expected = Buffer.from(secret, 'utf8');
+  const received = Buffer.from(candidate, 'utf8');
+  try {
+    if (expected.length < 64 || received.length !== expected.length) return false;
+    return crypto.timingSafeEqual(received, expected);
+  } finally {
+    expected.fill(0);
+    received.fill(0);
+  }
 }
 
 function normalizeDomainAction(action) {
@@ -832,10 +836,31 @@ function getLoginSecurityIdentity(req, actionName) {
   };
 }
 
+function diracNormalizeTrustedClientIpV204(value) {
+  let clean = String(value || '').split(',')[0].trim();
+  if (!clean) return '';
+  if (/^\[[0-9a-f:]+\](?::\d+)?$/i.test(clean)) clean = clean.slice(1, clean.indexOf(']'));
+  if (/^::ffff:\d{1,3}(?:\.\d{1,3}){3}$/i.test(clean)) clean = clean.slice(7);
+  try {
+    return require('net').isIP(clean) ? clean.toLowerCase() : '';
+  } catch (_) {
+    return '';
+  }
+}
+
 function getLoginSecurityIp(req) {
   const headers = (req && req.headers) || {};
-  const forwarded = String(headers['x-forwarded-for'] || '').split(',')[0].trim();
-  return forwarded || String(headers['x-real-ip'] || req.socket && req.socket.remoteAddress || '').trim() || 'unknown';
+  const candidates = [
+    headers['x-vercel-forwarded-for'],
+    headers['x-forwarded-for'],
+    headers['x-real-ip'],
+    req && req.socket && req.socket.remoteAddress
+  ];
+  for (const candidate of candidates) {
+    const normalized = diracNormalizeTrustedClientIpV204(candidate);
+    if (normalized) return normalized;
+  }
+  return 'unknown';
 }
 
 function maskLoginSecurityIp(ip) {
@@ -17081,9 +17106,7 @@ function diracV107KeysForValue(type, value) {
 }
 
 function diracV107Ip(req) {
-  const headers = (req && req.headers) || {};
-  const forwarded = String(headers['x-forwarded-for'] || '').split(',')[0].trim();
-  return forwarded || String(headers['x-real-ip'] || (req && req.socket && req.socket.remoteAddress) || '').trim() || 'unknown';
+  return getLoginSecurityIp(req);
 }
 
 function diracV107Cookie(req, name) {
@@ -27267,7 +27290,11 @@ function diracCentralApplyHeadersV146(res) {
   try { res.setHeader('Cache-Control', 'no-store'); } catch (_) {}
   try { res.setHeader('X-Content-Type-Options', 'nosniff'); } catch (_) {}
   try { res.setHeader('Content-Security-Policy', "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self' https://diracgroup.store https://www.diracgroup.store"); } catch (_) {}
-  try { res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin'); } catch (_) {}
+  try { res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload'); } catch (_) {}
+  try { res.setHeader('Referrer-Policy', 'no-referrer'); } catch (_) {}
+  try { res.setHeader('X-Frame-Options', 'DENY'); } catch (_) {}
+  try { res.setHeader('Cross-Origin-Opener-Policy', 'same-origin'); } catch (_) {}
+  try { res.setHeader('Cross-Origin-Resource-Policy', 'same-origin'); } catch (_) {}
   try { res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), fullscreen=(self)'); } catch (_) {}
 }
 
@@ -30002,8 +30029,8 @@ function assertProductionSecurityConfigV146() {
     throw new Error('Persistent security storage strict guard wajib aktif di production.');
   }
   const adminSecret = String(process.env.AI_ADMIN_SECRET || '');
-  if (adminSecret && Buffer.byteLength(adminSecret, 'utf8') < 32) {
-    throw new Error('AI_ADMIN_SECRET production wajib minimal 32 byte bila digunakan.');
+  if (adminSecret && Buffer.byteLength(adminSecret, 'utf8') < 64) {
+    throw new Error('AI_ADMIN_SECRET production wajib minimal 64 byte bila digunakan.');
   }
   diracCentralRootSecretV146();
   return true;
@@ -30019,8 +30046,16 @@ function diracCentralSecretV146() {
 }
 
 function diracCentralHashV146(value) {
-  try { return crypto.createHmac('sha256', diracCentralSecretV146()).update(String(value || '')).digest('hex'); } catch (_) {}
-  return crypto.createHash('sha256').update(String(value || '')).digest('hex');
+  const secret = diracCentralSecretV146();
+  if (!Buffer.isBuffer(secret) || secret.length < 64) {
+    const error = new Error('DIRAC_CENTRAL_HASH_KEY_INVALID');
+    error.code = 'DIRAC_CENTRAL_HASH_KEY_INVALID';
+    throw error;
+  }
+  return crypto.createHmac('sha512', secret)
+    .update('dirac-central-pseudonym-v204\n', 'utf8')
+    .update(String(value || ''), 'utf8')
+    .digest('hex');
 }
 
 function diracCentralFakeResponseV146() {
