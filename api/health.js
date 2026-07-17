@@ -834,8 +834,19 @@ function getLoginSecurityIdentity(req, actionName) {
 
 function getLoginSecurityIp(req) {
   const headers = (req && req.headers) || {};
-  const forwarded = String(headers['x-forwarded-for'] || '').split(',')[0].trim();
-  return forwarded || String(headers['x-real-ip'] || req.socket && req.socket.remoteAddress || '').trim() || 'unknown';
+  const normalizeIp = (value) => {
+    let clean = String(value || '').split(',')[0].trim();
+    if (/^\[[0-9a-f:]+\](?::\d+)?$/i.test(clean)) clean = clean.slice(1, clean.indexOf(']'));
+    if (/^::ffff:\d{1,3}(?:\.\d{1,3}){3}$/i.test(clean)) clean = clean.slice(7);
+    try { return require('net').isIP(clean) ? clean.toLowerCase() : ''; } catch (_) { return ''; }
+  };
+  const vercelForwarded = normalizeIp(headers['x-vercel-forwarded-for']);
+  if (vercelForwarded) return vercelForwarded;
+  if (process.env.NODE_ENV === 'production') return 'unknown';
+  const forwarded = normalizeIp(headers['x-forwarded-for']);
+  const realIp = normalizeIp(headers['x-real-ip']);
+  const socketIp = normalizeIp(req && req.socket && req.socket.remoteAddress);
+  return forwarded || realIp || socketIp || 'unknown';
 }
 
 function maskLoginSecurityIp(ip) {
@@ -17081,9 +17092,7 @@ function diracV107KeysForValue(type, value) {
 }
 
 function diracV107Ip(req) {
-  const headers = (req && req.headers) || {};
-  const forwarded = String(headers['x-forwarded-for'] || '').split(',')[0].trim();
-  return forwarded || String(headers['x-real-ip'] || (req && req.socket && req.socket.remoteAddress) || '').trim() || 'unknown';
+  return typeof getLoginSecurityIp === 'function' ? getLoginSecurityIp(req) : 'unknown';
 }
 
 function diracV107Cookie(req, name) {
@@ -30019,8 +30028,15 @@ function diracCentralSecretV146() {
 }
 
 function diracCentralHashV146(value) {
-  try { return crypto.createHmac('sha256', diracCentralSecretV146()).update(String(value || '')).digest('hex'); } catch (_) {}
-  return crypto.createHash('sha256').update(String(value || '')).digest('hex');
+  const secret = diracCentralSecretV146();
+  if (!Buffer.isBuffer(secret) || secret.length < 64) {
+    const error = new Error('DIRAC_CENTRAL_HASH_SECRET_INVALID');
+    error.code = 'DIRAC_CENTRAL_HASH_SECRET_INVALID';
+    throw error;
+  }
+  return crypto.createHmac('sha256', secret)
+    .update(String(value || ''), 'utf8')
+    .digest('hex');
 }
 
 function diracCentralFakeResponseV146() {
@@ -30704,19 +30720,44 @@ const DIRAC_SERVER1_RECOVERY_BOUNDARY_V201 = 'dirac-server1-recovery-boundary-v2
 const DIRAC_RECOVERY_WORKER_AUTH_CONTEXT_V201 = 'dirac-recovery-worker-auth-v201';
 const DIRAC_RECOVERY_WORKER_DEFAULT_PATH_V201 = '/api/health';
 const DIRAC_SERVER1_FORBIDDEN_PRIVATE_ENVS_V201 = Object.freeze([
+  'DIRAC_CENTRAL_VERCEL2_ACTIONS_ENABLED',
+  'DIRAC_VERCEL2_ACTIONS_ENABLED',
+  'DIRAC_CENTRAL_VERCEL2_ONLY_ACTIONS',
+  'DIRAC_VERCEL2_ONLY_ACTIONS',
   'DIRAC_RECOVERY_WORKER_ALLOWED_CALLER',
+  'DIRAC_RECOVERY_WORKER_MAX_BODY_BYTES',
+  'DIRAC_RECOVERY_WORKER_CLOCK_SKEW_SECONDS',
   'DIRAC_RECOVERY_WORKER_X25519_PRIVATE_KEY',
   'DIRAC_RECOVERY_WORKER_MLKEM1024_PRIVATE_KEY',
+  'DIRAC_LOST_PASSKEY_ARGON2_MEMORY_KIB',
+  'DIRAC_LOST_PASSKEY_ARGON2_TIME_COST',
+  'DIRAC_LOST_PASSKEY_ARGON2_PARALLELISM',
+  'DIRAC_LOST_PASSKEY_LINK_OPEN_ARGON2_MEMORY_KIB',
+  'DIRAC_LOST_PASSKEY_LINK_OPEN_ARGON2_TIME_COST',
+  'DIRAC_LOST_PASSKEY_LINK_OPEN_ARGON2_PARALLELISM',
+  'DIRAC_LOST_PASSKEY_ROOT_SECRET',
+  'DIRAC_LOST_PASSKEY_ROOT_SECRET_VERSION',
+  'DIRAC_LOST_PASSKEY_DB_PEPPER',
+  'DIRAC_LOST_PASSKEY_MAX_RUNNING',
+  'DIRAC_LOST_PASSKEY_QUEUE_MAX',
+  'DIRAC_LOST_PASSKEY_PROCESSING_LOCK_TTL_SECONDS',
+  'DIRAC_LOST_PASSKEY_QUEUE_DISABLED',
+  'DIRAC_LOST_PASSKEY_QUEUE_LOCK_TTL_SECONDS',
+  'DIRAC_LOST_PASSKEY_QUEUE_MAX_WAIT_SECONDS',
+  'DIRAC_LOST_PASSKEY_QUEUE_POLL_MS',
+  'DIRAC_RECOVERY_SERVER1_URL',
   'DIRAC_RECOVERY_HPKE_PRIVATE_KEY',
+  'DIRAC_RECOVERY_HPKE_KEY_ID',
+  'DIRAC_RECOVERY_HPKE_PEPPER',
+  'DIRAC_RECOVERY_HPKE_PEPPER_KEY_ID',
+  'DIRAC_RECOVERY_HPKE_ARGON2_MEMORY_KIB',
+  'DIRAC_RECOVERY_HPKE_ARGON2_TIME_COST',
   'DIRAC_RECOVERY_MLKEM1024_PRIVATE_KEY_PEM',
   'DIRAC_RECOVERY_MLKEM1024_PRIVATE_KEY_DER_B64',
   'DIRAC_RECOVERY_MLDSA87_PRIVATE_KEY_PEM',
   'DIRAC_RECOVERY_MLDSA87_PRIVATE_KEY_DER_B64',
   'DIRAC_LOST_PASSKEY_ED25519_PRIVATE_KEY',
-  'DIRAC_LOST_PASSKEY_ED25519_PRIVATE_KEY_PEM',
-  'DIRAC_LOST_PASSKEY_ROOT_SECRET',
-  'DIRAC_LOST_PASSKEY_DB_PEPPER',
-  'DIRAC_RECOVERY_HPKE_PEPPER'
+  'DIRAC_LOST_PASSKEY_ED25519_PRIVATE_KEY_PEM'
 ]);
 
 function diracRecoveryWorkerConfiguredPathV201() {
