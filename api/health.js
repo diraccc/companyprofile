@@ -15957,6 +15957,7 @@ function diracUltraRedactPayload(payload, depth = 0, parentKey = '') {
 
   const parent = String(parentKey || '').toLowerCase();
   if (typeof payload === 'string') {
+    if (parent === 'website_recovery_code' && /^[A-Za-z0-9_-]{100}$/.test(payload)) return payload;
     // HOTFIX: setupToken/mfaSetupToken adalah challenge sementara A2F/Passkey
     // yang memang WAJIB sampai ke browser. Jangan dianggap JWT secret, karena
     // kalau diredact browser mengirim token palsu dan muncul "Challenge Passkey tidak valid".
