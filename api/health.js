@@ -301,10 +301,23 @@ const LOGIN_SECURITY_BODY_LIMIT_BYTES_RAW = Number(process.env.LOGIN_SECURITY_BO
 const LOGIN_SECURITY_BODY_LIMIT_BYTES = Number.isFinite(LOGIN_SECURITY_BODY_LIMIT_BYTES_RAW)
   ? Math.max(1024, LOGIN_SECURITY_BODY_LIMIT_BYTES_RAW)
   : 16 * 1024;
-// Optional durable security storage. Default empty = safe in-memory fallback, no new DB writes.
-// To activate later, create a dedicated security table and set LOGIN_SECURITY_PERSIST_TABLE.
-const LOGIN_SECURITY_PERSIST_TABLE = String(process.env.LOGIN_SECURITY_PERSIST_TABLE || '').trim();
+// Dedicated security database tables. Names are fixed to the hardened schema.
+// Persistent bans and non-S2S security state are isolated from S2S registry/replay/revocation.
+const DIRAC_PERSISTENT_BAN_TABLE = 'dirac_persistent_bans';
+const DIRAC_S2S_SECURITY_TABLE = 'dirac_s2s_security';
+const LOGIN_SECURITY_PERSIST_TABLE = DIRAC_PERSISTENT_BAN_TABLE;
 const LOGIN_SECURITY_PERSIST_TTL_SECONDS = 10 * 365 * 24 * 60 * 60;
+
+function diracPersistentSecurityTableForKeyV209(securityKey) {
+  const key = String(securityKey || '').trim();
+  if (/^(?:s2s-|recovery-worker-nonce-v183:)/.test(key)) return DIRAC_S2S_SECURITY_TABLE;
+  return DIRAC_PERSISTENT_BAN_TABLE;
+}
+
+function diracPersistentSecurityTableForKeysV209(securityKeys) {
+  const tables = new Set((securityKeys || []).map(diracPersistentSecurityTableForKeyV209));
+  return tables.size === 1 ? Array.from(tables)[0] : '';
+}
 
 // LOGIN RATE LIMIT PATCH v1 - domain_login only.
 // Menggunakan tabel rate limit yang sudah ada. Tidak mengubah endpoint, hash, A2F, checkout, order, atau fitur lain.
@@ -933,10 +946,11 @@ function normalizeLoginSecurityRecord(record, now = Date.now()) {
 
 async function readPersistentSecurityJson(securityKey) {
   const key = String(securityKey || '').trim();
-  if (!LOGIN_SECURITY_PERSIST_TABLE || !key) return null;
+  const table = diracPersistentSecurityTableForKeyV209(key);
+  if (!table || !key) return null;
 
   try {
-    const path = `/rest/v1/${encodeURIComponent(LOGIN_SECURITY_PERSIST_TABLE)}?select=security_key,record_json,blocked_until_ms,expires_at&security_key=eq.${encodeURIComponent(key)}&limit=1`;
+    const path = `/rest/v1/${encodeURIComponent(table)}?select=security_key,record_json,blocked_until_ms,expires_at&security_key=eq.${encodeURIComponent(key)}&limit=1`;
     const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
     if (!result.ok || !Array.isArray(result.data) || !result.data.length) return null;
 
@@ -951,7 +965,8 @@ async function readPersistentSecurityJson(securityKey) {
 
 async function writePersistentSecurityJson(securityKey, record, blockedUntilMs = 0, ttlSeconds = LOGIN_SECURITY_PERSIST_TTL_SECONDS) {
   const key = String(securityKey || '').trim();
-  if (!LOGIN_SECURITY_PERSIST_TABLE || !key) return false;
+  const table = diracPersistentSecurityTableForKeyV209(key);
+  if (!table || !key) return false;
 
   try {
     const now = Date.now();
@@ -965,7 +980,7 @@ async function writePersistentSecurityJson(securityKey, record, blockedUntilMs =
       expires_at: expiresAt
     }];
 
-    const result = await supabaseFetch(`/rest/v1/${encodeURIComponent(LOGIN_SECURITY_PERSIST_TABLE)}?on_conflict=security_key`, {
+    const result = await supabaseFetch(`/rest/v1/${encodeURIComponent(table)}?on_conflict=security_key`, {
       method: 'POST',
       auth: 'service',
       prefer: 'resolution=merge-duplicates',
@@ -982,9 +997,10 @@ async function writePersistentSecurityJson(securityKey, record, blockedUntilMs =
 // so Central Guard uses this strict reader for fail-closed decisions.
 async function readPersistentSecurityJsonStrictV194(securityKey) {
   const key = String(securityKey || '').trim();
-  if (!LOGIN_SECURITY_PERSIST_TABLE || !key) return { ok: false, found: false, record: null };
+  const table = diracPersistentSecurityTableForKeyV209(key);
+  if (!table || !key) return { ok: false, found: false, record: null };
   try {
-    const path = `/rest/v1/${encodeURIComponent(LOGIN_SECURITY_PERSIST_TABLE)}?select=security_key,record_json,blocked_until_ms,expires_at&security_key=eq.${encodeURIComponent(key)}&limit=1`;
+    const path = `/rest/v1/${encodeURIComponent(table)}?select=security_key,record_json,blocked_until_ms,expires_at&security_key=eq.${encodeURIComponent(key)}&limit=1`;
     const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
     if (!result || result.ok !== true || !Array.isArray(result.data)) {
       return { ok: false, found: false, record: null };
@@ -1007,9 +1023,10 @@ async function readPersistentSecurityJsonStrictV194(securityKey) {
 async function readPersistentSecurityJsonManyStrictV194(securityKeys) {
   const keys = Array.from(new Set((securityKeys || []).map((key) => String(key || '').trim())
     .filter((key) => /^[A-Za-z0-9:._-]{1,500}$/.test(key)))).slice(0, 40);
-  if (!LOGIN_SECURITY_PERSIST_TABLE || !keys.length) return { ok: false, records: [] };
+  const table = diracPersistentSecurityTableForKeysV209(keys);
+  if (!table || !keys.length) return { ok: false, records: [] };
   try {
-    const path = `/rest/v1/${encodeURIComponent(LOGIN_SECURITY_PERSIST_TABLE)}?select=security_key,record_json,blocked_until_ms,expires_at&security_key=in.(${keys.map(encodeURIComponent).join(',')})&limit=${keys.length}`;
+    const path = `/rest/v1/${encodeURIComponent(table)}?select=security_key,record_json,blocked_until_ms,expires_at&security_key=in.(${keys.map(encodeURIComponent).join(',')})&limit=${keys.length}`;
     const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
     if (!result || result.ok !== true || !Array.isArray(result.data)) return { ok: false, records: [] };
     const now = Date.now();
@@ -1028,7 +1045,7 @@ async function readPersistentSecurityJsonManyStrictV194(securityKeys) {
 }
 
 async function writePersistentSecurityJsonRequiredV194(securityKey, record, blockedUntilMs, ttlSeconds) {
-  if (!LOGIN_SECURITY_PERSIST_TABLE || typeof writePersistentSecurityJson !== 'function') return false;
+  if (!diracPersistentSecurityTableForKeyV209(securityKey) || typeof writePersistentSecurityJson !== 'function') return false;
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const wrote = await writePersistentSecurityJson(securityKey, record, blockedUntilMs, ttlSeconds).catch(() => false);
     if (wrote === true) return true;
@@ -1038,7 +1055,8 @@ async function writePersistentSecurityJsonRequiredV194(securityKey, record, bloc
 
 async function claimPersistentSecurityKeyOnceV194(securityKey, record, ttlSeconds) {
   const key = String(securityKey || '').trim();
-  if (!LOGIN_SECURITY_PERSIST_TABLE || !key) return false;
+  const table = diracPersistentSecurityTableForKeyV209(key);
+  if (!table || !key) return false;
   const now = Date.now();
   const ttl = Math.max(60, Number(ttlSeconds || 60));
   const payload = [{
@@ -1049,7 +1067,7 @@ async function claimPersistentSecurityKeyOnceV194(securityKey, record, ttlSecond
     expires_at: new Date(now + ttl * 1000).toISOString()
   }];
   try {
-    const result = await supabaseFetch(`/rest/v1/${encodeURIComponent(LOGIN_SECURITY_PERSIST_TABLE)}?on_conflict=security_key`, {
+    const result = await supabaseFetch(`/rest/v1/${encodeURIComponent(table)}?on_conflict=security_key`, {
       method: 'POST',
       auth: 'service',
       prefer: 'resolution=ignore-duplicates,return=representation',
@@ -3492,7 +3510,8 @@ function resolveDiracSupabaseTargetKey(path, options = {}) {
 
   const tableName = getDiracRestTableFromPath(path);
   const dedicatedSecurityTables = new Set([
-    String(LOGIN_SECURITY_PERSIST_TABLE || '').trim(),
+    DIRAC_PERSISTENT_BAN_TABLE,
+    DIRAC_S2S_SECURITY_TABLE,
     String(typeof DOMAIN_LOGIN_RATE_TABLE !== 'undefined' ? DOMAIN_LOGIN_RATE_TABLE : '').trim()
   ].filter(Boolean));
   if (tableName && dedicatedSecurityTables.has(tableName)) return 'security';
@@ -16835,7 +16854,8 @@ function diracV101ServiceRoleAllowedTables() {
     'security_customer_sessions',
     'security_customer_settings',
     'dirac_security_rate_limits',
-    String(process.env.LOGIN_SECURITY_PERSIST_TABLE || '').trim(),
+    DIRAC_PERSISTENT_BAN_TABLE,
+    DIRAC_S2S_SECURITY_TABLE,
     String(process.env.DOMAIN_LOGIN_RATE_TABLE || '').trim()
   ];
   const extra = String(process.env.DIRAC_SERVICE_ROLE_EXTRA_TABLES || '').split(',').map((item) => item.trim()).filter(Boolean);
@@ -17213,7 +17233,7 @@ async function diracV107DirectFetch(method, suffix, body) {
 }
 
 function diracV107Table() {
-  return String(process.env.LOGIN_SECURITY_PERSIST_TABLE || process.env.DOMAIN_LOGIN_RATE_TABLE || 'dirac_security_rate_limits').trim();
+  return DIRAC_PERSISTENT_BAN_TABLE;
 }
 
 function diracV107BlockedResponse(res, reason) {
@@ -19212,7 +19232,7 @@ function diracV119ShouldInspectSupabaseWrite(path, options = {}) {
   // Jangan ganggu tabel keamanan, session/logout, dan payment gateway/provider payload.
   if (/^security_customer_/i.test(table)) return false;
   if (table === 'dirac_security_rate_limits') return false;
-  if (table === String(process.env.LOGIN_SECURITY_PERSIST_TABLE || '').trim()) return false;
+  if (table === DIRAC_PERSISTENT_BAN_TABLE || table === DIRAC_S2S_SECURITY_TABLE) return false;
   if (table === String(process.env.DOMAIN_LOGIN_RATE_TABLE || '').trim()) return false;
   if (/^payment_/i.test(table) || table === 'payment_transactions' || table === 'payment_gateway_events') return false;
 
@@ -31084,7 +31104,7 @@ function diracS2SAssertConfigurationV206() {
   const networkId = diracS2STextV206('DIRAC_S2S_NETWORK_ID');
   if (!serverId || !keyVersion) throw new Error('DIRAC_S2S_CONFIGURATION_IDENTITY_INVALID');
   if (!/^[A-Za-z0-9_-]{43,256}$/.test(networkId)) throw new Error('DIRAC_S2S_NETWORK_ID_INVALID');
-  if (!String(LOGIN_SECURITY_PERSIST_TABLE || '').trim()) throw new Error('DIRAC_S2S_SECURITY_TABLE_REQUIRED');
+  if (DIRAC_S2S_SECURITY_TABLE !== 'dirac_s2s_security') throw new Error('DIRAC_S2S_SECURITY_TABLE_REQUIRED');
   readDiracSupabaseCredentials('security');
   const revoked = diracS2SEnvJsonObjectV207('DIRAC_S2S_REVOKED_KEYS_JSON', false);
   if (!revoked.ok) throw new Error('DIRAC_S2S_REVOKED_KEYS_JSON_INVALID');
