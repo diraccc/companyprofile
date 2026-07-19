@@ -5337,28 +5337,34 @@ async function customerSecurityTouchCurrentSession(req, customerId, preloadedSes
       return { ok: true, created: false, session_id: rows[0].id };
     }
 
-    const created = await supabaseFetch('/rest/v1/security_customer_sessions', {
-      method: 'POST',
-      auth: 'service',
-      prefer: 'return=representation',
-      body: [{
-        customer_id: customerId,
-        session_token_hash: fingerprint.session_token_hash,
-        trusted_device: false,
-        metadata: {
-          source: 'customer_security_overview',
-          auto_detected: true
-        },
-        ...updateBody
-      }]
-    });
+    const created = await supabaseFetch(
+      '/rest/v1/security_customer_sessions?on_conflict=customer_id,session_token_hash',
+      {
+        method: 'POST',
+        auth: 'service',
+        prefer: 'resolution=merge-duplicates,return=representation',
+        body: [{
+          customer_id: customerId,
+          session_token_hash: fingerprint.session_token_hash,
+          trusted_device: false,
+          metadata: {
+            source: 'customer_security_overview',
+            auto_detected: true
+          },
+          ...updateBody
+        }]
+      }
+    );
 
     if (!created.ok) return { ok: false, reason: 'session_create_failed', status: created.status };
 
+    const createdRows = Array.isArray(created.data) ? created.data : [];
+    const sessionId = createdRows[0] && createdRows[0].id ? String(createdRows[0].id) : '';
+    if (!sessionId) return { ok: false, reason: 'session_upsert_id_missing', status: 503 };
+
     await customerSecurityWriteSessionTelemetry(customerId, fingerprint);
 
-    const createdRows = Array.isArray(created.data) ? created.data : [];
-    return { ok: true, created: true, session_id: createdRows[0] && createdRows[0].id ? createdRows[0].id : null };
+    return { ok: true, created: true, session_id: sessionId };
   } catch (error) {
     console.error('[customer-security-session]', customerSecuritySafeLogError(error));
     return { ok: false, reason: 'session_exception' };
