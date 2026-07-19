@@ -1879,12 +1879,105 @@ async function domainMe(req, res) {
   });
 }
 
+const DIRAC_DASHBOARD_DEBUG_TRACE_V213 = 'dirac-dashboard-debug-trace-v213';
+
+function diracDashboardDebugSafeTextV213(value, maxLength = 180) {
+  return String(value === undefined || value === null ? '' : value)
+    .replace(/[\r\n\0]/g, ' ')
+    .replace(/Bearer\s+[A-Za-z0-9._~+\/-]+/gi, 'Bearer [REDACTED]')
+    .replace(/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g, '[JWT_REDACTED]')
+    .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/gi, '[UUID_REDACTED]')
+    .replace(/\b[0-9a-f]{32,}\b/gi, '[HEX_REDACTED]')
+    .replace(/\b[A-Za-z0-9_-]{48,}\b/g, '[TOKEN_REDACTED]')
+    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[EMAIL_REDACTED]')
+    .slice(0, Math.max(1, Number(maxLength || 180)));
+}
+
+function diracDashboardDebugTraceV213(req, res) {
+  const ctx = typeof diracCentralCurrentContextV149 === 'function'
+    ? diracCentralCurrentContextV149()
+    : null;
+  const action = String(ctx && ctx.action || req && req.query && req.query.action || '').trim();
+  if (action !== 'domain_dashboard_me') return '';
+  const existing = String(req && req.__diracDashboardDebugTraceV213 || '').trim();
+  const trace = existing || String(ctx && ctx.requestId || crypto.randomBytes(12).toString('hex')).slice(0, 32);
+  if (req) req.__diracDashboardDebugTraceV213 = trace;
+  try {
+    if (res && typeof res.setHeader === 'function') {
+      res.setHeader('X-Dirac-Dashboard-Debug-Version', DIRAC_DASHBOARD_DEBUG_TRACE_V213);
+      res.setHeader('X-Dirac-Dashboard-Debug-Trace', trace);
+    }
+  } catch (_) {}
+  return trace;
+}
+
+function diracDashboardDebugResourceV213(path) {
+  const clean = String(path || '').split('?')[0];
+  if (clean === '/auth/v1/user') return 'auth_user';
+  if (clean === '/auth/v1/token') return 'auth_token';
+  const match = clean.match(/^\/rest\/v1\/([A-Za-z0-9_]+)/);
+  return match ? match[1] : diracDashboardDebugSafeTextV213(clean, 80);
+}
+
+function diracDashboardDebugUpstreamV213(result) {
+  const data = result && result.data;
+  const obj = data && typeof data === 'object' && !Array.isArray(data) ? data : {};
+  return {
+    upstream_code: diracDashboardDebugSafeTextV213(obj.code || obj.error_code || obj.error || '', 100),
+    upstream_message: diracDashboardDebugSafeTextV213(obj.message || obj.msg || obj.error_description || '', 180),
+    upstream_details: diracDashboardDebugSafeTextV213(obj.details || obj.detail || '', 180),
+    upstream_hint: diracDashboardDebugSafeTextV213(obj.hint || '', 180)
+  };
+}
+
+function diracDashboardDebugLogV213(req, res, stage, detail = {}) {
+  const trace = diracDashboardDebugTraceV213(req, res);
+  if (!trace) return false;
+  const safeStage = diracDashboardDebugSafeTextV213(stage || 'unknown', 100);
+  const safeDetail = {};
+  for (const [key, value] of Object.entries(detail && typeof detail === 'object' ? detail : {})) {
+    if (value === undefined) continue;
+    if (typeof value === 'string') safeDetail[key] = diracDashboardDebugSafeTextV213(value, 220);
+    else if (typeof value === 'number' || typeof value === 'boolean' || value === null) safeDetail[key] = value;
+  }
+  try {
+    if (res && typeof res.setHeader === 'function') {
+      res.setHeader('X-Dirac-Dashboard-Debug-Stage', safeStage);
+      if (safeDetail.code) res.setHeader('X-Dirac-Dashboard-Debug-Code', String(safeDetail.code).slice(0, 100));
+    }
+  } catch (_) {}
+  try {
+    console.error('[dirac-dashboard-debug-v213]', {
+      patch: DIRAC_DASHBOARD_DEBUG_TRACE_V213,
+      trace_id: trace,
+      stage: safeStage,
+      ...safeDetail
+    });
+  } catch (_) {}
+  return true;
+}
+
 async function requireDomainDashboardAccess(req, res) {
+  diracDashboardDebugLogV213(req, res, 'dashboard_access_start');
   const user = await requireDomainUser(req, res);
-  if (!user) return null;
+  if (!user) {
+    diracDashboardDebugLogV213(req, res, 'dashboard_auth_failed', {
+      code: 'DOMAIN_USER_UNAVAILABLE',
+      status: Number(res && res.statusCode || 0)
+    });
+    return null;
+  }
+  diracDashboardDebugLogV213(req, res, 'dashboard_auth_ok', {
+    auth_user_id_valid: customerSecurityLooksLikeUuid(String(user.id || '')),
+    email_present: Boolean(user.email)
+  });
 
   const mfa = verifyCustomerDashboardMfaCookie(req, user);
   if (!mfa.ok) {
+    diracDashboardDebugLogV213(req, res, 'dashboard_mfa_failed', {
+      code: String(mfa.code || 'DASHBOARD_MFA_INVALID'),
+      source: String(mfa.source || '')
+    });
     res.status(403).json({
       ok: false,
       dashboard: false,
@@ -1892,8 +1985,16 @@ async function requireDomainDashboardAccess(req, res) {
     });
     return null;
   }
+  diracDashboardDebugLogV213(req, res, 'dashboard_mfa_ok', {
+    source: String(mfa.source || ''),
+    method: String(mfa.method || '')
+  });
 
   const protectedLock = await requireDomainProtectedDatabaseSessionLockSafe(req, res, user).catch((error) => {
+    diracDashboardDebugLogV213(req, res, 'protected_lock_exception', {
+      code: String(error && (error.code || error.name) || 'PROTECTED_SESSION_GUARD_EXCEPTION'),
+      error: customerSecuritySafeLogError(error)
+    });
     console.error('[domain-protected-lock-safe]', customerSecuritySafeLogError(error));
     res.status(503).json({
       ok: false,
@@ -1906,6 +2007,10 @@ async function requireDomainDashboardAccess(req, res) {
   });
   if (!protectedLock) return null;
 
+  diracDashboardDebugLogV213(req, res, 'protected_lock_ok', {
+    session_created: Boolean(protectedLock.created),
+    session_touched: Boolean(protectedLock.touched)
+  });
   return { user, mfa, protectedLock };
 }
 
@@ -1913,6 +2018,11 @@ async function requireDomainProtectedDatabaseSessionLockSafe(req, res, user) {
   const checked = await checkDomainProtectedDatabaseSessionLockSafe(req, user);
   if (checked && checked.ok) return checked;
 
+  diracDashboardDebugLogV213(req, res, 'protected_lock_rejected', {
+    code: String(checked && checked.code || 'PROTECTED_SESSION_LOCKED'),
+    status: Number(checked && checked.status || 401),
+    clear_cookies: Boolean(checked && checked.clearCookies)
+  });
   if (checked && checked.clearCookies) clearSessionCookies(res);
 
   res.status((checked && checked.status) || 401).json({
@@ -1928,6 +2038,7 @@ async function requireDomainProtectedDatabaseSessionLockSafe(req, res, user) {
 
 async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
   const authUserId = String(user && user.id || '').trim();
+  diracDashboardDebugLogV213(req, null, 'protected_lock_start', { auth_user_id_valid: customerSecurityLooksLikeUuid(authUserId) });
   if (!authUserId || !customerSecurityLooksLikeUuid(authUserId)) {
     return {
       ok: false,
@@ -1939,6 +2050,12 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
   }
 
   const linkResult = await customerSecurityFetchAuthLink(authUserId);
+  diracDashboardDebugLogV213(req, null, 'auth_link_read_result', {
+    ok: Boolean(linkResult && linkResult.ok),
+    status: Number(linkResult && linkResult.status || 0),
+    row_count: Array.isArray(linkResult && linkResult.data) ? linkResult.data.length : -1,
+    ...diracDashboardDebugUpstreamV213(linkResult)
+  });
   if (!linkResult.ok) {
     return {
       ok: false,
@@ -1950,6 +2067,13 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
 
   const link = customerSecurityPickSingleActiveAuthLink(linkResult);
   const customerId = String(link && link.customer_id || '').trim();
+  diracDashboardDebugLogV213(req, null, 'auth_link_selection_result', {
+    selected: Boolean(link),
+    customer_id_valid: customerSecurityLooksLikeUuid(customerId),
+    active_row_count: Array.isArray(linkResult && linkResult.data)
+      ? linkResult.data.filter((item) => item && item.link_status === 'active' && !item.disabled_at && !item.revoked_at).length
+      : -1
+  });
   if (!link || link.link_status !== 'active' || !customerSecurityLooksLikeUuid(customerId)) {
     return {
       ok: false,
@@ -1961,6 +2085,10 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
   }
 
   const fingerprint = customerSecurityBuildSessionFingerprint(req, customerId);
+  diracDashboardDebugLogV213(req, null, 'session_fingerprint_result', {
+    available: Boolean(fingerprint && fingerprint.session_token_hash),
+    device_id_present: Boolean(fingerprint && fingerprint.device_id)
+  });
   if (!fingerprint || !fingerprint.session_token_hash) {
     return {
       ok: false,
@@ -1980,6 +2108,12 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
     '&limit=1';
 
   const found = await supabaseFetch(readPath, { method: 'GET', auth: 'service' });
+  diracDashboardDebugLogV213(req, null, 'session_read_result', {
+    ok: Boolean(found && found.ok),
+    status: Number(found && found.status || 0),
+    row_count: Array.isArray(found && found.data) ? found.data.length : -1,
+    ...diracDashboardDebugUpstreamV213(found)
+  });
   if (!found.ok) {
     return {
       ok: false,
@@ -2004,7 +2138,13 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
 
   if (!row || !row.id) {
     // Bootstrap sesi hanya dianggap sah setelah row terikat berhasil dipersistenkan.
-    const created = await customerSecurityTouchCurrentSession(req, customerId, sessionSnapshotV212).catch(() => null);
+    const created = await customerSecurityTouchCurrentSession(req, customerId, sessionSnapshotV212).catch((error) => ({ ok: false, reason: 'session_create_exception', status: 500, error }));
+    diracDashboardDebugLogV213(req, null, 'session_create_result', {
+      ok: Boolean(created && created.ok),
+      status: Number(created && created.status || 0),
+      reason: String(created && created.reason || ''),
+      session_id_present: Boolean(created && created.session_id)
+    });
     if (!created || created.ok !== true || !created.session_id) {
       return {
         ok: false,
@@ -2100,7 +2240,13 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
     };
   }
 
-  const touched = await customerSecurityTouchCurrentSession(req, customerId, sessionSnapshotV212).catch(() => null);
+  const touched = await customerSecurityTouchCurrentSession(req, customerId, sessionSnapshotV212).catch((error) => ({ ok: false, reason: 'session_refresh_exception', status: 500, error }));
+  diracDashboardDebugLogV213(req, null, 'session_refresh_result', {
+    ok: Boolean(touched && touched.ok),
+    status: Number(touched && touched.status || 0),
+    reason: String(touched && touched.reason || ''),
+    session_id_match: Boolean(touched && String(touched.session_id || '') === String(row.id))
+  });
   if (!touched || touched.ok !== true || String(touched.session_id || '') !== String(row.id)) {
     return {
       ok: false,
@@ -2171,12 +2317,14 @@ async function getDomainUserForProtectedLogoutSafe(req) {
 }
 
 async function domainDashboardMe(req, res) {
+  diracDashboardDebugLogV213(req, res, 'domain_dashboard_me_enter', { method: String(req && req.method || '') });
   if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
 
   const access = await requireDomainDashboardAccess(req, res);
   if (!access) return;
 
   const { user, mfa } = access;
+  diracDashboardDebugLogV213(req, res, 'domain_dashboard_me_success', { status: 200 });
 
   return res.status(200).json({
     ok: true,
@@ -27621,6 +27769,11 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
       const result = await stage.guard(ctx);
       if (!result || result.ok !== true) {
         const reason = String(result && result.reason || 'central_guard_stage_failed');
+        diracDashboardDebugLogV213(req, res, 'central_guard_stage_failed', {
+          code: String(result && result.directCode || reason),
+          guard: String(stage && stage.stamp || ''),
+          action: String(ctx.action || ctx.rawAction || '')
+        });
         if (result && result.directCode) {
           return await diracCentralBanAndBlockV146(
             req,
@@ -27637,12 +27790,17 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
     }
 
     if ((ctx.passport & DIRAC_V202_ALL_CHECKPOINTS) !== DIRAC_V202_ALL_CHECKPOINTS) {
+      diracDashboardDebugLogV213(req, res, 'central_guard_integrity_failed', { code: 'central_guard_integrity_final_incomplete' });
       return await diracCentralBanAndBlockV146(req, res, ctx, ctx.action || 'central_guard_error', method, 'central_guard_integrity_final_incomplete');
     }
     if (ctx.terminalResponse === 'disabled') {
+      diracDashboardDebugLogV213(req, res, 'central_guard_action_disabled', { code: 'action_disabled' });
       return await diracCentralBanAndBlockV146(req, res, ctx, ctx.action || 'disabled_action', method, 'action_disabled');
     }
-    if (ctx.terminalBlockReason) return await diracCentralBanAndBlockV146(req, res, ctx, ctx.action, method, ctx.terminalBlockReason);
+    if (ctx.terminalBlockReason) {
+      diracDashboardDebugLogV213(req, res, 'central_guard_terminal_block', { code: String(ctx.terminalBlockReason || '') });
+      return await diracCentralBanAndBlockV146(req, res, ctx, ctx.action, method, ctx.terminalBlockReason);
+    }
 
     req.__diracCentralSecurityGuardPassedV146 = true;
     if (ctx.__diracS2SSecurityReportResultV206) {
@@ -27652,6 +27810,10 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
     const handlerResult = await nextHandler(req, res);
     const handlerStatusCode = Number(res && res.statusCode || 200);
     if (Number.isFinite(handlerStatusCode) && handlerStatusCode >= 400) {
+      diracDashboardDebugLogV213(req, res, 'handler_failure_detected', {
+        code: 'HANDLER_STATUS_' + String(Math.trunc(handlerStatusCode)),
+        status: Math.trunc(handlerStatusCode)
+      });
       const handlerBan = await diracCentralBanCurrentContextV146(
         'handler_failure_status_' + String(Math.trunc(handlerStatusCode))
       );
@@ -27670,6 +27832,10 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
     return handlerResult;
   } catch (error) {
     const safeDebug = diracCentralSafeDebugErrorV155(error, ctx);
+    diracDashboardDebugLogV213(req, res, 'central_guard_exception', {
+      code: String(error && (error.code || error.name) || 'CENTRAL_GUARD_EXCEPTION'),
+      status: Number(error && (error.statusCode || error.status) || 500)
+    });
     try { console.error('[dirac-central-security-v202]', safeDebug); } catch (_) {}
     if (ctx) ctx.centralErrorDebugV155 = safeDebug;
     if (ctx && req && req.__diracCentralSecurityGuardPassedV146 && ctx.action === 'domain_dashboard_me') {
@@ -31805,7 +31971,54 @@ async function secureDatabaseGateway(ctx, operation) {
   if (ctx && ctx.action && !ACTION_POLICY[ctx.action]) {
     return { ok: false, status: 403, data: { code: 'DIRAC_DATABASE_GATEWAY_POLICY_MISSING' } };
   }
-  return __diracV202DatabaseGatewayDelegate(op.path, op.options);
+
+  const dashboardDebug = ctx.action === 'domain_dashboard_me'
+    || String(ctx.rawAction || '').trim().toLowerCase() === 'domain_dashboard_me';
+  let sequence = 0;
+  let targetKey = '';
+  if (dashboardDebug) {
+    sequence = Number(ctx.__diracDashboardDbSequenceV213 || 0) + 1;
+    ctx.__diracDashboardDbSequenceV213 = sequence;
+    try { targetKey = resolveDiracSupabaseTargetKey(op.path, op.options); } catch (_) { targetKey = 'resolve_failed'; }
+    diracDashboardDebugLogV213(ctx.req, ctx.res, 'db_call_start', {
+      sequence,
+      method: String(op.options.method || 'GET').toUpperCase(),
+      resource: diracDashboardDebugResourceV213(op.path),
+      auth_mode: String(op.options.auth || ''),
+      target: String(targetKey || '')
+    });
+  }
+
+  try {
+    const result = await __diracV202DatabaseGatewayDelegate(op.path, op.options);
+    if (dashboardDebug) {
+      diracDashboardDebugLogV213(ctx.req, ctx.res, result && result.ok ? 'db_call_ok' : 'db_call_failed', {
+        sequence,
+        method: String(op.options.method || 'GET').toUpperCase(),
+        resource: diracDashboardDebugResourceV213(op.path),
+        auth_mode: String(op.options.auth || ''),
+        target: String(targetKey || ''),
+        ok: Boolean(result && result.ok),
+        status: Number(result && result.status || 0),
+        row_count: Array.isArray(result && result.data) ? result.data.length : -1,
+        ...diracDashboardDebugUpstreamV213(result)
+      });
+    }
+    return result;
+  } catch (error) {
+    if (dashboardDebug) {
+      diracDashboardDebugLogV213(ctx.req, ctx.res, 'db_call_exception', {
+        sequence,
+        method: String(op.options.method || 'GET').toUpperCase(),
+        resource: diracDashboardDebugResourceV213(op.path),
+        auth_mode: String(op.options.auth || ''),
+        target: String(targetKey || ''),
+        code: String(error && (error.code || error.name) || 'DATABASE_GATEWAY_EXCEPTION'),
+        error: customerSecuritySafeLogError(error)
+      });
+    }
+    throw error;
+  }
 }
 supabaseFetch = async function supabaseFetchV202Gateway(path, options = {}) {
   return secureDatabaseGateway(diracCentralCurrentContextV149(), { path: String(path || ''), options });
