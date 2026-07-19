@@ -26336,6 +26336,74 @@ globalThis.__DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148__ = DIRAC_CENTRAL_A2F_SIGNA
    - debug remains redacted and never exposes secrets to normal production users.
    ============================================================ */
 const DIRAC_CENTRAL_FAIL_CLOSED_DEBUG_V211 = 'dirac-central-fail-closed-debug-v211';
+const DIRAC_CENTRAL_OWNER_DEBUG_V212 = 'dirac-central-owner-debug-v212';
+
+function diracCentralSafeDiagnosticErrorV212(error) {
+  const name = String(error && error.name || 'Error').replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 80) || 'Error';
+  const code = String(error && error.code || '').replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 100);
+  const rawMessage = String(error && error.message || error || 'unknown_error');
+  return {
+    name,
+    code: code || undefined,
+    message: diracSecurityRedactDiagnosticV210(rawMessage, 220)
+  };
+}
+
+function diracCentralCommitOwnerDebugV212(ctx, debug, finalCode, failurePoint) {
+  if (!ctx || !debug || typeof debug !== 'object') return debug;
+  debug.patch = DIRAC_CENTRAL_OWNER_DEBUG_V212;
+  debug.final_code = String(finalCode || debug.final_code || 'OWNER_DEBUG_UNSPECIFIED').slice(0, 120);
+  debug.failure_point = String(failurePoint || debug.failure_point || '').slice(0, 180);
+  debug.elapsed_ms = Math.max(0, Date.now() - Number(debug.started_at_ms || Date.now()));
+  ctx.ownerResolutionDebugV212 = debug;
+  return debug;
+}
+
+function diracCentralSafeRestShapeV212(path, options, table, method) {
+  const raw = String(path || '');
+  const query = raw.includes('?') ? raw.slice(raw.indexOf('?') + 1) : '';
+  const queryKeys = Array.from(new Set(query.split('&').map((part) => {
+    const index = part.indexOf('=');
+    const encodedKey = (index >= 0 ? part.slice(0, index) : part) || '';
+    let decodedKey = encodedKey;
+    try { decodedKey = decodeURIComponent(encodedKey); } catch (_) {}
+    return String(decodedKey).replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 50);
+  }).filter(Boolean))).slice(0, 20);
+  const body = options && options.body;
+  const rows = Array.isArray(body) ? body : (body && typeof body === 'object' ? [body] : []);
+  const bodyKeys = Array.from(new Set(rows.flatMap((row) => row && typeof row === 'object' && !Array.isArray(row) ? Object.keys(row) : [])
+    .map((key) => String(key || '').replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 60)).filter(Boolean))).slice(0, 30);
+  return {
+    table: String(table || '').replace(/[^a-zA-Z0-9_]/g, '').slice(0, 80),
+    method: String(method || options && options.method || 'GET').toUpperCase().slice(0, 12),
+    query_keys: queryKeys,
+    body_kind: Array.isArray(body) ? 'array' : body && typeof body === 'object' ? 'object' : body == null ? 'none' : typeof body,
+    body_row_count: rows.length,
+    body_keys: bodyKeys
+  };
+}
+
+function diracCentralEmitServiceRoleBlockV212(ctx, reason, details) {
+  const prior = ctx && ctx.serviceRoleDebugV212 && typeof ctx.serviceRoleDebugV212 === 'object'
+    ? ctx.serviceRoleDebugV212
+    : {};
+  const diagnostic = {
+    ...prior,
+    ...(details && typeof details === 'object' ? details : {}),
+    patch: DIRAC_CENTRAL_OWNER_DEBUG_V212,
+    reason: String(reason || 'service_role_blocked').slice(0, 120),
+    diagnostic_code: String(details && details.diagnostic_code || prior.diagnostic_code || reason || 'SERVICE_ROLE_BLOCKED').slice(0, 160),
+    failure_point: String(details && details.failure_point || prior.failure_point || 'diracCentralInspectServiceRoleAccessV146').slice(0, 180)
+  };
+  if (ctx) ctx.serviceRoleDebugV212 = diagnostic;
+  return diracCentralEmitDebugV211(ctx, 'service_role_blocked', {
+    reason: diagnostic.reason,
+    diagnostic_code: diagnostic.diagnostic_code,
+    failure_point: diagnostic.failure_point,
+    service_role_debug: diagnostic,
+    owner_resolution_debug: ctx && ctx.ownerResolutionDebugV212 || undefined
+  });
+}
 
 function diracCentralDebugEnabledV211() {
   return diracCentralEnvTrueV150('DIRAC_CENTRAL_DEBUG')
@@ -26375,9 +26443,18 @@ function diracCentralEmitDebugV211(ctx, event, extra) {
     stage_index: Number((ctx && ctx.currentStageIndexV211) ?? -1),
     stage: String(ctx && ctx.currentStageV211 || '').slice(0, 80),
     failed_stage: String(ctx && ctx.failedStageV211 || '').slice(0, 80),
-    reason: String(ctx && ctx.failureReasonV211 || '').slice(0, 120),
+    reason: String(ctx && ctx.failureReasonV211 || extra && extra.reason || '').slice(0, 120),
+    diagnostic_patch: ctx && (ctx.ownerResolutionDebugV212 || ctx.serviceRoleDebugV212) ? DIRAC_CENTRAL_OWNER_DEBUG_V212 : undefined,
+    diagnostic_code: String(extra && extra.diagnostic_code || ctx && ctx.serviceRoleDebugV212 && ctx.serviceRoleDebugV212.diagnostic_code || '').slice(0, 160),
+    failure_point: String(extra && extra.failure_point || ctx && ctx.serviceRoleDebugV212 && ctx.serviceRoleDebugV212.failure_point || '').slice(0, 180),
     passport_hex: (() => { try { return BigInt(ctx && ctx.passport || 0n).toString(16); } catch (_) { return '0'; } })(),
     trace: diracCentralStageTraceV211(ctx, 30),
+    owner_resolution_debug: ctx && ctx.ownerResolutionDebugV212
+      ? diracCentralSanitizeOutputV146(ctx.ownerResolutionDebugV212, 0)
+      : undefined,
+    service_role_debug: ctx && ctx.serviceRoleDebugV212
+      ? diracCentralSanitizeOutputV146(ctx.serviceRoleDebugV212, 0)
+      : undefined,
     extra: extra && typeof extra === 'object' ? diracCentralSanitizeOutputV146(extra, 0) : undefined
   };
   try {
@@ -27647,7 +27724,9 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
     failedStageV211: '',
     failureReasonV211: '',
     stageTraceV211: [],
-    centralGuardFullyPassedV211: false
+    centralGuardFullyPassedV211: false,
+    ownerResolutionDebugV212: null,
+    serviceRoleDebugV212: null
   };
   try {
     DIRAC_CENTRAL_CONTEXT_STACK_V146.push(ctx);
@@ -28979,30 +29058,159 @@ function diracCentralIsAuthSelfReadOnlyV146(action, ids) {
 }
 
 async function diracCentralResolveOwnerV146(req) {
+  const ctx = diracCentralCurrentContextV149();
+  const debug = {
+    patch: DIRAC_CENTRAL_OWNER_DEBUG_V212,
+    resolver: 'diracCentralResolveOwnerV146',
+    started_at_ms: Date.now(),
+    attempts: []
+  };
+
   try {
     if (typeof diracBolaIdorV133ResolveStrictOwner === 'function') {
-      const owner = await diracBolaIdorV133ResolveStrictOwner(req);
-      if (owner && owner.ok && owner.customerIds && owner.customerIds.length) return owner;
+      try {
+        const owner = await diracBolaIdorV133ResolveStrictOwner(req);
+        const count = Array.isArray(owner && owner.customerIds) ? owner.customerIds.length : 0;
+        debug.attempts.push({ resolver: 'diracBolaIdorV133ResolveStrictOwner', result: owner && owner.ok && count ? 'owner_found' : 'no_owner', customer_count: count });
+        if (owner && owner.ok && owner.customerIds && owner.customerIds.length) {
+          diracCentralCommitOwnerDebugV212(ctx, debug, 'OWNER_RESOLVED_BY_V133', 'diracBolaIdorV133ResolveStrictOwner');
+          return owner;
+        }
+      } catch (error) {
+        debug.attempts.push({ resolver: 'diracBolaIdorV133ResolveStrictOwner', result: 'exception', error: diracCentralSafeDiagnosticErrorV212(error) });
+      }
+    } else {
+      debug.attempts.push({ resolver: 'diracBolaIdorV133ResolveStrictOwner', result: 'function_missing' });
     }
-  } catch (_) {}
+  } catch (error) {
+    debug.attempts.push({ resolver: 'diracBolaIdorV133ResolveStrictOwner.outer', result: 'exception', error: diracCentralSafeDiagnosticErrorV212(error) });
+  }
+
   try {
     if (typeof diracBolaIdorV128ResolveRequestOwner === 'function') {
-      const owner = await diracBolaIdorV128ResolveRequestOwner(req);
-      if (owner && owner.ok && owner.customerIds && owner.customerIds.length) return owner;
+      try {
+        const owner = await diracBolaIdorV128ResolveRequestOwner(req);
+        const count = Array.isArray(owner && owner.customerIds) ? owner.customerIds.length : 0;
+        debug.attempts.push({ resolver: 'diracBolaIdorV128ResolveRequestOwner', result: owner && owner.ok && count ? 'owner_found' : 'no_owner', customer_count: count });
+        if (owner && owner.ok && owner.customerIds && owner.customerIds.length) {
+          diracCentralCommitOwnerDebugV212(ctx, debug, 'OWNER_RESOLVED_BY_V128', 'diracBolaIdorV128ResolveRequestOwner');
+          return owner;
+        }
+      } catch (error) {
+        debug.attempts.push({ resolver: 'diracBolaIdorV128ResolveRequestOwner', result: 'exception', error: diracCentralSafeDiagnosticErrorV212(error) });
+      }
+    } else {
+      debug.attempts.push({ resolver: 'diracBolaIdorV128ResolveRequestOwner', result: 'function_missing' });
     }
-  } catch (_) {}
-  if (typeof requireDomainUser !== 'function' || typeof customerSecurityFetchAuthLink !== 'function') return { ok: false };
+  } catch (error) {
+    debug.attempts.push({ resolver: 'diracBolaIdorV128ResolveRequestOwner.outer', result: 'exception', error: diracCentralSafeDiagnosticErrorV212(error) });
+  }
+
+  const requireUserAvailable = typeof requireDomainUser === 'function';
+  const authLinkFetchAvailable = typeof customerSecurityFetchAuthLink === 'function';
+  debug.fallback_dependencies = {
+    require_domain_user: requireUserAvailable,
+    customer_security_fetch_auth_link: authLinkFetchAvailable
+  };
+  if (!requireUserAvailable || !authLinkFetchAvailable) {
+    diracCentralCommitOwnerDebugV212(ctx, debug, 'OWNER_FALLBACK_DEPENDENCY_MISSING', 'diracCentralResolveOwnerV146.dependencies');
+    return { ok: false };
+  }
+
   const fake = diracCentralFakeResponseV146();
-  const user = await requireDomainUser(req, fake).catch(() => null);
+  let user = null;
+  try {
+    user = await requireDomainUser(req, fake);
+    debug.require_domain_user = {
+      result: user && typeof user === 'object' ? 'returned_user' : 'no_user',
+      response_status: Number(fake.statusCode || 0),
+      user_object_present: Boolean(user && typeof user === 'object'),
+      user_id_present: Boolean(user && user.id),
+      user_email_present: Boolean(user && user.email)
+    };
+  } catch (error) {
+    debug.require_domain_user = {
+      result: 'exception',
+      response_status: Number(fake.statusCode || 0),
+      error: diracCentralSafeDiagnosticErrorV212(error)
+    };
+    diracCentralCommitOwnerDebugV212(ctx, debug, 'OWNER_REQUIRE_DOMAIN_USER_EXCEPTION', 'requireDomainUser');
+    return { ok: false };
+  }
+
   const authUserId = String(user && user.id || '').trim();
-  if (!diracCentralLooksLikeUuidV146(authUserId)) return { ok: false };
-  const link = await customerSecurityFetchAuthLink(authUserId).catch(() => null);
-  const rows = link && link.ok && Array.isArray(link.data) ? link.data.filter((row) => row && String(row.link_status || '').toLowerCase() === 'active' && !row.disabled_at && !row.revoked_at) : [];
+  const authUserIdValid = diracCentralLooksLikeUuidV146(authUserId);
+  debug.auth_user = {
+    id_present: Boolean(authUserId),
+    id_uuid_valid: authUserIdValid,
+    email_present: Boolean(user && user.email),
+    require_domain_user_status: Number(fake.statusCode || 0)
+  };
+  if (!authUserIdValid) {
+    diracCentralCommitOwnerDebugV212(ctx, debug, 'OWNER_AUTH_USER_ID_INVALID_OR_MISSING', 'diracCentralResolveOwnerV146.auth_user_id');
+    return { ok: false };
+  }
+
+  let link = null;
+  try {
+    link = await customerSecurityFetchAuthLink(authUserId);
+  } catch (error) {
+    debug.auth_link_fetch = {
+      result: 'exception',
+      error: diracCentralSafeDiagnosticErrorV212(error)
+    };
+    diracCentralCommitOwnerDebugV212(ctx, debug, 'OWNER_AUTH_LINK_FETCH_EXCEPTION', 'customerSecurityFetchAuthLink');
+    return { ok: false, reason: 'owner_unavailable' };
+  }
+
+  const dataIsArray = Boolean(link && Array.isArray(link.data));
+  const rawRows = dataIsArray ? link.data.filter((row) => row && typeof row === 'object') : [];
+  const rows = link && link.ok && dataIsArray
+    ? rawRows.filter((row) => String(row.link_status || '').toLowerCase() === 'active' && !row.disabled_at && !row.revoked_at)
+    : [];
   const customerIds = Array.from(new Set(rows
     .map((row) => String(row.customer_id || '').trim())
     .filter(diracCentralLooksLikeUuidV146)));
-  if (rows.length === 0 || customerIds.length === 0) return { ok: false, reason: 'owner_unavailable' };
-  if (rows.length > 1 || customerIds.length > 1) return { ok: false, reason: 'owner_ambiguous' };
+  const statusCounts = rawRows.reduce((out, row) => {
+    const status = String(row.link_status || 'missing').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40) || 'missing';
+    out[status] = Number(out[status] || 0) + 1;
+    return out;
+  }, {});
+  debug.auth_link_fetch = {
+    result: link && link.ok && dataIsArray ? 'valid_result' : 'invalid_result',
+    link_ok: Boolean(link && link.ok),
+    data_is_array: dataIsArray,
+    raw_row_count: rawRows.length,
+    active_row_count: rows.length,
+    disabled_row_count: rawRows.filter((row) => Boolean(row.disabled_at)).length,
+    revoked_row_count: rawRows.filter((row) => Boolean(row.revoked_at)).length,
+    missing_customer_id_count: rows.filter((row) => !String(row.customer_id || '').trim()).length,
+    invalid_customer_id_count: rows.filter((row) => String(row.customer_id || '').trim() && !diracCentralLooksLikeUuidV146(String(row.customer_id || '').trim())).length,
+    distinct_valid_customer_count: customerIds.length,
+    status_counts: statusCounts
+  };
+
+  if (!link || link.ok !== true || !dataIsArray) {
+    diracCentralCommitOwnerDebugV212(ctx, debug, 'OWNER_AUTH_LINK_RESULT_INVALID', 'customerSecurityFetchAuthLink.result');
+    return { ok: false, reason: 'owner_unavailable' };
+  }
+  if (rows.length === 0) {
+    diracCentralCommitOwnerDebugV212(ctx, debug, 'OWNER_AUTH_LINK_NO_ACTIVE_ROW', 'security_customer_auth_links.active_filter');
+    return { ok: false, reason: 'owner_unavailable' };
+  }
+  if (customerIds.length === 0) {
+    diracCentralCommitOwnerDebugV212(ctx, debug, 'OWNER_AUTH_LINK_CUSTOMER_ID_MISSING_OR_INVALID', 'security_customer_auth_links.customer_id');
+    return { ok: false, reason: 'owner_unavailable' };
+  }
+  if (rows.length > 1) {
+    diracCentralCommitOwnerDebugV212(ctx, debug, 'OWNER_AUTH_LINK_MULTIPLE_ACTIVE_ROWS', 'security_customer_auth_links.active_rows');
+    return { ok: false, reason: 'owner_ambiguous' };
+  }
+  if (customerIds.length > 1) {
+    diracCentralCommitOwnerDebugV212(ctx, debug, 'OWNER_AUTH_LINK_MULTIPLE_CUSTOMERS', 'security_customer_auth_links.customer_id_set');
+    return { ok: false, reason: 'owner_ambiguous' };
+  }
+  diracCentralCommitOwnerDebugV212(ctx, debug, 'OWNER_RESOLVED_BY_AUTH_LINK', 'security_customer_auth_links');
   return { ok: true, authUserId, customerIds };
 }
 
@@ -29128,10 +29336,13 @@ async function diracCentralInspectServiceRoleAccessV146(path, options = {}) {
   if (!options || options.auth !== 'service') return { ok: true };
   const ctx = diracCentralCurrentContextV149();
   if (!ctx) return { block: true, reason: 'service_role_central_context_required', status: 503 };
+  const requestedMethodV212 = String(options.method || 'GET').toUpperCase();
+  const requestedTableV212 = diracCentralExtractRestTableV146(path);
   if (!ctx.__serviceGuardActive && ctx.action === 'midtrans_webhook') return { ok: true };
-  const table = diracCentralExtractRestTableV146(path);
+  const table = requestedTableV212;
   if (!diracCentralOwnedTableV146(table)) return { ok: true };
-  const method = String(options.method || 'GET').toUpperCase();
+  const method = requestedMethodV212;
+  const requestShapeV212 = diracCentralSafeRestShapeV212(path, options, table, method);
   if (diracCentralIsInternalOwnerLookupV194(ctx, table, path, options, method)) {
     return { ok: true, guarded: 'central_owner_lookup_v194' };
   }
@@ -29144,13 +29355,35 @@ async function diracCentralInspectServiceRoleAccessV146(path, options = {}) {
   const hasOwnerScope = diracCentralPathHasOwnerScopeV146(path, options.body);
   const hasObjectScope = diracCentralPathHasObjectScopeV146(path, options.body);
   if (!hasOwnerScope && !hasObjectScope) {
+    diracCentralEmitServiceRoleBlockV212(ctx, 'service_role_without_owner_scope', {
+      diagnostic_code: 'SERVICE_ROLE_REQUEST_HAS_NO_OWNER_OR_OBJECT_SCOPE',
+      failure_point: 'diracCentralInspectServiceRoleAccessV146.scope_presence',
+      request_shape: requestShapeV212,
+      has_owner_scope: false,
+      has_object_scope: false
+    });
     await diracCentralBanCurrentContextV146('service_role_without_owner_scope').catch(() => null);
     return { block: true, reason: 'service_role_without_owner_scope', status: 403 };
   }
-  const ownerScope = await diracCentralServiceRoleOwnerScopeGuardV146(ctx, path, options.body).catch(() => ({ ok: false, reason: 'service_role_owner_scope_error' }));
+  const ownerScope = await diracCentralServiceRoleOwnerScopeGuardV146(ctx, path, options.body).catch((error) => {
+    ctx.serviceRoleDebugV212 = {
+      patch: DIRAC_CENTRAL_OWNER_DEBUG_V212,
+      diagnostic_code: 'SERVICE_ROLE_OWNER_SCOPE_GUARD_EXCEPTION',
+      failure_point: 'diracCentralServiceRoleOwnerScopeGuardV146',
+      request_shape: requestShapeV212,
+      error: diracCentralSafeDiagnosticErrorV212(error)
+    };
+    return { ok: false, reason: 'service_role_owner_scope_error' };
+  });
   if (!ownerScope.ok) {
-    await diracCentralBanCurrentContextV146(ownerScope.reason || 'service_role_owner_scope_mismatch').catch(() => null);
-    return { block: true, reason: ownerScope.reason || 'service_role_owner_scope_mismatch', status: 403 };
+    const reason = ownerScope.reason || 'service_role_owner_scope_mismatch';
+    diracCentralEmitServiceRoleBlockV212(ctx, reason, {
+      request_shape: requestShapeV212,
+      has_owner_scope: hasOwnerScope,
+      has_object_scope: hasObjectScope
+    });
+    await diracCentralBanCurrentContextV146(reason).catch(() => null);
+    return { block: true, reason, status: 403 };
   }
   if (['POST', 'PUT', 'PATCH'].includes(method)) {
     const fields = diracCentralFlattenObjectV146(options.body || {}, 0, '', 200).map((item) => item.key.split('.').pop());
@@ -29176,6 +29409,13 @@ async function diracCentralInspectServiceRoleAccessV146(path, options = {}) {
         });
       const allowDashboardSelfReadAuthLink = diracCentralIsDashboardSelfReadAuthLinkWriteV146(ctx, table, options, method, protectedFields);
       if (!allowCreatePaymentUnpaid && !allowDashboardSelfReadAuthLink) {
+        diracCentralEmitServiceRoleBlockV212(ctx, 'service_role_protected_field', {
+          diagnostic_code: 'SERVICE_ROLE_PROTECTED_FIELD_WRITE_REJECTED',
+          failure_point: 'diracCentralInspectServiceRoleAccessV146.protected_fields',
+          request_shape: requestShapeV212,
+          protected_field_count: protectedFields.length,
+          protected_fields: protectedFields.map((key) => String(key || '').replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 60)).slice(0, 20)
+        });
         await diracCentralBanCurrentContextV146('service_role_protected_field').catch(() => null);
         return { block: true, reason: 'service_role_protected_field', status: 403 };
       }
@@ -29199,25 +29439,72 @@ async function diracCentralServiceRoleOwnerScopeGuardV146(ctx, path, body) {
   if (!ctx || ctx.classification === 'server') return { ok: true };
   if (ctx.__diracCentralOwnerScopeResolvingV146 === true) return { ok: true, guarded: 'owner_scope_internal_lookup' };
   const ids = diracCentralExtractServiceRoleScopeIdsV146(path, body);
+  const scopeCounts = {
+    customer_id_count: ids.customerIds.length,
+    auth_user_id_count: ids.authUserIds.length,
+    user_id_count: ids.userIds.length,
+    object_value_count: ids.objectValues.length
+  };
   if (!ids.customerIds.length && !ids.authUserIds.length && !ids.userIds.length && !ids.objectValues.length) return { ok: true };
   let owner = null;
   ctx.__diracCentralOwnerScopeResolvingV146 = true;
   try {
-    owner = await diracCentralResolveOwnerV146(ctx.req).catch(() => null);
+    owner = await diracCentralResolveOwnerV146(ctx.req).catch((error) => {
+      ctx.ownerResolutionDebugV212 = {
+        patch: DIRAC_CENTRAL_OWNER_DEBUG_V212,
+        resolver: 'diracCentralResolveOwnerV146',
+        final_code: 'OWNER_RESOLVER_UNCAUGHT_EXCEPTION',
+        failure_point: 'diracCentralServiceRoleOwnerScopeGuardV146.resolve_owner',
+        error: diracCentralSafeDiagnosticErrorV212(error)
+      };
+      return null;
+    });
   } finally {
     ctx.__diracCentralOwnerScopeResolvingV146 = false;
   }
-  if (!owner || !owner.ok || !owner.customerIds || !owner.customerIds.length) return { ok: false, reason: 'service_role_owner_unavailable' };
+  if (!owner || !owner.ok || !owner.customerIds || !owner.customerIds.length) {
+    ctx.serviceRoleDebugV212 = {
+      patch: DIRAC_CENTRAL_OWNER_DEBUG_V212,
+      diagnostic_code: String(ctx.ownerResolutionDebugV212 && ctx.ownerResolutionDebugV212.final_code || owner && owner.reason || 'OWNER_UNAVAILABLE').slice(0, 160),
+      failure_point: String(ctx.ownerResolutionDebugV212 && ctx.ownerResolutionDebugV212.failure_point || 'diracCentralServiceRoleOwnerScopeGuardV146.owner_resolution').slice(0, 180),
+      owner_result: owner && owner.reason ? String(owner.reason).slice(0, 100) : 'owner_not_resolved',
+      scope_counts: scopeCounts
+    };
+    return { ok: false, reason: 'service_role_owner_unavailable' };
+  }
   const allowedCustomers = new Set(owner.customerIds.map(String));
-  if (ids.customerIds.some((id) => !allowedCustomers.has(id))) return { ok: false, reason: 'service_role_customer_scope_mismatch' };
+  if (ids.customerIds.some((id) => !allowedCustomers.has(id))) {
+    ctx.serviceRoleDebugV212 = {
+      patch: DIRAC_CENTRAL_OWNER_DEBUG_V212,
+      diagnostic_code: 'SERVICE_ROLE_CUSTOMER_SCOPE_MISMATCH',
+      failure_point: 'diracCentralServiceRoleOwnerScopeGuardV146.customer_scope',
+      scope_counts: scopeCounts,
+      resolved_customer_count: allowedCustomers.size
+    };
+    return { ok: false, reason: 'service_role_customer_scope_mismatch' };
+  }
   const expectedAuthUser = String(owner.authUserId || '').trim();
   const authIds = ids.authUserIds.concat(ids.userIds);
   if (authIds.length && (!expectedAuthUser || authIds.some((id) => id !== expectedAuthUser))) {
+    ctx.serviceRoleDebugV212 = {
+      patch: DIRAC_CENTRAL_OWNER_DEBUG_V212,
+      diagnostic_code: expectedAuthUser ? 'SERVICE_ROLE_AUTH_USER_SCOPE_MISMATCH' : 'SERVICE_ROLE_EXPECTED_AUTH_USER_MISSING',
+      failure_point: 'diracCentralServiceRoleOwnerScopeGuardV146.auth_user_scope',
+      scope_counts: scopeCounts,
+      expected_auth_user_present: Boolean(expectedAuthUser)
+    };
     return { ok: false, reason: 'service_role_auth_user_scope_mismatch' };
   }
   if (ids.objectValues.length) {
     const approved = ctx.__diracCentralOwnerBoundObjectValuesV194;
     if (!(approved instanceof Set) || ids.objectValues.some((value) => !approved.has(value))) {
+      ctx.serviceRoleDebugV212 = {
+        patch: DIRAC_CENTRAL_OWNER_DEBUG_V212,
+        diagnostic_code: approved instanceof Set ? 'SERVICE_ROLE_OBJECT_NOT_OWNER_BOUND' : 'SERVICE_ROLE_OWNER_BOUND_OBJECT_SET_MISSING',
+        failure_point: 'diracCentralServiceRoleOwnerScopeGuardV146.object_scope',
+        scope_counts: scopeCounts,
+        approved_object_count: approved instanceof Set ? approved.size : 0
+      };
       return { ok: false, reason: 'service_role_object_scope_unbound' };
     }
   }
@@ -29772,10 +30059,26 @@ function diracCentralBodyRowsSafeV146(body, allowedKeys, validateRow) {
 }
 
 function diracCentralBlockedSupabaseResultV146(decision) {
+  const ctx = diracCentralCurrentContextV149();
+  const data = {
+    ok: false,
+    code: 'CENTRAL_SECURITY_SERVICE_ROLE_BLOCKED',
+    message: 'Permintaan ditolak oleh sistem keamanan.',
+    request_id: String(ctx && ctx.requestId || '').slice(0, 64),
+    failure_id: diracCentralFailureIdV211(ctx)
+  };
+  if (diracCentralDebugResponseAllowedV211(ctx)) {
+    data.debug = {
+      patch: DIRAC_CENTRAL_OWNER_DEBUG_V212,
+      reason: String(decision && decision.reason || 'service_role_blocked').slice(0, 120),
+      service_role: ctx && ctx.serviceRoleDebugV212 || undefined,
+      owner_resolution: ctx && ctx.ownerResolutionDebugV212 || undefined
+    };
+  }
   return {
     ok: false,
     status: Number(decision && decision.status || 403),
-    data: { ok: false, code: 'CENTRAL_SECURITY_SERVICE_ROLE_BLOCKED', message: 'Permintaan ditolak oleh sistem keamanan.' },
+    data,
     error: 'CENTRAL_SECURITY_SERVICE_ROLE_BLOCKED'
   };
 }
@@ -30072,6 +30375,9 @@ async function diracCentralBanCurrentContextV146(reason) {
         reason: cleanReason,
         source: DIRAC_CENTRAL_SECURITY_GUARD_V146,
         risk: 'critical',
+        diagnostic_patch: ctx.serviceRoleDebugV212 ? DIRAC_CENTRAL_OWNER_DEBUG_V212 : undefined,
+        diagnostic_code: String(ctx.serviceRoleDebugV212 && ctx.serviceRoleDebugV212.diagnostic_code || '').slice(0, 160) || undefined,
+        diagnostic_point: String(ctx.serviceRoleDebugV212 && ctx.serviceRoleDebugV212.failure_point || '').slice(0, 180) || undefined,
         blocked_until_ms: blockedUntilMs,
         created_at: new Date(now).toISOString()
       },
@@ -30132,6 +30438,8 @@ function diracCentralBlockedResponseV146(res, reason) {
       failed_stage_index: Number((ctx && ctx.currentStageIndexV211) ?? -1),
       internal_reason: String(reason || ctx && ctx.failureReasonV211 || 'blocked').slice(0, 120),
       stage_trace: diracCentralStageTraceV211(ctx, 30),
+      owner_resolution: ctx && ctx.ownerResolutionDebugV212 || undefined,
+      service_role: ctx && ctx.serviceRoleDebugV212 || undefined,
       safe_error: ctx && ctx.centralErrorDebugV155 || undefined
     };
   }
@@ -30616,6 +30924,8 @@ function diracCentralSafeDebugErrorV155(error, ctx) {
     passed_guard_stages: passedStages.slice(-30),
     handler_already_entered: Boolean(ctx && ctx.req && ctx.req.__diracCentralSecurityGuardPassedV146),
     stage_trace: diracCentralStageTraceV211(ctx, 30),
+    owner_resolution: ctx && ctx.ownerResolutionDebugV212 || undefined,
+    service_role: ctx && ctx.serviceRoleDebugV212 || undefined,
     stack_top: stack
   };
 }
