@@ -3567,11 +3567,6 @@ const DIRAC_SUPABASE_TARGET_ENVS = Object.freeze({
     anonKey: 'DIRAC_ADMIN_GUARD_SUPABASE_ANON_KEY',
     serviceKey: 'DIRAC_ADMIN_GUARD_SUPABASE_SERVICE_ROLE_KEY'
   },
-  customerSecurity: {
-    url: 'DIRAC_CUSTOMER_SECURITY_SUPABASE_URL',
-    anonKey: 'DIRAC_CUSTOMER_SECURITY_SUPABASE_ANON_KEY',
-    serviceKey: 'DIRAC_CUSTOMER_SECURITY_SUPABASE_SERVICE_ROLE_KEY'
-  },
   publicMfa: {
     url: 'DIRAC_PUBLIC_MFA_SUPABASE_URL',
     anonKey: 'DIRAC_PUBLIC_MFA_SUPABASE_ANON_KEY',
@@ -3611,12 +3606,12 @@ const DIRAC_TABLE_DB_MAP = Object.freeze({
   security_login_guard_blocks: 'adminGuard',
   security_customer_login_logs: 'adminGuard',
 
-  security_customer_access_blocks: 'customerSecurity',
-  security_customer_auth_links: 'customerSecurity',
-  security_customer_password_hashes: 'customerSecurity',
-  security_customer_recovery_codes: 'customerSecurity',
-  security_customer_sessions: 'customerSecurity',
-  security_customer_settings: 'customerSecurity',
+  security_customer_access_blocks: 'legacy',
+  security_customer_auth_links: 'legacy',
+  security_customer_password_hashes: 'legacy',
+  security_customer_recovery_codes: 'legacy',
+  security_customer_sessions: 'legacy',
+  security_customer_settings: 'legacy',
 
   public_mfa_recovery_codes: 'publicMfa',
   public_security_challenges: 'publicMfa',
