@@ -31741,7 +31741,18 @@ function diracV207CsrfGuard(req, res, ctx) {
     const headerToken = String(headers['x-csrf-token'] || headers['x-dirac-csrf-token'] || '').trim();
     const cookies = typeof parseCookies === 'function' ? parseCookies(req) : {};
     const cookieToken = String(cookies[DIRAC_CSRF_COOKIE] || '').trim();
-    if (!secret || !headerToken || !cookieToken || !safeEqual(headerToken, cookieToken)) return { ok: false, reason: 'csrf_double_submit_required_v207' };
+    const preauthAction = ctx && ctx.method === 'POST'
+      && (ctx.action === 'domain_login' || ctx.action === 'domain_register');
+
+    if (!secret || !headerToken) return { ok: false, reason: 'csrf_double_submit_required_v207' };
+    if (!cookieToken || !safeEqual(headerToken, cookieToken)) {
+      const preauth = preauthAction && typeof diracV141VerifyPreauthHeaderToken === 'function'
+        ? diracV141VerifyPreauthHeaderToken(req)
+        : null;
+      if (!preauth || preauth.ok !== true) return { ok: false, reason: 'csrf_double_submit_required_v207' };
+      return { ok: true, source: 'csrf_preauth_header_hmac_valid_v207' };
+    }
+
     const decoded = diracCsrfDecodeToken(headerToken, secret);
     const payload = decoded && decoded.payload;
     const binding = diracCsrfRequestBinding(req);
