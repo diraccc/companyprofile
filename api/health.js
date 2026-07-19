@@ -21253,6 +21253,15 @@ function diracBolaIdorV122InspectStrictSafe(path, options = {}) {
     if (!policy) return { ok: true };
 
     const method = String(options.method || 'GET').toUpperCase();
+    const centralCtxV213 = typeof diracCentralCurrentContextV149 === 'function' ? diracCentralCurrentContextV149() : null;
+    const centralBootstrapV213 = diracBolaIdorV128CentralOwnerBootstrapDecisionV213(rawPath, options, {
+      req: centralCtxV213 && centralCtxV213.req,
+      action: centralCtxV213 && centralCtxV213.action
+    });
+    if (centralBootstrapV213 && centralBootstrapV213.ok === true) {
+      return { ok: true, table, method, action: String(centralCtxV213 && centralCtxV213.action || ''), scoped: true, bootstrap: DIRAC_CENTRAL_OWNER_BOOTSTRAP_PATCH_V213 };
+    }
+
     const ctx = diracBolaIdorV122CurrentContext() || {};
     const action = diracBolaIdorV122NormalizeAction(ctx.action || '');
 
@@ -21823,6 +21832,7 @@ function diracBolaIdorV126SeenStore() {
    ============================================================ */
 
 const DIRAC_BOLA_IDOR_GLOBAL_HARD_BAN_PATCH_V128 = 'dirac-bola-idor-global-hard-ban-v128';
+const DIRAC_CENTRAL_OWNER_BOOTSTRAP_PATCH_V213 = 'dirac-central-owner-bootstrap-deadlock-fix-v213';
 const DIRAC_BOLA_IDOR_GLOBAL_HARD_BAN_STORE_V128 = globalThis.__DIRAC_BOLA_IDOR_GLOBAL_HARD_BAN_STORE_V128__ || new Map();
 globalThis.__DIRAC_BOLA_IDOR_GLOBAL_HARD_BAN_STORE_V128__ = DIRAC_BOLA_IDOR_GLOBAL_HARD_BAN_STORE_V128;
 
@@ -21908,6 +21918,99 @@ function diracBolaIdorV128CurrentContext() {
   return null;
 }
 
+
+function diracBolaIdorV128CentralOwnerBootstrapDecisionV213(path, options = {}, legacyCtx = null) {
+  const centralCtx = typeof diracCentralCurrentContextV149 === 'function' ? diracCentralCurrentContextV149() : null;
+  const binding = centralCtx && centralCtx.__diracCentralOwnerBootstrapBindingV213;
+  if (!centralCtx || !binding || centralCtx.__diracCentralOwnerScopeResolvingV146 !== true) {
+    return { relevant: false, ok: false };
+  }
+
+  const record = (ok, code, failurePoint) => {
+    centralCtx.ownerBootstrapDebugV213 = {
+      patch: DIRAC_CENTRAL_OWNER_BOOTSTRAP_PATCH_V213,
+      result: ok ? 'allowed' : 'rejected',
+      diagnostic_code: String(code || '').slice(0, 120),
+      failure_point: String(failurePoint || '').slice(0, 160),
+      action: String(centralCtx.action || '').slice(0, 80),
+      method: String(options && options.method || 'GET').toUpperCase().slice(0, 12),
+      full_central_guard_passed: Boolean(centralCtx.centralGuardFullyPassedV211),
+      owner_scope_resolving: centralCtx.__diracCentralOwnerScopeResolvingV146 === true,
+      safe_service_role_fetch: centralCtx.__diracCentralSafeServiceRoleFetchV146 === true,
+      auth_user_binding_present: Boolean(binding && binding.authUserId)
+    };
+    return { relevant: true, ok, code };
+  };
+
+  const req = legacyCtx && legacyCtx.req;
+  if (!req || centralCtx.req !== req) return record(false, 'OWNER_BOOTSTRAP_REQUEST_CONTEXT_MISMATCH', 'v128.bootstrap.request_context');
+  if (typeof diracCentralHandlerContextFullyPassedV211 !== 'function'
+      || !diracCentralHandlerContextFullyPassedV211(centralCtx, req)) {
+    return record(false, 'OWNER_BOOTSTRAP_FULL_CENTRAL_GUARD_REQUIRED', 'v128.bootstrap.central_passport');
+  }
+  if (centralCtx.__diracCentralSafeServiceRoleFetchV146 !== true) {
+    return record(false, 'OWNER_BOOTSTRAP_SECURE_DATABASE_GATEWAY_REQUIRED', 'v128.bootstrap.database_gateway');
+  }
+
+  const action = diracBolaIdorV128NormalizeAction(legacyCtx && legacyCtx.action || centralCtx.action || '');
+  if (action !== 'domain_me' && action !== 'domain_dashboard_me') {
+    return record(false, 'OWNER_BOOTSTRAP_ACTION_NOT_ALLOWED', 'v128.bootstrap.action');
+  }
+  if (action !== String(binding.action || '')) {
+    return record(false, 'OWNER_BOOTSTRAP_ACTION_BINDING_MISMATCH', 'v128.bootstrap.action_binding');
+  }
+
+  const method = String(options && options.method || 'GET').toUpperCase();
+  if (method !== 'GET') return record(false, 'OWNER_BOOTSTRAP_GET_ONLY', 'v128.bootstrap.method');
+  if (options && options.auth !== 'service') return record(false, 'OWNER_BOOTSTRAP_SERVICE_ROLE_REQUIRED', 'v128.bootstrap.auth_mode');
+  if (options && options.body !== undefined && options.body !== null) return record(false, 'OWNER_BOOTSTRAP_BODY_FORBIDDEN', 'v128.bootstrap.body');
+
+  const rawPath = String(path || '');
+  const queryIndex = rawPath.indexOf('?');
+  if (queryIndex <= 0 || rawPath.slice(0, queryIndex) !== '/rest/v1/security_customer_auth_links') {
+    return record(false, 'OWNER_BOOTSTRAP_TABLE_OR_PATH_INVALID', 'v128.bootstrap.path');
+  }
+
+  let params;
+  try {
+    params = new URLSearchParams(rawPath.slice(queryIndex + 1));
+  } catch (_) {
+    return record(false, 'OWNER_BOOTSTRAP_QUERY_PARSE_FAILED', 'v128.bootstrap.query_parse');
+  }
+
+  const allowedKeys = new Set(['select', 'auth_user_id', 'link_status', 'disabled_at', 'revoked_at', 'order', 'limit']);
+  const keys = Array.from(params.keys());
+  if (keys.length !== allowedKeys.size || keys.some((key) => !allowedKeys.has(String(key || '')))) {
+    return record(false, 'OWNER_BOOTSTRAP_QUERY_KEYS_INVALID', 'v128.bootstrap.query_keys');
+  }
+  if (Array.from(allowedKeys).some((key) => params.getAll(key).length !== 1)) {
+    return record(false, 'OWNER_BOOTSTRAP_QUERY_KEY_DUPLICATE_OR_MISSING', 'v128.bootstrap.query_cardinality');
+  }
+
+  const expectedSelect = 'id,auth_user_id,customer_id,email,link_status,match_confidence,disabled_at,revoked_at,updated_at';
+  if (params.get('select') !== expectedSelect) return record(false, 'OWNER_BOOTSTRAP_SELECT_CONTRACT_INVALID', 'v128.bootstrap.select');
+  if (params.get('link_status') !== 'eq.active') return record(false, 'OWNER_BOOTSTRAP_ACTIVE_FILTER_REQUIRED', 'v128.bootstrap.link_status');
+  if (params.get('disabled_at') !== 'is.null') return record(false, 'OWNER_BOOTSTRAP_DISABLED_NULL_REQUIRED', 'v128.bootstrap.disabled_at');
+  if (params.get('revoked_at') !== 'is.null') return record(false, 'OWNER_BOOTSTRAP_REVOKED_NULL_REQUIRED', 'v128.bootstrap.revoked_at');
+  if (params.get('order') !== 'updated_at.desc') return record(false, 'OWNER_BOOTSTRAP_ORDER_INVALID', 'v128.bootstrap.order');
+  if (params.get('limit') !== '2') return record(false, 'OWNER_BOOTSTRAP_LIMIT_INVALID', 'v128.bootstrap.limit');
+
+  const authFilter = String(params.get('auth_user_id') || '');
+  if (!authFilter.startsWith('eq.')) return record(false, 'OWNER_BOOTSTRAP_AUTH_FILTER_INVALID', 'v128.bootstrap.auth_user_id_filter');
+  const requestedAuthUserId = authFilter.slice(3).trim();
+  const boundAuthUserId = String(binding.authUserId || '').trim();
+  if (!diracBolaIdorV128LooksLikeUuid(requestedAuthUserId)
+      || !diracBolaIdorV128LooksLikeUuid(boundAuthUserId)
+      || requestedAuthUserId !== boundAuthUserId) {
+    return record(false, 'OWNER_BOOTSTRAP_AUTH_USER_BINDING_MISMATCH', 'v128.bootstrap.auth_user_id_binding');
+  }
+  if (String(binding.requestId || '') !== String(centralCtx.requestId || '')) {
+    return record(false, 'OWNER_BOOTSTRAP_REQUEST_ID_BINDING_MISMATCH', 'v128.bootstrap.request_id_binding');
+  }
+
+  return record(true, 'OWNER_BOOTSTRAP_EXACT_SELF_READ_ALLOWED', 'v128.bootstrap.exact_contract');
+}
+
 async function diracBolaIdorV128InspectHttpRequest(req) {
   const method = String(req && req.method || 'GET').toUpperCase();
   const action = diracBolaIdorV128NormalizeAction(String(req && req.query && req.query.action || ''));
@@ -21975,6 +22078,11 @@ async function diracBolaIdorV128InspectSupabaseAccess(path, options = {}) {
   const action = diracBolaIdorV128NormalizeAction(ctx.action || '');
   if (!action || diracBolaIdorV128ShouldSkipAction(action, method, ctx.req)) return { ok: true };
   if (!diracBolaIdorV128IsProtectedUserObjectAction(action)) return { ok: true };
+
+  const ownerBootstrapV213 = diracBolaIdorV128CentralOwnerBootstrapDecisionV213(rawPath, options, ctx);
+  if (ownerBootstrapV213 && ownerBootstrapV213.ok === true) {
+    return { ok: true, skipped: 'central_passed_exact_owner_bootstrap_v213' };
+  }
 
   const allowed = diracBolaIdorV128AllowedCustomerIds(ctx);
   if (!allowed.length) return diracBolaIdorV128BuildBlockDecision('trusted_owner_required', { source: 'supabase', table, method, action });
@@ -26455,6 +26563,9 @@ function diracCentralEmitDebugV211(ctx, event, extra) {
     service_role_debug: ctx && ctx.serviceRoleDebugV212
       ? diracCentralSanitizeOutputV146(ctx.serviceRoleDebugV212, 0)
       : undefined,
+    owner_bootstrap_debug: ctx && ctx.ownerBootstrapDebugV213
+      ? diracCentralSanitizeOutputV146(ctx.ownerBootstrapDebugV213, 0)
+      : undefined,
     extra: extra && typeof extra === 'object' ? diracCentralSanitizeOutputV146(extra, 0) : undefined
   };
   try {
@@ -27726,7 +27837,8 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
     stageTraceV211: [],
     centralGuardFullyPassedV211: false,
     ownerResolutionDebugV212: null,
-    serviceRoleDebugV212: null
+    serviceRoleDebugV212: null,
+    ownerBootstrapDebugV213: null
   };
   try {
     DIRAC_CENTRAL_CONTEXT_STACK_V146.push(ctx);
@@ -29057,6 +29169,81 @@ function diracCentralIsAuthSelfReadOnlyV146(action, ids) {
   return list.every((item) => /^(email|slug)$/i.test(String(item && item.key || '')));
 }
 
+function diracCentralOwnerBootstrapModeV213(ctx, req) {
+  if (!ctx || !req || ctx.req !== req) return false;
+  if (ctx.__diracCentralOwnerScopeResolvingV146 !== true) return false;
+  if (ctx.action !== 'domain_me' && ctx.action !== 'domain_dashboard_me') return false;
+  if (ctx.method !== 'GET') return false;
+  if (typeof diracCentralHandlerContextFullyPassedV211 !== 'function') return false;
+  return diracCentralHandlerContextFullyPassedV211(ctx, req);
+}
+
+async function diracCentralPrepareOwnerBootstrapBindingV213(req, ctx, debug) {
+  const existing = ctx && ctx.__diracCentralOwnerBootstrapBindingV213;
+  if (existing
+      && String(existing.requestId || '') === String(ctx.requestId || '')
+      && String(existing.action || '') === String(ctx.action || '')
+      && diracCentralLooksLikeUuidV146(String(existing.authUserId || ''))) {
+    if (debug && typeof debug === 'object') debug.bootstrap_v213 = { result: 'binding_reused', auth_user_binding_present: true };
+    return { ok: true };
+  }
+  if (typeof requireDomainUser !== 'function') {
+    if (debug && typeof debug === 'object') debug.bootstrap_v213 = { result: 'dependency_missing', dependency: 'requireDomainUser' };
+    return { ok: false, reason: 'owner_bootstrap_auth_dependency_missing' };
+  }
+
+  const fake = diracCentralFakeResponseV146();
+  let user = null;
+  try {
+    user = await requireDomainUser(req, fake);
+  } catch (error) {
+    if (debug && typeof debug === 'object') {
+      debug.bootstrap_v213 = { result: 'require_domain_user_exception', response_status: Number(fake.statusCode || 0), error: diracCentralSafeDiagnosticErrorV212(error) };
+    }
+    return { ok: false, reason: 'owner_bootstrap_auth_exception' };
+  }
+
+  const authUserId = String(user && user.id || '').trim();
+  if (!diracCentralLooksLikeUuidV146(authUserId) || Number(fake.statusCode || 200) >= 400) {
+    if (debug && typeof debug === 'object') {
+      debug.bootstrap_v213 = {
+        result: 'authenticated_user_invalid',
+        response_status: Number(fake.statusCode || 0),
+        user_object_present: Boolean(user && typeof user === 'object'),
+        auth_user_id_present: Boolean(authUserId),
+        auth_user_id_uuid_valid: diracCentralLooksLikeUuidV146(authUserId)
+      };
+    }
+    return { ok: false, reason: 'owner_bootstrap_authenticated_user_invalid' };
+  }
+
+  ctx.__diracCentralOwnerBootstrapBindingV213 = Object.freeze({
+    patch: DIRAC_CENTRAL_OWNER_BOOTSTRAP_PATCH_V213,
+    requestId: String(ctx.requestId || ''),
+    action: String(ctx.action || ''),
+    authUserId
+  });
+  ctx.ownerBootstrapDebugV213 = {
+    patch: DIRAC_CENTRAL_OWNER_BOOTSTRAP_PATCH_V213,
+    result: 'binding_ready',
+    diagnostic_code: 'OWNER_BOOTSTRAP_AUTH_USER_BOUND',
+    failure_point: 'diracCentralPrepareOwnerBootstrapBindingV213',
+    action: String(ctx.action || '').slice(0, 80),
+    full_central_guard_passed: true,
+    owner_scope_resolving: true,
+    auth_user_binding_present: true
+  };
+  if (debug && typeof debug === 'object') {
+    debug.bootstrap_v213 = {
+      result: 'binding_ready',
+      response_status: Number(fake.statusCode || 0),
+      auth_user_id_present: true,
+      auth_user_id_uuid_valid: true
+    };
+  }
+  return { ok: true };
+}
+
 async function diracCentralResolveOwnerV146(req) {
   const ctx = diracCentralCurrentContextV149();
   const debug = {
@@ -29065,6 +29252,14 @@ async function diracCentralResolveOwnerV146(req) {
     started_at_ms: Date.now(),
     attempts: []
   };
+
+  if (diracCentralOwnerBootstrapModeV213(ctx, req)) {
+    const prepared = await diracCentralPrepareOwnerBootstrapBindingV213(req, ctx, debug);
+    if (!prepared || prepared.ok !== true) {
+      diracCentralCommitOwnerDebugV212(ctx, debug, 'OWNER_BOOTSTRAP_BINDING_FAILED', 'diracCentralPrepareOwnerBootstrapBindingV213');
+      return { ok: false, reason: String(prepared && prepared.reason || 'owner_bootstrap_binding_failed') };
+    }
+  }
 
   try {
     if (typeof diracBolaIdorV133ResolveStrictOwner === 'function') {
@@ -32283,6 +32478,7 @@ Object.defineProperty(module.exports, '__diracCentralArchitectureConsolidationV2
 Object.defineProperty(module.exports, '__diracV202MiddlewareCount', { value: __diracV202MiddlewareRegistry.length, enumerable: false });
 Object.defineProperty(module.exports, '__diracV202ActionPolicyCount', { value: Object.keys(ACTION_POLICY).length, enumerable: false });
 Object.defineProperty(module.exports, '__diracCentralFailClosedDebugV211', { value: true, enumerable: false });
+Object.defineProperty(module.exports, '__diracCentralOwnerBootstrapV213', { value: true, enumerable: false });
 
 if (!Array.isArray(SECURITY_PIPELINE)
     || SECURITY_PIPELINE.length !== Object.keys(DIRAC_V202_CHECKPOINT_BY_STAMP).length
