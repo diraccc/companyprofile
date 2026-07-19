@@ -21553,6 +21553,37 @@ function diracBolaIdorV126InspectOwnerValue(path, options = {}) {
     if (diracBolaIdorV126IsSensitiveFlowAction(action)) return { ok: true };
     if (!diracBolaIdorV126IsUserDataAction(action)) return { ok: true };
 
+    // PATCH v214: permit only the exact, fully Central-Guard-bound self owner-bootstrap
+    // read that v128 has already validated. This does not bypass Central Guard and does
+    // not permit any other table, method, action, UUID, filter, query shape, or body.
+    const bootstrapContextV214 = typeof diracBolaIdorV128CurrentContext === 'function'
+      ? diracBolaIdorV128CurrentContext()
+      : null;
+    const bootstrapDecisionV214 = typeof diracBolaIdorV128CentralOwnerBootstrapDecisionV213 === 'function'
+      ? diracBolaIdorV128CentralOwnerBootstrapDecisionV213(rawPath, options, bootstrapContextV214)
+      : { relevant: false, ok: false };
+    if (bootstrapDecisionV214 && bootstrapDecisionV214.relevant === true) {
+      if (bootstrapDecisionV214.ok === true) {
+        return {
+          ok: true,
+          table,
+          method,
+          action,
+          owner_bootstrap_v214: true,
+          diagnostic_code: 'OWNER_BOOTSTRAP_V126_EXACT_SELF_READ_ALLOWED'
+        };
+      }
+      return {
+        ok: false,
+        warn: true,
+        block: true,
+        table,
+        method,
+        action,
+        reason: String(bootstrapDecisionV214.code || 'owner_bootstrap_v126_rejected')
+      };
+    }
+
     const allowed = diracBolaIdorV126AllowedCustomerIds(ctx);
     if (!allowed.length) return { ok: false, warn: true, block: true, table, method, action, reason: 'trusted_owner_required' };
 
