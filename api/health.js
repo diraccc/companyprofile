@@ -247,6 +247,7 @@ const CUSTOMER_MFA_COOKIE = process.env.DIRAC_CUSTOMER_MFA_COOKIE || 'dirac_cust
 const DOMAIN_SIGNED_SESSION_COOKIE = process.env.DOMAIN_SIGNED_SESSION_COOKIE || 'dirac_domain_signed_session';
 const CUSTOMER_MFA_SESSION_TYPE = 'dirac-customer-mfa-session-v1';
 const DOMAIN_SIGNED_SESSION_TYPE = 'dirac-domain-signed-session-v1';
+const CUSTOMER_SECURITY_SESSION_SNAPSHOT_TOKEN_V212 = Symbol('dirac-customer-security-session-snapshot-v212');
 
 // SAFE V2: database-backed protected-page lock, fail-safe.
 // Login/hash/A2F/payment/webhook tidak diubah. Jika database session belum siap/schema berbeda,
@@ -1042,6 +1043,53 @@ async function readPersistentSecurityJsonManyStrictV194(securityKeys) {
   } catch (_) {
     return { ok: false, records: [] };
   }
+}
+
+
+// Narrow v212: one immutable persistent-ban snapshot per request.
+// The snapshot never crosses requests and is installed only after a successful
+// strict database read. A failed read is not cached, so production remains fail-closed.
+const DIRAC_REQUEST_PERSISTENT_BAN_SNAPSHOT_V212 = '__diracRequestPersistentBanSnapshotV212';
+
+function diracInstallRequestPersistentBanSnapshotV212(req, securityKeys, records) {
+  if (!req || typeof req !== 'object') return false;
+  const keys = Array.from(new Set((securityKeys || []).map((key) => String(key || '').trim()).filter(Boolean))).slice(0, 40);
+  const byKey = Object.create(null);
+  for (const row of records || []) {
+    const key = String(row && row.security_key || '').trim();
+    if (!key || !keys.includes(key)) continue;
+    byKey[key] = Object.freeze({
+      security_key: key,
+      record: row.record && typeof row.record === 'object' ? Object.freeze({ ...row.record }) : Object.freeze({}),
+      blocked_until_ms: Number(row.blocked_until_ms || 0)
+    });
+  }
+  const snapshot = Object.freeze({
+    ok: true,
+    keys: Object.freeze(keys.slice()),
+    recordsByKey: Object.freeze(byKey),
+    createdAtMs: Date.now()
+  });
+  try {
+    Object.defineProperty(req, DIRAC_REQUEST_PERSISTENT_BAN_SNAPSHOT_V212, {
+      value: snapshot,
+      enumerable: false,
+      configurable: false,
+      writable: false
+    });
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+function diracRequestPersistentBanRowsV212(req, securityKeys) {
+  const snapshot = req && req[DIRAC_REQUEST_PERSISTENT_BAN_SNAPSHOT_V212];
+  const keys = Array.from(new Set((securityKeys || []).map((key) => String(key || '').trim()).filter(Boolean)));
+  if (!snapshot || snapshot.ok !== true || !Array.isArray(snapshot.keys)) return { covered: false, rows: [] };
+  if (keys.some((key) => !snapshot.keys.includes(key))) return { covered: false, rows: [] };
+  const rows = keys.map((key) => snapshot.recordsByKey && snapshot.recordsByKey[key]).filter(Boolean);
+  return { covered: true, rows };
 }
 
 async function writePersistentSecurityJsonRequiredV194(securityKey, record, blockedUntilMs, ttlSeconds) {
@@ -1944,12 +1992,19 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
 
   const rows = Array.isArray(found.data) ? found.data : [];
   const row = rows[0] || null;
+  const sessionSnapshotV212 = Object.freeze({
+    token: CUSTOMER_SECURITY_SESSION_SNAPSHOT_TOKEN_V212,
+    source: 'protected_session_lock_safe_v212',
+    customerId,
+    sessionTokenHash: fingerprint.session_token_hash,
+    row: row && row.id ? Object.freeze({ id: String(row.id), status: String(row.status || '') }) : null
+  });
   const nowMs = Date.now();
   const nowIso = new Date(nowMs).toISOString();
 
   if (!row || !row.id) {
     // Bootstrap sesi hanya dianggap sah setelah row terikat berhasil dipersistenkan.
-    const created = await customerSecurityTouchCurrentSession(req, customerId).catch(() => null);
+    const created = await customerSecurityTouchCurrentSession(req, customerId, sessionSnapshotV212).catch(() => null);
     if (!created || created.ok !== true || !created.session_id) {
       return {
         ok: false,
@@ -2045,7 +2100,7 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
     };
   }
 
-  const touched = await customerSecurityTouchCurrentSession(req, customerId).catch(() => null);
+  const touched = await customerSecurityTouchCurrentSession(req, customerId, sessionSnapshotV212).catch(() => null);
   if (!touched || touched.ok !== true || String(touched.session_id || '') !== String(row.id)) {
     return {
       ok: false,
@@ -5230,21 +5285,36 @@ async function customerSecurityEnsureSettingsRow(customerId) {
   return { ok: true, created: true, enforced: true };
 }
 
-async function customerSecurityTouchCurrentSession(req, customerId) {
+async function customerSecurityTouchCurrentSession(req, customerId, preloadedSessionV212) {
   try {
     const fingerprint = customerSecurityBuildSessionFingerprint(req, customerId);
     if (!fingerprint || !fingerprint.session_token_hash) return { ok: false, reason: 'missing_session_fingerprint' };
 
-    const path = '/rest/v1/security_customer_sessions?select=id,status&customer_id=eq.' +
-      encodeURIComponent(customerId) +
-      '&session_token_hash=eq.' +
-      encodeURIComponent(fingerprint.session_token_hash) +
-      '&limit=1';
+    const preloadedMatches = Boolean(
+      preloadedSessionV212
+      && preloadedSessionV212.token === CUSTOMER_SECURITY_SESSION_SNAPSHOT_TOKEN_V212
+      && preloadedSessionV212.source === 'protected_session_lock_safe_v212'
+      && typeof safeEqual === 'function'
+      && safeEqual(String(preloadedSessionV212.customerId || ''), String(customerId || ''))
+      && safeEqual(String(preloadedSessionV212.sessionTokenHash || ''), String(fingerprint.session_token_hash || ''))
+    );
 
-    const existing = await supabaseFetch(path, { method: 'GET', auth: 'service' });
-    if (!existing.ok) return { ok: false, reason: 'session_read_failed', status: existing.status };
+    let rows;
+    if (preloadedMatches) {
+      rows = preloadedSessionV212.row && preloadedSessionV212.row.id
+        ? [preloadedSessionV212.row]
+        : [];
+    } else {
+      const path = '/rest/v1/security_customer_sessions?select=id,status&customer_id=eq.' +
+        encodeURIComponent(customerId) +
+        '&session_token_hash=eq.' +
+        encodeURIComponent(fingerprint.session_token_hash) +
+        '&limit=1';
 
-    const rows = Array.isArray(existing.data) ? existing.data : [];
+      const existing = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+      if (!existing.ok) return { ok: false, reason: 'session_read_failed', status: existing.status };
+      rows = Array.isArray(existing.data) ? existing.data : [];
+    }
     const now = new Date().toISOString();
 
     const updateBody = {
@@ -17293,7 +17363,11 @@ async function diracV107CheckActiveBan(req) {
     }
   }
 
-  const rows = await diracV107ReadRows(keys.map((item) => item.key));
+  const keyNames = keys.map((item) => item.key);
+  const requestSnapshot = diracRequestPersistentBanRowsV212(req, keyNames);
+  const rows = requestSnapshot.covered
+    ? requestSnapshot.rows
+    : await diracV107ReadRows(keyNames);
   for (const row of rows) {
     const blockedUntilMs = Number(row && row.blocked_until_ms || 0);
     if (blockedUntilMs > now) {
@@ -25502,7 +25576,15 @@ async function diracV143CheckActiveGlobalBan(req) {
   }
 
   if (typeof readPersistentSecurityJson === 'function') {
-    const persisted = await readPersistentSecurityJson('global-api-threat-ban:' + key).catch(() => null);
+    const persistentKey = 'global-api-threat-ban:' + key;
+    const requestSnapshot = diracRequestPersistentBanRowsV212(req, [persistentKey]);
+    const snapshotRow = requestSnapshot.covered ? requestSnapshot.rows[0] : null;
+    const persisted = requestSnapshot.covered
+      ? snapshotRow && {
+        ...(snapshotRow.record || {}),
+        blocked_until_ms: Number(snapshotRow.blocked_until_ms || 0)
+      }
+      : await readPersistentSecurityJson(persistentKey).catch(() => null);
     const blockedUntilMs = Number(persisted && (persisted.blockedUntilMs || persisted.blocked_until_ms) || 0);
     if (blockedUntilMs > now) {
       DIRAC_GLOBAL_API_THREAT_STORE_V143.set(key, { blockedUntilMs });
@@ -25516,8 +25598,7 @@ async function diracV143CheckActiveGlobalBan(req) {
 async function diracV143WriteGlobalBanOnce(req, res, action, method, threat) {
   try {
     if (typeof diracV107RegisterHardBan === 'function') {
-      const primaryWrite = await diracV107RegisterHardBan(req, res || null, action || 'global_api_threat', method || 'GET', threat || { detected: true, kind: 'global_api_threat' });
-      if (primaryWrite && primaryWrite.ok === true) return primaryWrite;
+      return await diracV107RegisterHardBan(req, res || null, action || 'global_api_threat', method || 'GET', threat || { detected: true, kind: 'global_api_threat' });
     }
   } catch (_) {}
 
@@ -25527,9 +25608,8 @@ async function diracV143WriteGlobalBanOnce(req, res, action, method, threat) {
   const key = diracV143RequestKey(req);
   DIRAC_GLOBAL_API_THREAT_STORE_V143.set(key, { blockedUntilMs, updatedAtMs: now });
 
-  let persistentWritten = false;
   if (typeof writePersistentSecurityJson === 'function') {
-    persistentWritten = await writePersistentSecurityJson('global-api-threat-ban:' + key, {
+    await writePersistentSecurityJson('global-api-threat-ban:' + key, {
       type: 'global_api_threat_ban_v143',
       patch: DIRAC_GLOBAL_API_THREAT_GUARD_V143,
       action: String(action || '').slice(0, 80),
@@ -25543,7 +25623,7 @@ async function diracV143WriteGlobalBanOnce(req, res, action, method, threat) {
     }, blockedUntilMs, Math.ceil((blockedUntilMs - now) / 1000)).catch(() => false);
   }
 
-  return { ok: persistentWritten === true, wrote: persistentWritten === true ? 1 : 0, blockedUntilMs };
+  return { ok: true, wrote: 1, blockedUntilMs };
 }
 
 function diracV143RequestKey(req) {
@@ -27211,25 +27291,8 @@ try {
 }
 
 const __diracV202CentralGuardHandler = async function diracCentralSecurityGuardWrapperV146(req, res, nextHandlerV202) {
-  try {
-    return await diracCentralRunWithAsyncContextV149(() => diracCentralSecurityGuardV146(req, res, nextHandlerV202));
-  } catch (error) {
-    const method = String(req && req.method || 'GET').toUpperCase();
-    const rawAction = String(req && req.query && req.query.action || 'central_guard_error');
-    const emergencyBan = await diracCentralWritePersistentBanV146(req, res, rawAction, method, {
-      detected: true,
-      kind: 'central_guard_outer_error',
-      source: DIRAC_CENTRAL_SECURITY_GUARD_V146,
-      risk: 'critical'
-    }).catch(() => ({ ok: false }));
-    if (!emergencyBan || emergencyBan.ok !== true) {
-      if (!res || res.headersSent !== true) return diracCentralPersistenceUnavailableResponseV210(res);
-      return undefined;
-    }
-    if (!res || res.headersSent !== true) return diracCentralBlockedResponseV146(res, 'CENTRAL_GUARD_ERROR');
-    return undefined;
-  }
-};
+      return diracCentralRunWithAsyncContextV149(() => diracCentralSecurityGuardV146(req, res, nextHandlerV202));
+    };
 __diracV202MarkWrapperFlag('__diracCentralSecurityGuardV146');
 
 
@@ -27587,15 +27650,10 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
 
     const handlerResult = await nextHandler(req, res);
     const handlerStatusCode = Number(res && res.statusCode || 200);
-    const handlerPayloadFailed = Boolean(ctx && ctx.__diracCentralFailurePayloadV211);
-    if ((Number.isFinite(handlerStatusCode) && handlerStatusCode >= 400) || handlerPayloadFailed) {
-      const payloadFailureCode = String(ctx && ctx.__diracCentralFailurePayloadV211 && ctx.__diracCentralFailurePayloadV211.code || 'response_ok_false')
-        .replace(/[^A-Za-z0-9_.:-]/g, '_')
-        .slice(0, 80);
-      const handlerBanReason = Number.isFinite(handlerStatusCode) && handlerStatusCode >= 400
-        ? 'handler_failure_status_' + String(Math.trunc(handlerStatusCode))
-        : 'handler_failure_payload_' + payloadFailureCode;
-      const handlerBan = await diracCentralBanCurrentContextV146(handlerBanReason);
+    if (Number.isFinite(handlerStatusCode) && handlerStatusCode >= 400) {
+      const handlerBan = await diracCentralBanCurrentContextV146(
+        'handler_failure_status_' + String(Math.trunc(handlerStatusCode))
+      );
       if (!handlerBan || handlerBan.persistent !== true) {
         try {
           console.error('[dirac-all-failures-global-persistent-ban-v211]', {
@@ -27617,13 +27675,6 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
       return await diracCentralBanAndBlockV146(req, res, ctx, ctx.action, method, 'domain_dashboard_handler_error');
     }
     if (ctx) return await diracCentralBanAndBlockV146(req, res, ctx, ctx.action || 'central_guard_error', method, 'central_guard_error');
-    const emergencyBan = await diracCentralWritePersistentBanV146(req, res, 'central_guard_error', method, {
-      detected: true,
-      kind: 'central_guard_error_without_context',
-      source: DIRAC_CENTRAL_SECURITY_GUARD_V146,
-      risk: 'critical'
-    }).catch(() => ({ ok: false }));
-    if (!emergencyBan || emergencyBan.ok !== true) return diracCentralPersistenceUnavailableResponseV210(res);
     return diracCentralBlockedResponseV146(res, 'CENTRAL_GUARD_ERROR');
   } finally {
     if (ctx) {
@@ -27662,18 +27713,12 @@ function diracCentralApplyHeadersV146(res) {
   try { res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), fullscreen=(self)'); } catch (_) {}
 }
 
-function diracCentralWrapJsonResponseV146(res, ctx) {
+function diracCentralWrapJsonResponseV146(res) {
   if (!res || typeof res.json !== 'function' || res.__diracCentralJsonWrappedV146) return;
   const originalJson = res.json.bind(res);
   res.json = function diracCentralJsonResponseGuardV146(payload) {
     diracCentralApplyHeadersV146(res);
-    if (payload && typeof payload === 'object' && !Array.isArray(payload) && payload.ok === false && ctx) {
-      ctx.__diracCentralFailurePayloadV211 = {
-        code: String(payload.code || payload.error || 'response_ok_false').slice(0, 120)
-      };
-    }
     if (diracCentralPayloadContainsRuntimeSecretV194(payload)) {
-      if (ctx) ctx.__diracCentralFailurePayloadV211 = { code: 'CENTRAL_OUTPUT_SECRET_BLOCKED' };
       try { if (typeof res.status === 'function') res.status(500); else res.statusCode = 500; } catch (_) {}
       return originalJson({ ok: false, code: 'CENTRAL_OUTPUT_SECRET_BLOCKED', message: 'Respons ditolak oleh sistem keamanan.' });
     }
@@ -27803,12 +27848,17 @@ async function diracCentralCheckPersistentBanV146(req, identity) {
   let storageChecked = false;
   try {
     if (typeof readPersistentSecurityJsonManyStrictV194 === 'function' && typeof diracV107BuildKeys === 'function') {
-      const hardBanKeys = diracV107BuildKeys(req || {}).map((item) => String(item && item.key || '')).filter(Boolean).slice(0, 40);
-      const hardBanLookup = await readPersistentSecurityJsonManyStrictV194(hardBanKeys);
+      const hardBanKeys = diracV107BuildKeys(req || {}).map((item) => String(item && item.key || '')).filter(Boolean);
+      const v143Key = typeof diracV143RequestKey === 'function'
+        ? 'global-api-threat-ban:' + diracV143RequestKey(req || {})
+        : '';
+      const allBanKeys = Array.from(new Set([...hardBanKeys, key, v143Key].filter(Boolean))).slice(0, 40);
+      const hardBanLookup = await readPersistentSecurityJsonManyStrictV194(allBanKeys);
       if (!hardBanLookup.ok) {
         if (diracCentralIsProductionV146()) return { blocked: true, blockedUntilMs: now + diracCentralBlockMsV146(), failClosed: true };
       } else {
         storageChecked = true;
+        diracInstallRequestPersistentBanSnapshotV212(req, allBanKeys, hardBanLookup.records);
         const active = hardBanLookup.records.find((record) => Number(record && record.blocked_until_ms || 0) > now);
         if (active) return { blocked: true, blockedUntilMs: Number(active.blocked_until_ms) };
       }
@@ -27818,29 +27868,6 @@ async function diracCentralCheckPersistentBanV146(req, identity) {
       if (existing && existing.blocked) {
         return { blocked: true, blockedUntilMs: now + Math.max(1, Number(existing.retryAfterSeconds || 86400)) * 1000 };
       }
-    }
-  } catch (_) {
-    return { blocked: true, blockedUntilMs: now + diracCentralBlockMsV146(), failClosed: true };
-  }
-
-  try {
-    if (typeof readPersistentSecurityJsonStrictV194 === 'function') {
-      const lookup = await readPersistentSecurityJsonStrictV194(key);
-      if (!lookup.ok) {
-        if (diracCentralIsProductionV146()) {
-          return { blocked: true, blockedUntilMs: now + diracCentralBlockMsV146(), failClosed: true };
-        }
-      } else {
-        storageChecked = true;
-        const record = lookup.record;
-        const blockedUntilMs = Number(record && (record.blocked_until_ms || record.blockedUntilMs) || 0);
-        if (blockedUntilMs > now) return { blocked: true, blockedUntilMs };
-      }
-    } else if (typeof readPersistentSecurityJson === 'function') {
-      const record = await readPersistentSecurityJson(key);
-      storageChecked = true;
-      const blockedUntilMs = Number(record && (record.blocked_until_ms || record.blockedUntilMs) || 0);
-      if (blockedUntilMs > now) return { blocked: true, blockedUntilMs };
     }
   } catch (_) {
     return { blocked: true, blockedUntilMs: now + diracCentralBlockMsV146(), failClosed: true };
@@ -31812,7 +31839,7 @@ globalThis.__DIRAC_V202_SECURE_EGRESS_GATEWAY__ = true;
 function secureResponseGateway(ctx, response) {
   if (!response || typeof response !== 'object') return response;
   diracCentralApplyHeadersV146(response);
-  diracCentralWrapJsonResponseV146(response, ctx);
+  diracCentralWrapJsonResponseV146(response);
   if (ctx) ctx.responsePolicy = ctx.policy && ctx.policy.responsePolicy || 'secure_response_gateway_no_store';
   return response;
 }
