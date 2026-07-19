@@ -1044,53 +1044,6 @@ async function readPersistentSecurityJsonManyStrictV194(securityKeys) {
   }
 }
 
-
-// Narrow v212: one immutable persistent-ban snapshot per request.
-// The snapshot never crosses requests and is installed only after a successful
-// strict database read. A failed read is not cached, so production remains fail-closed.
-const DIRAC_REQUEST_PERSISTENT_BAN_SNAPSHOT_V212 = '__diracRequestPersistentBanSnapshotV212';
-
-function diracInstallRequestPersistentBanSnapshotV212(req, securityKeys, records) {
-  if (!req || typeof req !== 'object') return false;
-  const keys = Array.from(new Set((securityKeys || []).map((key) => String(key || '').trim()).filter(Boolean))).slice(0, 40);
-  const byKey = Object.create(null);
-  for (const row of records || []) {
-    const key = String(row && row.security_key || '').trim();
-    if (!key || !keys.includes(key)) continue;
-    byKey[key] = Object.freeze({
-      security_key: key,
-      record: row.record && typeof row.record === 'object' ? Object.freeze({ ...row.record }) : Object.freeze({}),
-      blocked_until_ms: Number(row.blocked_until_ms || 0)
-    });
-  }
-  const snapshot = Object.freeze({
-    ok: true,
-    keys: Object.freeze(keys.slice()),
-    recordsByKey: Object.freeze(byKey),
-    createdAtMs: Date.now()
-  });
-  try {
-    Object.defineProperty(req, DIRAC_REQUEST_PERSISTENT_BAN_SNAPSHOT_V212, {
-      value: snapshot,
-      enumerable: false,
-      configurable: false,
-      writable: false
-    });
-    return true;
-  } catch (_) {
-    return false;
-  }
-}
-
-function diracRequestPersistentBanRowsV212(req, securityKeys) {
-  const snapshot = req && req[DIRAC_REQUEST_PERSISTENT_BAN_SNAPSHOT_V212];
-  const keys = Array.from(new Set((securityKeys || []).map((key) => String(key || '').trim()).filter(Boolean)));
-  if (!snapshot || snapshot.ok !== true || !Array.isArray(snapshot.keys)) return { covered: false, rows: [] };
-  if (keys.some((key) => !snapshot.keys.includes(key))) return { covered: false, rows: [] };
-  const rows = keys.map((key) => snapshot.recordsByKey && snapshot.recordsByKey[key]).filter(Boolean);
-  return { covered: true, rows };
-}
-
 async function writePersistentSecurityJsonRequiredV194(securityKey, record, blockedUntilMs, ttlSeconds) {
   if (!diracPersistentSecurityTableForKeyV209(securityKey) || typeof writePersistentSecurityJson !== 'function') return false;
   for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -3559,6 +3512,11 @@ const DIRAC_SUPABASE_TARGET_ENVS = Object.freeze({
     anonKey: 'DIRAC_ADMIN_GUARD_SUPABASE_ANON_KEY',
     serviceKey: 'DIRAC_ADMIN_GUARD_SUPABASE_SERVICE_ROLE_KEY'
   },
+  customerSecurity: {
+    url: 'DIRAC_CUSTOMER_SECURITY_SUPABASE_URL',
+    anonKey: 'DIRAC_CUSTOMER_SECURITY_SUPABASE_ANON_KEY',
+    serviceKey: 'DIRAC_CUSTOMER_SECURITY_SUPABASE_SERVICE_ROLE_KEY'
+  },
   publicMfa: {
     url: 'DIRAC_PUBLIC_MFA_SUPABASE_URL',
     anonKey: 'DIRAC_PUBLIC_MFA_SUPABASE_ANON_KEY',
@@ -3598,12 +3556,12 @@ const DIRAC_TABLE_DB_MAP = Object.freeze({
   security_login_guard_blocks: 'adminGuard',
   security_customer_login_logs: 'adminGuard',
 
-  security_customer_access_blocks: 'legacy',
-  security_customer_auth_links: 'legacy',
-  security_customer_password_hashes: 'legacy',
-  security_customer_recovery_codes: 'legacy',
-  security_customer_sessions: 'legacy',
-  security_customer_settings: 'legacy',
+  security_customer_access_blocks: 'customerSecurity',
+  security_customer_auth_links: 'customerSecurity',
+  security_customer_password_hashes: 'customerSecurity',
+  security_customer_recovery_codes: 'customerSecurity',
+  security_customer_sessions: 'customerSecurity',
+  security_customer_settings: 'customerSecurity',
 
   public_mfa_recovery_codes: 'publicMfa',
   public_security_challenges: 'publicMfa',
@@ -14957,12 +14915,12 @@ function diracSensitivePostOriginNormalizeAction(action) {
 
 function diracSensitivePostOriginCheck(req, action) {
   if (isEnvTrue('DIRAC_SENSITIVE_POST_ORIGIN_GUARD_DISABLED')) {
-    return { ok: true, source: 'guard_disabled' };
+    return { ok: false, code: 'SENSITIVE_POST_ORIGIN_GUARD_DISABLE_FORBIDDEN', source: 'guard_disable_forbidden' };
   }
 
   const scopedDisabledKey = 'DIRAC_SENSITIVE_POST_ORIGIN_GUARD_DISABLED_' + String(action || '').toUpperCase().replace(/[^A-Z0-9]+/g, '_');
   if (isEnvTrue(scopedDisabledKey)) {
-    return { ok: true, source: 'scope_guard_disabled' };
+    return { ok: false, code: 'SENSITIVE_POST_ORIGIN_SCOPE_DISABLE_FORBIDDEN', source: 'scope_guard_disable_forbidden' };
   }
 
   const headers = (req && req.headers) || {};
@@ -14989,11 +14947,7 @@ function diracSensitivePostOriginCheck(req, action) {
       : { ok: false, code: 'SENSITIVE_POST_REFERER_BLOCKED', source: 'referer' };
   }
 
-  if (isEnvTrue('DIRAC_SENSITIVE_POST_ORIGIN_REQUIRE_HEADER')) {
-    return { ok: false, code: 'SENSITIVE_POST_ORIGIN_HEADER_REQUIRED', source: 'missing_origin_referer' };
-  }
-
-  return { ok: true, source: 'missing_origin_fail_open' };
+  return { ok: false, code: 'SENSITIVE_POST_ORIGIN_HEADER_REQUIRED', source: 'missing_origin_referer' };
 }
 
 function diracSensitivePostAllowedOrigins() {
@@ -16427,7 +16381,6 @@ function diracUltraIsWebhookAction(action) {
 
 function diracUltraRequiresBrowserOrigin(action) {
   if (diracUltraIsWebhookAction(action)) return false;
-  if (isEnvTrue('DIRAC_ULTRA_ORIGIN_GUARD_DISABLED')) return false;
   return true;
 }
 
@@ -16442,7 +16395,7 @@ function diracUltraStrictOriginGuard(req, action) {
     }
     return guard;
   }
-  return { ok: true, source: 'origin_guard_unavailable' };
+  return { ok: false, code: 'ORIGIN_GUARD_UNAVAILABLE', source: 'origin_guard_unavailable' };
 }
 
 // Override existing sensitive POST origin checker only at the missing-header branch.
@@ -17335,11 +17288,7 @@ async function diracV107CheckActiveBan(req) {
     }
   }
 
-  const keyNames = keys.map((item) => item.key);
-  const requestSnapshot = diracRequestPersistentBanRowsV212(req, keyNames);
-  const rows = requestSnapshot.covered
-    ? requestSnapshot.rows
-    : await diracV107ReadRows(keyNames);
+  const rows = await diracV107ReadRows(keys.map((item) => item.key));
   for (const row of rows) {
     const blockedUntilMs = Number(row && row.blocked_until_ms || 0);
     if (blockedUntilMs > now) {
@@ -21307,8 +21256,7 @@ function diracBolaIdorV122InspectStrictSafe(path, options = {}) {
     const ctx = diracBolaIdorV122CurrentContext() || {};
     const action = diracBolaIdorV122NormalizeAction(ctx.action || '');
 
-    // Jangan hard-block request di luar context HTTP normal. Ini menghindari risiko job/helper internal patah.
-    if (!action) return { ok: true, table, method, action, reason: 'no_http_action_context' };
+    if (!action) return { ok: false, warn: true, block: true, table, method, action, reason: 'service_role_http_action_context_required' };
 
     const ownerScoped = diracBolaIdorV122HasOwnerScope(rawPath, options.body, policy.ownerColumns);
     const safeInsert = method === 'POST' && policy.insertMayUseBodyOwner && diracBolaIdorV122BodyHasAllOwners(options.body, policy.requiredBodyOwners || policy.ownerColumns);
@@ -21333,7 +21281,7 @@ function diracBolaIdorV122InspectStrictSafe(path, options = {}) {
       patch: DIRAC_BOLA_IDOR_STRICT_SAFE_PATCH_V122
     };
   } catch (error) {
-    return { ok: true, error: 'bola_idor_v122_guard_failed_open' };
+    return { ok: false, warn: true, block: true, reason: 'bola_idor_v122_guard_exception', error: diracSecurityRedactDiagnosticV210(error, 120) };
   }
 }
 
@@ -21597,7 +21545,7 @@ function diracBolaIdorV126InspectOwnerValue(path, options = {}) {
     if (!diracBolaIdorV126IsUserDataAction(action)) return { ok: true };
 
     const allowed = diracBolaIdorV126AllowedCustomerIds(ctx);
-    if (!allowed.length) return { ok: true, table, method, action, reason: 'trusted_owner_not_yet_available' };
+    if (!allowed.length) return { ok: false, warn: true, block: true, table, method, action, reason: 'trusted_owner_required' };
 
     const requested = diracBolaIdorV126RequestedCustomerIds(rawPath, options.body);
     if (!requested.length) return { ok: true };
@@ -21618,7 +21566,7 @@ function diracBolaIdorV126InspectOwnerValue(path, options = {}) {
       patch: DIRAC_BOLA_IDOR_OWNER_VALUE_BINDING_PATCH_V126
     };
   } catch (error) {
-    return { ok: true, error: 'bola_idor_v126_guard_failed_open' };
+    return { ok: false, warn: true, block: true, reason: 'bola_idor_v126_guard_exception', error: diracSecurityRedactDiagnosticV210(error, 120) };
   }
 }
 
@@ -21890,7 +21838,7 @@ try {
   const __diracBolaIdorV128OriginalSupabaseFetch = typeof supabaseFetch === 'function' ? supabaseFetch : null;
   if (__diracBolaIdorV128OriginalSupabaseFetch && !__diracBolaIdorV128OriginalSupabaseFetch.__diracBolaIdorV128Wrapped) {
     supabaseFetch = async function supabaseFetchBolaIdorGlobalHardBanV128(path, options = {}) {
-      const decision = await diracBolaIdorV128InspectSupabaseAccess(path, options).catch(() => ({ ok: true }));
+      const decision = await diracBolaIdorV128InspectSupabaseAccess(path, options).catch((error) => ({ ok: false, warn: true, block: true, reason: 'bola_idor_v128_supabase_guard_exception', error: diracSecurityRedactDiagnosticV210(error, 120) }));
       if (decision && decision.warn) diracBolaIdorV128LogDecision(decision);
       if (decision && decision.block) {
         await diracBolaIdorV128RegisterGlobalHardBanFromContext(decision).catch(() => null);
@@ -21912,7 +21860,7 @@ try {
       const run = async () => {
         try { if (res && typeof res.setHeader === 'function') res.setHeader('X-Dirac-Bola-Idor-Patch-V128', DIRAC_BOLA_IDOR_GLOBAL_HARD_BAN_PATCH_V128); } catch (_) {}
 
-        const decision = await diracBolaIdorV128InspectHttpRequest(req).catch(() => ({ ok: true }));
+        const decision = await diracBolaIdorV128InspectHttpRequest(req).catch((error) => ({ ok: false, warn: true, block: true, reason: 'bola_idor_v128_http_guard_exception', error: diracSecurityRedactDiagnosticV210(error, 120) }));
         if (decision && decision.warn) diracBolaIdorV128LogDecision(decision);
         if (decision && decision.block) {
           await diracBolaIdorV128RegisterGlobalHardBan(req, context.action, context.method, decision).catch(() => null);
@@ -21970,7 +21918,7 @@ async function diracBolaIdorV128InspectHttpRequest(req) {
   if (!ids.length) return { ok: true };
 
   const owner = await diracBolaIdorV128ResolveRequestOwner(req).catch(() => null);
-  if (!owner || !owner.ok) return { ok: true, reason: 'request_owner_unavailable_fail_safe' };
+  if (!owner || !owner.ok) return diracBolaIdorV128BuildBlockDecision('request_owner_required', { source: 'query', action, method });
 
   const customerMismatch = diracBolaIdorV128FindCustomerMismatch(ids, owner.customerIds);
   if (customerMismatch) {
@@ -22029,7 +21977,7 @@ async function diracBolaIdorV128InspectSupabaseAccess(path, options = {}) {
   if (!diracBolaIdorV128IsProtectedUserObjectAction(action)) return { ok: true };
 
   const allowed = diracBolaIdorV128AllowedCustomerIds(ctx);
-  if (!allowed.length) return { ok: true, reason: 'trusted_owner_not_yet_available' };
+  if (!allowed.length) return diracBolaIdorV128BuildBlockDecision('trusted_owner_required', { source: 'supabase', table, method, action });
 
   const ids = diracBolaIdorV128CollectIdsFromSupabase(rawPath, options.body);
   const customerMismatch = diracBolaIdorV128FindCustomerMismatch(ids, allowed);
@@ -25548,15 +25496,7 @@ async function diracV143CheckActiveGlobalBan(req) {
   }
 
   if (typeof readPersistentSecurityJson === 'function') {
-    const persistentKey = 'global-api-threat-ban:' + key;
-    const requestSnapshot = diracRequestPersistentBanRowsV212(req, [persistentKey]);
-    const snapshotRow = requestSnapshot.covered ? requestSnapshot.rows[0] : null;
-    const persisted = requestSnapshot.covered
-      ? snapshotRow && {
-        ...(snapshotRow.record || {}),
-        blocked_until_ms: Number(snapshotRow.blocked_until_ms || 0)
-      }
-      : await readPersistentSecurityJson(persistentKey).catch(() => null);
+    const persisted = await readPersistentSecurityJson('global-api-threat-ban:' + key).catch(() => null);
     const blockedUntilMs = Number(persisted && (persisted.blockedUntilMs || persisted.blocked_until_ms) || 0);
     if (blockedUntilMs > now) {
       DIRAC_GLOBAL_API_THREAT_STORE_V143.set(key, { blockedUntilMs });
@@ -26360,7 +26300,6 @@ __diracV202RegisterMiddleware(async function diracRecoveryWorkerWrapper(req, res
    ============================================================ */
 
 const DIRAC_CENTRAL_SECURITY_GUARD_V146 = 'dirac-central-security-guard-v146';
-const DIRAC_ALL_FAILURES_GLOBAL_PERSISTENT_BAN_V211 = 'dirac-all-failures-global-persistent-ban-v211';
 const DIRAC_CENTRAL_MEMORY_BAN_V146 = globalThis.__DIRAC_CENTRAL_MEMORY_BAN_V146__ || new Map();
 const DIRAC_CENTRAL_NEGATIVE_BAN_V146 = globalThis.__DIRAC_CENTRAL_NEGATIVE_BAN_V146__ || new Map();
 const DIRAC_CENTRAL_DEVICE_BINDINGS_V146 = globalThis.__DIRAC_CENTRAL_DEVICE_BINDINGS_V146__ || new Map();
@@ -26388,6 +26327,98 @@ globalThis.__DIRAC_CENTRAL_CONTEXT_STACK_V146__ = DIRAC_CENTRAL_CONTEXT_STACK_V1
 globalThis.__DIRAC_CENTRAL_ASYNC_CONTEXT_V149__ = DIRAC_CENTRAL_ASYNC_CONTEXT_V149;
 globalThis.__DIRAC_CENTRAL_SECRET_CACHE_V146__ = DIRAC_CENTRAL_SECRET_CACHE_V146;
 globalThis.__DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148__ = DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148;
+
+/* ============================================================
+   DIRAC CENTRAL FAIL-CLOSED + SAFE DEBUG v211
+   Narrow scope only:
+   - no endpoint, handler, login, hash, Argon2id, payment, email, A2F/MFA change;
+   - every security decision fails closed when context/storage/guard is unavailable;
+   - debug remains redacted and never exposes secrets to normal production users.
+   ============================================================ */
+const DIRAC_CENTRAL_FAIL_CLOSED_DEBUG_V211 = 'dirac-central-fail-closed-debug-v211';
+
+function diracCentralDebugEnabledV211() {
+  return diracCentralEnvTrueV150('DIRAC_CENTRAL_DEBUG')
+    || diracCentralEnvTrueV150('DIRAC_CENTRAL_FAIL_CLOSED_DEBUG');
+}
+
+function diracCentralDebugResponseAllowedV211(ctx) {
+  if (!diracCentralDebugEnabledV211()) return false;
+  if (!diracCentralIsProductionV146()) return true;
+  try { return Boolean(ctx && ctx.req && isAdminRequest(ctx.req)); } catch (_) { return false; }
+}
+
+function diracCentralFailureIdV211(ctx) {
+  const requestId = String(ctx && ctx.requestId || '').replace(/[^a-f0-9]/gi, '').slice(0, 32);
+  return requestId ? 'DG-CENTRAL-' + requestId.slice(0, 16).toUpperCase() : 'DG-CENTRAL-UNAVAILABLE';
+}
+
+function diracCentralStageTraceV211(ctx, limit = 30) {
+  const trace = Array.isArray(ctx && ctx.stageTraceV211) ? ctx.stageTraceV211 : [];
+  return trace.slice(-Math.max(1, Math.min(30, Number(limit || 30)))).map((entry) => ({
+    index: Number(entry && entry.index || 0),
+    stage: String(entry && entry.stage || '').slice(0, 80),
+    result: String(entry && entry.result || '').slice(0, 40),
+    duration_ms: Number(entry && entry.duration_ms || 0)
+  }));
+}
+
+function diracCentralEmitDebugV211(ctx, event, extra) {
+  const payload = {
+    patch: DIRAC_CENTRAL_FAIL_CLOSED_DEBUG_V211,
+    event: String(event || 'central_event').slice(0, 80),
+    request_id: String(ctx && ctx.requestId || '').slice(0, 64),
+    failure_id: diracCentralFailureIdV211(ctx),
+    action: String(ctx && ctx.action || ctx && ctx.rawAction || '').slice(0, 80),
+    method: String(ctx && ctx.method || '').slice(0, 12),
+    phase: String(ctx && ctx.executionPhaseV211 || '').slice(0, 30),
+    stage_index: Number((ctx && ctx.currentStageIndexV211) ?? -1),
+    stage: String(ctx && ctx.currentStageV211 || '').slice(0, 80),
+    failed_stage: String(ctx && ctx.failedStageV211 || '').slice(0, 80),
+    reason: String(ctx && ctx.failureReasonV211 || '').slice(0, 120),
+    passport_hex: (() => { try { return BigInt(ctx && ctx.passport || 0n).toString(16); } catch (_) { return '0'; } })(),
+    trace: diracCentralStageTraceV211(ctx, 30),
+    extra: extra && typeof extra === 'object' ? diracCentralSanitizeOutputV146(extra, 0) : undefined
+  };
+  try {
+    const line = JSON.stringify(payload);
+    if (event === 'request_passed' && diracCentralDebugEnabledV211()) console.info('[dirac-central-debug-v211]', line);
+    else if (event !== 'request_passed') console.error('[dirac-central-debug-v211]', line);
+  } catch (_) {}
+  return payload;
+}
+
+function diracCentralGuardPhaseValidV211(ctx) {
+  if (!ctx || !ctx.req || !ctx.res) return false;
+  if (diracCentralCurrentContextV149() !== ctx) return false;
+  if (ctx.executionPhaseV211 !== 'guard') return false;
+  if (ctx.req.__diracCentralSecurityGuardPassedV146 === true) return false;
+  if (!Number.isInteger(ctx.currentStageIndexV211) || ctx.currentStageIndexV211 < 0) return false;
+  if (!String(ctx.currentStageV211 || '')) return false;
+  return true;
+}
+
+function diracCentralHandlerContextFullyPassedV211(ctx, req) {
+  if (!ctx || !req || ctx.req !== req || !ctx.res) return false;
+  if (diracCentralCurrentContextV149() !== ctx) return false;
+  if (ctx.executionPhaseV211 !== 'handler') return false;
+  if (req.__diracCentralSecurityGuardPassedV146 !== true || ctx.centralGuardFullyPassedV211 !== true) return false;
+  if (ctx.terminalResponse || ctx.terminalBlockReason || ctx.failedStageV211) return false;
+  try {
+    const actual = BigInt(ctx.passport || 0n);
+    if ((actual & DIRAC_V202_ALL_CHECKPOINTS) !== DIRAC_V202_ALL_CHECKPOINTS) return false;
+  } catch (_) { return false; }
+  for (const stamp of Object.keys(DIRAC_V202_CHECKPOINT_BY_STAMP)) {
+    if (!ctx.guardPassport || ctx.guardPassport[stamp] !== true) return false;
+  }
+  return Boolean(ctx.action && ACTION_POLICY[ctx.action] && ctx.policy === ACTION_POLICY[ctx.action]);
+}
+
+function diracCentralGatewayContextAllowedV211(ctx) {
+  if (diracCentralGuardPhaseValidV211(ctx)) return { ok: true, phase: 'guard' };
+  if (ctx && diracCentralHandlerContextFullyPassedV211(ctx, ctx.req)) return { ok: true, phase: 'handler' };
+  return { ok: false, phase: String(ctx && ctx.executionPhaseV211 || 'missing') };
+}
 
 /* ============================================================
    v202 CENTRAL POLICY, CONTEXT, CHECKPOINTS, AND STATIC PIPELINE
@@ -27263,8 +27294,35 @@ try {
 }
 
 const __diracV202CentralGuardHandler = async function diracCentralSecurityGuardWrapperV146(req, res, nextHandlerV202) {
-      return diracCentralRunWithAsyncContextV149(() => diracCentralSecurityGuardV146(req, res, nextHandlerV202));
+  try {
+    return await diracCentralRunWithAsyncContextV149(() => diracCentralSecurityGuardV146(req, res, nextHandlerV202));
+  } catch (error) {
+    let emergencyRequestId = '';
+    try { emergencyRequestId = crypto.randomBytes(16).toString('hex'); }
+    catch (_) { emergencyRequestId = String(Date.now()) + '-' + String(process && process.pid || 0); }
+    const emergencyCtx = {
+      req, res, requestId: emergencyRequestId,
+      rawAction: '', action: '', method: '', passport: 0n,
+      guardPassport: Object.create(null), stageTraceV211: [],
+      executionPhaseV211: 'emergency_fail_closed',
+      currentStageV211: 'central_guard_bootstrap', currentStageIndexV211: -1,
+      failedStageV211: 'central_guard_bootstrap',
+      failureReasonV211: String(error && error.code || error && error.message || 'central_guard_bootstrap_exception').slice(0, 120),
+      centralGuardFullyPassedV211: false
     };
+    try {
+      DIRAC_CENTRAL_CONTEXT_STACK_V146.push(emergencyCtx);
+      diracCentralSetCurrentContextV149(emergencyCtx);
+      emergencyCtx.centralErrorDebugV155 = diracCentralSafeDebugErrorV155(error, emergencyCtx);
+      diracCentralEmitDebugV211(emergencyCtx, 'central_bootstrap_exception', emergencyCtx.centralErrorDebugV155);
+      return diracCentralPersistenceUnavailableResponseV210(res);
+    } finally {
+      const index = DIRAC_CENTRAL_CONTEXT_STACK_V146.indexOf(emergencyCtx);
+      if (index >= 0) DIRAC_CENTRAL_CONTEXT_STACK_V146.splice(index, 1);
+      diracCentralSetCurrentContextV149(null);
+    }
+  }
+};
 __diracV202MarkWrapperFlag('__diracCentralSecurityGuardV146');
 
 
@@ -27582,26 +27640,42 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
     skipHeavyScan: false,
     sample: null,
     terminalResponse: '',
-    terminalBlockReason: ''
+    terminalBlockReason: '',
+    executionPhaseV211: 'guard',
+    currentStageV211: '',
+    currentStageIndexV211: -1,
+    failedStageV211: '',
+    failureReasonV211: '',
+    stageTraceV211: [],
+    centralGuardFullyPassedV211: false
   };
   try {
     DIRAC_CENTRAL_CONTEXT_STACK_V146.push(ctx);
     diracCentralSetCurrentContextV149(ctx);
 
-    for (const stage of SECURITY_PIPELINE) {
-      const result = await stage.guard(ctx);
+    for (let stageIndex = 0; stageIndex < SECURITY_PIPELINE.length; stageIndex += 1) {
+      const stage = SECURITY_PIPELINE[stageIndex];
+      ctx.currentStageV211 = String(stage && stage.name || 'unknown_stage');
+      ctx.currentStageIndexV211 = stageIndex;
+      const stageStartedAt = Date.now();
+      let result;
+      try {
+        result = await stage.guard(ctx);
+      } catch (stageError) {
+        ctx.failedStageV211 = ctx.currentStageV211;
+        ctx.failureReasonV211 = 'central_guard_stage_exception';
+        ctx.stageTraceV211.push(Object.freeze({ index: stageIndex, stage: ctx.currentStageV211, result: 'exception', duration_ms: Date.now() - stageStartedAt }));
+        try { stageError.diracStage = ctx.currentStageV211; stageError.diracStageIndex = stageIndex; } catch (_) {}
+        throw stageError;
+      }
+      const stageResult = result && result.ok === true ? 'passed' : 'blocked';
+      ctx.stageTraceV211.push(Object.freeze({ index: stageIndex, stage: ctx.currentStageV211, result: stageResult, duration_ms: Date.now() - stageStartedAt }));
       if (!result || result.ok !== true) {
-        const reason = String(result && result.reason || 'central_guard_stage_failed');
-        if (result && result.directCode) {
-          return await diracCentralBanAndBlockV146(
-            req,
-            res,
-            ctx,
-            String(result.action || ctx.action || 'central_guard_error'),
-            method,
-            String(result.directCode || reason)
-          );
-        }
+        const reason = String(result && result.reason || result && result.directCode || 'central_guard_stage_failed');
+        ctx.failedStageV211 = ctx.currentStageV211;
+        ctx.failureReasonV211 = reason;
+        diracCentralEmitDebugV211(ctx, 'request_blocked', { direct_code: String(result && result.directCode || ''), decision: String(result && result.decision || '') });
+        if (result && result.directCode) return diracCentralBlockedResponseV146(res, result.directCode);
         return await diracCentralBanAndBlockV146(req, res, ctx, String(result && result.action || ctx.action || 'central_guard_error'), method, reason);
       }
       diracCentralStampV146(ctx, stage.stamp, result.decision || 'passed');
@@ -27610,37 +27684,26 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
     if ((ctx.passport & DIRAC_V202_ALL_CHECKPOINTS) !== DIRAC_V202_ALL_CHECKPOINTS) {
       return await diracCentralBanAndBlockV146(req, res, ctx, ctx.action || 'central_guard_error', method, 'central_guard_integrity_final_incomplete');
     }
-    if (ctx.terminalResponse === 'disabled') {
-      return await diracCentralBanAndBlockV146(req, res, ctx, ctx.action || 'disabled_action', method, 'action_disabled');
-    }
+    if (ctx.terminalResponse === 'disabled') return diracCentralDisabledResponseV146(res);
     if (ctx.terminalBlockReason) return await diracCentralBanAndBlockV146(req, res, ctx, ctx.action, method, ctx.terminalBlockReason);
 
+    ctx.currentStageV211 = 'dispatch';
+    ctx.currentStageIndexV211 = SECURITY_PIPELINE.length;
+    ctx.centralGuardFullyPassedV211 = true;
+    ctx.executionPhaseV211 = 'handler';
     req.__diracCentralSecurityGuardPassedV146 = true;
+    try { Object.defineProperty(req, '__diracCentralSecurityGuardPassedV146', { value: true, writable: false, enumerable: false, configurable: false }); } catch (_) {}
+    try { Object.defineProperty(req, '__diracCentralRequestIdV211', { value: ctx.requestId, writable: false, enumerable: false, configurable: false }); } catch (_) {}
+    diracCentralEmitDebugV211(ctx, 'request_passed', { checkpoint_count: SECURITY_PIPELINE.length });
     if (ctx.__diracS2SSecurityReportResultV206) {
       return res.status(200).json(ctx.__diracS2SSecurityReportResultV206);
     }
-
-    const handlerResult = await nextHandler(req, res);
-    const handlerStatusCode = Number(res && res.statusCode || 200);
-    if (Number.isFinite(handlerStatusCode) && handlerStatusCode >= 400) {
-      const handlerBan = await diracCentralBanCurrentContextV146(
-        'handler_failure_status_' + String(Math.trunc(handlerStatusCode))
-      );
-      if (!handlerBan || handlerBan.persistent !== true) {
-        try {
-          console.error('[dirac-all-failures-global-persistent-ban-v211]', {
-            patch: DIRAC_ALL_FAILURES_GLOBAL_PERSISTENT_BAN_V211,
-            action: String(ctx.action || '').slice(0, 80),
-            status: Math.trunc(handlerStatusCode),
-            persistence: 'failed'
-          });
-        } catch (_) {}
-        if (!res || res.headersSent !== true) return diracCentralPersistenceUnavailableResponseV210(res);
-      }
-    }
-    return handlerResult;
+    return await nextHandler(req, res);
   } catch (error) {
+    if (ctx && !ctx.failedStageV211) ctx.failedStageV211 = String(error && error.diracStage || ctx.currentStageV211 || 'central_guard');
+    if (ctx && !ctx.failureReasonV211) ctx.failureReasonV211 = String(error && error.code || error && error.message || 'central_guard_error').slice(0, 120);
     const safeDebug = diracCentralSafeDebugErrorV155(error, ctx);
+    diracCentralEmitDebugV211(ctx, 'central_exception', safeDebug);
     try { console.error('[dirac-central-security-v202]', safeDebug); } catch (_) {}
     if (ctx) ctx.centralErrorDebugV155 = safeDebug;
     if (ctx && req && req.__diracCentralSecurityGuardPassedV146 && ctx.action === 'domain_dashboard_me') {
@@ -27661,6 +27724,8 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
         const idx = DIRAC_CENTRAL_CONTEXT_STACK_V146.indexOf(ctx);
         if (idx >= 0) DIRAC_CENTRAL_CONTEXT_STACK_V146.splice(idx, 1);
       }
+      ctx.executionPhaseV211 = 'closed';
+      ctx.currentStageV211 = 'closed';
       diracCentralSetCurrentContextV149(null);
     }
   }
@@ -27669,6 +27734,11 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
 function diracCentralApplyHeadersV146(res) {
   if (!res || typeof res.setHeader !== 'function') return;
   try { res.setHeader('X-Dirac-Central-Security-Guard', DIRAC_CENTRAL_SECURITY_GUARD_V146); } catch (_) {}
+  try { res.setHeader('X-Dirac-Fail-Closed', DIRAC_CENTRAL_FAIL_CLOSED_DEBUG_V211); } catch (_) {}
+  try {
+    const ctx = diracCentralCurrentContextV149();
+    if (ctx && ctx.requestId) res.setHeader('X-Dirac-Request-Id', String(ctx.requestId).slice(0, 64));
+  } catch (_) {}
   try { res.setHeader('X-Dirac-Dashboard-Session-Fix', 'v147-bola-direct-timeout-fast-self-read'); } catch (_) {}
   try { res.setHeader('Cache-Control', 'no-store'); } catch (_) {}
   try { res.setHeader('X-Content-Type-Options', 'nosniff'); } catch (_) {}
@@ -27814,23 +27884,17 @@ function diracCentralCheckMemoryBanV146(identity) {
 async function diracCentralCheckPersistentBanV146(req, identity) {
   const now = Date.now();
   const key = String(identity && identity.key || '');
-  const neg = DIRAC_CENTRAL_NEGATIVE_BAN_V146.get(key);
-  if (!diracCentralIsProductionV146() && neg && Number(neg.until || 0) > now) return { blocked: false, negativeCache: true };
+  DIRAC_CENTRAL_NEGATIVE_BAN_V146.delete(key);
 
   let storageChecked = false;
   try {
     if (typeof readPersistentSecurityJsonManyStrictV194 === 'function' && typeof diracV107BuildKeys === 'function') {
-      const hardBanKeys = diracV107BuildKeys(req || {}).map((item) => String(item && item.key || '')).filter(Boolean);
-      const v143Key = typeof diracV143RequestKey === 'function'
-        ? 'global-api-threat-ban:' + diracV143RequestKey(req || {})
-        : '';
-      const allBanKeys = Array.from(new Set([...hardBanKeys, key, v143Key].filter(Boolean))).slice(0, 40);
-      const hardBanLookup = await readPersistentSecurityJsonManyStrictV194(allBanKeys);
+      const hardBanKeys = diracV107BuildKeys(req || {}).map((item) => String(item && item.key || '')).filter(Boolean).slice(0, 40);
+      const hardBanLookup = await readPersistentSecurityJsonManyStrictV194(hardBanKeys);
       if (!hardBanLookup.ok) {
-        if (diracCentralIsProductionV146()) return { blocked: true, blockedUntilMs: now + diracCentralBlockMsV146(), failClosed: true };
+        return { blocked: true, blockedUntilMs: now + diracCentralBlockMsV146(), failClosed: true, reason: 'persistent_ban_store_unavailable' };
       } else {
         storageChecked = true;
-        diracInstallRequestPersistentBanSnapshotV212(req, allBanKeys, hardBanLookup.records);
         const active = hardBanLookup.records.find((record) => Number(record && record.blocked_until_ms || 0) > now);
         if (active) return { blocked: true, blockedUntilMs: Number(active.blocked_until_ms) };
       }
@@ -27845,8 +27909,29 @@ async function diracCentralCheckPersistentBanV146(req, identity) {
     return { blocked: true, blockedUntilMs: now + diracCentralBlockMsV146(), failClosed: true };
   }
 
-  if (diracCentralIsProductionV146() && (!storageChecked || !LOGIN_SECURITY_PERSIST_TABLE)) {
+  try {
+    if (typeof readPersistentSecurityJsonStrictV194 === 'function') {
+      const lookup = await readPersistentSecurityJsonStrictV194(key);
+      if (!lookup.ok) {
+        return { blocked: true, blockedUntilMs: now + diracCentralBlockMsV146(), failClosed: true, reason: 'persistent_ban_identity_store_unavailable' };
+      } else {
+        storageChecked = true;
+        const record = lookup.record;
+        const blockedUntilMs = Number(record && (record.blocked_until_ms || record.blockedUntilMs) || 0);
+        if (blockedUntilMs > now) return { blocked: true, blockedUntilMs };
+      }
+    } else if (typeof readPersistentSecurityJson === 'function') {
+      const record = await readPersistentSecurityJson(key);
+      storageChecked = true;
+      const blockedUntilMs = Number(record && (record.blocked_until_ms || record.blockedUntilMs) || 0);
+      if (blockedUntilMs > now) return { blocked: true, blockedUntilMs };
+    }
+  } catch (_) {
     return { blocked: true, blockedUntilMs: now + diracCentralBlockMsV146(), failClosed: true };
+  }
+
+  if (!storageChecked || !LOGIN_SECURITY_PERSIST_TABLE) {
+    return { blocked: true, blockedUntilMs: now + diracCentralBlockMsV146(), failClosed: true, reason: 'persistent_ban_storage_required' };
   }
 
   return { blocked: false };
@@ -27999,13 +28084,9 @@ function diracCentralServer1RecoveryEnvPartitionGuardV190(action) {
       : { ok: false, reason: 'vercel2_non_worker_action_forbidden' };
   }
 
-  const recoveryPartitionAction = vercel2OnlyAction
-    || /^(customer_security_recovery_codes_generate|customer_security_recovery_code_verify|customer_security_recovery_hpke_submit)$/.test(cleanAction);
-  if (!recoveryPartitionAction) return { ok: true };
-
-  if (diracCentralIsProductionV146() && role !== 'vercel1') return { ok: false, reason: 'vercel1_deployment_role_required' };
-  if (vercel2OnlyAction) return { ok: false, reason: 'vercel2_action_forbidden_on_vercel1' };
+  if (role !== 'vercel1') return { ok: false, reason: 'vercel1_deployment_role_required' };
   if (server2OnlyEnv.some(present)) return { ok: false, reason: 'vercel2_env_present_on_vercel1' };
+  if (vercel2OnlyAction) return { ok: false, reason: 'vercel2_action_forbidden_on_vercel1' };
   return { ok: true };
 }
 
@@ -28502,29 +28583,43 @@ async function diracCentralDistributedRateLimitGuardV146(req, ctx) {
   const action = String(ctx && ctx.action || '');
   const method = String(ctx && ctx.method || '').toUpperCase();
   if (method === 'OPTIONS') return { ok: true };
-  if (!diracCentralNeedsDistributedRateLimitV146(action)) return { ok: true };
-  const local = diracCentralRateLimitV146(ctx.identity.key + ':distributed-local:' + action, 60 * 1000, diracCentralDistributedRateLimitMaxV146(action));
-  if (!local.ok) return { ok: false, reason: 'distributed_rate_limit_local' };
-  const persistReady = Boolean(LOGIN_SECURITY_PERSIST_TABLE && typeof readPersistentSecurityJson === 'function' && typeof writePersistentSecurityJson === 'function');
-  if (!persistReady) {
-    return diracCentralIsProductionV146() ? { ok: false, reason: 'distributed_rate_limit_storage_required' } : { ok: true };
-  }
-  const windowMs = 60 * 1000;
+  if (!action || !diracCentralNeedsDistributedRateLimitV146(action)) return { ok: false, reason: 'distributed_rate_limit_action_policy_missing' };
   const max = diracCentralDistributedRateLimitMaxV146(action);
+  const local = diracCentralRateLimitV146(ctx.identity.key + ':distributed-local:' + action, 60 * 1000, max);
+  if (!local.ok) return { ok: false, reason: 'distributed_rate_limit_local' };
+  const persistReady = Boolean(
+    LOGIN_SECURITY_PERSIST_TABLE
+    && typeof readPersistentSecurityJsonStrictV194 === 'function'
+    && typeof writePersistentSecurityJsonRequiredV194 === 'function'
+  );
+  if (!persistReady) return { ok: false, reason: 'distributed_rate_limit_storage_required' };
+
+  const windowMs = 60 * 1000;
   const now = Date.now();
   const key = 'central-rate:' + diracCentralHashV146([ctx.identity.key, action, Math.floor(now / windowMs)].join('|'));
-  let row = await readPersistentSecurityJson(key).catch(() => null);
-  row = row && typeof row === 'object' ? row : { count: 0, resetAtMs: now + windowMs };
+  const lookup = await readPersistentSecurityJsonStrictV194(key).catch(() => ({ ok: false, found: false, record: null }));
+  if (!lookup || lookup.ok !== true) return { ok: false, reason: 'distributed_rate_limit_read_failed' };
+
+  let row = lookup.found && lookup.record && typeof lookup.record === 'object'
+    ? { ...lookup.record }
+    : { count: 0, resetAtMs: now + windowMs };
   if (Number(row.resetAtMs || 0) <= now) row = { count: 0, resetAtMs: now + windowMs };
   row.count = Number(row.count || 0) + 1;
-  const wrote = await writePersistentSecurityJson(key, row, 0, Math.ceil(windowMs / 1000) + 60).catch(() => false);
-  if (!wrote && diracCentralIsProductionV146()) return { ok: false, reason: 'distributed_rate_limit_write_failed' };
+  row.resetAtMs = Number(row.resetAtMs || now + windowMs);
+  const wrote = await writePersistentSecurityJsonRequiredV194(
+    key,
+    row,
+    0,
+    Math.ceil(windowMs / 1000) + 60
+  ).catch(() => false);
+  if (!wrote) return { ok: false, reason: 'distributed_rate_limit_write_failed' };
   if (row.count > max) return { ok: false, reason: 'distributed_rate_limit' };
   return { ok: true };
 }
 
 function diracCentralNeedsDistributedRateLimitV146(action) {
-  return /^(domain_login|domain_register|domain_check|hostinger_check|checkout_order|domain_checkout|create_payment|customer_security_recovery_codes_generate|customer_security_recovery_code_verify|dirac_mfa_passkey_start|dirac_mfa_passkey_verify|domain_mfa_passkey_start|domain_mfa_passkey_verify)$/.test(String(action || ''));
+  const clean = String(action || '').trim();
+  return Boolean(clean && (DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.has(clean) || DIRAC_CENTRAL_DISABLED_ACTIONS_V146.has(clean)));
 }
 
 function diracCentralDistributedRateLimitMaxV146(action) {
@@ -29938,12 +30033,8 @@ async function diracCentralBanAndBlockV146(req, res, ctx, action, method, reason
   }
   if (identityKey) DIRAC_CENTRAL_NEGATIVE_BAN_V146.delete(identityKey);
   diracCentralSetMemoryBanV146(ctx && ctx.identity, blockedUntilMs, reason);
-  const globalBanWritten = Boolean(hardBanResult && hardBanResult.ok === true);
-  if (ctx) {
-    ctx.__diracCentralPersistentBanWrittenV194 = globalBanWritten;
-    ctx.__diracAllFailuresGlobalPersistentBanV211 = globalBanWritten;
-  }
-  if (!globalBanWritten) {
+  if (ctx) ctx.__diracCentralPersistentBanWrittenV194 = Boolean(identityBanWritten || hardBanResult && hardBanResult.ok === true);
+  if (!(identityBanWritten || hardBanResult && hardBanResult.ok === true)) {
     return diracCentralPersistenceUnavailableResponseV210(res);
   }
   return diracCentralBlockedResponseV146(res, reason);
@@ -29991,13 +30082,10 @@ async function diracCentralBanCurrentContextV146(reason) {
 
   if (identityKey) DIRAC_CENTRAL_NEGATIVE_BAN_V146.delete(identityKey);
   diracCentralSetMemoryBanV146(ctx.identity, blockedUntilMs, cleanReason);
-  const globalBanWritten = Boolean(hardBanResult && hardBanResult.ok === true);
-  ctx.__diracCentralPersistentBanWrittenV194 = globalBanWritten;
-  ctx.__diracAllFailuresGlobalPersistentBanV211 = globalBanWritten;
+  ctx.__diracCentralPersistentBanWrittenV194 = Boolean(identityBanWritten || hardBanResult && hardBanResult.ok === true);
   return {
-    ok: globalBanWritten,
-    persistent: globalBanWritten,
-    identityPersistent: Boolean(identityBanWritten),
+    ok: ctx.__diracCentralPersistentBanWrittenV194,
+    persistent: ctx.__diracCentralPersistentBanWrittenV194,
     blockedUntilMs
   };
 }
@@ -30024,27 +30112,46 @@ async function diracCentralWritePersistentBanV146(req, res, action, method, thre
 }
 
 function diracCentralBlockedResponseV146(res, reason) {
+  const ctx = diracCentralCurrentContextV149();
   diracCentralApplyHeadersV146(res);
   try { if (res && typeof res.setHeader === 'function') res.setHeader('Cache-Control', 'no-store'); } catch (_) {}
   const publicReason = diracCentralIsProductionV146() ? 'blocked' : String(reason || 'blocked').slice(0, 80);
-  return res.status(403).json({
+  const payload = {
     ok: false,
     code: 'CENTRAL_SECURITY_BLOCKED',
     message: 'Permintaan ditolak oleh sistem keamanan.',
     reason: publicReason,
-    source: DIRAC_CENTRAL_SECURITY_GUARD_V146
-  });
+    source: DIRAC_CENTRAL_SECURITY_GUARD_V146,
+    request_id: String(ctx && ctx.requestId || '').slice(0, 64),
+    failure_id: diracCentralFailureIdV211(ctx)
+  };
+  if (diracCentralDebugResponseAllowedV211(ctx)) {
+    payload.debug = {
+      patch: DIRAC_CENTRAL_FAIL_CLOSED_DEBUG_V211,
+      failed_stage: String(ctx && ctx.failedStageV211 || ctx && ctx.currentStageV211 || '').slice(0, 80),
+      failed_stage_index: Number((ctx && ctx.currentStageIndexV211) ?? -1),
+      internal_reason: String(reason || ctx && ctx.failureReasonV211 || 'blocked').slice(0, 120),
+      stage_trace: diracCentralStageTraceV211(ctx, 30),
+      safe_error: ctx && ctx.centralErrorDebugV155 || undefined
+    };
+  }
+  return res.status(403).json(payload);
 }
 
 function diracCentralPersistenceUnavailableResponseV210(res) {
+  const ctx = diracCentralCurrentContextV149();
   diracCentralApplyHeadersV146(res);
   try { if (res && typeof res.setHeader === 'function') res.setHeader('Cache-Control', 'no-store'); } catch (_) {}
-  return res.status(503).json({
+  const payload = {
     ok: false,
     code: 'CENTRAL_SECURITY_PERSISTENCE_UNAVAILABLE',
     message: 'Permintaan ditolak karena penyimpanan keamanan belum tersedia.',
-    source: DIRAC_CENTRAL_SECURITY_GUARD_V146
-  });
+    source: DIRAC_CENTRAL_SECURITY_GUARD_V146,
+    request_id: String(ctx && ctx.requestId || '').slice(0, 64),
+    failure_id: diracCentralFailureIdV211(ctx)
+  };
+  if (diracCentralDebugResponseAllowedV211(ctx)) payload.debug = ctx && ctx.centralErrorDebugV155 || diracCentralStageTraceV211(ctx, 30);
+  return res.status(503).json(payload);
 }
 
 function diracCentralDisabledResponseV146(res) {
@@ -30473,12 +30580,12 @@ function diracCentralSafeErrorV146(error) {
 function diracCentralSafeDebugErrorV155(error, ctx) {
   const rawName = String(error && error.name || 'Error').replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 80) || 'Error';
   const rawCode = String(error && error.code || '').replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 80);
-  const rawMessage = String(error && error.message || error || 'internal_error');
-  const normalizedRawMessage = rawMessage.replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 260) || 'internal_error';
+  const rawMessage = String(error && error.message || error || 'central_error');
   const safeMessage = diracSecurityRedactDiagnosticV210(rawMessage, 260);
+  const sensitivePattern = /(?:authorization|bearer|cookie|secret|service[_-]?role|access[_-]?token|refresh[_-]?token|password|passkey|private[_-]?key|api[_-]?key|argon2|pepper|signature)\s*[:=]/i;
   const stack = String(error && error.stack || '')
     .split('\n')
-    .slice(1, 8)
+    .slice(1, 10)
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line) => line
@@ -30488,18 +30595,27 @@ function diracCentralSafeDebugErrorV155(error, ctx) {
       .slice(0, 180));
 
   const pass = ctx && ctx.guardPassport && typeof ctx.guardPassport === 'object' ? ctx.guardPassport : {};
-  const passedStages = Object.keys(pass).filter((key) => pass[key]).slice(-12);
+  const passedStages = Object.keys(pass).filter((key) => pass[key]);
 
   return {
-    safe_error_debug_version: 'v155',
-    action: String(ctx && ctx.action || '').slice(0, 80),
+    safe_error_debug_version: 'v211',
+    patch: DIRAC_CENTRAL_FAIL_CLOSED_DEBUG_V211,
+    request_id: String(ctx && ctx.requestId || '').slice(0, 64),
+    failure_id: diracCentralFailureIdV211(ctx),
+    action: String(ctx && ctx.action || ctx && ctx.rawAction || '').slice(0, 80),
     method: String(ctx && ctx.method || '').slice(0, 12),
+    execution_phase: String(ctx && ctx.executionPhaseV211 || '').slice(0, 30),
+    failed_stage: String(ctx && ctx.failedStageV211 || error && error.diracStage || ctx && ctx.currentStageV211 || '').slice(0, 80),
+    failed_stage_index: Number((error && error.diracStageIndex) ?? (ctx && ctx.currentStageIndexV211) ?? -1),
+    failure_reason: String(ctx && ctx.failureReasonV211 || rawCode || safeMessage).slice(0, 160),
     error_name: rawName,
     error_code: rawCode || undefined,
     safe_message: safeMessage,
-    message_was_redacted: safeMessage !== normalizedRawMessage,
-    last_guard_stages: passedStages,
+    message_was_redacted: safeMessage !== rawMessage || sensitivePattern.test(rawMessage),
+    passed_guard_count: passedStages.length,
+    passed_guard_stages: passedStages.slice(-30),
     handler_already_entered: Boolean(ctx && ctx.req && ctx.req.__diracCentralSecurityGuardPassedV146),
+    stage_trace: diracCentralStageTraceV211(ctx, 30),
     stack_top: stack
   };
 }
@@ -31246,7 +31362,6 @@ function diracAssertServer1RecoveryEnvironmentV201() {
   const role = String(process.env.DIRAC_CENTRAL_DEPLOYMENT_ROLE || process.env.DIRAC_DEPLOYMENT_ROLE || '').trim().toLowerCase();
   const isServer2 = role === 'vercel2' || role === 'server2' || role === 'recovery-worker';
   if (isServer2) throw new Error('DIRAC_SERVER1_DEPLOYMENT_ROLE_INVALID');
-  if (process.env.NODE_ENV !== 'production') return true;
   const leaked = DIRAC_SERVER1_FORBIDDEN_PRIVATE_ENVS_V201.filter((name) => String(process.env[name] || '').trim());
   if (leaked.length) throw new Error('DIRAC_SERVER1_PRIVATE_ENV_PARTITION_FAILED');
   return true;
@@ -31770,13 +31885,20 @@ async function secureDatabaseGateway(ctx, operation) {
   if (!op || typeof op.path !== 'string' || !op.options || typeof op.options !== 'object') {
     return { ok: false, status: 500, data: { code: 'DIRAC_DATABASE_GATEWAY_OPERATION_INVALID' } };
   }
-  if (!ctx || !ctx.req || !ctx.res) {
-    return { ok: false, status: 403, data: { code: 'DIRAC_DATABASE_GATEWAY_CONTEXT_REQUIRED' } };
+  const contextDecision = diracCentralGatewayContextAllowedV211(ctx);
+  if (!contextDecision.ok) {
+    diracCentralEmitDebugV211(ctx, 'database_gateway_blocked', { phase: contextDecision.phase, path: String(op.path || '').split('?')[0].slice(0, 160) });
+    return { ok: false, status: 403, data: { code: 'DIRAC_DATABASE_GATEWAY_CONTEXT_NOT_AUTHORIZED' } };
   }
-  if (ctx && ctx.action && !ACTION_POLICY[ctx.action]) {
+  if (contextDecision.phase === 'handler' && (!ctx.action || !ACTION_POLICY[ctx.action] || ctx.policy !== ACTION_POLICY[ctx.action])) {
     return { ok: false, status: 403, data: { code: 'DIRAC_DATABASE_GATEWAY_POLICY_MISSING' } };
   }
-  return __diracV202DatabaseGatewayDelegate(op.path, op.options);
+  ctx.__diracCentralDatabaseGatewayDepthV211 = Number(ctx.__diracCentralDatabaseGatewayDepthV211 || 0) + 1;
+  try {
+    return await __diracV202DatabaseGatewayDelegate(op.path, op.options);
+  } finally {
+    ctx.__diracCentralDatabaseGatewayDepthV211 = Math.max(0, Number(ctx.__diracCentralDatabaseGatewayDepthV211 || 1) - 1);
+  }
 }
 supabaseFetch = async function supabaseFetchV202Gateway(path, options = {}) {
   return secureDatabaseGateway(diracCentralCurrentContextV149(), { path: String(path || ''), options });
@@ -31791,12 +31913,14 @@ async function secureEgressGateway(ctx, requestConfig) {
     error.code = 'DIRAC_EGRESS_GATEWAY_OPERATION_INVALID';
     throw error;
   }
-  if (!ctx || !ctx.req || !ctx.res) {
-    const error = new Error('DIRAC_EGRESS_GATEWAY_CONTEXT_REQUIRED');
-    error.code = 'DIRAC_EGRESS_GATEWAY_CONTEXT_REQUIRED';
+  const contextDecision = diracCentralGatewayContextAllowedV211(ctx);
+  if (!contextDecision.ok) {
+    diracCentralEmitDebugV211(ctx, 'egress_gateway_blocked', { phase: contextDecision.phase });
+    const error = new Error('DIRAC_EGRESS_GATEWAY_CONTEXT_NOT_AUTHORIZED');
+    error.code = 'DIRAC_EGRESS_GATEWAY_CONTEXT_NOT_AUTHORIZED';
     throw error;
   }
-  if (ctx && ctx.action && !ACTION_POLICY[ctx.action]) {
+  if (contextDecision.phase === 'handler' && (!ctx.action || !ACTION_POLICY[ctx.action] || ctx.policy !== ACTION_POLICY[ctx.action])) {
     const error = new Error('DIRAC_EGRESS_GATEWAY_POLICY_MISSING');
     error.code = 'DIRAC_EGRESS_GATEWAY_POLICY_MISSING';
     throw error;
@@ -31829,7 +31953,12 @@ const __diracV202CompiledDispatcher = (() => {
 })();
 async function diracV202Dispatcher(req, res) {
   const ctx = diracCentralCurrentContextV149();
-  if (!ctx || req.__diracCentralSecurityGuardPassedV146 !== true) throw new Error('DIRAC_V202_DISPATCH_BEFORE_CENTRAL_GUARD');
+  if (!diracCentralHandlerContextFullyPassedV211(ctx, req)) {
+    diracCentralEmitDebugV211(ctx, 'dispatcher_blocked', { reason: 'full_central_guard_passport_required' });
+    const error = new Error('DIRAC_V202_DISPATCH_BEFORE_FULL_CENTRAL_GUARD');
+    error.code = 'DIRAC_V202_DISPATCH_BEFORE_FULL_CENTRAL_GUARD';
+    throw error;
+  }
   return __diracV202CompiledDispatcher(req, res);
 }
 
@@ -31843,6 +31972,16 @@ Object.defineProperty(module.exports, '__diracCentralSecurityGuardV146', { value
 Object.defineProperty(module.exports, '__diracCentralArchitectureConsolidationV202', { value: true, enumerable: false });
 Object.defineProperty(module.exports, '__diracV202MiddlewareCount', { value: __diracV202MiddlewareRegistry.length, enumerable: false });
 Object.defineProperty(module.exports, '__diracV202ActionPolicyCount', { value: Object.keys(ACTION_POLICY).length, enumerable: false });
+Object.defineProperty(module.exports, '__diracCentralFailClosedDebugV211', { value: true, enumerable: false });
+
+if (!Array.isArray(SECURITY_PIPELINE)
+    || SECURITY_PIPELINE.length !== Object.keys(DIRAC_V202_CHECKPOINT_BY_STAMP).length
+    || Object.keys(ACTION_POLICY).length !== DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.size + DIRAC_CENTRAL_DISABLED_ACTIONS_V146.size
+    || typeof supabaseFetch !== 'function'
+    || supabaseFetch.__diracV202SecureDatabaseGateway !== true
+    || globalThis.__DIRAC_V202_SECURE_EGRESS_GATEWAY__ !== true) {
+  throw new Error('DIRAC_V211_FAIL_CLOSED_RUNTIME_INVARIANT_FAILED');
+}
 
 if (typeof module.exports !== 'function'
     || module.exports.__diracCentralSecurityGuardV146 !== true
