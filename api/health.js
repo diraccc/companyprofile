@@ -25516,7 +25516,8 @@ async function diracV143CheckActiveGlobalBan(req) {
 async function diracV143WriteGlobalBanOnce(req, res, action, method, threat) {
   try {
     if (typeof diracV107RegisterHardBan === 'function') {
-      return await diracV107RegisterHardBan(req, res || null, action || 'global_api_threat', method || 'GET', threat || { detected: true, kind: 'global_api_threat' });
+      const primaryWrite = await diracV107RegisterHardBan(req, res || null, action || 'global_api_threat', method || 'GET', threat || { detected: true, kind: 'global_api_threat' });
+      if (primaryWrite && primaryWrite.ok === true) return primaryWrite;
     }
   } catch (_) {}
 
@@ -25526,8 +25527,9 @@ async function diracV143WriteGlobalBanOnce(req, res, action, method, threat) {
   const key = diracV143RequestKey(req);
   DIRAC_GLOBAL_API_THREAT_STORE_V143.set(key, { blockedUntilMs, updatedAtMs: now });
 
+  let persistentWritten = false;
   if (typeof writePersistentSecurityJson === 'function') {
-    await writePersistentSecurityJson('global-api-threat-ban:' + key, {
+    persistentWritten = await writePersistentSecurityJson('global-api-threat-ban:' + key, {
       type: 'global_api_threat_ban_v143',
       patch: DIRAC_GLOBAL_API_THREAT_GUARD_V143,
       action: String(action || '').slice(0, 80),
@@ -25541,7 +25543,7 @@ async function diracV143WriteGlobalBanOnce(req, res, action, method, threat) {
     }, blockedUntilMs, Math.ceil((blockedUntilMs - now) / 1000)).catch(() => false);
   }
 
-  return { ok: true, wrote: 1, blockedUntilMs };
+  return { ok: persistentWritten === true, wrote: persistentWritten === true ? 1 : 0, blockedUntilMs };
 }
 
 function diracV143RequestKey(req) {
@@ -26306,7 +26308,7 @@ __diracV202RegisterMiddleware(async function diracRecoveryWorkerWrapper(req, res
    ============================================================ */
 
 const DIRAC_CENTRAL_SECURITY_GUARD_V146 = 'dirac-central-security-guard-v146';
-const DIRAC_ALL_FAIL_CLOSED_GLOBAL_PERSISTENT_BAN_V211 = 'dirac-all-fail-closed-global-persistent-ban-v211';
+const DIRAC_ALL_FAILURES_GLOBAL_PERSISTENT_BAN_V211 = 'dirac-all-failures-global-persistent-ban-v211';
 const DIRAC_CENTRAL_MEMORY_BAN_V146 = globalThis.__DIRAC_CENTRAL_MEMORY_BAN_V146__ || new Map();
 const DIRAC_CENTRAL_NEGATIVE_BAN_V146 = globalThis.__DIRAC_CENTRAL_NEGATIVE_BAN_V146__ || new Map();
 const DIRAC_CENTRAL_DEVICE_BINDINGS_V146 = globalThis.__DIRAC_CENTRAL_DEVICE_BINDINGS_V146__ || new Map();
@@ -27209,8 +27211,25 @@ try {
 }
 
 const __diracV202CentralGuardHandler = async function diracCentralSecurityGuardWrapperV146(req, res, nextHandlerV202) {
-      return diracCentralRunWithAsyncContextV149(() => diracCentralSecurityGuardV146(req, res, nextHandlerV202));
-    };
+  try {
+    return await diracCentralRunWithAsyncContextV149(() => diracCentralSecurityGuardV146(req, res, nextHandlerV202));
+  } catch (error) {
+    const method = String(req && req.method || 'GET').toUpperCase();
+    const rawAction = String(req && req.query && req.query.action || 'central_guard_error');
+    const emergencyBan = await diracCentralWritePersistentBanV146(req, res, rawAction, method, {
+      detected: true,
+      kind: 'central_guard_outer_error',
+      source: DIRAC_CENTRAL_SECURITY_GUARD_V146,
+      risk: 'critical'
+    }).catch(() => ({ ok: false }));
+    if (!emergencyBan || emergencyBan.ok !== true) {
+      if (!res || res.headersSent !== true) return diracCentralPersistenceUnavailableResponseV210(res);
+      return undefined;
+    }
+    if (!res || res.headersSent !== true) return diracCentralBlockedResponseV146(res, 'CENTRAL_GUARD_ERROR');
+    return undefined;
+  }
+};
 __diracV202MarkWrapperFlag('__diracCentralSecurityGuardV146');
 
 
@@ -27537,15 +27556,18 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
     for (const stage of SECURITY_PIPELINE) {
       const result = await stage.guard(ctx);
       if (!result || result.ok !== true) {
-        const reason = String(result && (result.directCode || result.reason) || 'central_guard_stage_failed');
-        return await diracCentralBanAndBlockV146(
-          req,
-          res,
-          ctx,
-          String(result && result.action || ctx.action || ctx.rawAction || 'central_guard_error'),
-          method,
-          reason
-        );
+        const reason = String(result && result.reason || 'central_guard_stage_failed');
+        if (result && result.directCode) {
+          return await diracCentralBanAndBlockV146(
+            req,
+            res,
+            ctx,
+            String(result.action || ctx.action || 'central_guard_error'),
+            method,
+            String(result.directCode || reason)
+          );
+        }
+        return await diracCentralBanAndBlockV146(req, res, ctx, String(result && result.action || ctx.action || 'central_guard_error'), method, reason);
       }
       diracCentralStampV146(ctx, stage.stamp, result.decision || 'passed');
     }
@@ -27554,9 +27576,7 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
       return await diracCentralBanAndBlockV146(req, res, ctx, ctx.action || 'central_guard_error', method, 'central_guard_integrity_final_incomplete');
     }
     if (ctx.terminalResponse === 'disabled') {
-      const disabledBan = await diracCentralBanCurrentContextV146('action_disabled');
-      if (!disabledBan || disabledBan.persistent !== true) return diracCentralPersistenceUnavailableResponseV210(res);
-      return diracCentralDisabledResponseV146(res);
+      return await diracCentralBanAndBlockV146(req, res, ctx, ctx.action || 'disabled_action', method, 'action_disabled');
     }
     if (ctx.terminalBlockReason) return await diracCentralBanAndBlockV146(req, res, ctx, ctx.action, method, ctx.terminalBlockReason);
 
@@ -27564,7 +27584,31 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
     if (ctx.__diracS2SSecurityReportResultV206) {
       return res.status(200).json(ctx.__diracS2SSecurityReportResultV206);
     }
-    return await nextHandler(req, res);
+
+    const handlerResult = await nextHandler(req, res);
+    const handlerStatusCode = Number(res && res.statusCode || 200);
+    const handlerPayloadFailed = Boolean(ctx && ctx.__diracCentralFailurePayloadV211);
+    if ((Number.isFinite(handlerStatusCode) && handlerStatusCode >= 400) || handlerPayloadFailed) {
+      const payloadFailureCode = String(ctx && ctx.__diracCentralFailurePayloadV211 && ctx.__diracCentralFailurePayloadV211.code || 'response_ok_false')
+        .replace(/[^A-Za-z0-9_.:-]/g, '_')
+        .slice(0, 80);
+      const handlerBanReason = Number.isFinite(handlerStatusCode) && handlerStatusCode >= 400
+        ? 'handler_failure_status_' + String(Math.trunc(handlerStatusCode))
+        : 'handler_failure_payload_' + payloadFailureCode;
+      const handlerBan = await diracCentralBanCurrentContextV146(handlerBanReason);
+      if (!handlerBan || handlerBan.persistent !== true) {
+        try {
+          console.error('[dirac-all-failures-global-persistent-ban-v211]', {
+            patch: DIRAC_ALL_FAILURES_GLOBAL_PERSISTENT_BAN_V211,
+            action: String(ctx.action || '').slice(0, 80),
+            status: Math.trunc(handlerStatusCode),
+            persistence: 'failed'
+          });
+        } catch (_) {}
+        if (!res || res.headersSent !== true) return diracCentralPersistenceUnavailableResponseV210(res);
+      }
+    }
+    return handlerResult;
   } catch (error) {
     const safeDebug = diracCentralSafeDebugErrorV155(error, ctx);
     try { console.error('[dirac-central-security-v202]', safeDebug); } catch (_) {}
@@ -27573,7 +27617,14 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
       return await diracCentralBanAndBlockV146(req, res, ctx, ctx.action, method, 'domain_dashboard_handler_error');
     }
     if (ctx) return await diracCentralBanAndBlockV146(req, res, ctx, ctx.action || 'central_guard_error', method, 'central_guard_error');
-    return await diracCentralEmergencyBanAndBlockV211(req, res, String(req && req.query && req.query.action || 'central_guard_error'), method, 'CENTRAL_GUARD_ERROR');
+    const emergencyBan = await diracCentralWritePersistentBanV146(req, res, 'central_guard_error', method, {
+      detected: true,
+      kind: 'central_guard_error_without_context',
+      source: DIRAC_CENTRAL_SECURITY_GUARD_V146,
+      risk: 'critical'
+    }).catch(() => ({ ok: false }));
+    if (!emergencyBan || emergencyBan.ok !== true) return diracCentralPersistenceUnavailableResponseV210(res);
+    return diracCentralBlockedResponseV146(res, 'CENTRAL_GUARD_ERROR');
   } finally {
     if (ctx) {
       try { if (ctx.__diracCentralSupabaseRequestCacheV151 instanceof Map) ctx.__diracCentralSupabaseRequestCacheV151.clear(); } catch (_) {}
@@ -27611,12 +27662,18 @@ function diracCentralApplyHeadersV146(res) {
   try { res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), fullscreen=(self)'); } catch (_) {}
 }
 
-function diracCentralWrapJsonResponseV146(res) {
+function diracCentralWrapJsonResponseV146(res, ctx) {
   if (!res || typeof res.json !== 'function' || res.__diracCentralJsonWrappedV146) return;
   const originalJson = res.json.bind(res);
   res.json = function diracCentralJsonResponseGuardV146(payload) {
     diracCentralApplyHeadersV146(res);
+    if (payload && typeof payload === 'object' && !Array.isArray(payload) && payload.ok === false && ctx) {
+      ctx.__diracCentralFailurePayloadV211 = {
+        code: String(payload.code || payload.error || 'response_ok_false').slice(0, 120)
+      };
+    }
     if (diracCentralPayloadContainsRuntimeSecretV194(payload)) {
+      if (ctx) ctx.__diracCentralFailurePayloadV211 = { code: 'CENTRAL_OUTPUT_SECRET_BLOCKED' };
       try { if (typeof res.status === 'function') res.status(500); else res.statusCode = 500; } catch (_) {}
       return originalJson({ ok: false, code: 'CENTRAL_OUTPUT_SECRET_BLOCKED', message: 'Respons ditolak oleh sistem keamanan.' });
     }
@@ -29882,45 +29939,20 @@ async function diracCentralBanAndBlockV146(req, res, ctx, action, method, reason
   }
   if (identityKey) DIRAC_CENTRAL_NEGATIVE_BAN_V146.delete(identityKey);
   diracCentralSetMemoryBanV146(ctx && ctx.identity, blockedUntilMs, reason);
-  const globalPersistentBanWritten = Boolean(hardBanResult && hardBanResult.ok === true);
+  const globalBanWritten = Boolean(hardBanResult && hardBanResult.ok === true);
   if (ctx) {
-    ctx.__diracCentralPersistentBanWrittenV194 = globalPersistentBanWritten;
-    ctx.__diracCentralIdentityBanWrittenV211 = Boolean(identityBanWritten);
+    ctx.__diracCentralPersistentBanWrittenV194 = globalBanWritten;
+    ctx.__diracAllFailuresGlobalPersistentBanV211 = globalBanWritten;
   }
-  if (!globalPersistentBanWritten) {
+  if (!globalBanWritten) {
     return diracCentralPersistenceUnavailableResponseV210(res);
   }
   return diracCentralBlockedResponseV146(res, reason);
 }
 
-async function diracCentralEmergencyBanAndBlockV211(req, res, action, method, reason) {
-  let ctx = null;
-  try { ctx = diracCentralCurrentContextV149(); } catch (_) {}
-  if (!ctx) {
-    let identity = null;
-    try { identity = await diracCentralBuildIdentityV146(req); } catch (_) {}
-    ctx = {
-      req,
-      res,
-      action: String(action || 'central_guard_error').trim().toLowerCase().slice(0, 80),
-      rawAction: String(action || '').slice(0, 80),
-      method: String(method || req && req.method || 'GET').toUpperCase().slice(0, 12),
-      identity,
-      centralErrorDebugV155: null
-    };
-  }
-  return diracCentralBanAndBlockV146(
-    req,
-    res,
-    ctx,
-    ctx.action || String(action || 'central_guard_error'),
-    ctx.method || String(method || 'GET'),
-    String(reason || 'central_guard_emergency_fail_closed').slice(0, 100)
-  );
-}
-
-async function diracCentralPersistBanForContextV211(ctx, reason) {
-  if (!ctx || !ctx.req) return { ok: false, persistent: false };
+async function diracCentralBanCurrentContextV146(reason) {
+  const ctx = diracCentralCurrentContextV149();
+  if (!ctx) return { ok: false };
   const now = Date.now();
   const blockedUntilMs = now + diracCentralBlockMsV146();
   const cleanReason = String(reason || 'central_security_block').slice(0, 100);
@@ -29960,19 +29992,15 @@ async function diracCentralPersistBanForContextV211(ctx, reason) {
 
   if (identityKey) DIRAC_CENTRAL_NEGATIVE_BAN_V146.delete(identityKey);
   diracCentralSetMemoryBanV146(ctx.identity, blockedUntilMs, cleanReason);
-  const globalPersistentBanWritten = Boolean(hardBanResult && hardBanResult.ok === true);
-  ctx.__diracCentralPersistentBanWrittenV194 = globalPersistentBanWritten;
-  ctx.__diracCentralIdentityBanWrittenV211 = Boolean(identityBanWritten);
+  const globalBanWritten = Boolean(hardBanResult && hardBanResult.ok === true);
+  ctx.__diracCentralPersistentBanWrittenV194 = globalBanWritten;
+  ctx.__diracAllFailuresGlobalPersistentBanV211 = globalBanWritten;
   return {
-    ok: globalPersistentBanWritten,
-    persistent: globalPersistentBanWritten,
+    ok: globalBanWritten,
+    persistent: globalBanWritten,
     identityPersistent: Boolean(identityBanWritten),
     blockedUntilMs
   };
-}
-
-async function diracCentralBanCurrentContextV146(reason) {
-  return diracCentralPersistBanForContextV211(diracCentralCurrentContextV149(), reason);
 }
 
 async function diracCentralWritePersistentBanV146(req, res, action, method, threat) {
@@ -30446,8 +30474,8 @@ function diracCentralSafeErrorV146(error) {
 function diracCentralSafeDebugErrorV155(error, ctx) {
   const rawName = String(error && error.name || 'Error').replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 80) || 'Error';
   const rawCode = String(error && error.code || '').replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 80);
-  const rawMessage = String(error && error.message || error || 'central_security_error');
-  const sensitivePattern = /password|token|secret|cookie|authorization|service_role|apikey|csrf|hmac|hash|private[_-]?key|owner[_-]?master/i;
+  const rawMessage = String(error && error.message || error || 'internal_error');
+  const normalizedRawMessage = rawMessage.replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 260) || 'internal_error';
   const safeMessage = diracSecurityRedactDiagnosticV210(rawMessage, 260);
   const stack = String(error && error.stack || '')
     .split('\n')
@@ -30470,7 +30498,7 @@ function diracCentralSafeDebugErrorV155(error, ctx) {
     error_name: rawName,
     error_code: rawCode || undefined,
     safe_message: safeMessage,
-    message_was_redacted: sensitivePattern.test(rawMessage),
+    message_was_redacted: safeMessage !== normalizedRawMessage,
     last_guard_stages: passedStages,
     handler_already_entered: Boolean(ctx && ctx.req && ctx.req.__diracCentralSecurityGuardPassedV146),
     stack_top: stack
@@ -31737,26 +31765,17 @@ function diracV202BuildActionPolicyTable() {
 }
 const ACTION_POLICY = diracV202BuildActionPolicyTable();
 
-async function diracV202PersistGatewayFailClosedV211(ctx, reason) {
-  const active = ctx || diracCentralCurrentContextV149();
-  if (!active || !active.req || !active.res) return false;
-  const result = await diracCentralPersistBanForContextV211(active, String(reason || 'gateway_fail_closed').slice(0, 100)).catch(() => null);
-  return Boolean(result && result.persistent === true);
-}
-
 const __diracV202DatabaseGatewayDelegate = supabaseFetch;
 async function secureDatabaseGateway(ctx, operation) {
   const op = operation && typeof operation === 'object' ? operation : null;
   if (!op || typeof op.path !== 'string' || !op.options || typeof op.options !== 'object') {
-    const persisted = await diracV202PersistGatewayFailClosedV211(ctx, 'database_gateway_operation_invalid');
-    return { ok: false, status: persisted ? 500 : 503, data: { code: persisted ? 'DIRAC_DATABASE_GATEWAY_OPERATION_INVALID' : 'CENTRAL_SECURITY_PERSISTENCE_UNAVAILABLE' } };
+    return { ok: false, status: 500, data: { code: 'DIRAC_DATABASE_GATEWAY_OPERATION_INVALID' } };
   }
   if (!ctx || !ctx.req || !ctx.res) {
-    return { ok: false, status: 503, data: { code: 'CENTRAL_SECURITY_CONTEXT_AND_PERSISTENCE_REQUIRED' } };
+    return { ok: false, status: 403, data: { code: 'DIRAC_DATABASE_GATEWAY_CONTEXT_REQUIRED' } };
   }
-  if (ctx.action && !ACTION_POLICY[ctx.action]) {
-    const persisted = await diracV202PersistGatewayFailClosedV211(ctx, 'database_gateway_policy_missing');
-    return { ok: false, status: persisted ? 403 : 503, data: { code: persisted ? 'DIRAC_DATABASE_GATEWAY_POLICY_MISSING' : 'CENTRAL_SECURITY_PERSISTENCE_UNAVAILABLE' } };
+  if (ctx && ctx.action && !ACTION_POLICY[ctx.action]) {
+    return { ok: false, status: 403, data: { code: 'DIRAC_DATABASE_GATEWAY_POLICY_MISSING' } };
   }
   return __diracV202DatabaseGatewayDelegate(op.path, op.options);
 }
@@ -31769,20 +31788,18 @@ const __diracV202EgressGatewayDelegate = globalThis.fetch.bind(globalThis);
 async function secureEgressGateway(ctx, requestConfig) {
   const config = requestConfig && typeof requestConfig === 'object' ? requestConfig : null;
   if (!config || config.input === undefined) {
-    const persisted = await diracV202PersistGatewayFailClosedV211(ctx, 'egress_gateway_operation_invalid');
-    const error = new Error(persisted ? 'DIRAC_EGRESS_GATEWAY_OPERATION_INVALID' : 'CENTRAL_SECURITY_PERSISTENCE_UNAVAILABLE');
-    error.code = persisted ? 'DIRAC_EGRESS_GATEWAY_OPERATION_INVALID' : 'CENTRAL_SECURITY_PERSISTENCE_UNAVAILABLE';
+    const error = new Error('DIRAC_EGRESS_GATEWAY_OPERATION_INVALID');
+    error.code = 'DIRAC_EGRESS_GATEWAY_OPERATION_INVALID';
     throw error;
   }
   if (!ctx || !ctx.req || !ctx.res) {
-    const error = new Error('CENTRAL_SECURITY_CONTEXT_AND_PERSISTENCE_REQUIRED');
-    error.code = 'CENTRAL_SECURITY_CONTEXT_AND_PERSISTENCE_REQUIRED';
+    const error = new Error('DIRAC_EGRESS_GATEWAY_CONTEXT_REQUIRED');
+    error.code = 'DIRAC_EGRESS_GATEWAY_CONTEXT_REQUIRED';
     throw error;
   }
-  if (ctx.action && !ACTION_POLICY[ctx.action]) {
-    const persisted = await diracV202PersistGatewayFailClosedV211(ctx, 'egress_gateway_policy_missing');
-    const error = new Error(persisted ? 'DIRAC_EGRESS_GATEWAY_POLICY_MISSING' : 'CENTRAL_SECURITY_PERSISTENCE_UNAVAILABLE');
-    error.code = persisted ? 'DIRAC_EGRESS_GATEWAY_POLICY_MISSING' : 'CENTRAL_SECURITY_PERSISTENCE_UNAVAILABLE';
+  if (ctx && ctx.action && !ACTION_POLICY[ctx.action]) {
+    const error = new Error('DIRAC_EGRESS_GATEWAY_POLICY_MISSING');
+    error.code = 'DIRAC_EGRESS_GATEWAY_POLICY_MISSING';
     throw error;
   }
   return __diracV202EgressGatewayDelegate(config.input, config.options);
@@ -31795,7 +31812,7 @@ globalThis.__DIRAC_V202_SECURE_EGRESS_GATEWAY__ = true;
 function secureResponseGateway(ctx, response) {
   if (!response || typeof response !== 'object') return response;
   diracCentralApplyHeadersV146(response);
-  diracCentralWrapJsonResponseV146(response);
+  diracCentralWrapJsonResponseV146(response, ctx);
   if (ctx) ctx.responsePolicy = ctx.policy && ctx.policy.responsePolicy || 'secure_response_gateway_no_store';
   return response;
 }
@@ -31818,18 +31835,7 @@ async function diracV202Dispatcher(req, res) {
 }
 
 module.exports = async function diracCentralArchitectureConsolidationV202(req, res) {
-  try {
-    return await __diracV202CentralGuardHandler(req, res, () => diracV202Dispatcher(req, res));
-  } catch (error) {
-    if (res && res.headersSent) throw error;
-    return diracCentralEmergencyBanAndBlockV211(
-      req,
-      res,
-      String(req && req.query && req.query.action || 'central_guard_error'),
-      String(req && req.method || 'GET'),
-      'central_guard_top_level_exception'
-    );
-  }
+  return __diracV202CentralGuardHandler(req, res, () => diracV202Dispatcher(req, res));
 };
 for (const flag of __diracV202WrapperFlags) {
   try { Object.defineProperty(module.exports, flag, { value: true, enumerable: false, configurable: false }); } catch (_) {}
