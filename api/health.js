@@ -21963,10 +21963,11 @@ function diracBolaIdorV128CurrentContext() {
 }
 
 
-function diracBolaIdorV128CentralOwnerBootstrapDecisionV213(path, options = {}, legacyCtx = null) {
+function diracBolaIdorV128CentralOwnerBootstrapDecisionV213(path, options = {}, legacyCtx = null, decisionPhase = 'legacy_wrapper') {
   const centralCtx = typeof diracCentralCurrentContextV149 === 'function' ? diracCentralCurrentContextV149() : null;
   const binding = centralCtx && centralCtx.__diracCentralOwnerBootstrapBindingV213;
-  if (!centralCtx || !binding || centralCtx.__diracCentralOwnerScopeResolvingV146 !== true) {
+  const checkoutStage26V216 = diracCentralCheckoutStage26BootstrapModeV216(centralCtx, centralCtx && centralCtx.req);
+  if (!centralCtx || !binding || (centralCtx.__diracCentralOwnerScopeResolvingV146 !== true && !checkoutStage26V216)) {
     return { relevant: false, ok: false };
   }
 
@@ -21979,6 +21980,8 @@ function diracBolaIdorV128CentralOwnerBootstrapDecisionV213(path, options = {}, 
       action: String(centralCtx.action || '').slice(0, 80),
       method: String(options && options.method || 'GET').toUpperCase().slice(0, 12),
       full_central_guard_passed: Boolean(centralCtx.centralGuardFullyPassedV211),
+      checkout_stage26_pre_idor: checkoutStage26V216,
+      decision_phase: String(decisionPhase || '').slice(0, 40),
       owner_scope_resolving: centralCtx.__diracCentralOwnerScopeResolvingV146 === true,
       safe_service_role_fetch: centralCtx.__diracCentralSafeServiceRoleFetchV146 === true,
       auth_user_binding_present: Boolean(binding && binding.authUserId)
@@ -21988,16 +21991,19 @@ function diracBolaIdorV128CentralOwnerBootstrapDecisionV213(path, options = {}, 
 
   const req = legacyCtx && legacyCtx.req;
   if (!req || centralCtx.req !== req) return record(false, 'OWNER_BOOTSTRAP_REQUEST_CONTEXT_MISMATCH', 'v128.bootstrap.request_context');
-  if (typeof diracCentralHandlerContextFullyPassedV211 !== 'function'
-      || !diracCentralHandlerContextFullyPassedV211(centralCtx, req)) {
+  if (!checkoutStage26V216 && (typeof diracCentralHandlerContextFullyPassedV211 !== 'function'
+      || !diracCentralHandlerContextFullyPassedV211(centralCtx, req))) {
     return record(false, 'OWNER_BOOTSTRAP_FULL_CENTRAL_GUARD_REQUIRED', 'v128.bootstrap.central_passport');
   }
-  if (centralCtx.__diracCentralSafeServiceRoleFetchV146 !== true) {
+  if (String(decisionPhase || '') !== 'central_gateway' && centralCtx.__diracCentralSafeServiceRoleFetchV146 !== true) {
     return record(false, 'OWNER_BOOTSTRAP_SECURE_DATABASE_GATEWAY_REQUIRED', 'v128.bootstrap.database_gateway');
   }
 
   const action = diracBolaIdorV128NormalizeAction(legacyCtx && legacyCtx.action || centralCtx.action || '');
-  if (action !== 'domain_me' && action !== 'domain_dashboard_me') {
+  if (checkoutStage26V216 && action !== 'checkout_order') {
+    return record(false, 'OWNER_BOOTSTRAP_ACTION_NOT_ALLOWED', 'v128.bootstrap.action');
+  }
+  if (!checkoutStage26V216 && action !== 'domain_me' && action !== 'domain_dashboard_me') {
     return record(false, 'OWNER_BOOTSTRAP_ACTION_NOT_ALLOWED', 'v128.bootstrap.action');
   }
   if (action !== String(binding.action || '')) {
@@ -22011,6 +22017,9 @@ function diracBolaIdorV128CentralOwnerBootstrapDecisionV213(path, options = {}, 
 
   const rawPath = String(path || '');
   const queryIndex = rawPath.indexOf('?');
+  if (checkoutStage26V216 && (queryIndex <= 0 || rawPath.slice(0, queryIndex) !== '/rest/v1/security_customer_auth_links')) {
+    return { relevant: false, ok: false };
+  }
   if (queryIndex <= 0 || rawPath.slice(0, queryIndex) !== '/rest/v1/security_customer_auth_links') {
     return record(false, 'OWNER_BOOTSTRAP_TABLE_OR_PATH_INVALID', 'v128.bootstrap.path');
   }
@@ -29358,7 +29367,19 @@ function diracCentralIsAuthSelfReadOnlyV146(action, ids) {
   return list.every((item) => /^(email|slug)$/i.test(String(item && item.key || '')));
 }
 
+function diracCentralCheckoutStage26BootstrapModeV216(ctx, req) {
+  if (!ctx || !req || ctx.req !== req) return false;
+  if (ctx.action !== 'checkout_order' || ctx.method !== 'POST') return false;
+  if (ctx.executionPhaseV211 !== 'guard' || ctx.currentStageV211 !== 'IDOR/BOLA' || Number(ctx.currentStageIndexV211) !== 26) return false;
+  if (ctx.centralGuardFullyPassedV211 === true || req.__diracCentralSecurityGuardPassedV146 === true) return false;
+  if (String(ctx.failedStageV211 || '') || String(ctx.failureReasonV211 || '')) return false;
+  try { if (BigInt(ctx.passport || 0n) !== 0x3ffffffn) return false; } catch (_) { return false; }
+  const trace = Array.isArray(ctx.stageTraceV211) ? ctx.stageTraceV211 : [];
+  return trace.length === 26 && trace.every((item, index) => item && Number(item.index) === index && String(item.result || '') === 'passed');
+}
+
 function diracCentralOwnerBootstrapModeV213(ctx, req) {
+  if (diracCentralCheckoutStage26BootstrapModeV216(ctx, req)) return true;
   if (!ctx || !req || ctx.req !== req) return false;
   if (ctx.__diracCentralOwnerScopeResolvingV146 !== true) return false;
   if (ctx.action !== 'domain_me' && ctx.action !== 'domain_dashboard_me') return false;
@@ -29418,8 +29439,9 @@ async function diracCentralPrepareOwnerBootstrapBindingV213(req, ctx, debug) {
     diagnostic_code: 'OWNER_BOOTSTRAP_AUTH_USER_BOUND',
     failure_point: 'diracCentralPrepareOwnerBootstrapBindingV213',
     action: String(ctx.action || '').slice(0, 80),
-    full_central_guard_passed: true,
-    owner_scope_resolving: true,
+    full_central_guard_passed: typeof diracCentralHandlerContextFullyPassedV211 === 'function' && diracCentralHandlerContextFullyPassedV211(ctx, req),
+    checkout_stage26_pre_idor: diracCentralCheckoutStage26BootstrapModeV216(ctx, req),
+    owner_scope_resolving: ctx.__diracCentralOwnerScopeResolvingV146 === true,
     auth_user_binding_present: true
   };
   if (debug && typeof debug === 'object') {
@@ -29732,6 +29754,14 @@ async function diracCentralInspectServiceRoleAccessV146(path, options = {}) {
   }
   if (diracCentralIsRegisterBootstrapServiceRoleV146(ctx, table, path, options, method)) return { ok: true, guarded: 'domain_register_bootstrap_service_role' };
   if (diracCentralIsCheckoutOwnerBootstrapServiceRoleV146(ctx, table, path, options, method)) return { ok: true, guarded: 'checkout_owner_bootstrap_service_role' };
+  const checkoutStage26OwnerReadV216 = diracBolaIdorV128CentralOwnerBootstrapDecisionV213(path, options, { req: ctx.req, action: ctx.action }, 'central_gateway');
+  if (checkoutStage26OwnerReadV216 && checkoutStage26OwnerReadV216.relevant === true) {
+    if (checkoutStage26OwnerReadV216.ok === true) return { ok: true, guarded: 'checkout_stage26_exact_self_owner_read_v216' };
+    const stage26ReasonV216 = String(checkoutStage26OwnerReadV216.code || 'checkout_stage26_owner_read_rejected');
+    diracCentralEmitServiceRoleBlockV212(ctx, stage26ReasonV216, { diagnostic_code: stage26ReasonV216, failure_point: 'checkout_stage26_owner_read_v216', request_shape: requestShapeV212 });
+    await diracCentralBanCurrentContextV146(stage26ReasonV216).catch(() => null);
+    return { block: true, reason: stage26ReasonV216, status: 403 };
+  }
   if (diracCentralIsCheckoutCustomerOwnerReadServiceRoleV196(ctx, table, path, options, method)) return { ok: true, guarded: 'checkout_customer_owner_read_service_role_v196' };
   if (diracCentralIsCheckoutOrderCreateServiceRoleV146(ctx, table, path, options, method)) return { ok: true, guarded: 'checkout_order_create_service_role' };
   if (diracCentralIsCreatePaymentTransactionServiceRoleV199(ctx, table, path, options, method)) return { ok: true, guarded: 'create_payment_transaction_service_role_v199' };
