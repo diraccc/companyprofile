@@ -1836,6 +1836,12 @@ async function requireDomainDashboardAccess(req, res) {
   if (!user) return null;
 
   const mfa = verifyCustomerDashboardMfaCookie(req, user);
+  customerSecuritySessionDecisionDebugV219(req, mfa && mfa.ok ? 'mfa.accepted' : 'mfa.rejected', {
+    decision: mfa && mfa.ok ? 'continue_to_protected_session' : 'respond_403',
+    mfa_code: mfa && mfa.code || (mfa && mfa.ok ? 'mfa_ok' : 'mfa_unknown_failure'),
+    mfa_source: mfa && mfa.source || '',
+    clear_cookies: false
+  });
   if (!mfa.ok) {
     res.status(403).json({
       ok: false,
@@ -1846,6 +1852,12 @@ async function requireDomainDashboardAccess(req, res) {
   }
 
   const protectedLock = await requireDomainProtectedDatabaseSessionLockSafe(req, res, user).catch((error) => {
+    customerSecuritySessionDecisionDebugV219(req, 'protected_session.exception', {
+      decision: 'respond_503',
+      reason: 'protected_session_guard_exception',
+      diagnostic_code: String(error && (error.code || error.name) || 'PROTECTED_SESSION_EXCEPTION'),
+      failure_point: 'requireDomainDashboardAccess.protected_session'
+    });
     console.error('[domain-protected-lock-safe]', customerSecuritySafeLogError(error));
     res.status(503).json({
       ok: false,
@@ -1858,12 +1870,31 @@ async function requireDomainDashboardAccess(req, res) {
   });
   if (!protectedLock) return null;
 
+  customerSecuritySessionDecisionDebugV219(req, 'dashboard_access.accepted', {
+    decision: 'handler_continue',
+    session_id_digest: customerSecurityShortDigestV219(protectedLock.sessionId || ''),
+    idle_ms: protectedLock.idleMs,
+    idle_timeout_ms: protectedLock.idle_timeout_ms,
+    touch_ok: Boolean(protectedLock.touched || protectedLock.created)
+  });
   return { user, mfa, protectedLock };
 }
 
 async function requireDomainProtectedDatabaseSessionLockSafe(req, res, user) {
   const checked = await checkDomainProtectedDatabaseSessionLockSafe(req, user);
   if (checked && checked.ok) return checked;
+
+  customerSecuritySessionDecisionDebugV219(req, 'protected_session.rejected', {
+    decision: 'respond_' + String(checked && checked.status || 401),
+    reason: checked && checked.code || 'PROTECTED_SESSION_LOCKED',
+    diagnostic_code: checked && checked.diagnostic_code || '',
+    failure_point: checked && checked.failure_point || '',
+    provider_code: checked && checked.provider_code || '',
+    upstream_status: checked && Number(checked.upstream_status || 0) || 0,
+    customer_digest: customerSecurityShortDigestV219(checked && checked.customerId || ''),
+    session_id_digest: customerSecurityShortDigestV219(checked && checked.sessionId || ''),
+    clear_cookies: Boolean(checked && checked.clearCookies)
+  });
 
   if (checked && checked.clearCookies) clearSessionCookies(res);
 
@@ -1926,6 +1957,13 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
   const customerId = String(verifiedOwner.context.customerId || '').trim();
 
   const fingerprint = customerSecurityBuildSessionFingerprint(req, customerId);
+  const fingerprintSelectionDebugV219 = customerSecuritySessionFingerprintSelectionV219(req);
+  customerSecuritySessionDecisionDebugV219(req, 'protected_session.fingerprint', {
+    decision: fingerprint && fingerprint.session_token_hash ? 'fingerprint_ready' : 'fingerprint_missing',
+    customer_digest: customerSecurityShortDigestV219(customerId),
+    fingerprint_source: fingerprintSelectionDebugV219.source,
+    fingerprint_token_digest: fingerprintSelectionDebugV219.token_digest
+  });
   if (!fingerprint || !fingerprint.session_token_hash) {
     return {
       ok: false,
@@ -1969,10 +2007,31 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
   const row = rows[0] || null;
   const nowMs = Date.now();
   const nowIso = new Date(nowMs).toISOString();
+  customerSecuritySessionDecisionDebugV219(req, 'protected_session.read', {
+    decision: row && row.id ? 'evaluate_existing_row' : 'bootstrap_missing_row',
+    database_operation: 'GET',
+    row_count: rows.length,
+    row_found: Boolean(row),
+    row_has_id: Boolean(row && row.id),
+    customer_digest: customerSecurityShortDigestV219(customerId),
+    session_id_digest: customerSecurityShortDigestV219(row && row.id || ''),
+    session_status: String(row && row.status || '')
+  });
 
   if (!row || !row.id) {
     // Bootstrap sesi hanya dianggap sah setelah row terikat berhasil dipersistenkan.
     const created = await customerSecurityTouchCurrentSession(req, customerId).catch(() => null);
+    customerSecuritySessionDecisionDebugV219(req, 'protected_session.bootstrap_result', {
+      decision: created && created.ok === true && created.session_id ? 'bootstrap_accepted' : 'bootstrap_failed',
+      result: created && created.reason || (created && created.ok ? 'ok' : 'invalid_result'),
+      database_operation: 'POST',
+      touch_ok: Boolean(created && created.ok === true),
+      session_id_digest: customerSecurityShortDigestV219(created && created.session_id || ''),
+      diagnostic_code: created && created.diagnostic_code || '',
+      failure_point: created && created.failure_point || '',
+      provider_code: created && created.provider_code || '',
+      upstream_status: created && Number(created.status || created.upstream_status || 0) || 0
+    });
     if (!created || created.ok !== true || !created.session_id) {
       return {
         ok: false,
@@ -2005,6 +2064,21 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
   const hasLastSeen = Number.isFinite(lastSeenMs) && lastSeenMs > 0;
   const idleMs = hasLastSeen ? nowMs - lastSeenMs : 0;
   const idleExpired = !hasLastSeen || idleMs < 0 || idleMs >= DOMAIN_PROTECTED_IDLE_TIMEOUT_MS;
+  customerSecuritySessionDecisionDebugV219(req, 'protected_session.state_evaluated', {
+    decision: idleExpired ? 'idle_lock' : revoked || expired ? 'revoked_or_expired_lock' : 'refresh_active_session',
+    customer_digest: customerSecurityShortDigestV219(customerId),
+    session_id_digest: customerSecurityShortDigestV219(row.id),
+    session_status: status,
+    revoke_reason_code: customerSecurityRevokeReasonCodeV219(row.revoke_reason),
+    revoked,
+    expired,
+    idle_expired: idleExpired,
+    has_last_seen: hasLastSeen,
+    idle_ms: idleMs,
+    idle_timeout_ms: DOMAIN_PROTECTED_IDLE_TIMEOUT_MS,
+    last_seen_age_ms: hasLastSeen ? idleMs : 0,
+    expires_in_ms: Number.isFinite(expiresAtMs) ? expiresAtMs - nowMs : -1
+  });
 
   if (idleExpired) {
     await customerSecurityWriteGuardEvent(customerId, {
@@ -2074,6 +2148,20 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
   }
 
   const touched = await customerSecurityTouchCurrentSession(req, customerId).catch(() => null);
+  customerSecuritySessionDecisionDebugV219(req, 'protected_session.refresh_result', {
+    decision: touched && touched.ok === true && String(touched.session_id || '') === String(row.id)
+      ? 'refresh_accepted'
+      : 'refresh_failed',
+    result: touched && touched.reason || (touched && touched.ok ? 'ok' : 'invalid_result'),
+    database_operation: 'PATCH',
+    touch_ok: Boolean(touched && touched.ok === true),
+    session_id_match: Boolean(touched && String(touched.session_id || '') === String(row.id)),
+    session_id_digest: customerSecurityShortDigestV219(row.id),
+    diagnostic_code: touched && touched.diagnostic_code || '',
+    failure_point: touched && touched.failure_point || '',
+    provider_code: touched && touched.provider_code || '',
+    upstream_status: touched && Number(touched.status || touched.upstream_status || 0) || 0
+  });
   if (!touched || touched.ok !== true || String(touched.session_id || '') !== String(row.id)) {
     return {
       ok: false,
@@ -2089,6 +2177,16 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
       failure_id: touched && touched.failure_id || undefined
     };
   }
+  customerSecuritySessionDecisionDebugV219(req, 'protected_session.accepted', {
+    decision: 'dashboard_session_active',
+    customer_digest: customerSecurityShortDigestV219(customerId),
+    session_id_digest: customerSecurityShortDigestV219(row.id),
+    session_status: status,
+    idle_ms: idleMs,
+    idle_timeout_ms: DOMAIN_PROTECTED_IDLE_TIMEOUT_MS,
+    touch_ok: true,
+    session_id_match: true
+  });
   return { ok: true, customerId, sessionId: row.id, idleMs, idle_timeout_ms: DOMAIN_PROTECTED_IDLE_TIMEOUT_MS, touched: true };
 }
 
@@ -2155,6 +2253,11 @@ async function domainDashboardMe(req, res) {
   if (!access) return;
 
   const { user, mfa } = access;
+  customerSecuritySessionDecisionDebugV219(req, 'dashboard_response.200', {
+    decision: 'respond_200_dashboard_true',
+    result: 'ok',
+    mfa_source: mfa && mfa.source || ''
+  });
 
   return res.status(200).json({
     ok: true,
@@ -2591,10 +2694,11 @@ async function requireDomainUser(req, res) {
   const headerRefreshToken = acceptFrontendAuthHeaders
     ? String((req.headers && (req.headers['x-domain-refresh'] || req.headers['x-refresh-token'])) || '').trim()
     : '';
+  const accessCookieTokens = readCookieTokenCandidates(cookies, ACCESS_COOKIE);
 
   const accessTokens = uniqueNonEmptyStrings([
     headerToken,
-    ...readCookieTokenCandidates(cookies, ACCESS_COOKIE)
+    ...accessCookieTokens
   ]);
 
   for (const accessToken of accessTokens) {
@@ -2605,13 +2709,27 @@ async function requireDomainUser(req, res) {
     });
 
     if (userResult.ok && userResult.data && userResult.data.id) {
+      const authDebug = customerSecuritySetAuthDebugV219(req, {
+        source: headerToken && accessToken === headerToken
+          ? 'bearer_header'
+          : 'access_cookie_' + Math.max(0, accessCookieTokens.indexOf(accessToken)),
+        path: 'access_token',
+        token_digest: customerSecurityShortDigestV219(accessToken),
+        access_candidate_count: accessTokens.length,
+        refresh_candidate_count: 0,
+        frontend_headers_accepted: acceptFrontendAuthHeaders,
+        refreshed: false,
+        authenticated: true
+      });
+      customerSecuritySessionDecisionDebugV219(req, 'auth.access_token.accepted', authDebug || {});
       return userResult.data;
     }
   }
 
+  const refreshCookieTokens = readCookieTokenCandidates(cookies, REFRESH_COOKIE);
   const refreshTokens = uniqueNonEmptyStrings([
     headerRefreshToken,
-    ...readCookieTokenCandidates(cookies, REFRESH_COOKIE)
+    ...refreshCookieTokens
   ]);
 
   for (const refreshToken of refreshTokens) {
@@ -2632,6 +2750,19 @@ async function requireDomainUser(req, res) {
           res.setHeader('X-Domain-Refresh-Token', refreshedSession.refresh_token);
         }
         res.setHeader('X-Domain-Token-Refreshed', 'true');
+        const authDebug = customerSecuritySetAuthDebugV219(req, {
+          source: headerRefreshToken && refreshToken === headerRefreshToken
+            ? 'refresh_header'
+            : 'refresh_cookie_' + Math.max(0, refreshCookieTokens.indexOf(refreshToken)),
+          path: 'refresh_token',
+          token_digest: customerSecurityShortDigestV219(refreshedSession.access_token),
+          access_candidate_count: accessTokens.length,
+          refresh_candidate_count: refreshTokens.length,
+          frontend_headers_accepted: acceptFrontendAuthHeaders,
+          refreshed: true,
+          authenticated: true
+        });
+        customerSecuritySessionDecisionDebugV219(req, 'auth.refresh_token.accepted', authDebug || {});
         return refreshedSession.user || refreshResult.data.user;
       }
     }
@@ -2640,9 +2771,35 @@ async function requireDomainUser(req, res) {
   const signedSessionUser = await readSignedDomainSessionUser(cookies);
   if (signedSessionUser && signedSessionUser.id) {
     res.setHeader('X-Domain-Signed-Session', 'true');
+    const authDebug = customerSecuritySetAuthDebugV219(req, {
+      source: 'signed_session_cookie',
+      path: 'signed_session',
+      token_digest: '',
+      access_candidate_count: accessTokens.length,
+      refresh_candidate_count: refreshTokens.length,
+      frontend_headers_accepted: acceptFrontendAuthHeaders,
+      refreshed: false,
+      authenticated: true
+    });
+    customerSecuritySessionDecisionDebugV219(req, 'auth.signed_session.accepted', authDebug || {});
     return signedSessionUser;
   }
 
+  const authDebug = customerSecuritySetAuthDebugV219(req, {
+    source: 'none',
+    path: 'authentication_failed',
+    token_digest: '',
+    access_candidate_count: accessTokens.length,
+    refresh_candidate_count: refreshTokens.length,
+    frontend_headers_accepted: acceptFrontendAuthHeaders,
+    refreshed: false,
+    authenticated: false
+  });
+  customerSecuritySessionDecisionDebugV219(req, 'auth.rejected', {
+    ...(authDebug || {}),
+    decision: 'clear_cookies_and_401',
+    clear_cookies: true
+  });
   clearSessionCookies(res);
   res.status(401).json({ ok: false, message: 'Belum login atau sesi sudah habis.' });
   return null;
@@ -5332,6 +5489,200 @@ function customerSecuritySessionStoreDiagnosticV218(req, stage, result, extra = 
   return diagnostic;
 }
 
+const DIRAC_CUSTOMER_SESSION_DECISION_DEBUG_V219 = 'dirac_customer_session_decision_debug_v219';
+
+function customerSecurityShortDigestV219(value) {
+  const text = String(value || '');
+  if (!text) return '';
+  return customerSecuritySha256('dirac-session-debug-v219|' + text).slice(0, 16);
+}
+
+function customerSecuritySessionFingerprintSelectionV219(req) {
+  try {
+    const cookies = parseCookies(req);
+    const headerToken = getBearerToken(req);
+    const accessCookieTokens = readCookieTokenCandidates(cookies, ACCESS_COOKIE);
+    const headerRefreshToken = String((req && req.headers && (req.headers['x-domain-refresh'] || req.headers['x-refresh-token'])) || '').trim();
+    const refreshCookieTokens = readCookieTokenCandidates(cookies, REFRESH_COOKIE);
+    const signedCookieTokens = readCookieTokenCandidates(cookies, DOMAIN_SIGNED_SESSION_COOKIE);
+    const candidates = [
+      { source: 'bearer_header', value: headerToken },
+      ...accessCookieTokens.map((value, index) => ({ source: 'access_cookie_' + index, value })),
+      { source: 'refresh_header', value: headerRefreshToken },
+      ...refreshCookieTokens.map((value, index) => ({ source: 'refresh_cookie_' + index, value })),
+      ...signedCookieTokens.map((value, index) => ({ source: 'signed_session_cookie_' + index, value }))
+    ];
+    const selected = candidates.find((item) => String(item && item.value || '').trim()) || null;
+    return Object.freeze({
+      source: selected ? selected.source : 'missing',
+      token_digest: selected ? customerSecurityShortDigestV219(selected.value) : '',
+      bearer_present: Boolean(headerToken),
+      access_material_count: accessCookieTokens.filter(Boolean).length,
+      refresh_header_present: Boolean(headerRefreshToken),
+      refresh_material_count: refreshCookieTokens.filter(Boolean).length,
+      signed_material_count: signedCookieTokens.filter(Boolean).length
+    });
+  } catch (_) {
+    return Object.freeze({
+      source: 'debug_selection_unavailable',
+      token_digest: '',
+      bearer_present: false,
+      access_material_count: 0,
+      refresh_header_present: false,
+      refresh_material_count: 0,
+      signed_material_count: 0
+    });
+  }
+}
+
+function customerSecuritySetAuthDebugV219(req, details) {
+  if (!req || typeof req !== 'object') return null;
+  const safe = Object.freeze({
+    source: String(details && details.source || 'unknown').replace(/[^a-zA-Z0-9_.-]/g, '_').slice(0, 80),
+    path: String(details && details.path || 'unknown').replace(/[^a-zA-Z0-9_.-]/g, '_').slice(0, 80),
+    token_digest: String(details && details.token_digest || '').replace(/[^a-f0-9]/gi, '').slice(0, 16),
+    access_candidate_count: Math.max(0, Math.min(20, Number(details && details.access_candidate_count || 0))),
+    refresh_candidate_count: Math.max(0, Math.min(20, Number(details && details.refresh_candidate_count || 0))),
+    frontend_headers_accepted: Boolean(details && details.frontend_headers_accepted),
+    refreshed: Boolean(details && details.refreshed),
+    authenticated: Boolean(details && details.authenticated)
+  });
+  try { Object.defineProperty(req, '__diracCustomerAuthDebugV219', { value: safe, writable: false, enumerable: false, configurable: true }); }
+  catch (_) { try { req.__diracCustomerAuthDebugV219 = safe; } catch (_) {} }
+  return safe;
+}
+
+function customerSecurityRevokeReasonCodeV219(value) {
+  const clean = String(value || '').trim().toLowerCase();
+  if (!clean) return 'none';
+  if (/idle/.test(clean)) return 'idle_timeout';
+  if (/expir/.test(clean)) return 'expired';
+  if (/logout|signout|sign_out/.test(clean)) return 'logout';
+  if (/replac|rotat|supersed/.test(clean)) return 'session_replaced';
+  if (/manual|admin/.test(clean)) return 'manual_revoke';
+  if (/security|threat|risk|ban|attack/.test(clean)) return 'security_revoke';
+  return 'other';
+}
+
+function customerSecuritySessionDecisionDetailsV219(details) {
+  const source = details && typeof details === 'object' ? details : {};
+  const out = Object.create(null);
+  const stringKeys = [
+    'decision', 'reason', 'result', 'auth_source', 'auth_path', 'fingerprint_source',
+    'mfa_code', 'mfa_source', 'session_status', 'revoke_reason_code', 'database_operation',
+    'diagnostic_code', 'failure_point', 'provider_code'
+  ];
+  const booleanKeys = [
+    'authenticated', 'refreshed', 'frontend_headers_accepted', 'fingerprint_matches_authenticated_token',
+    'row_found', 'row_has_id', 'revoked', 'expired', 'idle_expired', 'has_last_seen',
+    'clear_cookies', 'guard_passed', 'guard_fully_passed', 'context_request_match',
+    'bearer_present', 'refresh_header_present', 'touch_ok', 'session_id_match'
+  ];
+  const numberKeys = [
+    'access_candidate_count', 'refresh_candidate_count', 'access_material_count', 'refresh_material_count',
+    'signed_material_count', 'row_count', 'idle_ms', 'idle_timeout_ms', 'expires_in_ms',
+    'last_seen_age_ms', 'upstream_status', 'elapsed_ms'
+  ];
+  const digestKeys = ['auth_token_digest', 'fingerprint_token_digest', 'customer_digest', 'session_id_digest'];
+
+  for (const key of stringKeys) {
+    if (source[key] === undefined || source[key] === null || source[key] === '') continue;
+    out[key] = String(source[key]).replace(/[^a-zA-Z0-9_.:-]/g, '_').slice(0, 160);
+  }
+  for (const key of booleanKeys) {
+    if (source[key] === undefined || source[key] === null) continue;
+    out[key] = Boolean(source[key]);
+  }
+  for (const key of numberKeys) {
+    if (source[key] === undefined || source[key] === null || source[key] === '') continue;
+    const number = Number(source[key]);
+    if (Number.isFinite(number)) out[key] = Math.max(-31536000000, Math.min(31536000000, Math.trunc(number)));
+  }
+  for (const key of digestKeys) {
+    const digest = String(source[key] || '').replace(/[^a-f0-9]/gi, '').slice(0, 16);
+    if (digest) out[key] = digest;
+  }
+  return out;
+}
+
+function customerSecuritySessionDecisionDebugV219(req, phase, details = {}) {
+  try {
+    let ctx = null;
+    try { ctx = diracCentralCurrentContextV149(); } catch (_) {}
+    const reqRequestId = String(req && req.__diracCentralRequestIdV211 || '').slice(0, 64);
+    const ctxRequestId = String(ctx && ctx.requestId || '').slice(0, 64);
+    const authDebug = req && req.__diracCustomerAuthDebugV219 && typeof req.__diracCustomerAuthDebugV219 === 'object'
+      ? req.__diracCustomerAuthDebugV219
+      : null;
+    const fingerprintDebug = customerSecuritySessionFingerprintSelectionV219(req);
+    const payload = customerSecuritySessionDecisionDetailsV219({
+      ...details,
+      auth_source: details.auth_source || authDebug && authDebug.source || 'unknown',
+      auth_path: details.auth_path || authDebug && authDebug.path || 'unknown',
+      auth_token_digest: details.auth_token_digest || authDebug && authDebug.token_digest || '',
+      fingerprint_source: details.fingerprint_source || fingerprintDebug.source,
+      fingerprint_token_digest: details.fingerprint_token_digest || fingerprintDebug.token_digest,
+      authenticated: details.authenticated !== undefined ? details.authenticated : Boolean(authDebug && authDebug.authenticated),
+      refreshed: details.refreshed !== undefined ? details.refreshed : Boolean(authDebug && authDebug.refreshed),
+      frontend_headers_accepted: details.frontend_headers_accepted !== undefined
+        ? details.frontend_headers_accepted
+        : Boolean(authDebug && authDebug.frontend_headers_accepted),
+      access_candidate_count: details.access_candidate_count !== undefined
+        ? details.access_candidate_count
+        : authDebug && authDebug.access_candidate_count,
+      refresh_candidate_count: details.refresh_candidate_count !== undefined
+        ? details.refresh_candidate_count
+        : authDebug && authDebug.refresh_candidate_count,
+      access_material_count: fingerprintDebug.access_material_count,
+      refresh_material_count: fingerprintDebug.refresh_material_count,
+      signed_material_count: fingerprintDebug.signed_material_count,
+      bearer_present: fingerprintDebug.bearer_present,
+      refresh_header_present: fingerprintDebug.refresh_header_present,
+      fingerprint_matches_authenticated_token: Boolean(
+        authDebug && authDebug.token_digest && fingerprintDebug.token_digest
+        && safeEqual(String(authDebug.token_digest), String(fingerprintDebug.token_digest))
+      ),
+      guard_passed: Boolean(req && req.__diracCentralSecurityGuardPassedV146 === true),
+      guard_fully_passed: Boolean(ctx && ctx.centralGuardFullyPassedV211 === true),
+      context_request_match: Boolean(reqRequestId && ctxRequestId && safeEqual(reqRequestId, ctxRequestId))
+    });
+    const cleanPhase = String(phase || 'unknown').replace(/[^a-zA-Z0-9_.-]/g, '_').slice(0, 100);
+    const diagnostic = Object.freeze({
+      patch: DIRAC_CUSTOMER_SESSION_DECISION_DEBUG_V219,
+      phase: cleanPhase,
+      ...payload
+    });
+
+    let trace = req && Array.isArray(req.__diracCustomerSessionDecisionTraceV219)
+      ? req.__diracCustomerSessionDecisionTraceV219
+      : null;
+    if (!trace) {
+      trace = [];
+      if (req && typeof req === 'object') {
+        try { Object.defineProperty(req, '__diracCustomerSessionDecisionTraceV219', { value: trace, writable: false, enumerable: false, configurable: false }); } catch (_) {}
+      }
+    }
+    trace.push(diagnostic);
+    if (trace.length > 24) trace.shift();
+    if (ctx) ctx.customerSessionDecisionTraceV219 = trace;
+
+    const terminal = /^(?:auth\.rejected|mfa\.rejected|protected_session\.(?:exception|rejected)|dashboard_response\.200|session_touch\.(?:update_failed|create_failed|create_missing_id))$/.test(cleanPhase);
+    if (terminal && ctx) {
+      diracCentralEmitDebugV211(ctx, 'customer_session_decision_terminal', {
+        patch: DIRAC_CUSTOMER_SESSION_DECISION_DEBUG_V219,
+        terminal_phase: cleanPhase,
+        trace_count: trace.length,
+        session_trace: trace.slice()
+      });
+    } else if (terminal) {
+      try { console.info('[customer-session-decision-v219]', JSON.stringify({ terminal_phase: cleanPhase, trace_count: trace.length, session_trace: trace })); } catch (_) {}
+    }
+    return diagnostic;
+  } catch (_) {
+    return null;
+  }
+}
+
 async function customerSecurityTouchCurrentSession(req, customerId) {
   let activeStage = 'fingerprint';
   try {
@@ -5385,6 +5736,16 @@ async function customerSecurityTouchCurrentSession(req, customerId) {
 
     const rows = Array.isArray(existing.data) ? existing.data : [];
     const now = new Date().toISOString();
+    customerSecuritySessionDecisionDebugV219(req, 'session_touch.read', {
+      decision: rows.length && rows[0] && rows[0].id ? 'update_existing_row' : 'create_missing_row',
+      database_operation: 'GET',
+      row_count: rows.length,
+      row_found: Boolean(rows.length),
+      row_has_id: Boolean(rows[0] && rows[0].id),
+      customer_digest: customerSecurityShortDigestV219(customerId),
+      session_id_digest: customerSecurityShortDigestV219(rows[0] && rows[0].id || ''),
+      session_status: String(rows[0] && rows[0].status || '')
+    });
 
     const updateBody = {
       device_id: fingerprint.device_id,
@@ -5410,6 +5771,13 @@ async function customerSecurityTouchCurrentSession(req, customerId) {
       });
 
       if (!patched.ok) {
+        customerSecuritySessionDecisionDebugV219(req, 'session_touch.update_failed', {
+          decision: 'return_failure',
+          database_operation: 'PATCH',
+          upstream_status: patched.status,
+          customer_digest: customerSecurityShortDigestV219(customerId),
+          session_id_digest: customerSecurityShortDigestV219(rows[0].id)
+        });
         const diagnostic = customerSecuritySessionStoreDiagnosticV218(req, 'update', patched, {
           elapsed_ms: Date.now() - updateStartedAtMs,
           reason: 'session_update_failed'
@@ -5425,6 +5793,13 @@ async function customerSecurityTouchCurrentSession(req, customerId) {
           failure_id: diagnostic.failure_id
         };
       }
+      customerSecuritySessionDecisionDebugV219(req, 'session_touch.update_succeeded', {
+        decision: 'return_success',
+        database_operation: 'PATCH',
+        touch_ok: true,
+        customer_digest: customerSecurityShortDigestV219(customerId),
+        session_id_digest: customerSecurityShortDigestV219(rows[0].id)
+      });
       return { ok: true, created: false, session_id: rows[0].id };
     }
 
@@ -5447,6 +5822,12 @@ async function customerSecurityTouchCurrentSession(req, customerId) {
     });
 
     if (!created.ok) {
+      customerSecuritySessionDecisionDebugV219(req, 'session_touch.create_failed', {
+        decision: 'return_failure',
+        database_operation: 'POST',
+        upstream_status: created.status,
+        customer_digest: customerSecurityShortDigestV219(customerId)
+      });
       const diagnostic = customerSecuritySessionStoreDiagnosticV218(req, 'create', created, {
         elapsed_ms: Date.now() - createStartedAtMs,
         reason: 'session_create_failed'
@@ -5470,6 +5851,12 @@ async function customerSecurityTouchCurrentSession(req, customerId) {
     const createdRows = Array.isArray(created.data) ? created.data : [];
     const createdSessionId = createdRows[0] && createdRows[0].id ? createdRows[0].id : null;
     if (!createdSessionId) {
+      customerSecuritySessionDecisionDebugV219(req, 'session_touch.create_missing_id', {
+        decision: 'return_failure',
+        database_operation: 'POST',
+        upstream_status: created.status,
+        customer_digest: customerSecurityShortDigestV219(customerId)
+      });
       const diagnostic = customerSecuritySessionStoreDiagnosticV218(req, 'create', created, {
         elapsed_ms: Date.now() - createStartedAtMs,
         reason: 'session_create_response_missing_id',
@@ -5487,6 +5874,13 @@ async function customerSecurityTouchCurrentSession(req, customerId) {
       };
     }
 
+    customerSecuritySessionDecisionDebugV219(req, 'session_touch.create_succeeded', {
+      decision: 'return_success',
+      database_operation: 'POST',
+      touch_ok: true,
+      customer_digest: customerSecurityShortDigestV219(customerId),
+      session_id_digest: customerSecurityShortDigestV219(createdSessionId)
+    });
     return { ok: true, created: true, session_id: createdSessionId };
   } catch (error) {
     const diagnostic = customerSecuritySessionStoreDiagnosticV218(req, activeStage + '_exception', {
