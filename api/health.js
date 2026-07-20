@@ -21995,7 +21995,18 @@ function diracBolaIdorV122InspectStrictSafe(path, options = {}) {
       return { ok: true, table, method, action: String(centralCtxV213 && centralCtxV213.action || ''), scoped: true, bootstrap: DIRAC_CENTRAL_OWNER_BOOTSTRAP_PATCH_V213 };
     }
 
-    const ctx = diracBolaIdorV122CurrentContext() || {};
+    const trustedCentralCtxV213 = centralCtxV213
+      && typeof diracCentralGatewayContextAllowedV211 === 'function'
+      && diracCentralGatewayContextAllowedV211(centralCtxV213).ok === true
+      && centralCtxV213.guardPassport
+      && centralCtxV213.guardPassport.whitelist_checked === true
+      && centralCtxV213.guardPassport.classification_checked === true
+      && centralCtxV213.action
+      && ACTION_POLICY[centralCtxV213.action]
+      && centralCtxV213.policy === ACTION_POLICY[centralCtxV213.action]
+        ? centralCtxV213
+        : null;
+    const ctx = diracBolaIdorV122CurrentContext() || trustedCentralCtxV213 || {};
     const action = diracBolaIdorV122NormalizeAction(ctx.action || '');
 
     if (!action) return { ok: false, warn: true, block: true, table, method, action, reason: 'service_role_http_action_context_required' };
