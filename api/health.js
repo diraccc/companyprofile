@@ -31834,22 +31834,37 @@ async function diracCentralDistributedRateLimitGuardV146(req, ctx) {
   if (!persistReady) return { ok: false, reason: 'distributed_rate_limit_storage_required' };
 
   const windowMs = 60 * 1000;
-  const ttlSeconds = Math.ceil(windowMs / 1000) + 60;
+  const ttlGraceMs = 60 * 1000;
   const now = Date.now();
-  const key = 'central-rate:' + diracCentralHashV146([ctx.identity.key, action, Math.floor(now / windowMs)].join('|'));
+  const windowIndex = Math.floor(now / windowMs);
+  const windowEndMs = (windowIndex + 1) * windowMs;
+  const expiresAtMs = windowEndMs + ttlGraceMs;
+  const key = 'central-rate:' + diracCentralHashV146([ctx.identity.key, action, windowIndex].join('|'));
   const table = diracPersistentSecurityTableForKeyV209(key);
   if (!table) return { ok: false, reason: 'distributed_rate_limit_storage_required' };
 
-  // v235: optimistic compare-and-swap. The old read-modify-upsert flow could
-  // reject a valid write when another request updated the same row between the
-  // write and exact read-back. This implementation never accepts an unverified
-  // mutation: creation uses the unique security_key claim, updates are conditional
-  // on the exact previously-read updated_at/expires_at version, and every successful
-  // mutation must return exactly one fully matching row.
-  const lockMap = globalThis.__DIRAC_CENTRAL_DISTRIBUTED_RATE_LOCKS_V235__ instanceof Map
-    ? globalThis.__DIRAC_CENTRAL_DISTRIBUTED_RATE_LOCKS_V235__
+  // v237: exact file-only distributed counter without trusting mutation bodies.
+  // A zero-count row is created idempotently with return=minimal. Every request
+  // then performs a compare-and-swap update and appends a cryptographically random
+  // claim token. A mutation is accepted only after a strict read-back proves that
+  // exact token and its assigned counter value are persisted. Later concurrent
+  // writers must preserve prior claims, so an overwritten response cannot create
+  // either a false success or a lost increment. Any malformed, ambiguous, failed,
+  // or unprovable persistence result remains fail-closed.
+  let requestClaimToken = '';
+  try {
+    requestClaimToken = crypto.randomBytes(16).toString('hex');
+  } catch (_) {
+    return { ok: false, reason: 'distributed_rate_limit_claim_token_failed' };
+  }
+  if (!/^[a-f0-9]{32}$/.test(requestClaimToken)) {
+    return { ok: false, reason: 'distributed_rate_limit_claim_token_invalid' };
+  }
+
+  const lockMap = globalThis.__DIRAC_CENTRAL_DISTRIBUTED_RATE_LOCKS_V237__ instanceof Map
+    ? globalThis.__DIRAC_CENTRAL_DISTRIBUTED_RATE_LOCKS_V237__
     : new Map();
-  globalThis.__DIRAC_CENTRAL_DISTRIBUTED_RATE_LOCKS_V235__ = lockMap;
+  globalThis.__DIRAC_CENTRAL_DISTRIBUTED_RATE_LOCKS_V237__ = lockMap;
   const previousLock = lockMap.get(key) || Promise.resolve();
   let releaseLock;
   const currentGate = new Promise((resolve) => { releaseLock = resolve; });
@@ -31857,104 +31872,192 @@ async function diracCentralDistributedRateLimitGuardV146(req, ctx) {
   lockMap.set(key, currentLock);
   await previousLock.catch(() => undefined);
 
-  try {
-    const maxCasAttempts = 8;
-    for (let attempt = 0; attempt < maxCasAttempts; attempt += 1) {
-    const readPath = `/rest/v1/${encodeURIComponent(table)}?select=security_key,record_json,blocked_until_ms,updated_at,expires_at&security_key=eq.${encodeURIComponent(key)}&limit=2`;
-    const lookup = await supabaseFetch(readPath, { method: 'GET', auth: 'service' }).catch(() => null);
-    if (!lookup || lookup.ok !== true || !Array.isArray(lookup.data)) {
-      return { ok: false, reason: 'distributed_rate_limit_read_failed' };
-    }
-    if (lookup.data.length > 1) return { ok: false, reason: 'distributed_rate_limit_row_ambiguous' };
-
-    if (lookup.data.length === 0) {
-      const initialRecord = { count: 1, resetAtMs: now + windowMs };
-      const claimed = await claimPersistentSecurityKeyOnceV194(key, initialRecord, ttlSeconds).catch(() => null);
-      if (claimed === true) {
-        if (initialRecord.count > max) return { ok: false, reason: 'distributed_rate_limit' };
-        return { ok: true };
+  const parseClaims = (value, currentCount) => {
+    if (value === undefined) return { ok: true, claims: [], legacy: true };
+    if (!Array.isArray(value) || value.length > max) return { ok: false, claims: [], legacy: false };
+    const claims = [];
+    const seenTokens = new Set();
+    let previousAssignedCount = 0;
+    for (const rawClaim of value) {
+      const claim = String(rawClaim || '');
+      const match = /^([a-f0-9]{32}):([1-9][0-9]{0,2})$/.exec(claim);
+      if (!match) return { ok: false, claims: [], legacy: false };
+      const token = match[1];
+      const assignedCount = Number(match[2]);
+      if (!Number.isSafeInteger(assignedCount)
+          || assignedCount < 1
+          || assignedCount > currentCount
+          || assignedCount <= previousAssignedCount
+          || seenTokens.has(token)) {
+        return { ok: false, claims: [], legacy: false };
       }
-      if (claimed === false) continue;
-      return { ok: false, reason: 'distributed_rate_limit_write_failed' };
+      seenTokens.add(token);
+      previousAssignedCount = assignedCount;
+      claims.push({ raw: claim, token, assignedCount });
     }
+    return { ok: true, claims, legacy: false };
+  };
 
-    const current = lookup.data[0];
-    const currentKey = String(current && current.security_key || '');
-    const currentUpdatedAt = String(current && current.updated_at || '');
-    const currentExpiresAt = String(current && current.expires_at || '');
+  const readExactRow = async (minimumUpdatedAt) => {
+    const minimumFilter = minimumUpdatedAt
+      ? `&updated_at=gte.${encodeURIComponent(String(minimumUpdatedAt))}`
+      : '';
+    const path = `/rest/v1/${encodeURIComponent(table)}?select=security_key,record_json,blocked_until_ms,updated_at,expires_at&security_key=eq.${encodeURIComponent(key)}${minimumFilter}&limit=2`;
+    const result = await supabaseFetch(path, { method: 'GET', auth: 'service' }).catch(() => null);
+    if (!result || result.ok !== true || !Array.isArray(result.data)) {
+      return { ok: false, reason: 'distributed_rate_limit_read_failed', row: null };
+    }
+    if (result.data.length > 1) {
+      return { ok: false, reason: 'distributed_rate_limit_row_ambiguous', row: null };
+    }
+    return { ok: true, row: result.data.length === 1 ? result.data[0] : null };
+  };
+
+  const validateRow = (row) => {
+    if (!row || typeof row !== 'object') return { ok: false, reason: 'distributed_rate_limit_row_invalid' };
+    const currentKey = String(row.security_key || '');
+    const currentUpdatedAt = String(row.updated_at || '');
+    const currentExpiresAt = String(row.expires_at || '');
     const currentUpdatedAtMs = Date.parse(currentUpdatedAt);
     const currentExpiresAtMs = Date.parse(currentExpiresAt);
-    const currentRecord = current && current.record_json;
+    const currentRecord = row.record_json;
     const currentCount = Number(currentRecord && currentRecord.count);
     const currentResetAtMs = Number(currentRecord && currentRecord.resetAtMs);
-    const currentBlockedUntilMs = Number(current && current.blocked_until_ms || 0);
+    const currentBlockedUntilMs = Number(row.blocked_until_ms || 0);
     const currentRecordKeys = currentRecord && typeof currentRecord === 'object' && !Array.isArray(currentRecord)
       ? Object.keys(currentRecord)
       : [];
     const legacyEmbeddedBlockValid = currentRecordKeys.includes('blocked_until_ms')
       ? Number(currentRecord.blocked_until_ms || 0) === 0
       : true;
-    const recordShapeValid = currentRecordKeys.every((name) => ['count', 'resetAtMs', 'blocked_until_ms'].includes(name));
+    const recordShapeValid = currentRecordKeys.every((name) => ['count', 'resetAtMs', 'blocked_until_ms', 'claims'].includes(name));
+    const parsedClaims = parseClaims(currentRecord && currentRecord.claims, currentCount);
 
-    if (!current || typeof current !== 'object'
-        || !safeEqual(currentKey, key)
+    if (!safeEqual(currentKey, key)
         || !currentRecord || typeof currentRecord !== 'object' || Array.isArray(currentRecord)
-        || !recordShapeValid || !legacyEmbeddedBlockValid
-        || !Number.isSafeInteger(currentCount) || currentCount < 0
+        || !recordShapeValid || !legacyEmbeddedBlockValid || !parsedClaims.ok
+        || !Number.isSafeInteger(currentCount) || currentCount < 0 || currentCount > max
         || !Number.isSafeInteger(currentResetAtMs) || currentResetAtMs <= 0
         || currentBlockedUntilMs !== 0
         || !Number.isFinite(currentUpdatedAtMs)
-        || !Number.isFinite(currentExpiresAtMs)) {
+        || !Number.isFinite(currentExpiresAtMs)
+        || currentExpiresAtMs <= currentUpdatedAtMs
+        || currentExpiresAtMs < currentResetAtMs) {
       return { ok: false, reason: 'distributed_rate_limit_row_invalid' };
     }
 
-    const active = currentExpiresAtMs > Date.now() && currentResetAtMs > Date.now();
-    if (active && currentCount >= max) return { ok: false, reason: 'distributed_rate_limit' };
-    const nextRecord = active
-      ? { count: currentCount + 1, resetAtMs: currentResetAtMs }
-      : { count: 1, resetAtMs: Date.now() + windowMs };
-    if (!Number.isSafeInteger(nextRecord.count) || nextRecord.count < 1) {
-      return { ok: false, reason: 'distributed_rate_limit_counter_invalid' };
-    }
+    return {
+      ok: true,
+      row,
+      currentRecord,
+      currentCount,
+      currentResetAtMs,
+      currentUpdatedAt,
+      currentUpdatedAtMs,
+      currentExpiresAt,
+      currentExpiresAtMs,
+      claims: parsedClaims.claims
+    };
+  };
 
-    const mutationNow = Date.now();
-    const nextUpdatedAt = new Date(mutationNow).toISOString();
-    const nextExpiresAt = new Date(mutationNow + ttlSeconds * 1000).toISOString();
-    const patchPath = `/rest/v1/${encodeURIComponent(table)}?security_key=eq.${encodeURIComponent(key)}&updated_at=eq.${encodeURIComponent(currentUpdatedAt)}&expires_at=eq.${encodeURIComponent(currentExpiresAt)}`;
-    const patched = await supabaseFetch(patchPath, {
-      method: 'PATCH',
-      auth: 'service',
-      prefer: 'return=representation',
-      body: {
-        record_json: nextRecord,
-        blocked_until_ms: 0,
-        updated_at: nextUpdatedAt,
-        expires_at: nextExpiresAt
+  const waitForContentionRetry = async (attempt) => {
+    const tokenOffset = (Number(attempt || 0) % 8) * 2;
+    const deterministicJitter = parseInt(requestClaimToken.slice(tokenOffset, tokenOffset + 2), 16) % 7;
+    const delayMs = Math.min(35, 2 + Number(attempt || 0) * 2) + deterministicJitter;
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+  };
+
+  try {
+    const maxCasAttempts = Math.max(24, Math.min(72, max + 8));
+    for (let attempt = 0; attempt < maxCasAttempts; attempt += 1) {
+      const lookup = await readExactRow('');
+      if (!lookup.ok) return { ok: false, reason: lookup.reason };
+
+      if (!lookup.row) {
+        const baselineNowMs = Date.now();
+        const baselineUpdatedAt = new Date(baselineNowMs).toISOString();
+        const baselineExpiresAt = new Date(Math.max(expiresAtMs, baselineNowMs + ttlGraceMs)).toISOString();
+        const baselinePayload = [{
+          security_key: key,
+          record_json: { count: 0, resetAtMs: windowEndMs, claims: [] },
+          blocked_until_ms: 0,
+          updated_at: baselineUpdatedAt,
+          expires_at: baselineExpiresAt
+        }];
+        const created = await supabaseFetch(`/rest/v1/${encodeURIComponent(table)}?on_conflict=security_key`, {
+          method: 'POST',
+          auth: 'service',
+          prefer: 'resolution=ignore-duplicates,return=minimal',
+          body: baselinePayload
+        }).catch(() => null);
+        if (!created || created.ok !== true) {
+          return { ok: false, reason: 'distributed_rate_limit_write_failed' };
+        }
+        continue;
       }
-    }).catch(() => null);
 
-    if (!patched || patched.ok !== true || !Array.isArray(patched.data)) {
-      return { ok: false, reason: 'distributed_rate_limit_write_failed' };
-    }
-    if (patched.data.length === 0) continue;
-    if (patched.data.length !== 1) return { ok: false, reason: 'distributed_rate_limit_write_ambiguous' };
+      const current = validateRow(lookup.row);
+      if (!current.ok) return { ok: false, reason: current.reason };
 
-    const persisted = patched.data[0];
-    const persistedUpdatedAtMs = Date.parse(String(persisted && persisted.updated_at || ''));
-    const persistedExpiresAtMs = Date.parse(String(persisted && persisted.expires_at || ''));
-    const verified = Boolean(persisted && typeof persisted === 'object')
-      && safeEqual(String(persisted.security_key || ''), key)
-      && Number(persisted.blocked_until_ms || 0) === 0
-      && persisted.record_json && typeof persisted.record_json === 'object' && !Array.isArray(persisted.record_json)
-      && safeEqual(diracCentralStableJsonV148(persisted.record_json), diracCentralStableJsonV148(nextRecord))
-      && Number.isFinite(persistedUpdatedAtMs)
-      && persistedUpdatedAtMs === Date.parse(nextUpdatedAt)
-      && Number.isFinite(persistedExpiresAtMs)
-      && persistedExpiresAtMs === Date.parse(nextExpiresAt)
-      && persistedExpiresAtMs > Date.now();
-    if (!verified) return { ok: false, reason: 'distributed_rate_limit_write_unverified' };
-    if (nextRecord.count > max) return { ok: false, reason: 'distributed_rate_limit' };
-    return { ok: true };
+      const existingClaim = current.claims.find((claim) => safeEqual(claim.token, requestClaimToken));
+      if (existingClaim) {
+        return existingClaim.assignedCount <= max
+          ? { ok: true }
+          : { ok: false, reason: 'distributed_rate_limit' };
+      }
+
+      const active = current.currentExpiresAtMs > Date.now() && current.currentResetAtMs > Date.now();
+      if (active && current.currentCount >= max) return { ok: false, reason: 'distributed_rate_limit' };
+
+      const baseCount = active ? current.currentCount : 0;
+      const baseClaims = active ? current.claims.map((claim) => claim.raw) : [];
+      const nextCount = baseCount + 1;
+      if (!Number.isSafeInteger(nextCount) || nextCount < 1 || nextCount > max) {
+        return { ok: false, reason: 'distributed_rate_limit_counter_invalid' };
+      }
+      const nextResetAtMs = active ? current.currentResetAtMs : windowEndMs;
+      const nextClaims = baseClaims.concat(`${requestClaimToken}:${nextCount}`);
+      if (nextClaims.length > max) return { ok: false, reason: 'distributed_rate_limit_claims_overflow' };
+      const nextRecord = { count: nextCount, resetAtMs: nextResetAtMs, claims: nextClaims };
+
+      const mutationNowMs = Math.max(Date.now(), current.currentUpdatedAtMs + 1);
+      const nextUpdatedAt = new Date(mutationNowMs).toISOString();
+      const nextExpiresAtMs = Math.max(expiresAtMs, nextResetAtMs + ttlGraceMs, mutationNowMs + ttlGraceMs);
+      const nextExpiresAt = new Date(nextExpiresAtMs).toISOString();
+      const patchPath = `/rest/v1/${encodeURIComponent(table)}?security_key=eq.${encodeURIComponent(key)}&updated_at=eq.${encodeURIComponent(current.currentUpdatedAt)}&expires_at=eq.${encodeURIComponent(current.currentExpiresAt)}`;
+      const patched = await supabaseFetch(patchPath, {
+        method: 'PATCH',
+        auth: 'service',
+        prefer: 'return=minimal',
+        body: {
+          record_json: nextRecord,
+          blocked_until_ms: 0,
+          updated_at: nextUpdatedAt,
+          expires_at: nextExpiresAt
+        }
+      }).catch(() => null);
+      if (!patched || patched.ok !== true) {
+        return { ok: false, reason: 'distributed_rate_limit_write_failed' };
+      }
+
+      const verificationRead = await readExactRow(nextUpdatedAt);
+      if (!verificationRead.ok) return { ok: false, reason: verificationRead.reason };
+      if (!verificationRead.row) {
+        await waitForContentionRetry(attempt);
+        continue;
+      }
+      const verified = validateRow(verificationRead.row);
+      if (!verified.ok) return { ok: false, reason: verified.reason };
+      const verifiedClaim = verified.claims.find((claim) => safeEqual(claim.token, requestClaimToken));
+      if (verifiedClaim) {
+        if (verifiedClaim.assignedCount !== nextCount) {
+          return { ok: false, reason: 'distributed_rate_limit_write_unverified' };
+        }
+        return verifiedClaim.assignedCount <= max
+          ? { ok: true }
+          : { ok: false, reason: 'distributed_rate_limit' };
+      }
+      await waitForContentionRetry(attempt);
     }
 
     return { ok: false, reason: 'distributed_rate_limit_write_contention' };
@@ -31963,7 +32066,6 @@ async function diracCentralDistributedRateLimitGuardV146(req, ctx) {
     if (lockMap.get(key) === currentLock) lockMap.delete(key);
   }
 }
-
 
 function diracCentralNeedsDistributedRateLimitV146(action) {
   const clean = String(action || '').trim();
