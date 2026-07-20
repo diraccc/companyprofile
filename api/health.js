@@ -5822,6 +5822,108 @@ async function customerSecurityTouchCurrentSession(req, customerId) {
     });
 
     if (!created.ok) {
+      const createProviderData = created.data && typeof created.data === 'object' ? created.data : {};
+      const createProviderCode = String(createProviderData.code || createProviderData.error_code || '');
+      const createProviderConflictText = [createProviderData.message, createProviderData.details]
+        .map((value) => String(value || ''))
+        .join(' ');
+      const isSessionTokenHashRace = Number(created.status || 0) === 409
+        && createProviderCode === '23505'
+        && /security_customer_sessions_token_hash_unique/i.test(createProviderConflictText);
+
+      if (isSessionTokenHashRace) {
+        activeStage = 'create_conflict_read';
+        const conflictReadStartedAtMs = Date.now();
+        const conflictSelect = 'id,customer_id,session_token_hash,status,revoked_at,expires_at,device_id';
+        const conflictReadPath = '/rest/v1/security_customer_sessions?select=' +
+          encodeURIComponent(conflictSelect) +
+          '&customer_id=eq.' + encodeURIComponent(customerId) +
+          '&session_token_hash=eq.' + encodeURIComponent(fingerprint.session_token_hash) +
+          '&limit=1';
+        const conflictRead = await supabaseFetch(conflictReadPath, { method: 'GET', auth: 'service' });
+
+        if (!conflictRead.ok) {
+          customerSecuritySessionDecisionDebugV219(req, 'session_touch.create_conflict_read_failed', {
+            decision: 'return_failure',
+            database_operation: 'GET',
+            upstream_status: conflictRead.status,
+            customer_digest: customerSecurityShortDigestV219(customerId)
+          });
+          const diagnostic = customerSecuritySessionStoreDiagnosticV218(req, 'create_conflict_read', conflictRead, {
+            elapsed_ms: Date.now() - conflictReadStartedAtMs,
+            reason: 'session_create_conflict_read_failed'
+          });
+          return {
+            ok: false,
+            reason: 'session_create_conflict_read_failed',
+            status: conflictRead.status,
+            diagnostic_code: diagnostic.diagnostic_code,
+            failure_point: diagnostic.failure_point,
+            upstream_status: diagnostic.upstream_status,
+            provider_code: diagnostic.provider_code,
+            failure_id: diagnostic.failure_id
+          };
+        }
+
+        const conflictRows = Array.isArray(conflictRead.data) ? conflictRead.data : [];
+        const conflictRow = conflictRows[0] || null;
+        const conflictExpiresAtMs = Date.parse(String(conflictRow && conflictRow.expires_at || ''));
+        const conflictVerified = Boolean(conflictRow && conflictRow.id)
+          && safeEqual(String(conflictRow.customer_id || ''), String(customerId))
+          && safeEqual(String(conflictRow.session_token_hash || ''), String(fingerprint.session_token_hash))
+          && safeEqual(String(conflictRow.device_id || ''), String(fingerprint.device_id || ''))
+          && String(conflictRow.status || '').trim().toLowerCase() === 'active'
+          && !conflictRow.revoked_at
+          && Number.isFinite(conflictExpiresAtMs)
+          && conflictExpiresAtMs > Date.now();
+
+        if (conflictVerified) {
+          customerSecuritySessionDecisionDebugV219(req, 'session_touch.create_conflict_recovered', {
+            decision: 'return_success',
+            database_operation: 'GET',
+            touch_ok: true,
+            row_found: true,
+            row_has_id: true,
+            session_status: String(conflictRow.status || ''),
+            customer_digest: customerSecurityShortDigestV219(customerId),
+            session_id_digest: customerSecurityShortDigestV219(conflictRow.id)
+          });
+          return { ok: true, created: false, session_id: conflictRow.id };
+        }
+
+        customerSecuritySessionDecisionDebugV219(req, 'session_touch.create_conflict_rejected', {
+          decision: 'return_failure',
+          database_operation: 'GET',
+          row_found: Boolean(conflictRow),
+          row_has_id: Boolean(conflictRow && conflictRow.id),
+          session_status: String(conflictRow && conflictRow.status || ''),
+          customer_digest: customerSecurityShortDigestV219(customerId),
+          session_id_digest: customerSecurityShortDigestV219(conflictRow && conflictRow.id || '')
+        });
+        const diagnostic = customerSecuritySessionStoreDiagnosticV218(req, 'create_conflict_verify', {
+          ok: false,
+          status: 409,
+          data: {
+            code: 'SESSION_CREATE_CONFLICT_VERIFICATION_FAILED',
+            message: 'Existing session row did not satisfy strict ownership, token, device, active, revoke, and expiry checks.'
+          }
+        }, {
+          elapsed_ms: Date.now() - conflictReadStartedAtMs,
+          reason: 'session_create_conflict_verification_failed',
+          method: 'GET'
+        });
+        return {
+          ok: false,
+          reason: 'session_create_conflict_verification_failed',
+          status: 409,
+          diagnostic_code: diagnostic.diagnostic_code,
+          failure_point: diagnostic.failure_point,
+          upstream_status: diagnostic.upstream_status,
+          provider_code: diagnostic.provider_code,
+          failure_id: diagnostic.failure_id
+        };
+      }
+
       customerSecuritySessionDecisionDebugV219(req, 'session_touch.create_failed', {
         decision: 'return_failure',
         database_operation: 'POST',
