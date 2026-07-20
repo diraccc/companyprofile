@@ -1975,7 +1975,7 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
     };
   }
 
-  const select = 'id,status,last_seen_at,expires_at,revoked_at,revoke_reason';
+  const select = 'id,customer_id,session_token_hash,status,last_seen_at,expires_at,revoked_at,revoke_reason';
   const readPath = '/rest/v1/security_customer_sessions?select=' +
     encodeURIComponent(select) +
     '&customer_id=eq.' + encodeURIComponent(customerId) +
@@ -2147,7 +2147,12 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
     };
   }
 
-  const touched = await customerSecurityTouchCurrentSession(req, customerId).catch(() => null);
+  const touched = await customerSecurityTouchCurrentSession(req, customerId, {
+    id: row.id,
+    customer_id: row.customer_id,
+    session_token_hash: row.session_token_hash,
+    status: row.status
+  }).catch(() => null);
   customerSecuritySessionDecisionDebugV219(req, 'protected_session.refresh_result', {
     decision: touched && touched.ok === true && String(touched.session_id || '') === String(row.id)
       ? 'refresh_accepted'
@@ -5683,7 +5688,7 @@ function customerSecuritySessionDecisionDebugV219(req, phase, details = {}) {
   }
 }
 
-async function customerSecurityTouchCurrentSession(req, customerId) {
+async function customerSecurityTouchCurrentSession(req, customerId, verifiedExistingSession) {
   let activeStage = 'fingerprint';
   try {
     const fingerprint = customerSecurityBuildSessionFingerprint(req, customerId);
@@ -5708,37 +5713,56 @@ async function customerSecurityTouchCurrentSession(req, customerId) {
       };
     }
 
-    const path = '/rest/v1/security_customer_sessions?select=id,status&customer_id=eq.' +
-      encodeURIComponent(customerId) +
-      '&session_token_hash=eq.' +
-      encodeURIComponent(fingerprint.session_token_hash) +
-      '&limit=1';
+    const verifiedRow = verifiedExistingSession && typeof verifiedExistingSession === 'object'
+      && customerSecurityLooksLikeUuid(String(verifiedExistingSession.id || '').trim())
+      && safeEqual(String(verifiedExistingSession.customer_id || ''), String(customerId || ''))
+      && safeEqual(String(verifiedExistingSession.session_token_hash || ''), String(fingerprint.session_token_hash || ''))
+      && String(verifiedExistingSession.status || '').trim().toLowerCase() === 'active'
+      ? {
+          id: String(verifiedExistingSession.id).trim(),
+          status: 'active'
+        }
+      : null;
 
-    activeStage = 'read';
-    const readStartedAtMs = Date.now();
-    const existing = await supabaseFetch(path, { method: 'GET', auth: 'service' });
-    if (!existing.ok) {
-      const diagnostic = customerSecuritySessionStoreDiagnosticV218(req, 'read', existing, {
-        elapsed_ms: Date.now() - readStartedAtMs,
-        reason: 'session_read_failed'
-      });
-      return {
-        ok: false,
-        reason: 'session_read_failed',
-        status: existing.status,
-        diagnostic_code: diagnostic.diagnostic_code,
-        failure_point: diagnostic.failure_point,
-        upstream_status: diagnostic.upstream_status,
-        provider_code: diagnostic.provider_code,
-        failure_id: diagnostic.failure_id
-      };
+    let rows = [];
+    let databaseOperation = 'VERIFIED_REUSE';
+    if (verifiedRow) {
+      rows = [verifiedRow];
+    } else {
+      const path = '/rest/v1/security_customer_sessions?select=id,status&customer_id=eq.' +
+        encodeURIComponent(customerId) +
+        '&session_token_hash=eq.' +
+        encodeURIComponent(fingerprint.session_token_hash) +
+        '&limit=1';
+
+      activeStage = 'read';
+      const readStartedAtMs = Date.now();
+      const existing = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+      if (!existing.ok) {
+        const diagnostic = customerSecuritySessionStoreDiagnosticV218(req, 'read', existing, {
+          elapsed_ms: Date.now() - readStartedAtMs,
+          reason: 'session_read_failed'
+        });
+        return {
+          ok: false,
+          reason: 'session_read_failed',
+          status: existing.status,
+          diagnostic_code: diagnostic.diagnostic_code,
+          failure_point: diagnostic.failure_point,
+          upstream_status: diagnostic.upstream_status,
+          provider_code: diagnostic.provider_code,
+          failure_id: diagnostic.failure_id
+        };
+      }
+
+      rows = Array.isArray(existing.data) ? existing.data : [];
+      databaseOperation = 'GET';
     }
 
-    const rows = Array.isArray(existing.data) ? existing.data : [];
     const now = new Date().toISOString();
     customerSecuritySessionDecisionDebugV219(req, 'session_touch.read', {
       decision: rows.length && rows[0] && rows[0].id ? 'update_existing_row' : 'create_missing_row',
-      database_operation: 'GET',
+      database_operation: databaseOperation,
       row_count: rows.length,
       row_found: Boolean(rows.length),
       row_has_id: Boolean(rows[0] && rows[0].id),
@@ -22645,7 +22669,8 @@ function diracBolaIdorV128BuildRequestContext(req) {
     raw_action: rawAction.slice(0, 120),
     method: String(req && req.method || 'GET').toUpperCase().slice(0, 12),
     started_at: Date.now(),
-    allowedCustomerIdsV128: []
+    allowedCustomerIdsV128: [],
+    ownerRowsCacheV128: new Map()
   };
 }
 
@@ -23134,17 +23159,28 @@ async function diracBolaIdorV128ResolveChildParentOwners(childTable, parentIds) 
 async function diracBolaIdorV128ResolveKnownObjectOwners(objectIds, preferredTable) {
   const ids = Array.from(new Set((objectIds || []).filter(diracBolaIdorV128LooksLikeUuid))).slice(0, 40);
   if (!ids.length) return [];
-  const tables = [];
+
   const preferred = String(preferredTable || '').toLowerCase();
-  if (preferred && diracBolaIdorV128DirectOwnerTable(preferred)) tables.push(preferred);
-  ['orders', 'domain_orders', 'security_customer_sessions', 'security_customer_settings', 'security_customer_recovery_codes', 'payment_transactions']
-    .forEach((table) => { if (!tables.includes(table)) tables.push(table); });
+  const hasExactPreferredTable = Boolean(preferred && diracBolaIdorV128DirectOwnerTable(preferred));
+  const tables = hasExactPreferredTable
+    ? [preferred]
+    : ['orders', 'domain_orders', 'security_customer_sessions', 'security_customer_settings', 'security_customer_recovery_codes', 'payment_transactions'];
+
+  const ctx = diracBolaIdorV128CurrentContext();
+  const cache = ctx && ctx.ownerRowsCacheV128 instanceof Map ? ctx.ownerRowsCacheV128 : null;
+  const cacheKey = (hasExactPreferredTable ? preferred : '*') + ':' + ids.slice().sort().join(',');
+  if (cache && cache.has(cacheKey)) {
+    const cachedRows = cache.get(cacheKey);
+    return Array.isArray(cachedRows) ? cachedRows.map((row) => ({ ...row })) : [];
+  }
 
   const rows = [];
-  for (const table of tables.slice(0, 6)) {
+  for (const table of tables) {
     const fetched = await diracBolaIdorV128FetchOwnerRows(table, ids, 'id').catch(() => []);
     rows.push(...fetched);
   }
+
+  if (cache) cache.set(cacheKey, rows.map((row) => ({ ...row })));
   return rows;
 }
 
