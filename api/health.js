@@ -34084,8 +34084,34 @@ function assertProductionSecurityConfigV146() {
     'DIRAC_CSRF_EVERY_BROWSER_DISABLED_',
     'DIRAC_CSRF_HMAC_DISABLED_'
   ];
+  // Compatibility-only ENV: it may exist, but it must have exactly zero effect on the service-role allowlist.
+  const serviceRoleExtraTablesEnvName = 'DIRAC_SERVICE_ROLE_EXTRA_TABLES';
+  const serviceRoleExtraTablesConfigured = Object.prototype.hasOwnProperty.call(process.env || {}, serviceRoleExtraTablesEnvName);
+  const serviceRoleExtraTablesOriginal = serviceRoleExtraTablesConfigured ? process.env[serviceRoleExtraTablesEnvName] : undefined;
+  if (String(serviceRoleExtraTablesOriginal || '').trim()) {
+    let serviceRoleTablesWithEnv;
+    let serviceRoleTablesWithoutEnv;
+    try {
+      serviceRoleTablesWithEnv = diracV101ServiceRoleAllowedTables();
+      const serviceRoleExtraTablesRemoved = delete process.env[serviceRoleExtraTablesEnvName];
+      if (!serviceRoleExtraTablesRemoved
+          || Object.prototype.hasOwnProperty.call(process.env || {}, serviceRoleExtraTablesEnvName)) {
+        throw new Error('Security guard ENV isolation failed: ' + serviceRoleExtraTablesEnvName);
+      }
+      serviceRoleTablesWithoutEnv = diracV101ServiceRoleAllowedTables();
+    } finally {
+      if (serviceRoleExtraTablesConfigured) process.env[serviceRoleExtraTablesEnvName] = serviceRoleExtraTablesOriginal;
+      else delete process.env[serviceRoleExtraTablesEnvName];
+    }
+    if (!(serviceRoleTablesWithEnv instanceof Set)
+        || !(serviceRoleTablesWithoutEnv instanceof Set)
+        || serviceRoleTablesWithEnv.size !== serviceRoleTablesWithoutEnv.size
+        || Array.from(serviceRoleTablesWithEnv).some((table) => !serviceRoleTablesWithoutEnv.has(table))
+        || Array.from(serviceRoleTablesWithoutEnv).some((table) => !serviceRoleTablesWithEnv.has(table))) {
+      throw new Error('Security guard weakening ENV forbidden: ' + serviceRoleExtraTablesEnvName);
+    }
+  }
   const forbiddenPolicyExpansionEnvs = [
-    'DIRAC_SERVICE_ROLE_EXTRA_TABLES',
     'DIRAC_STRICT_ALLOW_EXTRA_ORIGINS',
     'ADMIN_SECURITY_ALLOW_ADMIN_READONLY',
     'PAYMENT_ALLOW_CUSTOM_SERVICE_PAYMENT'
