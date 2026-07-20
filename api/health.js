@@ -27613,6 +27613,27 @@ function guardAliasV202(ctx) {
   ctx.action = alias.action;
   ctx.isA2FAction = diracCentralIsA2FActionV148(ctx.action);
   if (ctx.req.query) ctx.req.query.action = ctx.action;
+  try {
+    const serviceScopeCtx = typeof diracBolaIdorV121CurrentContext === 'function'
+      ? diracBolaIdorV121CurrentContext()
+      : null;
+    if (serviceScopeCtx && typeof serviceScopeCtx === 'object') {
+      const inheritedAction = typeof diracBolaIdorV121NormalizeAction === 'function'
+        ? diracBolaIdorV121NormalizeAction(serviceScopeCtx.action || '')
+        : String(serviceScopeCtx.action || '').trim().toLowerCase().replace(/[\s-]+/g, '_').slice(0, 120);
+      const inheritedMethod = String(serviceScopeCtx.method || '').trim().toUpperCase();
+      if (inheritedAction && inheritedAction !== ctx.action) {
+        return diracV202StageResult(false, { reason: 'service_role_action_context_mismatch' });
+      }
+      if (inheritedMethod && inheritedMethod !== ctx.method) {
+        return diracV202StageResult(false, { reason: 'service_role_method_context_mismatch' });
+      }
+      serviceScopeCtx.action = ctx.action;
+      serviceScopeCtx.raw_action = String(ctx.rawAction || ctx.action).slice(0, 120);
+    }
+  } catch (_) {
+    return diracV202StageResult(false, { reason: 'service_role_action_context_propagation_failed' });
+  }
   return diracV202StageResult(true);
 }
 function guardWhitelistV202(ctx) {
