@@ -1172,6 +1172,35 @@ async function readPersistentSecurityJson(securityKey) {
   return row.record_json;
 }
 
+async function diracV234VerifyPersistentSecurityWrite(securityKey, record, blockedUntilMs, updatedAt, expiresAt) {
+  const key = String(securityKey || '').trim();
+  const table = diracPersistentSecurityTableForKeyV209(key);
+  if (!table || !key || !record || typeof record !== 'object' || Array.isArray(record)) return false;
+
+  const expectedUpdatedAtMs = Date.parse(String(updatedAt || ''));
+  const expectedExpiresAtMs = Date.parse(String(expiresAt || ''));
+  if (!Number.isFinite(expectedUpdatedAtMs) || !Number.isFinite(expectedExpiresAtMs)) return false;
+
+  const path = `/rest/v1/${encodeURIComponent(table)}?select=security_key,record_json,blocked_until_ms,updated_at,expires_at&security_key=eq.${encodeURIComponent(key)}&limit=2`;
+  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+  if (!result || result.ok !== true || !Array.isArray(result.data) || result.data.length !== 1) return false;
+
+  const row = result.data[0];
+  const persistedUpdatedAtMs = Date.parse(String(row && row.updated_at || ''));
+  const persistedExpiresAtMs = Date.parse(String(row && row.expires_at || ''));
+  return Boolean(row && typeof row === 'object')
+    && safeEqual(String(row.security_key || ''), key)
+    && Number(row.blocked_until_ms || 0) === Number(blockedUntilMs || 0)
+    && row.record_json && typeof row.record_json === 'object' && !Array.isArray(row.record_json)
+    && safeEqual(diracCentralStableJsonV148(row.record_json), diracCentralStableJsonV148(record))
+    && Number.isFinite(persistedUpdatedAtMs)
+    && persistedUpdatedAtMs === expectedUpdatedAtMs
+    && Number.isFinite(persistedExpiresAtMs)
+    && persistedExpiresAtMs === expectedExpiresAtMs
+    && persistedExpiresAtMs > Date.now();
+}
+Object.defineProperty(diracV234VerifyPersistentSecurityWrite, '__diracV234ExactReadBack', { value: true, enumerable: false });
+
 async function writePersistentSecurityJson(securityKey, record, blockedUntilMs = 0, ttlSeconds = LOGIN_SECURITY_PERSIST_TTL_SECONDS) {
   const key = String(securityKey || '').trim();
   const table = diracPersistentSecurityTableForKeyV209(key);
@@ -1181,35 +1210,46 @@ async function writePersistentSecurityJson(securityKey, record, blockedUntilMs =
 
   try {
     const now = Date.now();
+    const updatedAt = new Date(now).toISOString();
     const expiresAt = new Date(now + Math.max(60, Number(ttlSeconds || 60)) * 1000).toISOString();
     const payload = [{
       security_key: key,
       record_json: record,
       blocked_until_ms: Number(blockedUntilMs || 0),
-      updated_at: new Date(now).toISOString(),
+      updated_at: updatedAt,
       expires_at: expiresAt
     }];
 
+    // PostgREST may legitimately return an empty body for a successful upsert.
+    // Security does not rely on that body: the exact persisted row is read back
+    // and verified before the write is accepted.
     const result = await supabaseFetch(`/rest/v1/${encodeURIComponent(table)}?on_conflict=security_key`, {
       method: 'POST',
       auth: 'service',
-      prefer: 'resolution=merge-duplicates,return=representation',
+      prefer: 'resolution=merge-duplicates',
       body: payload
     });
-    const rows = diracV222RequireExactMutationRows(
-      result,
-      1,
-      (row) => diracV222SecurityKeyMutationRowValid(row, key, blockedUntilMs),
-      'persistent_security_write',
-      'PERSISTENT_SECURITY_WRITE_UNVERIFIED'
+    if (!result || result.ok !== true) {
+      diracV223ThrowFailClosed('PERSISTENT_SECURITY_WRITE_TRANSPORT_FAILED', 'persistent_security_write', Number(result && result.status || 0) || 503);
+    }
+
+    const verified = await diracV234VerifyPersistentSecurityWrite(
+      key,
+      record,
+      blockedUntilMs,
+      updatedAt,
+      expiresAt
     );
-    if (!rows) diracV223ThrowFailClosed('PERSISTENT_SECURITY_WRITE_UNVERIFIED', 'persistent_security_write', Number(result && result.status || 0) || 503);
+    if (verified !== true) {
+      diracV223ThrowFailClosed('PERSISTENT_SECURITY_WRITE_READBACK_UNVERIFIED', 'persistent_security_write', 503);
+    }
     return true;
   } catch (error) {
     if (error && error.diracFailClosedV223) throw error;
     diracV223ThrowFailClosed('PERSISTENT_SECURITY_WRITE_FAILED', 'persistent_security_write', Number(error && (error.status || error.statusCode) || 0) || 503, error);
   }
 }
+Object.defineProperty(writePersistentSecurityJson, '__diracV234VerifiedReadBack', { value: true, enumerable: false });
 
 // Security-critical callers need to distinguish "not found" from an unavailable
 // persistence layer. The legacy reader intentionally returns null for both cases,
@@ -36117,6 +36157,8 @@ function diracAbsoluteFailClosedAssertV232() {
   if (diracCentralConsumeA2FNonceV148.length !== 3
       || diracCentralConsumeA2FNonceV148.__diracV232ExplicitContextAndExactClaim !== true
       || claimPersistentSecurityKeyOnceV194.__diracV232ExactAtomicClaim !== true
+      || diracV234VerifyPersistentSecurityWrite.__diracV234ExactReadBack !== true
+      || writePersistentSecurityJson.__diracV234VerifiedReadBack !== true
       || diracCentralA2FRequestSignatureGuardV148.__diracV232SignedOnlyNoCompatibility !== true
       || a2fGuardSource.includes(forbiddenSignedPageNonceFallback)
       || a2fGuardSource.includes(forbiddenPageNonceFallback)
@@ -36139,6 +36181,7 @@ function diracAbsoluteFailClosedAssertV232() {
     requiredSecurityResponseHeaders: true,
     pageNonceConstantTimeOnly: true,
     exactMutationAndCompensationPostconditionsRetained: true,
+    persistentSecurityWriteExactReadBackRequired: true,
     requiredGuardStartupInvariantRetained: true,
     centralGuardPipelineUnchanged: true
   });
