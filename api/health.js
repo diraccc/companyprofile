@@ -49,6 +49,7 @@ const DIRAC_ABSOLUTE_FAIL_CLOSED_V229 = 'dirac-absolute-fail-closed-v229';
 const DIRAC_ABSOLUTE_FAIL_CLOSED_V230 = 'dirac-absolute-fail-closed-v230';
 const DIRAC_ABSOLUTE_FAIL_CLOSED_V231 = 'dirac-absolute-fail-closed-v231';
 const DIRAC_ABSOLUTE_FAIL_CLOSED_V232 = 'dirac-absolute-fail-closed-v232';
+const DIRAC_FAIL_CLOSED_DIAGNOSTICS_V233 = 'dirac-fail-closed-diagnostics-v233';
 function diracV222CleanFailureToken(value, fallback) {
   const clean = String(value || fallback || 'DEPENDENCY_FAILURE')
     .replace(/[^a-zA-Z0-9_.-]/g, '_')
@@ -86,16 +87,130 @@ function diracV228TimingSafeEqualText(leftValue, rightValue) {
   if (left.length === 0 || right.length === 0 || left.length !== right.length) return false;
   return crypto.timingSafeEqual(left, right);
 }
-function diracV222MarkDependencyFailure(ctx, source, status, code) {
+function diracV233CleanDiagnosticText(value, fallback, maxLength) {
+  const limit = Math.max(1, Math.min(240, Number(maxLength || 160) || 160));
+  const clean = String(value || fallback || '')
+    .replace(/[\r\n\0]/g, '_')
+    .replace(/[^a-zA-Z0-9_.:/-]/g, '_')
+    .slice(0, limit);
+  return clean || String(fallback || 'unavailable').slice(0, limit);
+}
+function diracV233SafeDependencyDetails(details) {
+  const input = details && typeof details === 'object' ? details : null;
+  if (!input) return null;
+  const output = {
+    operation: diracV233CleanDiagnosticText(input.operation, 'dependency', 80),
+    method: diracV233CleanDiagnosticText(input.method, 'UNKNOWN', 16),
+    resource: diracV233CleanDiagnosticText(input.resource, 'unavailable', 200),
+    auth_mode: diracV233CleanDiagnosticText(input.auth_mode, 'unspecified', 40),
+    host_fingerprint: diracV233CleanDiagnosticText(input.host_fingerprint, 'none', 32),
+    timeout_ms: Math.max(0, Math.min(120000, Number(input.timeout_ms || 0) || 0)),
+    duration_ms: Math.max(0, Math.min(120000, Number(input.duration_ms || 0) || 0)),
+    upstream_status: Math.max(0, Math.min(599, Number(input.upstream_status || 0) || 0)),
+    upstream_code: diracV222CleanFailureToken(input.upstream_code, 'UNAVAILABLE')
+  };
+  return Object.freeze(output);
+}
+function diracV233SafeEgressResource(input) {
+  const raw = typeof input === 'string' || input instanceof URL
+    ? String(input)
+    : String(input && input.url || '');
+  try {
+    const parsed = new URL(raw);
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') throw new Error('EGRESS_PROTOCOL_INVALID');
+    return Object.freeze({
+      resource: diracV233CleanDiagnosticText(parsed.pathname || '/', '/', 200),
+      host_fingerprint: crypto.createHash('sha256').update(String(parsed.hostname || ''), 'utf8').digest('hex').slice(0, 16)
+    });
+  } catch (_) {
+    return Object.freeze({ resource: 'unavailable', host_fingerprint: 'none' });
+  }
+}
+function diracV233ClassifyDependencyException(error, fallback) {
+  const directCode = String(error && error.code || '').trim();
+  if (directCode) return diracV222CleanFailureToken(directCode, fallback || 'DEPENDENCY_EXCEPTION');
+  const errorName = String(error && error.name || '').trim();
+  if (errorName === 'AbortError') return 'SUPABASE_FETCH_TIMEOUT';
+  const message = String(error && error.message || '');
+  if (/Missing dedicated security Supabase ENV/i.test(message)) return 'SUPABASE_SECURITY_ENV_MISSING';
+  if (/Missing Supabase ENV for/i.test(message)) return 'SUPABASE_TARGET_ENV_MISSING';
+  if (/Environment Variables Vercel/i.test(message)) return 'SUPABASE_REQUIRED_ENV_MISSING';
+  if (/SUPABASE_URL_INVALID/i.test(message)) return 'SUPABASE_URL_INVALID';
+  if (errorName && errorName !== 'Error') return diracV222CleanFailureToken(errorName, fallback || 'DEPENDENCY_EXCEPTION');
+  return diracV222CleanFailureToken(fallback, 'DEPENDENCY_EXCEPTION');
+}
+function diracV233DependencyFailuresForDebug(ctx) {
+  const failures = Array.isArray(ctx && ctx.__diracV222DependencyFailures)
+    ? ctx.__diracV222DependencyFailures
+    : [];
+  return failures.slice(0, 20).map((failure) => ({
+    sequence: Math.max(1, Number(failure && failure.sequence || 1)),
+    source: String(failure && failure.source || '').slice(0, 120),
+    status: Math.max(0, Math.min(599, Number(failure && failure.status || 0) || 0)),
+    code: String(failure && failure.code || '').slice(0, 120),
+    phase: String(failure && failure.phase || '').slice(0, 30),
+    stage_index: Number((failure && failure.stage_index) ?? -1),
+    stage: String(failure && failure.stage || '').slice(0, 80),
+    request_elapsed_ms: Math.max(0, Math.min(120000, Number(failure && failure.request_elapsed_ms || 0) || 0)),
+    details: failure && failure.details || undefined
+  }));
+}
+function diracV233BuildFailClosedDebug(ctx, primaryFailure) {
+  return {
+    patch: DIRAC_FAIL_CLOSED_DIAGNOSTICS_V233,
+    primary_failure: primaryFailure || ctx && ctx.__diracV222DependencyFailure || null,
+    dependency_failures: diracV233DependencyFailuresForDebug(ctx),
+    failed_stage: String(ctx && ctx.failedStageV211 || ctx && ctx.currentStageV211 || '').slice(0, 80),
+    failed_stage_index: Number((ctx && ctx.currentStageIndexV211) ?? -1),
+    internal_reason: String(ctx && ctx.failureReasonV211 || primaryFailure && primaryFailure.code || '').slice(0, 120),
+    stage_trace: typeof diracCentralStageTraceV211 === 'function' ? diracCentralStageTraceV211(ctx, 30) : [],
+    safe_error: ctx && ctx.centralErrorDebugV155 || undefined
+  };
+}
+function diracV233AttachDiagnosticHeaders(res, ctx, primaryFailure) {
+  const failureId = typeof diracCentralFailureIdV211 === 'function'
+    ? diracCentralFailureIdV211(ctx)
+    : 'DG-CENTRAL-UNAVAILABLE';
+  const requestId = String(ctx && ctx.requestId || '').slice(0, 64);
+  const debugAllowed = typeof diracCentralDebugResponseAllowedV211 === 'function'
+    ? diracCentralDebugResponseAllowedV211(ctx)
+    : false;
+  diracCentralSetHeaderRequiredV221(res, 'X-Dirac-Failure-Id', failureId);
+  diracCentralSetHeaderRequiredV221(res, 'X-Dirac-Diagnostic-Patch', DIRAC_FAIL_CLOSED_DIAGNOSTICS_V233);
+  if (debugAllowed && primaryFailure && primaryFailure.code) {
+    diracCentralSetHeaderRequiredV221(res, 'X-Dirac-Dependency-Code', String(primaryFailure.code).slice(0, 120));
+  }
+  return Object.freeze({ failureId, requestId, debugAllowed });
+}
+function diracV222MarkDependencyFailure(ctx, source, status, code, details) {
   const target = diracV228ResolveRequestContext(ctx);
+  if (!Array.isArray(target.__diracV222DependencyFailures)) target.__diracV222DependencyFailures = [];
+  target.__diracV233DependencyFailureSequence = Math.max(0, Number(target.__diracV233DependencyFailureSequence || 0)) + 1;
+  const safeDetails = diracV233SafeDependencyDetails(details);
   const failure = Object.freeze({
+    sequence: target.__diracV233DependencyFailureSequence,
     source: diracV222CleanFailureToken(source, 'dependency'),
     status: Math.max(0, Math.min(599, Number(status || 0) || 0)),
-    code: diracV222CleanFailureToken(code, 'DEPENDENCY_FAILURE')
+    code: diracV222CleanFailureToken(code, 'DEPENDENCY_FAILURE'),
+    phase: diracV233CleanDiagnosticText(target.executionPhaseV211, 'unknown', 30),
+    stage_index: Number((target.currentStageIndexV211) ?? -1),
+    stage: diracV233CleanDiagnosticText(target.currentStageV211, 'unknown_stage', 80),
+    request_elapsed_ms: Math.max(0, Math.min(120000, Date.now() - Number(target.startedAt || Date.now()))),
+    details: safeDetails || undefined
   });
-  if (!Array.isArray(target.__diracV222DependencyFailures)) target.__diracV222DependencyFailures = [];
   if (target.__diracV222DependencyFailures.length < 20) target.__diracV222DependencyFailures.push(failure);
   if (!target.__diracV222DependencyFailure) target.__diracV222DependencyFailure = failure;
+  if (failure.sequence <= 20) {
+    try {
+      console.error('[dirac-dependency-failure-v233]', JSON.stringify({
+        patch: DIRAC_FAIL_CLOSED_DIAGNOSTICS_V233,
+        request_id: String(target.requestId || '').slice(0, 64),
+        failure_id: typeof diracCentralFailureIdV211 === 'function' ? diracCentralFailureIdV211(target) : 'DG-CENTRAL-UNAVAILABLE',
+        action: String(target.action || target.rawAction || '').slice(0, 80),
+        failure
+      }));
+    } catch (_) {}
+  }
   return true;
 }
 function diracV222DependencyFailureCode(result, fallback) {
@@ -139,14 +254,23 @@ function diracV222SecurityPersistenceUnavailableResponse(res, code, source) {
     error.code = 'DIRAC_V232_SECURITY_RESPONSE_GATEWAY_REQUIRED';
     throw error;
   }
+  const ctx = diracV228ResolveRequestContext(null);
+  const failure = ctx && ctx.__diracV222DependencyFailure;
   diracCentralApplyHeadersV146(res);
   diracCentralSetHeaderRequiredV221(res, 'Cache-Control', 'no-store');
-  return res.status(503).json({
+  const diagnostic = diracV233AttachDiagnosticHeaders(res, ctx, failure);
+  const payload = {
     ok: false,
     code: safeCode,
     message: 'Permintaan ditolak karena penyimpanan keamanan belum tersedia.',
-    source: safeSource
-  });
+    source: safeSource,
+    failure_id: diagnostic.failureId,
+    request_id: diagnostic.requestId,
+    diagnostic_patch: DIRAC_FAIL_CLOSED_DIAGNOSTICS_V233,
+    diagnostic_hint: 'Cari request_id atau failure_id yang sama pada Vercel Function Logs.'
+  };
+  if (diagnostic.debugAllowed) payload.debug = diracV233BuildFailClosedDebug(ctx, failure);
+  return res.status(503).json(payload);
 }
 Object.defineProperty(diracV222SecurityPersistenceUnavailableResponse, '__diracV232RequiredResponseHeaders', { value: true, enumerable: false });
 function diracV222ThrowSecurityPersistenceUnavailable(code, source) {
@@ -639,6 +763,7 @@ async function domainHealth(req, res) {
     ok: true,
     service: 'dirac-domain',
     debugPatch: DIRAC_COOKIE_SESSION_PATCH,
+    diagnosticPatch: DIRAC_FAIL_CLOSED_DIAGNOSTICS_V233,
     signedSessionCookie: DOMAIN_SIGNED_SESSION_COOKIE,
     message: 'Domain API aktif.',
     endpoints: {
@@ -1143,7 +1268,7 @@ async function readPersistentSecurityJson(securityKey) {
   try {
     result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
   } catch (error) {
-    diracV222MarkDependencyFailure(null, 'persistent_security_read', 503, error && (error.code || error.name));
+    diracV222MarkDependencyFailure(null, 'persistent_security_read', 503, diracV233ClassifyDependencyException(error, 'PERSISTENT_SECURITY_READ_EXCEPTION'));
     throw error;
   }
   if (!result || result.ok !== true || !Array.isArray(result.data)) {
@@ -1280,7 +1405,7 @@ async function readPersistentSecurityJsonStrictV194(securityKey) {
       record: { ...row.record_json, blocked_until_ms: Number(row.blocked_until_ms || row.record_json.blocked_until_ms || 0) }
     };
   } catch (error) {
-    diracV222MarkDependencyFailure(null, 'persistent_security_strict_read', 503, error && (error.code || error.name));
+    diracV222MarkDependencyFailure(null, 'persistent_security_strict_read', 503, diracV233ClassifyDependencyException(error, 'PERSISTENT_SECURITY_STRICT_READ_EXCEPTION'));
     return { ok: false, found: false, record: null, reason: 'exception' };
   }
 }
@@ -1318,7 +1443,7 @@ async function readPersistentSecurityJsonManyStrictV194(securityKeys) {
     }
     return { ok: true, records };
   } catch (error) {
-    diracV222MarkDependencyFailure(null, 'persistent_security_many_read', 503, error && (error.code || error.name));
+    diracV222MarkDependencyFailure(null, 'persistent_security_many_read', 503, diracV233ClassifyDependencyException(error, 'PERSISTENT_SECURITY_MANY_READ_EXCEPTION'));
     return { ok: false, records: [], reason: 'exception' };
   }
 }
@@ -30829,14 +30954,23 @@ function diracCentralWrapJsonResponseV146(res) {
   const originalWrite = typeof res.write === 'function' ? res.write.bind(res) : null;
   const dependencyFailurePayload = (ctx) => {
     const failure = ctx && ctx.__diracV222DependencyFailure;
-    return {
+    const diagnostic = diracV233AttachDiagnosticHeaders(res, ctx, failure);
+    const failureId = diagnostic.failureId;
+    const requestId = diagnostic.requestId;
+    const debugAllowed = diagnostic.debugAllowed;
+    const payload = {
       ok: false,
       code: 'CENTRAL_SECURITY_DEPENDENCY_UNAVAILABLE',
       message: 'Permintaan ditolak karena dependency keamanan belum dapat diverifikasi.',
       source: DIRAC_ABSOLUTE_FAIL_CLOSED_V228,
-      failure_id: diracCentralFailureIdV211(ctx),
+      failure_id: failureId,
+      request_id: requestId,
+      diagnostic_patch: DIRAC_FAIL_CLOSED_DIAGNOSTICS_V233,
+      diagnostic_hint: 'Cari request_id atau failure_id yang sama pada Vercel Function Logs.',
       dependency_code: diracCentralIsProductionV146() ? undefined : String(failure && failure.code || '').slice(0, 120)
     };
+    if (debugAllowed) payload.debug = diracV233BuildFailClosedDebug(ctx, failure);
+    return payload;
   };
   const currentContext = () => diracV228ResolveRequestContext(null);
   const throwBlockedStreamingResponse = (channel) => {
@@ -33937,17 +34071,21 @@ function diracCentralBlockedResponseV146(res, reason) {
 
 function diracCentralPersistenceUnavailableResponseV210(res) {
   const ctx = diracCentralCurrentContextV149();
+  const failure = ctx && ctx.__diracV222DependencyFailure;
   diracCentralApplyHeadersV146(res);
   try { if (res && typeof res.setHeader === 'function') res.setHeader('Cache-Control', 'no-store'); } catch (_) {}
+  const diagnostic = diracV233AttachDiagnosticHeaders(res, ctx, failure);
   const payload = {
     ok: false,
     code: 'CENTRAL_SECURITY_PERSISTENCE_UNAVAILABLE',
     message: 'Permintaan ditolak karena penyimpanan keamanan belum tersedia.',
     source: DIRAC_CENTRAL_SECURITY_GUARD_V146,
-    request_id: String(ctx && ctx.requestId || '').slice(0, 64),
-    failure_id: diracCentralFailureIdV211(ctx)
+    request_id: diagnostic.requestId,
+    failure_id: diagnostic.failureId,
+    diagnostic_patch: DIRAC_FAIL_CLOSED_DIAGNOSTICS_V233,
+    diagnostic_hint: 'Cari request_id atau failure_id yang sama pada Vercel Function Logs.'
   };
-  if (diracCentralDebugResponseAllowedV211(ctx)) payload.debug = ctx && ctx.centralErrorDebugV155 || diracCentralStageTraceV211(ctx, 30);
+  if (diagnostic.debugAllowed) payload.debug = diracV233BuildFailClosedDebug(ctx, failure);
   return res.status(503).json(payload);
 }
 
@@ -35863,17 +36001,39 @@ async function secureDatabaseGateway(ctx, operation) {
   }
   const op = operation && typeof operation === 'object' ? operation : null;
   if (!op || typeof op.path !== 'string' || !op.options || typeof op.options !== 'object') {
-    diracV222MarkDependencyFailure(ctx, 'database_gateway', 500, 'DIRAC_DATABASE_GATEWAY_OPERATION_INVALID');
+    diracV222MarkDependencyFailure(ctx, 'database_gateway', 500, 'DIRAC_DATABASE_GATEWAY_OPERATION_INVALID', {
+      operation: 'supabase',
+      method: 'UNKNOWN',
+      resource: 'invalid_operation',
+      auth_mode: 'unspecified',
+      upstream_status: 500,
+      upstream_code: 'DIRAC_DATABASE_GATEWAY_OPERATION_INVALID'
+    });
     return { ok: false, status: 500, data: { code: 'DIRAC_DATABASE_GATEWAY_OPERATION_INVALID' } };
   }
+  const diagnosticStartedAt = Date.now();
+  const diagnosticMethod = String(op.options && op.options.method || 'GET').trim().toUpperCase();
+  const diagnosticResource = String(op.path || '').split('?')[0].slice(0, 200);
+  const diagnosticAuthMode = op.options && op.options.auth === 'service' ? 'service' : 'anon_or_bearer';
+  const diagnosticTimeoutMs = Math.max(1000, Math.min(30000, Number(op.options && op.options.timeoutMs || process.env.DIRAC_SUPABASE_FETCH_TIMEOUT_MS || 6500) || 6500));
+  const diagnosticDetails = (upstreamStatus, upstreamCode) => ({
+    operation: 'supabase',
+    method: diagnosticMethod,
+    resource: diagnosticResource,
+    auth_mode: diagnosticAuthMode,
+    timeout_ms: diagnosticTimeoutMs,
+    duration_ms: Date.now() - diagnosticStartedAt,
+    upstream_status: upstreamStatus,
+    upstream_code: upstreamCode
+  });
   const contextDecision = diracCentralGatewayContextAllowedV211(ctx);
   if (!contextDecision.ok) {
-    diracV222MarkDependencyFailure(ctx, 'database_gateway', 403, 'DIRAC_DATABASE_GATEWAY_CONTEXT_NOT_AUTHORIZED');
-    diracCentralEmitDebugV211(ctx, 'database_gateway_blocked', { phase: contextDecision.phase, path: String(op.path || '').split('?')[0].slice(0, 160) });
+    diracV222MarkDependencyFailure(ctx, 'database_gateway', 403, 'DIRAC_DATABASE_GATEWAY_CONTEXT_NOT_AUTHORIZED', diagnosticDetails(403, 'DIRAC_DATABASE_GATEWAY_CONTEXT_NOT_AUTHORIZED'));
+    diracCentralEmitDebugV211(ctx, 'database_gateway_blocked', { phase: contextDecision.phase, path: diagnosticResource });
     return { ok: false, status: 403, data: { code: 'DIRAC_DATABASE_GATEWAY_CONTEXT_NOT_AUTHORIZED' } };
   }
   if (contextDecision.phase === 'handler' && (!ctx.action || !ACTION_POLICY[ctx.action] || ctx.policy !== ACTION_POLICY[ctx.action])) {
-    diracV222MarkDependencyFailure(ctx, 'database_gateway', 403, 'DIRAC_DATABASE_GATEWAY_POLICY_MISSING');
+    diracV222MarkDependencyFailure(ctx, 'database_gateway', 403, 'DIRAC_DATABASE_GATEWAY_POLICY_MISSING', diagnosticDetails(403, 'DIRAC_DATABASE_GATEWAY_POLICY_MISSING'));
     return { ok: false, status: 403, data: { code: 'DIRAC_DATABASE_GATEWAY_POLICY_MISSING' } };
   }
   ctx.__diracCentralDatabaseGatewayDepthV211 = Number(ctx.__diracCentralDatabaseGatewayDepthV211 || 0) + 1;
@@ -35882,7 +36042,8 @@ async function secureDatabaseGateway(ctx, operation) {
     try {
       result = await __diracV202DatabaseGatewayDelegate(op.path, op.options);
     } catch (error) {
-      diracV222MarkDependencyFailure(ctx, 'database_gateway_exception', 503, error && (error.code || error.name));
+      const errorCode = diracV233ClassifyDependencyException(error, 'DATABASE_GATEWAY_EXCEPTION');
+      diracV222MarkDependencyFailure(ctx, 'database_gateway_exception', 503, errorCode, diagnosticDetails(503, errorCode));
       throw error;
     }
     const status = Number(result && result.status || 0) || 0;
@@ -35893,7 +36054,8 @@ async function secureDatabaseGateway(ctx, operation) {
         ctx,
         serviceRole ? 'database_gateway_service_result' : 'database_gateway_result',
         status || 503,
-        code
+        code,
+        diagnosticDetails(status || 503, code)
       );
       return result && typeof result === 'object'
         ? result
@@ -35904,7 +36066,7 @@ async function secureDatabaseGateway(ctx, operation) {
     const prefer = String(op.options && op.options.prefer || '').toLowerCase();
     const isPostgrestRead = /^\/rest\/v1\//.test(op.path) && method === 'GET';
     if (isPostgrestRead && !Array.isArray(result.data)) {
-      diracV222MarkDependencyFailure(ctx, 'database_gateway_read_postcondition', status || 503, 'DATABASE_READ_REPRESENTATION_INVALID');
+      diracV222MarkDependencyFailure(ctx, 'database_gateway_read_postcondition', status || 503, 'DATABASE_READ_REPRESENTATION_INVALID', diagnosticDetails(status || 502, 'DATABASE_READ_REPRESENTATION_INVALID'));
       return {
         ...result,
         ok: false,
@@ -35915,7 +36077,7 @@ async function secureDatabaseGateway(ctx, operation) {
     const isPostgrestMutation = /^\/rest\/v1\//.test(op.path) && /^(?:POST|PATCH|PUT|DELETE)$/.test(method);
     if (isPostgrestMutation && prefer.includes('return=representation')
       && (!Array.isArray(result.data) || result.data.length < 1)) {
-      diracV222MarkDependencyFailure(ctx, 'database_gateway_mutation_postcondition', status || 503, 'DATABASE_MUTATION_EMPTY_REPRESENTATION');
+      diracV222MarkDependencyFailure(ctx, 'database_gateway_mutation_postcondition', status || 503, 'DATABASE_MUTATION_EMPTY_REPRESENTATION', diagnosticDetails(status || 409, 'DATABASE_MUTATION_EMPTY_REPRESENTATION'));
       return {
         ...result,
         ok: false,
@@ -35942,21 +36104,42 @@ async function secureEgressGateway(ctx, requestConfig) {
     throw error;
   }
   if (!config || config.input === undefined) {
-    diracV222MarkDependencyFailure(ctx, 'egress_gateway', 500, 'DIRAC_EGRESS_GATEWAY_OPERATION_INVALID');
+    diracV222MarkDependencyFailure(ctx, 'egress_gateway', 500, 'DIRAC_EGRESS_GATEWAY_OPERATION_INVALID', {
+      operation: 'egress',
+      method: 'UNKNOWN',
+      resource: 'invalid_operation',
+      auth_mode: 'not_recorded',
+      upstream_status: 500,
+      upstream_code: 'DIRAC_EGRESS_GATEWAY_OPERATION_INVALID'
+    });
     const error = new Error('DIRAC_EGRESS_GATEWAY_OPERATION_INVALID');
     error.code = 'DIRAC_EGRESS_GATEWAY_OPERATION_INVALID';
     throw error;
   }
+  const diagnosticStartedAt = Date.now();
+  const safeResource = diracV233SafeEgressResource(config.input);
+  const diagnosticMethod = String(config.options && config.options.method || 'GET').trim().toUpperCase();
+  const diagnosticDetails = (upstreamStatus, upstreamCode) => ({
+    operation: 'egress',
+    method: diagnosticMethod,
+    resource: safeResource.resource,
+    auth_mode: 'not_recorded',
+    host_fingerprint: safeResource.host_fingerprint,
+    timeout_ms: 0,
+    duration_ms: Date.now() - diagnosticStartedAt,
+    upstream_status: upstreamStatus,
+    upstream_code: upstreamCode
+  });
   const contextDecision = diracCentralGatewayContextAllowedV211(ctx);
   if (!contextDecision.ok) {
-    diracV222MarkDependencyFailure(ctx, 'egress_gateway', 403, 'DIRAC_EGRESS_GATEWAY_CONTEXT_NOT_AUTHORIZED');
-    diracCentralEmitDebugV211(ctx, 'egress_gateway_blocked', { phase: contextDecision.phase });
+    diracV222MarkDependencyFailure(ctx, 'egress_gateway', 403, 'DIRAC_EGRESS_GATEWAY_CONTEXT_NOT_AUTHORIZED', diagnosticDetails(403, 'DIRAC_EGRESS_GATEWAY_CONTEXT_NOT_AUTHORIZED'));
+    diracCentralEmitDebugV211(ctx, 'egress_gateway_blocked', { phase: contextDecision.phase, resource: safeResource.resource });
     const error = new Error('DIRAC_EGRESS_GATEWAY_CONTEXT_NOT_AUTHORIZED');
     error.code = 'DIRAC_EGRESS_GATEWAY_CONTEXT_NOT_AUTHORIZED';
     throw error;
   }
   if (contextDecision.phase === 'handler' && (!ctx.action || !ACTION_POLICY[ctx.action] || ctx.policy !== ACTION_POLICY[ctx.action])) {
-    diracV222MarkDependencyFailure(ctx, 'egress_gateway', 403, 'DIRAC_EGRESS_GATEWAY_POLICY_MISSING');
+    diracV222MarkDependencyFailure(ctx, 'egress_gateway', 403, 'DIRAC_EGRESS_GATEWAY_POLICY_MISSING', diagnosticDetails(403, 'DIRAC_EGRESS_GATEWAY_POLICY_MISSING'));
     const error = new Error('DIRAC_EGRESS_GATEWAY_POLICY_MISSING');
     error.code = 'DIRAC_EGRESS_GATEWAY_POLICY_MISSING';
     throw error;
@@ -35964,18 +36147,19 @@ async function secureEgressGateway(ctx, requestConfig) {
   try {
     const response = await __diracV202EgressGatewayDelegate(config.input, config.options);
     if (!response || typeof response !== 'object' || typeof response.ok !== 'boolean' || !Number.isFinite(Number(response.status))) {
-      diracV222MarkDependencyFailure(ctx, 'egress_gateway_response', 502, 'DIRAC_EGRESS_RESPONSE_INVALID');
+      diracV222MarkDependencyFailure(ctx, 'egress_gateway_response', 502, 'DIRAC_EGRESS_RESPONSE_INVALID', diagnosticDetails(502, 'DIRAC_EGRESS_RESPONSE_INVALID'));
       const error = new Error('DIRAC_EGRESS_RESPONSE_INVALID');
       error.code = 'DIRAC_EGRESS_RESPONSE_INVALID';
       throw error;
     }
     if (response.ok !== true) {
       const status = Number(response.status || 0) || 502;
-      diracV222MarkDependencyFailure(ctx, 'egress_gateway_http_result', status, 'EGRESS_HTTP_STATUS_' + String(status));
+      diracV222MarkDependencyFailure(ctx, 'egress_gateway_http_result', status, 'EGRESS_HTTP_STATUS_' + String(status), diagnosticDetails(status, 'EGRESS_HTTP_STATUS_' + String(status)));
     }
     return response;
   } catch (error) {
-    diracV222MarkDependencyFailure(ctx, 'egress_gateway_exception', 502, error && (error.code || error.name));
+    const errorCode = diracV233ClassifyDependencyException(error, 'EGRESS_GATEWAY_EXCEPTION');
+    diracV222MarkDependencyFailure(ctx, 'egress_gateway_exception', 502, errorCode, diagnosticDetails(502, errorCode));
     throw error;
   }
 }
