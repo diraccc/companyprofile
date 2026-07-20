@@ -1873,7 +1873,12 @@ async function requireDomainProtectedDatabaseSessionLockSafe(req, res, user) {
     code: (checked && checked.code) || 'PROTECTED_SESSION_LOCKED',
     message: (checked && checked.message) || 'Sesi protected sudah dikunci. Silakan login ulang.',
     idle_timeout_ms: DOMAIN_PROTECTED_IDLE_TIMEOUT_MS,
-    source: 'database_protected_lock_safe_v2'
+    source: 'database_protected_lock_safe_v2',
+    diagnostic_code: checked && checked.diagnostic_code || undefined,
+    failure_point: checked && checked.failure_point || undefined,
+    upstream_status: checked && Number(checked.upstream_status || 0) || undefined,
+    provider_code: checked && checked.provider_code || undefined,
+    failure_id: checked && checked.failure_id || undefined
   });
   return null;
 }
@@ -1939,14 +1944,24 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
     '&session_token_hash=eq.' + encodeURIComponent(fingerprint.session_token_hash) +
     '&limit=1';
 
+  const protectedReadStartedAtMs = Date.now();
   const found = await supabaseFetch(readPath, { method: 'GET', auth: 'service' });
   if (!found.ok) {
+    const diagnostic = customerSecuritySessionStoreDiagnosticV218(req, 'protected_read', found, {
+      elapsed_ms: Date.now() - protectedReadStartedAtMs,
+      reason: 'protected_session_read_failed'
+    });
     return {
       ok: false,
       status: 503,
       code: 'PROTECTED_SESSION_STORE_UNAVAILABLE',
       customerId,
-      message: 'Status sesi protected belum dapat diverifikasi. Silakan coba lagi.'
+      message: 'Status sesi protected belum dapat diverifikasi. Silakan coba lagi.',
+      diagnostic_code: diagnostic.diagnostic_code,
+      failure_point: diagnostic.failure_point,
+      upstream_status: diagnostic.upstream_status,
+      provider_code: diagnostic.provider_code,
+      failure_id: diagnostic.failure_id
     };
   }
 
@@ -1964,7 +1979,12 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
         status: 503,
         code: 'PROTECTED_SESSION_CREATE_UNAVAILABLE',
         customerId,
-        message: 'Sesi protected belum dapat dipersistenkan. Silakan coba lagi.'
+        message: 'Sesi protected belum dapat dipersistenkan. Silakan coba lagi.',
+        diagnostic_code: created && created.diagnostic_code || 'SESSION_STORE_CREATE_RESULT_INVALID',
+        failure_point: created && created.failure_point || 'customerSecurityTouchCurrentSession.create',
+        upstream_status: created && Number(created.status || created.upstream_status || 0) || undefined,
+        provider_code: created && created.provider_code || undefined,
+        failure_id: created && created.failure_id || undefined
       };
     }
     return {
@@ -2061,7 +2081,12 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
       code: 'PROTECTED_SESSION_REFRESH_UNAVAILABLE',
       customerId,
       sessionId: row.id,
-      message: 'Sesi protected belum dapat diperbarui secara aman. Silakan coba lagi.'
+      message: 'Sesi protected belum dapat diperbarui secara aman. Silakan coba lagi.',
+      diagnostic_code: touched && touched.diagnostic_code || 'SESSION_STORE_REFRESH_RESULT_INVALID',
+      failure_point: touched && touched.failure_point || 'customerSecurityTouchCurrentSession.refresh',
+      upstream_status: touched && Number(touched.status || touched.upstream_status || 0) || undefined,
+      provider_code: touched && touched.provider_code || undefined,
+      failure_id: touched && touched.failure_id || undefined
     };
   }
   return { ok: true, customerId, sessionId: row.id, idleMs, idle_timeout_ms: DOMAIN_PROTECTED_IDLE_TIMEOUT_MS, touched: true };
@@ -5238,10 +5263,99 @@ async function customerSecurityEnsureSettingsRow(customerId) {
   return { ok: true, created: true, enforced: true };
 }
 
+const DIRAC_CUSTOMER_SESSION_STORE_DEBUG_V218 = 'dirac_customer_session_store_debug_v218';
+
+function customerSecuritySessionStoreDiagnosticV218(req, stage, result, extra = {}) {
+  const response = result && typeof result === 'object' ? result : {};
+  const data = response.data;
+  const status = Number(response.status || 0);
+  const cleanStage = String(stage || 'unknown').replace(/[^a-zA-Z0-9_]/g, '_').toUpperCase().slice(0, 80) || 'UNKNOWN';
+  const providerCodeRaw = data && typeof data === 'object'
+    ? (data.code || data.error_code || data.error || '')
+    : response.error || '';
+  const providerMessageRaw = data && typeof data === 'object'
+    ? (data.message || data.msg || data.error_description || '')
+    : typeof data === 'string' ? data : '';
+  const providerDetailsRaw = data && typeof data === 'object' ? (data.details || '') : '';
+  const providerHintRaw = data && typeof data === 'object' ? (data.hint || '') : '';
+  const safeProviderText = (value) => diracSecurityRedactDiagnosticV210(String(value || ''), 260)
+    .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/gi, '[redacted-uuid]')
+    .replace(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g, '[redacted-ip]');
+  const providerCode = String(providerCodeRaw || '').replace(/[^a-zA-Z0-9_.-]/g, '_').slice(0, 120);
+  const responseRows = Array.isArray(data) ? data : [];
+  const responseHasId = Boolean(responseRows[0] && responseRows[0].id);
+  const condition = String(extra && extra.condition || '').trim().toLowerCase();
+
+  let diagnosticCode = 'SESSION_STORE_' + cleanStage + '_UNKNOWN_FAILURE';
+  if (condition === 'response_missing_id') diagnosticCode = 'SESSION_STORE_' + cleanStage + '_RESPONSE_MISSING_ID';
+  else if (condition === 'exception') diagnosticCode = 'SESSION_STORE_' + cleanStage + '_INTERNAL_EXCEPTION';
+  else if (condition === 'local_failure') diagnosticCode = 'SESSION_STORE_' + cleanStage + '_LOCAL_FAILURE';
+  else if (status === 504 || /timeout|abort/i.test(providerCode)) diagnosticCode = 'SESSION_STORE_' + cleanStage + '_TIMEOUT';
+  else if (status === 400) diagnosticCode = 'SESSION_STORE_' + cleanStage + '_DB_REJECTED_400';
+  else if (status === 401 || status === 403) diagnosticCode = 'SESSION_STORE_' + cleanStage + '_CREDENTIAL_OR_POLICY_REJECTED_' + status;
+  else if (status === 404) diagnosticCode = 'SESSION_STORE_' + cleanStage + '_TABLE_OR_SCHEMA_NOT_FOUND_404';
+  else if (status === 409) diagnosticCode = 'SESSION_STORE_' + cleanStage + '_CONSTRAINT_CONFLICT_409';
+  else if (status === 422) diagnosticCode = 'SESSION_STORE_' + cleanStage + '_VALIDATION_REJECTED_422';
+  else if (status >= 500) diagnosticCode = 'SESSION_STORE_' + cleanStage + '_UPSTREAM_FAILURE_' + status;
+  else if (status > 0) diagnosticCode = 'SESSION_STORE_' + cleanStage + '_HTTP_' + status;
+
+  let ctx = null;
+  try { ctx = diracCentralCurrentContextV149(); } catch (_) {}
+  const failurePoint = 'customerSecuritySessionStore.' + cleanStage.toLowerCase();
+  const diagnostic = Object.freeze({
+    patch: DIRAC_CUSTOMER_SESSION_STORE_DEBUG_V218,
+    diagnostic_code: diagnosticCode,
+    failure_point: failurePoint,
+    failure_id: (() => { try { return diracCentralFailureIdV211(ctx); } catch (_) { return 'DG-CENTRAL-UNAVAILABLE'; } })(),
+    table: 'security_customer_sessions',
+    method: String(extra && extra.method || (cleanStage.includes('CREATE') ? 'POST' : cleanStage.includes('UPDATE') ? 'PATCH' : 'GET')).toUpperCase().slice(0, 12),
+    reason: String(extra && extra.reason || 'session_store_failure').slice(0, 120),
+    upstream_status: status || 0,
+    provider_code: providerCode || undefined,
+    provider_message: providerMessageRaw ? safeProviderText(providerMessageRaw) : undefined,
+    provider_details: providerDetailsRaw ? safeProviderText(providerDetailsRaw) : undefined,
+    provider_hint: providerHintRaw ? safeProviderText(providerHintRaw) : undefined,
+    response_body_type: Array.isArray(data) ? 'array' : data === null ? 'null' : typeof data,
+    response_row_count: responseRows.length,
+    response_has_id: responseHasId,
+    elapsed_ms: Math.max(0, Number(extra && extra.elapsed_ms || 0)),
+    central_guard_passed: Boolean(req && req.__diracCentralSecurityGuardPassedV146 === true),
+    central_guard_fully_passed: Boolean(ctx && ctx.centralGuardFullyPassedV211 === true)
+  });
+
+  if (ctx) {
+    ctx.customerSessionStoreDebugV218 = diagnostic;
+    diracCentralEmitDebugV211(ctx, 'customer_session_store_failure', diagnostic);
+  } else {
+    try { console.error('[customer-session-store-debug-v218]', JSON.stringify(diagnostic)); } catch (_) {}
+  }
+  return diagnostic;
+}
+
 async function customerSecurityTouchCurrentSession(req, customerId) {
+  let activeStage = 'fingerprint';
   try {
     const fingerprint = customerSecurityBuildSessionFingerprint(req, customerId);
-    if (!fingerprint || !fingerprint.session_token_hash) return { ok: false, reason: 'missing_session_fingerprint' };
+    if (!fingerprint || !fingerprint.session_token_hash) {
+      const diagnostic = customerSecuritySessionStoreDiagnosticV218(req, 'fingerprint', {
+        ok: false,
+        status: 0,
+        data: { code: 'SESSION_FINGERPRINT_MISSING', message: 'Session fingerprint tidak tersedia.' }
+      }, {
+        reason: 'missing_session_fingerprint',
+        condition: 'local_failure',
+        method: 'LOCAL'
+      });
+      return {
+        ok: false,
+        reason: 'missing_session_fingerprint',
+        diagnostic_code: diagnostic.diagnostic_code,
+        failure_point: diagnostic.failure_point,
+        upstream_status: diagnostic.upstream_status,
+        provider_code: diagnostic.provider_code,
+        failure_id: diagnostic.failure_id
+      };
+    }
 
     const path = '/rest/v1/security_customer_sessions?select=id,status&customer_id=eq.' +
       encodeURIComponent(customerId) +
@@ -5249,8 +5363,25 @@ async function customerSecurityTouchCurrentSession(req, customerId) {
       encodeURIComponent(fingerprint.session_token_hash) +
       '&limit=1';
 
+    activeStage = 'read';
+    const readStartedAtMs = Date.now();
     const existing = await supabaseFetch(path, { method: 'GET', auth: 'service' });
-    if (!existing.ok) return { ok: false, reason: 'session_read_failed', status: existing.status };
+    if (!existing.ok) {
+      const diagnostic = customerSecuritySessionStoreDiagnosticV218(req, 'read', existing, {
+        elapsed_ms: Date.now() - readStartedAtMs,
+        reason: 'session_read_failed'
+      });
+      return {
+        ok: false,
+        reason: 'session_read_failed',
+        status: existing.status,
+        diagnostic_code: diagnostic.diagnostic_code,
+        failure_point: diagnostic.failure_point,
+        upstream_status: diagnostic.upstream_status,
+        provider_code: diagnostic.provider_code,
+        failure_id: diagnostic.failure_id
+      };
+    }
 
     const rows = Array.isArray(existing.data) ? existing.data : [];
     const now = new Date().toISOString();
@@ -5268,6 +5399,8 @@ async function customerSecurityTouchCurrentSession(req, customerId) {
     };
 
     if (rows.length && rows[0] && rows[0].id) {
+      activeStage = 'update';
+      const updateStartedAtMs = Date.now();
       const patched = await supabaseFetch('/rest/v1/security_customer_sessions?id=eq.' + encodeURIComponent(rows[0].id) +
         '&customer_id=eq.' + encodeURIComponent(customerId), {
         method: 'PATCH',
@@ -5276,10 +5409,27 @@ async function customerSecurityTouchCurrentSession(req, customerId) {
         body: updateBody
       });
 
-      if (!patched.ok) return { ok: false, reason: 'session_update_failed', status: patched.status };
+      if (!patched.ok) {
+        const diagnostic = customerSecuritySessionStoreDiagnosticV218(req, 'update', patched, {
+          elapsed_ms: Date.now() - updateStartedAtMs,
+          reason: 'session_update_failed'
+        });
+        return {
+          ok: false,
+          reason: 'session_update_failed',
+          status: patched.status,
+          diagnostic_code: diagnostic.diagnostic_code,
+          failure_point: diagnostic.failure_point,
+          upstream_status: diagnostic.upstream_status,
+          provider_code: diagnostic.provider_code,
+          failure_id: diagnostic.failure_id
+        };
+      }
       return { ok: true, created: false, session_id: rows[0].id };
     }
 
+    activeStage = 'create';
+    const createStartedAtMs = Date.now();
     const created = await supabaseFetch('/rest/v1/security_customer_sessions', {
       method: 'POST',
       auth: 'service',
@@ -5296,15 +5446,70 @@ async function customerSecurityTouchCurrentSession(req, customerId) {
       }]
     });
 
-    if (!created.ok) return { ok: false, reason: 'session_create_failed', status: created.status };
+    if (!created.ok) {
+      const diagnostic = customerSecuritySessionStoreDiagnosticV218(req, 'create', created, {
+        elapsed_ms: Date.now() - createStartedAtMs,
+        reason: 'session_create_failed'
+      });
+      return {
+        ok: false,
+        reason: 'session_create_failed',
+        status: created.status,
+        diagnostic_code: diagnostic.diagnostic_code,
+        failure_point: diagnostic.failure_point,
+        upstream_status: diagnostic.upstream_status,
+        provider_code: diagnostic.provider_code,
+        failure_id: diagnostic.failure_id
+      };
+    }
 
+    activeStage = 'telemetry';
     await customerSecurityWriteSessionTelemetry(customerId, fingerprint);
 
+    activeStage = 'create_response';
     const createdRows = Array.isArray(created.data) ? created.data : [];
-    return { ok: true, created: true, session_id: createdRows[0] && createdRows[0].id ? createdRows[0].id : null };
+    const createdSessionId = createdRows[0] && createdRows[0].id ? createdRows[0].id : null;
+    if (!createdSessionId) {
+      const diagnostic = customerSecuritySessionStoreDiagnosticV218(req, 'create', created, {
+        elapsed_ms: Date.now() - createStartedAtMs,
+        reason: 'session_create_response_missing_id',
+        condition: 'response_missing_id'
+      });
+      return {
+        ok: false,
+        reason: 'session_create_response_missing_id',
+        status: created.status,
+        diagnostic_code: diagnostic.diagnostic_code,
+        failure_point: diagnostic.failure_point,
+        upstream_status: diagnostic.upstream_status,
+        provider_code: diagnostic.provider_code,
+        failure_id: diagnostic.failure_id
+      };
+    }
+
+    return { ok: true, created: true, session_id: createdSessionId };
   } catch (error) {
-    console.error('[customer-security-session]', customerSecuritySafeLogError(error));
-    return { ok: false, reason: 'session_exception' };
+    const diagnostic = customerSecuritySessionStoreDiagnosticV218(req, activeStage + '_exception', {
+      ok: false,
+      status: 0,
+      data: {
+        code: error && (error.code || error.name) || 'SESSION_EXCEPTION',
+        message: error && error.message || 'Session store exception'
+      }
+    }, {
+      reason: 'session_exception',
+      condition: 'exception',
+      method: activeStage === 'create' ? 'POST' : activeStage === 'update' ? 'PATCH' : activeStage === 'read' ? 'GET' : 'LOCAL'
+    });
+    return {
+      ok: false,
+      reason: 'session_exception',
+      diagnostic_code: diagnostic.diagnostic_code,
+      failure_point: diagnostic.failure_point,
+      upstream_status: diagnostic.upstream_status,
+      provider_code: diagnostic.provider_code,
+      failure_id: diagnostic.failure_id
+    };
   }
 }
 
