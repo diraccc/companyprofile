@@ -28413,6 +28413,11 @@ function diracCentralVercel2OnlyActionsV150() {
 }
 
 function diracCentralServer1RecoveryEnvPartitionGuardV190(action) {
+  const startupFailure = __diracServer1RecoveryStartupFailureV201;
+  if (startupFailure) {
+    try { console.error('[dirac-central-env-partition-v201]', JSON.stringify(startupFailure)); } catch (_) {}
+    return { ok: false, reason: String(startupFailure.code || 'server1_recovery_startup_invalid').toLowerCase() };
+  }
   const role = diracCentralEnvValueV150('DIRAC_CENTRAL_DEPLOYMENT_ROLE') || diracCentralEnvValueV150('DIRAC_DEPLOYMENT_ROLE');
   const cleanAction = String(action || '').trim().toLowerCase();
   const vercel2OnlyAction = diracCentralVercel2OnlyActionsV150().has(cleanAction);
@@ -28466,6 +28471,7 @@ function diracCentralServer1RecoveryEnvPartitionGuardV190(action) {
     'DIRAC_LOST_PASSKEY_QUEUE_POLL_MS'
   ];
   const present = (name) => Boolean(String(process.env[name] || '').trim());
+  const leakedEnvs = server2OnlyEnv.filter(present);
 
   if (role === 'vercel2') {
     return vercel2OnlyAction
@@ -28473,8 +28479,14 @@ function diracCentralServer1RecoveryEnvPartitionGuardV190(action) {
       : { ok: false, reason: 'vercel2_non_worker_action_forbidden' };
   }
 
-  if (role !== 'vercel1') return { ok: false, reason: 'vercel1_deployment_role_required' };
-  if (server2OnlyEnv.some(present)) return { ok: false, reason: 'vercel2_env_present_on_vercel1' };
+  if (role !== 'vercel1') {
+    try { console.error('[dirac-central-env-partition-v201]', JSON.stringify({ code: 'DIRAC_SERVER1_DEPLOYMENT_ROLE_INVALID', role: role || 'missing', expected_role: 'vercel1' })); } catch (_) {}
+    return { ok: false, reason: 'vercel1_deployment_role_required' };
+  }
+  if (leakedEnvs.length) {
+    try { console.error('[dirac-central-env-partition-v201]', JSON.stringify({ code: 'DIRAC_SERVER1_PRIVATE_ENV_PARTITION_FAILED', role, leaked_env_count: leakedEnvs.length, leaked_envs: leakedEnvs })); } catch (_) {}
+    return { ok: false, reason: 'vercel2_env_present_on_vercel1' };
+  }
   if (vercel2OnlyAction) return { ok: false, reason: 'vercel2_action_forbidden_on_vercel1' };
   return { ok: true };
 }
@@ -32089,13 +32101,26 @@ Object.defineProperty(customerSecurityRecoveryWorkerSign, '__diracServer1Boundar
 function diracAssertServer1RecoveryEnvironmentV201() {
   const role = String(process.env.DIRAC_CENTRAL_DEPLOYMENT_ROLE || process.env.DIRAC_DEPLOYMENT_ROLE || '').trim().toLowerCase();
   const isServer2 = role === 'vercel2' || role === 'server2' || role === 'recovery-worker';
-  if (isServer2) throw new Error('DIRAC_SERVER1_DEPLOYMENT_ROLE_INVALID');
   const leaked = DIRAC_SERVER1_FORBIDDEN_PRIVATE_ENVS_V201.filter((name) => String(process.env[name] || '').trim());
-  if (leaked.length) throw new Error('DIRAC_SERVER1_PRIVATE_ENV_PARTITION_FAILED');
+  if (isServer2 || leaked.length) {
+    const code = isServer2 ? 'DIRAC_SERVER1_DEPLOYMENT_ROLE_INVALID' : 'DIRAC_SERVER1_PRIVATE_ENV_PARTITION_FAILED';
+    const error = new Error(code + '; role=' + (role || 'missing') + '; leaked_envs=' + (leaked.join(',') || 'none'));
+    error.code = code;
+    error.diracDiagnostic = { code, role: role || 'missing', expected_role: 'vercel1', leaked_env_count: leaked.length, leaked_envs: leaked };
+    throw error;
+  }
   return true;
 }
 
-diracAssertServer1RecoveryEnvironmentV201();
+var __diracServer1RecoveryStartupFailureV201 = null;
+try {
+  diracAssertServer1RecoveryEnvironmentV201();
+} catch (error) {
+  // Startup tidak crash, tetapi semua request tetap ditolak oleh Central Guard.
+  const diagnostic = Object.freeze(error.diracDiagnostic || { code: error.code || error.message });
+  __diracServer1RecoveryStartupFailureV201 = diagnostic;
+  try { console.error('[dirac-server1-recovery-startup-v201]', JSON.stringify(diagnostic)); } catch (_) {}
+}
 
 if (typeof module === 'undefined'
     || typeof __diracV202DispatcherSentinel !== 'function'
