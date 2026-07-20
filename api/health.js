@@ -22000,13 +22000,13 @@ function diracBolaIdorV128CentralOwnerBootstrapDecisionV213(path, options = {}, 
   }
 
   const action = diracBolaIdorV128NormalizeAction(legacyCtx && legacyCtx.action || centralCtx.action || '');
-  if (checkoutStage26V216 && action !== 'checkout_order') {
+  if (checkoutStage26V216 && !diracCentralVerifiedOwnerActionV217(action)) {
     return record(false, 'OWNER_BOOTSTRAP_ACTION_NOT_ALLOWED', 'v128.bootstrap.action');
   }
-  if (!checkoutStage26V216 && action !== 'domain_me' && action !== 'domain_dashboard_me') {
+  if (!checkoutStage26V216 && action !== 'domain_me' && !diracCentralVerifiedOwnerActionV217(action)) {
     return record(false, 'OWNER_BOOTSTRAP_ACTION_NOT_ALLOWED', 'v128.bootstrap.action');
   }
-  if (action !== String(binding.action || '')) {
+  if (action !== diracBolaIdorV128NormalizeAction(binding.action || '')) {
     return record(false, 'OWNER_BOOTSTRAP_ACTION_BINDING_MISMATCH', 'v128.bootstrap.action_binding');
   }
 
@@ -26522,6 +26522,36 @@ const DIRAC_CENTRAL_FAIL_CLOSED_DEBUG_V211 = 'dirac-central-fail-closed-debug-v2
 const DIRAC_CENTRAL_OWNER_DEBUG_V212 = 'dirac-central-owner-debug-v212';
 const DIRAC_CENTRAL_VERIFIED_OWNER_CONTEXT_PATCH_V215 = 'dirac-central-verified-owner-context-v215';
 const DIRAC_CENTRAL_VERIFIED_OWNER_CONTEXTS_V215 = new WeakMap();
+const DIRAC_CENTRAL_VERIFIED_OWNER_ACTIONS_V217 = Object.freeze([
+  'domain_dashboard_me',
+  'domain_checkout',
+  'domain_orders',
+  'customer_security_status',
+  'customer_security_overview',
+  'checkout_order',
+  'my_orders',
+  'customer_orders',
+  'pesanan_saya',
+  'my_invoices',
+  'invoice_saya',
+  'create_payment'
+]);
+
+function diracCentralVerifiedOwnerActionV217(action) {
+  return DIRAC_CENTRAL_VERIFIED_OWNER_ACTIONS_V217.includes(String(action || '').trim().toLowerCase());
+}
+
+function diracCentralOwnerFromStage26V217(ctx) {
+  const authUserId = String(ctx && (ctx.__diracCentralVerifiedOwnerAuthUserIdV217 || ctx.__diracCentralCheckoutOwnerAuthUserIdV196) || '').trim();
+  const customerId = String(ctx && (ctx.__diracCentralVerifiedOwnerCustomerIdV217 || ctx.__diracCentralCheckoutOwnerCustomerIdV196) || '').trim();
+  if (!diracCentralLooksLikeUuidV146(authUserId) || !diracCentralLooksLikeUuidV146(customerId)) return null;
+  return Object.freeze({
+    ok: true,
+    authUserId,
+    customerIds: Object.freeze([customerId]),
+    source: 'central_stage26_owner_binding_v217'
+  });
+}
 
 function diracCentralSealVerifiedOwnerContextV215(req, owner, source) {
   const ctx = diracCentralCurrentContextV149();
@@ -26531,7 +26561,7 @@ function diracCentralSealVerifiedOwnerContextV215(req, owner, source) {
   if (!diracCentralHandlerContextFullyPassedV211(ctx, req)) {
     return { ok: false, reason: 'central_guard_not_fully_passed' };
   }
-  if (String(ctx.action || '') !== 'domain_dashboard_me') {
+  if (!diracCentralVerifiedOwnerActionV217(ctx.action)) {
     return { ok: false, reason: 'action_not_authorized' };
   }
 
@@ -26583,7 +26613,7 @@ function diracCentralReadVerifiedOwnerContextV215(req, expectedAuthUserId) {
   if (sealed.requestId !== String(ctx.requestId || '')) {
     return { ok: false, reason: 'verified_owner_request_id_mismatch', failurePoint: 'verified_owner_context.request_id' };
   }
-  if (sealed.action !== String(ctx.action || '') || sealed.action !== 'domain_dashboard_me') {
+  if (sealed.action !== String(ctx.action || '') || !diracCentralVerifiedOwnerActionV217(sealed.action)) {
     return { ok: false, reason: 'verified_owner_action_mismatch', failurePoint: 'verified_owner_context.action' };
   }
   const expected = String(expectedAuthUserId || '').trim();
@@ -27289,6 +27319,7 @@ const DIRAC_CENTRAL_A2F_ACTIONS_V148 = new Set([
   'domain_passkey_status'
 ]);
 const DIRAC_CENTRAL_USER_DATA_ACTIONS_V146 = new Set([
+  ...DIRAC_CENTRAL_VERIFIED_OWNER_ACTIONS_V217,
   'domain_me',
   'domain_dashboard_me',
   'domain_orders',
@@ -28052,22 +28083,25 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
     try { Object.defineProperty(req, '__diracCentralSecurityGuardPassedV146', { value: true, writable: false, enumerable: false, configurable: false }); } catch (_) {}
     try { Object.defineProperty(req, '__diracCentralRequestIdV211', { value: ctx.requestId, writable: false, enumerable: false, configurable: false }); } catch (_) {}
 
-    if (ctx.action === 'domain_dashboard_me') {
-      let resolvedOwnerV215 = null;
-      ctx.__diracCentralOwnerScopeResolvingV146 = true;
-      try {
-        resolvedOwnerV215 = await diracCentralResolveOwnerV146(req);
-      } catch (error) {
-        ctx.ownerResolutionDebugV212 = ctx.ownerResolutionDebugV212 || {
-          patch: DIRAC_CENTRAL_OWNER_DEBUG_V212,
-          final_code: 'VERIFIED_OWNER_PRE_DISPATCH_RESOLUTION_EXCEPTION',
-          failure_point: 'diracCentralSecurityGuardV146.verified_owner_pre_dispatch',
-          error: diracCentralSafeDiagnosticErrorV212(error)
-        };
-      } finally {
-        ctx.__diracCentralOwnerScopeResolvingV146 = false;
+    if (diracCentralVerifiedOwnerActionV217(ctx.action)) {
+      let resolvedOwnerV215 = diracCentralOwnerFromStage26V217(ctx);
+      let ownerSourceV215 = resolvedOwnerV215 ? 'stage26_idor_bola_owner_binding' : 'pre_dispatch_owner_resolution';
+      if (!resolvedOwnerV215) {
+        ctx.__diracCentralOwnerScopeResolvingV146 = true;
+        try {
+          resolvedOwnerV215 = await diracCentralResolveOwnerV146(req);
+        } catch (error) {
+          ctx.ownerResolutionDebugV212 = ctx.ownerResolutionDebugV212 || {
+            patch: DIRAC_CENTRAL_OWNER_DEBUG_V212,
+            final_code: 'VERIFIED_OWNER_PRE_DISPATCH_RESOLUTION_EXCEPTION',
+            failure_point: 'diracCentralSecurityGuardV146.verified_owner_pre_dispatch',
+            error: diracCentralSafeDiagnosticErrorV212(error)
+          };
+        } finally {
+          ctx.__diracCentralOwnerScopeResolvingV146 = false;
+        }
       }
-      const sealedOwnerV215 = diracCentralSealVerifiedOwnerContextV215(req, resolvedOwnerV215, 'pre_dispatch_owner_resolution');
+      const sealedOwnerV215 = diracCentralSealVerifiedOwnerContextV215(req, resolvedOwnerV215, ownerSourceV215);
       if (!sealedOwnerV215 || sealedOwnerV215.ok !== true) {
         const reasonV215 = String(sealedOwnerV215 && sealedOwnerV215.reason || resolvedOwnerV215 && resolvedOwnerV215.reason || 'verified_owner_context_seal_failed');
         ctx.failedStageV211 = 'verified owner context';
@@ -29328,9 +29362,13 @@ async function diracCentralIdorBolaGuardV146(req, ctx) {
     if (boot && boot.ok) owner = await diracCentralResolveOwnerV146(req);
   }
   if (!owner || !owner.ok || !owner.customerIds || !owner.customerIds.length) return { ok: false, reason: 'idor_owner_unavailable' };
-  if (ctx && (ctx.action === 'checkout_order' || ctx.action === 'create_payment') && owner.customerIds.length === 1) {
-    ctx.__diracCentralCheckoutOwnerCustomerIdV196 = String(owner.customerIds[0] || '').trim();
-    ctx.__diracCentralCheckoutOwnerAuthUserIdV196 = String(owner.authUserId || '').trim();
+  if (ctx && diracCentralVerifiedOwnerActionV217(ctx.action) && owner.customerIds.length === 1) {
+    ctx.__diracCentralVerifiedOwnerCustomerIdV217 = String(owner.customerIds[0] || '').trim();
+    ctx.__diracCentralVerifiedOwnerAuthUserIdV217 = String(owner.authUserId || '').trim();
+    if (ctx.action === 'checkout_order' || ctx.action === 'create_payment') {
+      ctx.__diracCentralCheckoutOwnerCustomerIdV196 = ctx.__diracCentralVerifiedOwnerCustomerIdV217;
+      ctx.__diracCentralCheckoutOwnerAuthUserIdV196 = ctx.__diracCentralVerifiedOwnerAuthUserIdV217;
+    }
   }
   const allowedCustomers = new Set(owner.customerIds.map(String));
   const requestedCustomer = ids.filter((item) => item.key === 'customer_id').map((item) => item.value).filter(diracCentralLooksLikeUuidV146);
@@ -29369,7 +29407,9 @@ function diracCentralIsAuthSelfReadOnlyV146(action, ids) {
 
 function diracCentralCheckoutStage26BootstrapModeV216(ctx, req) {
   if (!ctx || !req || ctx.req !== req) return false;
-  if (ctx.action !== 'checkout_order' || ctx.method !== 'POST') return false;
+  if (!diracCentralVerifiedOwnerActionV217(ctx.action)) return false;
+  const contract = diracCentralContractForActionV146(ctx.action);
+  if (!contract || !Array.isArray(contract.methods) || !contract.methods.includes(ctx.method)) return false;
   if (ctx.executionPhaseV211 !== 'guard' || ctx.currentStageV211 !== 'IDOR/BOLA' || Number(ctx.currentStageIndexV211) !== 26) return false;
   if (ctx.centralGuardFullyPassedV211 === true || req.__diracCentralSecurityGuardPassedV146 === true) return false;
   if (String(ctx.failedStageV211 || '') || String(ctx.failureReasonV211 || '')) return false;
@@ -29382,8 +29422,9 @@ function diracCentralOwnerBootstrapModeV213(ctx, req) {
   if (diracCentralCheckoutStage26BootstrapModeV216(ctx, req)) return true;
   if (!ctx || !req || ctx.req !== req) return false;
   if (ctx.__diracCentralOwnerScopeResolvingV146 !== true) return false;
-  if (ctx.action !== 'domain_me' && ctx.action !== 'domain_dashboard_me') return false;
-  if (ctx.method !== 'GET') return false;
+  if (ctx.action !== 'domain_me' && !diracCentralVerifiedOwnerActionV217(ctx.action)) return false;
+  const contract = diracCentralContractForActionV146(ctx.action);
+  if (!contract || !Array.isArray(contract.methods) || !contract.methods.includes(ctx.method)) return false;
   if (typeof diracCentralHandlerContextFullyPassedV211 !== 'function') return false;
   return diracCentralHandlerContextFullyPassedV211(ctx, req);
 }
@@ -32706,6 +32747,7 @@ Object.defineProperty(module.exports, '__diracCentralOwnerBootstrapV213', { valu
 if (!Array.isArray(SECURITY_PIPELINE)
     || SECURITY_PIPELINE.length !== Object.keys(DIRAC_V202_CHECKPOINT_BY_STAMP).length
     || Object.keys(ACTION_POLICY).length !== DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.size + DIRAC_CENTRAL_DISABLED_ACTIONS_V146.size
+    || Array.from(DIRAC_CENTRAL_VERIFIED_OWNER_ACTIONS_V217).some((action) => !DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.has(action) || !DIRAC_CENTRAL_USER_DATA_ACTIONS_V146.has(action) || !ACTION_POLICY[action] || ACTION_POLICY[action].ownership !== true)
     || typeof supabaseFetch !== 'function'
     || supabaseFetch.__diracV202SecureDatabaseGateway !== true
     || globalThis.__DIRAC_V202_SECURE_EGRESS_GATEWAY__ !== true) {
