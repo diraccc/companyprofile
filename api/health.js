@@ -27848,15 +27848,20 @@ function guardBrowserSignalsV202(ctx) {
   const result = diracCentralBrowserSignalGuardV146(ctx.req, ctx);
   return result.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: result.reason });
 }
-function guardDeviceBindingV202(ctx) {
+async function guardDeviceBindingV202(ctx) {
   if (ctx.preflightValidatedV221 === true) return diracCentralPreflightStageResultV221(ctx, 'device_binding');
   if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
   const result = diracCentralDeviceConsistencyGuardV146(ctx.req, ctx);
   ctx.deviceId = String(ctx.identity && (ctx.identity.deviceKey || ctx.identity.key) || '');
   if (!result.ok) return diracV202StageResult(false, { reason: result.reason });
-  const credential = diracCentralDeviceCredentialGuardV221(ctx.req, ctx.res, ctx);
-  return credential.ok ? diracV202StageResult(true, credential.issued ? { decision: 'device_credential_issued' } : undefined)
-    : diracV202StageResult(false, { reason: credential.reason });
+  const credential = await diracCentralDeviceCredentialGuardV221(ctx.req, ctx.res, ctx);
+  const decision = credential && credential.issued
+    ? 'device_credential_issued'
+    : credential && credential.rotated
+      ? 'device_credential_rotated_after_verified_bootstrap'
+      : undefined;
+  return credential && credential.ok ? diracV202StageResult(true, decision)
+    : diracV202StageResult(false, { reason: credential && credential.reason || 'device_credential_guard_failed' });
 }
 async function guardAdminAuthenticationV202(ctx) {
   if (ctx.preflightValidatedV221 === true) return diracCentralPreflightStageResultV221(ctx, 'admin_authentication');
@@ -28978,15 +28983,303 @@ function diracCentralVerifyDeviceTokenV221(req, token) {
   return { ok: true, payload, upgrade: true, rotatedFromLegacySession: true };
 }
 
-function diracCentralDeviceCredentialGuardV221(req, res, ctx) {
-  if (!DIRAC_CENTRAL_USER_DATA_ACTIONS_V146.has(ctx.action) && !/^domain_dashboard|^customer_security|^admin_security/.test(ctx.action)) return { ok: true };
-  let session = diracCentralDeviceSessionBindingV222(req);
-  let bootstrapped = null;
-  if (!session) {
-    bootstrapped = diracCentralBootstrapDeviceSessionV223(req, res);
-    session = bootstrapped && bootstrapped.binding ? bootstrapped.binding : '';
+
+const DIRAC_CENTRAL_DEVICE_AUTH_BOOTSTRAP_V224 = 'dirac-central-device-auth-bootstrap-v224';
+const DIRAC_CENTRAL_DEVICE_AUTH_CACHE_V224 = Symbol('dirac-central-device-auth-cache-v224');
+const DIRAC_CENTRAL_DEVICE_BOOTSTRAP_ACTIONS_V224 = Object.freeze(new Set([
+  'domain_me',
+  'domain_dashboard_me',
+  'domain_mfa_status'
+]));
+
+function diracCentralDeviceAuthIdentityV224(user) {
+  const row = user && typeof user === 'object' ? user : {};
+  const userId = String(row.id || row.user_id || row.sub || '').trim();
+  const email = normalizeAuthEmail(row.email || '');
+  if (!userId || !email) return null;
+  return Object.freeze({ userId, email });
+}
+
+function diracCentralDeviceSignedSessionStateV224(cookies, identity) {
+  const values = typeof readCookieTokenCandidates === 'function'
+    ? readCookieTokenCandidates(cookies || {}, DOMAIN_SIGNED_SESSION_COOKIE).slice(0, 8)
+    : [cookies && cookies[DOMAIN_SIGNED_SESSION_COOKIE]].filter(Boolean);
+  const valid = values.map((value) => verifyDomainSessionCookieValue(value)).filter(Boolean);
+  const matching = valid.filter((item) => String(item.id || '') === identity.userId
+    && normalizeAuthEmail(item.email || '') === identity.email);
+  const mismatching = valid.filter((item) => String(item.id || '') !== identity.userId
+    || normalizeAuthEmail(item.email || '') !== identity.email);
+  return Object.freeze({
+    validCount: valid.length,
+    matchingCount: matching.length,
+    mismatchingCount: mismatching.length,
+    hasMatching: matching.length > 0,
+    hasMismatch: mismatching.length > 0
+  });
+}
+
+async function diracCentralAuthenticateDeviceBootstrapV224(req) {
+  const cookies = typeof parseCookies === 'function' ? parseCookies(req) : {};
+  const acceptFrontendAuthHeaders = typeof shouldAcceptFrontendAuthHeaders === 'function'
+    ? shouldAcceptFrontendAuthHeaders()
+    : false;
+  const headerToken = acceptFrontendAuthHeaders && typeof getBearerToken === 'function' ? getBearerToken(req) : '';
+  const accessCookieTokens = typeof readCookieTokenCandidates === 'function'
+    ? readCookieTokenCandidates(cookies, ACCESS_COOKIE)
+    : [cookies && cookies[ACCESS_COOKIE]].filter(Boolean);
+  const accessTokens = typeof uniqueNonEmptyStrings === 'function'
+    ? uniqueNonEmptyStrings([headerToken, ...accessCookieTokens]).slice(0, 12)
+    : [headerToken, ...accessCookieTokens].filter(Boolean).slice(0, 12);
+
+  for (const accessToken of accessTokens) {
+    const result = await supabaseFetch('/auth/v1/user', {
+      method: 'GET',
+      auth: 'anon',
+      bearer: accessToken
+    }).catch(() => null);
+    const identity = result && result.ok && result.data ? diracCentralDeviceAuthIdentityV224(result.data) : null;
+    const jwtIdentity = identity ? diracCentralDeviceJwtUserV223(accessToken) : null;
+    if (identity && jwtIdentity
+        && (jwtIdentity.userId !== identity.userId || jwtIdentity.email !== identity.email)) continue;
+    if (identity) {
+      return Object.freeze({
+        ok: true,
+        source: 'verified_access_token',
+        user: result.data,
+        identity,
+        accessToken,
+        session: null,
+        refreshed: false,
+        cookies
+      });
+    }
   }
+
+  const headerRefreshToken = acceptFrontendAuthHeaders
+    ? String(req && req.headers && (req.headers['x-domain-refresh'] || req.headers['x-refresh-token']) || '').trim()
+    : '';
+  const refreshCookieTokens = typeof readCookieTokenCandidates === 'function'
+    ? readCookieTokenCandidates(cookies, REFRESH_COOKIE)
+    : [cookies && cookies[REFRESH_COOKIE]].filter(Boolean);
+  const refreshTokens = typeof uniqueNonEmptyStrings === 'function'
+    ? uniqueNonEmptyStrings([headerRefreshToken, ...refreshCookieTokens]).slice(0, 12)
+    : [headerRefreshToken, ...refreshCookieTokens].filter(Boolean).slice(0, 12);
+
+  for (const refreshToken of refreshTokens) {
+    const result = await supabaseFetch('/auth/v1/token?grant_type=refresh_token', {
+      method: 'POST',
+      auth: 'anon',
+      body: { refresh_token: refreshToken }
+    }).catch(() => null);
+    if (!result || !result.ok || !result.data || !result.data.access_token) continue;
+    const session = Object.assign({}, result.data, {
+      refresh_token: result.data.refresh_token || refreshToken
+    });
+    if (!hasValidDomainSessionTokens(session)) continue;
+    let user = session.user || result.data.user;
+    let identity = diracCentralDeviceAuthIdentityV224(user);
+    if (!identity) {
+      const userResult = await supabaseFetch('/auth/v1/user', {
+        method: 'GET',
+        auth: 'anon',
+        bearer: session.access_token
+      }).catch(() => null);
+      user = userResult && userResult.ok ? userResult.data : null;
+      identity = diracCentralDeviceAuthIdentityV224(user);
+    }
+    if (!identity) continue;
+    const jwtIdentity = diracCentralDeviceJwtUserV223(session.access_token);
+    if (jwtIdentity && (jwtIdentity.userId !== identity.userId || jwtIdentity.email !== identity.email)) continue;
+    return Object.freeze({
+      ok: true,
+      source: 'verified_refresh_token',
+      user,
+      identity,
+      accessToken: session.access_token,
+      session: Object.assign({}, session, { user }),
+      refreshed: true,
+      cookies
+    });
+  }
+
+  const signedUser = typeof readSignedDomainSessionUser === 'function'
+    ? await readSignedDomainSessionUser(cookies).catch(() => null)
+    : null;
+  const signedIdentity = diracCentralDeviceAuthIdentityV224(signedUser);
+  if (signedIdentity) {
+    return Object.freeze({
+      ok: true,
+      source: 'verified_signed_session',
+      user: signedUser,
+      identity: signedIdentity,
+      accessToken: '',
+      session: null,
+      refreshed: false,
+      cookies
+    });
+  }
+
+  return Object.freeze({ ok: false, reason: 'device_bootstrap_authentication_failed' });
+}
+
+function diracCentralPublishVerifiedAuthSessionV224(res, authentication, maxAge) {
+  if (!authentication || !authentication.ok) return { ok: false, reason: 'device_bootstrap_authentication_missing' };
+  if (authentication.refreshed) {
+    const session = authentication.session;
+    if (!hasValidDomainSessionTokens(session)) return { ok: false, reason: 'device_bootstrap_refresh_session_invalid' };
+    appendSetCookie(res, [
+      ...makeTokenCookieSet(ACCESS_COOKIE, session.access_token, { maxAge }),
+      ...makeTokenCookieSet(REFRESH_COOKIE, session.refresh_token, { maxAge }),
+      ...makeSignedDomainSessionCookieSet(session, { maxAge })
+    ]);
+    if (!shouldHideDomainAuthTokens()) {
+      res.setHeader('X-Domain-Access-Token', session.access_token);
+      res.setHeader('X-Domain-Refresh-Token', session.refresh_token);
+    }
+    res.setHeader('X-Domain-Token-Refreshed', 'true');
+    return { ok: true, signedSessionIssued: true };
+  }
+
+  const signedState = diracCentralDeviceSignedSessionStateV224(authentication.cookies, authentication.identity);
+  if (signedState.hasMismatch) return { ok: false, reason: 'device_bootstrap_signed_session_mismatch' };
+  if (signedState.hasMatching) {
+    if (authentication.source === 'verified_signed_session') res.setHeader('X-Domain-Signed-Session', 'true');
+    return { ok: true, signedSessionIssued: false };
+  }
+  if (!authentication.accessToken) return { ok: false, reason: 'device_bootstrap_signed_session_missing' };
+  const signedCookies = makeSignedDomainSessionCookieSet({
+    access_token: authentication.accessToken,
+    user: authentication.user
+  }, { maxAge });
+  if (!Array.isArray(signedCookies) || !signedCookies.length) {
+    return { ok: false, reason: 'device_bootstrap_signed_session_issue_failed' };
+  }
+  appendSetCookie(res, signedCookies);
+  return { ok: true, signedSessionIssued: true };
+}
+
+function diracCentralSealVerifiedDeviceAuthV224(req, ctx, authentication, binding) {
+  const identity = authentication && authentication.identity;
+  const user = authentication && authentication.user;
+  if (!req || !identity || !user || !binding) return false;
+  const requestId = String(ctx && ctx.requestId || '');
+  const sealed = Object.freeze({
+    patch: DIRAC_CENTRAL_DEVICE_AUTH_BOOTSTRAP_V224,
+    requestId,
+    createdAtMs: Date.now(),
+    binding: String(binding),
+    source: String(authentication.source || ''),
+    identity,
+    user: Object.freeze(Object.assign({}, user))
+  });
+  try {
+    Object.defineProperty(req, DIRAC_CENTRAL_DEVICE_AUTH_CACHE_V224, {
+      value: sealed,
+      writable: false,
+      enumerable: false,
+      configurable: false
+    });
+  } catch (_) {
+    return false;
+  }
+  if (ctx && typeof ctx === 'object') {
+    ctx.authentication = Object.freeze({
+      verified: true,
+      source: sealed.source,
+      userId: identity.userId,
+      email: identity.email,
+      bootstrap: DIRAC_CENTRAL_DEVICE_AUTH_BOOTSTRAP_V224
+    });
+  }
+  return true;
+}
+
+function diracCentralReadVerifiedDeviceAuthV224(req) {
+  const sealed = req && req[DIRAC_CENTRAL_DEVICE_AUTH_CACHE_V224];
+  if (!sealed || sealed.patch !== DIRAC_CENTRAL_DEVICE_AUTH_BOOTSTRAP_V224) return null;
+  const ctx = typeof diracCentralCurrentContextV149 === 'function' ? diracCentralCurrentContextV149() : null;
+  if (!ctx || String(sealed.requestId || '') !== String(ctx.requestId || '')) return null;
+  if (!Number.isSafeInteger(Number(sealed.createdAtMs)) || Date.now() - Number(sealed.createdAtMs) > 60 * 1000) return null;
+  const identity = diracCentralDeviceAuthIdentityV224(sealed.user);
+  if (!identity || identity.userId !== sealed.identity.userId || identity.email !== sealed.identity.email) return null;
+  return sealed.user;
+}
+
+function diracCentralVerifyDeviceEnvelopeV224(req, token) {
+  const parts = String(token || '').split('.');
+  if (parts.length !== 2 || !parts[0] || !parts[1]) return { ok: false, reason: 'device_credential_shape_invalid' };
+  const expected = crypto.createHmac('sha512', diracCentralDeriveSecretV146('central-device-v221')).update(parts[0]).digest('base64url');
+  if (!(typeof safeEqual === 'function' ? safeEqual(parts[1], expected) : parts[1] === expected)) {
+    return { ok: false, reason: 'device_credential_signature_invalid' };
+  }
+  let payload;
+  try { payload = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8')); }
+  catch (_) { return { ok: false, reason: 'device_credential_payload_invalid' }; }
+  const now = Date.now();
+  const issuedAt = Number(payload && payload.iat || 0);
+  const expiresAt = Number(payload && payload.exp || 0);
+  if (!payload || payload.typ !== DIRAC_CENTRAL_HARDENING_V221
+      || !Number.isSafeInteger(issuedAt) || !Number.isSafeInteger(expiresAt)
+      || issuedAt > now + 60 * 1000 || expiresAt <= now
+      || expiresAt - issuedAt <= 0 || expiresAt - issuedAt > 24 * 60 * 60 * 1000 + 60 * 1000
+      || !/^[A-Za-z0-9_-]{16,160}$/.test(String(payload.jti || ''))
+      || (payload.sbv !== undefined && Number(payload.sbv) !== 2)) {
+    return { ok: false, reason: 'device_credential_expired' };
+  }
+  const device = diracCentralDeviceFingerprintV221(req);
+  if (!payload.device || !(typeof safeEqual === 'function' ? safeEqual(String(payload.device), device) : String(payload.device) === device)) {
+    return { ok: false, reason: 'device_credential_fingerprint_mismatch' };
+  }
+  return { ok: true, payload };
+}
+
+async function diracCentralStrictBootstrapDeviceSessionV224(req, res, ctx) {
+  if (!DIRAC_CENTRAL_DEVICE_BOOTSTRAP_ACTIONS_V224.has(String(ctx && ctx.action || ''))) {
+    return { ok: false, reason: 'device_credential_session_missing' };
+  }
+  const authentication = await diracCentralAuthenticateDeviceBootstrapV224(req);
+  if (!authentication.ok) return authentication;
+
+  const signedState = diracCentralDeviceSignedSessionStateV224(authentication.cookies, authentication.identity);
+  if (signedState.hasMismatch) return { ok: false, reason: 'device_bootstrap_signed_session_mismatch' };
+
+  const maxAge = typeof diracV110SessionMaxAgeSeconds === 'function'
+    ? diracV110SessionMaxAgeSeconds()
+    : 60 * 60 * 24 * 7;
+  const published = diracCentralPublishVerifiedAuthSessionV224(res, authentication, maxAge);
+  if (!published.ok) return published;
+
+  const created = diracCentralCreateDeviceSessionCookieV223(authentication.identity, maxAge);
+  if (!created) return { ok: false, reason: 'device_bootstrap_session_cookie_issue_failed' };
+  appendSetCookie(res, created.cookie);
+  if (!diracCentralSealVerifiedDeviceAuthV224(req, ctx, authentication, created.binding)) {
+    return { ok: false, reason: 'device_bootstrap_auth_cache_seal_failed' };
+  }
+  return {
+    ok: true,
+    binding: created.binding,
+    authentication,
+    source: authentication.source,
+    refreshed: authentication.refreshed === true,
+    signedSessionIssued: published.signedSessionIssued === true
+  };
+}
+
+async function diracCentralDeviceCredentialGuardV221(req, res, ctx) {
+  if (!DIRAC_CENTRAL_USER_DATA_ACTIONS_V146.has(ctx.action) && !/^domain_dashboard|^customer_security|^admin_security/.test(ctx.action)) return { ok: true };
+  const boundSessionCookie = diracCentralVerifyDeviceSessionCookieV223(req);
+  let session = boundSessionCookie && boundSessionCookie.binding ? String(boundSessionCookie.binding) : '';
+  let bootstrapped = null;
+  if (!session && DIRAC_CENTRAL_DEVICE_BOOTSTRAP_ACTIONS_V224.has(String(ctx && ctx.action || ''))) {
+    bootstrapped = await diracCentralStrictBootstrapDeviceSessionV224(req, res, ctx);
+    if (!bootstrapped || !bootstrapped.ok) {
+      return { ok: false, reason: bootstrapped && bootstrapped.reason || 'device_credential_session_missing' };
+    }
+    session = String(bootstrapped.binding || '');
+  }
+  if (!session) session = diracCentralDeviceStableSessionBindingV222(req);
   if (!session) return { ok: false, reason: 'device_credential_session_missing' };
+
   const cookies = typeof parseCookies === 'function' ? parseCookies(req) : {};
   const name = diracCentralDeviceCookieNameV221();
   const token = String(cookies && cookies[name] || '').trim();
@@ -28999,15 +29292,37 @@ function diracCentralDeviceCredentialGuardV221(req, res, ctx) {
       return { ok: false, reason: 'device_credential_issue_failed' };
     }
   }
+
   const verified = diracCentralVerifyDeviceTokenV221(req, token);
-  if (!verified.ok || !verified.upgrade) return verified;
-  try {
-    const upgraded = diracCentralDeviceTokenV221(req);
-    appendSetCookie(res, makeCookie(name, upgraded, { maxAge: 24 * 60 * 60, domain: '' }));
-    return { ok: true, upgraded: true };
-  } catch (_) {
-    return { ok: false, reason: 'device_credential_upgrade_failed' };
+  if (verified.ok) {
+    if (!verified.upgrade) return verified;
+    try {
+      const upgraded = diracCentralDeviceTokenV221(req, session);
+      appendSetCookie(res, makeCookie(name, upgraded, { maxAge: 24 * 60 * 60, domain: '' }));
+      return { ok: true, upgraded: true };
+    } catch (_) {
+      return { ok: false, reason: 'device_credential_upgrade_failed' };
+    }
   }
+
+  if (bootstrapped && verified.reason === 'device_credential_session_mismatch') {
+    const envelope = diracCentralVerifyDeviceEnvelopeV224(req, token);
+    if (!envelope.ok) return envelope;
+    try {
+      const rotated = diracCentralDeviceTokenV221(req, session);
+      appendSetCookie(res, makeCookie(name, rotated, { maxAge: 24 * 60 * 60, domain: '' }));
+      return {
+        ok: true,
+        rotated: true,
+        bootstrapped: true,
+        decision: 'verified_auth_bootstrap_device_rotation'
+      };
+    } catch (_) {
+      return { ok: false, reason: 'device_credential_rotation_failed' };
+    }
+  }
+
+  return verified;
 }
 
 try {
@@ -29046,6 +29361,19 @@ try {
     Object.defineProperty(clearSessionCookies, '__diracV223Wrapped', { value: true, enumerable: false });
   }
 } catch (errorV223) { diracCentralRecordSuppressedExceptionV221(errorV223); }
+
+
+try {
+  const __diracV224OriginalRequireDomainUser = typeof requireDomainUser === 'function' ? requireDomainUser : null;
+  if (__diracV224OriginalRequireDomainUser && !__diracV224OriginalRequireDomainUser.__diracV224Wrapped) {
+    requireDomainUser = async function requireDomainUserV224VerifiedBootstrapCache(req, res) {
+      const cached = diracCentralReadVerifiedDeviceAuthV224(req);
+      if (cached) return cached;
+      return __diracV224OriginalRequireDomainUser(req, res);
+    };
+    Object.defineProperty(requireDomainUser, '__diracV224Wrapped', { value: true, enumerable: false });
+  }
+} catch (errorV224) { diracCentralRecordSuppressedExceptionV221(errorV224); }
 
 function diracCentralS2SEnvelopeGuardV221(req, ctx) {
   if (!diracS2SIsInternalActionV206(ctx)) return { ok: true };
@@ -35279,6 +35607,7 @@ Object.defineProperty(module.exports, '__diracCentralPipelineHashV221', { value:
 Object.defineProperty(module.exports, '__diracCentralSelfTestV221', { value: DIRAC_CENTRAL_SELF_TEST_V221, enumerable: false });
 Object.defineProperty(module.exports, '__diracCentralPatchTargetCountV221', { value: DIRAC_CENTRAL_PATCH_TARGETS_V221.length, enumerable: false });
 Object.defineProperty(module.exports, '__diracCentralPatchTargetsV221', { value: DIRAC_CENTRAL_PATCH_TARGETS_V221, enumerable: false });
+Object.defineProperty(module.exports, '__diracCentralDeviceAuthBootstrapV224', { value: true, enumerable: false });
 
 if (!Array.isArray(SECURITY_PIPELINE)
     || SECURITY_PIPELINE.length !== Object.keys(DIRAC_V202_CHECKPOINT_BY_STAMP).length
