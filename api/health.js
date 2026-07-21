@@ -8826,8 +8826,13 @@ async function customerSecurityVerifyRecoveryCode(req, res, action) {
   if (!access) return;
 
   const body = await readBody(req);
-  const requestId = customerSecurityNormalizeLostPasskeyRequestId(body.request_id || body.requestId || '');
-  const code = customerSecurityNormalizeRecoveryCodeInput(body.code || body.recovery_code || body.recoveryCode || '');
+  const resolvedAliases = diracCentralResolveRecoveryVerifyAliasesV221(body);
+  if (!resolvedAliases.ok) {
+    await customerSecurityRegisterFailedVerification(req, action, resolvedAliases.reason, access.customerId);
+    return res.status(400).json({ ok: false, message: 'Payload recovery code tidak valid.' });
+  }
+  const requestId = customerSecurityNormalizeLostPasskeyRequestId(body[resolvedAliases.requestIdFields[0]]);
+  const code = customerSecurityNormalizeRecoveryCodeInput(body[resolvedAliases.recoveryCodeFields[0]]);
 
   if (!requestId) {
     await customerSecurityRegisterFailedVerification(req, action, 'invalid_recovery_request_id', access.customerId);
@@ -29857,30 +29862,65 @@ function diracCentralLightGuardV146(req, ctx) {
   return { ok: true };
 }
 
+function diracCentralResolveRecoveryVerifyAliasesV221(source) {
+  if (!source || typeof source !== 'object' || Array.isArray(source)) {
+    return { ok: false, reason: 'recovery_verify_body_invalid' };
+  }
+
+  const requestIdFields = ['request_id', 'requestId'].filter((fieldName) =>
+    Object.prototype.hasOwnProperty.call(source, fieldName)
+  );
+  if (!requestIdFields.length) return { ok: false, reason: 'recovery_request_id_field_missing' };
+
+  const requestIdValues = requestIdFields.map((fieldName) => source[fieldName]);
+  if (requestIdValues.some((value) => typeof value !== 'string' || !/^[A-Za-z0-9_-]{16,120}$/.test(value))) {
+    return { ok: false, reason: 'recovery_request_id_format_invalid' };
+  }
+  for (let index = 1; index < requestIdValues.length; index += 1) {
+    if (requestIdValues[index] !== requestIdValues[0]) {
+      return { ok: false, reason: 'recovery_request_id_field_conflict' };
+    }
+  }
+  const requestIdSha256 = crypto.createHash('sha256').update(requestIdValues[0], 'utf8').digest('hex');
+
+  const recoveryCodeFields = ['recovery_code', 'recoveryCode', 'code'].filter((fieldName) =>
+    Object.prototype.hasOwnProperty.call(source, fieldName)
+  );
+  if (!recoveryCodeFields.length) return { ok: false, reason: 'recovery_code_field_missing' };
+
+  const recoveryCodeValues = recoveryCodeFields.map((fieldName) => source[fieldName]);
+  if (recoveryCodeValues.some((value) =>
+    typeof value !== 'string'
+    || value.length !== LOST_PASSKEY_RECOVERY_CODE_LENGTH_V157
+    || !/^[A-Za-z0-9_-]+$/.test(value)
+  )) {
+    return { ok: false, reason: 'recovery_code_format_invalid' };
+  }
+  for (let index = 1; index < recoveryCodeValues.length; index += 1) {
+    if (recoveryCodeValues[index] !== recoveryCodeValues[0]) {
+      return { ok: false, reason: 'recovery_code_field_conflict' };
+    }
+  }
+  const recoveryCodeSha256 = crypto.createHash('sha256').update(recoveryCodeValues[0], 'utf8').digest('hex');
+
+  return {
+    ok: true,
+    requestIdFields: Object.freeze(requestIdFields.slice()),
+    recoveryCodeFields: Object.freeze(recoveryCodeFields.slice()),
+    requestIdLength: requestIdValues[0].length,
+    recoveryCodeLength: recoveryCodeValues[0].length,
+    requestIdSha256,
+    recoveryCodeSha256
+  };
+}
+
 function diracCentralContractGuardV146(req, ctx) {
   const contract = diracCentralContractForActionV146(ctx.action);
   if (!contract || !contract.methods || !contract.methods.length) return { ok: false, reason: 'action_contract_missing' };
   const source = ctx.method === 'GET' || ctx.method === 'HEAD' ? (req && req.query || {}) : (ctx.body || {});
   if (ctx.action === 'customer_security_recovery_code_verify' && ctx.method === 'POST') {
-    const recoveryRequestIdFields = ['request_id', 'requestId'].filter((fieldName) =>
-      Object.prototype.hasOwnProperty.call(source, fieldName)
-    );
-    if (recoveryRequestIdFields.length !== 1) return { ok: false, reason: 'recovery_request_id_field_ambiguous_or_missing' };
-    const rawRequestId = source[recoveryRequestIdFields[0]];
-    if (typeof rawRequestId !== 'string' || !/^[A-Za-z0-9_-]{16,120}$/.test(rawRequestId)) {
-      return { ok: false, reason: 'recovery_request_id_format_invalid' };
-    }
-    const recoveryCodeFields = ['recovery_code', 'recoveryCode', 'code'].filter((fieldName) =>
-      Object.prototype.hasOwnProperty.call(source, fieldName)
-    );
-    if (recoveryCodeFields.length !== 1) return { ok: false, reason: 'recovery_code_field_ambiguous_or_missing' };
-    const field = recoveryCodeFields[0];
-    const rawRecoveryCode = source[field];
-    if (typeof rawRecoveryCode !== 'string'
-      || rawRecoveryCode.length !== LOST_PASSKEY_RECOVERY_CODE_LENGTH_V157
-      || !/^[A-Za-z0-9_-]+$/.test(rawRecoveryCode)) {
-      return { ok: false, reason: 'recovery_code_format_invalid' };
-    }
+    const resolved = diracCentralResolveRecoveryVerifyAliasesV221(source);
+    if (!resolved.ok) return resolved;
     try {
       if (Object.prototype.hasOwnProperty.call(ctx, '__diracRecoveryCodeContractProofV219')) {
         return { ok: false, reason: 'recovery_code_contract_proof_duplicate' };
@@ -29889,9 +29929,12 @@ function diracCentralContractGuardV146(req, ctx) {
         value: Object.freeze({
           action: ctx.action,
           method: ctx.method,
-          field,
-          length: rawRecoveryCode.length,
-          sha256: crypto.createHash('sha256').update(rawRecoveryCode, 'utf8').digest('hex')
+          requestIdFields: resolved.requestIdFields,
+          recoveryCodeFields: resolved.recoveryCodeFields,
+          requestIdLength: resolved.requestIdLength,
+          recoveryCodeLength: resolved.recoveryCodeLength,
+          requestIdSha256: resolved.requestIdSha256,
+          recoveryCodeSha256: resolved.recoveryCodeSha256
         }),
         enumerable: false,
         writable: false,
@@ -29943,6 +29986,30 @@ function diracCentralSecurityReportGuardV146(req, ctx) {
 function diracCentralSampleCollectorV146(req, ctx) {
   const out = [];
   let recoveryCodeProofFailure = '';
+  let recoveryVerifyProofValid = true;
+  if (ctx.action === 'customer_security_recovery_code_verify' && ctx.method === 'POST') {
+    const proof = ctx.__diracRecoveryCodeContractProofV219;
+    const resolved = diracCentralResolveRecoveryVerifyAliasesV221(ctx.body || {});
+    recoveryVerifyProofValid = Boolean(
+      ctx.guardPassport
+      && ctx.guardPassport.contract_checked === true
+      && proof
+      && resolved.ok
+      && proof.action === ctx.action
+      && proof.method === ctx.method
+      && proof.requestIdLength === resolved.requestIdLength
+      && proof.recoveryCodeLength === resolved.recoveryCodeLength
+      && Array.isArray(proof.requestIdFields)
+      && Array.isArray(proof.recoveryCodeFields)
+      && proof.requestIdFields.length === resolved.requestIdFields.length
+      && proof.recoveryCodeFields.length === resolved.recoveryCodeFields.length
+      && proof.requestIdFields.every((field, index) => field === resolved.requestIdFields[index])
+      && proof.recoveryCodeFields.every((field, index) => field === resolved.recoveryCodeFields[index])
+      && safeEqual(proof.requestIdSha256, resolved.requestIdSha256)
+      && safeEqual(proof.recoveryCodeSha256, resolved.recoveryCodeSha256)
+    );
+    if (!recoveryVerifyProofValid) recoveryCodeProofFailure = 'recovery_code_contract_proof_invalid';
+  }
   const push = (key, value) => {
     if (out.join('\n').length > 10 * 1024) return;
     const cleanKey = String(key || '').toLowerCase();
@@ -29950,31 +30017,7 @@ function diracCentralSampleCollectorV146(req, ctx) {
       && ctx.method === 'POST'
       && (cleanKey === 'body.recovery_code' || cleanKey === 'body.recoverycode' || cleanKey === 'body.code');
     if (recoverySecretField) {
-      const field = cleanKey === 'body.recovery_code'
-        ? 'recovery_code'
-        : cleanKey === 'body.recoverycode'
-          ? 'recoveryCode'
-          : 'code';
-      const rawRecoveryCode = value;
-      const proof = ctx.__diracRecoveryCodeContractProofV219;
-      const currentSha256 = typeof rawRecoveryCode === 'string'
-        ? crypto.createHash('sha256').update(rawRecoveryCode, 'utf8').digest('hex')
-        : '';
-      const proofValid = Boolean(
-        ctx.guardPassport
-        && ctx.guardPassport.contract_checked === true
-        && proof
-        && proof.action === ctx.action
-        && proof.method === ctx.method
-        && proof.field === field
-        && proof.length === LOST_PASSKEY_RECOVERY_CODE_LENGTH_V157
-        && typeof rawRecoveryCode === 'string'
-        && rawRecoveryCode.length === LOST_PASSKEY_RECOVERY_CODE_LENGTH_V157
-        && /^[A-Za-z0-9_-]+$/.test(rawRecoveryCode)
-        && safeEqual(proof.sha256, currentSha256)
-      );
-      if (!proofValid) {
-        recoveryCodeProofFailure = 'recovery_code_contract_proof_invalid';
+      if (!recoveryVerifyProofValid) {
         out.push(cleanKey + '=[recovery-code-proof-invalid]');
         return;
       }
