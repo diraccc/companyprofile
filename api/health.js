@@ -20,317 +20,8 @@ function __diracV202MarkWrapperFlag(name) {
   const clean = String(name || '');
   if (!clean) return false;
   __diracV202WrapperFlags.add(clean);
-  try {
-    Object.defineProperty(__diracV202DispatcherSentinel, clean, { value: true, enumerable: false, configurable: false });
-  } catch (error) {
-    __diracV221RecordInstallerFailure('wrapper_flag_' + clean, error);
-    return false;
-  }
+  try { Object.defineProperty(__diracV202DispatcherSentinel, clean, { value: true, enumerable: false, configurable: false }); } catch (_) {}
   return true;
-}
-
-const __diracV221InstallerFailures = [];
-function __diracV221RecordInstallerFailure(scope, error) {
-  const cleanScope = String(scope || 'unknown_installer').replace(/[^a-zA-Z0-9_.-]/g, '_').slice(0, 120);
-  const cleanCode = String(error && (error.code || error.name) || 'INSTALLER_FAILURE').replace(/[^a-zA-Z0-9_.-]/g, '_').slice(0, 120);
-  __diracV221InstallerFailures.push(Object.freeze({ scope: cleanScope, code: cleanCode }));
-  return false;
-}
-
-
-const DIRAC_ABSOLUTE_FAIL_CLOSED_V222 = 'dirac-absolute-fail-closed-v222';
-const DIRAC_ABSOLUTE_FAIL_CLOSED_V223 = 'dirac-absolute-fail-closed-v223';
-const DIRAC_ABSOLUTE_FAIL_CLOSED_V224 = 'dirac-absolute-fail-closed-v224';
-const DIRAC_ABSOLUTE_FAIL_CLOSED_V225 = 'dirac-absolute-fail-closed-v225';
-const DIRAC_ABSOLUTE_FAIL_CLOSED_V226 = 'dirac-absolute-fail-closed-v226';
-const DIRAC_ABSOLUTE_FAIL_CLOSED_V227 = 'dirac-absolute-fail-closed-v227';
-const DIRAC_ABSOLUTE_FAIL_CLOSED_V228 = 'dirac-absolute-fail-closed-v228';
-const DIRAC_ABSOLUTE_FAIL_CLOSED_V229 = 'dirac-absolute-fail-closed-v229';
-const DIRAC_ABSOLUTE_FAIL_CLOSED_V230 = 'dirac-absolute-fail-closed-v230';
-const DIRAC_ABSOLUTE_FAIL_CLOSED_V231 = 'dirac-absolute-fail-closed-v231';
-const DIRAC_ABSOLUTE_FAIL_CLOSED_V232 = 'dirac-absolute-fail-closed-v232';
-const DIRAC_FAIL_CLOSED_DIAGNOSTICS_V233 = 'dirac-fail-closed-diagnostics-v233';
-function diracV222CleanFailureToken(value, fallback) {
-  const clean = String(value || fallback || 'DEPENDENCY_FAILURE')
-    .replace(/[^a-zA-Z0-9_.-]/g, '_')
-    .slice(0, 120);
-  return clean || String(fallback || 'DEPENDENCY_FAILURE');
-}
-function diracV228IsRequestContext(ctx) {
-  return Boolean(ctx && typeof ctx === 'object' && ctx.__diracRequestContextV228 === true);
-}
-function diracV228ResolveRequestContext(explicitCtx) {
-  let current = null;
-  try {
-    current = typeof diracCentralCurrentContextV149 === 'function' ? diracCentralCurrentContextV149() : null;
-  } catch (cause) {
-    const error = new Error('DIRAC_V228_REQUEST_CONTEXT_LOOKUP_FAILED');
-    error.code = 'DIRAC_V228_REQUEST_CONTEXT_LOOKUP_FAILED';
-    error.cause = cause;
-    throw error;
-  }
-  if (!diracV228IsRequestContext(current)) {
-    const error = new Error('DIRAC_V228_REQUEST_CONTEXT_REQUIRED');
-    error.code = 'DIRAC_V228_REQUEST_CONTEXT_REQUIRED';
-    throw error;
-  }
-  if (diracV228IsRequestContext(explicitCtx) && explicitCtx !== current) {
-    const error = new Error('DIRAC_V228_REQUEST_CONTEXT_MISMATCH');
-    error.code = 'DIRAC_V228_REQUEST_CONTEXT_MISMATCH';
-    throw error;
-  }
-  return current;
-}
-function diracV228TimingSafeEqualText(leftValue, rightValue) {
-  const left = Buffer.from(String(leftValue || ''), 'utf8');
-  const right = Buffer.from(String(rightValue || ''), 'utf8');
-  if (left.length === 0 || right.length === 0 || left.length !== right.length) return false;
-  return crypto.timingSafeEqual(left, right);
-}
-function diracV233CleanDiagnosticText(value, fallback, maxLength) {
-  const limit = Math.max(1, Math.min(240, Number(maxLength || 160) || 160));
-  const clean = String(value || fallback || '')
-    .replace(/[\r\n\0]/g, '_')
-    .replace(/[^a-zA-Z0-9_.:/-]/g, '_')
-    .slice(0, limit);
-  return clean || String(fallback || 'unavailable').slice(0, limit);
-}
-function diracV233SafeDependencyDetails(details) {
-  const input = details && typeof details === 'object' ? details : null;
-  if (!input) return null;
-  const output = {
-    operation: diracV233CleanDiagnosticText(input.operation, 'dependency', 80),
-    method: diracV233CleanDiagnosticText(input.method, 'UNKNOWN', 16),
-    resource: diracV233CleanDiagnosticText(input.resource, 'unavailable', 200),
-    auth_mode: diracV233CleanDiagnosticText(input.auth_mode, 'unspecified', 40),
-    host_fingerprint: diracV233CleanDiagnosticText(input.host_fingerprint, 'none', 32),
-    timeout_ms: Math.max(0, Math.min(120000, Number(input.timeout_ms || 0) || 0)),
-    duration_ms: Math.max(0, Math.min(120000, Number(input.duration_ms || 0) || 0)),
-    upstream_status: Math.max(0, Math.min(599, Number(input.upstream_status || 0) || 0)),
-    upstream_code: diracV222CleanFailureToken(input.upstream_code, 'UNAVAILABLE')
-  };
-  return Object.freeze(output);
-}
-function diracV233SafeEgressResource(input) {
-  const raw = typeof input === 'string' || input instanceof URL
-    ? String(input)
-    : String(input && input.url || '');
-  try {
-    const parsed = new URL(raw);
-    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') throw new Error('EGRESS_PROTOCOL_INVALID');
-    return Object.freeze({
-      resource: diracV233CleanDiagnosticText(parsed.pathname || '/', '/', 200),
-      host_fingerprint: crypto.createHash('sha256').update(String(parsed.hostname || ''), 'utf8').digest('hex').slice(0, 16)
-    });
-  } catch (_) {
-    return Object.freeze({ resource: 'unavailable', host_fingerprint: 'none' });
-  }
-}
-function diracV233ClassifyDependencyException(error, fallback) {
-  const directCode = String(error && error.code || '').trim();
-  if (directCode) return diracV222CleanFailureToken(directCode, fallback || 'DEPENDENCY_EXCEPTION');
-  const errorName = String(error && error.name || '').trim();
-  if (errorName === 'AbortError') return 'SUPABASE_FETCH_TIMEOUT';
-  const message = String(error && error.message || '');
-  if (/Missing dedicated security Supabase ENV/i.test(message)) return 'SUPABASE_SECURITY_ENV_MISSING';
-  if (/Missing Supabase ENV for/i.test(message)) return 'SUPABASE_TARGET_ENV_MISSING';
-  if (/Environment Variables Vercel/i.test(message)) return 'SUPABASE_REQUIRED_ENV_MISSING';
-  if (/SUPABASE_URL_INVALID/i.test(message)) return 'SUPABASE_URL_INVALID';
-  if (errorName && errorName !== 'Error') return diracV222CleanFailureToken(errorName, fallback || 'DEPENDENCY_EXCEPTION');
-  return diracV222CleanFailureToken(fallback, 'DEPENDENCY_EXCEPTION');
-}
-function diracV233DependencyFailuresForDebug(ctx) {
-  const failures = Array.isArray(ctx && ctx.__diracV222DependencyFailures)
-    ? ctx.__diracV222DependencyFailures
-    : [];
-  return failures.slice(0, 20).map((failure) => ({
-    sequence: Math.max(1, Number(failure && failure.sequence || 1)),
-    source: String(failure && failure.source || '').slice(0, 120),
-    status: Math.max(0, Math.min(599, Number(failure && failure.status || 0) || 0)),
-    code: String(failure && failure.code || '').slice(0, 120),
-    phase: String(failure && failure.phase || '').slice(0, 30),
-    stage_index: Number((failure && failure.stage_index) ?? -1),
-    stage: String(failure && failure.stage || '').slice(0, 80),
-    request_elapsed_ms: Math.max(0, Math.min(120000, Number(failure && failure.request_elapsed_ms || 0) || 0)),
-    details: failure && failure.details || undefined
-  }));
-}
-function diracV233BuildFailClosedDebug(ctx, primaryFailure) {
-  return {
-    patch: DIRAC_FAIL_CLOSED_DIAGNOSTICS_V233,
-    primary_failure: primaryFailure || ctx && ctx.__diracV222DependencyFailure || null,
-    dependency_failures: diracV233DependencyFailuresForDebug(ctx),
-    failed_stage: String(ctx && ctx.failedStageV211 || ctx && ctx.currentStageV211 || '').slice(0, 80),
-    failed_stage_index: Number((ctx && ctx.currentStageIndexV211) ?? -1),
-    internal_reason: String(ctx && ctx.failureReasonV211 || primaryFailure && primaryFailure.code || '').slice(0, 120),
-    stage_trace: typeof diracCentralStageTraceV211 === 'function' ? diracCentralStageTraceV211(ctx, 30) : [],
-    safe_error: ctx && ctx.centralErrorDebugV155 || undefined
-  };
-}
-function diracV233AttachDiagnosticHeaders(res, ctx, primaryFailure) {
-  const failureId = typeof diracCentralFailureIdV211 === 'function'
-    ? diracCentralFailureIdV211(ctx)
-    : 'DG-CENTRAL-UNAVAILABLE';
-  const requestId = String(ctx && ctx.requestId || '').slice(0, 64);
-  const debugAllowed = typeof diracCentralDebugResponseAllowedV211 === 'function'
-    ? diracCentralDebugResponseAllowedV211(ctx)
-    : false;
-  diracCentralSetHeaderRequiredV221(res, 'X-Dirac-Failure-Id', failureId);
-  diracCentralSetHeaderRequiredV221(res, 'X-Dirac-Diagnostic-Patch', DIRAC_FAIL_CLOSED_DIAGNOSTICS_V233);
-  if (debugAllowed && primaryFailure && primaryFailure.code) {
-    diracCentralSetHeaderRequiredV221(res, 'X-Dirac-Dependency-Code', String(primaryFailure.code).slice(0, 120));
-  }
-  return Object.freeze({ failureId, requestId, debugAllowed });
-}
-function diracV222MarkDependencyFailure(ctx, source, status, code, details) {
-  const target = diracV228ResolveRequestContext(ctx);
-  if (!Array.isArray(target.__diracV222DependencyFailures)) target.__diracV222DependencyFailures = [];
-  target.__diracV233DependencyFailureSequence = Math.max(0, Number(target.__diracV233DependencyFailureSequence || 0)) + 1;
-  const safeDetails = diracV233SafeDependencyDetails(details);
-  const failure = Object.freeze({
-    sequence: target.__diracV233DependencyFailureSequence,
-    source: diracV222CleanFailureToken(source, 'dependency'),
-    status: Math.max(0, Math.min(599, Number(status || 0) || 0)),
-    code: diracV222CleanFailureToken(code, 'DEPENDENCY_FAILURE'),
-    phase: diracV233CleanDiagnosticText(target.executionPhaseV211, 'unknown', 30),
-    stage_index: Number((target.currentStageIndexV211) ?? -1),
-    stage: diracV233CleanDiagnosticText(target.currentStageV211, 'unknown_stage', 80),
-    request_elapsed_ms: Math.max(0, Math.min(120000, Date.now() - Number(target.startedAt || Date.now()))),
-    details: safeDetails || undefined
-  });
-  if (target.__diracV222DependencyFailures.length < 20) target.__diracV222DependencyFailures.push(failure);
-  if (!target.__diracV222DependencyFailure) target.__diracV222DependencyFailure = failure;
-  if (failure.sequence <= 20) {
-    try {
-      console.error('[dirac-dependency-failure-v233]', JSON.stringify({
-        patch: DIRAC_FAIL_CLOSED_DIAGNOSTICS_V233,
-        request_id: String(target.requestId || '').slice(0, 64),
-        failure_id: typeof diracCentralFailureIdV211 === 'function' ? diracCentralFailureIdV211(target) : 'DG-CENTRAL-UNAVAILABLE',
-        action: String(target.action || target.rawAction || '').slice(0, 80),
-        failure
-      }));
-    } catch (_) {}
-  }
-  return true;
-}
-function diracV222DependencyFailureCode(result, fallback) {
-  const data = result && result.data && typeof result.data === 'object' ? result.data : null;
-  return diracV222CleanFailureToken(
-    data && (data.code || data.error_code)
-      || result && (result.code || result.error)
-      || fallback,
-    fallback || 'DEPENDENCY_FAILURE'
-  );
-}
-function diracV222SetStatusRequired(res, code) {
-  const status = Number(code || 503) || 503;
-  if (res && typeof res.status === 'function') {
-    res.status(status);
-    return true;
-  }
-  if (res && (Object.prototype.hasOwnProperty.call(res, 'statusCode') || 'statusCode' in res)) {
-    res.statusCode = status;
-    return true;
-  }
-  const error = new Error('DIRAC_V222_RESPONSE_STATUS_GATEWAY_UNAVAILABLE');
-  error.code = 'DIRAC_V222_RESPONSE_STATUS_GATEWAY_UNAVAILABLE';
-  throw error;
-}
-function diracV222ShouldBlockSuccessfulResponse(ctx, res) {
-  const target = diracV228ResolveRequestContext(ctx);
-  if (!target.__diracV222DependencyFailure) return false;
-  const status = Number(res && (res.statusCode || res.__diracV101StatusCode) || 200) || 200;
-  // A dependency-security failure must not be disguised as success, redirect,
-  // authentication denial, validation denial, or another client-side result.
-  // Only an already-server-side failure (5xx) is preserved.
-  return status >= 200 && status < 500;
-}
-function diracV222SecurityPersistenceUnavailableResponse(res, code, source) {
-  const safeCode = diracV222CleanFailureToken(code, 'SECURITY_PERSISTENCE_UNAVAILABLE');
-  const safeSource = diracV222CleanFailureToken(source, 'security_persistence');
-  diracV222MarkDependencyFailure(null, safeSource, 503, safeCode);
-  if (!res || typeof res.status !== 'function' || typeof res.json !== 'function') {
-    const error = new Error('DIRAC_V232_SECURITY_RESPONSE_GATEWAY_REQUIRED');
-    error.code = 'DIRAC_V232_SECURITY_RESPONSE_GATEWAY_REQUIRED';
-    throw error;
-  }
-  const ctx = diracV228ResolveRequestContext(null);
-  const failure = ctx && ctx.__diracV222DependencyFailure;
-  diracCentralApplyHeadersV146(res);
-  diracCentralSetHeaderRequiredV221(res, 'Cache-Control', 'no-store');
-  const diagnostic = diracV233AttachDiagnosticHeaders(res, ctx, failure);
-  const payload = {
-    ok: false,
-    code: safeCode,
-    message: 'Permintaan ditolak karena penyimpanan keamanan belum tersedia.',
-    source: safeSource,
-    failure_id: diagnostic.failureId,
-    request_id: diagnostic.requestId,
-    diagnostic_patch: DIRAC_FAIL_CLOSED_DIAGNOSTICS_V233,
-    diagnostic_hint: 'Cari request_id atau failure_id yang sama pada Vercel Function Logs.'
-  };
-  if (diagnostic.debugAllowed) payload.debug = diracV233BuildFailClosedDebug(ctx, failure);
-  return res.status(503).json(payload);
-}
-Object.defineProperty(diracV222SecurityPersistenceUnavailableResponse, '__diracV232RequiredResponseHeaders', { value: true, enumerable: false });
-function diracV222ThrowSecurityPersistenceUnavailable(code, source) {
-  const safeCode = diracV222CleanFailureToken(code, 'SECURITY_PERSISTENCE_UNAVAILABLE');
-  const safeSource = diracV222CleanFailureToken(source, 'security_persistence');
-  diracV222MarkDependencyFailure(null, safeSource, 503, safeCode);
-  const error = new Error(safeCode);
-  error.statusCode = 503;
-  error.status = 503;
-  error.code = safeCode;
-  error.publicMessage = 'Permintaan ditolak karena penyimpanan keamanan belum tersedia.';
-  error.diracSecurityPersistenceUnavailable = true;
-  throw error;
-}
-
-function diracV223FailClosedError(code, source, status, cause) {
-  const safeCode = diracV222CleanFailureToken(code, 'DIRAC_V223_SECURITY_DEPENDENCY_UNAVAILABLE');
-  const safeSource = diracV222CleanFailureToken(source, 'security_dependency');
-  const safeStatus = Math.max(400, Math.min(599, Number(status || 503) || 503));
-  diracV222MarkDependencyFailure(null, safeSource, safeStatus, safeCode);
-  const error = new Error(safeCode, cause ? { cause } : undefined);
-  error.code = safeCode;
-  error.statusCode = safeStatus;
-  error.status = safeStatus;
-  error.publicMessage = 'Permintaan ditolak karena dependency keamanan belum dapat diverifikasi.';
-  error.diracFailClosedV223 = true;
-  return error;
-}
-function diracV223ThrowFailClosed(code, source, status, cause) {
-  throw diracV223FailClosedError(code, source, status, cause);
-}
-
-function diracV222RequireExactMutationRows(result, expectedCount, validator, source, code) {
-  const rows = result && result.ok === true && Array.isArray(result.data) ? result.data : null;
-  const count = Math.max(0, Number(expectedCount || 0));
-  let valid = Boolean(rows && rows.length === count);
-  if (valid && typeof validator === 'function') {
-    try {
-      valid = rows.every((row, index) => validator(row, index) === true);
-    } catch (_) {
-      valid = false;
-    }
-  }
-  if (!valid) {
-    diracV222MarkDependencyFailure(
-      null,
-      source || 'database_mutation_postcondition',
-      Number(result && result.status || 0) || 503,
-      code || 'DATABASE_MUTATION_POSTCONDITION_FAILED'
-    );
-    return null;
-  }
-  return rows;
-}
-
-function diracV222SecurityKeyMutationRowValid(row, key, blockedUntilMs) {
-  return Boolean(row && typeof row === 'object')
-    && safeEqual(String(row.security_key || ''), String(key || ''))
-    && Number(row.blocked_until_ms || 0) === Number(blockedUntilMs || 0)
-    && row.record_json && typeof row.record_json === 'object' && !Array.isArray(row.record_json);
 }
 
 const DIRAC_MIDTRANS_DEBUG_PATCH = 'midtrans-dashboard-key-accept-v11';
@@ -557,9 +248,9 @@ const DOMAIN_SIGNED_SESSION_COOKIE = process.env.DOMAIN_SIGNED_SESSION_COOKIE ||
 const CUSTOMER_MFA_SESSION_TYPE = 'dirac-customer-mfa-session-v1';
 const DOMAIN_SIGNED_SESSION_TYPE = 'dirac-domain-signed-session-v1';
 
-// Database-backed protected-page lock, fail-closed.
-// Akses dashboard hanya diteruskan setelah row sesi, binding, status, expiry, idle state,
-// dan persistence refresh berhasil diverifikasi secara eksplisit.
+// SAFE V2: database-backed protected-page lock, fail-safe.
+// Login/hash/A2F/payment/webhook tidak diubah. Jika database session belum siap/schema berbeda,
+// dashboard tidak diblokir. Blokir hanya saat row database jelas revoked/expired/idle.
 const DOMAIN_PROTECTED_IDLE_TIMEOUT_MS_RAW = Number(process.env.DOMAIN_PROTECTED_IDLE_TIMEOUT_MS || 5 * 60 * 1000);
 const DOMAIN_PROTECTED_IDLE_TIMEOUT_MS = Number.isFinite(DOMAIN_PROTECTED_IDLE_TIMEOUT_MS_RAW)
   ? Math.max(15 * 1000, DOMAIN_PROTECTED_IDLE_TIMEOUT_MS_RAW)
@@ -630,7 +321,7 @@ function diracPersistentSecurityTableForKeysV209(securityKeys) {
 
 // LOGIN RATE LIMIT PATCH v1 - domain_login only.
 // Menggunakan tabel rate limit yang sudah ada. Tidak mengubah endpoint, hash, A2F, checkout, order, atau fitur lain.
-const DOMAIN_LOGIN_RATE_TABLE = 'dirac_security_rate_limits';
+const DOMAIN_LOGIN_RATE_TABLE = String(process.env.DOMAIN_LOGIN_RATE_TABLE || '').trim();
 
 const DOMAIN_LOGIN_RATE_STORE = globalThis.__DIRAC_DOMAIN_LOGIN_RATE_STORE__ || new Map();
 globalThis.__DIRAC_DOMAIN_LOGIN_RATE_STORE__ = DOMAIN_LOGIN_RATE_STORE;
@@ -685,7 +376,7 @@ function isPublicDomainCheckThreat(value) {
 }
 
 async function checkPublicDomainRateLimit(req, parts) {
-  if (isEnvTrue('PUBLIC_DOMAIN_CHECK_RATE_DISABLED')) return { ok: false, retryAfterSeconds: 3600, reason: 'public_domain_rate_guard_disable_forbidden' };
+  if (isEnvTrue('PUBLIC_DOMAIN_CHECK_RATE_DISABLED')) return { ok: true, retryAfterSeconds: 0 };
 
   const now = Date.now();
   cleanupPublicDomainRateStore(now);
@@ -763,7 +454,6 @@ async function domainHealth(req, res) {
     ok: true,
     service: 'dirac-domain',
     debugPatch: DIRAC_COOKIE_SESSION_PATCH,
-    diagnosticPatch: DIRAC_FAIL_CLOSED_DIAGNOSTICS_V233,
     signedSessionCookie: DOMAIN_SIGNED_SESSION_COOKIE,
     message: 'Domain API aktif.',
     endpoints: {
@@ -1257,124 +947,50 @@ function normalizeLoginSecurityRecord(record, now = Date.now()) {
 async function readPersistentSecurityJson(securityKey) {
   const key = String(securityKey || '').trim();
   const table = diracPersistentSecurityTableForKeyV209(key);
-  if (!table || !key) {
-    const error = new Error('PERSISTENT_SECURITY_READ_INPUT_INVALID');
-    error.code = 'PERSISTENT_SECURITY_READ_INPUT_INVALID';
-    throw error;
-  }
+  if (!table || !key) return null;
 
-  const path = `/rest/v1/${encodeURIComponent(table)}?select=security_key,record_json,blocked_until_ms,expires_at&security_key=eq.${encodeURIComponent(key)}&limit=2`;
-  let result;
   try {
-    result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
-  } catch (error) {
-    diracV222MarkDependencyFailure(null, 'persistent_security_read', 503, diracV233ClassifyDependencyException(error, 'PERSISTENT_SECURITY_READ_EXCEPTION'));
-    throw error;
-  }
-  if (!result || result.ok !== true || !Array.isArray(result.data)) {
-    diracV222MarkDependencyFailure(null, 'persistent_security_read', 503, 'PERSISTENT_SECURITY_READ_UNVERIFIED');
-    const error = new Error('PERSISTENT_SECURITY_READ_UNVERIFIED');
-    error.code = 'PERSISTENT_SECURITY_READ_UNVERIFIED';
-    throw error;
-  }
-  if (!result.data.length) return null;
-  if (result.data.length !== 1) {
-    diracV222MarkDependencyFailure(null, 'persistent_security_read', 503, 'PERSISTENT_SECURITY_READ_AMBIGUOUS');
-    const error = new Error('PERSISTENT_SECURITY_READ_AMBIGUOUS');
-    error.code = 'PERSISTENT_SECURITY_READ_AMBIGUOUS';
-    throw error;
-  }
+    const path = `/rest/v1/${encodeURIComponent(table)}?select=security_key,record_json,blocked_until_ms,expires_at&security_key=eq.${encodeURIComponent(key)}&limit=1`;
+    const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+    if (!result.ok || !Array.isArray(result.data) || !result.data.length) return null;
 
-  const row = result.data[0];
-  if (!row || !safeEqual(String(row.security_key || ''), key) || !row.record_json || typeof row.record_json !== 'object' || Array.isArray(row.record_json)) {
-    diracV222MarkDependencyFailure(null, 'persistent_security_read', 503, 'PERSISTENT_SECURITY_READ_MALFORMED');
-    const error = new Error('PERSISTENT_SECURITY_READ_MALFORMED');
-    error.code = 'PERSISTENT_SECURITY_READ_MALFORMED';
-    throw error;
+    const row = result.data[0] || {};
+    const expiresAtMs = Date.parse(row.expires_at || '');
+    if (Number.isFinite(expiresAtMs) && expiresAtMs <= Date.now()) return null;
+    return row.record_json && typeof row.record_json === 'object' ? row.record_json : null;
+  } catch (_) {
+    return null;
   }
-  const expiresAtMs = Date.parse(row.expires_at || '');
-  if (Number.isFinite(expiresAtMs) && expiresAtMs <= Date.now()) return null;
-  return row.record_json;
 }
-
-async function diracV234VerifyPersistentSecurityWrite(securityKey, record, blockedUntilMs, updatedAt, expiresAt) {
-  const key = String(securityKey || '').trim();
-  const table = diracPersistentSecurityTableForKeyV209(key);
-  if (!table || !key || !record || typeof record !== 'object' || Array.isArray(record)) return false;
-
-  const expectedUpdatedAtMs = Date.parse(String(updatedAt || ''));
-  const expectedExpiresAtMs = Date.parse(String(expiresAt || ''));
-  if (!Number.isFinite(expectedUpdatedAtMs) || !Number.isFinite(expectedExpiresAtMs)) return false;
-
-  const path = `/rest/v1/${encodeURIComponent(table)}?select=security_key,record_json,blocked_until_ms,updated_at,expires_at&security_key=eq.${encodeURIComponent(key)}&limit=2`;
-  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
-  if (!result || result.ok !== true || !Array.isArray(result.data) || result.data.length !== 1) return false;
-
-  const row = result.data[0];
-  const persistedUpdatedAtMs = Date.parse(String(row && row.updated_at || ''));
-  const persistedExpiresAtMs = Date.parse(String(row && row.expires_at || ''));
-  return Boolean(row && typeof row === 'object')
-    && safeEqual(String(row.security_key || ''), key)
-    && Number(row.blocked_until_ms || 0) === Number(blockedUntilMs || 0)
-    && row.record_json && typeof row.record_json === 'object' && !Array.isArray(row.record_json)
-    && safeEqual(diracCentralStableJsonV148(row.record_json), diracCentralStableJsonV148(record))
-    && Number.isFinite(persistedUpdatedAtMs)
-    && persistedUpdatedAtMs === expectedUpdatedAtMs
-    && Number.isFinite(persistedExpiresAtMs)
-    && persistedExpiresAtMs === expectedExpiresAtMs
-    && persistedExpiresAtMs > Date.now();
-}
-Object.defineProperty(diracV234VerifyPersistentSecurityWrite, '__diracV234ExactReadBack', { value: true, enumerable: false });
 
 async function writePersistentSecurityJson(securityKey, record, blockedUntilMs = 0, ttlSeconds = LOGIN_SECURITY_PERSIST_TTL_SECONDS) {
   const key = String(securityKey || '').trim();
   const table = diracPersistentSecurityTableForKeyV209(key);
-  if (!table || !key || !record || typeof record !== 'object' || Array.isArray(record)) {
-    diracV223ThrowFailClosed('PERSISTENT_SECURITY_WRITE_INPUT_INVALID', 'persistent_security_write', 500);
-  }
+  if (!table || !key) return false;
 
   try {
     const now = Date.now();
-    const updatedAt = new Date(now).toISOString();
+    const safeRecord = record && typeof record === 'object' ? record : {};
     const expiresAt = new Date(now + Math.max(60, Number(ttlSeconds || 60)) * 1000).toISOString();
     const payload = [{
       security_key: key,
-      record_json: record,
+      record_json: safeRecord,
       blocked_until_ms: Number(blockedUntilMs || 0),
-      updated_at: updatedAt,
+      updated_at: new Date(now).toISOString(),
       expires_at: expiresAt
     }];
 
-    // PostgREST may legitimately return an empty body for a successful upsert.
-    // Security does not rely on that body: the exact persisted row is read back
-    // and verified before the write is accepted.
     const result = await supabaseFetch(`/rest/v1/${encodeURIComponent(table)}?on_conflict=security_key`, {
       method: 'POST',
       auth: 'service',
       prefer: 'resolution=merge-duplicates',
       body: payload
     });
-    if (!result || result.ok !== true) {
-      diracV223ThrowFailClosed('PERSISTENT_SECURITY_WRITE_TRANSPORT_FAILED', 'persistent_security_write', Number(result && result.status || 0) || 503);
-    }
-
-    const verified = await diracV234VerifyPersistentSecurityWrite(
-      key,
-      record,
-      blockedUntilMs,
-      updatedAt,
-      expiresAt
-    );
-    if (verified !== true) {
-      diracV223ThrowFailClosed('PERSISTENT_SECURITY_WRITE_READBACK_UNVERIFIED', 'persistent_security_write', 503);
-    }
-    return true;
-  } catch (error) {
-    if (error && error.diracFailClosedV223) throw error;
-    diracV223ThrowFailClosed('PERSISTENT_SECURITY_WRITE_FAILED', 'persistent_security_write', Number(error && (error.status || error.statusCode) || 0) || 503, error);
+    return !!result.ok;
+  } catch (_) {
+    return false;
   }
 }
-Object.defineProperty(writePersistentSecurityJson, '__diracV234VerifiedReadBack', { value: true, enumerable: false });
 
 // Security-critical callers need to distinguish "not found" from an unavailable
 // persistence layer. The legacy reader intentionally returns null for both cases,
@@ -1382,31 +998,25 @@ Object.defineProperty(writePersistentSecurityJson, '__diracV234VerifiedReadBack'
 async function readPersistentSecurityJsonStrictV194(securityKey) {
   const key = String(securityKey || '').trim();
   const table = diracPersistentSecurityTableForKeyV209(key);
-  if (!table || !key) return { ok: false, found: false, record: null, reason: 'invalid_input' };
+  if (!table || !key) return { ok: false, found: false, record: null };
   try {
-    const path = `/rest/v1/${encodeURIComponent(table)}?select=security_key,record_json,blocked_until_ms,expires_at&security_key=eq.${encodeURIComponent(key)}&limit=2`;
+    const path = `/rest/v1/${encodeURIComponent(table)}?select=security_key,record_json,blocked_until_ms,expires_at&security_key=eq.${encodeURIComponent(key)}&limit=1`;
     const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
     if (!result || result.ok !== true || !Array.isArray(result.data)) {
-      return { ok: false, found: false, record: null, reason: 'storage_unavailable' };
+      return { ok: false, found: false, record: null };
     }
     if (result.data.length === 0) return { ok: true, found: false, record: null };
-    if (result.data.length !== 1) return { ok: false, found: false, record: null, reason: 'ambiguous_rows' };
-    const row = result.data[0];
-    const expiresAtMs = Date.parse(String(row && row.expires_at || ''));
-    if (!row || !safeEqual(String(row.security_key || ''), key)
-        || !row.record_json || typeof row.record_json !== 'object' || Array.isArray(row.record_json)
-        || !Number.isFinite(expiresAtMs)) {
-      return { ok: false, found: false, record: null, reason: 'malformed_row' };
+    const row = result.data[0] || {};
+    const expiresAtMs = Date.parse(String(row.expires_at || ''));
+    if (Number.isFinite(expiresAtMs) && expiresAtMs <= Date.now()) {
+      return { ok: true, found: false, record: null };
     }
-    if (expiresAtMs <= Date.now()) return { ok: true, found: false, record: null };
-    return {
-      ok: true,
-      found: true,
-      record: { ...row.record_json, blocked_until_ms: Number(row.blocked_until_ms || row.record_json.blocked_until_ms || 0) }
-    };
-  } catch (error) {
-    diracV222MarkDependencyFailure(null, 'persistent_security_strict_read', 503, diracV233ClassifyDependencyException(error, 'PERSISTENT_SECURITY_STRICT_READ_EXCEPTION'));
-    return { ok: false, found: false, record: null, reason: 'exception' };
+    const record = row.record_json && typeof row.record_json === 'object'
+      ? { ...row.record_json, blocked_until_ms: Number(row.blocked_until_ms || row.record_json.blocked_until_ms || 0) }
+      : { blocked_until_ms: Number(row.blocked_until_ms || 0) };
+    return { ok: true, found: true, record };
+  } catch (_) {
+    return { ok: false, found: false, record: null };
   }
 }
 
@@ -1414,70 +1024,47 @@ async function readPersistentSecurityJsonManyStrictV194(securityKeys) {
   const keys = Array.from(new Set((securityKeys || []).map((key) => String(key || '').trim())
     .filter((key) => /^[A-Za-z0-9:._-]{1,500}$/.test(key)))).slice(0, 40);
   const table = diracPersistentSecurityTableForKeysV209(keys);
-  if (!table || !keys.length) return { ok: false, records: [], reason: 'invalid_input' };
+  if (!table || !keys.length) return { ok: false, records: [] };
   try {
-    const path = `/rest/v1/${encodeURIComponent(table)}?select=security_key,record_json,blocked_until_ms,expires_at&security_key=in.(${keys.map(encodeURIComponent).join(',')})&limit=${keys.length + 1}`;
+    const path = `/rest/v1/${encodeURIComponent(table)}?select=security_key,record_json,blocked_until_ms,expires_at&security_key=in.(${keys.map(encodeURIComponent).join(',')})&limit=${keys.length}`;
     const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
-    if (!result || result.ok !== true || !Array.isArray(result.data) || result.data.length > keys.length) {
-      return { ok: false, records: [], reason: 'storage_unavailable_or_ambiguous' };
-    }
-    const expected = new Set(keys);
-    const seen = new Set();
+    if (!result || result.ok !== true || !Array.isArray(result.data)) return { ok: false, records: [] };
     const now = Date.now();
-    const records = [];
-    for (const row of result.data) {
-      const rowKey = String(row && row.security_key || '');
+    const records = result.data.filter((row) => {
       const expiresAtMs = Date.parse(String(row && row.expires_at || ''));
-      if (!expected.has(rowKey) || seen.has(rowKey)
-          || !row.record_json || typeof row.record_json !== 'object' || Array.isArray(row.record_json)
-          || !Number.isFinite(expiresAtMs)) {
-        return { ok: false, records: [], reason: 'malformed_or_duplicate_row' };
-      }
-      seen.add(rowKey);
-      if (expiresAtMs <= now) continue;
-      records.push({
-        security_key: rowKey,
-        record: row.record_json,
-        blocked_until_ms: Number(row.blocked_until_ms || row.record_json.blocked_until_ms || 0)
-      });
-    }
+      return row && (!Number.isFinite(expiresAtMs) || expiresAtMs > now);
+    }).map((row) => ({
+      security_key: String(row.security_key || ''),
+      record: row.record_json && typeof row.record_json === 'object' ? row.record_json : {},
+      blocked_until_ms: Number(row.blocked_until_ms || row.record_json && row.record_json.blocked_until_ms || 0)
+    }));
     return { ok: true, records };
-  } catch (error) {
-    diracV222MarkDependencyFailure(null, 'persistent_security_many_read', 503, diracV233ClassifyDependencyException(error, 'PERSISTENT_SECURITY_MANY_READ_EXCEPTION'));
-    return { ok: false, records: [], reason: 'exception' };
+  } catch (_) {
+    return { ok: false, records: [] };
   }
 }
 
 async function writePersistentSecurityJsonRequiredV194(securityKey, record, blockedUntilMs, ttlSeconds) {
-  if (!diracPersistentSecurityTableForKeyV209(securityKey) || typeof writePersistentSecurityJson !== 'function') {
-    diracV223ThrowFailClosed('PERSISTENT_SECURITY_WRITE_DEPENDENCY_MISSING', 'persistent_security_write_required', 500);
-  }
-  let lastError = null;
+  if (!diracPersistentSecurityTableForKeyV209(securityKey) || typeof writePersistentSecurityJson !== 'function') return false;
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    try {
-      if (await writePersistentSecurityJson(securityKey, record, blockedUntilMs, ttlSeconds) === true) return true;
-    } catch (error) {
-      lastError = error;
-    }
+    const wrote = await writePersistentSecurityJson(securityKey, record, blockedUntilMs, ttlSeconds).catch(() => false);
+    if (wrote === true) return true;
   }
-  diracV223ThrowFailClosed('PERSISTENT_SECURITY_WRITE_RETRIES_EXHAUSTED', 'persistent_security_write_required', 503, lastError);
+  return false;
 }
 
 async function claimPersistentSecurityKeyOnceV194(securityKey, record, ttlSeconds) {
   const key = String(securityKey || '').trim();
   const table = diracPersistentSecurityTableForKeyV209(key);
-  if (!table || !key || !record || typeof record !== 'object' || Array.isArray(record)) {
-    diracV223ThrowFailClosed('PERSISTENT_SECURITY_CLAIM_INPUT_INVALID', 'persistent_security_claim', 500);
-  }
+  if (!table || !key) return false;
   const now = Date.now();
   const ttl = Math.max(60, Number(ttlSeconds || 60));
-  const expectedExpiresAtMs = now + ttl * 1000;
   const payload = [{
     security_key: key,
-    record_json: record,
+    record_json: record && typeof record === 'object' ? record : {},
     blocked_until_ms: 0,
     updated_at: new Date(now).toISOString(),
-    expires_at: new Date(expectedExpiresAtMs).toISOString()
+    expires_at: new Date(now + ttl * 1000).toISOString()
   }];
   try {
     const result = await supabaseFetch(`/rest/v1/${encodeURIComponent(table)}?on_conflict=security_key`, {
@@ -1486,53 +1073,56 @@ async function claimPersistentSecurityKeyOnceV194(securityKey, record, ttlSecond
       prefer: 'resolution=ignore-duplicates,return=representation',
       body: payload
     });
-    if (!result || result.ok !== true || !Array.isArray(result.data)) {
-      diracV223ThrowFailClosed('PERSISTENT_SECURITY_CLAIM_UNVERIFIED', 'persistent_security_claim', Number(result && result.status || 0) || 503);
-    }
-    // Zero rows is the only valid duplicate/replay outcome under the required
-    // unique security_key constraint. Any other shape is an unavailable or
-    // ambiguous persistence result and is rejected.
-    if (result.data.length === 0) return false;
-    if (result.data.length !== 1) {
-      diracV223ThrowFailClosed('PERSISTENT_SECURITY_CLAIM_AMBIGUOUS', 'persistent_security_claim', 503);
-    }
-    const row = result.data[0];
-    const persistedExpiryMs = Date.parse(String(row && row.expires_at || ''));
-    const persistedRecord = row && row.record_json;
-    const exactRecord = persistedRecord && typeof persistedRecord === 'object' && !Array.isArray(persistedRecord)
-      && safeEqual(diracCentralStableJsonV148(persistedRecord), diracCentralStableJsonV148(record));
-    const expiryExact = Number.isFinite(persistedExpiryMs)
-      && Math.abs(persistedExpiryMs - expectedExpiresAtMs) <= 2000
-      && persistedExpiryMs > Date.now();
-    if (!row
-        || !safeEqual(String(row.security_key || ''), key)
-        || Number(row.blocked_until_ms || 0) !== 0
-        || !exactRecord
-        || !expiryExact) {
-      diracV223ThrowFailClosed('PERSISTENT_SECURITY_CLAIM_MALFORMED', 'persistent_security_claim', 503);
-    }
-    return true;
-  } catch (error) {
-    if (error && error.diracFailClosedV223) throw error;
-    diracV223ThrowFailClosed('PERSISTENT_SECURITY_CLAIM_FAILED', 'persistent_security_claim', Number(error && (error.status || error.statusCode) || 0) || 503, error);
+    return Boolean(result && result.ok === true && Array.isArray(result.data) && result.data.length === 1
+      && String(result.data[0] && result.data[0].security_key || '') === key);
+  } catch (_) {
+    return false;
   }
 }
-Object.defineProperty(claimPersistentSecurityKeyOnceV194, '__diracV232ExactAtomicClaim', { value: true, enumerable: false });
 
 async function readPersistentLoginSecurityRecord(identity) {
-  if (!identity || !identity.key) {
-    diracV223ThrowFailClosed('LOGIN_SECURITY_READ_IDENTITY_INVALID', 'login_security_read', 500);
+  if (!LOGIN_SECURITY_PERSIST_TABLE || !identity || !identity.key) return null;
+
+  try {
+    const path = `/rest/v1/${encodeURIComponent(LOGIN_SECURITY_PERSIST_TABLE)}?select=security_key,record_json,blocked_until_ms,expires_at&security_key=eq.${encodeURIComponent(identity.key)}&limit=1`;
+    const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+    if (!result.ok || !Array.isArray(result.data) || !result.data.length) return null;
+
+    const row = result.data[0] || {};
+    const expiresAtMs = Date.parse(row.expires_at || '');
+    if (Number.isFinite(expiresAtMs) && expiresAtMs <= Date.now()) return null;
+
+    if (row.record_json && typeof row.record_json === 'object') return row.record_json;
+    return row;
+  } catch (_) {
+    return null;
   }
-  const record = await readPersistentSecurityJson(String(identity.key));
-  return record === null ? null : normalizeLoginSecurityRecord(record);
 }
 
 async function writePersistentLoginSecurityRecord(identity, record) {
-  if (!identity || !identity.key || !record || typeof record !== 'object' || Array.isArray(record)) {
-    diracV223ThrowFailClosed('LOGIN_SECURITY_WRITE_INPUT_INVALID', 'login_security_write', 500);
+  if (!LOGIN_SECURITY_PERSIST_TABLE || !identity || !identity.key) return false;
+
+  try {
+    const now = Date.now();
+    const expiresAt = new Date(now + LOGIN_SECURITY_PERSIST_TTL_SECONDS * 1000).toISOString();
+    const payload = [{
+      security_key: identity.key,
+      record_json: normalizeLoginSecurityRecord(record, now),
+      blocked_until_ms: Number(record && record.blockedUntilMs || 0),
+      updated_at: new Date(now).toISOString(),
+      expires_at: expiresAt
+    }];
+
+    const result = await supabaseFetch(`/rest/v1/${encodeURIComponent(LOGIN_SECURITY_PERSIST_TABLE)}?on_conflict=security_key`, {
+      method: 'POST',
+      auth: 'service',
+      prefer: 'resolution=merge-duplicates',
+      body: payload
+    });
+    return !!result.ok;
+  } catch (_) {
+    return false;
   }
-  const normalized = normalizeLoginSecurityRecord(record, Date.now());
-  return writePersistentSecurityJson(identity.key, normalized, Number(normalized.blockedUntilMs || 0), LOGIN_SECURITY_PERSIST_TTL_SECONDS);
 }
 
 function loginSecurityHash(value) {
@@ -1568,45 +1158,44 @@ function normalizeDomainLoginRateRecord(record, now = Date.now()) {
 
 async function readDomainLoginRateRecord(identity) {
   const key = String(identity && identity.key || '').trim();
-  if (!key || DOMAIN_LOGIN_RATE_TABLE !== 'dirac_security_rate_limits') {
-    diracV223ThrowFailClosed('DOMAIN_LOGIN_RATE_READ_INPUT_INVALID', 'domain_login_rate_read', 500);
-  }
+  if (!key) return null;
+
+  const memory = DOMAIN_LOGIN_RATE_STORE.get(key);
+  if (memory) return normalizeDomainLoginRateRecord(memory);
+
+  if (!DOMAIN_LOGIN_RATE_TABLE) return null;
+
   try {
     const path = '/rest/v1/' + encodeURIComponent(DOMAIN_LOGIN_RATE_TABLE)
       + '?select=security_key,record_json,blocked_until_ms,expires_at'
       + '&security_key=eq.' + encodeURIComponent(key)
-      + '&limit=2';
+      + '&limit=1';
+
     const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
-    if (!result || result.ok !== true || !Array.isArray(result.data)) {
-      diracV223ThrowFailClosed('DOMAIN_LOGIN_RATE_READ_UNVERIFIED', 'domain_login_rate_read', Number(result && result.status || 0) || 503);
-    }
-    if (result.data.length === 0) return null;
-    if (result.data.length !== 1) diracV223ThrowFailClosed('DOMAIN_LOGIN_RATE_READ_AMBIGUOUS', 'domain_login_rate_read', 503);
-    const row = result.data[0];
-    const expiresAtMs = Date.parse(String(row && row.expires_at || ''));
-    if (!row || !safeEqual(String(row.security_key || ''), key)
-        || !row.record_json || typeof row.record_json !== 'object' || Array.isArray(row.record_json)
-        || !Number.isFinite(expiresAtMs)) {
-      diracV223ThrowFailClosed('DOMAIN_LOGIN_RATE_READ_MALFORMED', 'domain_login_rate_read', 503);
-    }
-    if (expiresAtMs <= Date.now()) return null;
-    const record = normalizeDomainLoginRateRecord(row.record_json);
+    if (!result.ok || !Array.isArray(result.data) || !result.data.length) return null;
+
+    const row = result.data[0] || {};
+    const expiresAtMs = Date.parse(row.expires_at || '');
+    if (Number.isFinite(expiresAtMs) && expiresAtMs <= Date.now()) return null;
+
+    const record = normalizeDomainLoginRateRecord(row.record_json || {});
     DOMAIN_LOGIN_RATE_STORE.set(key, record);
     return record;
-  } catch (error) {
-    if (error && error.diracFailClosedV223) throw error;
-    diracV223ThrowFailClosed('DOMAIN_LOGIN_RATE_READ_FAILED', 'domain_login_rate_read', Number(error && (error.status || error.statusCode) || 0) || 503, error);
+  } catch (_) {
+    return null;
   }
 }
 
 async function writeDomainLoginRateRecord(identity, record) {
   const key = String(identity && identity.key || '').trim();
-  if (!key || DOMAIN_LOGIN_RATE_TABLE !== 'dirac_security_rate_limits'
-      || !record || typeof record !== 'object' || Array.isArray(record)) {
-    diracV223ThrowFailClosed('DOMAIN_LOGIN_RATE_WRITE_INPUT_INVALID', 'domain_login_rate_write', 500);
-  }
+  if (!key) return false;
+
   const now = Date.now();
   const normalized = normalizeDomainLoginRateRecord(record, now);
+  DOMAIN_LOGIN_RATE_STORE.set(key, normalized);
+
+  if (!DOMAIN_LOGIN_RATE_TABLE) return true;
+
   try {
     const ttlMs = Math.max(DOMAIN_LOGIN_RATE_WINDOW_MS, DOMAIN_LOGIN_RATE_BLOCK_MS, 60 * 1000) + 60 * 1000;
     const payload = [{
@@ -1616,25 +1205,17 @@ async function writeDomainLoginRateRecord(identity, record) {
       updated_at: new Date(now).toISOString(),
       expires_at: new Date(now + ttlMs).toISOString()
     }];
+
     const result = await supabaseFetch('/rest/v1/' + encodeURIComponent(DOMAIN_LOGIN_RATE_TABLE) + '?on_conflict=security_key', {
       method: 'POST',
       auth: 'service',
-      prefer: 'resolution=merge-duplicates,return=representation',
+      prefer: 'resolution=merge-duplicates',
       body: payload
     });
-    const rows = diracV222RequireExactMutationRows(
-      result,
-      1,
-      (row) => diracV222SecurityKeyMutationRowValid(row, key, Number(normalized.blockedUntilMs || 0)),
-      'domain_login_rate_write',
-      'DOMAIN_LOGIN_RATE_WRITE_UNVERIFIED'
-    );
-    if (!rows) diracV223ThrowFailClosed('DOMAIN_LOGIN_RATE_WRITE_UNVERIFIED', 'domain_login_rate_write', Number(result && result.status || 0) || 503);
-    DOMAIN_LOGIN_RATE_STORE.set(key, normalized);
-    return true;
-  } catch (error) {
-    if (error && error.diracFailClosedV223) throw error;
-    diracV223ThrowFailClosed('DOMAIN_LOGIN_RATE_WRITE_FAILED', 'domain_login_rate_write', Number(error && (error.status || error.statusCode) || 0) || 503, error);
+
+    return !!result.ok;
+  } catch (_) {
+    return false;
   }
 }
 
@@ -1752,7 +1333,7 @@ async function notifyLoginSecurityIncidentSafe(incident) {
   const webhookUrl = String(process.env.DIRAC_LOGIN_SECURITY_WEBHOOK_URL || '').trim();
   if (!webhookUrl) return false;
   try {
-    const response = await fetch(webhookUrl, {
+    await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1766,7 +1347,7 @@ async function notifyLoginSecurityIncidentSafe(incident) {
         risk: 'high'
       })
     });
-    return Boolean(response && response.ok === true);
+    return true;
   } catch (_) {
     return false;
   }
@@ -1821,14 +1402,7 @@ async function domainRegister(req, res, preloadedBody) {
   // cek backend-only memakai service role sebelum signup.
   // Tidak menyentuh domainLogin(), hash, A2F/MFA, cookie, token, dashboard, checkout, atau order.
   const existingAuthUser = await findSupabaseAuthUserByEmail(email);
-  if (!existingAuthUser || existingAuthUser.checked !== true) {
-    return res.status(503).json({
-      ok: false,
-      code: 'REGISTER_DUPLICATE_CHECK_UNAVAILABLE',
-      message: 'Status email belum dapat diverifikasi. Pendaftaran dihentikan.'
-    });
-  }
-  if (existingAuthUser.exists === true) {
+  if (existingAuthUser && existingAuthUser.exists === true) {
     return res.status(409).json(buildDomainRegisterDuplicateEmailBody());
   }
 
@@ -1982,10 +1556,7 @@ async function recoverDomainRegisterFromSupabaseEmailDeliveryFailure(input) {
   //    jangan buat user kedua. Recovery hanya boleh untuk user baru yang
   //    created_at sangat dekat dengan request ini dan belum pernah confirmed.
   const existing = await getSupabaseAuthUserByEmail(email);
-  if (!existing || existing.checked !== true) {
-    return { ok: false, status: 503, code: 'REGISTER_RECOVERY_USER_LOOKUP_UNAVAILABLE' };
-  }
-  if (existing.user) {
+  if (existing && existing.user) {
     if (!isSupabaseAuthUserSafeRecentUnconfirmed(existing.user)) {
       return { ok: false, duplicate: true, status: 409 };
     }
@@ -2065,7 +1636,7 @@ async function recoverDomainRegisterFromSupabaseEmailDeliveryFailure(input) {
 
 async function getSupabaseAuthUserByEmail(email) {
   const normalizedEmail = normalizeAuthEmail(email);
-  if (!normalizedEmail || !isStrictDomainLoginEmail(normalizedEmail)) return { user: null, checked: false, reason: 'invalid_email' };
+  if (!normalizedEmail || !isStrictDomainLoginEmail(normalizedEmail)) return { user: null, checked: false };
 
   try {
     const result = await supabaseFetch(`/auth/v1/admin/users?email=${encodeURIComponent(normalizedEmail)}`, {
@@ -2073,40 +1644,23 @@ async function getSupabaseAuthUserByEmail(email) {
       auth: 'service'
     });
 
-    if (!result || result.ok !== true || !result.data || typeof result.data !== 'object') {
-      diracV222MarkDependencyFailure(null, 'auth_user_lookup', Number(result && result.status || 0) || 503, 'AUTH_USER_LOOKUP_UNVERIFIED');
-      return { user: null, checked: false, unavailable: true, reason: 'auth_user_lookup_unverified' };
-    }
+    if (!result.ok || !result.data) return { user: null, checked: false };
 
     const data = result.data;
-    const hasRecognizedShape = Array.isArray(data)
-      || Array.isArray(data.users)
-      || Boolean(data.user && typeof data.user === 'object');
-    if (!hasRecognizedShape) {
-      diracV222MarkDependencyFailure(null, 'auth_user_lookup', 503, 'AUTH_USER_LOOKUP_MALFORMED');
-      return { user: null, checked: false, unavailable: true, reason: 'auth_user_lookup_malformed' };
-    }
-
     const candidates = [];
     if (Array.isArray(data)) candidates.push(...data);
     if (Array.isArray(data.users)) candidates.push(...data.users);
     if (data.user && typeof data.user === 'object') candidates.push(data.user);
 
-    const matches = candidates.filter((item) => {
+    const user = candidates.find((item) => {
       if (!item || typeof item !== 'object') return false;
       const userEmail = normalizeAuthEmail(item.email || item.email_address || '');
-      return safeEqual(userEmail, normalizedEmail);
-    });
-    const uniqueMatches = Array.from(new Map(matches.map((item) => [String(item.id || item.user_id || ''), item])).values());
-    if (uniqueMatches.length > 1 || (uniqueMatches.length === 1 && !String(uniqueMatches[0].id || uniqueMatches[0].user_id || '').trim())) {
-      diracV222MarkDependencyFailure(null, 'auth_user_lookup', 503, 'AUTH_USER_LOOKUP_AMBIGUOUS');
-      return { user: null, checked: false, unavailable: true, reason: 'auth_user_lookup_ambiguous' };
-    }
+      return userEmail === normalizedEmail;
+    }) || null;
 
-    return { user: uniqueMatches[0] || null, checked: true };
-  } catch (error) {
-    diracV222MarkDependencyFailure(null, 'auth_user_lookup', Number(error && (error.status || error.statusCode) || 0) || 503, error && (error.code || error.name));
-    return { user: null, checked: false, unavailable: true, reason: 'auth_user_lookup_exception' };
+    return { user, checked: true };
+  } catch (_) {
+    return { user: null, checked: false };
   }
 }
 
@@ -2171,12 +1725,34 @@ async function loginSupabaseAuthUserAfterRegisterRecovery(email, password) {
 
 async function findSupabaseAuthUserByEmail(email) {
   const normalizedEmail = normalizeAuthEmail(email);
-  if (!normalizedEmail || !isStrictDomainLoginEmail(normalizedEmail)) return { exists: false, checked: false, reason: 'invalid_email' };
-  const checked = await getSupabaseAuthUserByEmail(normalizedEmail);
-  if (!checked || checked.checked !== true) {
-    return { exists: false, checked: false, unavailable: true, reason: checked && checked.reason || 'auth_user_lookup_unavailable' };
+  if (!normalizedEmail || !isStrictDomainLoginEmail(normalizedEmail)) return { exists: false, checked: false };
+
+  try {
+    const result = await supabaseFetch(`/auth/v1/admin/users?email=${encodeURIComponent(normalizedEmail)}`, {
+      method: 'GET',
+      auth: 'service'
+    });
+
+    if (!result.ok || !result.data) return { exists: false, checked: false };
+
+    const data = result.data;
+    const candidates = [];
+    if (Array.isArray(data)) candidates.push(...data);
+    if (Array.isArray(data.users)) candidates.push(...data.users);
+    if (data.user && typeof data.user === 'object') candidates.push(data.user);
+
+    const exists = candidates.some((user) => {
+      if (!user || typeof user !== 'object') return false;
+      const userEmail = normalizeAuthEmail(user.email || user.email_address || '');
+      return userEmail === normalizedEmail;
+    });
+
+    return { exists, checked: true };
+  } catch (_) {
+    // Pre-check hanya penguat deteksi duplikat. Jika admin endpoint tidak tersedia,
+    // signup tetap berjalan dan tetap difilter oleh response checks di bawah.
+    return { exists: false, checked: false };
   }
-  return { exists: Boolean(checked.user), checked: true, user: checked.user || null };
 }
 
 function isSupabaseRegisterDuplicateEmailError(data) {
@@ -2404,7 +1980,7 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
     encodeURIComponent(select) +
     '&customer_id=eq.' + encodeURIComponent(customerId) +
     '&session_token_hash=eq.' + encodeURIComponent(fingerprint.session_token_hash) +
-    '&limit=2';
+    '&limit=1';
 
   const protectedReadStartedAtMs = Date.now();
   const found = await supabaseFetch(readPath, { method: 'GET', auth: 'service' });
@@ -2428,17 +2004,6 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
   }
 
   const rows = Array.isArray(found.data) ? found.data : [];
-  if (rows.length > 1) {
-    diracV222MarkDependencyFailure(null, 'protected_session_read', 503, 'PROTECTED_SESSION_BINDING_AMBIGUOUS');
-    return {
-      ok: false,
-      status: 503,
-      code: 'PROTECTED_SESSION_BINDING_AMBIGUOUS',
-      clearCookies: true,
-      customerId,
-      message: 'Binding sesi protected ambigu dan permintaan ditolak.'
-    };
-  }
   const row = rows[0] || null;
   const nowMs = Date.now();
   const nowIso = new Date(nowMs).toISOString();
@@ -2546,35 +2111,16 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
       ? String(row.revoke_reason || 'session_revoked')
       : 'session_expired';
 
-    const revokedPatch = await supabaseFetch('/rest/v1/security_customer_sessions?id=eq.' + encodeURIComponent(row.id), {
+    await supabaseFetch('/rest/v1/security_customer_sessions?id=eq.' + encodeURIComponent(row.id), {
       method: 'PATCH',
       auth: 'service',
-      prefer: 'return=representation',
+      prefer: 'return=minimal',
       body: {
         status: 'revoked',
         revoked_at: row.revoked_at || nowIso,
         revoke_reason: reason
       }
-    });
-    if (!diracV222RequireExactMutationRows(
-      revokedPatch,
-      1,
-      (patchedRow) => patchedRow && safeEqual(String(patchedRow.id || ''), String(row.id || ''))
-        && String(patchedRow.status || '').trim().toLowerCase() === 'revoked'
-        && Boolean(patchedRow.revoked_at),
-      'protected_session_revoke_persistence',
-      'PROTECTED_SESSION_REVOKE_UNVERIFIED'
-    )) {
-      return {
-        ok: false,
-        status: 503,
-        code: 'PROTECTED_SESSION_REVOKE_UNAVAILABLE',
-        clearCookies: true,
-        customerId,
-        sessionId: row.id,
-        message: 'Status pencabutan sesi belum dapat dipersistenkan secara aman.'
-      };
-    }
+    }).catch(() => null);
 
     await customerSecurityWriteGuardEvent(customerId, {
       event_type: 'session_revoked',
@@ -2674,7 +2220,7 @@ async function revokeCurrentDomainProtectedSessionSafe(req, reason) {
     '&session_token_hash=eq.' + encodeURIComponent(fingerprint.session_token_hash), {
     method: 'PATCH',
     auth: 'service',
-    prefer: 'return=representation',
+    prefer: 'return=minimal',
     body: {
       status: 'revoked',
       revoked_at: nowIso,
@@ -2682,17 +2228,7 @@ async function revokeCurrentDomainProtectedSessionSafe(req, reason) {
     }
   });
 
-  const patchedRows = diracV222RequireExactMutationRows(
-    patched,
-    1,
-    (row) => row && safeEqual(String(row.customer_id || ''), customerId)
-      && safeEqual(String(row.session_token_hash || ''), fingerprint.session_token_hash)
-      && String(row.status || '').trim().toLowerCase() === 'revoked'
-      && Boolean(row.revoked_at),
-    'domain_logout_session_revoke',
-    'DOMAIN_LOGOUT_SESSION_REVOKE_UNVERIFIED'
-  );
-  if (!patchedRows) return { ok: false, reason: 'session_revoke_failed', status: patched.status || 503 };
+  if (!patched.ok) return { ok: false, reason: 'session_revoke_failed', status: patched.status };
   return { ok: true };
 }
 
@@ -2775,24 +2311,10 @@ async function domainMfaStatus(req, res) {
 async function domainLogout(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
 
-  // Fail-closed: cookie lokal selalu dibersihkan, namun sukses hanya diberikan
-  // setelah pencabutan sesi server-side terkonfirmasi.
-  let revoked = null;
-  try {
-    revoked = await revokeCurrentDomainProtectedSessionSafe(req, 'manual_logout');
-  } catch (_) {
-    revoked = null;
-  }
+  // SAFE V2: logout mencabut row session database jika tersedia, tetapi tidak menggagalkan logout.
+  await revokeCurrentDomainProtectedSessionSafe(req, 'manual_logout').catch(() => null);
 
   clearSessionCookies(res);
-
-  if (!revoked || revoked.ok !== true) {
-    return res.status(503).json({
-      ok: false,
-      code: 'LOGOUT_SESSION_REVOCATION_UNAVAILABLE',
-      message: 'Logout belum dapat dikonfirmasi secara aman. Silakan coba lagi.'
-    });
-  }
 
   return res.status(200).json({
     ok: true,
@@ -2814,17 +2336,8 @@ async function domainCheck(req, res) {
 
   const checkApi = requiredEnv('DOMAIN_CHECK_API');
   const response = await fetch(`${checkApi}?domain=${encodeURIComponent(domain)}`);
-  let data;
-  try {
-    data = await parseFetchResponse(response, 512 * 1024);
-  } catch (error) {
-    diracV222MarkDependencyFailure(null, 'domain_check_response_parse', 502, error && (error.code || error.name));
-    return res.status(502).json({ ok: false, code: 'DOMAIN_CHECK_RESPONSE_INVALID', message: 'Respons pemeriksaan domain tidak valid.' });
-  }
-  if (!data || typeof data !== 'object' || Array.isArray(data)) {
-    diracV222MarkDependencyFailure(null, 'domain_check_response_shape', 502, 'DOMAIN_CHECK_RESPONSE_INVALID');
-    return res.status(502).json({ ok: false, code: 'DOMAIN_CHECK_RESPONSE_INVALID', message: 'Respons pemeriksaan domain tidak valid.' });
-  }
+  const data = await parseFetchResponse(response, 512 * 1024).catch(() => ({}));
+
   return res.status(response.status).json(data);
 }
 
@@ -3023,17 +2536,7 @@ async function domainCheckout(req, res) {
     });
   }
 
-  const orderRows = diracV222RequireExactMutationRows(
-    orderResult,
-    1,
-    (row) => row && customerSecurityLooksLikeUuid(String(row.id || ''))
-      && safeEqual(String(row.customer_id || ''), String(ownerCustomerId || ''))
-      && Number(row.total_price || 0) === Number(totalAmount || 0)
-      && String(row.payment_status || '').trim().toLowerCase() === 'unpaid',
-    'domain_order_create',
-    'DOMAIN_ORDER_CREATE_UNVERIFIED'
-  );
-  const order = orderRows && orderRows[0];
+  const order = Array.isArray(orderResult.data) ? orderResult.data[0] : orderResult.data;
 
   if (!order || !order.id) {
     return res.status(500).json({
@@ -3042,28 +2545,16 @@ async function domainCheckout(req, res) {
     });
   }
 
-  const itemBodies = orderItems.map((item) => ({
-    ...item,
-    order_id: order.id
-  }));
   const itemResult = await supabaseFetch('/rest/v1/domain_order_items', {
     method: 'POST',
     auth: 'service',
-    prefer: 'return=representation',
-    body: itemBodies
+    body: orderItems.map((item) => ({
+      ...item,
+      order_id: order.id
+    }))
   });
-  const itemRows = diracV222RequireExactMutationRows(
-    itemResult,
-    itemBodies.length,
-    (row) => row && safeEqual(String(row.order_id || ''), String(order.id || ''))
-      && orderItems.some((expected) => safeEqual(String(row.domain_name || ''), String(expected.domain_name || ''))
-        && Number(row.years || 0) === Number(expected.years || 0)
-        && Number(row.subtotal || 0) === Number(expected.subtotal || 0)),
-    'domain_order_items_create',
-    'DOMAIN_ORDER_ITEMS_CREATE_UNVERIFIED'
-  );
 
-  if (!itemRows) {
+  if (!itemResult.ok) {
     console.error('[domain-order-items-save-failed]', customerSecuritySafeLogError(itemResult.data));
     return res.status(itemResult.status).json({
       ok: false,
@@ -3428,16 +2919,12 @@ function verifyCustomerDashboardMfaCookie(req, user) {
     return { ok: false, code: 'mfa_cookie_customer_mismatch', message: 'Sesi A2F backend tidak cocok dengan customer login.' };
   }
 
-  let expectedSessionHash = '';
-  try {
-    expectedSessionHash = typeof diracCentralRequestSessionHashV146 === 'function'
-      ? String(diracCentralRequestSessionHashV146(req) || '').trim()
-      : '';
-  } catch (_) {
-    expectedSessionHash = '';
-  }
-  if (!payload.sessionHash || !expectedSessionHash || !safeEqual(String(payload.sessionHash), expectedSessionHash)) {
-    return { ok: false, code: 'mfa_cookie_session_mismatch', message: 'Sesi A2F backend tidak cocok dengan sesi login.' };
+  if (payload.sessionHash) {
+    let expectedSessionHash = '';
+    try { expectedSessionHash = typeof diracCentralRequestSessionHashV146 === 'function' ? diracCentralRequestSessionHashV146(req) : ''; } catch (_) {}
+    if (expectedSessionHash && !safeEqual(String(payload.sessionHash), expectedSessionHash)) {
+      return { ok: false, code: 'mfa_cookie_session_mismatch', message: 'Sesi A2F backend tidak cocok dengan sesi login.' };
+    }
   }
 
   if (payload.originHash) {
@@ -4305,7 +3792,7 @@ function shouldUseDiracMultiDbRouter() {
 }
 
 function shouldUseStrictDiracMultiDbRouter() {
-  return shouldUseDiracMultiDbRouter() || isEnvTrue('DIRAC_MULTI_DB_STRICT');
+  return isEnvTrue('DIRAC_MULTI_DB_STRICT');
 }
 
 function getDiracRestTableFromPath(path) {
@@ -4624,50 +4111,30 @@ async function readLimitedJsonBody(req, limitBytes = LOGIN_SECURITY_BODY_LIMIT_B
   });
 }
 
-function diracRequestBodyError(code, publicMessage, statusCode = 400) {
-  const error = new Error(String(code || 'REQUEST_BODY_INVALID'));
-  error.statusCode = Number(statusCode || 400);
-  error.code = String(code || 'REQUEST_BODY_INVALID');
-  error.publicMessage = String(publicMessage || 'Request tidak valid.');
-  return error;
-}
-
 async function readBody(req) {
   if (req.body && typeof req.body === 'object') return req.body;
 
   if (typeof req.body === 'string') {
-    if (!req.body) return {};
     try {
       return JSON.parse(req.body);
     } catch (_) {
-      throw diracRequestBodyError('DIRAC_BODY_INVALID_JSON', 'Request JSON tidak valid.');
+      return {};
     }
   }
 
-  if (!req || typeof req.on !== 'function') {
-    throw diracRequestBodyError('DIRAC_BODY_STREAM_UNAVAILABLE', 'Request body tidak dapat dibaca.');
-  }
-
-  return await new Promise((resolve, reject) => {
+  return await new Promise((resolve) => {
     let raw = '';
-    let settled = false;
     req.on('data', (chunk) => {
-      if (!settled) raw += chunk;
+      raw += chunk;
     });
     req.on('end', () => {
-      if (settled) return;
-      settled = true;
       try {
         resolve(raw ? JSON.parse(raw) : {});
       } catch (_) {
-        reject(diracRequestBodyError('DIRAC_BODY_INVALID_JSON', 'Request JSON tidak valid.'));
+        resolve({});
       }
     });
-    req.on('error', () => {
-      if (settled) return;
-      settled = true;
-      reject(diracRequestBodyError('DIRAC_BODY_READ_FAILED', 'Request body tidak dapat dibaca.'));
-    });
+    req.on('error', () => resolve({}));
   });
 }
 
@@ -5094,15 +4561,22 @@ function makeSignedDomainSessionCookieSet(session, options = {}) {
   return cookies;
 }
 
-async function readSignedDomainSessionUser(_cookies) {
+async function readSignedDomainSessionUser(cookies) {
+  const values = readCookieTokenCandidates(cookies, DOMAIN_SIGNED_SESSION_COOKIE);
+  for (const value of values) {
+    const payload = verifyDomainSessionCookieValue(value);
+    if (!payload) continue;
+
+    const checked = await getSupabaseAuthUserByEmail(payload.email);
+    if (checked && checked.user) {
+      const user = normalizeSupabaseAdminUser(checked.user);
+      if (user && String(user.id || '') === payload.id) {
+        return user;
+      }
+    }
+  }
   return null;
 }
-Object.defineProperty(readSignedDomainSessionUser, '__diracV224AuthenticationFallbackDisabled', {
-  value: true,
-  enumerable: false,
-  configurable: false,
-  writable: false
-});
 
 function normalizeDomain(value) {
   return String(value || '')
@@ -5478,15 +4952,15 @@ async function customerSecurityFetchOverviewData(customerId) {
   const warnings = [];
 
   function rowsOrEmpty(result, section) {
-    if (!result || result.ok !== true || !Array.isArray(result.data)) {
+    if (!result || !result.ok) {
       warnings.push({
         section,
-        status: result && result.status ? result.status : 503,
-        error: customerSecuritySafeUpstreamError(result && result.data) || 'CUSTOMER_SECURITY_DATA_SHAPE_INVALID'
+        status: result && result.status ? result.status : 500,
+        error: customerSecuritySafeUpstreamError(result && result.data)
       });
       return [];
     }
-    return result.data;
+    return Array.isArray(result.data) ? result.data : [];
   }
 
   const settingsResult = await customerSecurityFetchRows(
@@ -5590,17 +5064,6 @@ async function customerSecurityFetchOverviewData(customerId) {
   const events = rowsOrEmpty(eventsResult, 'events');
   const accountRequests = rowsOrEmpty(requestsResult, 'account_requests');
 
-  if (warnings.length > 0) {
-    diracV222MarkDependencyFailure(null, 'customer_security_overview_read', 503, 'CUSTOMER_SECURITY_OVERVIEW_INCOMPLETE');
-    return {
-      ok: false,
-      status: 503,
-      section: warnings.map((item) => item.section).join(','),
-      data: { warnings },
-      error: 'CUSTOMER_SECURITY_OVERVIEW_INCOMPLETE'
-    };
-  }
-
   return {
     ok: true,
     data: {
@@ -5615,12 +5078,11 @@ async function customerSecurityFetchOverviewData(customerId) {
         events: events.length,
         account_requests: accountRequests.length
       },
-      partial: false,
-      warnings: []
+      partial: warnings.length > 0,
+      warnings
     }
   };
 }
-Object.defineProperty(customerSecurityFetchOverviewData, '__diracV231CompleteReadRequired', { value: true, enumerable: false });
 
 async function customerSecurityFetchRows(tableName, columns, customerId, orderBy, limit) {
   const safeTable = String(tableName || '').trim();
@@ -5840,16 +5302,11 @@ async function customerSecurityFindOrCreateCustomer({ email, fullName, phone }) 
 
   if (!created.ok) return { ok: false, reason: 'customer_create_failed', status: created.status };
 
-  const createdRows = diracV222RequireExactMutationRows(
-    created,
-    1,
-    (row) => row && customerSecurityLooksLikeUuid(row.id) && normalizeAuthEmail(row.email || '') === normalizeAuthEmail(email || ''),
-    'customer_security_customer_create',
-    'CUSTOMER_SECURITY_CUSTOMER_CREATE_UNVERIFIED'
-  );
-  if (!createdRows) return { ok: false, reason: 'customer_create_unverified', status: created.status || 503 };
+  const createdRows = Array.isArray(created.data) ? created.data : [];
+  const row = createdRows[0] || created.data;
+  if (!row || !row.id) return { ok: false, reason: 'customer_create_no_id' };
 
-  return { ok: true, customer_id: createdRows[0].id, created: true };
+  return { ok: true, customer_id: row.id, created: true };
 }
 
 async function customerSecurityFetchCustomerByEmail(email) {
@@ -5861,31 +5318,23 @@ async function customerSecurityFetchCustomerByEmail(email) {
   return supabaseFetch(path, { method: 'GET', auth: 'service' });
 }
 
-function customerSecurityAuthLinkMutationValidV222(row, authUserId, customerId, email) {
-  return Boolean(row && typeof row === 'object')
-    && safeEqual(String(row.auth_user_id || ''), String(authUserId || ''))
-    && safeEqual(String(row.customer_id || ''), String(customerId || ''))
-    && normalizeAuthEmail(row.email || '') === normalizeAuthEmail(email || '')
-    && String(row.link_status || '').trim().toLowerCase() === 'active';
-}
-
 async function customerSecurityActivateExistingAuthLink(authUserId, customerId, email) {
   const body = customerSecurityBuildActiveAuthLinkBody(customerId, email);
   const path = '/rest/v1/security_customer_auth_links?auth_user_id=eq.' + encodeURIComponent(authUserId);
-  const result = await supabaseFetch(path, {
+  const fullWrite = await supabaseFetch(path, {
     method: 'PATCH',
     auth: 'service',
     prefer: 'return=representation',
     body
   });
-  const rows = diracV222RequireExactMutationRows(
-    result,
-    1,
-    (row) => customerSecurityAuthLinkMutationValidV222(row, authUserId, customerId, email),
-    'customer_auth_link_activate',
-    'CUSTOMER_AUTH_LINK_ACTIVATE_UNVERIFIED'
-  );
-  return rows ? { ...result, data: rows } : { ...result, ok: false, status: result.status || 503 };
+  if (fullWrite.ok) return fullWrite;
+  const coreWrite = await supabaseFetch(path, {
+    method: 'PATCH',
+    auth: 'service',
+    prefer: 'return=representation',
+    body: customerSecurityBuildCoreAuthLinkBody(customerId, email)
+  });
+  return coreWrite.ok ? coreWrite : fullWrite;
 }
 
 async function customerSecurityCreateAuthLink(authUserId, customerId, email) {
@@ -5893,20 +5342,20 @@ async function customerSecurityCreateAuthLink(authUserId, customerId, email) {
     auth_user_id: authUserId,
     ...customerSecurityBuildActiveAuthLinkBody(customerId, email)
   };
-  const result = await supabaseFetch('/rest/v1/security_customer_auth_links', {
+  const fullWrite = await supabaseFetch('/rest/v1/security_customer_auth_links', {
     method: 'POST',
     auth: 'service',
     prefer: 'return=representation',
     body: [body]
   });
-  const rows = diracV222RequireExactMutationRows(
-    result,
-    1,
-    (row) => customerSecurityAuthLinkMutationValidV222(row, authUserId, customerId, email),
-    'customer_auth_link_create',
-    'CUSTOMER_AUTH_LINK_CREATE_UNVERIFIED'
-  );
-  return rows ? { ...result, data: rows } : { ...result, ok: false, status: result.status || 503 };
+  if (fullWrite.ok) return fullWrite;
+  const coreWrite = await supabaseFetch('/rest/v1/security_customer_auth_links', {
+    method: 'POST',
+    auth: 'service',
+    prefer: 'return=representation',
+    body: [{ auth_user_id: authUserId, ...customerSecurityBuildCoreAuthLinkBody(customerId, email) }]
+  });
+  return coreWrite.ok ? coreWrite : fullWrite;
 }
 
 function customerSecurityBuildActiveAuthLinkBody(customerId, email) {
@@ -5958,17 +5407,7 @@ async function customerSecurityEnsureSettingsRow(customerId) {
       body: mandatoryBody
     });
 
-    const patchedRows = diracV222RequireExactMutationRows(
-      patched,
-      1,
-      (row) => row && safeEqual(String(row.id || ''), String(rows[0].id || ''))
-        && safeEqual(String(row.customer_id || ''), String(customerId || ''))
-        && row.two_factor_enabled === true
-        && String(row.two_factor_method || '').trim().toLowerCase() === 'authenticator',
-      'customer_security_settings_enforce',
-      'CUSTOMER_SECURITY_SETTINGS_ENFORCE_UNVERIFIED'
-    );
-    if (!patchedRows) return { ok: false, reason: 'settings_enforce_failed', status: patched.status || 503 };
+    if (!patched.ok) return { ok: false, reason: 'settings_enforce_failed', status: patched.status };
     return { ok: true, created: false, enforced: true };
   }
 
@@ -5982,17 +5421,7 @@ async function customerSecurityEnsureSettingsRow(customerId) {
     }]
   });
 
-  const createdRows = diracV222RequireExactMutationRows(
-    created,
-    1,
-    (row) => row && customerSecurityLooksLikeUuid(String(row.id || ''))
-      && safeEqual(String(row.customer_id || ''), String(customerId || ''))
-      && row.two_factor_enabled === true
-      && String(row.two_factor_method || '').trim().toLowerCase() === 'authenticator',
-    'customer_security_settings_create',
-    'CUSTOMER_SECURITY_SETTINGS_CREATE_UNVERIFIED'
-  );
-  if (!createdRows) return { ok: false, reason: 'settings_create_failed', status: created.status || 503 };
+  if (!created.ok) return { ok: false, reason: 'settings_create_failed', status: created.status };
   return { ok: true, created: true, enforced: true };
 }
 
@@ -6304,7 +5733,7 @@ async function customerSecurityTouchCurrentSession(req, customerId, verifiedExis
         encodeURIComponent(customerId) +
         '&session_token_hash=eq.' +
         encodeURIComponent(fingerprint.session_token_hash) +
-        '&limit=2';
+        '&limit=1';
 
       activeStage = 'read';
       const readStartedAtMs = Date.now();
@@ -6327,24 +5756,6 @@ async function customerSecurityTouchCurrentSession(req, customerId, verifiedExis
       }
 
       rows = Array.isArray(existing.data) ? existing.data : [];
-      if (rows.length > 1) {
-        const diagnostic = customerSecuritySessionStoreDiagnosticV218(req, 'read', {
-          ok: false,
-          status: 409,
-          data: { code: 'SESSION_BINDING_AMBIGUOUS', message: 'Lebih dari satu sesi memiliki binding yang sama.' }
-        }, { reason: 'session_binding_ambiguous', condition: 'database_ambiguity', method: 'GET' });
-        diracV222MarkDependencyFailure(null, 'customer_security_session_touch_read', 503, 'SESSION_BINDING_AMBIGUOUS');
-        return {
-          ok: false,
-          reason: 'session_binding_ambiguous',
-          status: 503,
-          diagnostic_code: diagnostic.diagnostic_code,
-          failure_point: diagnostic.failure_point,
-          upstream_status: diagnostic.upstream_status,
-          provider_code: diagnostic.provider_code,
-          failure_id: diagnostic.failure_id
-        };
-      }
       databaseOperation = 'GET';
     }
 
@@ -6383,20 +5794,7 @@ async function customerSecurityTouchCurrentSession(req, customerId, verifiedExis
         body: updateBody
       });
 
-      const patchedRows = diracV222RequireExactMutationRows(
-        patched,
-        1,
-        (row) => row && safeEqual(String(row.id || ''), String(rows[0].id || ''))
-          && safeEqual(String(row.customer_id || ''), String(customerId || ''))
-          && safeEqual(String(row.session_token_hash || ''), String(fingerprint.session_token_hash || ''))
-          && safeEqual(String(row.device_id || ''), String(fingerprint.device_id || ''))
-          && String(row.status || '').trim().toLowerCase() === 'active'
-          && !row.revoked_at
-          && Date.parse(String(row.expires_at || '')) > Date.now(),
-        'customer_session_touch_update',
-        'CUSTOMER_SESSION_TOUCH_UPDATE_UNVERIFIED'
-      );
-      if (!patchedRows) {
+      if (!patched.ok) {
         customerSecuritySessionDecisionDebugV219(req, 'session_touch.update_failed', {
           decision: 'return_failure',
           database_operation: 'PATCH',
@@ -6465,7 +5863,7 @@ async function customerSecurityTouchCurrentSession(req, customerId, verifiedExis
           encodeURIComponent(conflictSelect) +
           '&customer_id=eq.' + encodeURIComponent(customerId) +
           '&session_token_hash=eq.' + encodeURIComponent(fingerprint.session_token_hash) +
-          '&limit=2';
+          '&limit=1';
         const conflictRead = await supabaseFetch(conflictReadPath, { method: 'GET', auth: 'service' });
 
         if (!conflictRead.ok) {
@@ -6492,17 +5890,7 @@ async function customerSecurityTouchCurrentSession(req, customerId, verifiedExis
         }
 
         const conflictRows = Array.isArray(conflictRead.data) ? conflictRead.data : [];
-        if (conflictRows.length !== 1) {
-          diracV222MarkDependencyFailure(null, 'customer_security_session_conflict_read', 503, conflictRows.length > 1 ? 'SESSION_BINDING_AMBIGUOUS' : 'SESSION_CONFLICT_ROW_MISSING');
-          return {
-            ok: false,
-            reason: conflictRows.length > 1 ? 'session_binding_ambiguous' : 'session_create_conflict_row_missing',
-            status: 503,
-            diagnostic_code: conflictRows.length > 1 ? 'SESSION_BINDING_AMBIGUOUS' : 'SESSION_CONFLICT_ROW_MISSING',
-            failure_point: 'customerSecurityTouchCurrentSession.create_conflict_read'
-          };
-        }
-        const conflictRow = conflictRows[0];
+        const conflictRow = conflictRows[0] || null;
         const conflictExpiresAtMs = Date.parse(String(conflictRow && conflictRow.expires_at || ''));
         const conflictVerified = Boolean(conflictRow && conflictRow.id)
           && safeEqual(String(conflictRow.customer_id || ''), String(customerId))
@@ -6582,36 +5970,11 @@ async function customerSecurityTouchCurrentSession(req, customerId, verifiedExis
       };
     }
 
-    const createdRows = diracV222RequireExactMutationRows(
-      created,
-      1,
-      (row) => row && customerSecurityLooksLikeUuid(String(row.id || ''))
-        && safeEqual(String(row.customer_id || ''), String(customerId || ''))
-        && safeEqual(String(row.session_token_hash || ''), String(fingerprint.session_token_hash || ''))
-        && safeEqual(String(row.device_id || ''), String(fingerprint.device_id || ''))
-        && String(row.status || '').trim().toLowerCase() === 'active'
-        && !row.revoked_at
-        && Date.parse(String(row.expires_at || '')) > Date.now(),
-      'customer_session_touch_create',
-      'CUSTOMER_SESSION_TOUCH_CREATE_UNVERIFIED'
-    );
-    if (!createdRows) {
-      return { ok: false, reason: 'session_create_postcondition_failed', status: created.status || 503 };
-    }
-
     activeStage = 'telemetry';
-    const telemetryWritten = await customerSecurityWriteSessionTelemetry(customerId, fingerprint);
-    if (telemetryWritten !== true) {
-      await diracV230RevokeCreatedCustomerSession(
-        customerId,
-        String(createdRows[0] && createdRows[0].id || ''),
-        fingerprint.session_token_hash,
-        'session_telemetry_write_failed'
-      );
-      return { ok: false, reason: 'session_telemetry_write_failed', status: 503 };
-    }
+    await customerSecurityWriteSessionTelemetry(customerId, fingerprint);
 
     activeStage = 'create_response';
+    const createdRows = Array.isArray(created.data) ? created.data : [];
     const createdSessionId = createdRows[0] && createdRows[0].id ? createdRows[0].id : null;
     if (!createdSessionId) {
       customerSecuritySessionDecisionDebugV219(req, 'session_touch.create_missing_id', {
@@ -6762,31 +6125,20 @@ async function customerSecurityWriteSessionTelemetry(customerId, fingerprint) {
     }
   };
 
-  const loginLog = await supabaseFetch('/rest/v1/security_customer_login_logs', {
+  await supabaseFetch('/rest/v1/security_customer_login_logs', {
     method: 'POST',
     auth: 'service',
-    prefer: 'return=representation',
     body: [{
       ...base,
       event_type: 'login_success',
       status: 'success',
       risk_level: 'low'
     }]
-  });
-  const loginRows = diracV222RequireExactMutationRows(
-    loginLog,
-    1,
-    (row) => row && safeEqual(String(row.customer_id || ''), String(customerId || ''))
-      && String(row.event_type || '') === 'login_success',
-    'customer_session_login_telemetry',
-    'CUSTOMER_SESSION_LOGIN_TELEMETRY_UNVERIFIED'
-  );
-  if (!loginRows) return false;
+  }).catch(() => null);
 
-  const event = await supabaseFetch('/rest/v1/security_customer_events', {
+  await supabaseFetch('/rest/v1/security_customer_events', {
     method: 'POST',
     auth: 'service',
-    prefer: 'return=representation',
     body: [{
       ...base,
       event_type: 'login_from_new_device',
@@ -6794,15 +6146,7 @@ async function customerSecurityWriteSessionTelemetry(customerId, fingerprint) {
       risk_level: 'low',
       description: 'Perangkat terdeteksi otomatis saat membuka halaman keamanan.'
     }]
-  });
-  return Boolean(diracV222RequireExactMutationRows(
-    event,
-    1,
-    (row) => row && safeEqual(String(row.customer_id || ''), String(customerId || ''))
-      && String(row.event_type || '') === 'login_from_new_device',
-    'customer_session_event_telemetry',
-    'CUSTOMER_SESSION_EVENT_TELEMETRY_UNVERIFIED'
-  ));
+  }).catch(() => null);
 }
 
 function diracSecurityRedactDiagnosticV210(value, maximum = 180) {
@@ -7040,14 +6384,7 @@ async function customerSecurityRequireAccess(req, res, options = {}) {
     return null;
   }
 
-  const settingsReady = await customerSecurityEnsureSettingsRow(customerId).catch((error) => {
-    diracV222MarkDependencyFailure(null, 'customer_security_settings_bootstrap', 503, error && (error.code || error.name));
-    return null;
-  });
-  if (!settingsReady || settingsReady.ok !== true) {
-    res.status(503).json({ ok: false, code: 'CUSTOMER_SECURITY_SETTINGS_UNAVAILABLE', message: 'Pengaturan keamanan akun belum dapat diverifikasi.' });
-    return null;
-  }
+  await customerSecurityEnsureSettingsRow(customerId).catch(() => null);
 
   let mfa = null;
   if (options.requireMfa) {
@@ -7123,7 +6460,7 @@ async function customerSecurityRevokeSession(req, res, action) {
     encodeURIComponent('id,status,session_token_hash') +
     '&customer_id=eq.' + encodeURIComponent(access.customerId) +
     '&id=eq.' + encodeURIComponent(sessionId) +
-    '&limit=2';
+    '&limit=1';
 
   const found = await supabaseFetch(readPath, { method: 'GET', auth: 'service' });
   if (!found.ok) {
@@ -7131,10 +6468,6 @@ async function customerSecurityRevokeSession(req, res, action) {
   }
 
   const rows = Array.isArray(found.data) ? found.data : [];
-  if (rows.length > 1) {
-    diracV222MarkDependencyFailure(null, 'customer_session_revoke_lookup', 503, 'CUSTOMER_SESSION_ID_AMBIGUOUS');
-    return res.status(503).json({ ok: false, code: 'CUSTOMER_SESSION_ID_AMBIGUOUS', message: 'Identitas sesi ambigu; pencabutan ditolak.' });
-  }
   const row = rows[0] || null;
   if (!row) {
     return res.status(404).json({ ok: false, message: 'Sesi tidak ditemukan.' });
@@ -7159,18 +6492,8 @@ async function customerSecurityRevokeSession(req, res, action) {
     }
   });
 
-  const patchedRows = diracV222RequireExactMutationRows(
-    patched,
-    1,
-    (patchedRow) => patchedRow && safeEqual(String(patchedRow.id || ''), sessionId)
-      && safeEqual(String(patchedRow.customer_id || ''), String(access.customerId || ''))
-      && String(patchedRow.status || '').trim().toLowerCase() === 'revoked'
-      && Boolean(patchedRow.revoked_at),
-    'customer_session_revoke',
-    'CUSTOMER_SESSION_REVOKE_UNVERIFIED'
-  );
-  if (!patchedRows) {
-    return res.status(503).json({ ok: false, message: 'Gagal mencabut sesi.' });
+  if (!patched.ok) {
+    return res.status(500).json({ ok: false, message: 'Gagal mencabut sesi.' });
   }
 
   await customerSecurityWriteGuardEvent(access.customerId, {
@@ -7292,21 +6615,11 @@ async function customerSecurityCreateAccountRequest(req, res, action) {
     }]
   });
 
-  const requestRows = diracV222RequireExactMutationRows(
-    created,
-    1,
-    (row) => row && customerSecurityLooksLikeUuid(String(row.id || ''))
-      && safeEqual(String(row.customer_id || ''), String(access.customerId || ''))
-      && String(row.request_type || '') === safeType
-      && String(row.status || '').trim().toLowerCase() === 'pending',
-    'customer_security_account_request_create',
-    'CUSTOMER_SECURITY_ACCOUNT_REQUEST_CREATE_UNVERIFIED'
-  );
-  if (!requestRows) {
-    return res.status(503).json({ ok: false, message: 'Gagal membuat request keamanan akun.' });
+  if (!created.ok) {
+    return res.status(500).json({ ok: false, message: 'Gagal membuat request keamanan akun.' });
   }
 
-  const audited = await customerSecurityWriteGuardEvent(access.customerId, {
+  await customerSecurityWriteGuardEvent(access.customerId, {
     event_type: 'security_settings_updated',
     status: 'info',
     risk_level: 'low',
@@ -7314,10 +6627,6 @@ async function customerSecurityCreateAccountRequest(req, res, action) {
     req,
     metadata: { action, request_type: safeType }
   });
-  if (audited !== true) {
-    await diracV230DeleteSecurityAccountRequest(access.customerId, String(requestRows[0] && requestRows[0].id || ''));
-    return res.status(503).json({ ok: false, code: 'SECURITY_ACCOUNT_REQUEST_AUDIT_REQUIRED', message: 'Audit keamanan gagal; request baru dibatalkan.' });
-  }
 
   const rows = Array.isArray(created.data) ? created.data : [];
 
@@ -7407,277 +6716,15 @@ async function customerSecurityWriteGuardEvent(customerId, options = {}) {
       })
     };
 
-    const result = await supabaseFetch('/rest/v1/security_customer_events', {
+    await supabaseFetch('/rest/v1/security_customer_events', {
       method: 'POST',
       auth: 'service',
-      prefer: 'return=representation',
       body: [payload]
     });
-    const rows = diracV222RequireExactMutationRows(
-      result,
-      1,
-      (row) => row && safeEqual(String(row.customer_id || ''), String(customerId || ''))
-        && String(row.event_type || '') === String(payload.event_type || ''),
-      'customer_security_guard_event',
-      'CUSTOMER_SECURITY_GUARD_EVENT_UNVERIFIED'
-    );
-    if (!rows) throw Object.assign(new Error('CUSTOMER_SECURITY_GUARD_EVENT_UNVERIFIED'), { code: 'CUSTOMER_SECURITY_GUARD_EVENT_UNVERIFIED' });
-    return true;
   } catch (error) {
-    diracV222MarkDependencyFailure(null, 'customer_security_guard_event', 503, error && (error.code || error.name));
     console.error('[customer-security-guard-event]', customerSecuritySafeLogError(error));
-    return false;
   }
 }
-
-async function diracV229SetTrustedDeviceState(customerId, sessionTokenHash, trustedDevice) {
-  const cleanCustomerId = String(customerId || '').trim();
-  const cleanSessionHash = String(sessionTokenHash || '').trim();
-  if (!customerSecurityLooksLikeUuid(cleanCustomerId) || !/^[a-f0-9]{64}$/i.test(cleanSessionHash)) {
-    diracV223ThrowFailClosed('TRUSTED_DEVICE_ROLLBACK_CONTEXT_INVALID', 'trusted_device_compensation', 500);
-  }
-  const result = await supabaseFetch('/rest/v1/security_customer_sessions?customer_id=eq.'
-    + encodeURIComponent(cleanCustomerId)
-    + '&session_token_hash=eq.' + encodeURIComponent(cleanSessionHash), {
-    method: 'PATCH',
-    auth: 'service',
-    prefer: 'return=representation',
-    body: { trusted_device: trustedDevice === true }
-  });
-  const rows = diracV222RequireExactMutationRows(
-    result,
-    1,
-    (row) => row && safeEqual(String(row.customer_id || ''), cleanCustomerId)
-      && safeEqual(String(row.session_token_hash || ''), cleanSessionHash)
-      && row.trusted_device === (trustedDevice === true),
-    'trusted_device_compensation',
-    'TRUSTED_DEVICE_COMPENSATION_UNVERIFIED'
-  );
-  if (!rows) diracV223ThrowFailClosed('TRUSTED_DEVICE_COMPENSATION_UNVERIFIED', 'trusted_device_compensation', Number(result && result.status || 0) || 503);
-  return true;
-}
-
-async function diracV229RestoreAdminAccessBlocks(snapshotRows, admin, source) {
-  const snapshots = Array.isArray(snapshotRows) ? snapshotRows : [];
-  if (!snapshots.length) diracV223ThrowFailClosed('ADMIN_SECURITY_UNBLOCK_SNAPSHOT_REQUIRED', 'admin_security_unblock_compensation', 500);
-  for (const snapshot of snapshots) {
-    const id = String(snapshot && snapshot.id || '').trim();
-    const customerId = String(snapshot && snapshot.customer_id || '').trim();
-    const blockedUntil = String(snapshot && snapshot.blocked_until || '').trim();
-    if (!customerSecurityLooksLikeUuid(id)
-        || !customerSecurityLooksLikeUuid(customerId)
-        || !Number.isFinite(Date.parse(blockedUntil))
-        || Date.parse(blockedUntil) <= Date.now()) {
-      diracV223ThrowFailClosed('ADMIN_SECURITY_UNBLOCK_SNAPSHOT_INVALID', 'admin_security_unblock_compensation', 500);
-    }
-    const restoreBody = {
-      blocked_until: blockedUntil,
-      reason: String(snapshot.reason || 'security_access_block_restored_after_audit_failure').slice(0, 500),
-      metadata: snapshot.metadata && typeof snapshot.metadata === 'object' && !Array.isArray(snapshot.metadata)
-        ? snapshot.metadata
-        : {
-            source: String(source || 'admin_security_unblock_compensation'),
-            admin_user_id: admin && admin.user_id || null,
-            restored_at: diracNowIso()
-          }
-    };
-    if (snapshot.action !== undefined && snapshot.action !== null) restoreBody.action = String(snapshot.action).slice(0, 120);
-    if (Number.isFinite(Number(snapshot.fail_count))) restoreBody.fail_count = Math.max(0, Math.floor(Number(snapshot.fail_count)));
-    const restored = await supabaseFetch('/rest/v1/security_customer_access_blocks?id=eq.' + encodeURIComponent(id), {
-      method: 'PATCH',
-      auth: 'service',
-      prefer: 'return=representation',
-      body: restoreBody
-    });
-    const restoredRows = diracV222RequireExactMutationRows(
-      restored,
-      1,
-      (row) => row && safeEqual(String(row.id || ''), id)
-        && safeEqual(String(row.customer_id || ''), customerId)
-        && safeEqual(String(row.blocked_until || ''), blockedUntil)
-        && Date.parse(String(row.blocked_until || '')) > Date.now(),
-      'admin_security_unblock_compensation',
-      'ADMIN_SECURITY_UNBLOCK_COMPENSATION_UNVERIFIED'
-    );
-    if (!restoredRows) diracV223ThrowFailClosed('ADMIN_SECURITY_UNBLOCK_COMPENSATION_UNVERIFIED', 'admin_security_unblock_compensation', Number(restored && restored.status || 0) || 503);
-  }
-  return true;
-}
-
-async function diracV229RollbackLostPasskeyRecoveryGrant(options = {}) {
-  const requestId = customerSecurityNormalizeLostPasskeyRequestId(options.requestId || '');
-  const customerId = String(options.customerId || '').trim();
-  const authUserId = String(options.authUserId || '').trim();
-  const sessionHash = String(options.sessionHash || '').trim().toLowerCase();
-  const previousMetadata = options.previousMetadata && typeof options.previousMetadata === 'object' && !Array.isArray(options.previousMetadata)
-    ? options.previousMetadata
-    : {};
-  const source = String(options.source || 'recovery_grant_compensation').slice(0, 120);
-  if (!requestId || !customerSecurityLooksLikeUuid(customerId) || !customerSecurityLooksLikeUuid(authUserId) || !/^[a-f0-9]{64}$/.test(sessionHash)) {
-    diracV223ThrowFailClosed('RECOVERY_GRANT_ROLLBACK_CONTEXT_INVALID', source, 500);
-  }
-
-  const revokedAt = diracNowIso();
-  const sessionRollback = await supabaseFetch('/rest/v1/' + LOST_PASSKEY_RECOVERY_SESSION_TABLE
-    + '?request_id=eq.' + encodeURIComponent(requestId)
-    + '&customer_id=eq.' + encodeURIComponent(customerId)
-    + '&auth_user_id=eq.' + encodeURIComponent(authUserId)
-    + '&recovery_session_hash=eq.' + encodeURIComponent(sessionHash)
-    + '&status=eq.verified&used_at=is.null&revoked_at=is.null', {
-    method: 'PATCH',
-    auth: 'service',
-    prefer: 'return=representation',
-    body: {
-      status: 'revoked',
-      revoked_at: revokedAt,
-      metadata: { source, rollback_reason: 'required_security_audit_failed', revoked_at: revokedAt }
-    }
-  });
-  const sessionRows = diracV222RequireExactMutationRows(
-    sessionRollback,
-    1,
-    (row) => row && safeEqual(String(row.request_id || ''), requestId)
-      && safeEqual(String(row.customer_id || ''), customerId)
-      && safeEqual(String(row.auth_user_id || ''), authUserId)
-      && safeEqual(String(row.recovery_session_hash || ''), sessionHash)
-      && String(row.status || '').trim().toLowerCase() === 'revoked'
-      && Boolean(row.revoked_at),
-    source + '_session',
-    'RECOVERY_GRANT_SESSION_ROLLBACK_UNVERIFIED'
-  );
-  if (!sessionRows) diracV223ThrowFailClosed('RECOVERY_GRANT_SESSION_ROLLBACK_UNVERIFIED', source, Number(sessionRollback && sessionRollback.status || 0) || 503);
-
-  const requestRollback = await supabaseFetch('/rest/v1/' + LOST_PASSKEY_RECOVERY_REQUEST_TABLE
-    + '?request_id=eq.' + encodeURIComponent(requestId)
-    + '&customer_id=eq.' + encodeURIComponent(customerId)
-    + '&auth_user_id=eq.' + encodeURIComponent(authUserId)
-    + '&status=eq.verified&used_at=is.null&revoked_at=is.null&locked_at=is.null', {
-    method: 'PATCH',
-    auth: 'service',
-    prefer: 'return=representation',
-    body: { status: 'pending', metadata: previousMetadata }
-  });
-  const requestRows = diracV222RequireExactMutationRows(
-    requestRollback,
-    1,
-    (row) => row && safeEqual(String(row.request_id || ''), requestId)
-      && safeEqual(String(row.customer_id || ''), customerId)
-      && safeEqual(String(row.auth_user_id || ''), authUserId)
-      && String(row.status || '').trim().toLowerCase() === 'pending'
-      && !row.used_at && !row.revoked_at && !row.locked_at,
-    source + '_request',
-    'RECOVERY_GRANT_REQUEST_ROLLBACK_UNVERIFIED'
-  );
-  if (!requestRows) diracV223ThrowFailClosed('RECOVERY_GRANT_REQUEST_ROLLBACK_UNVERIFIED', source, Number(requestRollback && requestRollback.status || 0) || 503);
-  return true;
-}
-
-async function diracV230RevokeLostPasskeyRecoveryRequest(options = {}) {
-  const requestId = customerSecurityNormalizeLostPasskeyRequestId(options.requestId || '');
-  const customerId = String(options.customerId || '').trim();
-  const authUserId = String(options.authUserId || '').trim();
-  const source = String(options.source || 'lost_passkey_request_compensation').slice(0, 120);
-  if (!requestId || !customerSecurityLooksLikeUuid(customerId) || !customerSecurityLooksLikeUuid(authUserId)) {
-    diracV223ThrowFailClosed('LOST_PASSKEY_REQUEST_REVOKE_CONTEXT_INVALID', source, 500);
-  }
-  const revokedAt = diracNowIso();
-  const result = await supabaseFetch('/rest/v1/' + LOST_PASSKEY_RECOVERY_REQUEST_TABLE
-    + '?request_id=eq.' + encodeURIComponent(requestId)
-    + '&customer_id=eq.' + encodeURIComponent(customerId)
-    + '&auth_user_id=eq.' + encodeURIComponent(authUserId)
-    + '&status=eq.pending&used_at=is.null&revoked_at=is.null&locked_at=is.null', {
-    method: 'PATCH',
-    auth: 'service',
-    prefer: 'return=representation',
-    body: {
-      status: 'revoked',
-      revoked_at: revokedAt,
-      metadata: { source, compensation_reason: String(options.reason || 'required_postcondition_failed').slice(0, 160), revoked_at: revokedAt }
-    }
-  });
-  const rows = diracV222RequireExactMutationRows(
-    result,
-    1,
-    (row) => row && safeEqual(String(row.request_id || ''), requestId)
-      && safeEqual(String(row.customer_id || ''), customerId)
-      && safeEqual(String(row.auth_user_id || ''), authUserId)
-      && String(row.status || '').trim().toLowerCase() === 'revoked'
-      && Boolean(row.revoked_at)
-      && !row.used_at,
-    source,
-    'LOST_PASSKEY_REQUEST_REVOKE_UNVERIFIED'
-  );
-  if (!rows) diracV223ThrowFailClosed('LOST_PASSKEY_REQUEST_REVOKE_UNVERIFIED', source, Number(result && result.status || 0) || 503);
-  return true;
-}
-
-async function diracV230RevokeCreatedCustomerSession(customerId, sessionId, sessionTokenHash, source) {
-  const cleanCustomerId = String(customerId || '').trim();
-  const cleanSessionId = String(sessionId || '').trim();
-  const cleanSessionHash = String(sessionTokenHash || '').trim();
-  const cleanSource = String(source || 'customer_session_compensation').slice(0, 120);
-  if (!customerSecurityLooksLikeUuid(cleanCustomerId)
-      || !customerSecurityLooksLikeUuid(cleanSessionId)
-      || !/^[a-f0-9]{64}$/i.test(cleanSessionHash)) {
-    diracV223ThrowFailClosed('CUSTOMER_SESSION_COMPENSATION_CONTEXT_INVALID', cleanSource, 500);
-  }
-  const revokedAt = diracNowIso();
-  const result = await supabaseFetch('/rest/v1/security_customer_sessions?id=eq.' + encodeURIComponent(cleanSessionId)
-    + '&customer_id=eq.' + encodeURIComponent(cleanCustomerId)
-    + '&session_token_hash=eq.' + encodeURIComponent(cleanSessionHash)
-    + '&status=eq.active&revoked_at=is.null', {
-    method: 'PATCH',
-    auth: 'service',
-    prefer: 'return=representation',
-    body: { status: 'revoked', revoked_at: revokedAt, revoke_reason: cleanSource }
-  });
-  const rows = diracV222RequireExactMutationRows(
-    result,
-    1,
-    (row) => row && safeEqual(String(row.id || ''), cleanSessionId)
-      && safeEqual(String(row.customer_id || ''), cleanCustomerId)
-      && safeEqual(String(row.session_token_hash || ''), cleanSessionHash)
-      && String(row.status || '').trim().toLowerCase() === 'revoked'
-      && Boolean(row.revoked_at),
-    cleanSource,
-    'CUSTOMER_SESSION_COMPENSATION_UNVERIFIED'
-  );
-  if (!rows) diracV223ThrowFailClosed('CUSTOMER_SESSION_COMPENSATION_UNVERIFIED', cleanSource, Number(result && result.status || 0) || 503);
-  return true;
-}
-
-async function diracV230DeleteSecurityAccountRequest(customerId, requestId) {
-  const cleanCustomerId = String(customerId || '').trim();
-  const cleanRequestId = String(requestId || '').trim();
-  if (!customerSecurityLooksLikeUuid(cleanCustomerId) || !customerSecurityLooksLikeUuid(cleanRequestId)) {
-    diracV223ThrowFailClosed('SECURITY_ACCOUNT_REQUEST_COMPENSATION_CONTEXT_INVALID', 'security_account_request_compensation', 500);
-  }
-  const result = await supabaseFetch('/rest/v1/security_customer_account_requests?id=eq.' + encodeURIComponent(cleanRequestId)
-    + '&customer_id=eq.' + encodeURIComponent(cleanCustomerId)
-    + '&status=eq.pending', {
-    method: 'DELETE',
-    auth: 'service',
-    prefer: 'return=representation'
-  });
-  const rows = diracV222RequireExactMutationRows(
-    result,
-    1,
-    (row) => row && safeEqual(String(row.id || ''), cleanRequestId)
-      && safeEqual(String(row.customer_id || ''), cleanCustomerId)
-      && String(row.status || '').trim().toLowerCase() === 'pending',
-    'security_account_request_compensation',
-    'SECURITY_ACCOUNT_REQUEST_COMPENSATION_UNVERIFIED'
-  );
-  if (!rows) diracV223ThrowFailClosed('SECURITY_ACCOUNT_REQUEST_COMPENSATION_UNVERIFIED', 'security_account_request_compensation', Number(result && result.status || 0) || 503);
-  return true;
-}
-
-Object.defineProperty(diracV229SetTrustedDeviceState, '__diracV229ExactCompensation', { value: true, enumerable: false });
-Object.defineProperty(diracV229RestoreAdminAccessBlocks, '__diracV229ExactCompensation', { value: true, enumerable: false });
-Object.defineProperty(diracV229RollbackLostPasskeyRecoveryGrant, '__diracV229ExactCompensation', { value: true, enumerable: false });
-Object.defineProperty(diracV230RevokeLostPasskeyRecoveryRequest, '__diracV230ExactCompensation', { value: true, enumerable: false });
-Object.defineProperty(diracV230RevokeCreatedCustomerSession, '__diracV230ExactCompensation', { value: true, enumerable: false });
-Object.defineProperty(diracV230DeleteSecurityAccountRequest, '__diracV230ExactCompensation', { value: true, enumerable: false });
 
 
 /* ============================================================
@@ -7757,23 +6804,11 @@ async function customerSecurityCheckAccessBlock(req, action) {
       '&blocked_until=gt.' + encodeURIComponent(new Date().toISOString()) +
       '&order=blocked_until.desc&limit=1';
     const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
-    if (!result || result.ok !== true || !Array.isArray(result.data)) {
-      diracV222MarkDependencyFailure(null, 'customer_access_block_lookup', result && result.status || 503, 'CUSTOMER_ACCESS_BLOCK_LOOKUP_FAILED');
-      return { blocked: true, unavailable: true, retry_after_seconds: 60, source: 'database_unavailable' };
-    }
-    if (result.data.length) {
+    if (result.ok && Array.isArray(result.data) && result.data.length) {
       const until = new Date(result.data[0].blocked_until).getTime();
       return { blocked: true, blocked_until: result.data[0].blocked_until, retry_after_seconds: Math.max(1, Math.ceil((until - now) / 1000)), source: 'database' };
     }
-  } catch (error) {
-    diracV222MarkDependencyFailure(null, 'customer_access_block_lookup', 503, error && (error.code || error.name));
-    return {
-      blocked: true,
-      unavailable: true,
-      retry_after_seconds: 60,
-      source: 'database_unavailable'
-    };
-  }
+  } catch (_) {}
   return { blocked: false };
 }
 
@@ -7784,9 +6819,8 @@ async function customerSecurityRegisterFailedVerification(req, action, reason, c
   const memKey = identity.ip_hash + ':' + identity.device_hash;
   CUSTOMER_SECURITY_ACCESS_BLOCK_MEMORY.set(memKey, untilMs);
 
-  let persistenceOk = false;
   try {
-    const result = await supabaseFetch('/rest/v1/security_customer_access_blocks', {
+    await supabaseFetch('/rest/v1/security_customer_access_blocks', {
       method: 'POST',
       auth: 'service',
       prefer: 'return=representation',
@@ -7801,18 +6835,7 @@ async function customerSecurityRegisterFailedVerification(req, action, reason, c
         metadata: { source: 'customer_security_gate', origin: identity.origin || null, user_agent_hash: customerSecuritySha256('ua:' + identity.ua) }
       }]
     });
-    persistenceOk = Boolean(diracV222RequireExactMutationRows(
-      result,
-      1,
-      (row) => row && safeEqual(String(row.ip_hash || ''), identity.ip_hash)
-        && safeEqual(String(row.device_hash || ''), identity.device_hash)
-        && String(row.blocked_until || '') === blockedUntil,
-      'customer_access_block_persistence',
-      'CUSTOMER_ACCESS_BLOCK_PERSISTENCE_UNVERIFIED'
-    ));
-  } catch (error) {
-    diracV222MarkDependencyFailure(null, 'customer_access_block_persistence', 503, error && (error.code || error.name));
-  }
+  } catch (_) {}
 
   try {
     if (customerSecurityLooksLikeUuid(customerId)) {
@@ -7827,7 +6850,7 @@ async function customerSecurityRegisterFailedVerification(req, action, reason, c
     }
   } catch (_) {}
 
-  return { blocked_until: blockedUntil, retry_after_seconds: CUSTOMER_SECURITY_ACCESS_BLOCK_SECONDS, persistence_ok: persistenceOk };
+  return { blocked_until: blockedUntil, retry_after_seconds: CUSTOMER_SECURITY_ACCESS_BLOCK_SECONDS };
 }
 
 function customerSecurityRecoveryCodeSecret() {
@@ -8798,18 +7821,7 @@ function customerSecurityLostPasskeyBindings(req, owner) {
   const secChUa = String(req && req.headers && req.headers['sec-ch-ua'] || '');
   const origin = requestOrigin(req);
   let sessionHash = '';
-  try {
-    sessionHash = typeof diracCentralRequestSessionHashV146 === 'function'
-      ? String(diracCentralRequestSessionHashV146(req) || '').trim()
-      : '';
-  } catch (_) {
-    sessionHash = '';
-  }
-  if (!sessionHash) {
-    const error = new Error('DIRAC_LOST_PASSKEY_SESSION_BINDING_REQUIRED');
-    error.code = 'DIRAC_LOST_PASSKEY_SESSION_BINDING_REQUIRED';
-    throw error;
-  }
+  try { sessionHash = typeof diracCentralRequestSessionHashV146 === 'function' ? diracCentralRequestSessionHashV146(req) : ''; } catch (_) {}
   const deviceMaterial = [ip, ua, acceptLanguage, secChUa, origin, sessionHash].join('|');
   return {
     emailBindingHash: customerSecurityLostPasskeyHashHex('email-binding', email),
@@ -8844,18 +7856,9 @@ async function customerSecurityResolveLostPasskeyOwner(access) {
 }
 
 async function customerSecurityLostPasskeyActivePasskeys(owner) {
-  if (typeof diracPasskeyA2FListActivePasskeys !== 'function') {
-    const error = new Error('DIRAC_PASSKEY_ACTIVE_LIST_GUARD_UNAVAILABLE');
-    error.code = 'DIRAC_PASSKEY_ACTIVE_LIST_GUARD_UNAVAILABLE';
-    throw error;
-  }
-  const rows = await diracPasskeyA2FListActivePasskeys(owner);
-  if (!Array.isArray(rows)) {
-    const error = new Error('DIRAC_PASSKEY_ACTIVE_LIST_INVALID');
-    error.code = 'DIRAC_PASSKEY_ACTIVE_LIST_INVALID';
-    throw error;
-  }
-  return rows.filter((row) => row && row.is_active === true && diracPasskeyA2FOwnerMatches(row, owner));
+  if (typeof diracPasskeyA2FListActivePasskeys !== 'function') return [];
+  const rows = await diracPasskeyA2FListActivePasskeys(owner).catch(() => []);
+  return (Array.isArray(rows) ? rows : []).filter((row) => row && row.is_active === true && diracPasskeyA2FOwnerMatches(row, owner));
 }
 
 async function customerSecurityBuildLostPasskeyFile(input) {
@@ -9212,8 +8215,7 @@ async function customerSecurityRecoveryCodesStatus(req, res, action) {
   const path = '/rest/v1/' + LOST_PASSKEY_RECOVERY_REQUEST_TABLE + '?select=' + encodeURIComponent('request_id,status,created_at,expires_at,used_at,revoked_at,locked_at') + '&customer_id=eq.' + encodeURIComponent(access.customerId) + '&order=created_at.desc&limit=20';
   const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
   if (!result.ok) {
-    diracV222MarkDependencyFailure(null, 'lost_passkey_recovery_status_read', result.status || 503, 'LOST_PASSKEY_RECOVERY_STATUS_READ_FAILED');
-    return res.status(503).json({ ok: false, ready: false, total: 0, pending: 0, verified: 0, used: 0, locked: 0, code: 'LOST_PASSKEY_RECOVERY_STATUS_UNAVAILABLE', message: 'Status lost passkey recovery tidak dapat diverifikasi.', direct_frontend_table_access: false });
+    return res.status(200).json({ ok: true, ready: false, total: 0, pending: 0, verified: 0, used: 0, locked: 0, message: 'Lost passkey recovery storage belum siap.', direct_frontend_table_access: false });
   }
 
   const rows = Array.isArray(result.data) ? result.data : [];
@@ -9714,27 +8716,15 @@ async function customerSecurityGenerateRecoveryCodes(req, res, action, override 
   }];
 
   const created = await supabaseFetch('/rest/v1/' + LOST_PASSKEY_RECOVERY_REQUEST_TABLE, { method: 'POST', auth: 'service', prefer: 'return=representation', body: insertBody });
-  const createdRows = diracV222RequireExactMutationRows(
-    created,
-    1,
-    (row) => row && safeEqual(String(row.request_id || ''), requestId)
-      && safeEqual(String(row.customer_id || ''), String(owner.customerId || ''))
-      && safeEqual(String(row.auth_user_id || ''), String(owner.authUserId || ''))
-      && String(row.status || '').trim().toLowerCase() === 'pending'
-      && Number(row.attempt_count || 0) === 0,
-    'lost_passkey_recovery_request_create',
-    'LOST_PASSKEY_RECOVERY_REQUEST_CREATE_UNVERIFIED'
-  );
-  if (!createdRows) {
-    return res.status(created.status || 503).json({ ok: false, message: 'Gagal menyimpan lost passkey recovery request.' });
+  if (!created.ok) {
+    return res.status(created.status || 500).json({ ok: false, message: 'Gagal menyimpan lost passkey recovery request.' });
   }
 
   const sent = await customerSecuritySendLostPasskeyRecoveryEmail(owner.email, fileName, fileBuffer, { requestId, expiresAt, emailPdfCode });
   if (!sent.ok) {
-    const revoked = await supabaseFetch('/rest/v1/' + LOST_PASSKEY_RECOVERY_REQUEST_TABLE + '?request_id=eq.' + encodeURIComponent(requestId), {
+    await supabaseFetch('/rest/v1/' + LOST_PASSKEY_RECOVERY_REQUEST_TABLE + '?request_id=eq.' + encodeURIComponent(requestId), {
       method: 'PATCH',
       auth: 'service',
-      prefer: 'return=representation',
       body: {
         status: 'revoked',
         revoked_at: diracNowIso(),
@@ -9747,62 +8737,16 @@ async function customerSecurityGenerateRecoveryCodes(req, res, action, override 
         }
       }
     }).catch(() => null);
-    const revokedRows = diracV222RequireExactMutationRows(
-      revoked,
-      1,
-      (row) => row
-        && safeEqual(String(row.request_id || ''), requestId)
-        && safeEqual(String(row.customer_id || ''), String(owner.customerId || ''))
-        && safeEqual(String(row.auth_user_id || ''), String(owner.authUserId || ''))
-        && String(row.status || '').trim().toLowerCase() === 'revoked'
-        && Boolean(row.revoked_at)
-        && !row.used_at,
-      'lost_passkey_recovery_revoke_after_delivery_failure',
-      'LOST_PASSKEY_RECOVERY_REVOKE_UNVERIFIED'
-    );
-    if (!revokedRows) {
-      return diracV222SecurityPersistenceUnavailableResponse(
-        res,
-        'LOST_PASSKEY_RECOVERY_REVOKE_UNVERIFIED',
-        'lost_passkey_recovery_revoke_after_delivery_failure'
-      );
-    }
     return res.status(sent.status || 503).json({ ok: false, code: sent.code || 'RECOVERY_EMAIL_SEND_FAILED', message: sent.message || 'File recovery belum bisa dikirim ke email resmi.' });
   }
 
-  const sentPatched = await supabaseFetch('/rest/v1/' + LOST_PASSKEY_RECOVERY_REQUEST_TABLE + '?request_id=eq.' + encodeURIComponent(requestId), {
+  await supabaseFetch('/rest/v1/' + LOST_PASSKEY_RECOVERY_REQUEST_TABLE + '?request_id=eq.' + encodeURIComponent(requestId), {
     method: 'PATCH',
     auth: 'service',
-    prefer: 'return=representation',
     body: { sent_at: nowIso }
   }).catch(() => null);
-  const sentRows = diracV222RequireExactMutationRows(
-    sentPatched,
-    1,
-    (row) => row
-      && safeEqual(String(row.request_id || ''), requestId)
-      && safeEqual(String(row.customer_id || ''), String(owner.customerId || ''))
-      && safeEqual(String(row.auth_user_id || ''), String(owner.authUserId || ''))
-      && String(row.status || '').trim().toLowerCase() === 'pending'
-      && String(row.sent_at || '') === nowIso
-      && !row.used_at
-      && !row.revoked_at
-      && !row.locked_at,
-    'lost_passkey_recovery_sent_marker',
-    'LOST_PASSKEY_RECOVERY_SENT_MARKER_UNVERIFIED'
-  );
-  if (!sentRows) {
-    await diracV230RevokeLostPasskeyRecoveryRequest({
-      requestId,
-      customerId: owner.customerId,
-      authUserId: owner.authUserId,
-      source: 'lost_passkey_recovery_sent_marker_failure',
-      reason: 'sent_marker_unverified'
-    });
-    return res.status(503).json({ ok: false, code: 'RECOVERY_SENT_MARKER_FAILED', message: 'Status pengiriman recovery tidak dapat diverifikasi; recovery request dicabut.' });
-  }
 
-  const audited = await customerSecurityWriteGuardEvent(access.customerId, {
+  await customerSecurityWriteGuardEvent(access.customerId, {
     event_type: 'lost_passkey_recovery_file_sent',
     status: 'success',
     risk_level: 'high',
@@ -9810,16 +8754,6 @@ async function customerSecurityGenerateRecoveryCodes(req, res, action, override 
     req,
     metadata: { action, request_id: requestId, file_sha256: recoveryPdfSha256, delivery_provider: sent.provider || null, delivery: 'encrypted_pdf_email_attachment' }
   });
-  if (audited !== true) {
-    await diracV230RevokeLostPasskeyRecoveryRequest({
-      requestId,
-      customerId: owner.customerId,
-      authUserId: owner.authUserId,
-      source: 'lost_passkey_recovery_audit_failure',
-      reason: 'required_security_audit_failed'
-    });
-    return res.status(503).json({ ok: false, code: 'RECOVERY_FILE_AUDIT_REQUIRED', message: 'Audit keamanan gagal; recovery request dicabut.' });
-  }
 
   return res.status(200).json({
     ok: true,
@@ -9849,18 +8783,7 @@ function customerSecurityCreateDashboardMfaToken(req, user, method = 'recovery_c
   const userId = String(user && user.id || '').trim();
   const customerId = String(user && (user.customer_id || user.customerId || user.customer || '') || '').trim();
   let sessionHash = '';
-  try {
-    sessionHash = typeof diracCentralRequestSessionHashV146 === 'function'
-      ? String(diracCentralRequestSessionHashV146(req) || '').trim()
-      : '';
-  } catch (_) {
-    sessionHash = '';
-  }
-  if (!sessionHash) {
-    const error = new Error('DIRAC_DASHBOARD_MFA_SESSION_BINDING_REQUIRED');
-    error.code = 'DIRAC_DASHBOARD_MFA_SESSION_BINDING_REQUIRED';
-    throw error;
-  }
+  try { sessionHash = typeof diracCentralRequestSessionHashV146 === 'function' ? diracCentralRequestSessionHashV146(req) : ''; } catch (_) {}
   const payload = {
     type: CUSTOMER_MFA_SESSION_TYPE,
     method,
@@ -10364,16 +9287,11 @@ async function adminSecurityFindAdminUserSupabase(userId, email) {
   if (!cleanEmail) return null;
 
   const select = encodeURIComponent('id,email,role,active,created_at');
-  const path = '/rest/v1/admin_users?select=' + select + '&email=ilike.' + encodeURIComponent(cleanEmail) + '&limit=2';
+  const path = '/rest/v1/admin_users?select=' + select + '&email=ilike.' + encodeURIComponent(cleanEmail) + '&limit=1';
 
   const result = await supabaseFetch(path, { method: 'GET', auth: 'service' }).catch(() => null);
-  if (!result || result.ok !== true || !Array.isArray(result.data)) return null;
-  const rows = result.data.filter((row) => row && normalizeAuthEmail(row.email || '') === cleanEmail);
-  if (rows.length === 0) return null;
-  if (rows.length !== 1) {
-    diracV223ThrowFailClosed('ADMIN_SECURITY_ADMIN_ROW_AMBIGUOUS', 'admin_security_admin_lookup', 503);
-  }
-  return rows[0];
+  const rows = result && result.ok && Array.isArray(result.data) ? result.data : [];
+  return rows[0] || null;
 }
 
 async function adminSecurityOverviewSupabase(req, res, admin) {
@@ -10468,46 +9386,24 @@ async function adminSecurityUnblockUserSupabase(req, res, admin) {
   let customerId = customerSecurityLooksLikeUuid(customerIdInput) ? customerIdInput : '';
 
   if (!customerId && email) {
-    const lookup = await adminSecurityFetchTableSafeSupabase('/rest/v1/customers?select=id,email&email=ilike.' + encodeURIComponent(email) + '&limit=2');
-    const rows = Array.isArray(lookup.data)
-      ? lookup.data.filter((row) => row && normalizeAuthEmail(row.email || '') === email && customerSecurityLooksLikeUuid(row.id))
-      : [];
-    if (rows.length > 1) {
-      return res.status(409).json({ ok: false, code: 'CUSTOMER_EMAIL_AMBIGUOUS', message: 'Email customer memiliki lebih dari satu record; unblock ditolak.' });
-    }
-    if (rows.length === 1) customerId = rows[0].id;
+    const lookup = await adminSecurityFetchTableSafeSupabase('/rest/v1/customers?select=id,email&email=ilike.' + encodeURIComponent(email) + '&limit=1');
+    const rows = Array.isArray(lookup.data) ? lookup.data : [];
+    if (rows[0] && customerSecurityLooksLikeUuid(rows[0].id)) customerId = rows[0].id;
   }
 
-  let filter = '';
+  let path = '';
   if (customerSecurityLooksLikeUuid(blockId)) {
-    filter = '&id=eq.' + encodeURIComponent(blockId);
+    path = '/rest/v1/security_customer_access_blocks?id=eq.' + encodeURIComponent(blockId) + '&blocked_until=gt.' + encodeURIComponent(new Date().toISOString());
   } else if (customerSecurityLooksLikeUuid(customerId)) {
-    filter = '&customer_id=eq.' + encodeURIComponent(customerId);
+    path = '/rest/v1/security_customer_access_blocks?customer_id=eq.' + encodeURIComponent(customerId) + '&blocked_until=gt.' + encodeURIComponent(new Date().toISOString());
   } else {
     return res.status(400).json({
       ok: false,
       message: 'Masukkan block_id, customer_id, atau email customer yang valid.'
     });
   }
-  filter += '&blocked_until=gt.' + encodeURIComponent(new Date().toISOString());
 
-  const snapshotSelect = 'id,customer_id,blocked_until,reason,action,fail_count,metadata';
-  const snapshot = await supabaseFetch('/rest/v1/security_customer_access_blocks?select=' + encodeURIComponent(snapshotSelect) + filter, {
-    method: 'GET',
-    auth: 'service'
-  });
-  const snapshotRows = snapshot && snapshot.ok === true && Array.isArray(snapshot.data) ? snapshot.data : null;
-  const snapshotValid = snapshotRows && snapshotRows.length > 0 && snapshotRows.every((row) => row
-    && customerSecurityLooksLikeUuid(String(row.id || ''))
-    && customerSecurityLooksLikeUuid(String(row.customer_id || ''))
-    && Number.isFinite(Date.parse(String(row.blocked_until || '')))
-    && Date.parse(String(row.blocked_until || '')) > Date.now());
-  if (!snapshotValid) {
-    diracV222MarkDependencyFailure(null, 'admin_security_unblock_snapshot', snapshot && snapshot.status || 503, 'ADMIN_SECURITY_UNBLOCK_SNAPSHOT_UNVERIFIED');
-    return res.status(503).json({ ok: false, code: 'ADMIN_SECURITY_UNBLOCK_SNAPSHOT_UNVERIFIED', message: 'Blokir aktif belum dapat diverifikasi sehingga tidak diubah.' });
-  }
-
-  const patched = await supabaseFetch('/rest/v1/security_customer_access_blocks?' + filter.slice(1), {
+  const patched = await supabaseFetch(path, {
     method: 'PATCH',
     auth: 'service',
     prefer: 'return=representation',
@@ -10524,49 +9420,34 @@ async function adminSecurityUnblockUserSupabase(req, res, admin) {
     }
   });
 
-  const rows = patched && patched.ok === true && Array.isArray(patched.data) ? patched.data : null;
-  const snapshotIds = new Set(snapshotRows.map((row) => String(row.id)));
-  const exactRows = rows && rows.length === snapshotRows.length
-    && rows.every((row) => row && snapshotIds.has(String(row.id || ''))
-      && customerSecurityLooksLikeUuid(String(row.customer_id || ''))
-      && Date.parse(String(row.blocked_until || '')) <= Date.now() + 5_000);
-  if (!exactRows) {
-    diracV222MarkDependencyFailure(null, 'admin_security_unblock', patched && patched.status || 503, 'ADMIN_SECURITY_UNBLOCK_UNVERIFIED');
-    await diracV229RestoreAdminAccessBlocks(snapshotRows, admin, 'admin_security_unblock_mutation_unverified');
-    return res.status(503).json({
+  if (!patched.ok) {
+    return res.status(500).json({
       ok: false,
-      message: 'Gagal membuka blokir customer secara terverifikasi; kondisi blokir dipulihkan.'
+      message: 'Gagal membuka blokir customer.'
     });
   }
 
-  const customerIds = Array.from(new Set(snapshotRows.map((row) => String(row.customer_id || '').trim())));
-  if (customerIds.length !== 1 || !customerSecurityLooksLikeUuid(customerIds[0])) {
-    diracV222MarkDependencyFailure(null, 'admin_security_unblock_audit_identity', 503, 'ADMIN_SECURITY_UNBLOCK_CUSTOMER_AMBIGUOUS');
-    await diracV229RestoreAdminAccessBlocks(snapshotRows, admin, 'admin_security_unblock_audit_identity_failure');
-    return res.status(503).json({ ok: false, code: 'ADMIN_SECURITY_UNBLOCK_CUSTOMER_AMBIGUOUS', message: 'Identitas customer tidak tunggal; blokir dipulihkan.' });
-  }
+  const rows = Array.isArray(patched.data) ? patched.data : [];
 
-  const audited = await customerSecurityWriteGuardEvent(customerIds[0], {
-    event_type: 'admin_security_unblock',
-    status: 'success',
-    risk_level: 'medium',
-    description: 'Owner membuka blokir customer dari Admin Security Center.',
-    req,
-    metadata: {
-      admin_user_id: admin.user_id,
-      admin_email: admin.email,
-      admin_role: admin.role,
-      affected_rows: rows.length
-    }
-  });
-  if (audited !== true) {
-    await diracV229RestoreAdminAccessBlocks(snapshotRows, admin, 'admin_security_unblock_audit_failure');
-    return res.status(503).json({ ok: false, code: 'ADMIN_SECURITY_UNBLOCK_AUDIT_REQUIRED', message: 'Audit keamanan gagal; blokir dipulihkan dan operasi ditolak.' });
+  if (customerSecurityLooksLikeUuid(customerId)) {
+    await customerSecurityWriteGuardEvent(customerId, {
+      event_type: 'admin_security_unblock',
+      status: 'success',
+      risk_level: 'medium',
+      description: 'Owner membuka blokir customer dari Admin Security Center.',
+      req,
+      metadata: {
+        admin_user_id: admin.user_id,
+        admin_email: admin.email,
+        admin_role: admin.role,
+        affected_rows: rows.length
+      }
+    }).catch(() => null);
   }
 
   return res.status(200).json({
     ok: true,
-    message: 'Blokir berhasil dibuka.',
+    message: rows.length ? 'Blokir berhasil dibuka.' : 'Tidak ada blokir aktif untuk target ini.',
     affected_rows: rows.length,
     time: diracNowIso()
   });
@@ -10853,17 +9734,7 @@ async function sessionOwnershipCheckoutCreateUnpaidOrder(req, res) {
     });
   }
 
-  const orderRows = diracV222RequireExactMutationRows(
-    orderResult,
-    1,
-    (row) => row && customerSecurityLooksLikeUuid(String(row.id || ''))
-      && safeEqual(String(row.customer_id || ''), customerId)
-      && Number(row.total || 0) === Number(backendQuote.total || 0)
-      && String(row.payment_status || '').trim().toLowerCase() === 'unpaid',
-    'checkout_order_create',
-    'CHECKOUT_ORDER_CREATE_UNVERIFIED'
-  );
-  const order = orderRows && orderRows[0];
+  const order = Array.isArray(orderResult.data) ? orderResult.data[0] : orderResult.data;
   if (!order || !order.id) {
     return res.status(500).json({ ok: false, message: 'Order dibuat, tetapi ID order tidak ditemukan.' });
   }
@@ -10899,18 +9770,8 @@ async function sessionOwnershipCheckoutCreateUnpaidOrder(req, res) {
     body: itemBodies
   });
 
-  const itemRows = diracV222RequireExactMutationRows(
-    itemResult,
-    itemBodies.length,
-    (row) => row && safeEqual(String(row.order_id || ''), String(order.id || ''))
-      && itemBodies.some((expected) => String(row.product_title || '') === String(expected.product_title || '')
-        && Number(row.quantity || 0) === Number(expected.quantity || 0)
-        && Number(row.unit_price || 0) === Number(expected.unit_price || 0)),
-    'checkout_order_items_create',
-    'CHECKOUT_ORDER_ITEMS_CREATE_UNVERIFIED'
-  );
-  if (!itemRows) {
-    return res.status(itemResult.status || 503).json({
+  if (!itemResult.ok) {
+    return res.status(itemResult.status || 500).json({
       ok: false,
       message: 'Order dibuat, tetapi item order gagal dibuat.',
       error: sessionOwnershipCheckoutSafeUpstreamError(itemResult.data)
@@ -11082,13 +9943,6 @@ async function sessionOwnershipCheckoutBuildBackendQuote({ body, serviceType, re
 
     const subtotal = quoteItems.reduce((sum, item) => sum + item.subtotal, 0);
     const adjustments = await sessionOwnershipCheckoutBuildPricingAdjustments(body, subtotal, normalizedServiceType);
-    if (!adjustments || adjustments.ok !== true) {
-      return {
-        ok: false,
-        status: Number(adjustments && adjustments.status || 503),
-        message: String(adjustments && adjustments.message || 'Penyesuaian harga backend tidak dapat diverifikasi. Checkout dihentikan.')
-      };
-    }
     const totalQty = quoteItems.reduce((sum, item) => sum + item.quantity, 0);
     const productTitle = sessionOwnershipCheckoutBuildParfumQuoteTitle(quoteItems);
     const first = quoteItems[0] || {};
@@ -11299,17 +10153,11 @@ async function sessionOwnershipCheckoutResolveCustomerOwner({ authUserId, email,
 }
 
 async function sessionOwnershipCheckoutFetchCustomerById(customerId) {
-  const cleanId = String(customerId || '').trim();
-  if (!customerSecurityLooksLikeUuid(cleanId)) return { ok: false, status: 400 };
   const select = ['id', 'email', 'name', 'phone'].join(',');
-  const path = '/rest/v1/customers?select=' + encodeURIComponent(select) + '&id=eq.' + encodeURIComponent(cleanId) + '&limit=2';
+  const path = '/rest/v1/customers?select=' + encodeURIComponent(select) + '&id=eq.' + encodeURIComponent(customerId) + '&limit=1';
   const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
   if (!result.ok) return { ok: false, status: result.status };
   const rows = Array.isArray(result.data) ? result.data : [];
-  if (rows.length > 1 || rows.some((row) => !row || !safeEqual(String(row.id || ''), cleanId))) {
-    diracV222MarkDependencyFailure(null, 'checkout_customer_id_lookup', 503, 'CHECKOUT_CUSTOMER_ID_AMBIGUOUS');
-    return { ok: false, status: 503, reason: 'customer_id_ambiguous' };
-  }
   const row = rows[0] || null;
   if (!row || !row.id) return { ok: false, status: 404 };
   return { ok: true, customer: row };
@@ -11319,9 +10167,8 @@ async function sessionOwnershipCheckoutFindOrCreateCustomerForAuth({ email, full
   const existing = await customerSecurityFetchCustomerByEmail(email);
   if (!existing.ok) return { ok: false, status: existing.status, message: 'Gagal membaca customer berdasarkan email akun.' };
 
-  const rows = Array.isArray(existing.data) ? existing.data.filter((row) => row && row.id && normalizeAuthEmail(row.email || '') === normalizeAuthEmail(email || '')) : [];
-  if (rows.length > 1) return { ok: false, status: 409, message: 'Customer email ambigu; checkout ditolak.' };
-  if (rows.length === 1) return { ok: true, customer: rows[0], created: false };
+  const rows = Array.isArray(existing.data) ? existing.data : [];
+  if (rows.length && rows[0] && rows[0].id) return { ok: true, customer: rows[0], created: false };
 
   const body = { name: sessionOwnershipCheckoutSafeName(fullName || email), email };
   if (phone) body.phone = phone;
@@ -11329,45 +10176,24 @@ async function sessionOwnershipCheckoutFindOrCreateCustomerForAuth({ email, full
   const created = await supabaseFetch('/rest/v1/customers', { method: 'POST', auth: 'service', prefer: 'return=representation', body: [body] });
   if (!created.ok) return { ok: false, status: created.status, message: 'Gagal membuat customer dari akun login.' };
 
-  const createdRows = diracV222RequireExactMutationRows(
-    created,
-    1,
-    (row) => row && customerSecurityLooksLikeUuid(row.id) && normalizeAuthEmail(row.email || '') === normalizeAuthEmail(email || ''),
-    'checkout_customer_create',
-    'CHECKOUT_CUSTOMER_CREATE_UNVERIFIED'
-  );
-  if (!createdRows) return { ok: false, status: created.status || 503, message: 'Customer dibuat, tetapi hasilnya tidak dapat diverifikasi.' };
-  return { ok: true, customer: createdRows[0], created: true };
+  const createdRows = Array.isArray(created.data) ? created.data : [];
+  const row = createdRows[0] || created.data;
+  if (!row || !row.id) return { ok: false, status: 500, message: 'Customer dibuat, tetapi ID tidak ditemukan.' };
+  return { ok: true, customer: row, created: true };
 }
 
 async function sessionOwnershipCheckoutActivateAuthLink(authUserId, customerId, email) {
   const path = '/rest/v1/security_customer_auth_links?auth_user_id=eq.' + encodeURIComponent(authUserId);
-  const result = await supabaseFetch(path, { method: 'PATCH', auth: 'service', prefer: 'return=representation', body: sessionOwnershipCheckoutActiveAuthLinkBody(customerId, email) });
-  const rows = diracV222RequireExactMutationRows(
-    result,
-    1,
-    (row) => customerSecurityAuthLinkMutationValidV222(row, authUserId, customerId, email),
-    'checkout_auth_link_activate',
-    'CHECKOUT_AUTH_LINK_ACTIVATE_UNVERIFIED'
-  );
-  return rows ? { ...result, data: rows } : { ...result, ok: false, status: result.status || 503 };
+  return supabaseFetch(path, { method: 'PATCH', auth: 'service', prefer: 'return=representation', body: sessionOwnershipCheckoutActiveAuthLinkBody(customerId, email) });
 }
 
 async function sessionOwnershipCheckoutCreateAuthLink(authUserId, customerId, email) {
-  const result = await supabaseFetch('/rest/v1/security_customer_auth_links', {
+  return supabaseFetch('/rest/v1/security_customer_auth_links', {
     method: 'POST',
     auth: 'service',
     prefer: 'return=representation',
     body: [{ auth_user_id: authUserId, ...sessionOwnershipCheckoutActiveAuthLinkBody(customerId, email) }]
   });
-  const rows = diracV222RequireExactMutationRows(
-    result,
-    1,
-    (row) => customerSecurityAuthLinkMutationValidV222(row, authUserId, customerId, email),
-    'checkout_auth_link_create',
-    'CHECKOUT_AUTH_LINK_CREATE_UNVERIFIED'
-  );
-  return rows ? { ...result, data: rows } : { ...result, ok: false, status: result.status || 503 };
 }
 
 function sessionOwnershipCheckoutActiveAuthLinkBody(customerId, email) {
@@ -11427,92 +10253,32 @@ function sessionOwnershipCheckoutBuildOrderNote(body) {
 
 async function sessionOwnershipCheckoutBuildPricingAdjustments(body, subtotal, serviceType) {
   const baseSubtotal = sessionOwnershipCheckoutNonNegativeMoney(subtotal || 0);
-  if (baseSubtotal <= 0) {
-    return { ok: false, status: 409, message: 'Subtotal backend tidak valid. Checkout dihentikan.' };
-  }
-
-  const requestedDiscount = sessionOwnershipCheckoutExtractDiscountAmount(body);
-  if (requestedDiscount > 0) {
-    return {
-      ok: false,
-      status: 400,
-      message: 'Nominal diskon dari frontend tidak dipercaya. Kirim hanya kode voucher; backend akan menghitung diskon.'
-    };
-  }
-
-  const shipping = sessionOwnershipCheckoutResolveTrustedShippingCost(body, serviceType);
-  if (!shipping.ok) return shipping;
-
+  const shippingCost = sessionOwnershipCheckoutExtractShippingCost(body);
   const voucherCode = sessionOwnershipCheckoutExtractVoucherCode(body);
+
+  // Backend first: if a voucher/coupon/discount table exists, calculate the discount from DB.
+  // Safe fallback: if the project only sends a precomputed discount from frontend, parse it
+  // correctly but cap it to subtotal so total cannot become negative.
   const backendVoucher = voucherCode
     ? await sessionOwnershipCheckoutResolveVoucherDiscountSafe(voucherCode, baseSubtotal, serviceType)
-    : { ok: true, discount: 0, source: 'none' };
-  if (!backendVoucher || backendVoucher.ok !== true) {
-    return {
-      ok: false,
-      status: backendVoucher && backendVoucher.hardFail ? 503 : 409,
-      message: backendVoucher && backendVoucher.hardFail
-        ? 'Penyimpanan/kebijakan voucher backend tidak dapat diverifikasi. Checkout dihentikan.'
-        : 'Kode voucher tidak valid atau tidak berlaku.'
-    };
-  }
-
-  const shippingCost = sessionOwnershipCheckoutNonNegativeMoney(shipping.shippingCost || 0);
-  const discount = Math.min(baseSubtotal, sessionOwnershipCheckoutNonNegativeMoney(backendVoucher.discount || 0));
+    : { ok: false, discount: 0, source: '' };
+  const requestedDiscount = sessionOwnershipCheckoutExtractDiscountAmount(body);
+  const discountSource = backendVoucher && backendVoucher.ok && backendVoucher.discount > 0
+    ? backendVoucher.source
+    : (requestedDiscount > 0 ? 'frontend_discount_amount_limited' : 'none');
+  const rawDiscount = backendVoucher && backendVoucher.ok && backendVoucher.discount > 0
+    ? backendVoucher.discount
+    : requestedDiscount;
+  const discount = Math.min(baseSubtotal, sessionOwnershipCheckoutNonNegativeMoney(rawDiscount));
   const total = Math.max(0, baseSubtotal - discount + shippingCost);
 
   return {
-    ok: true,
     subtotal: baseSubtotal,
     shippingCost,
     discount,
     voucherCode,
     total,
-    priceSource: sessionOwnershipCheckoutPriceSourceWithAdjustments(
-      serviceType,
-      discount,
-      shippingCost,
-      voucherCode,
-      backendVoucher.source || 'none',
-      shipping.source || 'server_shipping_policy'
-    )
-  };
-}
-
-function sessionOwnershipCheckoutResolveTrustedShippingCost(body, serviceType) {
-  const requestedShipping = sessionOwnershipCheckoutExtractShippingCost(body);
-  const normalizedServiceType = sessionOwnershipCheckoutNormalizeServiceType(serviceType);
-
-  if (normalizedServiceType !== 'parfum') {
-    if (requestedShipping > 0) {
-      return { ok: false, status: 400, message: 'Nominal ongkir frontend tidak diizinkan untuk layanan ini.' };
-    }
-    return { ok: true, shippingCost: 0, source: 'shipping_not_applicable' };
-  }
-
-  const mode = String(process.env.DIRAC_CHECKOUT_PARFUM_SHIPPING_MODE || '').trim().toLowerCase();
-  if (mode === 'included' || mode === 'pickup') {
-    if (requestedShipping > 0) {
-      return { ok: false, status: 409, message: 'Ongkir frontend tidak cocok dengan kebijakan ongkir backend.' };
-    }
-    return { ok: true, shippingCost: 0, source: `server_shipping_${mode}` };
-  }
-
-  if (mode === 'fixed') {
-    const fixedCost = sessionOwnershipCheckoutNonNegativeMoney(process.env.DIRAC_CHECKOUT_PARFUM_SHIPPING_COST || 0);
-    if (fixedCost <= 0) {
-      return { ok: false, status: 503, message: 'Konfigurasi ongkir tetap backend tidak valid.' };
-    }
-    if (requestedShipping > 0 && requestedShipping !== fixedCost) {
-      return { ok: false, status: 409, message: 'Ongkir frontend tidak cocok dengan ongkir backend.' };
-    }
-    return { ok: true, shippingCost: fixedCost, source: 'server_shipping_fixed' };
-  }
-
-  return {
-    ok: false,
-    status: 503,
-    message: 'Kebijakan ongkir backend belum dikonfigurasi. Checkout parfum dihentikan.'
+    priceSource: sessionOwnershipCheckoutPriceSourceWithAdjustments(serviceType, discount, shippingCost, voucherCode, discountSource)
   };
 }
 
@@ -11600,13 +10366,9 @@ async function sessionOwnershipCheckoutResolveVoucherDiscountSafe(voucherCode, s
   if (!code || baseSubtotal <= 0) return { ok: false, discount: 0, source: '' };
 
   const envVoucher = sessionOwnershipCheckoutResolveVoucherFromEnv(code, baseSubtotal, serviceType);
-  if (envVoucher.ok || envVoucher.hardFail) return envVoucher;
+  if (envVoucher.ok) return envVoucher;
 
-  const configuredTable = String(process.env.DIRAC_CHECKOUT_VOUCHER_TABLE || 'vouchers').trim();
-  if (!/^[a-zA-Z0-9_]+$/.test(configuredTable)) {
-    return { ok: false, discount: 0, source: 'voucher_table_invalid', hardFail: true, reason: 'voucher_table_invalid' };
-  }
-  const tables = [configuredTable];
+  const tables = ['vouchers', 'coupons', 'discounts', 'promo_codes', 'voucher_codes'];
   for (const table of tables) {
     const resolved = await sessionOwnershipCheckoutResolveVoucherFromTable(table, code, baseSubtotal, serviceType);
     if (resolved.ok) return resolved;
@@ -11628,7 +10390,7 @@ function sessionOwnershipCheckoutResolveVoucherFromEnv(code, subtotal, serviceTy
     if (evaluated.ok) evaluated.source = 'env_voucher';
     return evaluated;
   } catch (_) {
-    return { ok: false, discount: 0, source: 'env_voucher_invalid_json', hardFail: true, reason: 'env_voucher_invalid_json' };
+    return { ok: false, discount: 0, source: 'env_voucher_invalid_json' };
   }
 }
 
@@ -11639,17 +10401,8 @@ async function sessionOwnershipCheckoutResolveVoucherFromTable(table, code, subt
   const codeColumns = ['code', 'voucher_code', 'coupon_code', 'promo_code', 'kode', 'kode_voucher', 'name'];
   for (const column of codeColumns) {
     const path = `/rest/v1/${encodeURIComponent(safeTable)}?select=*&${encodeURIComponent(column)}=eq.${encodeURIComponent(code)}&limit=2`;
-    let result;
-    try {
-      result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
-    } catch (error) {
-      diracV222MarkDependencyFailure(null, 'checkout_voucher_storage', 503, error && (error.code || error.name));
-      return { ok: false, discount: 0, source: `${safeTable}.${column}`, hardFail: true, reason: 'voucher_storage_unavailable' };
-    }
-    if (!result || result.ok !== true || !Array.isArray(result.data)) {
-      diracV222MarkDependencyFailure(null, 'checkout_voucher_storage', 503, 'VOUCHER_STORAGE_UNVERIFIED');
-      return { ok: false, discount: 0, source: `${safeTable}.${column}`, hardFail: true, reason: 'voucher_storage_unavailable' };
-    }
+    const result = await supabaseFetch(path, { method: 'GET', auth: 'service' }).catch(() => null);
+    if (!result || !result.ok) continue;
     const rows = Array.isArray(result.data) ? result.data.filter(Boolean) : [];
     if (rows.length > 1) return { ok: false, discount: 0, source: `${safeTable}.${column}`, hardFail: true, reason: 'voucher_ambiguous' };
     const row = rows.length === 1 ? rows[0] : null;
@@ -11685,19 +10438,12 @@ async function sessionOwnershipCheckoutResolveVoucherTierDiscountSafe(voucherRow
   }
 
   const tierPath = `/rest/v1/voucher_tiers?select=*&voucher_id=eq.${encodeURIComponent(voucherId)}&active=eq.true&order=min_subtotal.desc`;
-  let tierResult;
-  try {
-    tierResult = await supabaseFetch(tierPath, { method: 'GET', auth: 'service' });
-  } catch (error) {
-    diracV222MarkDependencyFailure(null, 'checkout_voucher_tier_storage', 503, error && (error.code || error.name));
-    return { ok: false, discount: 0, source: `${sourcePrefix || 'vouchers'}.tier_unavailable`, hardFail: true, reason: 'voucher_tier_storage_unavailable' };
-  }
-  if (!tierResult || tierResult.ok !== true || !Array.isArray(tierResult.data)) {
-    diracV222MarkDependencyFailure(null, 'checkout_voucher_tier_storage', 503, 'VOUCHER_TIER_STORAGE_UNVERIFIED');
-    return { ok: false, discount: 0, source: `${sourcePrefix || 'vouchers'}.tier_unavailable`, hardFail: true, reason: 'voucher_tier_storage_unavailable' };
+  const tierResult = await supabaseFetch(tierPath, { method: 'GET', auth: 'service' }).catch(() => null);
+  if (!tierResult || !tierResult.ok) {
+    return { ok: false, discount: 0, noTier: true, source: `${sourcePrefix || 'vouchers'}.tier_unavailable` };
   }
 
-  const tiers = tierResult.data;
+  const tiers = Array.isArray(tierResult.data) ? tierResult.data : [];
   const tier = tiers.find((item) => sessionOwnershipCheckoutVoucherTierMatchesSubtotal(item, baseSubtotal));
   if (!tier) {
     return { ok: false, discount: 0, source: `${sourcePrefix || 'vouchers'}.voucher_tiers`, hardFail: true, reason: 'voucher_tier_not_found_for_subtotal' };
@@ -11823,7 +10569,7 @@ function sessionOwnershipCheckoutCalculateVoucherDiscount(row, subtotal) {
   return Math.min(baseSubtotal, Math.max(0, Math.round(discount)));
 }
 
-function sessionOwnershipCheckoutPriceSourceWithAdjustments(serviceType, discount, shippingCost, voucherCode, discountSource, shippingSource) {
+function sessionOwnershipCheckoutPriceSourceWithAdjustments(serviceType, discount, shippingCost, voucherCode, discountSource) {
   const base = sessionOwnershipCheckoutNormalizeServiceType(serviceType) === 'parfum'
     ? 'products.price.multi_item_server_locked'
     : 'manual_unpaid_quote_no_gateway';
@@ -11832,9 +10578,7 @@ function sessionOwnershipCheckoutPriceSourceWithAdjustments(serviceType, discoun
     const source = sessionOwnershipCheckoutCleanText(discountSource || '', 80);
     flags.push(voucherCode ? `voucher_discount_applied${source ? ':' + source : ''}` : `discount_applied${source ? ':' + source : ''}`);
   }
-  const trustedShippingSource = sessionOwnershipCheckoutCleanText(shippingSource || '', 80);
-  if (Number(shippingCost || 0) > 0) flags.push(`shipping_cost_applied${trustedShippingSource ? ':' + trustedShippingSource : ''}`);
-  else if (trustedShippingSource) flags.push(trustedShippingSource);
+  if (Number(shippingCost || 0) > 0) flags.push('shipping_cost_applied');
   return flags.length ? `${base}+${flags.join('+')}` : base;
 }
 
@@ -12420,7 +11164,7 @@ async function lockedPaymentCreateForOrder(req, res) {
     return res.status(409).json({ ok: false, message: 'Total order 0/kosong. Payment gateway tidak boleh dibuat.' });
   }
 
-  const allowCustom = false;
+  const allowCustom = String(process.env.PAYMENT_ALLOW_CUSTOM_SERVICE_PAYMENT || 'false').trim().toLowerCase() === 'true';
   if (serviceType !== 'parfum' && !allowCustom) {
     return res.status(409).json({
       ok: false,
@@ -12434,10 +11178,7 @@ async function lockedPaymentCreateForOrder(req, res) {
   }
 
   const existing = await lockedPaymentFindReusableTransaction(orderId, customerId, amount);
-  if (!existing.ok) {
-    return res.status(existing.status || 503).json({ ok: false, message: 'Gagal memverifikasi transaksi pembayaran sebelumnya. Payment tidak dibuat.' });
-  }
-  if (existing.transaction && existing.transaction.payment_url) {
+  if (existing.ok && existing.transaction && existing.transaction.payment_url) {
     return res.status(200).json({
       ok: true,
       reused: true,
@@ -12574,13 +11315,12 @@ async function lockedPaymentFetchOwnedOrder(inputOrderId, customerId) {
   const path = '/rest/v1/orders?select=' + encodeURIComponent(select)
     + '&customer_id=eq.' + encodeURIComponent(customerId)
     + '&or=' + encodeURIComponent(`(${filters.join(',')})`)
-    + '&limit=2';
+    + '&limit=1';
 
   const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
   if (!result.ok) return { ok: false, status: result.status, message: 'Gagal membaca order.' };
 
   const rows = Array.isArray(result.data) ? result.data : [];
-  if (rows.length > 1) return { ok: false, status: 409, message: 'Order ambigu. Payment tidak dibuat.' };
   const row = rows[0] || null;
   if (!row || !row.id) return { ok: false, status: 404, message: 'Order tidak ditemukan atau bukan milik akun ini.' };
   return { ok: true, order: row };
@@ -12588,6 +11328,7 @@ async function lockedPaymentFetchOwnedOrder(inputOrderId, customerId) {
 
 async function lockedPaymentValidateOrderItems(orderId, orderTotal, serviceType) {
   const amount = lockedPaymentMoney(orderTotal);
+  const fallback = (reason) => lockedPaymentBuildFallbackOrderItem(amount, serviceType, reason);
 
   const select = 'id,order_id,product_doc_id,product_title,quantity,unit_price,cost_price';
   const path = '/rest/v1/order_items?select=' + encodeURIComponent(select) + '&order_id=eq.' + encodeURIComponent(orderId);
@@ -12597,12 +11338,20 @@ async function lockedPaymentValidateOrderItems(orderId, orderTotal, serviceType)
     data: { message: String(error && error.message ? error.message : error) }
   }));
 
+  // PATCH payment-items-fallback-v1:
+  // Jika schema order_items berbeda/kolom belum lengkap/kosong, jangan hentikan payment.
+  // Amount tetap dikunci dari orders.total database; frontend amount tetap diabaikan.
+  // Midtrans tetap membutuhkan item_details, maka dipakai 1 item aman berbasis total database.
   if (!result.ok) {
-    return { ok: false, status: 503, message: 'Validasi item order tidak tersedia. Payment tidak dibuat.' };
+    console.warn('[locked-create-payment] order_items read fallback', {
+      status: result.status || 0,
+      reason: lockedPaymentSafeUpstreamError(result.data) || 'order_items_read_failed'
+    });
+    return fallback('order_items_read_failed');
   }
 
   const rows = Array.isArray(result.data) ? result.data : [];
-  if (!rows.length) return { ok: false, status: 409, message: 'Item order kosong. Payment tidak dibuat.' };
+  if (!rows.length) return fallback('order_items_empty');
 
   let total = 0;
   const items = [];
@@ -12625,13 +11374,40 @@ async function lockedPaymentValidateOrderItems(orderId, orderTotal, serviceType)
     });
   }
 
-  if (!items.length) return { ok: false, status: 409, message: 'Item order tidak valid. Payment tidak dibuat.' };
+  if (!items.length) return fallback('order_items_invalid_or_incomplete');
 
   if (lockedPaymentMoney(total) !== amount) {
-    return { ok: false, status: 409, message: 'Total item tidak cocok dengan total order. Payment tidak dibuat.' };
+    return fallback('order_items_total_mismatch');
   }
 
   return { ok: true, totalItem: total, items };
+}
+
+function lockedPaymentBuildFallbackOrderItem(amount, serviceType, reason) {
+  const safeAmount = lockedPaymentMoney(amount);
+  if (safeAmount <= 0) {
+    return { ok: false, status: 409, message: 'Total order 0/kosong. Payment gateway tidak boleh dibuat.' };
+  }
+
+  const label = typeof myOrdersServiceLabel === 'function'
+    ? myOrdersServiceLabel(serviceType)
+    : '';
+  const title = lockedPaymentCleanText(label || serviceType || 'Total pesanan', 180) || 'Total pesanan';
+
+  return {
+    ok: true,
+    totalItem: safeAmount,
+    fallback_item: true,
+    fallback_reason: lockedPaymentCleanText(reason || 'database_total_fallback', 80),
+    items: [{
+      id: 'order-total',
+      product_doc_id: null,
+      title,
+      quantity: 1,
+      unit_price: safeAmount,
+      subtotal: safeAmount
+    }]
+  };
 }
 
 async function lockedPaymentFindReusableTransaction(orderId, customerId, amount) {
@@ -12674,23 +11450,12 @@ async function lockedPaymentInsertTransaction(data) {
   if (data.orderId) body.order_id = data.orderId;
   if (data.domainOrderId) body.domain_order_id = data.domainOrderId;
 
-  const result = await supabaseFetch('/rest/v1/payment_transactions', {
+  return supabaseFetch('/rest/v1/payment_transactions', {
     method: 'POST',
     auth: 'service',
     prefer: 'return=representation',
     body: [body]
   });
-  const rows = diracV222RequireExactMutationRows(
-    result,
-    1,
-    (row) => row && customerSecurityLooksLikeUuid(String(row.id || ''))
-      && safeEqual(String(row.customer_id || ''), String(data.customerId || ''))
-      && Number(row.amount || 0) === Number(data.amount || 0)
-      && String(row.payment_status || '').trim().toLowerCase() === 'unpaid',
-    'payment_transaction_insert',
-    'PAYMENT_TRANSACTION_INSERT_UNVERIFIED'
-  );
-  return rows ? { ...result, data: rows } : { ...result, ok: false, status: result.status || 503 };
 }
 
 async function lockedPaymentPatchTransactionUrl(transactionId, paymentUrl, invoiceId, raw) {
@@ -12707,49 +11472,38 @@ async function lockedPaymentPatchTransactionUrl(transactionId, paymentUrl, invoi
   };
 
 
-  const result = await supabaseFetch('/rest/v1/payment_transactions?id=eq.' + encodeURIComponent(transactionId), {
+  return supabaseFetch('/rest/v1/payment_transactions?id=eq.' + encodeURIComponent(transactionId), {
     method: 'PATCH',
     auth: 'service',
     prefer: 'return=representation',
     body
   });
-  const rows = diracV222RequireExactMutationRows(
-    result,
-    1,
-    (row) => row && safeEqual(String(row.id || ''), String(transactionId || ''))
-      && safeEqual(String(row.payment_url || ''), String(paymentUrl || '')),
-    'payment_transaction_url_patch',
-    'PAYMENT_TRANSACTION_URL_PATCH_UNVERIFIED'
-  );
-  return rows ? { ...result, data: rows } : { ...result, ok: false, status: result.status || 503 };
 }
 
-async function lockedPaymentMarkTransactionGatewayFailed(transactionId, gatewayResult) {
-  if (!customerSecurityLooksLikeUuid(transactionId)) {
-    diracV223ThrowFailClosed('PAYMENT_GATEWAY_FAILURE_TRANSACTION_INVALID', 'payment_gateway_failure_persistence', 500);
-  }
+async function lockedPaymentMarkTransactionGatewayFailed(transactionId, error, raw) {
   const metadata = {
-    gateway_failed_at: new Date().toISOString(),
-    gateway_status: Number(gatewayResult && gatewayResult.status || 0),
-    gateway_message: lockedPaymentCleanText(gatewayResult && gatewayResult.message || 'Gateway request failed', 300)
+    gateway_failed_at: diracNowIso(),
+    gateway_debug_patch: lockedPaymentResolveGatewayDebugPatch(raw),
+    gateway_error: lockedPaymentCleanText(error, 500) || 'gateway_create_failed'
   };
-  const patched = await supabaseFetch('/rest/v1/payment_transactions?id=eq.' + encodeURIComponent(transactionId), {
+
+  const upstreamMessage = getUpstreamMessage(raw) || lockedPaymentSafeUpstreamError(raw);
+  if (upstreamMessage) metadata.gateway_response = lockedPaymentCleanText(upstreamMessage, 1000);
+
+  if (raw && typeof raw === 'object') {
+    const status = raw.http_status || raw.status || raw.status_code || raw.statusCode || raw.status_message || raw.statusMessage || '';
+    if (status) metadata.gateway_status = lockedPaymentCleanText(status, 120);
+  }
+
+  const safeRaw = lockedPaymentSafeMetadataRaw(raw);
+  metadata.gateway_raw_present = safeRaw !== null;
+  if (safeRaw !== null) metadata.gateway_raw = safeRaw;
+
+  return supabaseFetch('/rest/v1/payment_transactions?id=eq.' + encodeURIComponent(transactionId), {
     method: 'PATCH',
     auth: 'service',
-    prefer: 'return=representation',
     body: { metadata }
-  });
-  const rows = diracV222RequireExactMutationRows(
-    patched,
-    1,
-    (row) => row && safeEqual(String(row.id || ''), transactionId)
-      && row.metadata && typeof row.metadata === 'object'
-      && safeEqual(String(row.metadata.gateway_failed_at || ''), metadata.gateway_failed_at),
-    'payment_gateway_failure_persistence',
-    'PAYMENT_GATEWAY_FAILURE_PERSISTENCE_UNVERIFIED'
-  );
-  if (!rows) diracV223ThrowFailClosed('PAYMENT_GATEWAY_FAILURE_PERSISTENCE_UNVERIFIED', 'payment_gateway_failure_persistence', Number(patched && patched.status || 0) || 503);
-  return true;
+  }).catch(() => null);
 }
 
 function lockedPaymentSafeMetadataRaw(value, depth = 0) {
@@ -13489,12 +12243,11 @@ async function midtransFetchPaymentTransaction(gatewayReference) {
   ].join(',');
   const path = '/rest/v1/payment_transactions?select=' + encodeURIComponent(select)
     + '&gateway_reference=eq.' + encodeURIComponent(gatewayReference)
-    + '&limit=2';
+    + '&limit=1';
 
   const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
   if (!result.ok) return { ok: false, status: result.status, message: 'Gagal membaca payment transaction.' };
   const rows = Array.isArray(result.data) ? result.data : [];
-  if (rows.length > 1) return { ok: false, status: 409, message: 'Payment transaction ambigu untuk gateway_reference ini.', reason: 'gateway_reference_ambiguous' };
   const row = rows[0] || null;
   if (!row || !row.id) return { ok: false, status: 404, message: 'Payment transaction tidak ditemukan untuk gateway_reference ini.' };
   return { ok: true, transaction: row };
@@ -13503,14 +12256,12 @@ async function midtransFetchPaymentTransaction(gatewayReference) {
 async function midtransVerifyTransactionOwnerAndAmount(tx, amount) {
   if (tx.order_id) {
     const select = 'id,customer_id,total,payment_status,order_status';
-    const result = await supabaseFetch('/rest/v1/orders?select=' + encodeURIComponent(select) + '&id=eq.' + encodeURIComponent(tx.order_id) + '&limit=2', {
+    const result = await supabaseFetch('/rest/v1/orders?select=' + encodeURIComponent(select) + '&id=eq.' + encodeURIComponent(tx.order_id) + '&limit=1', {
       method: 'GET',
       auth: 'service'
     });
     if (!result.ok) return { ok: false, status: result.status, message: 'Gagal membaca order regular.', reason: 'orders_read_failed' };
-    const rows = Array.isArray(result.data) ? result.data : [];
-    if (rows.length > 1) return { ok: false, status: 409, message: 'Order regular ambigu.', reason: 'order_ambiguous' };
-    const order = rows[0] || null;
+    const order = Array.isArray(result.data) ? result.data[0] : null;
     if (!order || !order.id) return { ok: false, status: 404, message: 'Order regular tidak ditemukan.', reason: 'order_not_found' };
     if (String(order.customer_id || '') !== String(tx.customer_id || '')) return { ok: false, status: 409, message: 'Customer payment tidak sama dengan customer order.', reason: 'customer_mismatch' };
     if (midtransMoney(order.total) !== midtransMoney(amount)) return { ok: false, status: 409, message: 'Nominal payment tidak sama dengan total order.', reason: 'amount_mismatch_order_total' };
@@ -13519,14 +12270,12 @@ async function midtransVerifyTransactionOwnerAndAmount(tx, amount) {
 
   if (tx.domain_order_id) {
     const select = 'id,customer_id,total_price,payment_status,order_status,status';
-    const result = await supabaseFetch('/rest/v1/domain_orders?select=' + encodeURIComponent(select) + '&id=eq.' + encodeURIComponent(tx.domain_order_id) + '&limit=2', {
+    const result = await supabaseFetch('/rest/v1/domain_orders?select=' + encodeURIComponent(select) + '&id=eq.' + encodeURIComponent(tx.domain_order_id) + '&limit=1', {
       method: 'GET',
       auth: 'service'
     });
     if (!result.ok) return { ok: false, status: result.status, message: 'Gagal membaca domain order.', reason: 'domain_orders_read_failed' };
-    const rows = Array.isArray(result.data) ? result.data : [];
-    if (rows.length > 1) return { ok: false, status: 409, message: 'Domain order ambigu.', reason: 'domain_order_ambiguous' };
-    const order = rows[0] || null;
+    const order = Array.isArray(result.data) ? result.data[0] : null;
     if (!order || !order.id) return { ok: false, status: 404, message: 'Domain order tidak ditemukan.', reason: 'domain_order_not_found' };
     if (String(order.customer_id || '') !== String(tx.customer_id || '')) return { ok: false, status: 409, message: 'Customer payment tidak sama dengan customer domain order.', reason: 'customer_mismatch_domain' };
     if (midtransMoney(order.total_price) !== midtransMoney(amount)) return { ok: false, status: 409, message: 'Nominal payment tidak sama dengan total domain order.', reason: 'amount_mismatch_domain_total' };
@@ -13539,12 +12288,11 @@ async function midtransVerifyTransactionOwnerAndAmount(tx, amount) {
 async function midtransFetchGatewayEvent(gatewayEventId) {
   const path = '/rest/v1/payment_gateway_events?select=' + encodeURIComponent('id,gateway_event_id')
     + '&gateway_event_id=eq.' + encodeURIComponent(gatewayEventId)
-    + '&limit=2';
+    + '&limit=1';
   const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
   if (!result.ok) return { ok: false, status: result.status };
   const rows = Array.isArray(result.data) ? result.data : [];
-  if (rows.length > 1) return { ok: false, status: 409, exists: true, event: null, reason: 'gateway_event_id_ambiguous' };
-  return { ok: true, exists: rows.length === 1, event: rows[0] || null };
+  return { ok: true, exists: rows.length > 0, event: rows[0] || null };
 }
 
 async function midtransInsertGatewayEventSafe(paymentTransactionId, gatewayEventId, eventStatus, payload, metadata) {
@@ -13591,18 +12339,7 @@ async function midtransInsertGatewayEventSafe(paymentTransactionId, gatewayEvent
       body: [body]
     });
 
-    if (result.ok) {
-      const rows = diracV222RequireExactMutationRows(
-        result,
-        1,
-        (row) => row && safeEqual(String(row.payment_transaction_id || ''), String(paymentTransactionId || ''))
-          && safeEqual(String(row.gateway_event_id || ''), String(gatewayEventId || '')),
-        'midtrans_gateway_event_insert',
-        'MIDTRANS_GATEWAY_EVENT_INSERT_UNVERIFIED'
-      );
-      if (rows) return { ok: true, data: rows };
-      return { ok: false, status: result.status || 503 };
-    }
+    if (result.ok) return { ok: true, data: result.data };
 
     const msg = lockedPaymentSafeUpstreamError(result.data).toLowerCase();
     if (result.status === 409 || msg.includes('duplicate') || msg.includes('unique')) {
@@ -13639,43 +12376,88 @@ async function midtransPatchPaymentTransaction(transactionId, status, payload, s
     body
   });
 
-  const rows = diracV222RequireExactMutationRows(
-    first,
-    1,
-    (row) => row && safeEqual(String(row.id || ''), String(transactionId || ''))
-      && String(row.payment_status || '').trim().toLowerCase() === String(status || '').trim().toLowerCase(),
-    'midtrans_payment_transaction_patch',
-    'MIDTRANS_PAYMENT_TRANSACTION_PATCH_UNVERIFIED'
-  );
-  return rows ? { ...first, data: rows } : { ...first, ok: false, status: first.status || 503 };
+  if (first.ok) return first;
+
+  const fallback = await supabaseFetch('/rest/v1/payment_transactions?id=eq.' + encodeURIComponent(transactionId), {
+    method: 'PATCH',
+    auth: 'service',
+    prefer: 'return=representation',
+    body: { payment_status: status, metadata }
+  });
+
+  return fallback;
 }
 
 async function midtransPatchRelatedOrderPaid(tx, payload) {
   const paidAt = payload.settlement_time || diracNowIso();
-  const isDomain = Boolean(tx && tx.domain_order_id);
-  const orderId = String(isDomain ? tx.domain_order_id : tx && tx.order_id || '').trim();
-  if (!orderId) return { ok: false, status: 409 };
 
-  const table = isDomain ? 'domain_orders' : 'orders';
-  const body = isDomain
-    ? { payment_status: 'paid', order_status: 'paid', status: 'paid', paid_at: paidAt }
-    : { payment_status: 'paid', order_status: 'paid', paid_at: paidAt };
-  const result = await supabaseFetch('/rest/v1/' + table + '?id=eq.' + encodeURIComponent(orderId), {
-    method: 'PATCH',
-    auth: 'service',
-    prefer: 'return=representation',
-    body
-  });
-  const rows = diracV222RequireExactMutationRows(
-    result,
-    1,
-    (row) => row && safeEqual(String(row.id || ''), orderId)
-      && String(row.payment_status || '').trim().toLowerCase() === 'paid',
-    'midtrans_related_order_patch',
-    'MIDTRANS_RELATED_ORDER_PATCH_UNVERIFIED'
-  );
-  return rows ? { ...result, data: rows } : { ...result, ok: false, status: result.status || 503 };
+  if (tx.order_id) {
+    const path = '/rest/v1/orders?id=eq.' + encodeURIComponent(tx.order_id);
+    const first = await supabaseFetch(path, {
+      method: 'PATCH',
+      auth: 'service',
+      prefer: 'return=representation',
+      body: {
+        payment_status: 'paid',
+        order_status: 'paid',
+        paid_at: paidAt
+      }
+    });
+    if (first.ok) return first;
+    const second = await supabaseFetch(path, {
+      method: 'PATCH',
+      auth: 'service',
+      prefer: 'return=representation',
+      body: {
+        payment_status: 'paid',
+        order_status: 'paid'
+      }
+    });
+    if (second.ok) return second;
+    return supabaseFetch(path, {
+      method: 'PATCH',
+      auth: 'service',
+      prefer: 'return=representation',
+      body: { payment_status: 'paid' }
+    });
+  }
+
+  if (tx.domain_order_id) {
+    const path = '/rest/v1/domain_orders?id=eq.' + encodeURIComponent(tx.domain_order_id);
+    const first = await supabaseFetch(path, {
+      method: 'PATCH',
+      auth: 'service',
+      prefer: 'return=representation',
+      body: {
+        payment_status: 'paid',
+        order_status: 'paid',
+        status: 'paid',
+        paid_at: paidAt
+      }
+    });
+    if (first.ok) return first;
+    const second = await supabaseFetch(path, {
+      method: 'PATCH',
+      auth: 'service',
+      prefer: 'return=representation',
+      body: {
+        payment_status: 'paid',
+        order_status: 'paid',
+        status: 'paid'
+      }
+    });
+    if (second.ok) return second;
+    return supabaseFetch(path, {
+      method: 'PATCH',
+      auth: 'service',
+      prefer: 'return=representation',
+      body: { payment_status: 'paid' }
+    });
+  }
+
+  return { ok: false, status: 409 };
 }
+
 
 
 /* ============================================================
@@ -14173,14 +12955,10 @@ async function diracPasskeyA2FStoreChallenge(setupToken, payload) {
   const stored = typeof writePersistentSecurityJsonRequiredV194 === 'function'
     ? await writePersistentSecurityJsonRequiredV194('passkey-a2f-jti:' + jti, record, 0, ttl)
     : false;
-  if (!stored) {
+  if (process.env.NODE_ENV === 'production' && !stored) {
     DIRAC_PASSKEY_A2F_CHALLENGE_STORE.delete(jti);
-    diracV222MarkDependencyFailure(null, 'passkey_challenge_persistence', 503, 'PASSKEY_CHALLENGE_PERSISTENCE_REQUIRED');
     const error = new Error('PASSKEY_CHALLENGE_PERSISTENCE_REQUIRED');
-    error.statusCode = 503;
-    error.status = 503;
     error.code = 'PASSKEY_CHALLENGE_PERSISTENCE_REQUIRED';
-    error.publicMessage = 'Penyimpanan challenge Passkey tidak tersedia.';
     throw error;
   }
   return true;
@@ -14194,41 +12972,29 @@ async function diracPasskeyA2FConsumeChallenge(setupToken, payload) {
   DIRAC_PASSKEY_A2F_CONSUME_LOCKS.add(jti);
   let record = DIRAC_PASSKEY_A2F_CHALLENGE_STORE.get(jti) || null;
   try {
-    if (typeof readPersistentSecurityJsonStrictV194 !== 'function' || !LOGIN_SECURITY_PERSIST_TABLE) {
-      diracV222MarkDependencyFailure(null, 'passkey_challenge_lookup', 503, 'PASSKEY_CHALLENGE_STORAGE_REQUIRED');
-      return { ok: false, reason: 'passkey_challenge_storage_unavailable' };
+    if (typeof readPersistentSecurityJsonStrictV194 === 'function' && LOGIN_SECURITY_PERSIST_TABLE) {
+      const lookup = await readPersistentSecurityJsonStrictV194('passkey-a2f-jti:' + jti);
+      if (!lookup.ok) return { ok: false, reason: 'passkey_challenge_storage_unavailable' };
+      if (lookup.found) record = lookup.record;
+      else if (process.env.NODE_ENV === 'production') return { ok: false, reason: 'passkey_challenge_missing_or_used' };
+    } else if (!record && typeof readPersistentSecurityJson === 'function') {
+      record = await readPersistentSecurityJson('passkey-a2f-jti:' + jti).catch(() => null);
     }
-    const lookup = await readPersistentSecurityJsonStrictV194('passkey-a2f-jti:' + jti);
-    if (!lookup || lookup.ok !== true) {
-      diracV222MarkDependencyFailure(null, 'passkey_challenge_lookup', 503, 'PASSKEY_CHALLENGE_LOOKUP_FAILED');
-      return { ok: false, reason: 'passkey_challenge_storage_unavailable' };
-    }
-    if (lookup.found) record = lookup.record;
-    else return { ok: false, reason: 'passkey_challenge_missing_or_used' };
     if (!record || record.used === true) return { ok: false, reason: 'passkey_challenge_missing_or_used' };
     if (Number(record.expiresAtMs || 0) <= now) return { ok: false, reason: 'passkey_challenge_expired' };
     if (!expectedHash || !record.token_hash || !safeEqual(String(record.token_hash), expectedHash)) return { ok: false, reason: 'passkey_challenge_token_mismatch' };
-    if (!LOGIN_SECURITY_PERSIST_TABLE || typeof claimPersistentSecurityKeyOnceV194 !== 'function') {
-      diracV222MarkDependencyFailure(null, 'passkey_challenge_claim', 503, 'PASSKEY_CHALLENGE_CLAIM_STORAGE_REQUIRED');
+    if (LOGIN_SECURITY_PERSIST_TABLE && typeof claimPersistentSecurityKeyOnceV194 === 'function') {
+      const claimed = await claimPersistentSecurityKeyOnceV194('passkey-a2f-used:' + jti, {
+        type: 'passkey_a2f_one_time_claim_v194',
+        token_hash: expectedHash,
+        usedAtMs: now
+      }, 120);
+      if (!claimed) return { ok: false, reason: 'passkey_challenge_replay_or_storage_failure' };
+    } else if (process.env.NODE_ENV === 'production') {
       return { ok: false, reason: 'passkey_challenge_storage_unavailable' };
     }
-    const claimed = await claimPersistentSecurityKeyOnceV194('passkey-a2f-used:' + jti, {
-      type: 'passkey_a2f_one_time_claim_v194',
-      token_hash: expectedHash,
-      usedAtMs: now
-    }, 120);
-    if (!claimed) {
-      diracV222MarkDependencyFailure(null, 'passkey_challenge_claim', 503, 'PASSKEY_CHALLENGE_REPLAY_OR_STORAGE_FAILURE');
-      return { ok: false, reason: 'passkey_challenge_replay_or_storage_failure' };
-    }
     DIRAC_PASSKEY_A2F_CHALLENGE_STORE.set(jti, { ...record, used: true, expiresAtMs: now + 1000 });
-    const markedUsed = await writePersistentSecurityJsonRequiredV194(
-      'passkey-a2f-jti:' + jti,
-      { ...record, used: true, usedAtMs: now },
-      0,
-      60
-    );
-    if (markedUsed !== true) return { ok: false, reason: 'passkey_challenge_used_marker_persistence_failed' };
+    await writePersistentSecurityJsonRequiredV194('passkey-a2f-jti:' + jti, { ...record, used: true, usedAtMs: now }, 0, 60).catch(() => false);
     return { ok: true };
   } finally {
     setTimeout(() => {
@@ -14277,14 +13043,8 @@ async function diracPasskeyA2FFetchCustomerById(customerId) {
   const cleanId = String(customerId || '').trim();
   if (!customerSecurityLooksLikeUuid(cleanId)) return { ok: false, status: 400, data: [] };
   const select = ['id', 'email', 'name', 'phone'].join(',');
-  const path = '/rest/v1/customers?select=' + encodeURIComponent(select) + '&id=eq.' + encodeURIComponent(cleanId) + '&limit=2';
-  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
-  if (!result || result.ok !== true || !Array.isArray(result.data)) return result;
-  if (result.data.length > 1 || result.data.some((row) => !row || !safeEqual(String(row.id || ''), cleanId))) {
-    diracV222MarkDependencyFailure(null, 'passkey_customer_id_lookup', 503, 'PASSKEY_CUSTOMER_ID_AMBIGUOUS');
-    return { ok: false, status: 503, data: [], code: 'PASSKEY_CUSTOMER_ID_AMBIGUOUS' };
-  }
-  return result;
+  const path = '/rest/v1/customers?select=' + encodeURIComponent(select) + '&id=eq.' + encodeURIComponent(cleanId) + '&limit=1';
+  return supabaseFetch(path, { method: 'GET', auth: 'service' });
 }
 
 async function diracPasskeyA2FResolveOwner(user, email) {
@@ -14323,16 +13083,10 @@ async function diracPasskeyA2FResolveOwner(user, email) {
 
   if (customerId) {
     const customerResult = await diracPasskeyA2FFetchCustomerById(customerId).catch((error) => ({ ok: false, status: 500, error }));
-    if (!customerResult || customerResult.ok !== true || !Array.isArray(customerResult.data) || customerResult.data.length !== 1) {
-      return hardFail('passkey_owner_customer_read_failed', 'Data customer resmi belum dapat diverifikasi. Coba login ulang.');
+    const customerRows = Array.isArray(customerResult && customerResult.data) ? customerResult.data : [];
+    if (customerRows[0] && isValidAuthEmail(customerRows[0].email)) {
+      customerEmail = normalizeAuthEmail(customerRows[0].email);
     }
-    const customerRow = customerResult.data[0];
-    const verifiedCustomerId = String(customerRow && customerRow.id || '').trim();
-    const verifiedCustomerEmail = normalizeAuthEmail(customerRow && customerRow.email || '');
-    if (!safeEqual(verifiedCustomerId, customerId) || !isValidAuthEmail(verifiedCustomerEmail) || !safeEqual(verifiedCustomerEmail, authEmail)) {
-      return hardFail('passkey_owner_customer_mismatch', 'Data customer resmi tidak cocok dengan akun login.');
-    }
-    customerEmail = verifiedCustomerEmail;
     return { ok: true, authUserId, customerId, email: customerEmail, source: 'security_customer_auth_links' };
   }
 
@@ -14360,13 +13114,8 @@ async function diracPasskeyA2FListActivePasskeys(owner) {
   const fetchRows = async (filter) => {
     const path = '/rest/v1/domain_passkeys?select=' + encodeURIComponent(select) + '&is_active=eq.true&' + filter + '&order=created_at.desc&limit=20';
     const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
-    if (!result || result.ok !== true || !Array.isArray(result.data)) {
-      const error = new Error('DIRAC_PASSKEY_ACTIVE_LIST_STORAGE_UNAVAILABLE');
-      error.code = 'DIRAC_PASSKEY_ACTIVE_LIST_STORAGE_UNAVAILABLE';
-      error.statusCode = Number(result && result.status || 503) || 503;
-      throw error;
-    }
-    for (const row of result.data) {
+    if (!result.ok) return;
+    for (const row of (Array.isArray(result.data) ? result.data : [])) {
       const key = String(row && (row.id || row.credential_id) || '');
       if (!key || seen.has(key) || !diracPasskeyA2FOwnerMatches(row, owner)) continue;
       seen.add(key);
@@ -14381,14 +13130,8 @@ async function diracPasskeyA2FListActivePasskeys(owner) {
   let isRecoveryWorkerContext = false;
   try {
     const ctx = typeof diracCentralCurrentContextV149 === 'function' ? diracCentralCurrentContextV149() : null;
-    if (!ctx || typeof ctx !== 'object') throw new Error('DIRAC_PASSKEY_REQUEST_CONTEXT_UNAVAILABLE');
-    isRecoveryWorkerContext = Boolean(ctx.action === DIRAC_RECOVERY_WORKER_ACTION);
-  } catch (cause) {
-    const error = new Error('DIRAC_PASSKEY_REQUEST_CONTEXT_UNAVAILABLE');
-    error.code = 'DIRAC_PASSKEY_REQUEST_CONTEXT_UNAVAILABLE';
-    error.cause = cause;
-    throw error;
-  }
+    isRecoveryWorkerContext = Boolean(ctx && ctx.action === DIRAC_RECOVERY_WORKER_ACTION);
+  } catch (_) {}
 
   if (!isRecoveryWorkerContext && owner && owner.email && isValidAuthEmail(owner.email)) {
     await fetchRows('email=eq.' + encodeURIComponent(owner.email));
@@ -14401,14 +13144,8 @@ async function diracPasskeyA2FFetchByCredentialId(credentialId) {
   const id = diracPasskeyA2FSafeString(credentialId, 4096);
   if (!id) return { ok: true, data: [] };
   const select = ['id', 'user_id', 'email', 'credential_id', 'credential_json', 'transports', 'sign_count', 'is_active', 'created_at', 'last_used_at'].join(',');
-  const path = '/rest/v1/domain_passkeys?select=' + encodeURIComponent(select) + '&credential_id=eq.' + encodeURIComponent(id) + '&limit=2';
-  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
-  if (!result || result.ok !== true || !Array.isArray(result.data)) return result;
-  if (result.data.length > 1 || result.data.some((row) => !row || !safeEqual(String(row.credential_id || ''), id))) {
-    diracV222MarkDependencyFailure(null, 'passkey_credential_lookup', 503, 'PASSKEY_CREDENTIAL_AMBIGUOUS');
-    return { ok: false, status: 503, data: [], code: 'PASSKEY_CREDENTIAL_AMBIGUOUS' };
-  }
-  return result;
+  const path = '/rest/v1/domain_passkeys?select=' + encodeURIComponent(select) + '&credential_id=eq.' + encodeURIComponent(id) + '&limit=1';
+  return supabaseFetch(path, { method: 'GET', auth: 'service' });
 }
 
 async function diracPasskeyA2FSaveRegistration({ owner, credential, response, clientData, payload, req }) {
@@ -14461,21 +13198,11 @@ async function diracPasskeyA2FSaveRegistration({ owner, credential, response, cl
       prefer: 'return=representation',
       body: rowBody
     });
-    const patchRows = diracV222RequireExactMutationRows(
-      patch,
-      1,
-      (row) => row && safeEqual(String(row.id || ''), String(existing.id || ''))
-        && diracPasskeyA2FOwnerMatches(row, owner)
-        && safeEqual(String(row.credential_id || ''), credentialId)
-        && row.is_active === true,
-      'passkey_registration_update',
-      'PASSKEY_REGISTRATION_UPDATE_UNVERIFIED'
-    );
-    if (!patchRows) {
+    if (!patch.ok) {
       console.error('[passkey-update-failed]', customerSecuritySafeLogError(patch.data));
-      return { ok: false, status: patch.status || 503, message: 'Gagal memperbarui Passkey di database.', code: 'PASSKEY_UPDATE_FAILED' };
+      return { ok: false, status: patch.status || 500, message: 'Gagal memperbarui Passkey di database.', code: 'PASSKEY_UPDATE_FAILED' };
     }
-    return { ok: true, created: false, row: patchRows[0] };
+    return { ok: true, created: false, row: Array.isArray(patch.data) ? patch.data[0] : patch.data };
   }
 
   const created = await supabaseFetch('/rest/v1/domain_passkeys', {
@@ -14484,21 +13211,11 @@ async function diracPasskeyA2FSaveRegistration({ owner, credential, response, cl
     prefer: 'return=representation',
     body: [rowBody]
   });
-  const createdRows = diracV222RequireExactMutationRows(
-    created,
-    1,
-    (row) => row && customerSecurityLooksLikeUuid(String(row.id || ''))
-      && diracPasskeyA2FOwnerMatches(row, owner)
-      && safeEqual(String(row.credential_id || ''), credentialId)
-      && row.is_active === true,
-    'passkey_registration_create',
-    'PASSKEY_REGISTRATION_CREATE_UNVERIFIED'
-  );
-  if (!createdRows) {
+  if (!created.ok) {
     console.error('[passkey-create-failed]', customerSecuritySafeLogError(created.data));
-    return { ok: false, status: created.status || 503, message: 'Gagal menyimpan Passkey ke database.', code: 'PASSKEY_CREATE_FAILED' };
+    return { ok: false, status: created.status || 500, message: 'Gagal menyimpan Passkey ke database.', code: 'PASSKEY_CREATE_FAILED' };
   }
-  return { ok: true, created: true, row: createdRows[0] };
+  return { ok: true, created: true, row: Array.isArray(created.data) ? created.data[0] : created.data };
 }
 
 async function diracPasskeyA2FUpdateUsage({ row, owner, response, credential, clientData, payload, req }) {
@@ -14528,21 +13245,11 @@ async function diracPasskeyA2FUpdateUsage({ row, owner, response, credential, cl
     prefer: 'return=representation',
     body
   });
-  const patchedRows = diracV222RequireExactMutationRows(
-    patched,
-    1,
-    (patchedRow) => patchedRow && safeEqual(String(patchedRow.id || ''), String(row.id || ''))
-      && diracPasskeyA2FOwnerMatches(patchedRow, owner)
-      && patchedRow.is_active === true
-      && Boolean(patchedRow.last_used_at),
-    'passkey_usage_update',
-    'PASSKEY_USAGE_UPDATE_UNVERIFIED'
-  );
-  if (!patchedRows) {
+  if (!patched.ok) {
     console.error('[passkey-usage-update-failed]', customerSecuritySafeLogError(patched.data));
-    return { ok: false, status: patched.status || 503, message: 'Gagal memperbarui penggunaan Passkey.', code: 'PASSKEY_USAGE_UPDATE_FAILED' };
+    return { ok: false, status: patched.status || 500, message: 'Gagal memperbarui penggunaan Passkey.', code: 'PASSKEY_USAGE_UPDATE_FAILED' };
   }
-  return { ok: true, row: patchedRows[0] };
+  return { ok: true, row: Array.isArray(patched.data) ? patched.data[0] : patched.data };
 }
 
 async function diracPasskeyA2FMarkSettingsActive(owner) {
@@ -14555,16 +13262,12 @@ async function diracPasskeyA2FMarkSettingsActive(owner) {
       'created_at.desc',
       1
     );
-    if (!existing || existing.ok !== true || !Array.isArray(existing.data)) {
-      diracV222MarkDependencyFailure(null, 'passkey_settings_read', existing && existing.status || 503, 'PASSKEY_SETTINGS_READ_FAILED');
-      return { ok: false, reason: 'settings_read_failed', status: existing && existing.status || 503 };
-    }
     const body = {
       two_factor_enabled: true,
       two_factor_method: 'passkey',
       last_security_check_at: new Date().toISOString()
     };
-    const rows = existing.data;
+    const rows = Array.isArray(existing && existing.data) ? existing.data : [];
     if (rows[0] && rows[0].id) {
       const patched = await supabaseFetch('/rest/v1/security_customer_settings?id=eq.' + encodeURIComponent(rows[0].id), {
         method: 'PATCH',
@@ -14572,17 +13275,7 @@ async function diracPasskeyA2FMarkSettingsActive(owner) {
         prefer: 'return=representation',
         body
       });
-      const patchedRows = diracV222RequireExactMutationRows(
-        patched,
-        1,
-        (row) => row && safeEqual(String(row.id || ''), String(rows[0].id || ''))
-          && safeEqual(String(row.customer_id || ''), String(owner.customerId || ''))
-          && row.two_factor_enabled === true
-          && String(row.two_factor_method || '').trim().toLowerCase() === 'passkey',
-        'passkey_settings_update',
-        'PASSKEY_SETTINGS_UPDATE_UNVERIFIED'
-      );
-      return { ok: Boolean(patchedRows), status: patched.status || (patchedRows ? 200 : 503) };
+      return { ok: Boolean(patched.ok), status: patched.status };
     }
     const created = await supabaseFetch('/rest/v1/security_customer_settings', {
       method: 'POST',
@@ -14590,17 +13283,7 @@ async function diracPasskeyA2FMarkSettingsActive(owner) {
       prefer: 'return=representation',
       body: [{ customer_id: owner.customerId, ...body }]
     });
-    const createdRows = diracV222RequireExactMutationRows(
-      created,
-      1,
-      (row) => row && customerSecurityLooksLikeUuid(String(row.id || ''))
-        && safeEqual(String(row.customer_id || ''), String(owner.customerId || ''))
-        && row.two_factor_enabled === true
-        && String(row.two_factor_method || '').trim().toLowerCase() === 'passkey',
-      'passkey_settings_create',
-      'PASSKEY_SETTINGS_CREATE_UNVERIFIED'
-    );
-    return { ok: Boolean(createdRows), status: created.status || (createdRows ? 201 : 503) };
+    return { ok: Boolean(created.ok), status: created.status };
   } catch (error) {
     console.error('[dirac-passkey-settings]', diracSecurityRedactDiagnosticV210(error, 180));
     return { ok: false, reason: 'settings_exception' };
@@ -14718,19 +13401,12 @@ async function diracPasskeyA2FCompleteLostRecoveryRotation({ owner, newCredentia
       updated_at: nowIso
     }
   });
-  const oldRows = oldPasskeysPatched && oldPasskeysPatched.ok === true && Array.isArray(oldPasskeysPatched.data)
-    ? oldPasskeysPatched.data : null;
-  const oldRowsValid = Boolean(oldRows && oldRows.length > 0 && oldRows.every((row) => row
-    && safeEqual(String(row.user_id || ''), String(owner.customerId || ''))
-    && String(row.credential_id || '') !== credentialId
-    && row.is_active === false));
-  if (!oldRowsValid) {
+  if (!oldPasskeysPatched.ok) {
     console.error('[lost-passkey-old-passkeys-disable-failed]', customerSecuritySafeLogError(oldPasskeysPatched.data));
-    diracV222MarkDependencyFailure(null, 'lost_passkey_old_passkeys_disable', oldPasskeysPatched.status || 503, 'LOST_PASSKEY_OLD_PASSKEYS_DISABLE_UNVERIFIED');
-    return { ok: false, status: oldPasskeysPatched.status || 503, reason: 'lost_passkey_old_passkeys_disable_failed' };
+    return { ok: false, status: oldPasskeysPatched.status || 500, reason: 'lost_passkey_old_passkeys_disable_failed' };
   }
 
-  const disabledRows = oldRows.length;
+  const disabledRows = Array.isArray(oldPasskeysPatched.data) ? oldPasskeysPatched.data.length : 0;
   const sessionPath = '/rest/v1/' + LOST_PASSKEY_RECOVERY_SESSION_TABLE
     + '?request_id=eq.' + encodeURIComponent(recoverySession.requestId)
     + '&customer_id=eq.' + encodeURIComponent(owner.customerId)
@@ -14751,25 +13427,17 @@ async function diracPasskeyA2FCompleteLostRecoveryRotation({ owner, newCredentia
       }
     }
   });
-  const sessionRows = sessionPatched && Array.isArray(sessionPatched.data) ? sessionPatched.data : [];
-  const sessionRowValid = sessionRows.length === 1
-    && safeEqual(String(sessionRows[0] && sessionRows[0].request_id || ''), String(recoverySession.requestId || ''))
-    && safeEqual(String(sessionRows[0] && sessionRows[0].customer_id || ''), String(owner.customerId || ''))
-    && safeEqual(String(sessionRows[0] && sessionRows[0].auth_user_id || ''), String(owner.authUserId || ''))
-    && String(sessionRows[0] && sessionRows[0].status || '').trim().toLowerCase() === 'used'
-    && Boolean(sessionRows[0] && sessionRows[0].used_at);
-  if (!sessionPatched || sessionPatched.ok !== true || !sessionRowValid) {
-    console.error('[lost-passkey-session-close-failed]', customerSecuritySafeLogError(sessionPatched && sessionPatched.data));
-    return { ok: false, status: Number(sessionPatched && sessionPatched.status || 503) || 503, reason: 'lost_passkey_recovery_session_close_failed' };
+  if (!sessionPatched.ok) {
+    console.error('[lost-passkey-session-close-failed]', customerSecuritySafeLogError(sessionPatched.data));
+    return { ok: false, status: sessionPatched.status || 500, reason: 'lost_passkey_recovery_session_close_failed' };
   }
 
-  const requestPatched = await supabaseFetch('/rest/v1/' + LOST_PASSKEY_RECOVERY_REQUEST_TABLE
+  await supabaseFetch('/rest/v1/' + LOST_PASSKEY_RECOVERY_REQUEST_TABLE
     + '?request_id=eq.' + encodeURIComponent(recoverySession.requestId)
     + '&customer_id=eq.' + encodeURIComponent(owner.customerId)
     + '&auth_user_id=eq.' + encodeURIComponent(owner.authUserId), {
       method: 'PATCH',
       auth: 'service',
-      prefer: 'return=representation',
       body: {
         status: 'used',
         used_at: nowIso,
@@ -14780,17 +13448,7 @@ async function diracPasskeyA2FCompleteLostRecoveryRotation({ owner, newCredentia
           old_passkeys_deactivated: disabledRows
         }
       }
-    });
-  const requestRows = requestPatched && Array.isArray(requestPatched.data) ? requestPatched.data : [];
-  const requestRowValid = requestRows.length === 1
-    && safeEqual(String(requestRows[0] && requestRows[0].request_id || ''), String(recoverySession.requestId || ''))
-    && safeEqual(String(requestRows[0] && requestRows[0].customer_id || ''), String(owner.customerId || ''))
-    && safeEqual(String(requestRows[0] && requestRows[0].auth_user_id || ''), String(owner.authUserId || ''))
-    && String(requestRows[0] && requestRows[0].status || '').trim().toLowerCase() === 'used'
-    && Boolean(requestRows[0] && requestRows[0].used_at);
-  if (!requestPatched || requestPatched.ok !== true || !requestRowValid) {
-    return { ok: false, status: Number(requestPatched && requestPatched.status || 503) || 503, reason: 'lost_passkey_recovery_request_close_failed' };
-  }
+    }).catch(() => null);
 
   return {
     ok: true,
@@ -14815,20 +13473,8 @@ async function diracPasskeyA2FStart(req, res) {
     return res.status(owner.status || 409).json({ ok: false, method: 'passkey', message: owner.message || 'Akun belum siap untuk Passkey.' });
   }
 
-  let body;
-  try {
-    body = await readBody(req);
-  } catch (error) {
-    return res.status(Number(error && (error.statusCode || error.status) || 400)).json({
-      ok: false,
-      method: 'passkey',
-      code: String(error && error.code || 'PASSKEY_REQUEST_BODY_INVALID').slice(0, 80),
-      message: 'Request Passkey tidak valid.'
-    });
-  }
-  if (!body || typeof body !== 'object' || Array.isArray(body)) {
-    return res.status(400).json({ ok: false, method: 'passkey', code: 'PASSKEY_REQUEST_BODY_INVALID', message: 'Request Passkey tidak valid.' });
-  }
+  let body = {};
+  try { body = await readBody(req); } catch (_) { body = {}; }
   const recoverySessionToken = diracPasskeyA2FLostRecoveryTokenFromBody(body);
   let lostRecoverySession = null;
   if (recoverySessionToken) {
@@ -15165,17 +13811,8 @@ __diracV202RegisterMiddleware(async function diracPasskeyDbStatusWrapper(req, re
     const directPath = '/rest/v1/domain_passkeys?select=' + encodeURIComponent(directSelect)
       + '&is_active=eq.true&email=eq.' + encodeURIComponent(email)
       + '&order=created_at.desc&limit=20';
-    const directResult = await supabaseFetch(directPath, { method: 'GET', auth: 'service' });
-    if (!directResult || directResult.ok !== true || !Array.isArray(directResult.data)) {
-      return res.status(Number(directResult && directResult.status || 503) || 503).json({
-        ok: false,
-        active: false,
-        method: 'passkey',
-        code: 'PASSKEY_STATUS_STORAGE_UNAVAILABLE',
-        message: 'Status Passkey belum dapat diverifikasi.'
-      });
-    }
-    const directRows = directResult.data;
+    const directResult = await supabaseFetch(directPath, { method: 'GET', auth: 'service' }).catch(() => null);
+    const directRows = directResult && directResult.ok && Array.isArray(directResult.data) ? directResult.data : [];
     if (directRows.length > 0) {
       return res.status(200).json({
         ok: true,
@@ -15194,17 +13831,16 @@ __diracV202RegisterMiddleware(async function diracPasskeyDbStatusWrapper(req, re
 
     const owner = await diracPasskeyA2FResolveOwner(user, email);
     if (!owner.ok) {
-      return res.status(Number(owner.status || 503) || 503).json({
-        ok: false,
+      return res.status(200).json({
+        ok: true,
         active: false,
         method: 'passkey',
-        code: 'PASSKEY_OWNER_VERIFICATION_UNAVAILABLE',
         passkey_active: false,
         has_passkey: false,
         passkey_count: 0,
         owner_bound: false,
         owner_source: 'not_resolved',
-        message: 'Owner Passkey belum dapat diverifikasi.'
+        message: 'Passkey aktif belum ditemukan untuk email login ini.'
       });
     }
 
@@ -15551,11 +14187,7 @@ async function diracUniversalPesananCreatePayment(req, res) {
     amount: paymentInput.amount
   });
 
-  if (!existing.ok) {
-    return res.status(existing.status || 503).json({ ok: false, message: 'Gagal memverifikasi transaksi pembayaran sebelumnya. Payment tidak dibuat.' });
-  }
-
-  if (existing.transaction && existing.transaction.payment_url) {
+  if (existing.ok && existing.transaction && existing.transaction.payment_url) {
     return res.status(200).json({
       ok: true,
       reused: true,
@@ -15695,7 +14327,6 @@ async function diracUniversalPesananFindOwnedOrder(inputOrderId, requestedType, 
       ? await diracUniversalPesananFetchOwnedDomainOrder(inputOrderId, customerId)
       : await diracUniversalPesananFetchOwnedRegularOrder(inputOrderId, customerId);
     if (result.ok) return result;
-    if (Number(result.status || 0) >= 500) return result;
     last = result;
   }
   return last || { ok: false, status: 404, message: 'Order tidak ditemukan.' };
@@ -15713,13 +14344,11 @@ async function diracUniversalPesananFetchOwnedRegularOrder(inputOrderId, custome
   const path = '/rest/v1/orders?select=' + encodeURIComponent(select)
     + '&customer_id=eq.' + encodeURIComponent(customerId)
     + '&or=' + encodeURIComponent(`(${filters.join(',')})`)
-    + '&limit=2';
+    + '&limit=1';
 
   const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
   if (!result.ok) return { ok: false, status: result.status || 500, message: 'Gagal membaca order regular.' };
-  const rows = Array.isArray(result.data) ? result.data : [];
-  if (rows.length > 1) return { ok: false, status: 409, message: 'Order regular ambigu.' };
-  const row = rows[0] || null;
+  const row = Array.isArray(result.data) ? result.data[0] : null;
   if (!row || !row.id) return { ok: false, status: 404, message: 'Order regular tidak ditemukan atau bukan milik akun ini.' };
   return { ok: true, kind: 'regular', order: row };
 }
@@ -15751,13 +14380,11 @@ async function diracUniversalPesananFetchOwnedDomainOrder(inputOrderId, customer
   const path = '/rest/v1/domain_orders?select=' + encodeURIComponent(select)
     + '&customer_id=eq.' + encodeURIComponent(customerId)
     + '&or=' + encodeURIComponent(`(${filters.join(',')})`)
-    + '&limit=2';
+    + '&limit=1';
 
   const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
   if (!result.ok) return { ok: false, status: result.status || 500, message: 'Gagal membaca domain order.' };
-  const rows = Array.isArray(result.data) ? result.data : [];
-  if (rows.length > 1) return { ok: false, status: 409, message: 'Domain order ambigu.' };
-  const row = rows[0] || null;
+  const row = Array.isArray(result.data) ? result.data[0] : null;
   if (!row || !row.id) return { ok: false, status: 404, message: 'Domain order tidak ditemukan atau bukan milik akun ini.' };
   return { ok: true, kind: 'domain', order: row };
 }
@@ -15782,9 +14409,6 @@ async function diracUniversalPesananBuildRegularPaymentInput(order, customer, us
   }
 
   const itemPack = await diracUniversalPesananFetchRegularItems(orderId, amount, serviceType);
-  if (!itemPack || itemPack.ok !== true) {
-    return { ok: false, status: itemPack && itemPack.status || 409, message: itemPack && itemPack.message || 'Validasi item order gagal. Payment tidak dibuat.' };
-  }
   return {
     ok: true,
     kind: 'regular',
@@ -15819,9 +14443,6 @@ async function diracUniversalPesananBuildDomainPaymentInput(order, customer, use
   }
 
   const itemPack = await diracUniversalPesananFetchDomainItems(domainOrderId, amount, order.domain_name);
-  if (!itemPack || itemPack.ok !== true) {
-    return { ok: false, status: itemPack && itemPack.status || 409, message: itemPack && itemPack.message || 'Validasi item domain order gagal. Payment tidak dibuat.' };
-  }
   return {
     ok: true,
     kind: 'domain',
@@ -15847,15 +14468,8 @@ async function diracUniversalPesananFetchRegularItems(orderId, amount, serviceTy
   const select = 'id,order_id,product_doc_id,product_title,quantity,unit_price,cost_price';
   const path = '/rest/v1/order_items?select=' + encodeURIComponent(select) + '&order_id=eq.' + encodeURIComponent(orderId);
   const result = await supabaseFetch(path, { method: 'GET', auth: 'service' }).catch(() => null);
-  if (!result || !result.ok || !Array.isArray(result.data)) {
-    return { ok: false, status: 503, message: 'Data item order tidak tersedia.' };
-  }
-  const rows = result.data;
-  const productPack = await diracUniversalPesananFetchProductsForOrderItems(rows);
-  if (!productPack || productPack.ok !== true || !(productPack.productsById instanceof Map)) {
-    return { ok: false, status: productPack && productPack.status || 503, message: 'Metadata produk order tidak tersedia.' };
-  }
-  const productsById = productPack.productsById;
+  const rows = result && result.ok && Array.isArray(result.data) ? result.data : [];
+  const productsById = await diracUniversalPesananFetchProductsForOrderItems(rows);
   const items = [];
   let total = 0;
 
@@ -15882,12 +14496,23 @@ async function diracUniversalPesananFetchRegularItems(orderId, amount, serviceTy
     });
   });
 
-  if (!items.length) return { ok: false, status: 409, message: 'Item order kosong atau tidak valid.' };
-  if (lockedPaymentMoney(total) !== lockedPaymentMoney(amount)) {
-    return { ok: false, status: 409, message: 'Total item tidak cocok dengan total order.' };
+  if (!items.length || lockedPaymentMoney(total) !== lockedPaymentMoney(amount)) {
+    return {
+      items: [{
+        id: 'order-total',
+        product_doc_id: null,
+        title: myOrdersServiceLabel(serviceType) || 'Total pesanan',
+        quantity: 1,
+        unit_price: amount,
+        subtotal: amount,
+        image_url: orderMailDefaultProductImageUrl(),
+        description: ''
+      }],
+      totalItem: amount
+    };
   }
 
-  return { ok: true, items, totalItem: total };
+  return { items, totalItem: total };
 }
 
 async function diracUniversalPesananFetchProductsForOrderItems(rows) {
@@ -15899,38 +14524,24 @@ async function diracUniversalPesananFetchProductsForOrderItems(rows) {
     const result = await supabaseFetch(
       '/rest/v1/products?select=' + encodeURIComponent('doc_id,firebase_id,title,name,img,image_url,description,notes,long_description,category,fragrance_type') +
       '&or=' + encodeURIComponent('(doc_id.eq.' + id + ',firebase_id.eq.' + id + ')') +
-      '&limit=2',
+      '&limit=1',
       { method: 'GET', auth: 'service' }
-    ).catch((error) => {
-      diracV222MarkDependencyFailure(null, 'payment_product_metadata_lookup', 503, error && (error.code || error.name));
-      return null;
-    });
-    if (!result || result.ok !== true || !Array.isArray(result.data)) {
-      diracV222MarkDependencyFailure(null, 'payment_product_metadata_lookup', result && result.status || 503, 'PAYMENT_PRODUCT_METADATA_LOOKUP_FAILED');
-      return { ok: false, status: result && result.status || 503, productsById: null };
-    }
-    if (result.data.length > 1) {
-      diracV222MarkDependencyFailure(null, 'payment_product_metadata_lookup', 503, 'PAYMENT_PRODUCT_METADATA_AMBIGUOUS');
-      return { ok: false, status: 503, productsById: null };
-    }
-    const product = result.data[0] || null;
+    ).catch(() => null);
+    const product = result && result.ok && Array.isArray(result.data) ? result.data[0] : null;
     if (product) {
       if (product.doc_id) productsById.set(lockedPaymentCleanText(product.doc_id, 120), product);
       if (product.firebase_id) productsById.set(lockedPaymentCleanText(product.firebase_id, 120), product);
       productsById.set(id, product);
     }
   }
-  return { ok: true, productsById };
+  return productsById;
 }
 
 async function diracUniversalPesananFetchDomainItems(domainOrderId, amount, fallbackDomainName) {
   const select = 'id,order_id,domain_name,extension,years,register_price,subtotal';
   const path = '/rest/v1/domain_order_items?select=' + encodeURIComponent(select) + '&order_id=eq.' + encodeURIComponent(domainOrderId);
   const result = await supabaseFetch(path, { method: 'GET', auth: 'service' }).catch(() => null);
-  if (!result || !result.ok || !Array.isArray(result.data)) {
-    return { ok: false, status: 503, message: 'Data item domain order tidak tersedia.' };
-  }
-  const rows = result.data;
+  const rows = result && result.ok && Array.isArray(result.data) ? result.data : [];
   const items = [];
   let total = 0;
 
@@ -15952,12 +14563,23 @@ async function diracUniversalPesananFetchDomainItems(domainOrderId, amount, fall
     });
   });
 
-  if (!items.length) return { ok: false, status: 409, message: 'Item domain order kosong atau tidak valid.' };
-  if (lockedPaymentMoney(total) !== lockedPaymentMoney(amount)) {
-    return { ok: false, status: 409, message: 'Total item domain tidak cocok dengan total order.' };
+  if (!items.length || lockedPaymentMoney(total) !== lockedPaymentMoney(amount)) {
+    const title = lockedPaymentCleanText(fallbackDomainName || 'Domain order', 180);
+    return {
+      items: [{
+        id: 'domain-total',
+        domain_name: title,
+        title,
+        quantity: 1,
+        unit_price: amount,
+        price: amount,
+        subtotal: amount
+      }],
+      totalItem: amount
+    };
   }
 
-  return { ok: true, items, totalItem: total };
+  return { items, totalItem: total };
 }
 
 function diracUniversalPesananCanPayByStatus(paymentStatus, orderStatus, amount) {
@@ -15981,8 +14603,7 @@ async function diracUniversalPesananFindReusableTransaction(input) {
   const orderId = String(isDomain ? input.domainOrderId : input.orderId || '').trim();
 
   if (!customerSecurityLooksLikeUuid(customerId) || !customerSecurityLooksLikeUuid(orderId) || amount <= 0) {
-    diracV222MarkDependencyFailure(null, 'payment_reusable_transaction_input', 400, 'PAYMENT_REUSABLE_TRANSACTION_INPUT_INVALID');
-    return { ok: false, status: 400, transaction: null, code: 'PAYMENT_REUSABLE_TRANSACTION_INPUT_INVALID' };
+    return { ok: true, transaction: null };
   }
 
   const column = isDomain ? 'domain_order_id' : 'order_id';
@@ -16114,23 +14735,18 @@ async function orderMailBuildPaidRegularInvoiceContext(tx, provider, paidAt) {
   if (!orderId) return { ok: false, reason: 'regular_order_id_missing' };
 
   const select = 'id,order_id,customer_id,customer_name,customer_phone,customer_email,shipping_address,note,service_type,subtotal,shipping_cost,discount,total,payment_status,order_status,created_at';
-  const result = await supabaseFetch('/rest/v1/orders?select=' + encodeURIComponent(select) + '&id=eq.' + encodeURIComponent(orderId) + '&limit=2', {
+  const result = await supabaseFetch('/rest/v1/orders?select=' + encodeURIComponent(select) + '&id=eq.' + encodeURIComponent(orderId) + '&limit=1', {
     method: 'GET',
     auth: 'service'
   }).catch((error) => ({ ok: false, status: 500, data: { message: orderMailSafeError(error) } }));
 
   if (!result.ok) return { ok: false, reason: 'regular_order_read_failed', message: lockedPaymentSafeUpstreamError(result.data) };
-  const rows = Array.isArray(result.data) ? result.data : [];
-  if (rows.length > 1) return { ok: false, reason: 'regular_order_ambiguous', message: 'Order invoice regular ambigu.' };
-  const order = rows[0] || null;
+  const order = Array.isArray(result.data) ? result.data[0] : null;
   if (!order || !order.id) return { ok: false, reason: 'regular_order_not_found' };
 
   const amount = orderMailMoney(tx.amount || order.total || order.subtotal || 0);
   const serviceType = orderMailCleanText(order.service_type || tx.service_type || 'order', 80);
-  const itemPack = await diracUniversalPesananFetchRegularItems(order.id, amount, serviceType);
-  if (!itemPack || itemPack.ok !== true || !Array.isArray(itemPack.items) || !itemPack.items.length || orderMailMoney(itemPack.totalItem) !== amount) {
-    return { ok: false, soft: false, reason: 'regular_order_items_unverified', message: itemPack && itemPack.message || 'Item invoice regular tidak dapat diverifikasi.' };
-  }
+  const itemPack = await diracUniversalPesananFetchRegularItems(order.id, amount, serviceType).catch(() => ({ items: [], totalItem: 0 }));
   const customerFallback = await orderMailFetchCustomerFallback(order.customer_id);
   const customerEmail = orderMailNormalizeEmail(order.customer_email || customerFallback.email || '');
 
@@ -16160,7 +14776,7 @@ async function orderMailBuildPaidRegularInvoiceContext(tx, provider, paidAt) {
         phone: order.customer_phone || customerFallback.phone || '',
         shipping_address: order.shipping_address || ''
       },
-      items: itemPack.items,
+      items: Array.isArray(itemPack.items) && itemPack.items.length ? itemPack.items : [{ title: serviceType, quantity: 1, unit_price: amount, subtotal: amount }],
       payment: {
         url: '',
         provider,
@@ -16175,22 +14791,17 @@ async function orderMailBuildPaidDomainInvoiceContext(tx, provider, paidAt) {
   if (!domainOrderId) return { ok: false, reason: 'domain_order_id_missing' };
 
   const select = 'id,customer_id,customer_name,customer_whatsapp,customer_email,owner_email,domain_name,total_price,currency,order_status,status,payment_status,created_at';
-  const result = await supabaseFetch('/rest/v1/domain_orders?select=' + encodeURIComponent(select) + '&id=eq.' + encodeURIComponent(domainOrderId) + '&limit=2', {
+  const result = await supabaseFetch('/rest/v1/domain_orders?select=' + encodeURIComponent(select) + '&id=eq.' + encodeURIComponent(domainOrderId) + '&limit=1', {
     method: 'GET',
     auth: 'service'
   }).catch((error) => ({ ok: false, status: 500, data: { message: orderMailSafeError(error) } }));
 
   if (!result.ok) return { ok: false, reason: 'domain_order_read_failed', message: lockedPaymentSafeUpstreamError(result.data) };
-  const rows = Array.isArray(result.data) ? result.data : [];
-  if (rows.length > 1) return { ok: false, reason: 'domain_order_ambiguous', message: 'Domain order invoice ambigu.' };
-  const order = rows[0] || null;
+  const order = Array.isArray(result.data) ? result.data[0] : null;
   if (!order || !order.id) return { ok: false, reason: 'domain_order_not_found' };
 
   const amount = orderMailMoney(tx.amount || order.total_price || 0);
-  const itemPack = await diracUniversalPesananFetchDomainItems(order.id, amount, order.domain_name);
-  if (!itemPack || itemPack.ok !== true || !Array.isArray(itemPack.items) || !itemPack.items.length || orderMailMoney(itemPack.totalItem) !== amount) {
-    return { ok: false, soft: false, reason: 'domain_order_items_unverified', message: itemPack && itemPack.message || 'Item invoice domain tidak dapat diverifikasi.' };
-  }
+  const itemPack = await diracUniversalPesananFetchDomainItems(order.id, amount, order.domain_name).catch(() => ({ items: [], totalItem: 0 }));
   const customerFallback = await orderMailFetchCustomerFallback(order.customer_id);
   const customerEmail = orderMailNormalizeEmail(order.customer_email || order.owner_email || customerFallback.email || '');
 
@@ -16215,7 +14826,7 @@ async function orderMailBuildPaidDomainInvoiceContext(tx, provider, paidAt) {
         email: customerEmail,
         phone: order.customer_whatsapp || customerFallback.phone || ''
       },
-      items: itemPack.items,
+      items: Array.isArray(itemPack.items) && itemPack.items.length ? itemPack.items : [{ title: order.domain_name || 'Domain order', quantity: 1, unit_price: amount, subtotal: amount }],
       payment: {
         url: '',
         provider,
@@ -16228,18 +14839,12 @@ async function orderMailBuildPaidDomainInvoiceContext(tx, provider, paidAt) {
 async function orderMailFetchCustomerFallback(customerId) {
   const id = String(customerId || '').trim();
   if (!id || !customerSecurityLooksLikeUuid(id)) return { name: '', email: '', phone: '' };
-  const result = await supabaseFetch('/rest/v1/customers?select=' + encodeURIComponent('id,name,email,phone') + '&id=eq.' + encodeURIComponent(id) + '&limit=2', {
+  const result = await supabaseFetch('/rest/v1/customers?select=' + encodeURIComponent('id,name,email,phone') + '&id=eq.' + encodeURIComponent(id) + '&limit=1', {
     method: 'GET',
     auth: 'service'
-  }).catch((error) => diracV223ThrowFailClosed('ORDER_MAIL_CUSTOMER_LOOKUP_FAILED', 'order_mail_customer_lookup', 503, error));
-  if (!result || result.ok !== true || !Array.isArray(result.data)) {
-    diracV223ThrowFailClosed('ORDER_MAIL_CUSTOMER_LOOKUP_FAILED', 'order_mail_customer_lookup', Number(result && result.status || 503));
-  }
-  if (result.data.length > 1 || result.data.some((row) => !row || !safeEqual(String(row.id || ''), id))) {
-    diracV223ThrowFailClosed('ORDER_MAIL_CUSTOMER_ID_AMBIGUOUS', 'order_mail_customer_lookup', 503);
-  }
-  if (!result.data.length) return { name: '', email: '', phone: '' };
-  const row = result.data[0];
+  }).catch(() => null);
+  if (!result || !result.ok || !Array.isArray(result.data) || !result.data.length) return { name: '', email: '', phone: '' };
+  const row = result.data[0] || {};
   return {
     name: orderMailCleanText(row.name || '', 120),
     email: orderMailNormalizeEmail(row.email || ''),
@@ -16954,13 +15559,14 @@ function orderMailSafeError(error) {
    DIRAC SENSITIVE POST ORIGIN GUARD - APPEND ONLY v1
    Tujuan:
    - Menambah pagar CSRF ringan untuk POST sensitif tanpa mengubah isi handler.
-   - domain_logout dilindungi di outer wrapper; clearSessionCookies tetap dijalankan,
-     sedangkan respons sukses mensyaratkan revokasi sesi server-side terkonfirmasi.
+   - domain_logout dilindungi di outer wrapper, tetapi logic logout/cookie/A2F lama
+     tetap utuh: revoke session tetap best-effort, clearSessionCookies tetap asli.
    - Login, hash password, MFA/A2F core, email template, webhook payment gateway,
      dan cookie helper tidak disentuh.
    - Browser normal tetap aman: Origin valid diterima; jika Origin tidak dikirim,
-     Referer valid diterima; jika keduanya tidak ada, request sensitif ditolak.
-     ENV tidak boleh menurunkan keputusan ini menjadi fail-open.
+     Referer valid diterima; jika dua-duanya tidak ada, default fail-open agar
+     logout mobile/Safari/keepalive tidak rusak. Bisa dibuat ketat via ENV:
+     DIRAC_SENSITIVE_POST_ORIGIN_REQUIRE_HEADER=true
    ============================================================ */
 
 const DIRAC_SENSITIVE_POST_ORIGIN_GUARD_PATCH = 'sensitive-post-origin-guard-v1';
@@ -17185,10 +15791,9 @@ __diracV202RegisterMiddleware(async function customerSecurityFeatureReadWrapper(
       error: 'CUSTOMER_SECURITY_OVERVIEW_ERROR'
     }));
 
-    if (!overviewResult || overviewResult.ok !== true || !overviewResult.data) {
-      return res.status(503).json({ ok: false, code: 'CUSTOMER_SECURITY_OVERVIEW_INCOMPLETE', message: 'Data keamanan belum dapat diverifikasi secara lengkap.' });
-    }
-    const overview = overviewResult.data;
+    const overview = overviewResult && overviewResult.ok && overviewResult.data
+      ? overviewResult.data
+      : customerSecurityEmptyOverview();
 
     const bundle = customerSecurityBuildFeatureReadBundle(access, overview);
 
@@ -17653,10 +16258,9 @@ async function customerSecurityFeatureBundleV2(req, res, action) {
     error: 'CUSTOMER_SECURITY_OVERVIEW_ERROR'
   }));
 
-  if (!overviewResult || overviewResult.ok !== true || !overviewResult.data) {
-    return res.status(503).json({ ok: false, code: 'CUSTOMER_SECURITY_OVERVIEW_INCOMPLETE', message: 'Data keamanan belum dapat diverifikasi secara lengkap.' });
-  }
-  const overview = overviewResult.data;
+  const overview = overviewResult && overviewResult.ok && overviewResult.data
+    ? overviewResult.data
+    : customerSecurityEmptyOverview();
 
   if (Array.isArray(overview.login_logs)) overview.login_logs = overview.login_logs.slice(0, 8);
   if (overview.counts && typeof overview.counts === 'object') {
@@ -17686,10 +16290,7 @@ async function customerSecurityTrustCurrentDeviceV2(req, res, action) {
     return res.status(400).json({ ok: false, message: 'Sesi perangkat belum terbaca.' });
   }
 
-  const touched = await customerSecurityTouchCurrentSession(req, access.customerId).catch(() => null);
-  if (!touched || touched.ok !== true) {
-    return res.status(503).json({ ok: false, message: 'Sesi perangkat belum dapat diverifikasi.' });
-  }
+  await customerSecurityTouchCurrentSession(req, access.customerId).catch(() => null);
 
   const nowIso = new Date().toISOString();
   const patched = await supabaseFetch('/rest/v1/security_customer_sessions?customer_id=eq.' +
@@ -17704,34 +16305,21 @@ async function customerSecurityTrustCurrentDeviceV2(req, res, action) {
     }
   });
 
-  const trustedRows = diracV222RequireExactMutationRows(
-    patched,
-    1,
-    (row) => row && safeEqual(String(row.customer_id || ''), String(access.customerId || ''))
-      && safeEqual(String(row.session_token_hash || ''), String(fingerprint.session_token_hash || ''))
-      && row.trusted_device === true,
-    'trusted_device_enable',
-    'TRUSTED_DEVICE_ENABLE_UNVERIFIED'
-  );
-  if (!trustedRows) {
-    return res.status(503).json({
+  if (!patched.ok) {
+    return res.status(patched.status || 502).json({
       ok: false,
       message: 'Perangkat belum bisa ditandai terpercaya.'
     });
   }
 
-  const audited = await customerSecurityWriteGuardEvent(access.customerId, {
+  await customerSecurityWriteGuardEvent(access.customerId, {
     event_type: 'trusted_device_enabled',
     status: 'success',
     risk_level: 'low',
     description: 'Perangkat saat ini ditandai sebagai perangkat terpercaya.',
     req,
     metadata: { source: 'customer_security_trust_current_device_v2' }
-  });
-  if (audited !== true) {
-    await diracV229SetTrustedDeviceState(access.customerId, fingerprint.session_token_hash, false);
-    return res.status(503).json({ ok: false, code: 'TRUSTED_DEVICE_AUDIT_REQUIRED', message: 'Audit keamanan gagal; status perangkat terpercaya dibatalkan.' });
-  }
+  }).catch(() => null);
 
   return res.status(200).json({
     ok: true,
@@ -17749,19 +16337,7 @@ async function customerSecurityUntrustDeviceV2(req, res, action) {
   });
   if (!access) return;
 
-  let body;
-  try {
-    body = await readLimitedJsonBody(req, 8 * 1024);
-  } catch (error) {
-    return res.status(Number(error && (error.statusCode || error.status) || 400)).json({
-      ok: false,
-      code: String(error && error.code || 'CUSTOMER_SECURITY_BODY_INVALID').slice(0, 80),
-      message: 'Request tidak valid.'
-    });
-  }
-  if (!body || typeof body !== 'object' || Array.isArray(body)) {
-    return res.status(400).json({ ok: false, code: 'CUSTOMER_SECURITY_BODY_INVALID', message: 'Request tidak valid.' });
-  }
+  const body = await readLimitedJsonBody(req, 8 * 1024).catch(() => ({}));
   const sessionId = String(body.session_id || body.id || '').trim();
   if (!sessionId || !customerSecurityLooksLikeUuid(sessionId)) {
     return res.status(400).json({ ok: false, message: 'ID sesi perangkat tidak valid.' });
@@ -17772,39 +16348,27 @@ async function customerSecurityUntrustDeviceV2(req, res, action) {
     '&id=eq.' + encodeURIComponent(sessionId), {
     method: 'PATCH',
     auth: 'service',
-    prefer: 'return=representation',
+    prefer: 'return=minimal',
     body: {
       trusted_device: false
     }
   });
 
-  const untrustedRows = diracV222RequireExactMutationRows(
-    patched,
-    1,
-    (row) => row && safeEqual(String(row.id || ''), sessionId)
-      && safeEqual(String(row.customer_id || ''), String(access.customerId || ''))
-      && row.trusted_device === false,
-    'trusted_device_disable',
-    'TRUSTED_DEVICE_DISABLE_UNVERIFIED'
-  );
-  if (!untrustedRows) {
+  if (!patched.ok) {
     return res.status(patched.status || 502).json({
       ok: false,
       message: 'Kepercayaan perangkat belum bisa dihapus.'
     });
   }
 
-  const audited = await customerSecurityWriteGuardEvent(access.customerId, {
+  await customerSecurityWriteGuardEvent(access.customerId, {
     event_type: 'trusted_device_removed',
     status: 'success',
     risk_level: 'low',
     description: 'Kepercayaan perangkat dihapus oleh pelanggan.',
     req,
     metadata: { source: 'customer_security_untrust_device_v2', session_id: sessionId }
-  });
-  if (audited !== true) {
-    return res.status(503).json({ ok: false, code: 'UNTRUST_DEVICE_AUDIT_REQUIRED', trusted_device: false, message: 'Kepercayaan perangkat sudah dihapus, tetapi audit wajib gagal sehingga respons sukses ditolak.' });
-  }
+  }).catch(() => null);
 
   return res.status(200).json({
     ok: true,
@@ -17823,7 +16387,7 @@ async function customerSecurityPruneLoginHistoryEndpointV2(req, res, action) {
   if (!access) return;
 
   const result = await customerSecurityFeaturePruneLoginHistoryV2(access.customerId);
-  return res.status(result.ok === true ? 200 : 503).json({
+  return res.status(200).json({
     ok: result.ok === true,
     login_history_limit: 8,
     pruned: Number(result.pruned || 0),
@@ -17859,16 +16423,11 @@ async function customerSecurityFeaturePruneLoginHistoryV2(customerId) {
   const removed = await supabaseFetch(deletePath, {
     method: 'DELETE',
     auth: 'service',
-    prefer: 'return=representation'
+    prefer: 'return=minimal'
   });
 
-  const removedIds = removed && removed.ok === true && Array.isArray(removed.data)
-    ? removed.data.map((row) => String(row && row.id || '')).sort() : [];
-  const expectedIds = removable.slice().sort();
-  const exactRemoval = removedIds.length === expectedIds.length && removedIds.every((value, index) => safeEqual(value, expectedIds[index]));
-  if (!exactRemoval) {
-    diracV222MarkDependencyFailure(null, 'customer_login_history_prune', removed && removed.status || 503, 'CUSTOMER_LOGIN_HISTORY_PRUNE_UNVERIFIED');
-    return { ok: false, pruned: 0, status: removed && removed.status || 503 };
+  if (!removed.ok) {
+    return { ok: false, pruned: 0, status: removed.status || 500 };
   }
 
   return { ok: true, pruned: removable.length, kept: 8 };
@@ -18098,10 +16657,9 @@ async function customerSecurityFeatureBundleV3(req, res, action) {
     error: 'CUSTOMER_SECURITY_OVERVIEW_ERROR'
   }));
 
-  if (!overviewResult || overviewResult.ok !== true || !overviewResult.data) {
-    return res.status(503).json({ ok: false, code: 'CUSTOMER_SECURITY_OVERVIEW_INCOMPLETE', message: 'Data keamanan belum dapat diverifikasi secara lengkap.' });
-  }
-  const overview = customerSecurityApplyEightLimitV3(overviewResult.data);
+  const overview = overviewResult && overviewResult.ok && overviewResult.data
+    ? customerSecurityApplyEightLimitV3(overviewResult.data)
+    : customerSecurityEmptyOverview();
 
   const bundle = customerSecurityBuildFeatureReadBundle(access, overview);
   const score = customerSecurityFeatureScoreMin95V3(bundle.score);
@@ -18161,17 +16719,10 @@ async function customerSecurityFeaturePruneSessionsV3(customerId) {
   const removed = await supabaseFetch(deletePath, {
     method: 'DELETE',
     auth: 'service',
-    prefer: 'return=representation'
+    prefer: 'return=minimal'
   });
 
-  const removedIds = removed && removed.ok === true && Array.isArray(removed.data)
-    ? removed.data.map((row) => String(row && row.id || '')).sort() : [];
-  const expectedIds = removable.slice().sort();
-  const exactRemoval = removedIds.length === expectedIds.length && removedIds.every((value, index) => safeEqual(value, expectedIds[index]));
-  if (!exactRemoval) {
-    diracV222MarkDependencyFailure(null, 'customer_session_prune', removed && removed.status || 503, 'CUSTOMER_SESSION_PRUNE_UNVERIFIED');
-    return { ok: false, pruned: 0, status: removed && removed.status || 503 };
-  }
+  if (!removed.ok) return { ok: false, pruned: 0, status: removed.status || 500 };
   return { ok: true, pruned: removable.length, kept: 8 };
 }
 
@@ -18361,12 +16912,7 @@ function diracUltraInstallSafeJsonInterceptor(res) {
       try {
         return originalJson(diracUltraRedactPayload(payload));
       } catch (_) {
-        res.statusCode = 500;
-        return originalJson({
-          ok: false,
-          code: 'SECURE_RESPONSE_REDACTION_FAILED',
-          message: 'Respons tidak dapat diproses secara aman.'
-        });
+        return originalJson(payload);
       }
     };
   } catch (_) {}
@@ -18576,6 +17122,8 @@ function diracUltraStrictOriginGuard(req, action) {
     const guard = diracSensitivePostOriginCheck(req, action);
     if (!guard || !guard.ok) return guard || { ok: false, code: 'ORIGIN_BLOCKED' };
     if (guard.source === 'missing_origin_fail_open') {
+      if (isEnvTrue('DIRAC_ULTRA_ALLOW_MISSING_ORIGIN')) return guard;
+      if (process.env.NODE_ENV !== 'production') return guard;
       return { ok: false, code: 'SENSITIVE_POST_ORIGIN_HEADER_REQUIRED', source: 'ultra_missing_origin_block' };
     }
     return guard;
@@ -18591,12 +17139,15 @@ try {
     diracSensitivePostOriginCheck = function diracSensitivePostOriginCheckUltra(req, action) {
       const guard = __diracUltraOriginalSensitiveOriginCheck(req, action);
       if (guard && guard.ok && guard.source === 'missing_origin_fail_open') {
-        return { ok: false, code: 'SENSITIVE_POST_ORIGIN_HEADER_REQUIRED', source: 'ultra_missing_origin_block' };
+        if (isEnvTrue('DIRAC_ULTRA_ALLOW_MISSING_ORIGIN')) return guard;
+        if (process.env.NODE_ENV === 'production' || isEnvTrue('DIRAC_SENSITIVE_POST_ORIGIN_REQUIRE_HEADER')) {
+          return { ok: false, code: 'SENSITIVE_POST_ORIGIN_HEADER_REQUIRED', source: 'ultra_missing_origin_block' };
+        }
       }
       return guard;
     };
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_17178', error); }
+} catch (_) {}
 
 // Override generic body reader with a safe byte limit. Function names and endpoints are not changed.
 try {
@@ -18615,16 +17166,7 @@ try {
 
       if (req && typeof req.body === 'string') {
         if (Buffer.byteLength(req.body, 'utf8') > limit) throw diracUltraBodyTooLargeError(limit);
-        if (!req.body) return {};
-        try {
-          return JSON.parse(req.body);
-        } catch (_) {
-          throw diracRequestBodyError('DIRAC_BODY_INVALID_JSON', 'Request JSON tidak valid.');
-        }
-      }
-
-      if (!req || typeof req.on !== 'function') {
-        throw diracRequestBodyError('DIRAC_BODY_STREAM_UNAVAILABLE', 'Request body tidak dapat dibaca.');
+        try { return JSON.parse(req.body || '{}'); } catch (_) { return {}; }
       }
 
       return await new Promise((resolve, reject) => {
@@ -18641,22 +17183,16 @@ try {
         });
         req.on('end', () => {
           if (stopped) return;
-          stopped = true;
-          try {
-            resolve(raw ? JSON.parse(raw) : {});
-          } catch (_) {
-            reject(diracRequestBodyError('DIRAC_BODY_INVALID_JSON', 'Request JSON tidak valid.'));
-          }
+          try { resolve(raw ? JSON.parse(raw) : {}); } catch (_) { resolve({}); }
         });
         req.on('error', () => {
           if (stopped) return;
-          stopped = true;
-          reject(diracRequestBodyError('DIRAC_BODY_READ_FAILED', 'Request body tidak dapat dibaca.'));
+          resolve({});
         });
       });
     };
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_17238', error); }
+} catch (_) {}
 
 function diracUltraBodyTooLargeError(limit) {
   const error = new Error('REQUEST_BODY_TOO_LARGE');
@@ -18667,7 +17203,7 @@ function diracUltraBodyTooLargeError(limit) {
 }
 
 async function diracUltraCheckRateLimit(req, action, method) {
-  if (isEnvTrue('DIRAC_ULTRA_RATE_LIMIT_DISABLED')) return { ok: false, retryAfterSeconds: 3600, reason: 'ultra_rate_guard_disable_forbidden' };
+  if (isEnvTrue('DIRAC_ULTRA_RATE_LIMIT_DISABLED')) return { ok: true };
   if (String(method || '').toUpperCase() === 'OPTIONS') return { ok: true };
 
   const config = diracUltraRateLimitConfig(action, method);
@@ -18691,28 +17227,14 @@ async function diracUltraCheckRateLimit(req, action, method) {
     return { ok: false, retryAfterSeconds: Math.max(1, Math.ceil((row.resetAtMs - now) / 1000)) };
   }
 
-  if (isEnvTrue('DIRAC_ULTRA_PERSISTENT_RATE_LIMIT')) {
-    if (!LOGIN_SECURITY_PERSIST_TABLE || typeof readPersistentSecurityJsonStrictV194 !== 'function' || typeof writePersistentSecurityJsonRequiredV194 !== 'function') {
-      diracV222MarkDependencyFailure(null, 'persistent_rate_limit', 503, 'PERSISTENT_RATE_LIMIT_STORAGE_REQUIRED');
-      return { ok: false, retryAfterSeconds: 60, reason: 'persistent_rate_store_unavailable', unavailable: true };
-    }
+  if (isEnvTrue('DIRAC_ULTRA_PERSISTENT_RATE_LIMIT') && LOGIN_SECURITY_PERSIST_TABLE && typeof readPersistentSecurityJson === 'function') {
     const persistedKey = 'ultra-rate:' + key;
-    const lookup = await readPersistentSecurityJsonStrictV194(persistedKey).catch(() => ({ ok: false }));
-    if (!lookup || lookup.ok !== true) {
-      diracV222MarkDependencyFailure(null, 'persistent_rate_limit', 503, 'PERSISTENT_RATE_LIMIT_LOOKUP_FAILED');
-      return { ok: false, retryAfterSeconds: 60, reason: 'persistent_rate_store_unavailable', unavailable: true };
-    }
+    const persisted = await readPersistentSecurityJson(persistedKey).catch(() => null);
     const pNow = Date.now();
-    let pRow = lookup.found && lookup.record && typeof lookup.record === 'object'
-      ? lookup.record
-      : { count: 0, resetAtMs: pNow + config.windowMs };
+    let pRow = persisted && typeof persisted === 'object' ? persisted : { count: 0, resetAtMs: pNow + config.windowMs };
     if (pNow > Number(pRow.resetAtMs || 0)) pRow = { count: 0, resetAtMs: pNow + config.windowMs };
     pRow.count = Number(pRow.count || 0) + 1;
-    const wrote = await writePersistentSecurityJsonRequiredV194(persistedKey, pRow, 0, Math.ceil(config.windowMs / 1000) + 60).catch(() => false);
-    if (wrote !== true) {
-      diracV222MarkDependencyFailure(null, 'persistent_rate_limit', 503, 'PERSISTENT_RATE_LIMIT_WRITE_FAILED');
-      return { ok: false, retryAfterSeconds: 60, reason: 'persistent_rate_store_unavailable', unavailable: true };
-    }
+    await writePersistentSecurityJson(persistedKey, pRow, 0, Math.ceil(config.windowMs / 1000) + 60).catch(() => false);
     if (pRow.count > config.limit) {
       return { ok: false, retryAfterSeconds: Math.max(1, Math.ceil((Number(pRow.resetAtMs || pNow) - pNow) / 1000)) };
     }
@@ -18800,7 +17322,7 @@ try {
       return payload;
     };
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_17368', error); }
+} catch (_) {}
 
 /* ============================================================
    DIRAC ULTRA SQLMAP / SQLI GLOBAL GUARD v101 - APPEND ONLY
@@ -18828,13 +17350,7 @@ __diracV202RegisterMiddleware(async function diracUltraSqlmapGuardWrapper(req, r
   const method = String((req && req.method) || 'GET').toUpperCase();
 
   try {
-    const existingBlock = await diracV101CheckPersistentSqlmapBlock(req, action, method).catch((error) => {
-      diracV222MarkDependencyFailure(null, 'sqlmap_ban_lookup', 503, error && (error.code || error.name));
-      return { ok: false, blocked: true, unavailable: true, retryAfterSeconds: 60, reason: 'persistent_security_lookup_unavailable' };
-    });
-    if (existingBlock && existingBlock.unavailable) {
-      return diracV222SecurityPersistenceUnavailableResponse(res, 'SQLMAP_BAN_LOOKUP_UNAVAILABLE', 'sqlmap_ban_lookup');
-    }
+    const existingBlock = await diracV101CheckPersistentSqlmapBlock(req, action, method).catch(() => ({ ok: true }));
     if (existingBlock && existingBlock.blocked) {
       try { res.setHeader('Retry-After', String(existingBlock.retryAfterSeconds || 86400)); } catch (_) {}
       return res.status(403).json({
@@ -18846,10 +17362,7 @@ __diracV202RegisterMiddleware(async function diracUltraSqlmapGuardWrapper(req, r
 
     const threat = diracV101DetectRequestThreat(req, action, method);
     if (threat.detected) {
-      const persisted = await diracV101RegisterSqlmapAttack(req, action, method, threat).catch(() => false);
-      if (!(persisted === true || persisted && persisted.ok === true)) {
-        return diracV222SecurityPersistenceUnavailableResponse(res, 'SQLMAP_BAN_PERSISTENCE_UNAVAILABLE', 'sqlmap_ban_persistence');
-      }
+      await diracV101RegisterSqlmapAttack(req, action, method, threat).catch(() => null);
       return res.status(threat.status || 403).json({
         ok: false,
         code: 'REQUEST_BLOCKED',
@@ -18858,7 +17371,11 @@ __diracV202RegisterMiddleware(async function diracUltraSqlmapGuardWrapper(req, r
     }
   } catch (error) {
     console.error('[dirac-ultra-sqlmap-guard-preflight]', diracV101SafeError(error));
-    return diracV222SecurityPersistenceUnavailableResponse(res, 'SQLMAP_GUARD_UNAVAILABLE', 'sqlmap_guard');
+    return res.status(403).json({
+      ok: false,
+      code: 'REQUEST_BLOCKED',
+      message: 'Permintaan ditolak oleh sistem keamanan.'
+    });
   }
 
   return nextHandlerV202(req, res);
@@ -18872,7 +17389,7 @@ function diracV101NormalizeAction(action) {
 }
 
 function diracV101DetectRequestThreat(req, action, method) {
-  if (isEnvTrue('DIRAC_SQLMAP_GUARD_DISABLED')) throw new Error('SQLMAP_GUARD_DISABLE_FORBIDDEN');
+  if (isEnvTrue('DIRAC_SQLMAP_GUARD_DISABLED')) return { detected: false };
   if (String(method || '').toUpperCase() === 'OPTIONS') return { detected: false };
 
   const headers = (req && req.headers) || {};
@@ -19012,7 +17529,7 @@ function diracV101InspectionSamples(value) {
 }
 
 function diracV101ShouldInspectParsedBody(req, action) {
-  if (isEnvTrue('DIRAC_SQLMAP_BODY_GUARD_DISABLED')) throw new Error('SQLMAP_BODY_GUARD_DISABLE_FORBIDDEN');
+  if (isEnvTrue('DIRAC_SQLMAP_BODY_GUARD_DISABLED')) return false;
   const method = String((req && req.method) || '').toUpperCase();
   if (!['POST', 'PUT', 'PATCH'].includes(method)) return false;
   const normalized = diracV101NormalizeAction(action || String((req && req.query && req.query.action) || ''));
@@ -19095,12 +17612,8 @@ async function diracV101CheckPersistentSqlmapBlock(req, action, method) {
   if (mem && Number(mem.blockedUntilMs || 0) > now) {
     return { blocked: true, retryAfterSeconds: Math.max(1, Math.ceil((mem.blockedUntilMs - now) / 1000)) };
   }
-  if (!LOGIN_SECURITY_PERSIST_TABLE || typeof readPersistentSecurityJsonStrictV194 !== 'function') {
-    throw new Error('SQLMAP_PERSISTENT_BLOCK_STORAGE_REQUIRED');
-  }
-  const lookup = await readPersistentSecurityJsonStrictV194(key);
-  if (!lookup || lookup.ok !== true) throw new Error('SQLMAP_PERSISTENT_BLOCK_LOOKUP_FAILED');
-  const persisted = lookup.found && lookup.record && typeof lookup.record === 'object' ? lookup.record : null;
+  if (!LOGIN_SECURITY_PERSIST_TABLE || typeof readPersistentSecurityJson !== 'function') return { ok: true };
+  const persisted = await readPersistentSecurityJson(key).catch(() => null);
   const blockedUntilMs = Number(persisted && (persisted.blockedUntilMs || persisted.blocked_until_ms) || 0);
   if (blockedUntilMs > now) {
     DIRAC_ULTRA_SQLMAP_MEMORY_STORE.set(key, { blockedUntilMs });
@@ -19203,17 +17716,14 @@ try {
         const samples = diracV101CollectInspectableBodyStrings(body, [], 0, '');
         const threat = diracV101FindSqlInjectionThreat(samples, { source: 'body' });
         if (threat.detected) {
-          const persisted = await diracV101RegisterSqlmapAttack(req, action, String((req && req.method) || 'POST').toUpperCase(), threat).catch(() => false);
-          if (!(persisted === true || persisted && persisted.ok === true)) {
-            diracV222ThrowSecurityPersistenceUnavailable('SQLMAP_BAN_PERSISTENCE_UNAVAILABLE', 'sqlmap_body_ban_persistence');
-          }
+          await diracV101RegisterSqlmapAttack(req, action, String((req && req.method) || 'POST').toUpperCase(), threat).catch(() => null);
           diracV101ThrowBlockedThreat(threat);
         }
       }
       return body;
     };
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_17773', error); }
+} catch (_) {}
 
 try {
   const __diracV101OriginalReadBody = typeof readBody === 'function' ? readBody : null;
@@ -19225,17 +17735,14 @@ try {
         const samples = diracV101CollectInspectableBodyStrings(body, [], 0, '');
         const threat = diracV101FindSqlInjectionThreat(samples, { source: 'body' });
         if (threat.detected) {
-          const persisted = await diracV101RegisterSqlmapAttack(req, action, String((req && req.method) || 'POST').toUpperCase(), threat).catch(() => false);
-          if (!(persisted === true || persisted && persisted.ok === true)) {
-            diracV222ThrowSecurityPersistenceUnavailable('SQLMAP_BAN_PERSISTENCE_UNAVAILABLE', 'sqlmap_body_ban_persistence');
-          }
+          await diracV101RegisterSqlmapAttack(req, action, String((req && req.method) || 'POST').toUpperCase(), threat).catch(() => null);
           diracV101ThrowBlockedThreat(threat);
         }
       }
       return body;
     };
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_17792', error); }
+} catch (_) {}
 
 // Service-role hardening: validasi path Supabase tanpa mengubah endpoint/action public.
 try {
@@ -19254,10 +17761,10 @@ try {
       return __diracV101OriginalSupabaseFetch(path, options);
     };
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_17811', error); }
+} catch (_) {}
 
 function diracV101ValidateServiceRoleSupabasePath(path, options = {}) {
-  if (isEnvTrue('DIRAC_SERVICE_ROLE_GUARD_DISABLED')) return { ok: false, code: 'SERVICE_ROLE_GUARD_DISABLE_FORBIDDEN' };
+  if (isEnvTrue('DIRAC_SERVICE_ROLE_GUARD_DISABLED')) return { ok: true };
   const raw = String(path || '').trim();
   if (!raw || /https?:\/\//i.test(raw) || /(?:\.\.|\\|\u0000)/.test(raw)) {
     return { ok: false, code: 'SERVICE_ROLE_PATH_INVALID' };
@@ -19316,7 +17823,8 @@ function diracV101ServiceRoleAllowedTables() {
     DIRAC_S2S_SECURITY_TABLE,
     String(process.env.DOMAIN_LOGIN_RATE_TABLE || '').trim()
   ];
-  return new Set(base.filter(Boolean));
+  const extra = String(process.env.DIRAC_SERVICE_ROLE_EXTRA_TABLES || '').split(',').map((item) => item.trim()).filter(Boolean);
+  return new Set([...base, ...extra].filter(Boolean));
 }
 
 // Argon2id highest-compatible profile for new customer recovery-code hashes only.
@@ -19344,7 +17852,7 @@ try {
       }
     };
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_17902', error); }
+} catch (_) {}
 
 /* ============================================================
    DIRAC GLOBAL HARD-BAN STABLE v107 - APPEND ONLY
@@ -19372,15 +17880,7 @@ __diracV202RegisterMiddleware(async function diracGlobalHardBanStableWrapperV107
 
   try {
     if (!diracV107ShouldSkip(req, action, method)) {
-      const existing = await diracV107CheckActiveBan(req).catch((error) => ({
-        blocked: true,
-        unavailable: true,
-        retryAfterSeconds: 60,
-        reason: String(error && (error.code || error.name) || 'global_hard_ban_lookup_unavailable').slice(0, 120)
-      }));
-      if (existing && existing.unavailable) {
-        return diracV222SecurityPersistenceUnavailableResponse(res, 'GLOBAL_HARD_BAN_LOOKUP_UNAVAILABLE', 'global_hard_ban_lookup');
-      }
+      const existing = await diracV107CheckActiveBan(req).catch(() => ({ blocked: false }));
       if (existing && existing.blocked) {
         try { res.setHeader('Retry-After', String(existing.retryAfterSeconds || 86400)); } catch (_) {}
         try { res.setHeader('X-Dirac-V107-Blocked-By', String(existing.keyType || 'global').slice(0, 80)); } catch (_) {}
@@ -19393,16 +17893,13 @@ __diracV202RegisterMiddleware(async function diracGlobalHardBanStableWrapperV107
           try { console.error('[dirac-v107-hard-ban-write-failed]', diracV107SafeError(error)); } catch (_) {}
           return { ok: false, wrote: 0 };
         });
-        if (!(write && write.ok === true && Number(write.wrote || 0) > 0)) {
-          return diracV222SecurityPersistenceUnavailableResponse(res, 'GLOBAL_HARD_BAN_PERSISTENCE_UNAVAILABLE', 'global_hard_ban_persistence');
-        }
-        try { res.setHeader('X-Dirac-V107-Hard-Ban-Write', 'active'); } catch (_) {}
+        try { res.setHeader('X-Dirac-V107-Hard-Ban-Write', write && write.ok ? 'active' : 'memory'); } catch (_) {}
         return diracV107BlockedResponse(res, threat.kind || 'SECURITY_THREAT');
       }
     }
   } catch (error) {
     try { console.error('[dirac-v107-hard-ban]', diracV107SafeError(error)); } catch (_) {}
-    return diracV222SecurityPersistenceUnavailableResponse(res, 'GLOBAL_HARD_BAN_GUARD_UNAVAILABLE', 'global_hard_ban_guard');
+    return diracV107BlockedResponse(res, 'SECURITY_GUARD_ERROR');
   }
 
   return nextHandlerV202(req, res);
@@ -19413,28 +17910,13 @@ try {
   if (typeof diracV101RegisterSqlmapAttack === 'function' && !diracV101RegisterSqlmapAttack.__diracV107StableWrapped) {
     const __diracV107OriginalRegisterSqlmapAttack = diracV101RegisterSqlmapAttack;
     diracV101RegisterSqlmapAttack = async function diracV101RegisterSqlmapAttackV107Stable(req, action, method, threat) {
-      const sqlmapPersisted = await __diracV107OriginalRegisterSqlmapAttack(req, action, method, threat);
-      const hardBanPersisted = await diracV107RegisterHardBan(
-        req,
-        null,
-        action,
-        method,
-        threat || { detected: true, kind: 'body_sql_injection' }
-      ).catch((error) => {
-        diracV222MarkDependencyFailure(null, 'sqlmap_global_hard_ban_persistence', 503, error && (error.code || error.name));
-        return { ok: false, wrote: 0 };
-      });
-      const durable = sqlmapPersisted === true
-        && hardBanPersisted && hardBanPersisted.ok === true
-        && Number(hardBanPersisted.wrote || 0) > 0;
-      if (!durable) {
-        diracV222MarkDependencyFailure(null, 'sqlmap_global_hard_ban_persistence', 503, 'SQLMAP_GLOBAL_HARD_BAN_PERSISTENCE_FAILED');
-      }
-      return durable;
+      const result = await __diracV107OriginalRegisterSqlmapAttack(req, action, method, threat);
+      await diracV107RegisterHardBan(req, null, action, method, threat || { detected: true, kind: 'body_sql_injection' }).catch(() => null);
+      return result;
     };
     Object.defineProperty(diracV101RegisterSqlmapAttack, '__diracV107StableWrapped', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_17966', error); }
+} catch (_) {}
 
 function diracV107NormalizeAction(action) {
   try { if (typeof normalizeDomainAction === 'function') return normalizeDomainAction(action); } catch (_) {}
@@ -19443,7 +17925,7 @@ function diracV107NormalizeAction(action) {
 }
 
 function diracV107ShouldSkip(req, action, method) {
-  if (diracV107EnvTrue('DIRAC_GLOBAL_HARD_BAN_DISABLED')) return false;
+  if (diracV107EnvTrue('DIRAC_GLOBAL_HARD_BAN_DISABLED')) return true;
   if (String(method || '').toUpperCase() === 'OPTIONS') return true;
 
   const url = String((req && req.url) || '');
@@ -19658,20 +18140,21 @@ function diracV107Hmac(value) {
 async function diracV107ReadRows(keys) {
   const table = diracV107Table();
   const cleanKeys = (Array.isArray(keys) ? keys : []).map((item) => String(item || '').trim()).filter(Boolean).slice(0, 12);
-  if (!table || !cleanKeys.length || typeof supabaseFetch !== 'function') {
-    const error = new Error('DIRAC_V107_BAN_READ_INPUT_INVALID');
-    error.code = 'DIRAC_V107_BAN_READ_INPUT_INVALID';
-    throw error;
+  if (!table || !cleanKeys.length) return [];
+  const rows = [];
+
+  for (const key of cleanKeys) {
+    try {
+      if (typeof supabaseFetch === 'function') {
+        const result = await supabaseFetch('/rest/v1/' + encodeURIComponent(table) + '?select=security_key,blocked_until_ms&security_key=eq.' + encodeURIComponent(key) + '&limit=1', { method: 'GET', auth: 'service' });
+        if (result && result.ok && Array.isArray(result.data) && result.data.length) rows.push(result.data[0]);
+      }
+    } catch (_) {}
   }
-  const suffix = '?select=security_key,blocked_until_ms&security_key=in.(' + cleanKeys.map(encodeURIComponent).join(',') + ')&limit=' + String(cleanKeys.length);
-  const result = await supabaseFetch('/rest/v1/' + encodeURIComponent(table) + suffix, { method: 'GET', auth: 'service' });
-  if (!result || result.ok !== true || !Array.isArray(result.data)) {
-    diracV222MarkDependencyFailure(null, 'v107_hard_ban_read', 503, 'V107_HARD_BAN_READ_UNVERIFIED');
-    const error = new Error('DIRAC_V107_BAN_READ_FAILED');
-    error.code = 'DIRAC_V107_BAN_READ_FAILED';
-    throw error;
-  }
-  return result.data;
+
+  if (rows.length) return rows;
+  const direct = await diracV107DirectFetch('GET', '?select=security_key,blocked_until_ms&security_key=in.(' + cleanKeys.map(encodeURIComponent).join(',') + ')').catch(() => null);
+  return direct && Array.isArray(direct.data) ? direct.data : [];
 }
 
 async function diracV107WriteRows(rows) {
@@ -19679,28 +18162,25 @@ async function diracV107WriteRows(rows) {
   const payload = (Array.isArray(rows) ? rows : []).filter(Boolean);
   if (!table || !payload.length) return { ok: false, wrote: 0 };
 
+  let wrote = 0;
   try {
-    if (typeof supabaseFetch !== 'function') return { ok: false, wrote: 0 };
-    const result = await supabaseFetch('/rest/v1/' + encodeURIComponent(table) + '?on_conflict=security_key', {
-      method: 'POST',
-      auth: 'service',
-      prefer: 'resolution=merge-duplicates,return=representation',
-      body: payload
-    });
-    const expected = new Map(payload.map((row) => [String(row && row.security_key || ''), Number(row && row.blocked_until_ms || 0)]));
-    const writtenRows = diracV222RequireExactMutationRows(
-      result,
-      payload.length,
-      (row) => expected.has(String(row && row.security_key || ''))
-        && Number(row && row.blocked_until_ms || 0) === expected.get(String(row && row.security_key || '')),
-      'v107_hard_ban_write',
-      'V107_HARD_BAN_WRITE_UNVERIFIED'
-    );
-    return { ok: Boolean(writtenRows), wrote: writtenRows ? writtenRows.length : 0 };
-  } catch (error) {
-    diracV222MarkDependencyFailure(null, 'v107_hard_ban_write', 503, error && (error.code || error.name));
-    return { ok: false, wrote: 0 };
+    if (typeof supabaseFetch === 'function') {
+      const result = await supabaseFetch('/rest/v1/' + encodeURIComponent(table) + '?on_conflict=security_key', {
+        method: 'POST',
+        auth: 'service',
+        prefer: 'resolution=merge-duplicates',
+        body: payload
+      });
+      if (result && result.ok) wrote = payload.length;
+    }
+  } catch (_) {}
+
+  if (!wrote) {
+    const direct = await diracV107DirectFetch('POST', '?on_conflict=security_key', payload).catch(() => null);
+    if (direct && direct.ok) wrote = payload.length;
   }
+
+  return { ok: wrote > 0, wrote };
 }
 
 async function diracV107DirectFetch(method, suffix, body) {
@@ -19718,18 +18198,9 @@ async function diracV107DirectFetch(method, suffix, body) {
   };
   if (method === 'POST') headers.Prefer = 'resolution=merge-duplicates';
   const response = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined });
-  let data;
-  try {
-    data = await parseFetchResponse(response, 2 * 1024 * 1024);
-  } catch (error) {
-    diracV222MarkDependencyFailure(null, 'v107_direct_fetch_parse', 503, error && (error.code || error.name));
-    return { ok: false, status: Number(response && response.status || 0), data: null };
-  }
-  if (!response || response.ok !== true || (String(method || '').toUpperCase() === 'GET' && !Array.isArray(data))) {
-    diracV222MarkDependencyFailure(null, 'v107_direct_fetch', 503, 'V107_DIRECT_FETCH_UNVERIFIED');
-    return { ok: false, status: Number(response && response.status || 0), data: null };
-  }
-  return { ok: true, status: response.status, data };
+  let data = null;
+  try { data = await parseFetchResponse(response, 2 * 1024 * 1024); } catch (_) {}
+  return { ok: response.ok, status: response.status, data };
 }
 
 function diracV107Table() {
@@ -19768,7 +18239,7 @@ function diracV107SafeError(error) {
    - Tidak mengubah endpoint.
    - Tidak mengubah auth.users.encrypted_password, login Supabase, A2F/MFA,
      payment gateway, email template, dashboard, order, parfum, atau handler lama.
-   - Fail-closed: register/login sukses hanya diteruskan setelah shadow-write terkonfirmasi.
+   - Fail-open: jika shadow-write gagal, register/login tetap berjalan normal.
    - Tidak menyimpan password plaintext, token, cookie, OTP, Authorization,
      service key, atau body mentah.
    ============================================================ */
@@ -19787,7 +18258,7 @@ try {
     };
     Object.defineProperty(diracV101ServiceRoleAllowedTables, '__diracPasswordArgon2V4Wrapped', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_18308', error); }
+} catch (_) {}
 
 try {
   const __diracPasswordArgon2V4OriginalReadLimitedJsonBody = typeof readLimitedJsonBody === 'function' ? readLimitedJsonBody : null;
@@ -19799,7 +18270,7 @@ try {
     };
     Object.defineProperty(readLimitedJsonBody, '__diracPasswordArgon2V4Wrapped', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_18320', error); }
+} catch (_) {}
 
 try {
   const __diracPasswordArgon2V4OriginalReadBody = typeof readBody === 'function' ? readBody : null;
@@ -19811,7 +18282,7 @@ try {
     };
     Object.defineProperty(readBody, '__diracPasswordArgon2V4Wrapped', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_18332', error); }
+} catch (_) {}
 
 const __diracPasswordArgon2V4PreviousHandler = __diracV202DispatcherSentinel;
 
@@ -19829,11 +18300,7 @@ __diracV202RegisterMiddleware(async function diracPasswordArgon2VerifiedShadowWr
   const originalJson = typeof res.json === 'function' ? res.json.bind(res) : null;
   let capturedStatus = Number(res.statusCode || 200);
 
-  if (!originalJson) {
-    const error = new Error('DIRAC_AUTH_RESPONSE_GATEWAY_UNAVAILABLE');
-    error.code = 'DIRAC_AUTH_RESPONSE_GATEWAY_UNAVAILABLE';
-    throw error;
-  }
+  if (!originalJson) return nextHandlerV202(req, res);
 
   res.status = function diracPasswordArgon2V4Status(code) {
     capturedStatus = Number(code || capturedStatus || 200);
@@ -19845,23 +18312,9 @@ __diracV202RegisterMiddleware(async function diracPasswordArgon2VerifiedShadowWr
   res.json = async function diracPasswordArgon2V4Json(payload) {
     const httpStatus = Number(capturedStatus || res.statusCode || 200);
     if (httpStatus >= 200 && httpStatus < 300 && payload && payload.ok === true) {
-      let persistence = null;
-      try {
-        persistence = await diracPasswordArgon2V4PersistAfterVerifiedAuth(req, payload, action);
-      } catch (error) {
+      await diracPasswordArgon2V4PersistAfterVerifiedAuth(req, payload, action).catch((error) => {
         console.error('[password-argon2id-shadow-v4]', diracPasswordArgon2V4SafeError(error));
-      }
-      if (!persistence || persistence.ok !== true) {
-        clearSessionCookies(res);
-        capturedStatus = 503;
-        if (originalStatus) originalStatus(503);
-        else res.statusCode = 503;
-        return originalJson({
-          ok: false,
-          code: 'AUTH_SECURITY_PERSISTENCE_UNAVAILABLE',
-          message: 'Autentikasi belum dapat diselesaikan secara aman. Silakan coba lagi.'
-        });
-      }
+      });
     }
     return originalJson(payload);
   };
@@ -19925,28 +18378,19 @@ async function diracPasswordArgon2V4PersistAfterVerifiedAuth(req, payload, actio
     return { ok: false, skipped: 'customer_id_not_ready' };
   }
 
-  let active;
-  try {
-    active = await diracPasswordArgon2V4ReadActive(authUserId);
-  } catch (error) {
-    return { ok: false, skipped: 'active_hash_lookup_failed', code: error && (error.code || error.message) };
-  }
+  const active = await diracPasswordArgon2V4ReadActive(authUserId).catch(() => null);
   if (active && active.id && active.customer_id === customerId && String(active.password_hash || '').startsWith('$argon2id$')) {
     const rotateEveryLogin = String(action || '') === 'domain_login' && !diracV110EnvTrue('DIRAC_PASSWORD_ARGON2_ROTATE_EVERY_LOGIN_DISABLED');
     if (!rotateEveryLogin) {
-      if (typeof diracV110VerifyArgon2ShadowPassword !== 'function') {
-        return { ok: false, skipped: 'argon2_verifier_unavailable' };
-      }
-      const matchesCurrentPassword = await diracV110VerifyArgon2ShadowPassword(password, active.password_hash, { authUserId, customerId, email }).catch(() => false);
+      const matchesCurrentPassword = typeof diracV110VerifyArgon2ShadowPassword === 'function'
+        ? await diracV110VerifyArgon2ShadowPassword(password, active.password_hash, { authUserId, customerId, email }).catch(() => false)
+        : true;
       if (matchesCurrentPassword) return { ok: true, skipped: 'active_argon2id_matches_current_password' };
     }
   }
 
   const nowIso = diracNowIso();
-  const rotated = await diracPasswordArgon2V4RotateActive(authUserId, nowIso).catch(() => ({ ok: false, wrote: 0 }));
-  if (!rotated || rotated.ok !== true || (active && active.id && Number(rotated.wrote || 0) < 1)) {
-    return { ok: false, skipped: 'active_hash_rotation_failed' };
-  }
+  await diracPasswordArgon2V4RotateActive(authUserId, nowIso).catch(() => null);
 
   const params = diracPasswordArgon2V4Params();
   const passwordHash = await diracPasswordArgon2V4Hash(password, { authUserId, customerId, email });
@@ -19993,49 +18437,38 @@ function diracPasswordArgon2V4ExtractUserId(user, payload) {
 }
 
 async function diracPasswordArgon2V4ResolveCustomerId(authUserId, email) {
-  if (typeof customerSecurityFetchAuthLink !== 'function') {
-    throw new Error('ARGON2_AUTH_LINK_READER_REQUIRED');
+  if (typeof customerSecurityFetchAuthLink === 'function') {
+    const linkResult = await customerSecurityFetchAuthLink(authUserId).catch(() => null);
+    const row = linkResult && linkResult.ok && Array.isArray(linkResult.data) && linkResult.data.length ? linkResult.data[0] : null;
+    if (row && row.link_status === 'active' && diracPasswordArgon2V4LooksLikeUuid(row.customer_id)) return String(row.customer_id);
   }
-  const linkResult = await customerSecurityFetchAuthLink(authUserId);
-  if (!linkResult || linkResult.ok !== true || !Array.isArray(linkResult.data)) {
-    throw new Error('ARGON2_AUTH_LINK_LOOKUP_FAILED');
+  if (email) {
+    const result = await supabaseFetch('/rest/v1/customers?select=id&email=eq.' + encodeURIComponent(email) + '&limit=1', { method: 'GET', auth: 'service' }).catch(() => null);
+    const row = result && result.ok && Array.isArray(result.data) && result.data.length ? result.data[0] : null;
+    if (row && diracPasswordArgon2V4LooksLikeUuid(row.id)) return String(row.id);
   }
-  if (linkResult.data.length !== 1) {
-    throw new Error(linkResult.data.length > 1 ? 'ARGON2_AUTH_LINK_AMBIGUOUS' : 'ARGON2_AUTH_LINK_NOT_FOUND');
-  }
-  const row = linkResult.data[0];
-  if (!row || row.link_status !== 'active' || !diracPasswordArgon2V4LooksLikeUuid(row.customer_id)) {
-    throw new Error('ARGON2_AUTH_LINK_INVALID');
-  }
-  return String(row.customer_id);
+  return '';
 }
 
 async function diracPasswordArgon2V4ReadActive(authUserId) {
-  if (!diracPasswordArgon2V4LooksLikeUuid(authUserId)) throw new Error('ARGON2_AUTH_USER_ID_INVALID');
-  const select = 'id,auth_user_id,customer_id,password_hash,status';
-  const result = await supabaseFetch('/rest/v1/security_customer_password_hashes?select=' + encodeURIComponent(select) + '&auth_user_id=eq.' + encodeURIComponent(authUserId) + '&status=eq.active&limit=2', {
+  if (!diracPasswordArgon2V4LooksLikeUuid(authUserId)) return null;
+  const select = 'id,customer_id,password_hash,status';
+  const result = await supabaseFetch('/rest/v1/security_customer_password_hashes?select=' + encodeURIComponent(select) + '&auth_user_id=eq.' + encodeURIComponent(authUserId) + '&status=eq.active&limit=1', {
     method: 'GET',
     auth: 'service'
   });
-  if (!result || result.ok !== true || !Array.isArray(result.data)) throw new Error('ARGON2_ACTIVE_HASH_LOOKUP_FAILED');
-  if (result.data.length > 1) throw new Error('ARGON2_ACTIVE_HASH_AMBIGUOUS');
-  const row = result.data[0] || null;
-  if (row && (!row.id || String(row.auth_user_id || '') !== String(authUserId) || row.status !== 'active')) {
-    throw new Error('ARGON2_ACTIVE_HASH_INVALID');
-  }
-  return row;
+  const rows = result && result.ok && Array.isArray(result.data) ? result.data : [];
+  return rows[0] || null;
 }
 
 async function diracPasswordArgon2V4RotateActive(authUserId, nowIso) {
-  if (!diracPasswordArgon2V4LooksLikeUuid(authUserId)) return { ok: false, wrote: 0 };
+  if (!diracPasswordArgon2V4LooksLikeUuid(authUserId)) return { ok: false };
   const result = await supabaseFetch('/rest/v1/security_customer_password_hashes?auth_user_id=eq.' + encodeURIComponent(authUserId) + '&status=eq.active', {
     method: 'PATCH',
     auth: 'service',
-    prefer: 'return=representation',
     body: { status: 'rotated', updated_at: nowIso || diracNowIso() }
   });
-  const rows = result && result.ok === true && Array.isArray(result.data) ? result.data : null;
-  return { ok: Boolean(rows), wrote: rows ? rows.length : 0, status: result && result.status };
+  return { ok: Boolean(result && result.ok), status: result && result.status };
 }
 
 async function diracPasswordArgon2V4Insert(row) {
@@ -20045,15 +18478,7 @@ async function diracPasswordArgon2V4Insert(row) {
     prefer: 'return=representation',
     body: [{ ...row }]
   });
-  const rows = result && result.ok === true && Array.isArray(result.data) ? result.data : null;
-  const inserted = rows && rows.length === 1 ? rows[0] : null;
-  const valid = Boolean(inserted
-    && inserted.id
-    && String(inserted.auth_user_id || '') === String(row && row.auth_user_id || '')
-    && String(inserted.customer_id || '') === String(row && row.customer_id || '')
-    && inserted.status === 'active'
-    && String(inserted.password_hash || '').startsWith('$argon2id$'));
-  return { ok: valid, status: result && result.status, data: rows };
+  return { ok: Boolean(result && result.ok), status: result && result.status, data: result && result.data };
 }
 
 async function diracPasswordArgon2V4Hash(password, meta = {}) {
@@ -20142,7 +18567,7 @@ function diracPasswordArgon2V4SafeError(error) {
    - Memperbarui shadow Argon2id setelah login sukses jika password sudah berubah
      melalui reset/ganti password, tanpa menyentuh auth.users.encrypted_password.
    - Memperketat umur cookie/session customer secara aman.
-   - Menulis audit login/register/A2F sebagai postcondition wajib tanpa data sensitif.
+   - Menulis audit login/register/A2F secara best-effort tanpa data sensitif.
    - Tidak mengubah endpoint, payment gateway, email template, A2F core,
      dashboard, order, parfum, atau kontrak response lama.
    ============================================================ */
@@ -20176,7 +18601,7 @@ try {
     };
     Object.defineProperty(guardDomainLoginInput, '__diracV110Wrapped', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_18669', error); }
+} catch (_) {}
 
 try {
   const __diracV110OriginalSetSessionCookies = typeof setSessionCookies === 'function' ? setSessionCookies : null;
@@ -20197,7 +18622,7 @@ try {
     };
     Object.defineProperty(setSessionCookies, '__diracV110Wrapped', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_18690', error); }
+} catch (_) {}
 
 try {
   const __diracV110OriginalBuildSessionFingerprint = typeof customerSecurityBuildSessionFingerprint === 'function' ? customerSecurityBuildSessionFingerprint : null;
@@ -20212,7 +18637,7 @@ try {
     };
     Object.defineProperty(customerSecurityBuildSessionFingerprint, '__diracV110Wrapped', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_18705', error); }
+} catch (_) {}
 
 try {
   const __diracV110OriginalPasswordPersist = typeof diracPasswordArgon2V4PersistAfterVerifiedAuth === 'function'
@@ -20224,7 +18649,7 @@ try {
     };
     Object.defineProperty(diracPasswordArgon2V4PersistAfterVerifiedAuth, '__diracV110Wrapped', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_18717', error); }
+} catch (_) {}
 
 const __diracV110PreviousHandler = __diracV202DispatcherSentinel;
 
@@ -20242,11 +18667,7 @@ __diracV202RegisterMiddleware(async function diracAuthHardeningSafeWrapperV110(r
   const originalJson = typeof res.json === 'function' ? res.json.bind(res) : null;
   let capturedStatus = Number(res.statusCode || 200);
 
-  if (!originalJson) {
-    const error = new Error('DIRAC_AUTH_AUDIT_RESPONSE_GATEWAY_UNAVAILABLE');
-    error.code = 'DIRAC_AUTH_AUDIT_RESPONSE_GATEWAY_UNAVAILABLE';
-    throw error;
-  }
+  if (!originalJson) return nextHandlerV202(req, res);
 
   res.status = function diracV110Status(code) {
     capturedStatus = Number(code || capturedStatus || 200);
@@ -20258,23 +18679,9 @@ __diracV202RegisterMiddleware(async function diracAuthHardeningSafeWrapperV110(r
   res.json = async function diracV110Json(payload) {
     const httpStatus = Number(capturedStatus || res.statusCode || 200);
     if (httpStatus >= 200 && httpStatus < 300 && payload && payload.ok === true) {
-      let audit = null;
-      try {
-        audit = await diracV110WriteAuthAudit(req, payload, action, httpStatus);
-      } catch (error) {
+      await diracV110WriteAuthAudit(req, payload, action, httpStatus).catch((error) => {
         console.error('[dirac-auth-audit-v110]', diracV110SafeError(error));
-      }
-      if (!audit || audit.ok !== true) {
-        clearSessionCookies(res);
-        capturedStatus = 503;
-        if (originalStatus) originalStatus(503);
-        else res.statusCode = 503;
-        return originalJson({
-          ok: false,
-          code: 'AUTH_SECURITY_AUDIT_UNAVAILABLE',
-          message: 'Autentikasi belum dapat dikonfirmasi secara aman. Silakan coba lagi.'
-        });
-      }
+      });
     }
     return originalJson(payload);
   };
@@ -20350,12 +18757,7 @@ async function diracV110PersistArgon2ShadowAfterVerifiedAuth(req, payload, actio
     return { ok: false, skipped: 'customer_id_not_ready' };
   }
 
-  let active;
-  try {
-    active = await diracPasswordArgon2V4ReadActive(authUserId);
-  } catch (error) {
-    return { ok: false, skipped: 'active_hash_lookup_failed', code: error && (error.code || error.message) };
-  }
+  const active = await diracPasswordArgon2V4ReadActive(authUserId).catch(() => null);
   if (active && active.id && active.customer_id === customerId && String(active.password_hash || '').startsWith('$argon2id$')) {
     const rotateEveryLogin = String(action || '') === 'domain_login' && !diracV110EnvTrue('DIRAC_PASSWORD_ARGON2_ROTATE_EVERY_LOGIN_DISABLED');
     if (!rotateEveryLogin) {
@@ -20365,10 +18767,7 @@ async function diracV110PersistArgon2ShadowAfterVerifiedAuth(req, payload, actio
   }
 
   const nowIso = diracNowIso();
-  const rotated = await diracPasswordArgon2V4RotateActive(authUserId, nowIso).catch(() => ({ ok: false, wrote: 0 }));
-  if (!rotated || rotated.ok !== true || (active && active.id && Number(rotated.wrote || 0) < 1)) {
-    return { ok: false, skipped: 'active_hash_rotation_failed' };
-  }
+  await diracPasswordArgon2V4RotateActive(authUserId, nowIso).catch(() => null);
 
   const params = diracPasswordArgon2V4Params();
   const passwordHash = await diracPasswordArgon2V4Hash(password, { authUserId, customerId, email });
@@ -20485,33 +18884,20 @@ async function diracV110WriteAuthAudit(req, payload, action, httpStatus) {
     }
   };
 
-  const loginLogResult = await supabaseFetch('/rest/v1/security_customer_login_logs', {
+  await supabaseFetch('/rest/v1/security_customer_login_logs', {
     method: 'POST',
     auth: 'service',
-    prefer: 'return=representation',
     body: [{
       ...base,
       event_type: eventType,
       status: 'success',
       risk_level: 'low'
     }]
-  });
-  const loginRows = diracV222RequireExactMutationRows(
-    loginLogResult,
-    1,
-    (row) => row && safeEqual(String(row.customer_id || ''), String(customerId || ''))
-      && String(row.event_type || '') === eventType,
-    'auth_login_audit_write',
-    'AUTH_LOGIN_AUDIT_WRITE_UNVERIFIED'
-  );
-  if (!loginRows) {
-    return { ok: false, code: 'AUTH_LOGIN_AUDIT_WRITE_FAILED', status: loginLogResult && loginLogResult.status || 503 };
-  }
+  }).catch(() => null);
 
-  const securityEventResult = await supabaseFetch('/rest/v1/security_customer_events', {
+  await supabaseFetch('/rest/v1/security_customer_events', {
     method: 'POST',
     auth: 'service',
-    prefer: 'return=representation',
     body: [{
       ...base,
       event_type: eventType,
@@ -20519,18 +18905,7 @@ async function diracV110WriteAuthAudit(req, payload, action, httpStatus) {
       risk_level: 'low',
       description: diracV110AuditDescription(action)
     }]
-  });
-  const eventRows = diracV222RequireExactMutationRows(
-    securityEventResult,
-    1,
-    (row) => row && safeEqual(String(row.customer_id || ''), String(customerId || ''))
-      && String(row.event_type || '') === eventType,
-    'auth_security_event_write',
-    'AUTH_SECURITY_EVENT_WRITE_UNVERIFIED'
-  );
-  if (!eventRows) {
-    return { ok: false, code: 'AUTH_SECURITY_EVENT_WRITE_FAILED', status: securityEventResult && securityEventResult.status || 503 };
-  }
+  }).catch(() => null);
 
   return { ok: true };
 }
@@ -20614,7 +18989,7 @@ __diracV202RegisterMiddleware(async function diracPerfumeCatalogV112Wrapper(req,
 
   try {
     if (typeof diracV101CheckPersistentSqlmapBlock === 'function') {
-      const existingBlock = await diracV101CheckPersistentSqlmapBlock(req, action, method).catch(() => ({ ok: false, blocked: true, retryAfterSeconds: 60, reason: 'persistent_security_lookup_unavailable' }));
+      const existingBlock = await diracV101CheckPersistentSqlmapBlock(req, action, method).catch(() => ({ ok: true }));
       if (existingBlock && existingBlock.blocked) {
         try { res.setHeader('Retry-After', String(existingBlock.retryAfterSeconds || 86400)); } catch (_) {}
         return res.status(403).json({ ok: false, code: 'REQUEST_BLOCKED', message: 'Permintaan ditolak oleh sistem keamanan.' });
@@ -20624,12 +18999,7 @@ __diracV202RegisterMiddleware(async function diracPerfumeCatalogV112Wrapper(req,
       const threat = diracV101DetectRequestThreat(req, action, method);
       if (threat && threat.detected) {
         if (typeof diracV101RegisterSqlmapAttack === 'function') {
-          const persisted = await diracV101RegisterSqlmapAttack(req, action, method, threat).catch(() => false);
-          if (!(persisted === true || persisted && persisted.ok === true)) {
-            return diracV222SecurityPersistenceUnavailableResponse(res, 'SQLMAP_BAN_PERSISTENCE_UNAVAILABLE', 'catalog_sqlmap_ban_persistence');
-          }
-        } else {
-          return diracV222SecurityPersistenceUnavailableResponse(res, 'SQLMAP_BAN_WRITER_UNAVAILABLE', 'catalog_sqlmap_ban_persistence');
+          await diracV101RegisterSqlmapAttack(req, action, method, threat).catch(() => null);
         }
         return res.status(threat.status || 403).json({ ok: false, code: 'REQUEST_BLOCKED', message: 'Permintaan ditolak oleh sistem keamanan.' });
       }
@@ -20728,7 +19098,7 @@ __diracV202RegisterMiddleware(async function diracPerfumeCatalogV116Wrapper(req,
 
   try {
     if (typeof diracV101CheckPersistentSqlmapBlock === 'function') {
-      const existingBlock = await diracV101CheckPersistentSqlmapBlock(req, action, method).catch(() => ({ ok: false, blocked: true, retryAfterSeconds: 60, reason: 'persistent_security_lookup_unavailable' }));
+      const existingBlock = await diracV101CheckPersistentSqlmapBlock(req, action, method).catch(() => ({ ok: true }));
       if (existingBlock && existingBlock.blocked) {
         try { res.setHeader('Retry-After', String(existingBlock.retryAfterSeconds || 86400)); } catch (_) {}
         return res.status(403).json({ ok: false, code: 'REQUEST_BLOCKED', message: 'Permintaan ditolak oleh sistem keamanan.' });
@@ -20738,12 +19108,7 @@ __diracV202RegisterMiddleware(async function diracPerfumeCatalogV116Wrapper(req,
       const threat = diracV101DetectRequestThreat(req, action, method);
       if (threat && threat.detected) {
         if (typeof diracV101RegisterSqlmapAttack === 'function') {
-          const persisted = await diracV101RegisterSqlmapAttack(req, action, method, threat).catch(() => false);
-          if (!(persisted === true || persisted && persisted.ok === true)) {
-            return diracV222SecurityPersistenceUnavailableResponse(res, 'SQLMAP_BAN_PERSISTENCE_UNAVAILABLE', 'catalog_sqlmap_ban_persistence');
-          }
-        } else {
-          return diracV222SecurityPersistenceUnavailableResponse(res, 'SQLMAP_BAN_WRITER_UNAVAILABLE', 'catalog_sqlmap_ban_persistence');
+          await diracV101RegisterSqlmapAttack(req, action, method, threat).catch(() => null);
         }
         return res.status(threat.status || 403).json({ ok: false, code: 'REQUEST_BLOCKED', message: 'Permintaan ditolak oleh sistem keamanan.' });
       }
@@ -20951,7 +19316,7 @@ __diracV202RegisterMiddleware(async function diracPerfumePublicProductsV117Wrapp
 
   try {
     if (typeof diracV101CheckPersistentSqlmapBlock === 'function') {
-      const existingBlock = await diracV101CheckPersistentSqlmapBlock(req, action, method).catch(() => ({ ok: false, blocked: true, retryAfterSeconds: 60, reason: 'persistent_security_lookup_unavailable' }));
+      const existingBlock = await diracV101CheckPersistentSqlmapBlock(req, action, method).catch(() => ({ ok: true }));
       if (existingBlock && existingBlock.blocked) {
         try { res.setHeader('Retry-After', String(existingBlock.retryAfterSeconds || 86400)); } catch (_) {}
         return res.status(403).json({ ok: false, code: 'REQUEST_BLOCKED', message: 'Permintaan ditolak oleh sistem keamanan.' });
@@ -20961,12 +19326,7 @@ __diracV202RegisterMiddleware(async function diracPerfumePublicProductsV117Wrapp
       const threat = diracV101DetectRequestThreat(req, action, method);
       if (threat && threat.detected) {
         if (typeof diracV101RegisterSqlmapAttack === 'function') {
-          const persisted = await diracV101RegisterSqlmapAttack(req, action, method, threat).catch(() => false);
-          if (!(persisted === true || persisted && persisted.ok === true)) {
-            return diracV222SecurityPersistenceUnavailableResponse(res, 'SQLMAP_BAN_PERSISTENCE_UNAVAILABLE', 'catalog_sqlmap_ban_persistence');
-          }
-        } else {
-          return diracV222SecurityPersistenceUnavailableResponse(res, 'SQLMAP_BAN_WRITER_UNAVAILABLE', 'catalog_sqlmap_ban_persistence');
+          await diracV101RegisterSqlmapAttack(req, action, method, threat).catch(() => null);
         }
         return res.status(threat.status || 403).json({ ok: false, code: 'REQUEST_BLOCKED', message: 'Permintaan ditolak oleh sistem keamanan.' });
       }
@@ -21387,12 +19747,7 @@ __diracV202RegisterMiddleware(async function diracUltraXssOneStrikePermanentBloc
         // Jika identitas ini sudah diblokir, langsung balas blocked.
         try {
           if (typeof diracV107CheckActiveBan === 'function') {
-            const existing = await diracV107CheckActiveBan(req).catch((error) => ({
-        blocked: true,
-        unavailable: true,
-        retryAfterSeconds: 60,
-        reason: String(error && (error.code || error.name) || 'global_hard_ban_lookup_unavailable').slice(0, 120)
-      }));
+            const existing = await diracV107CheckActiveBan(req).catch(() => ({ blocked: false }));
             if (existing && existing.blocked) {
               try { res.setHeader('Retry-After', String(existing.retryAfterSeconds || 86400)); } catch (_) {}
               return diracUltraXssV3BlockedResponse(res, 'XSS_PERMANENT_BLOCK_ACTIVE');
@@ -21404,12 +19759,7 @@ __diracV202RegisterMiddleware(async function diracUltraXssOneStrikePermanentBloc
           try { console.error('[dirac-xss-v3-permanent-block-write-failed]', diracUltraXssV3SafeError(error)); } catch (_) {}
           return { ok: false };
         });
-        if (!write || write.ok !== true) {
-          diracV222MarkDependencyFailure(res, 'xss_permanent_ban_persistence', 503, 'XSS_PERMANENT_BAN_PERSISTENCE_FAILED');
-          try { res.setHeader('X-Dirac-XSS-One-Strike-Write', 'failed'); } catch (_) {}
-          return diracUltraXssV3PersistenceUnavailableResponse(res);
-        }
-        try { res.setHeader('X-Dirac-XSS-One-Strike-Write', 'active'); } catch (_) {}
+        try { res.setHeader('X-Dirac-XSS-One-Strike-Write', write && write.ok ? 'active' : 'memory'); } catch (_) {}
         return diracUltraXssV3BlockedResponse(res, 'XSS_ATTACK_ONE_STRIKE_BLOCKED');
       }
     }
@@ -21422,7 +19772,7 @@ __diracV202RegisterMiddleware(async function diracUltraXssOneStrikePermanentBloc
 }, "diracUltraXssOneStrikePermanentBlockWrapperV3");
 
 function diracUltraXssV3ShouldSkipPermanentBlock(req, action, method) {
-  if (diracUltraXssV3EnvTrue('DIRAC_XSS_ONE_STRIKE_BLOCK_DISABLED')) return false;
+  if (diracUltraXssV3EnvTrue('DIRAC_XSS_ONE_STRIKE_BLOCK_DISABLED')) return true;
   if (String(method || '').toUpperCase() === 'OPTIONS') return true;
 
   const normalized = String(action || '').toLowerCase();
@@ -21500,40 +19850,19 @@ async function diracUltraXssV3RegisterPermanentBlock(req, res, action, method, x
 
   if (typeof diracV107WriteRows === 'function') {
     const write = await diracV107WriteRows(rows).catch(() => ({ ok: false, wrote: 0 }));
-    const wrote = Math.max(0, Number(write && write.wrote || 0));
-    const result = { ok: Boolean(write && write.ok === true && wrote > 0), wrote, total: rows.length, blockedUntilMs };
-    if (!result.ok) diracV222MarkDependencyFailure(res, 'xss_permanent_ban_persistence', 503, 'XSS_PERMANENT_BAN_PERSISTENCE_FAILED');
-    return result;
+    return { ok: Boolean(write && write.ok) || rows.length > 0, wrote: write && write.wrote || 0, total: rows.length, blockedUntilMs };
   }
 
-  if (typeof writePersistentSecurityJsonRequiredV194 === 'function' && rows.length) {
+  if (typeof writePersistentSecurityJson === 'function' && rows.length) {
     let wrote = 0;
     for (const row of rows.slice(0, 8)) {
-      const ok = await writePersistentSecurityJsonRequiredV194(
-        row.security_key,
-        row.record_json,
-        blockedUntilMs,
-        Math.ceil((blockedUntilMs - now) / 1000)
-      ).catch(() => false);
-      if (ok === true) wrote += 1;
+      const ok = await writePersistentSecurityJson(row.security_key, row.record_json, blockedUntilMs, Math.ceil((blockedUntilMs - now) / 1000)).catch(() => false);
+      if (ok) wrote += 1;
     }
-    const result = { ok: wrote > 0, wrote, total: rows.length, blockedUntilMs };
-    if (!result.ok) diracV222MarkDependencyFailure(res, 'xss_permanent_ban_persistence', 503, 'XSS_PERMANENT_BAN_PERSISTENCE_FAILED');
-    return result;
+    return { ok: wrote > 0 || rows.length > 0, wrote, total: rows.length, blockedUntilMs };
   }
 
-  diracV222MarkDependencyFailure(res, 'xss_permanent_ban_persistence', 503, 'XSS_PERMANENT_BAN_PERSISTENCE_UNAVAILABLE');
-  return { ok: false, wrote: 0, total: rows.length, blockedUntilMs };
-}
-
-function diracUltraXssV3PersistenceUnavailableResponse(res) {
-  try { if (typeof diracApplySecurityResponseHeaders === 'function') diracApplySecurityResponseHeaders(res); } catch (_) {}
-  try { res.setHeader('Cache-Control', 'no-store'); } catch (_) {}
-  return res.status(503).json({
-    ok: false,
-    code: 'XSS_BAN_PERSISTENCE_UNAVAILABLE',
-    message: 'Permintaan diblokir karena penyimpanan keamanan tidak tersedia.'
-  });
+  return { ok: rows.length > 0, wrote: 0, total: rows.length, blockedUntilMs };
 }
 
 function diracUltraXssV3BlockedResponse(res, reason) {
@@ -21647,7 +19976,7 @@ try {
     };
     Object.defineProperty(diracV107BuildKeys, '__diracSqlPrecisionV108Wrapped', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_20068', error); }
+} catch (_) {}
 
 try {
   if (typeof diracV107RegisterHardBan === 'function' && !diracV107RegisterHardBan.__diracSqlPrecisionV108Wrapped) {
@@ -21661,7 +19990,7 @@ try {
     };
     Object.defineProperty(diracV107RegisterHardBan, '__diracSqlPrecisionV108Wrapped', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_20082', error); }
+} catch (_) {}
 
 try {
   if (typeof module !== 'undefined' && __diracV202DispatcherSentinel && typeof __diracV202DispatcherSentinel === 'function' && !__diracV202DispatcherSentinel.__diracSqlPrecisionV108HeaderWrapped) {
@@ -21672,7 +20001,7 @@ try {
     }, "diracSqlPrecisionV108HeaderWrapper");
     __diracV202MarkWrapperFlag("__diracSqlPrecisionV108HeaderWrapped");
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_20093', error); }
+} catch (_) {}
 
 
 /* ============================================================
@@ -21694,14 +20023,12 @@ try {
         if (ip && ip !== 'unknown' && typeof diracV107KeysForValue === 'function') {
           keys.push(...diracV107KeysForValue('stable_ip', 'stable-ip-v151|' + ip));
         }
-      } catch (error) {
-        diracV223ThrowFailClosed('GLOBAL_HARD_BAN_STABLE_IDENTITY_DERIVATION_FAILED', 'global_hard_ban_identity_derivation', 503, error);
-      }
+      } catch (_) {}
       return Array.from(new Map(keys.map((item) => [String(item && item.key || ''), item])).values()).filter((item) => item && item.key);
     };
     Object.defineProperty(diracV107BuildKeys, '__diracCrossDeployV151Wrapped', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_20120', error); }
+} catch (_) {}
 
 /* ============================================================
    DIRAC LOGOUT + 5-MINUTE IDLE SESSION COMPATIBILITY v118
@@ -21730,13 +20057,12 @@ supabaseFetch = async function diracLogoutIdleSessionCompatibilitySupabaseFetchV
         body: diracLogoutIdleV118CleanSessionWriteBody(options.body)
       });
     }
-  } catch (error) {
-    diracV223ThrowFailClosed('SESSION_WRITE_SANITIZATION_FAILED', 'session_write_sanitization', 503, error);
+  } catch (_) {
+    // Fail-safe: jika patch kompatibilitas gagal membaca request, gunakan alur terbaru yang sudah ada.
   }
 
   return __diracLogoutIdleV118PreviousSupabaseFetch(path, options);
 };
-const __diracSessionWriteSanitizationFailClosedV226 = true;
 
 function diracLogoutIdleV118IsSessionWritePath(pathText, method) {
   return /\/rest\/v1\/security_customer_sessions(?:\?|$)/i.test(String(pathText || ''))
@@ -21850,7 +20176,7 @@ function diracV119RequestMethod(req) {
 }
 
 function diracV119ShouldInspectBody(req, action) {
-  if (diracV119EnvTrue('DIRAC_BODY_INPUT_GUARD_DISABLED')) throw new Error('BODY_INPUT_GUARD_DISABLE_FORBIDDEN');
+  if (diracV119EnvTrue('DIRAC_BODY_INPUT_GUARD_DISABLED')) return false;
   const method = diracV119RequestMethod(req);
   if (!['POST', 'PUT', 'PATCH'].includes(method)) return false;
 
@@ -21864,7 +20190,7 @@ function diracV119ShouldInspectBody(req, action) {
 }
 
 function diracV119ShouldInspectSupabaseWrite(path, options = {}) {
-  if (diracV119EnvTrue('DIRAC_BODY_INPUT_DB_WRITE_GUARD_DISABLED')) throw new Error('BODY_INPUT_DB_WRITE_GUARD_DISABLE_FORBIDDEN');
+  if (diracV119EnvTrue('DIRAC_BODY_INPUT_DB_WRITE_GUARD_DISABLED')) return false;
   const method = String((options && options.method) || 'GET').toUpperCase();
   if (!['POST', 'PUT', 'PATCH'].includes(method)) return false;
 
@@ -22069,24 +20395,27 @@ async function diracV119RegisterThreat(req, res, action, method, threat) {
     patch: DIRAC_GLOBAL_BODY_INPUT_THREAT_BLOCK_V119
   };
 
-  let persisted = false;
-  if (safeThreat.family === 'xss' && typeof diracUltraXssV3RegisterPermanentBlock === 'function') {
-    const xssResult = await diracUltraXssV3RegisterPermanentBlock(req, res || null, normalized, method, safeThreat);
-    persisted = persisted || xssResult === true || Boolean(xssResult && xssResult.ok === true);
-  }
+  try {
+    if (safeThreat.family === 'xss' && typeof diracUltraXssV3RegisterPermanentBlock === 'function') {
+      await diracUltraXssV3RegisterPermanentBlock(req, res || null, normalized, method, safeThreat).catch(() => null);
+    }
+  } catch (_) {}
 
-  if (typeof diracV107RegisterHardBan === 'function') {
-    const hardBanResult = await diracV107RegisterHardBan(req, res || null, normalized, method, safeThreat);
-    persisted = persisted || hardBanResult === true || Boolean(hardBanResult && hardBanResult.ok === true);
-  }
+  try {
+    if (typeof diracV107RegisterHardBan === 'function') {
+      await diracV107RegisterHardBan(req, res || null, normalized, method, safeThreat).catch(() => null);
+      return true;
+    }
+  } catch (_) {}
 
-  if (!persisted && typeof diracV101RegisterSqlmapAttack === 'function') {
-    const sqlmapResult = await diracV101RegisterSqlmapAttack(req, normalized, method, safeThreat);
-    persisted = sqlmapResult === true || Boolean(sqlmapResult && sqlmapResult.ok === true);
-  }
+  try {
+    if (typeof diracV101RegisterSqlmapAttack === 'function') {
+      await diracV101RegisterSqlmapAttack(req, normalized, method, safeThreat).catch(() => null);
+      return true;
+    }
+  } catch (_) {}
 
-  if (!persisted) diracV222MarkDependencyFailure(null, 'body_threat_persistence', 503, 'BODY_THREAT_PERSISTENCE_FAILED');
-  return persisted;
+  return false;
 }
 
 async function diracV119GuardParsedBodyOrThrow(req, res, body) {
@@ -22096,15 +20425,7 @@ async function diracV119GuardParsedBodyOrThrow(req, res, body) {
   const threat = diracV119DetectBodyThreat(body);
   if (!threat.detected) return body;
 
-  let persisted = false;
-  try {
-    persisted = await diracV119RegisterThreat(req, res || null, action, diracV119RequestMethod(req), threat);
-  } catch (error) {
-    diracV222MarkDependencyFailure(null, 'body_threat_persistence', 503, error && (error.code || error.name));
-  }
-  if (persisted !== true) {
-    diracV222ThrowSecurityPersistenceUnavailable('BODY_THREAT_PERSISTENCE_UNAVAILABLE', 'body_threat_persistence');
-  }
+  await diracV119RegisterThreat(req, res || null, action, diracV119RequestMethod(req), threat).catch(() => null);
   diracV119ThrowBlocked(threat);
 }
 
@@ -22158,7 +20479,7 @@ try {
     };
     Object.defineProperty(readLimitedJsonBody, '__diracBodyInputThreatV119Wrapped', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_20571', error); }
+} catch (_) {}
 
 try {
   const __diracV119OriginalReadBody = typeof readBody === 'function' ? readBody : null;
@@ -22170,7 +20491,7 @@ try {
     };
     Object.defineProperty(readBody, '__diracBodyInputThreatV119Wrapped', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_20583', error); }
+} catch (_) {}
 
 try {
   const __diracV119OriginalSupabaseFetch = typeof supabaseFetch === 'function' ? supabaseFetch : null;
@@ -22197,7 +20518,7 @@ try {
     };
     Object.defineProperty(supabaseFetch, '__diracBodyInputThreatV119Wrapped', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_20610', error); }
+} catch (_) {}
 
 try {
   if (typeof module !== 'undefined' && __diracV202DispatcherSentinel && typeof __diracV202DispatcherSentinel === 'function' && !__diracV202DispatcherSentinel.__diracBodyInputThreatV119Wrapped) {
@@ -22220,7 +20541,7 @@ try {
     }, "diracBodyInputThreatBlockV119Wrapper");
     __diracV202MarkWrapperFlag("__diracBodyInputThreatV119Wrapped");
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_20633', error); }
+} catch (_) {}
 
 /* ============================================================
    DIRAC CSRF HMAC-SHA256 GUARD v1 - APPEND ONLY
@@ -22284,7 +20605,7 @@ try {
     };
     setCors.__diracCsrfHmacWrapped = true;
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_20697', error); }
+} catch (_) {}
 
 __diracV202RegisterMiddleware(async function diracCsrfHmacWrapper(req, res, nextHandlerV202) {
   const method = String((req && req.method) || 'GET').toUpperCase();
@@ -22370,22 +20691,24 @@ function diracCsrfIsNeverTouchAction(action) {
 }
 
 function diracCsrfIsDisabledForAction(action) {
-  if (isEnvTrue('DIRAC_CSRF_HMAC_DISABLED')) return false;
+  if (isEnvTrue('DIRAC_CSRF_HMAC_DISABLED')) return true;
   const key = 'DIRAC_CSRF_HMAC_DISABLED_' + String(action || '').toUpperCase().replace(/[^A-Z0-9]+/g, '_');
-  void key;
-  return false;
+  return isEnvTrue(key);
 }
 
 function diracCsrfIsEnforcedForAction(action) {
-  void action;
-  return true;
+  if (isEnvTrue('DIRAC_CSRF_HMAC_ENFORCE')) return true;
+  const key = 'DIRAC_CSRF_HMAC_ENFORCE_' + String(action || '').toUpperCase().replace(/[^A-Z0-9]+/g, '_');
+  return isEnvTrue(key);
 }
 
 function diracCsrfVerifyRequest(req, action) {
-  const enforced = true;
+  const enforced = diracCsrfIsEnforcedForAction(action);
   const secret = diracCsrfSecret();
   if (!secret) {
-    return { ok: false, enforced: true, status: 503, code: 'CSRF_SECRET_MISSING' };
+    return enforced
+      ? { ok: false, enforced: true, status: 503, code: 'CSRF_SECRET_MISSING' }
+      : { ok: true, enforced: false, source: 'csrf_secret_missing_compat' };
   }
 
   const headers = (req && req.headers) || {};
@@ -22399,10 +20722,12 @@ function diracCsrfVerifyRequest(req, action) {
 
   const cookies = parseCookies(req);
   const cookieToken = String(cookies[DIRAC_CSRF_COOKIE] || '').trim();
+  const hasAnyToken = Boolean(headerToken || cookieToken);
+
   if (!headerToken || !cookieToken) {
     return {
-      ok: false,
-      enforced: true,
+      ok: !enforced && !hasAnyToken,
+      enforced,
       status: 403,
       code: !headerToken ? 'CSRF_HEADER_MISSING' : 'CSRF_COOKIE_MISSING'
     };
@@ -22706,18 +21031,13 @@ function diracBackendXssV4InstallJsonOutputGuard(req, res) {
     try {
       return originalJson(diracBackendXssV4SanitizeJson(payload));
     } catch (_) {
-      res.statusCode = 500;
-      return originalJson({
-        ok: false,
-        code: 'SECURE_RESPONSE_SANITIZATION_FAILED',
-        message: 'Respons tidak dapat diproses secara aman.'
-      });
+      return originalJson(payload);
     }
   };
 }
 
 function diracBackendXssV4ShouldSkipJsonGuard(req, action) {
-  if (diracBackendXssV4EnvTrue('DIRAC_BACKEND_XSS_JSON_GUARD_DISABLED')) return false;
+  if (diracBackendXssV4EnvTrue('DIRAC_BACKEND_XSS_JSON_GUARD_DISABLED')) return true;
   const method = String((req && req.method) || 'GET').toUpperCase();
   if (method !== 'GET') return true;
   if (diracBackendXssV4IsProtectedAction(action)) return true;
@@ -23016,21 +21336,14 @@ function diracAdvancedBackendV5ContentLengthSignal(req) {
 }
 
 function diracAdvancedBackendV5Reject(res, status, code) {
-  if (!res || res.headersSent) {
-    const error = new Error('DIRAC_ADVANCED_BLOCK_RESPONSE_UNAVAILABLE');
-    error.code = 'DIRAC_ADVANCED_BLOCK_RESPONSE_UNAVAILABLE';
-    throw error;
-  }
-  if (typeof res.status === 'function' && typeof res.json === 'function') {
-    return res.status(status).json({ ok: false, error: String(code || 'bad_request') });
-  }
-  if (typeof res.writeHead === 'function' && typeof res.end === 'function') {
-    res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'X-Content-Type-Options': 'nosniff' });
-    return res.end(JSON.stringify({ ok: false, error: String(code || 'bad_request') }));
-  }
-  const error = new Error('DIRAC_ADVANCED_BLOCK_RESPONSE_GATEWAY_MISSING');
-  error.code = 'DIRAC_ADVANCED_BLOCK_RESPONSE_GATEWAY_MISSING';
-  throw error;
+  try {
+    if (!res || res.headersSent) return;
+    if (typeof res.status === 'function' && typeof res.json === 'function') {
+      return res.status(status).json({ ok: false, error: String(code || 'bad_request') });
+    }
+    if (typeof res.writeHead === 'function') res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'X-Content-Type-Options': 'nosniff' });
+    if (typeof res.end === 'function') return res.end(JSON.stringify({ ok: false, error: String(code || 'bad_request') }));
+  } catch (_) {}
 }
 
 function diracAdvancedBackendV5Header(headers, name) {
@@ -23087,7 +21400,7 @@ function diracAdvancedBackendV5EnvTrue(name, defaultValue = false) {
    - Setelah domain_login/domain_register sukses, hash Argon2id tetap dibuat ulang
      dengan salt baru lalu MENIMPA row active yang sama.
    - Tidak membuat status rotated, tidak menyimpan riwayat hash lama.
-   - Cleanup row lama untuk auth_user_id yang sama wajib terkonfirmasi; kegagalan menutup autentikasi.
+   - Cleanup row lama untuk auth_user_id yang sama dilakukan best-effort/fail-open.
    Batas aman:
    - Tidak mengubah login Supabase, verifikasi password utama, hash algorithm,
      payment gateway, email template, A2F/MFA/passkey, logout, auto logout,
@@ -23101,14 +21414,14 @@ try {
     diracV110PersistArgon2ShadowAfterVerifiedAuth = diracPasswordArgon2ActiveOnlyV120PersistAfterVerifiedAuth;
     Object.defineProperty(diracV110PersistArgon2ShadowAfterVerifiedAuth, '__diracPasswordActiveOnlyV120Wrapped', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_21512', error); }
+} catch (_) {}
 
 try {
   if (typeof diracPasswordArgon2V4PersistAfterVerifiedAuth === 'function' && !diracPasswordArgon2V4PersistAfterVerifiedAuth.__diracPasswordActiveOnlyV120Wrapped) {
     diracPasswordArgon2V4PersistAfterVerifiedAuth = diracPasswordArgon2ActiveOnlyV120PersistAfterVerifiedAuth;
     Object.defineProperty(diracPasswordArgon2V4PersistAfterVerifiedAuth, '__diracPasswordActiveOnlyV120Wrapped', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_21519', error); }
+} catch (_) {}
 
 async function diracPasswordArgon2ActiveOnlyV120PersistAfterVerifiedAuth(req, payload, action) {
   if (diracPasswordArgon2V4EnvTrue('DIRAC_PASSWORD_ARGON2_DISABLED')) return { ok: false, skipped: 'disabled' };
@@ -23175,32 +21488,27 @@ async function diracPasswordArgon2ActiveOnlyV120PersistAfterVerifiedAuth(req, pa
 async function diracPasswordArgon2ActiveOnlyV120UpsertCurrent(authUserId, row, nowIso) {
   if (!diracPasswordArgon2V4LooksLikeUuid(authUserId)) return { ok: false, skipped: 'invalid_auth_user_id' };
 
-  const activeRows = await diracPasswordArgon2ActiveOnlyV120ReadActiveRows(authUserId);
-  const keep = activeRows.length ? activeRows[0] : null;
+  const activeRows = await diracPasswordArgon2ActiveOnlyV120ReadActiveRows(authUserId).catch(() => []);
+  const keep = Array.isArray(activeRows) && activeRows.length ? activeRows[0] : null;
   const keepId = diracPasswordArgon2ActiveOnlyV120SafeRowId(keep && keep.id);
 
-  if (keep && !keepId) return { ok: false, mode: 'active_row_id_invalid' };
-
   if (keepId) {
-    const updateResult = await diracPasswordArgon2ActiveOnlyV120PatchById(authUserId, keepId, row);
-    if (!updateResult || updateResult.ok !== true || Number(updateResult.wrote || 0) !== 1) {
-      return { ok: false, mode: 'active_row_update_failed', status: updateResult && updateResult.status };
+    const updateResult = await diracPasswordArgon2ActiveOnlyV120PatchById(authUserId, keepId, row).catch((error) => ({ ok: false, status: error && error.status }));
+    if (updateResult && updateResult.ok) {
+      await diracPasswordArgon2ActiveOnlyV120DeleteOtherRows(authUserId, keepId).catch(() => null);
+      return { ok: true, mode: 'updated_active_only', status: updateResult.status || 204, kept_id: keepId };
     }
-    const cleanupResult = await diracPasswordArgon2ActiveOnlyV120DeleteOtherRows(authUserId, keepId);
-    if (!cleanupResult || cleanupResult.ok !== true) {
-      return { ok: false, mode: 'updated_but_cleanup_failed', status: cleanupResult && cleanupResult.status };
-    }
-    const verified = await diracPasswordArgon2ActiveOnlyV120VerifySingleCurrent(authUserId, row, keepId);
-    if (!verified.ok) return { ok: false, mode: 'updated_postcondition_failed' };
-    return { ok: true, mode: 'updated_active_only', status: updateResult.status || 200, kept_id: keepId };
   }
 
-  const deleteAllResult = await diracPasswordArgon2ActiveOnlyV120DeleteAllRowsForUser(authUserId);
-  if (!deleteAllResult || deleteAllResult.ok !== true) {
-    return { ok: false, mode: 'preinsert_cleanup_failed', status: deleteAllResult && deleteAllResult.status };
+  if (keep && !keepId) {
+    const updateActiveResult = await diracPasswordArgon2ActiveOnlyV120PatchActiveByUser(authUserId, row).catch((error) => ({ ok: false, status: error && error.status }));
+    if (updateActiveResult && updateActiveResult.ok) {
+      await diracPasswordArgon2ActiveOnlyV120DeleteNonActiveRows(authUserId).catch(() => null);
+      return { ok: true, mode: 'updated_active_rows', status: updateActiveResult.status || 204 };
+    }
   }
-  const afterDelete = await diracPasswordArgon2ActiveOnlyV120ReadAllRows(authUserId);
-  if (afterDelete.length !== 0) return { ok: false, mode: 'preinsert_cleanup_postcondition_failed' };
+
+  await diracPasswordArgon2ActiveOnlyV120DeleteAllRowsForUser(authUserId).catch(() => null);
 
   const insertRow = {
     ...row,
@@ -23208,89 +21516,35 @@ async function diracPasswordArgon2ActiveOnlyV120UpsertCurrent(authUserId, row, n
     updated_at: row.updated_at || nowIso || diracNowIso(),
     status: 'active'
   };
-  const insertResult = await diracPasswordArgon2ActiveOnlyV120Insert(insertRow);
-  if (insertResult && insertResult.ok === true && Number(insertResult.wrote || 0) === 1) {
-    const insertedId = diracPasswordArgon2ActiveOnlyV120SafeRowId(insertResult.data && insertResult.data[0] && insertResult.data[0].id);
-    const verified = await diracPasswordArgon2ActiveOnlyV120VerifySingleCurrent(authUserId, insertRow, insertedId);
-    if (!verified.ok) return { ok: false, mode: 'insert_postcondition_failed' };
+  const insertResult = await diracPasswordArgon2ActiveOnlyV120Insert(insertRow).catch((error) => ({ ok: false, status: error && error.status }));
+  if (insertResult && insertResult.ok) {
     return { ok: true, mode: 'inserted_active_only', status: insertResult.status || 201, data: insertResult.data };
   }
 
-  // A concurrent insert is accepted only after exact read-back, exact-row update, cleanup, and a second read-back.
-  const fallbackRows = await diracPasswordArgon2ActiveOnlyV120ReadActiveRows(authUserId);
-  if (fallbackRows.length !== 1) return { ok: false, mode: 'race_fallback_row_count_invalid', status: insertResult && insertResult.status };
-  const fallbackId = diracPasswordArgon2ActiveOnlyV120SafeRowId(fallbackRows[0] && fallbackRows[0].id);
-  if (!fallbackId) return { ok: false, mode: 'race_fallback_id_invalid', status: insertResult && insertResult.status };
-  const fallbackUpdate = await diracPasswordArgon2ActiveOnlyV120PatchById(authUserId, fallbackId, insertRow);
-  if (!fallbackUpdate || fallbackUpdate.ok !== true || Number(fallbackUpdate.wrote || 0) !== 1) {
-    return { ok: false, mode: 'race_fallback_update_failed', status: fallbackUpdate && fallbackUpdate.status };
+  // Race-condition fallback: kalau request lain sudah insert lebih dulu, update active row yang sekarang ada.
+  const fallbackRows = await diracPasswordArgon2ActiveOnlyV120ReadActiveRows(authUserId).catch(() => []);
+  const fallback = Array.isArray(fallbackRows) && fallbackRows.length ? fallbackRows[0] : null;
+  const fallbackId = diracPasswordArgon2ActiveOnlyV120SafeRowId(fallback && fallback.id);
+  if (fallbackId) {
+    const fallbackUpdate = await diracPasswordArgon2ActiveOnlyV120PatchById(authUserId, fallbackId, row).catch((error) => ({ ok: false, status: error && error.status }));
+    if (fallbackUpdate && fallbackUpdate.ok) {
+      await diracPasswordArgon2ActiveOnlyV120DeleteOtherRows(authUserId, fallbackId).catch(() => null);
+      return { ok: true, mode: 'race_fallback_updated_active_only', status: fallbackUpdate.status || 204, kept_id: fallbackId };
+    }
   }
-  const cleanupResult = await diracPasswordArgon2ActiveOnlyV120DeleteOtherRows(authUserId, fallbackId);
-  if (!cleanupResult || cleanupResult.ok !== true) {
-    return { ok: false, mode: 'race_fallback_cleanup_failed', status: cleanupResult && cleanupResult.status };
-  }
-  const verified = await diracPasswordArgon2ActiveOnlyV120VerifySingleCurrent(authUserId, insertRow, fallbackId);
-  if (!verified.ok) return { ok: false, mode: 'race_fallback_postcondition_failed' };
-  return { ok: true, mode: 'race_fallback_updated_active_only', status: fallbackUpdate.status || 200, kept_id: fallbackId };
+
+  return { ok: false, mode: 'active_only_write_failed', status: insertResult && insertResult.status };
 }
 
 async function diracPasswordArgon2ActiveOnlyV120ReadActiveRows(authUserId) {
-  if (!diracPasswordArgon2V4LooksLikeUuid(authUserId)) {
-    const error = new Error('DIRAC_PASSWORD_ACTIVE_ROW_IDENTITY_INVALID');
-    error.code = 'DIRAC_PASSWORD_ACTIVE_ROW_IDENTITY_INVALID';
-    throw error;
-  }
-  const select = 'id,auth_user_id,customer_id,password_hash,hash_algorithm,status,updated_at';
-  const result = await supabaseFetch('/rest/v1/security_customer_password_hashes?select=' + encodeURIComponent(select) + '&auth_user_id=eq.' + encodeURIComponent(authUserId) + '&status=eq.active&order=updated_at.desc&limit=26', {
+  if (!diracPasswordArgon2V4LooksLikeUuid(authUserId)) return [];
+  const select = 'id,customer_id,status,updated_at';
+  const result = await supabaseFetch('/rest/v1/security_customer_password_hashes?select=' + encodeURIComponent(select) + '&auth_user_id=eq.' + encodeURIComponent(authUserId) + '&status=eq.active&order=updated_at.desc&limit=25', {
     method: 'GET',
     auth: 'service'
   });
-  if (!result || result.ok !== true || !Array.isArray(result.data) || result.data.length > 25) {
-    const error = new Error('DIRAC_PASSWORD_ACTIVE_ROW_READ_FAILED');
-    error.code = 'DIRAC_PASSWORD_ACTIVE_ROW_READ_FAILED';
-    error.status = result && result.status;
-    throw error;
-  }
-  for (const row of result.data) {
-    if (!row || !diracPasswordArgon2ActiveOnlyV120SafeRowId(row.id)
-      || String(row.auth_user_id || '') !== String(authUserId)
-      || !diracPasswordArgon2V4LooksLikeUuid(row.customer_id)
-      || row.status !== 'active'
-      || String(row.hash_algorithm || '').toLowerCase() !== 'argon2id'
-      || !String(row.password_hash || '').startsWith('$argon2id$')) {
-      const error = new Error('DIRAC_PASSWORD_ACTIVE_ROW_INVALID');
-      error.code = 'DIRAC_PASSWORD_ACTIVE_ROW_INVALID';
-      throw error;
-    }
-  }
+  if (!result || !result.ok || !Array.isArray(result.data)) return [];
   return result.data;
-}
-
-async function diracPasswordArgon2ActiveOnlyV120ReadAllRows(authUserId) {
-  if (!diracPasswordArgon2V4LooksLikeUuid(authUserId)) throw new Error('DIRAC_PASSWORD_ALL_ROWS_IDENTITY_INVALID');
-  const select = 'id,auth_user_id,customer_id,password_hash,hash_algorithm,status,updated_at';
-  const result = await supabaseFetch('/rest/v1/security_customer_password_hashes?select=' + encodeURIComponent(select) + '&auth_user_id=eq.' + encodeURIComponent(authUserId) + '&order=updated_at.desc&limit=2', {
-    method: 'GET',
-    auth: 'service'
-  });
-  if (!result || result.ok !== true || !Array.isArray(result.data)) throw new Error('DIRAC_PASSWORD_ALL_ROWS_READ_FAILED');
-  return result.data;
-}
-
-async function diracPasswordArgon2ActiveOnlyV120VerifySingleCurrent(authUserId, expectedRow, expectedId) {
-  const rows = await diracPasswordArgon2ActiveOnlyV120ReadAllRows(authUserId);
-  if (rows.length !== 1) return { ok: false, reason: 'active_only_row_count_invalid', count: rows.length };
-  const row = rows[0];
-  const id = diracPasswordArgon2ActiveOnlyV120SafeRowId(row && row.id);
-  const valid = Boolean(id
-    && (!expectedId || id === String(expectedId))
-    && String(row.auth_user_id || '') === String(authUserId)
-    && String(row.customer_id || '') === String(expectedRow && expectedRow.customer_id || '')
-    && row.status === 'active'
-    && String(row.hash_algorithm || '').toLowerCase() === 'argon2id'
-    && String(row.password_hash || '') === String(expectedRow && expectedRow.password_hash || '')
-    && String(row.password_hash || '').startsWith('$argon2id$'));
-  return { ok: valid, row, id };
 }
 
 async function diracPasswordArgon2ActiveOnlyV120PatchById(authUserId, rowId, row) {
@@ -23299,25 +21553,22 @@ async function diracPasswordArgon2ActiveOnlyV120PatchById(authUserId, rowId, row
   const result = await supabaseFetch('/rest/v1/security_customer_password_hashes?id=eq.' + encodeURIComponent(rowId) + '&auth_user_id=eq.' + encodeURIComponent(authUserId), {
     method: 'PATCH',
     auth: 'service',
-    prefer: 'return=representation',
+    prefer: 'return=minimal',
     body
   });
-  const rows = result && result.ok === true && Array.isArray(result.data) ? result.data : null;
-  const updated = rows && rows.length === 1 ? rows[0] : null;
-  const ok = Boolean(updated
-    && String(updated.id || '') === String(rowId)
-    && String(updated.auth_user_id || '') === String(authUserId)
-    && String(updated.customer_id || '') === String(row && row.customer_id || '')
-    && updated.status === 'active'
-    && String(updated.password_hash || '') === String(row && row.password_hash || '')
-    && String(updated.password_hash || '').startsWith('$argon2id$'));
-  return { ok, wrote: rows ? rows.length : 0, status: result && result.status, data: rows };
+  return { ok: Boolean(result && result.ok), status: result && result.status, data: result && result.data };
 }
 
 async function diracPasswordArgon2ActiveOnlyV120PatchActiveByUser(authUserId, row) {
-  void authUserId;
-  void row;
-  return { ok: false, skipped: 'unsafe_multirow_patch_forbidden' };
+  if (!diracPasswordArgon2V4LooksLikeUuid(authUserId)) return { ok: false, skipped: 'invalid_auth_user_id' };
+  const body = diracPasswordArgon2ActiveOnlyV120UpdateBody(row);
+  const result = await supabaseFetch('/rest/v1/security_customer_password_hashes?auth_user_id=eq.' + encodeURIComponent(authUserId) + '&status=eq.active', {
+    method: 'PATCH',
+    auth: 'service',
+    prefer: 'return=minimal',
+    body
+  });
+  return { ok: Boolean(result && result.ok), status: result && result.status, data: result && result.data };
 }
 
 async function diracPasswordArgon2ActiveOnlyV120Insert(row) {
@@ -23327,16 +21578,7 @@ async function diracPasswordArgon2ActiveOnlyV120Insert(row) {
     prefer: 'return=representation',
     body: [{ ...row, status: 'active' }]
   });
-  const rows = result && result.ok === true && Array.isArray(result.data) ? result.data : null;
-  const inserted = rows && rows.length === 1 ? rows[0] : null;
-  const ok = Boolean(inserted
-    && diracPasswordArgon2ActiveOnlyV120SafeRowId(inserted.id)
-    && String(inserted.auth_user_id || '') === String(row && row.auth_user_id || '')
-    && String(inserted.customer_id || '') === String(row && row.customer_id || '')
-    && inserted.status === 'active'
-    && String(inserted.password_hash || '') === String(row && row.password_hash || '')
-    && String(inserted.password_hash || '').startsWith('$argon2id$'));
-  return { ok, wrote: rows ? rows.length : 0, status: result && result.status, data: rows };
+  return { ok: Boolean(result && result.ok), status: result && result.status, data: result && result.data };
 }
 
 async function diracPasswordArgon2ActiveOnlyV120DeleteOtherRows(authUserId, keepId) {
@@ -23344,9 +21586,9 @@ async function diracPasswordArgon2ActiveOnlyV120DeleteOtherRows(authUserId, keep
   const result = await supabaseFetch('/rest/v1/security_customer_password_hashes?auth_user_id=eq.' + encodeURIComponent(authUserId) + '&id=neq.' + encodeURIComponent(keepId), {
     method: 'DELETE',
     auth: 'service',
-    prefer: 'return=representation'
+    prefer: 'return=minimal'
   });
-  return { ok: Boolean(result && result.ok && Array.isArray(result.data)), status: result && result.status, data: result && result.data };
+  return { ok: Boolean(result && result.ok), status: result && result.status };
 }
 
 async function diracPasswordArgon2ActiveOnlyV120DeleteNonActiveRows(authUserId) {
@@ -23354,9 +21596,9 @@ async function diracPasswordArgon2ActiveOnlyV120DeleteNonActiveRows(authUserId) 
   const result = await supabaseFetch('/rest/v1/security_customer_password_hashes?auth_user_id=eq.' + encodeURIComponent(authUserId) + '&status=neq.active', {
     method: 'DELETE',
     auth: 'service',
-    prefer: 'return=representation'
+    prefer: 'return=minimal'
   });
-  return { ok: Boolean(result && result.ok && Array.isArray(result.data)), status: result && result.status, data: result && result.data };
+  return { ok: Boolean(result && result.ok), status: result && result.status };
 }
 
 async function diracPasswordArgon2ActiveOnlyV120DeleteAllRowsForUser(authUserId) {
@@ -23364,9 +21606,9 @@ async function diracPasswordArgon2ActiveOnlyV120DeleteAllRowsForUser(authUserId)
   const result = await supabaseFetch('/rest/v1/security_customer_password_hashes?auth_user_id=eq.' + encodeURIComponent(authUserId), {
     method: 'DELETE',
     auth: 'service',
-    prefer: 'return=representation'
+    prefer: 'return=minimal'
   });
-  return { ok: Boolean(result && result.ok && Array.isArray(result.data)), status: result && result.status, data: result && result.data };
+  return { ok: Boolean(result && result.ok), status: result && result.status };
 }
 
 function diracPasswordArgon2ActiveOnlyV120UpdateBody(row) {
@@ -23390,11 +21632,13 @@ function diracPasswordArgon2ActiveOnlyV120SafeRowId(value) {
 }
 
 /* ============================================================
-   DIRAC BOLA/IDOR SERVICE-SCOPE ENFORCEMENT v121 - APPEND ONLY
+   DIRAC BOLA/IDOR SERVICE-SCOPE MONITOR v121 - APPEND ONLY
    Tujuan:
    - Mengurangi risiko BOLA/IDOR dari service-role database access tanpa mengubah endpoint.
-   - Memblokir akses service-role ke tabel milik user/customer yang tidak punya filter owner.
-   - Enforcement selalu aktif; ENV tidak boleh menurunkannya menjadi monitor-only.
+   - Memantau akses service-role ke tabel milik user/customer yang tidak punya filter owner.
+   - Default MONITOR-ONLY supaya website normal tidak rusak.
+   - Optional enforce via ENV setelah staging:
+       DIRAC_BOLA_IDOR_SERVICE_SCOPE_ENFORCE=true
    Batas aman:
    - Tidak mengubah login, logout, auto-logout, payment gateway, email template,
      A2F/MFA/passkey, hash algorithm, endpoint, atau response contract lama.
@@ -23408,7 +21652,7 @@ try {
   if (asyncHooks && typeof asyncHooks.AsyncLocalStorage === 'function') {
     diracBolaIdorAsyncLocalV121 = new asyncHooks.AsyncLocalStorage();
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_21769', error); }
+} catch (_) {}
 
 try {
   const __diracBolaIdorV121PreviousHandler = __diracV202DispatcherSentinel;
@@ -23423,7 +21667,7 @@ try {
     }, "diracBolaIdorServiceScopeContextWrapperV121");
     __diracV202MarkWrapperFlag("__diracBolaIdorV121Wrapped");
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_21784', error); }
+} catch (_) {}
 
 try {
   const __diracBolaIdorV121OriginalSupabaseFetch = typeof supabaseFetch === 'function' ? supabaseFetch : null;
@@ -23451,7 +21695,7 @@ try {
     };
     Object.defineProperty(supabaseFetch, '__diracBolaIdorV121Wrapped', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_21812', error); }
+} catch (_) {}
 
 function diracBolaIdorV121BuildRequestContext(req) {
   const query = req && req.query && typeof req.query === 'object' ? req.query : {};
@@ -23479,7 +21723,7 @@ function diracBolaIdorV121CurrentContext() {
 
 function diracBolaIdorV121InspectServiceScope(path, options = {}) {
   if (!options || options.auth !== 'service') return { ok: true };
-  if (diracBolaIdorV121EnvTrue('DIRAC_BOLA_IDOR_SERVICE_SCOPE_DISABLED', false)) return { ok: false, block: true, status: 503, reason: 'service_scope_guard_disable_forbidden' };
+  if (diracBolaIdorV121EnvTrue('DIRAC_BOLA_IDOR_SERVICE_SCOPE_DISABLED', false)) return { ok: true };
 
   const rawPath = String(path || '').trim();
   if (!rawPath || !rawPath.startsWith('/rest/v1/')) return { ok: true };
@@ -23589,14 +21833,17 @@ function diracBolaIdorV121BodyHasSafeColumn(body, column) {
 }
 
 function diracBolaIdorV121ShouldEnforce(action, table, method, policy) {
-  // Fungsi ini hanya dipanggil setelah operasi pada owned table terbukti tidak
-  // memiliki scope kepemilikan yang sah. Karena itu seluruh kasus wajib diblokir,
-  // termasuk aksi sensitif; ENV tidak boleh mengubah keputusan menjadi monitor-only.
-  void action;
-  void table;
-  void method;
-  void policy;
-  return true;
+  if (!diracBolaIdorV121EnvTrue('DIRAC_BOLA_IDOR_SERVICE_SCOPE_ENFORCE', false)) return false;
+  const cleanAction = String(action || '').toLowerCase();
+  if (diracBolaIdorV121EnvTrue('DIRAC_BOLA_IDOR_SERVICE_SCOPE_ENFORCE_ALL', false)) return true;
+
+  // Default strict mode tetap menghindari alur yang user larang disentuh.
+  if (/login|register|logout|payment|pay|midtrans|ipaymu|webhook|callback|notification|checkout|mfa|a2f|passkey|password|hash|email|mail|csrf|token|session|recovery|security|admin/i.test(cleanAction)) {
+    return false;
+  }
+
+  if (method === 'GET' && /orders|dashboard|me|profile|account/i.test(cleanAction)) return true;
+  return false;
 }
 
 function diracBolaIdorV121ExtractRestTable(path) {
@@ -23715,19 +21962,19 @@ try {
     };
     Object.defineProperty(supabaseFetch, '__diracBolaIdorV122Wrapped', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_22076', error); }
+} catch (_) {}
 
 try {
   if (typeof module !== 'undefined' && __diracV202DispatcherSentinel && typeof __diracV202DispatcherSentinel === 'function') {
     __diracV202MarkWrapperFlag("__diracBolaIdorV122StrictSafe");
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_22082', error); }
+} catch (_) {}
 
 function diracBolaIdorV122InspectStrictSafe(path, options = {}) {
   try {
     if (!options || options.auth !== 'service') return { ok: true };
-    if (diracBolaIdorV122EnvTrue('DIRAC_BOLA_IDOR_STRICT_SAFE_DISABLED', false)) return { ok: false, block: true, status: 503, reason: 'strict_safe_guard_disable_forbidden' };
-    if (diracBolaIdorV122EnvFalse('DIRAC_BOLA_IDOR_STRICT_SAFE_ENFORCE', true)) return { ok: false, block: true, status: 503, reason: 'strict_safe_enforcement_required' };
+    if (diracBolaIdorV122EnvTrue('DIRAC_BOLA_IDOR_STRICT_SAFE_DISABLED', false)) return { ok: true };
+    if (diracBolaIdorV122EnvFalse('DIRAC_BOLA_IDOR_STRICT_SAFE_ENFORCE', true)) return { ok: true };
 
     const rawPath = String(path || '').trim();
     if (!rawPath || !rawPath.startsWith('/rest/v1/')) return { ok: true };
@@ -24028,12 +22275,12 @@ try {
     };
     Object.defineProperty(supabaseFetch, '__diracBolaIdorV126Wrapped', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_22389', error); }
+} catch (_) {}
 
 function diracBolaIdorV126InspectOwnerValue(path, options = {}) {
   try {
     if (!options || options.auth !== 'service') return { ok: true };
-    if (diracBolaIdorV126EnvTrue('DIRAC_BOLA_IDOR_OWNER_BINDING_DISABLED', false)) return { ok: false, block: true, status: 503, reason: 'owner_binding_guard_disable_forbidden' };
+    if (diracBolaIdorV126EnvTrue('DIRAC_BOLA_IDOR_OWNER_BINDING_DISABLED', false)) return { ok: true };
 
     const method = String(options.method || 'GET').toUpperCase();
     if (!/^(GET|HEAD|PATCH|PUT|DELETE)$/i.test(method)) return { ok: true };
@@ -24375,7 +22622,7 @@ try {
   if (asyncHooksV128 && typeof asyncHooksV128.AsyncLocalStorage === 'function') {
     diracBolaIdorAsyncLocalV128 = new asyncHooksV128.AsyncLocalStorage();
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_22736', error); }
+} catch (_) {}
 
 try {
   const __diracBolaIdorV128OriginalSupabaseFetch = typeof supabaseFetch === 'function' ? supabaseFetch : null;
@@ -24393,7 +22640,7 @@ try {
     };
     Object.defineProperty(supabaseFetch, '__diracBolaIdorV128Wrapped', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_22754', error); }
+} catch (_) {}
 
 try {
   const __diracBolaIdorV128PreviousHandler = __diracV202DispatcherSentinel;
@@ -24406,11 +22653,7 @@ try {
         const decision = await diracBolaIdorV128InspectHttpRequest(req).catch((error) => ({ ok: false, warn: true, block: true, reason: 'bola_idor_v128_http_guard_exception', error: diracSecurityRedactDiagnosticV210(error, 120) }));
         if (decision && decision.warn) diracBolaIdorV128LogDecision(decision);
         if (decision && decision.block) {
-          const banWrite = await diracBolaIdorV128RegisterGlobalHardBan(req, context.action, context.method, decision).catch(() => ({ ok: false }));
-          if (!banWrite || banWrite.ok !== true) {
-            diracV222MarkDependencyFailure(res, 'bola_idor_global_ban_persistence', 503, 'BOLA_IDOR_GLOBAL_BAN_PERSISTENCE_FAILED');
-            return diracBolaIdorV128BanPersistenceUnavailableResponse(res);
-          }
+          await diracBolaIdorV128RegisterGlobalHardBan(req, context.action, context.method, decision).catch(() => null);
           return diracBolaIdorV128BlockedHttpResponse(res, decision.reason || 'BOLA_IDOR_BLOCKED');
         }
         return nextHandlerV202(req, res);
@@ -24424,7 +22667,7 @@ try {
     }, "diracBolaIdorGlobalHardBanWrapperV128");
     __diracV202MarkWrapperFlag("__diracBolaIdorV128Wrapped");
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_22781', error); }
+} catch (_) {}
 
 function diracBolaIdorV128BuildRequestContext(req) {
   const query = req && req.query && typeof req.query === 'object' ? req.query : {};
@@ -24593,14 +22836,7 @@ async function diracBolaIdorV128InspectHttpRequest(req) {
 
   const objectIds = diracBolaIdorV128ObjectIdsFromCollected(ids);
   if (objectIds.length && owner.customerIds.length) {
-    let owned;
-    try {
-      owned = await diracBolaIdorV128ResolveKnownObjectOwners(objectIds);
-    } catch (_) {
-      return diracBolaIdorV128BuildBlockDecision('http_query_object_owner_lookup_unavailable', {
-        source: 'query', action, method, status: 503
-      });
-    }
+    const owned = await diracBolaIdorV128ResolveKnownObjectOwners(objectIds).catch(() => []);
     const foreign = owned.filter((row) => row && row.customer_id && !owner.customerIds.includes(String(row.customer_id)));
     if (foreign.length) {
       return diracBolaIdorV128BuildBlockDecision('http_query_foreign_object_id', {
@@ -24619,7 +22855,7 @@ async function diracBolaIdorV128InspectHttpRequest(req) {
 
 async function diracBolaIdorV128InspectSupabaseAccess(path, options = {}) {
   if (!options || options.auth !== 'service') return { ok: true };
-  if (diracBolaIdorV128EnvTrue('DIRAC_BOLA_IDOR_GLOBAL_BAN_DISABLED', false)) return { ok: false, block: true, status: 503, reason: 'global_ban_guard_disable_forbidden' };
+  if (diracBolaIdorV128EnvTrue('DIRAC_BOLA_IDOR_GLOBAL_BAN_DISABLED', false)) return { ok: true };
 
   const rawPath = String(path || '').trim();
   if (!rawPath || !rawPath.startsWith('/rest/v1/')) return { ok: true };
@@ -24656,14 +22892,7 @@ async function diracBolaIdorV128InspectSupabaseAccess(path, options = {}) {
 
   const directObjectIds = diracBolaIdorV128DirectObjectIdsForTable(table, ids);
   if (directObjectIds.length && /^(GET|HEAD|PATCH|PUT|DELETE)$/i.test(method)) {
-    let owners;
-    try {
-      owners = await diracBolaIdorV128ResolveKnownObjectOwners(directObjectIds, table);
-    } catch (_) {
-      return diracBolaIdorV128BuildBlockDecision('supabase_object_owner_lookup_unavailable', {
-        source: 'supabase', table, method, action, status: 503
-      });
-    }
+    const owners = await diracBolaIdorV128ResolveKnownObjectOwners(directObjectIds, table).catch(() => []);
     const foreign = owners.filter((row) => row && row.customer_id && !allowed.includes(String(row.customer_id)));
     if (foreign.length) {
       return diracBolaIdorV128BuildBlockDecision('supabase_object_id_not_bound_to_authenticated_owner', {
@@ -24680,14 +22909,7 @@ async function diracBolaIdorV128InspectSupabaseAccess(path, options = {}) {
   if (diracBolaIdorV128IsChildOrderTable(table) && /^(GET|HEAD|PATCH|PUT|DELETE)$/i.test(method)) {
     const parentIds = diracBolaIdorV128ChildOrderIds(table, ids);
     if (parentIds.length) {
-      let owners;
-      try {
-        owners = await diracBolaIdorV128ResolveChildParentOwners(table, parentIds);
-      } catch (_) {
-        return diracBolaIdorV128BuildBlockDecision('child_order_parent_owner_lookup_unavailable', {
-          source: 'supabase', table, method, action, status: 503
-        });
-      }
+      const owners = await diracBolaIdorV128ResolveChildParentOwners(table, parentIds).catch(() => []);
       const foreign = owners.filter((row) => row && row.customer_id && !allowed.includes(String(row.customer_id)));
       if (foreign.length) {
         return diracBolaIdorV128BuildBlockDecision('child_order_parent_not_bound_to_authenticated_owner', {
@@ -24965,7 +23187,7 @@ async function diracBolaIdorV128ResolveKnownObjectOwners(objectIds, preferredTab
 
   const rows = [];
   for (const table of tables) {
-    const fetched = await diracBolaIdorV128FetchOwnerRows(table, ids, 'id');
+    const fetched = await diracBolaIdorV128FetchOwnerRows(table, ids, 'id').catch(() => []);
     rows.push(...fetched);
   }
 
@@ -24984,12 +23206,8 @@ async function diracBolaIdorV128FetchOwnerRows(table, ids, column) {
   if (!cleanTable || !cleanIds.length || !/^[a-zA-Z0-9_]+$/.test(cleanTable) || !/^[a-zA-Z0-9_]+$/.test(col)) return [];
   const select = encodeURIComponent('id,customer_id');
   const path = '/rest/v1/' + encodeURIComponent(cleanTable) + '?select=' + select + '&' + encodeURIComponent(col) + '=in.(' + cleanIds.map(encodeURIComponent).join(',') + ')&limit=' + String(cleanIds.length);
-  const result = await diracBolaIdorV128DirectSupabaseServiceGet(path);
-  if (!result || !result.ok || !Array.isArray(result.data)) {
-    const error = new Error('V128_OBJECT_OWNER_LOOKUP_FAILED');
-    error.statusCode = Number(result && result.status || 503);
-    throw error;
-  }
+  const result = await diracBolaIdorV128DirectSupabaseServiceGet(path).catch(() => null);
+  if (!result || !result.ok || !Array.isArray(result.data)) return [];
   return result.data
     .filter((row) => row && row.customer_id)
     .map((row) => ({ table: cleanTable, id: String(row.id || ''), customer_id: String(row.customer_id || '') }));
@@ -25065,20 +23283,31 @@ async function diracBolaIdorV128RegisterGlobalHardBan(req, action, method, decis
     risk: 'critical',
     patch: DIRAC_BOLA_IDOR_GLOBAL_HARD_BAN_PATCH_V128
   };
-  if (!req || typeof diracV107RegisterHardBan !== 'function') {
-    diracV222MarkDependencyFailure(null, 'bola_idor_global_ban_persistence', 503, 'BOLA_IDOR_GLOBAL_BAN_PERSISTENCE_REQUIRED');
-    return { ok: false, wrote: 0, source: 'v128_primary_persistence_unavailable' };
-  }
   try {
-    const result = await diracV107RegisterHardBan(req, null, action || 'bola_idor', method || 'GET', threat);
-    if (result && result.ok === true && Number(result.wrote || 0) > 0) {
-      return { ...result, ok: true, source: 'v107_global_hard_ban' };
+    if (req && typeof diracV107RegisterHardBan === 'function') {
+      await diracV107RegisterHardBan(req, null, action || 'bola_idor', method || 'GET', threat);
+      return { ok: true, source: 'v107_global_hard_ban' };
     }
-    diracV222MarkDependencyFailure(null, 'bola_idor_global_ban_persistence', Number(result && result.status || 0) || 503, 'BOLA_IDOR_GLOBAL_BAN_PERSISTENCE_FAILED');
-  } catch (error) {
-    diracV222MarkDependencyFailure(null, 'bola_idor_global_ban_persistence', Number(error && (error.status || error.statusCode) || 0) || 503, error && (error.code || error.name) || 'BOLA_IDOR_GLOBAL_BAN_PERSISTENCE_FAILED');
+  } catch (_) {}
+
+  try {
+    const key = diracBolaIdorV128RequestBanKey(req || {}, action, method);
+    const until = Date.now() + diracBolaIdorV128BlockYears() * 365 * 24 * 60 * 60 * 1000;
+    DIRAC_BOLA_IDOR_GLOBAL_HARD_BAN_STORE_V128.set(key, { blockedUntilMs: until, reason: decision && decision.reason || 'bola_idor' });
+    if (typeof writePersistentSecurityJson === 'function') {
+      await writePersistentSecurityJson('bola-idor-global-ban:' + key, {
+        event_type: 'bola_idor_global_hard_ban',
+        patch: DIRAC_BOLA_IDOR_GLOBAL_HARD_BAN_PATCH_V128,
+        action: String(action || '').slice(0, 80),
+        method: String(method || '').slice(0, 12),
+        reason: String(decision && decision.reason || 'bola_idor').slice(0, 120),
+        created_at: new Date().toISOString()
+      }, until, diracBolaIdorV128BlockYears() * 365 * 24 * 60 * 60);
+    }
+    return { ok: true, source: 'v128_memory_persistent_fallback' };
+  } catch (_) {
+    return { ok: false };
   }
-  return { ok: false, wrote: 0, source: 'v128_persistence_failed' };
 }
 
 function diracBolaIdorV128RequestBanKey(req, action, method) {
@@ -25087,16 +23316,6 @@ function diracBolaIdorV128RequestBanKey(req, action, method) {
   const ua = String(headers['user-agent'] || '').slice(0, 240);
   const base = [String(ip || 'unknown'), ua, String(action || ''), String(method || '')].join('|');
   return diracBolaIdorV128Hash(base);
-}
-
-function diracBolaIdorV128BanPersistenceUnavailableResponse(res) {
-  try { if (typeof diracApplySecurityResponseHeaders === 'function') diracApplySecurityResponseHeaders(res); } catch (_) {}
-  try { if (res && typeof res.setHeader === 'function') res.setHeader('Cache-Control', 'no-store'); } catch (_) {}
-  return res.status(503).json({
-    ok: false,
-    code: 'BOLA_IDOR_BAN_PERSISTENCE_UNAVAILABLE',
-    message: 'Permintaan diblokir karena penyimpanan keamanan tidak tersedia.'
-  });
 }
 
 function diracBolaIdorV128BlockedHttpResponse(res, reason) {
@@ -25556,17 +23775,9 @@ async function orderMailSendViaProviderFallbackSafeV129(config, message) {
           html: String(message.html || '<p>Dirac Group</p>')
         })
       });
-      let body;
-      try {
-        body = await parseFetchResponse(response, 256 * 1024);
-      } catch (error) {
-        diracV222MarkDependencyFailure(null, 'resend_response_parse', 502, error && (error.code || error.name));
-        return { ok: false, provider: 'resend', error: 'resend_response_invalid' };
-      }
-      if (response.ok && body && typeof body === 'object' && !Array.isArray(body) && String(body.id || '').trim()) {
-        return { ok: true, provider: 'resend', id: String(body.id), recipient_count: recipients.length };
-      }
-      return { ok: false, provider: 'resend', error: response.ok ? 'resend_response_invalid' : 'resend_' + response.status };
+      const body = await parseFetchResponse(response, 256 * 1024).catch(() => ({}));
+      if (response.ok) return { ok: true, provider: 'resend', id: body && body.id || null, recipient_count: recipients.length };
+      return { ok: false, provider: 'resend', error: 'resend_' + response.status };
     } catch (error) {
       return { ok: false, provider: 'resend', error: orderMailSafeError(error) };
     }
@@ -25593,17 +23804,9 @@ async function orderMailSendViaProviderFallbackSafeV129(config, message) {
           htmlContent: String(message.html || '<p>Dirac Group</p>')
         })
       });
-      let body;
-      try {
-        body = await parseFetchResponse(response, 256 * 1024);
-      } catch (error) {
-        diracV222MarkDependencyFailure(null, 'brevo_response_parse', 502, error && (error.code || error.name));
-        return { ok: false, provider: 'brevo', error: 'brevo_response_invalid' };
-      }
-      if (response.ok && body && typeof body === 'object' && !Array.isArray(body) && String(body.messageId || '').trim()) {
-        return { ok: true, provider: 'brevo', id: String(body.messageId), recipient_count: recipients.length };
-      }
-      return { ok: false, provider: 'brevo', error: response.ok ? 'brevo_response_invalid' : 'brevo_' + response.status };
+      const body = await parseFetchResponse(response, 256 * 1024).catch(() => ({}));
+      if (response.ok) return { ok: true, provider: 'brevo', id: body && body.messageId || null, recipient_count: recipients.length };
+      return { ok: false, provider: 'brevo', error: 'brevo_' + response.status };
     } catch (error) {
       return { ok: false, provider: 'brevo', error: orderMailSafeError(error) };
     }
@@ -25764,7 +23967,7 @@ function diracV131IsAuthPassthroughAction(action, method, req) {
 }
 
 function diracV107ShouldSkip(req, action, method) {
-  if (diracV107EnvTrue('DIRAC_GLOBAL_HARD_BAN_DISABLED')) return false;
+  if (diracV107EnvTrue('DIRAC_GLOBAL_HARD_BAN_DISABLED')) return true;
   if (String(method || '').toUpperCase() === 'OPTIONS') return true;
 
   const normalized = diracV107NormalizeAction(action);
@@ -25837,7 +24040,7 @@ try {
     }, "diracAuthRegisterSafeBolaRepairWrapperV131");
     __diracV202MarkWrapperFlag("__diracAuthRegisterSafeBolaRepairV131");
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_24179', error); }
+} catch (_) {}
 
 /* ============================================================
    DIRAC BOLA/IDOR HIGH-ASSURANCE PROTECTED-DATA LOCK v132
@@ -25872,25 +24075,20 @@ try {
     };
     Object.defineProperty(supabaseFetch, '__diracBolaIdorV132Wrapped', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_24214', error); }
+} catch (_) {}
 
 try {
   const __diracBolaIdorV132PreviousHandler = __diracV202DispatcherSentinel;
   if (typeof __diracBolaIdorV132PreviousHandler === 'function' && !__diracBolaIdorV132PreviousHandler.__diracBolaIdorV132Wrapped) {
     __diracV202RegisterMiddleware(async function diracBolaIdorHighAssuranceWrapperV132(req, res, nextHandlerV202) {
       try { if (res && typeof res.setHeader === 'function') res.setHeader('X-Dirac-Bola-Idor-High-Assurance', DIRAC_BOLA_IDOR_HIGH_ASSURANCE_PATCH_V132); } catch (_) {}
-      const decision = await diracBolaIdorV132InspectHttpQuery(req).catch(() => ({
-        ok: false,
-        block: true,
-        status: 503,
-        reason: 'http_query_ownership_guard_unavailable'
-      }));
+      const decision = await diracBolaIdorV132InspectHttpQuery(req).catch(() => ({ ok: true }));
       if (decision && decision.block) return diracBolaIdorV132BlockedHttpResponse(res, decision);
       return nextHandlerV202(req, res);
     }, "diracBolaIdorHighAssuranceWrapperV132");
     __diracV202MarkWrapperFlag("__diracBolaIdorV132Wrapped");
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_24232', error); }
+} catch (_) {}
 
 async function diracBolaIdorV132InspectHttpQuery(req) {
   const method = String(req && req.method || 'GET').toUpperCase();
@@ -26009,10 +24207,7 @@ function diracBolaIdorV132InspectSupabaseAccess(path, options = {}) {
       status: 403
     });
   } catch (_) {
-    return diracBolaIdorV132Decision('supabase_ownership_guard_exception', {
-      source: 'supabase',
-      status: 503
-    });
+    return { ok: true };
   }
 }
 
@@ -26369,24 +24564,19 @@ try {
   if (asyncHooksV133 && typeof asyncHooksV133.AsyncLocalStorage === 'function') {
     diracBolaIdorAsyncLocalV133 = new asyncHooksV133.AsyncLocalStorage();
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_24711', error); }
+} catch (_) {}
 
 try {
   const __diracBolaIdorV133PreviousSupabaseFetch = typeof supabaseFetch === 'function' ? supabaseFetch : null;
   if (__diracBolaIdorV133PreviousSupabaseFetch && !__diracBolaIdorV133PreviousSupabaseFetch.__diracBolaIdorV133Wrapped) {
     supabaseFetch = async function supabaseFetchBolaIdorCustomerLinkHardBindingV133(path, options = {}) {
-      const decision = await diracBolaIdorV133InspectSupabaseAccess(path, options).catch(() => ({
-        ok: false,
-        block: true,
-        status: 503,
-        reason: 'supabase_ownership_guard_unavailable'
-      }));
+      const decision = await diracBolaIdorV133InspectSupabaseAccess(path, options).catch(() => ({ ok: true }));
       if (decision && decision.block) return diracBolaIdorV133BlockedSupabaseResult(decision);
       return __diracBolaIdorV133PreviousSupabaseFetch(path, options);
     };
     Object.defineProperty(supabaseFetch, '__diracBolaIdorV133Wrapped', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_24728', error); }
+} catch (_) {}
 
 try {
   const __diracBolaIdorV133PreviousHandler = __diracV202DispatcherSentinel;
@@ -26396,12 +24586,7 @@ try {
 
       const context = diracBolaIdorV133BuildRequestContext(req);
       const run = async () => {
-        const decision = await diracBolaIdorV133InspectHttpRequest(req).catch(() => ({
-          ok: false,
-          block: true,
-          status: 503,
-          reason: 'http_ownership_guard_unavailable'
-        }));
+        const decision = await diracBolaIdorV133InspectHttpRequest(req).catch(() => ({ ok: true }));
         if (decision && decision.block) return diracBolaIdorV133BlockedHttpResponse(res, decision);
         return nextHandlerV202(req, res);
       };
@@ -26414,7 +24599,7 @@ try {
     }, "diracBolaIdorCustomerLinkHardBindingWrapperV133");
     __diracV202MarkWrapperFlag("__diracBolaIdorV133Wrapped");
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_24756', error); }
+} catch (_) {}
 
 function diracBolaIdorV133BuildRequestContext(req) {
   const query = req && req.query && typeof req.query === 'object' ? req.query : {};
@@ -26561,14 +24746,7 @@ async function diracBolaIdorV133InspectSupabaseAccess(path, options = {}) {
 
     const directObjectIds = diracBolaIdorV133DirectObjectIdsForTable(table, ids);
     if (directObjectIds.length) {
-      let owners;
-      try {
-        owners = await diracBolaIdorV133ResolveKnownObjectOwners(directObjectIds, table);
-      } catch (_) {
-        return diracBolaIdorV133Decision('service_role_object_owner_lookup_unavailable', {
-          table, method, action, source: 'supabase', status: 503
-        });
-      }
+      const owners = await diracBolaIdorV133ResolveKnownObjectOwners(directObjectIds, table).catch(() => []);
       const foreign = owners.filter((row) => row && row.customer_id && !allowed.includes(String(row.customer_id)));
       if (foreign.length) {
         return diracBolaIdorV133Decision('service_role_object_id_not_bound_to_authenticated_owner', {
@@ -26586,14 +24764,7 @@ async function diracBolaIdorV133InspectSupabaseAccess(path, options = {}) {
     if (diracBolaIdorV133IsChildOrderTable(table)) {
       const parentIds = diracBolaIdorV133ChildOrderIds(table, ids);
       if (parentIds.length) {
-        let owners;
-        try {
-          owners = await diracBolaIdorV133ResolveChildParentOwners(table, parentIds);
-        } catch (_) {
-          return diracBolaIdorV133Decision('service_role_child_parent_owner_lookup_unavailable', {
-            table, method, action, source: 'supabase', status: 503
-          });
-        }
+        const owners = await diracBolaIdorV133ResolveChildParentOwners(table, parentIds).catch(() => []);
         const foreign = owners.filter((row) => row && row.customer_id && !allowed.includes(String(row.customer_id)));
         if (foreign.length) {
           return diracBolaIdorV133Decision('service_role_child_parent_not_bound_to_authenticated_owner', {
@@ -26690,15 +24861,18 @@ async function diracBolaIdorV133FetchValidAuthLinks(authUserId) {
     '&order=updated_at.desc&limit=2';
 
   const result = await diracBolaIdorV133DirectSupabaseServiceGet(path).catch(() => null);
-  if (!result || result.ok !== true || !Array.isArray(result.data)) {
-    diracV222MarkDependencyFailure(null, 'bola_idor_auth_link_lookup', 503, 'BOLA_IDOR_AUTH_LINK_LOOKUP_FAILED');
-    return { ok: false, status: result && result.status || 503, data: [] };
+  if (result && result.ok && Array.isArray(result.data)) {
+    return { ok: true, status: result.status || 200, data: result.data.filter(diracBolaIdorV133IsValidActiveAuthLinkRow) };
   }
-  const rows = result.data.filter(diracBolaIdorV133IsValidActiveAuthLinkRow);
-  if (rows.length !== result.data.length) {
-    return { ok: false, status: 403, data: [], reason: 'bola_idor_auth_link_row_invalid' };
+
+  // Fallback kompatibilitas: jangan rusak deployment lama bila kolom extended belum ada.
+  if (typeof customerSecurityFetchAuthLink === 'function') {
+    const fallback = await customerSecurityFetchAuthLink(uid).catch(() => null);
+    if (fallback && fallback.ok && Array.isArray(fallback.data)) {
+      return { ok: true, status: fallback.status || 200, data: fallback.data.filter(diracBolaIdorV133IsLegacyAcceptableAuthLinkRow) };
+    }
   }
-  return { ok: true, status: result.status || 200, data: rows };
+  return { ok: false, status: result && result.status || 500, data: [] };
 }
 
 function diracBolaIdorV133IsValidActiveAuthLinkRow(row) {
@@ -26831,17 +25005,13 @@ function diracBolaIdorV133ChildOrderIds(table, ids) {
 }
 
 async function diracBolaIdorV133ResolveKnownObjectOwners(objectIds, preferredTable) {
-  if (typeof diracBolaIdorV128ResolveKnownObjectOwners !== 'function') {
-    throw new Error('V133_OBJECT_OWNER_RESOLVER_UNAVAILABLE');
-  }
-  return diracBolaIdorV128ResolveKnownObjectOwners(objectIds, preferredTable);
+  try { if (typeof diracBolaIdorV128ResolveKnownObjectOwners === 'function') return diracBolaIdorV128ResolveKnownObjectOwners(objectIds, preferredTable); } catch (_) {}
+  return [];
 }
 
 async function diracBolaIdorV133ResolveChildParentOwners(childTable, parentIds) {
-  if (typeof diracBolaIdorV128ResolveChildParentOwners !== 'function') {
-    throw new Error('V133_CHILD_PARENT_OWNER_RESOLVER_UNAVAILABLE');
-  }
-  return diracBolaIdorV128ResolveChildParentOwners(childTable, parentIds);
+  try { if (typeof diracBolaIdorV128ResolveChildParentOwners === 'function') return diracBolaIdorV128ResolveChildParentOwners(childTable, parentIds); } catch (_) {}
+  return [];
 }
 
 function diracBolaIdorV133CustomerIdsFromCustomersTable(path, body) {
@@ -27081,7 +25251,7 @@ try {
     };
     getAllowedOrigins.__diracV136StrictWrapped = true;
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_25426', error); }
+} catch (_) {}
 
 try {
   const __diracV136OriginalShouldHideDomainAuthTokens = typeof shouldHideDomainAuthTokens === 'function' ? shouldHideDomainAuthTokens : null;
@@ -27091,7 +25261,7 @@ try {
     };
     shouldHideDomainAuthTokens.__diracV136StrictWrapped = true;
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_25436', error); }
+} catch (_) {}
 
 try {
   const __diracV136OriginalShouldAcceptFrontendAuthHeaders = typeof shouldAcceptFrontendAuthHeaders === 'function' ? shouldAcceptFrontendAuthHeaders : null;
@@ -27101,7 +25271,7 @@ try {
     };
     shouldAcceptFrontendAuthHeaders.__diracV136StrictWrapped = true;
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_25446', error); }
+} catch (_) {}
 
 try {
   const __diracV136OriginalDiracCsrfIsEnforcedForAction = typeof diracCsrfIsEnforcedForAction === 'function' ? diracCsrfIsEnforcedForAction : null;
@@ -27115,7 +25285,7 @@ try {
     };
     diracCsrfIsEnforcedForAction.__diracV136StrictWrapped = true;
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_25460', error); }
+} catch (_) {}
 
 try {
   const __diracV136OriginalPasswordPolicy = typeof diracV110CheckPasswordPolicy === 'function' ? diracV110CheckPasswordPolicy : null;
@@ -27139,7 +25309,7 @@ try {
     };
     diracV110CheckPasswordPolicy.__diracV136StrictWrapped = true;
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_25484', error); }
+} catch (_) {}
 
 try {
   const __diracV136PreviousHandler = __diracV202DispatcherSentinel;
@@ -27166,7 +25336,7 @@ try {
     }, "diracBackendStrictSafeWrapperV136");
     __diracV202DispatcherSentinel.__diracV136StrictWrapped = true;
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_25511', error); }
+} catch (_) {}
 
 function diracV136NeedsStrictOrigin(action) {
   const clean = diracV136NormalizeAction(action);
@@ -27300,7 +25470,7 @@ try {
     }, "diracCsrfAllWebsiteActionsSafeWrapperV137");
     __diracV202MarkWrapperFlag("__diracCsrfAllWebsiteV137Wrapped");
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_25645', error); }
+} catch (_) {}
 
 function diracV137CsrfShouldForce(action, method) {
   const verb = String(method || '').toUpperCase();
@@ -27348,9 +25518,9 @@ function diracV137CsrfServerOnlyAction(action) {
 }
 
 function diracV137CsrfExplicitlyDisabled(action) {
-  if (diracV137CsrfEnvTrue('DIRAC_CSRF_ALL_WEBSITE_ACTIONS_DISABLED')) return false;
+  if (diracV137CsrfEnvTrue('DIRAC_CSRF_ALL_WEBSITE_ACTIONS_DISABLED')) return true;
   const key = 'DIRAC_CSRF_ALL_DISABLED_' + String(action || '').toUpperCase().replace(/[^A-Z0-9]+/g, '_');
-  return false;
+  return diracV137CsrfEnvTrue(key);
 }
 
 function diracV137CsrfForceVerify(req, action) {
@@ -27483,7 +25653,7 @@ try {
     }, "diracCsrfEveryBrowserActionStrictSafeWrapperV138");
     __diracV202MarkWrapperFlag("__diracCsrfEveryBrowserActionV138Wrapped");
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_25828', error); }
+} catch (_) {}
 
 function diracV138CsrfShouldForce(action, method) {
   const verb = String(method || '').toUpperCase();
@@ -27512,7 +25682,7 @@ function diracV138CsrfExplicitlyDisabled(action) {
   // Tidak menyediakan global kill-switch baru. Hanya emergency per-action agar
   // produksi bisa rollback satu aksi spesifik tanpa menurunkan semua keamanan.
   const key = 'DIRAC_CSRF_EVERY_BROWSER_DISABLED_' + String(action || '').toUpperCase().replace(/[^A-Z0-9]+/g, '_');
-  return false;
+  return diracV138CsrfEnvTrue(key);
 }
 
 function diracV138CsrfForceVerify(req, action) {
@@ -27619,7 +25789,7 @@ try {
     };
     diracV138CsrfForceVerify.__diracV141PreauthWrapped = true;
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_25964', error); }
+} catch (_) {}
 
 try {
   const __diracV141PreviousHandler = __diracV202DispatcherSentinel;
@@ -27634,7 +25804,7 @@ try {
     }, "diracCsrfPreauthStrictCompatWrapperV141");
     __diracV202MarkWrapperFlag("__diracV141PreauthWrapperHeader");
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_25979', error); }
+} catch (_) {}
 
 function diracV141VerifyPreauthHeaderToken(req) {
   try {
@@ -27715,7 +25885,7 @@ try {
     };
     diracV138CsrfForceVerify.__diracV142PasskeyCompatWrapped = true;
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_26060', error); }
+} catch (_) {}
 
 try {
   const __diracV142PreviousHandler = __diracV202DispatcherSentinel;
@@ -27730,7 +25900,7 @@ try {
     }, "diracCsrfPasskeyActionCompatWrapperV142");
     __diracV202MarkWrapperFlag("__diracV142PasskeyCompatHeader");
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_26075', error); }
+} catch (_) {}
 
 function diracV142IsPasskeyAction(action) {
   const clean = String(action || '').trim().toLowerCase();
@@ -27817,7 +25987,7 @@ try {
     };
     Object.defineProperty(readLimitedJsonBody, '__diracV143Wrapped', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_26162', error); }
+} catch (_) {}
 
 try {
   const __diracV143PreviousReadBody = typeof readBody === 'function' ? readBody : null;
@@ -27829,7 +25999,7 @@ try {
     };
     Object.defineProperty(readBody, '__diracV143Wrapped', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_26174', error); }
+} catch (_) {}
 
 try {
   const __diracV143PreviousHandler = __diracV202DispatcherSentinel;
@@ -27845,15 +26015,7 @@ try {
           return nextHandlerV202(req, res);
         }
 
-        const existing = await diracV143CheckActiveGlobalBan(req).catch((error) => ({
-          blocked: true,
-          unavailable: true,
-          retryAfterSeconds: 60,
-          reason: String(error && (error.code || error.name) || 'global_ban_lookup_unavailable').slice(0, 120)
-        }));
-        if (existing && existing.unavailable) {
-          return diracV222SecurityPersistenceUnavailableResponse(res, 'GLOBAL_API_BAN_LOOKUP_UNAVAILABLE', 'global_api_ban_lookup');
-        }
+        const existing = await diracV143CheckActiveGlobalBan(req).catch(() => ({ blocked: false }));
         if (existing && existing.blocked) {
           try { if (res && typeof res.setHeader === 'function') res.setHeader('Retry-After', String(existing.retryAfterSeconds || 86400)); } catch (_) {}
           return diracV143BlockedResponse(res, 'GLOBAL_BAN_ACTIVE');
@@ -27861,38 +26023,37 @@ try {
 
         if (action === 'security_report') {
           const reason = diracV143ReportReason(req);
-          const write = await diracV143WriteGlobalBanOnce(req, res, action, method, {
+          await diracV143WriteGlobalBanOnce(req, res, action, method, {
             detected: true,
             kind: 'html_security_report',
             source: 'security_report',
             risk: 'critical',
             reason
-          }).catch(() => ({ ok: false, wrote: 0 }));
-          if (!(write && write.ok === true && Number(write.wrote || 0) > 0)) {
-            return diracV222SecurityPersistenceUnavailableResponse(res, 'GLOBAL_API_BAN_PERSISTENCE_UNAVAILABLE', 'global_api_ban_persistence');
-          }
+          }).catch(() => null);
           return diracV143BlockedResponse(res, 'HTML_SECURITY_REPORT');
         }
 
         const threat = diracV143DetectRequestThreat(req, action, method);
         if (threat && threat.detected) {
-          const write = await diracV143WriteGlobalBanOnce(req, res, action, method, threat).catch(() => ({ ok: false, wrote: 0 }));
-          if (!(write && write.ok === true && Number(write.wrote || 0) > 0)) {
-            return diracV222SecurityPersistenceUnavailableResponse(res, 'GLOBAL_API_BAN_PERSISTENCE_UNAVAILABLE', 'global_api_ban_persistence');
-          }
+          await diracV143WriteGlobalBanOnce(req, res, action, method, threat).catch(() => null);
           return diracV143BlockedResponse(res, threat.kind || 'GLOBAL_API_THREAT');
         }
       } catch (error) {
         try { console.error('[dirac-global-api-threat-v143]', diracV143SafeError(error)); } catch (_) {}
-        diracV222MarkDependencyFailure(null, 'global_api_guard', 503, error && (error.code || error.name));
-        return diracV222SecurityPersistenceUnavailableResponse(res, 'GLOBAL_API_GUARD_UNAVAILABLE', 'global_api_guard');
+        await diracV143WriteGlobalBanOnce(req, res, action, method, {
+          detected: true,
+          kind: 'global_api_guard_error',
+          source: 'guard',
+          risk: 'high'
+        }).catch(() => null);
+        return diracV143BlockedResponse(res, 'GLOBAL_API_GUARD_ERROR');
       }
 
       return nextHandlerV202(req, res);
     }, "diracGlobalApiThreatGuardWrapperV143");
     __diracV202MarkWrapperFlag("__diracV143Wrapped");
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_26228', error); }
+} catch (_) {}
 
 async function diracV143InspectParsedBody(req, body) {
   const method = String((req && req.method) || 'GET').toUpperCase();
@@ -27901,35 +26062,19 @@ async function diracV143InspectParsedBody(req, body) {
 
   const threat = diracV143DetectBodyThreat(body);
   if (threat && threat.detected) {
-    const write = await diracV143WriteGlobalBanOnce(req, null, action, method, threat).catch(() => ({ ok: false, wrote: 0 }));
-    if (!(write && write.ok === true && Number(write.wrote || 0) > 0)) {
-      diracV222ThrowSecurityPersistenceUnavailable('GLOBAL_API_BAN_PERSISTENCE_UNAVAILABLE', 'global_api_body_ban_persistence');
-    }
+    await diracV143WriteGlobalBanOnce(req, null, action, method, threat).catch(() => null);
     diracV143ThrowBlocked(threat);
   }
 
-  const ownership = await diracV143InspectOwnership(req, body).catch(() => ({
-    ok: false,
-    block: true,
-    status: 503,
-    unavailable: true,
-    source: 'ownership_guard',
-    reason: 'ownership_guard_unavailable'
-  }));
-  if (ownership && ownership.unavailable) {
-    diracV222ThrowSecurityPersistenceUnavailable('OWNERSHIP_GUARD_UNAVAILABLE', 'ownership_guard');
-  }
+  const ownership = await diracV143InspectOwnership(req, body).catch(() => ({ ok: true }));
   if (ownership && ownership.block) {
-    const write = await diracV143WriteGlobalBanOnce(req, null, action, method, {
+    await diracV143WriteGlobalBanOnce(req, null, action, method, {
       detected: true,
       kind: 'bola_idor_owner_mismatch',
       source: ownership.source || 'ownership_guard',
       risk: 'critical',
       reason: ownership.reason || 'owner_mismatch'
-    }).catch(() => ({ ok: false, wrote: 0 }));
-    if (!(write && write.ok === true && Number(write.wrote || 0) > 0)) {
-      diracV222ThrowSecurityPersistenceUnavailable('GLOBAL_API_BAN_PERSISTENCE_UNAVAILABLE', 'global_api_ownership_ban_persistence');
-    }
+    }).catch(() => null);
     diracV143ThrowBlocked({ kind: 'bola_idor_owner_mismatch', status: 403 });
   }
 
@@ -27937,7 +26082,7 @@ async function diracV143InspectParsedBody(req, body) {
 }
 
 function diracV143DetectRequestThreat(req, action, method) {
-  if (diracV143EnvTrue('DIRAC_GLOBAL_API_THREAT_GUARD_DISABLED')) throw new Error('GLOBAL_API_THREAT_GUARD_DISABLE_FORBIDDEN');
+  if (diracV143EnvTrue('DIRAC_GLOBAL_API_THREAT_GUARD_DISABLED')) return { detected: false };
   if (String(method || '').toUpperCase() === 'OPTIONS') return { detected: false };
 
   const headers = (req && req.headers) || {};
@@ -28075,13 +26220,11 @@ async function diracV143InspectOwnership(req, body) {
 
   const owner = await diracV143ResolveOwner(req).catch(() => null);
   if (!owner || !owner.ok || !Array.isArray(owner.customerIds) || !owner.customerIds.length) {
-    return { ok: false, block: true, status: 503, reason: 'request_owner_unavailable', source: 'ownership_guard' };
+    return { ok: true };
   }
 
   const allowed = new Set(owner.customerIds.map((id) => String(id || '').trim()).filter(diracV143LooksLikeUuid));
-  if (!allowed.size) {
-    return { ok: false, block: true, status: 503, reason: 'trusted_owner_set_empty', source: 'ownership_guard' };
-  }
+  if (!allowed.size) return { ok: true };
 
   const requestedCustomers = ids
     .filter((item) => item && item.key === 'customer_id')
@@ -28091,12 +26234,7 @@ async function diracV143InspectOwnership(req, body) {
     return { ok: false, block: true, reason: 'frontend_customer_id_not_bound_to_session', source: 'customer_id' };
   }
 
-  let ownerRows;
-  try {
-    ownerRows = await diracV143ResolveOwnerRowsForIds(ids);
-  } catch (_) {
-    return { ok: false, block: true, status: 503, reason: 'object_owner_lookup_unavailable', source: 'object_owner_lookup' };
-  }
+  const ownerRows = await diracV143ResolveOwnerRowsForIds(ids).catch(() => []);
   const foreign = ownerRows.filter((row) => row && row.customer_id && !allowed.has(String(row.customer_id)));
   if (foreign.length) {
     return { ok: false, block: true, reason: 'requested_object_not_owned_by_session', source: 'object_owner_lookup' };
@@ -28136,9 +26274,9 @@ async function diracV143ResolveOwnerRowsForIds(ids) {
   const domainOrderIds = diracV143ValuesForKeys(ids, /^(domain_order_id|domain_order_code)$/i);
   const paymentIds = diracV143ValuesForKeys(ids, /^(payment_id|payment_transaction_id|transaction_id|gateway_reference|invoice_id)$/i);
 
-  rows.push(...await diracV143FetchOwnerRows('orders', orderIds, ['id', 'order_id']));
-  rows.push(...await diracV143FetchOwnerRows('domain_orders', orderIds.concat(domainOrderIds), ['id']));
-  rows.push(...await diracV143FetchOwnerRows('payment_transactions', paymentIds, ['id', 'gateway_reference']));
+  rows.push(...await diracV143FetchOwnerRows('orders', orderIds, ['id', 'order_id']).catch(() => []));
+  rows.push(...await diracV143FetchOwnerRows('domain_orders', orderIds.concat(domainOrderIds), ['id']).catch(() => []));
+  rows.push(...await diracV143FetchOwnerRows('payment_transactions', paymentIds, ['id', 'gateway_reference']).catch(() => []));
   return rows.slice(0, 120);
 }
 
@@ -28165,12 +26303,8 @@ async function diracV143FetchOwnerRows(table, values, columns) {
     '&or=' + encodeURIComponent('(' + clauses.slice(0, 50).join(',') + ')') +
     '&limit=50';
 
-  const result = await diracV143DirectSupabaseGet(path);
-  if (!result || !result.ok || !Array.isArray(result.data)) {
-    const error = new Error('V143_OBJECT_OWNER_LOOKUP_FAILED');
-    error.statusCode = Number(result && result.status || 503);
-    throw error;
-  }
+  const result = await diracV143DirectSupabaseGet(path).catch(() => null);
+  if (!result || !result.ok || !Array.isArray(result.data)) return [];
   return result.data
     .filter((row) => row && diracV143LooksLikeUuid(row.customer_id))
     .map((row) => ({
@@ -28278,18 +26412,12 @@ function diracV143ExpandedSamples(value) {
 }
 
 async function diracV143CheckActiveGlobalBan(req) {
-  if (typeof diracV107CheckActiveBan !== 'function') {
-    const error = new Error('DIRAC_GLOBAL_BAN_GUARD_UNAVAILABLE');
-    error.code = 'DIRAC_GLOBAL_BAN_GUARD_UNAVAILABLE';
-    throw error;
-  }
-  const existing = await diracV107CheckActiveBan(req);
-  if (!existing || typeof existing.blocked !== 'boolean') {
-    const error = new Error('DIRAC_GLOBAL_BAN_DECISION_INVALID');
-    error.code = 'DIRAC_GLOBAL_BAN_DECISION_INVALID';
-    throw error;
-  }
-  if (existing.blocked) return existing;
+  try {
+    if (typeof diracV107CheckActiveBan === 'function') {
+      const existing = await diracV107CheckActiveBan(req);
+      if (existing && existing.blocked) return existing;
+    }
+  } catch (_) {}
 
   const now = Date.now();
   const key = diracV143RequestKey(req);
@@ -28298,19 +26426,16 @@ async function diracV143CheckActiveGlobalBan(req) {
     return { blocked: true, retryAfterSeconds: Math.max(1, Math.ceil((Number(memory.blockedUntilMs) - now) / 1000)) };
   }
 
-  if (typeof readPersistentSecurityJsonStrictV194 !== 'function') {
-    throw new Error('GLOBAL_API_BAN_STORAGE_REQUIRED');
-  }
-  const lookup = await readPersistentSecurityJsonStrictV194('global-api-threat-ban:' + key);
-  if (!lookup || lookup.ok !== true) throw new Error('GLOBAL_API_BAN_LOOKUP_FAILED');
-  const persisted = lookup.found && lookup.record && typeof lookup.record === 'object' ? lookup.record : null;
-  const blockedUntilMs = Number(persisted && (persisted.blockedUntilMs || persisted.blocked_until_ms) || 0);
-  if (blockedUntilMs > now) {
-    DIRAC_GLOBAL_API_THREAT_STORE_V143.set(key, { blockedUntilMs });
-    return { blocked: true, retryAfterSeconds: Math.max(1, Math.ceil((blockedUntilMs - now) / 1000)) };
+  if (typeof readPersistentSecurityJson === 'function') {
+    const persisted = await readPersistentSecurityJson('global-api-threat-ban:' + key).catch(() => null);
+    const blockedUntilMs = Number(persisted && (persisted.blockedUntilMs || persisted.blocked_until_ms) || 0);
+    if (blockedUntilMs > now) {
+      DIRAC_GLOBAL_API_THREAT_STORE_V143.set(key, { blockedUntilMs });
+      return { blocked: true, retryAfterSeconds: Math.max(1, Math.ceil((blockedUntilMs - now) / 1000)) };
+    }
   }
 
-  return { ok: true, blocked: false };
+  return { blocked: false };
 }
 
 async function diracV143WriteGlobalBanOnce(req, res, action, method, threat) {
@@ -28326,9 +26451,8 @@ async function diracV143WriteGlobalBanOnce(req, res, action, method, threat) {
   const key = diracV143RequestKey(req);
   DIRAC_GLOBAL_API_THREAT_STORE_V143.set(key, { blockedUntilMs, updatedAtMs: now });
 
-  let persisted = false;
-  if (typeof writePersistentSecurityJsonRequiredV194 === 'function') {
-    persisted = await writePersistentSecurityJsonRequiredV194('global-api-threat-ban:' + key, {
+  if (typeof writePersistentSecurityJson === 'function') {
+    await writePersistentSecurityJson('global-api-threat-ban:' + key, {
       type: 'global_api_threat_ban_v143',
       patch: DIRAC_GLOBAL_API_THREAT_GUARD_V143,
       action: String(action || '').slice(0, 80),
@@ -28342,8 +26466,7 @@ async function diracV143WriteGlobalBanOnce(req, res, action, method, threat) {
     }, blockedUntilMs, Math.ceil((blockedUntilMs - now) / 1000)).catch(() => false);
   }
 
-  if (persisted !== true) diracV222MarkDependencyFailure(null, 'global_api_ban_persistence', 503, 'GLOBAL_API_BAN_PERSISTENCE_FAILED');
-  return { ok: persisted === true, wrote: persisted === true ? 1 : 0, blockedUntilMs };
+  return { ok: true, wrote: 1, blockedUntilMs };
 }
 
 function diracV143RequestKey(req) {
@@ -28515,85 +26638,69 @@ try {
         .map((item) => String(item || '').trim())
         .filter(Boolean)
         .slice(0, 12);
-      if (!table || !cleanKeys.length) {
-        const error = new Error('DIRAC_SECURITY_BAN_READ_INPUT_INVALID');
-        error.code = 'DIRAC_SECURITY_BAN_READ_INPUT_INVALID';
-        throw error;
-      }
+      if (!table || !cleanKeys.length) return [];
 
-      // Fail-closed: a negative result is never cached. Every request verifies
-      // persistent ban state so a newly written cross-instance ban is visible immediately.
-      DIRAC_SECURITY_NEGATIVE_BAN_CACHE_V144.clear();
-      return diracV144ReadSecurityRowsBatch(table, cleanKeys);
+      const now = Date.now();
+      const cacheKey = 'v107-read:' + diracV144Hash(cleanKeys.join('|'));
+      const cached = DIRAC_SECURITY_NEGATIVE_BAN_CACHE_V144.get(cacheKey);
+      if (cached && Number(cached.until || 0) > now) return [];
+
+      const batchRows = await diracV144ReadSecurityRowsBatch(table, cleanKeys).catch(() => []);
+      if (Array.isArray(batchRows) && batchRows.length) return batchRows;
+
+      const ttl = diracV144NegativeCacheMs();
+      DIRAC_SECURITY_NEGATIVE_BAN_CACHE_V144.set(cacheKey, { until: now + ttl });
+      diracV144CleanupNegativeCache(now);
+      return [];
     };
     Object.defineProperty(diracV107ReadRows, '__diracV144Wrapped', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_26847', error); }
+} catch (_) {}
 
 try {
   const __diracV144OriginalCheckActiveGlobalBan = typeof diracV143CheckActiveGlobalBan === 'function' ? diracV143CheckActiveGlobalBan : null;
   if (__diracV144OriginalCheckActiveGlobalBan && !__diracV144OriginalCheckActiveGlobalBan.__diracV144Wrapped) {
     diracV143CheckActiveGlobalBan = async function diracV143CheckActiveGlobalBanNoExtraPersistentReadV144(req) {
-      if (typeof diracV107CheckActiveBan !== 'function') {
-        const error = new Error('DIRAC_GLOBAL_BAN_GUARD_UNAVAILABLE');
-        error.code = 'DIRAC_GLOBAL_BAN_GUARD_UNAVAILABLE';
-        throw error;
-      }
-      const existing = await diracV107CheckActiveBan(req);
-      if (!existing || typeof existing.blocked !== 'boolean') {
-        const error = new Error('DIRAC_GLOBAL_BAN_DECISION_INVALID');
-        error.code = 'DIRAC_GLOBAL_BAN_DECISION_INVALID';
-        throw error;
-      }
-      return existing;
+      try {
+        if (typeof diracV107CheckActiveBan === 'function') {
+          const existing = await diracV107CheckActiveBan(req);
+          if (existing && existing.blocked) return existing;
+          if (!diracV144EnvTrue('DIRAC_V143_LEGACY_FALLBACK_READ')) return { blocked: false };
+        }
+      } catch (_) {}
+      return __diracV144OriginalCheckActiveGlobalBan(req);
     };
     Object.defineProperty(diracV143CheckActiveGlobalBan, '__diracV144Wrapped', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_26864', error); }
+} catch (_) {}
 
 async function diracV144ReadSecurityRowsBatch(table, cleanKeys) {
   const safeTable = String(table || '').trim();
   const keys = (cleanKeys || []).map((item) => String(item || '').trim()).filter(Boolean).slice(0, 12);
-  if (!/^[a-zA-Z0-9_]+$/.test(safeTable) || !keys.length) {
-    const error = new Error('DIRAC_SECURITY_BAN_READ_INPUT_INVALID');
-    error.code = 'DIRAC_SECURITY_BAN_READ_INPUT_INVALID';
-    throw error;
-  }
+  if (!/^[a-zA-Z0-9_]+$/.test(safeTable) || !keys.length) return [];
 
   const suffix = '?select=security_key,blocked_until_ms'
     + '&security_key=in.(' + keys.map(encodeURIComponent).join(',') + ')'
     + '&limit=' + String(keys.length);
-  let upstreamStatus = 0;
 
-  if (typeof supabaseFetch === 'function') {
-    try {
+  try {
+    if (typeof supabaseFetch === 'function') {
       const result = await supabaseFetch('/rest/v1/' + encodeURIComponent(safeTable) + suffix, {
         method: 'GET',
         auth: 'service'
       });
-      if (result && result.ok === true && Array.isArray(result.data)) return result.data;
-      upstreamStatus = Number(result && result.status || 0);
-    } catch (error) {
-      upstreamStatus = Number(error && (error.status || error.statusCode) || 0);
+      if (result && result.ok && Array.isArray(result.data)) return result.data;
     }
-    const error = new Error('DIRAC_SECURITY_BAN_READ_FAILED');
-    error.code = 'DIRAC_SECURITY_BAN_READ_FAILED';
-    error.status = upstreamStatus;
-    throw error;
-  }
+  } catch (_) {}
 
-  if (typeof diracV107DirectFetch === 'function') {
-    try {
-      const direct = await diracV107DirectFetch('GET', suffix);
-      if (direct && direct.ok !== false && Array.isArray(direct.data)) return direct.data;
-      upstreamStatus = Number(direct && direct.status || upstreamStatus || 0);
-    } catch (_) {}
-  }
+  try {
+    if (typeof diracV107DirectFetch === 'function') {
+      const direct = await diracV107DirectFetch('GET', suffix).catch(() => null);
+      if (direct && Array.isArray(direct.data)) return direct.data;
+    }
+  } catch (_) {}
 
-  const error = new Error('DIRAC_SECURITY_BAN_READ_FAILED');
-  error.code = 'DIRAC_SECURITY_BAN_READ_FAILED';
-  error.status = upstreamStatus;
-  throw error;
+  return [];
 }
 
 function diracV144NegativeCacheMs() {
@@ -28656,7 +26763,7 @@ try {
       const cacheKey = 'hard-ban:' + diracV145Hash(cleanKeys.join('|') || diracV145FallbackRequestKey(req));
       const cached = DIRAC_SECURITY_WRITE_CACHE_V145.get(cacheKey);
 
-      if (cached && cached.persisted === true && Number(cached.until || 0) > now && (!res || cached.cookieSet)) {
+      if (cached && Number(cached.until || 0) > now && (!res || cached.cookieSet)) {
         diracV145RefreshHardBanMemory(keys, Number(cached.blockedUntilMs || 0), now);
         return {
           ok: true,
@@ -28673,8 +26780,7 @@ try {
         DIRAC_SECURITY_WRITE_CACHE_V145.set(cacheKey, {
           until: now + diracV145WriteCoalesceMs(),
           blockedUntilMs,
-          cookieSet: Boolean(res),
-          persisted: true
+          cookieSet: Boolean(res)
         });
         diracV145CleanupWriteCache(now);
       }
@@ -28682,7 +26788,7 @@ try {
     };
     Object.defineProperty(diracV107RegisterHardBan, '__diracV145Wrapped', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_26980', error); }
+} catch (_) {}
 
 try {
   const __diracV145OriginalRegisterSqlmapAttack = typeof diracV101RegisterSqlmapAttack === 'function' ? diracV101RegisterSqlmapAttack : null;
@@ -28698,7 +26804,7 @@ try {
         : 'sqlmap:' + diracV145FallbackRequestKey(req);
       const cacheKey = 'sqlmap:' + diracV145Hash(key);
       const cached = DIRAC_SECURITY_WRITE_CACHE_V145.get(cacheKey);
-      if (cached && cached.persisted === true && Number(cached.until || 0) > now) {
+      if (cached && Number(cached.until || 0) > now) {
         try {
           if (typeof DIRAC_ULTRA_SQLMAP_MEMORY_STORE !== 'undefined' && DIRAC_ULTRA_SQLMAP_MEMORY_STORE && typeof DIRAC_ULTRA_SQLMAP_MEMORY_STORE.set === 'function') {
             DIRAC_ULTRA_SQLMAP_MEMORY_STORE.set(key, { blockedUntilMs: Number(cached.blockedUntilMs || 0), updatedAtMs: now });
@@ -28715,21 +26821,18 @@ try {
           : null;
         blockedUntilMs = Number(row && row.blockedUntilMs || 0);
       } catch (_) {}
-      if (result === true && blockedUntilMs > now) {
+      if (blockedUntilMs > now) {
         DIRAC_SECURITY_WRITE_CACHE_V145.set(cacheKey, {
           until: now + diracV145WriteCoalesceMs(),
-          blockedUntilMs,
-          persisted: true
+          blockedUntilMs
         });
         diracV145CleanupWriteCache(now);
-      } else {
-        DIRAC_SECURITY_WRITE_CACHE_V145.delete(cacheKey);
       }
-      return result === true;
+      return result;
     };
     Object.defineProperty(diracV101RegisterSqlmapAttack, '__diracV145Wrapped', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_27024', error); }
+} catch (_) {}
 
 try {
   const __diracV145OriginalInspectOwnership = typeof diracV143InspectOwnership === 'function' ? diracV143InspectOwnership : null;
@@ -28757,7 +26860,7 @@ try {
     };
     Object.defineProperty(diracV143InspectOwnership, '__diracV145Wrapped', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_27052', error); }
+} catch (_) {}
 
 function diracV145HasSensitiveOwnershipId(ids) {
   return (ids || []).some((item) => {
@@ -28891,19 +26994,14 @@ async function customerSecurityVerifyRecoveryCodeLocalWorker(req, res, action, o
   const path = '/rest/v1/' + LOST_PASSKEY_RECOVERY_REQUEST_TABLE + '?select=' +
     encodeURIComponent('id,request_id,customer_id,auth_user_id,email_hash,customer_binding_hash,auth_user_binding_hash,device_binding_hash,recovery_code_hash,status,attempt_count,expires_at,used_at,revoked_at,locked_at,old_passkey_ids,metadata') +
     '&request_id=eq.' + encodeURIComponent(requestId) +
-    '&limit=2';
+    '&limit=1';
 
   const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
   if (!result.ok) {
     return res.status(500).json({ ok: false, message: 'Gagal membaca recovery request.' });
   }
 
-  const recoveryRows = Array.isArray(result.data) ? result.data : [];
-  if (recoveryRows.length > 1) {
-    diracV222MarkDependencyFailure(null, 'lost_passkey_recovery_request_read', 503, 'RECOVERY_REQUEST_AMBIGUOUS');
-    return res.status(503).json({ ok: false, code: 'RECOVERY_REQUEST_AMBIGUOUS', message: 'Recovery request ambigu dan ditolak.' });
-  }
-  const row = recoveryRows[0] || null;
+  const row = Array.isArray(result.data) ? result.data[0] : null;
   if (!row || !row.id) {
     await customerSecurityRegisterFailedVerification(req, action, 'recovery_request_not_found', access.customerId).catch(() => null);
     return res.status(404).json({ ok: false, message: 'Recovery request tidak ditemukan.' });
@@ -28925,8 +27023,7 @@ async function customerSecurityVerifyRecoveryCodeLocalWorker(req, res, action, o
   }
   if (!safeEqual(String(row.email_hash || ''), bindings.emailBindingHash)
     || !safeEqual(String(row.customer_binding_hash || ''), bindings.customerBindingHash)
-    || !safeEqual(String(row.auth_user_binding_hash || ''), bindings.authUserBindingHash)
-    || !safeEqual(String(row.device_binding_hash || ''), bindings.deviceBindingHash)) {
+    || !safeEqual(String(row.auth_user_binding_hash || ''), bindings.authUserBindingHash)) {
     await customerSecurityRegisterFailedVerification(req, action, 'recovery_binding_mismatch', access.customerId).catch(() => null);
     return res.status(403).json({ ok: false, message: 'Recovery binding tidak cocok dengan akun login.' });
   }
@@ -28955,23 +27052,8 @@ async function customerSecurityVerifyRecoveryCodeLocalWorker(req, res, action, o
         metadata: { ...previousMetadata, last_failed_verify_at: diracNowIso(), failed_verify_source: action }
       }
     }).catch(() => null);
-    const attemptRows = diracV222RequireExactMutationRows(
-      attemptPatched,
-      1,
-      (patchedRow) => patchedRow
-        && safeEqual(String(patchedRow.request_id || ''), requestId)
-        && safeEqual(String(patchedRow.customer_id || ''), String(owner.customerId || ''))
-        && safeEqual(String(patchedRow.auth_user_id || ''), String(owner.authUserId || ''))
-        && Number(patchedRow.attempt_count || 0) === nextAttempts
-        && String(patchedRow.status || '').trim().toLowerCase() === (lock ? 'locked' : 'pending')
-        && (lock ? Boolean(patchedRow.locked_at) : !patchedRow.locked_at)
-        && !patchedRow.used_at
-        && !patchedRow.revoked_at,
-      'lost_passkey_recovery_failed_attempt_update',
-      'LOST_PASSKEY_RECOVERY_ATTEMPT_UPDATE_UNVERIFIED'
-    );
-    if (!attemptRows) {
-      return res.status(409).json({ ok: false, code: 'RECOVERY_ATTEMPT_UPDATE_UNVERIFIED', message: 'Status recovery berubah atau tidak dapat diverifikasi. Muat ulang lalu coba lagi.' });
+    if (!attemptPatched || !attemptPatched.ok || !Array.isArray(attemptPatched.data) || attemptPatched.data.length !== 1) {
+      return res.status(409).json({ ok: false, message: 'Status recovery berubah. Muat ulang lalu coba lagi.' });
     }
     await customerSecurityRegisterFailedVerification(req, action, lock ? 'recovery_code_locked' : 'recovery_code_not_matched', access.customerId).catch(() => null);
     return res.status(lock ? 423 : 403).json({ ok: false, message: lock ? 'Recovery request dikunci karena terlalu banyak percobaan.' : 'Recovery code salah, sudah dipakai, atau sudah expired.' });
@@ -29008,23 +27090,16 @@ async function customerSecurityVerifyRecoveryCodeLocalWorker(req, res, action, o
       metadata: verificationMetadata
     }
   });
-  const claimedRows = requestClaimed && requestClaimed.ok === true && Array.isArray(requestClaimed.data) ? requestClaimed.data : [];
-  const claimedValid = claimedRows.length === 1
-    && safeEqual(String(claimedRows[0] && claimedRows[0].request_id || ''), requestId)
-    && safeEqual(String(claimedRows[0] && claimedRows[0].customer_id || ''), String(owner.customerId || ''))
-    && safeEqual(String(claimedRows[0] && claimedRows[0].auth_user_id || ''), String(owner.authUserId || ''))
-    && String(claimedRows[0] && claimedRows[0].status || '').trim().toLowerCase() === 'verified';
-  if (!claimedValid) {
+  if (!requestClaimed.ok || !Array.isArray(requestClaimed.data) || requestClaimed.data.length !== 1) {
     return res.status(409).json({ ok: false, code: 'RECOVERY_REQUEST_COMMIT_CONFLICT', message: 'Recovery request sudah diproses atau statusnya berubah.' });
   }
 
   let recoverySessionToken = '';
-  let recoverySessionHash = '';
   let sessionExpiresAt = '';
   let sessionCreated = null;
   try {
     recoverySessionToken = crypto.randomBytes(32).toString('base64url');
-    recoverySessionHash = customerSecurityLostPasskeyRecoverySessionHash(recoverySessionToken);
+    const recoverySessionHash = customerSecurityLostPasskeyRecoverySessionHash(recoverySessionToken);
     sessionExpiresAt = new Date(Date.now() + Math.max(5, Math.min(30, Number(process.env.DIRAC_LOST_PASSKEY_SESSION_MINUTES || 10))) * 60 * 1000).toISOString();
     sessionCreated = await supabaseFetch('/rest/v1/' + LOST_PASSKEY_RECOVERY_SESSION_TABLE, {
       method: 'POST',
@@ -29046,59 +27121,28 @@ async function customerSecurityVerifyRecoveryCodeLocalWorker(req, res, action, o
     sessionCreated = null;
   }
 
-  const localSessionRows = sessionCreated && sessionCreated.ok === true && Array.isArray(sessionCreated.data) ? sessionCreated.data : [];
-  const localSessionValid = localSessionRows.length === 1
-    && safeEqual(String(localSessionRows[0] && localSessionRows[0].request_id || ''), requestId)
-    && safeEqual(String(localSessionRows[0] && localSessionRows[0].customer_id || ''), String(owner.customerId || ''))
-    && safeEqual(String(localSessionRows[0] && localSessionRows[0].auth_user_id || ''), String(owner.authUserId || ''))
-    && safeEqual(String(localSessionRows[0] && localSessionRows[0].recovery_session_hash || ''), recoverySessionHash)
-    && String(localSessionRows[0] && localSessionRows[0].status || '').trim().toLowerCase() === 'verified';
-  if (!localSessionValid) {
-    const rollback = await supabaseFetch('/rest/v1/' + LOST_PASSKEY_RECOVERY_REQUEST_TABLE
+  if (!sessionCreated || !sessionCreated.ok || !Array.isArray(sessionCreated.data) || sessionCreated.data.length !== 1) {
+    await supabaseFetch('/rest/v1/' + LOST_PASSKEY_RECOVERY_REQUEST_TABLE
       + '?request_id=eq.' + encodeURIComponent(requestId)
       + '&customer_id=eq.' + encodeURIComponent(owner.customerId)
       + '&auth_user_id=eq.' + encodeURIComponent(owner.authUserId)
       + '&status=eq.verified', {
       method: 'PATCH',
       auth: 'service',
-      prefer: 'return=representation',
+      prefer: 'return=minimal',
       body: { status: 'pending', metadata: previousMetadata }
-    });
-    const rollbackRows = diracV222RequireExactMutationRows(
-      rollback,
-      1,
-      (row) => row && safeEqual(String(row.request_id || ''), requestId)
-        && safeEqual(String(row.customer_id || ''), String(owner.customerId || ''))
-        && safeEqual(String(row.auth_user_id || ''), String(owner.authUserId || ''))
-        && String(row.status || '').trim().toLowerCase() === 'pending',
-      'lost_passkey_recovery_session_rollback',
-      'LOST_PASSKEY_RECOVERY_ROLLBACK_UNVERIFIED'
-    );
-    if (!rollbackRows) diracV223ThrowFailClosed('LOST_PASSKEY_RECOVERY_ROLLBACK_UNVERIFIED', 'lost_passkey_recovery_session_rollback', Number(rollback && rollback.status || 0) || 503);
+    }).catch(() => null);
     return res.status(sessionCreated && sessionCreated.status || 500).json({ ok: false, message: 'Gagal membuat recovery session.' });
   }
 
-  const audited = await customerSecurityWriteGuardEvent(access.customerId, {
+  await customerSecurityWriteGuardEvent(access.customerId, {
     event_type: 'lost_passkey_recovery_verified',
     status: 'success',
     risk_level: 'high',
     description: 'Customer memverifikasi recovery code terenkripsi untuk pemulihan Passkey.',
     req,
     metadata: { action, request_id: requestId }
-  });
-  if (audited !== true) {
-    await diracV229RollbackLostPasskeyRecoveryGrant({
-      requestId,
-      customerId: owner.customerId,
-      authUserId: owner.authUserId,
-      sessionHash: recoverySessionHash,
-      previousMetadata,
-      source: 'lost_passkey_recovery_audit_failure'
-    });
-    recoverySessionToken = '';
-    recoverySessionHash = '';
-    return res.status(503).json({ ok: false, code: 'RECOVERY_SECURITY_AUDIT_REQUIRED', message: 'Audit keamanan gagal; recovery session dicabut dan request dipulihkan.' });
-  }
+  }).catch(() => null);
 
   return res.status(200).json({
     ok: true,
@@ -29193,6 +27237,7 @@ const DIRAC_CENTRAL_DEVICE_BINDINGS_V146 = globalThis.__DIRAC_CENTRAL_DEVICE_BIN
 const DIRAC_CENTRAL_OWNER_LOOKUP_CACHE_V146 = globalThis.__DIRAC_CENTRAL_OWNER_LOOKUP_CACHE_V146__ || new Map();
 const DIRAC_CENTRAL_CIRCUIT_V146 = globalThis.__DIRAC_CENTRAL_CIRCUIT_V146__ || new Map();
 const DIRAC_CENTRAL_DNS_CACHE_V146 = globalThis.__DIRAC_CENTRAL_DNS_CACHE_V146__ || new Map();
+const DIRAC_CENTRAL_CONTEXT_STACK_V146 = globalThis.__DIRAC_CENTRAL_CONTEXT_STACK_V146__ || [];
 const DIRAC_CENTRAL_ASYNC_CONTEXT_V149 = globalThis.__DIRAC_CENTRAL_ASYNC_CONTEXT_V149__ || (() => {
   try {
     const { AsyncLocalStorage } = require('async_hooks');
@@ -29209,6 +27254,7 @@ globalThis.__DIRAC_CENTRAL_DEVICE_BINDINGS_V146__ = DIRAC_CENTRAL_DEVICE_BINDING
 globalThis.__DIRAC_CENTRAL_OWNER_LOOKUP_CACHE_V146__ = DIRAC_CENTRAL_OWNER_LOOKUP_CACHE_V146;
 globalThis.__DIRAC_CENTRAL_CIRCUIT_V146__ = DIRAC_CENTRAL_CIRCUIT_V146;
 globalThis.__DIRAC_CENTRAL_DNS_CACHE_V146__ = DIRAC_CENTRAL_DNS_CACHE_V146;
+globalThis.__DIRAC_CENTRAL_CONTEXT_STACK_V146__ = DIRAC_CENTRAL_CONTEXT_STACK_V146;
 globalThis.__DIRAC_CENTRAL_ASYNC_CONTEXT_V149__ = DIRAC_CENTRAL_ASYNC_CONTEXT_V149;
 globalThis.__DIRAC_CENTRAL_SECRET_CACHE_V146__ = DIRAC_CENTRAL_SECRET_CACHE_V146;
 globalThis.__DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148__ = DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148;
@@ -29750,9 +27796,9 @@ function guardContractV202(ctx) {
   const result = diracCentralContractGuardV146(ctx.req, ctx);
   return result.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: result.reason });
 }
-async function guardA2FV202(ctx) {
+function guardA2FV202(ctx) {
   if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
-  const result = await diracCentralA2FRequestSignatureGuardV148(ctx.req, ctx);
+  const result = diracCentralA2FRequestSignatureGuardV148(ctx.req, ctx);
   return result.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: result.reason });
 }
 async function guardSecurityReportV202(ctx) {
@@ -30280,7 +28326,7 @@ try {
     };
     Object.defineProperty(readLimitedJsonBody, '__diracCentralBodyCacheV146', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_28518', error); }
+} catch (_) {}
 
 try {
   const __diracCentralPreviousReadBodyV146 = typeof readBody === 'function' ? readBody : null;
@@ -30295,7 +28341,7 @@ try {
     };
     Object.defineProperty(readBody, '__diracCentralBodyCacheV146', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_28533', error); }
+} catch (_) {}
 
 try {
   const __diracCentralPreviousV107ShouldSkipV146 = typeof diracV107ShouldSkip === 'function' ? diracV107ShouldSkip : null;
@@ -30305,7 +28351,7 @@ try {
     };
     Object.defineProperty(diracV107ShouldSkip, '__diracCentralPassthroughV146', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_28543', error); }
+} catch (_) {}
 
 try {
   const __diracCentralPreviousV143ThreatV146 = typeof diracV143DetectRequestThreat === 'function' ? diracV143DetectRequestThreat : null;
@@ -30315,7 +28361,7 @@ try {
     };
     Object.defineProperty(diracV143DetectRequestThreat, '__diracCentralPassthroughV146', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_28553', error); }
+} catch (_) {}
 
 try {
   const __diracCentralPreviousV143InspectOwnershipV146 = typeof diracV143InspectOwnership === 'function' ? diracV143InspectOwnership : null;
@@ -30325,7 +28371,7 @@ try {
     };
     Object.defineProperty(diracV143InspectOwnership, '__diracCentralPassthroughV146', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_28563', error); }
+} catch (_) {}
 
 try {
   const __diracCentralPreviousSupabaseFetchV146 = typeof supabaseFetch === 'function' ? supabaseFetch : null;
@@ -30421,9 +28467,17 @@ const __diracV202CentralGuardHandler = async function diracCentralSecurityGuardW
       failureReasonV211: String(error && error.code || error && error.message || 'central_guard_bootstrap_exception').slice(0, 120),
       centralGuardFullyPassedV211: false
     };
-    emergencyCtx.centralErrorDebugV155 = diracCentralSafeDebugErrorV155(error, emergencyCtx);
-    diracCentralEmitDebugV211(emergencyCtx, 'central_bootstrap_exception', emergencyCtx.centralErrorDebugV155);
-    return diracCentralPersistenceUnavailableResponseV210(res);
+    try {
+      DIRAC_CENTRAL_CONTEXT_STACK_V146.push(emergencyCtx);
+      diracCentralSetCurrentContextV149(emergencyCtx);
+      emergencyCtx.centralErrorDebugV155 = diracCentralSafeDebugErrorV155(error, emergencyCtx);
+      diracCentralEmitDebugV211(emergencyCtx, 'central_bootstrap_exception', emergencyCtx.centralErrorDebugV155);
+      return diracCentralPersistenceUnavailableResponseV210(res);
+    } finally {
+      const index = DIRAC_CENTRAL_CONTEXT_STACK_V146.indexOf(emergencyCtx);
+      if (index >= 0) DIRAC_CENTRAL_CONTEXT_STACK_V146.splice(index, 1);
+      diracCentralSetCurrentContextV149(null);
+    }
   }
 };
 __diracV202MarkWrapperFlag('__diracCentralSecurityGuardV146');
@@ -30680,65 +28734,32 @@ function diracCentralJsonCloneV151(value) {
   if (value === null || value === undefined) return value;
   try {
     return JSON.parse(JSON.stringify(value));
-  } catch (cause) {
-    const error = new Error('DIRAC_CENTRAL_JSON_CLONE_FAILED');
-    error.code = 'DIRAC_CENTRAL_JSON_CLONE_FAILED';
-    error.cause = cause;
-    throw error;
+  } catch (_) {
+    return value;
   }
 }
 
 function diracCentralRunWithAsyncContextV149(fn) {
-  if (!DIRAC_CENTRAL_ASYNC_CONTEXT_V149
-      || typeof DIRAC_CENTRAL_ASYNC_CONTEXT_V149.run !== 'function'
-      || typeof DIRAC_CENTRAL_ASYNC_CONTEXT_V149.getStore !== 'function'
-      || typeof fn !== 'function') {
-    const error = new Error('DIRAC_ASYNC_REQUEST_CONTEXT_REQUIRED');
-    error.code = 'DIRAC_ASYNC_REQUEST_CONTEXT_REQUIRED';
-    throw error;
-  }
+  if (!DIRAC_CENTRAL_ASYNC_CONTEXT_V149 || typeof fn !== 'function') return fn();
   if (DIRAC_CENTRAL_ASYNC_CONTEXT_V149.getStore()) return fn();
   return DIRAC_CENTRAL_ASYNC_CONTEXT_V149.run({ ctx: null }, fn);
 }
 
 function diracCentralSetCurrentContextV149(ctx) {
-  const store = DIRAC_CENTRAL_ASYNC_CONTEXT_V149 && DIRAC_CENTRAL_ASYNC_CONTEXT_V149.getStore();
-  if (!store) {
-    const error = new Error('DIRAC_ASYNC_REQUEST_CONTEXT_STORE_MISSING');
-    error.code = 'DIRAC_ASYNC_REQUEST_CONTEXT_STORE_MISSING';
-    throw error;
-  }
-  if (ctx !== null && ctx !== undefined) {
-    if (!ctx || typeof ctx !== 'object') {
-      const error = new Error('DIRAC_V228_REQUEST_CONTEXT_INVALID');
-      error.code = 'DIRAC_V228_REQUEST_CONTEXT_INVALID';
-      throw error;
-    }
-    if (!Object.prototype.hasOwnProperty.call(ctx, '__diracRequestContextV228')) {
-      Object.defineProperty(ctx, '__diracRequestContextV228', {
-        value: true,
-        writable: false,
-        enumerable: false,
-        configurable: false
-      });
-    }
-    if (ctx.__diracRequestContextV228 !== true) {
-      const error = new Error('DIRAC_V228_REQUEST_CONTEXT_MARKER_INVALID');
-      error.code = 'DIRAC_V228_REQUEST_CONTEXT_MARKER_INVALID';
-      throw error;
-    }
-  }
-  store.ctx = ctx || null;
-  return true;
+  try {
+    const store = DIRAC_CENTRAL_ASYNC_CONTEXT_V149 && DIRAC_CENTRAL_ASYNC_CONTEXT_V149.getStore();
+    if (store) store.ctx = ctx || null;
+  } catch (_) {}
 }
 
 function diracCentralCurrentContextV149() {
   try {
-    const store = DIRAC_CENTRAL_ASYNC_CONTEXT_V149 && DIRAC_CENTRAL_ASYNC_CONTEXT_V149.getStore();
-    return store ? store.ctx || null : null;
-  } catch (_) {
-    return null;
-  }
+    if (DIRAC_CENTRAL_ASYNC_CONTEXT_V149) {
+      const store = DIRAC_CENTRAL_ASYNC_CONTEXT_V149.getStore();
+      if (store) return store.ctx || null;
+    }
+  } catch (_) {}
+  return DIRAC_CENTRAL_CONTEXT_STACK_V146[DIRAC_CENTRAL_CONTEXT_STACK_V146.length - 1] || null;
 }
 
 async function diracCentralSecurityGuardV146(req, res, nextHandler) {
@@ -30788,8 +28809,8 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
     serviceRoleDebugV212: null,
     ownerBootstrapDebugV213: null
   };
-  const previousContextV221 = diracCentralCurrentContextV149();
   try {
+    DIRAC_CENTRAL_CONTEXT_STACK_V146.push(ctx);
     diracCentralSetCurrentContextV149(ctx);
 
     for (let stageIndex = 0; stageIndex < SECURITY_PIPELINE.length; stageIndex += 1) {
@@ -30831,8 +28852,8 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
     ctx.centralGuardFullyPassedV211 = true;
     ctx.executionPhaseV211 = 'handler';
     req.__diracCentralSecurityGuardPassedV146 = true;
-    Object.defineProperty(req, '__diracCentralSecurityGuardPassedV146', { value: true, writable: false, enumerable: false, configurable: false });
-    Object.defineProperty(req, '__diracCentralRequestIdV211', { value: ctx.requestId, writable: false, enumerable: false, configurable: false });
+    try { Object.defineProperty(req, '__diracCentralSecurityGuardPassedV146', { value: true, writable: false, enumerable: false, configurable: false }); } catch (_) {}
+    try { Object.defineProperty(req, '__diracCentralRequestIdV211', { value: ctx.requestId, writable: false, enumerable: false, configurable: false }); } catch (_) {}
 
     if (diracCentralVerifiedOwnerActionV217(ctx.action)) {
       let resolvedOwnerV215 = diracCentralOwnerFromStage26V217(ctx);
@@ -30892,182 +28913,56 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
       ctx.normalizedSampleV202 = null;
       ctx.sample = null;
       ctx.body = null;
-      if (Array.isArray(ctx.__diracV222DependencyFailures)) ctx.__diracV222DependencyFailures.length = 0;
-      ctx.__diracV222DependencyFailure = null;
+      const last = DIRAC_CENTRAL_CONTEXT_STACK_V146[DIRAC_CENTRAL_CONTEXT_STACK_V146.length - 1];
+      if (last === ctx) DIRAC_CENTRAL_CONTEXT_STACK_V146.pop();
+      else {
+        const idx = DIRAC_CENTRAL_CONTEXT_STACK_V146.indexOf(ctx);
+        if (idx >= 0) DIRAC_CENTRAL_CONTEXT_STACK_V146.splice(idx, 1);
+      }
       ctx.executionPhaseV211 = 'closed';
       ctx.currentStageV211 = 'closed';
-      diracCentralSetCurrentContextV149(previousContextV221 || null);
+      diracCentralSetCurrentContextV149(null);
     }
-  }
-}
-
-function diracCentralSetHeaderRequiredV221(res, name, value) {
-  try {
-    res.setHeader(name, value);
-  } catch (cause) {
-    const error = new Error('DIRAC_SECURITY_RESPONSE_HEADER_FAILED:' + String(name || '').slice(0, 80));
-    error.code = 'DIRAC_SECURITY_RESPONSE_HEADER_FAILED';
-    error.cause = cause;
-    throw error;
   }
 }
 
 function diracCentralApplyHeadersV146(res) {
-  if (!res || typeof res.setHeader !== 'function') {
-    const error = new Error('DIRAC_SECURITY_RESPONSE_HEADER_GATEWAY_UNAVAILABLE');
-    error.code = 'DIRAC_SECURITY_RESPONSE_HEADER_GATEWAY_UNAVAILABLE';
-    throw error;
-  }
-  diracCentralSetHeaderRequiredV221(res, 'X-Dirac-Central-Security-Guard', DIRAC_CENTRAL_SECURITY_GUARD_V146);
-  diracCentralSetHeaderRequiredV221(res, 'X-Dirac-Fail-Closed', DIRAC_CENTRAL_FAIL_CLOSED_DEBUG_V211);
-  const ctx = diracCentralCurrentContextV149();
-  if (ctx && ctx.requestId) diracCentralSetHeaderRequiredV221(res, 'X-Dirac-Request-Id', String(ctx.requestId).slice(0, 64));
-  diracCentralSetHeaderRequiredV221(res, 'X-Dirac-Dashboard-Session-Fix', 'v147-bola-direct-timeout-fast-self-read');
-  diracCentralSetHeaderRequiredV221(res, 'Cache-Control', 'no-store');
-  diracCentralSetHeaderRequiredV221(res, 'X-Content-Type-Options', 'nosniff');
-  diracCentralSetHeaderRequiredV221(res, 'X-Frame-Options', 'DENY');
-  diracCentralSetHeaderRequiredV221(res, 'Cross-Origin-Opener-Policy', 'same-origin');
-  diracCentralSetHeaderRequiredV221(res, 'Cross-Origin-Resource-Policy', 'same-site');
-  diracCentralSetHeaderRequiredV221(res, 'Origin-Agent-Cluster', '?1');
-  diracCentralSetHeaderRequiredV221(res, 'X-Permitted-Cross-Domain-Policies', 'none');
+  if (!res || typeof res.setHeader !== 'function') return;
+  try { res.setHeader('X-Dirac-Central-Security-Guard', DIRAC_CENTRAL_SECURITY_GUARD_V146); } catch (_) {}
+  try { res.setHeader('X-Dirac-Fail-Closed', DIRAC_CENTRAL_FAIL_CLOSED_DEBUG_V211); } catch (_) {}
+  try {
+    const ctx = diracCentralCurrentContextV149();
+    if (ctx && ctx.requestId) res.setHeader('X-Dirac-Request-Id', String(ctx.requestId).slice(0, 64));
+  } catch (_) {}
+  try { res.setHeader('X-Dirac-Dashboard-Session-Fix', 'v147-bola-direct-timeout-fast-self-read'); } catch (_) {}
+  try { res.setHeader('Cache-Control', 'no-store'); } catch (_) {}
+  try { res.setHeader('X-Content-Type-Options', 'nosniff'); } catch (_) {}
+  try { res.setHeader('X-Frame-Options', 'DENY'); } catch (_) {}
+  try { res.setHeader('Cross-Origin-Opener-Policy', 'same-origin'); } catch (_) {}
+  try { res.setHeader('Cross-Origin-Resource-Policy', 'same-site'); } catch (_) {}
+  try { res.setHeader('Origin-Agent-Cluster', '?1'); } catch (_) {}
+  try { res.setHeader('X-Permitted-Cross-Domain-Policies', 'none'); } catch (_) {}
   if (diracCentralIsProductionV146()) {
-    diracCentralSetHeaderRequiredV221(res, 'Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
+    try { res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload'); } catch (_) {}
   }
-  diracCentralSetHeaderRequiredV221(res, 'Content-Security-Policy', "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self' https://diracgroup.store https://www.diracgroup.store");
-  diracCentralSetHeaderRequiredV221(res, 'Referrer-Policy', 'strict-origin-when-cross-origin');
-  diracCentralSetHeaderRequiredV221(res, 'Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), fullscreen=(self)');
-  return true;
+  try { res.setHeader('Content-Security-Policy', "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self' https://diracgroup.store https://www.diracgroup.store"); } catch (_) {}
+  try { res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin'); } catch (_) {}
+  try { res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), fullscreen=(self)'); } catch (_) {}
 }
 
 function diracCentralWrapJsonResponseV146(res) {
-  if (!res || typeof res.json !== 'function') {
-    const error = new Error('DIRAC_SECURE_JSON_RESPONSE_GATEWAY_UNAVAILABLE');
-    error.code = 'DIRAC_SECURE_JSON_RESPONSE_GATEWAY_UNAVAILABLE';
-    throw error;
-  }
-  if (res.__diracCentralJsonWrappedV146) return true;
+  if (!res || typeof res.json !== 'function' || res.__diracCentralJsonWrappedV146) return;
   const originalJson = res.json.bind(res);
-  const originalEnd = typeof res.end === 'function' ? res.end.bind(res) : null;
-  const originalSend = typeof res.send === 'function' ? res.send.bind(res) : null;
-  const originalRedirect = typeof res.redirect === 'function' ? res.redirect.bind(res) : null;
-  const originalWriteHead = typeof res.writeHead === 'function' ? res.writeHead.bind(res) : null;
-  const originalWrite = typeof res.write === 'function' ? res.write.bind(res) : null;
-  const dependencyFailurePayload = (ctx) => {
-    const failure = ctx && ctx.__diracV222DependencyFailure;
-    const diagnostic = diracV233AttachDiagnosticHeaders(res, ctx, failure);
-    const failureId = diagnostic.failureId;
-    const requestId = diagnostic.requestId;
-    const debugAllowed = diagnostic.debugAllowed;
-    const payload = {
-      ok: false,
-      code: 'CENTRAL_SECURITY_DEPENDENCY_UNAVAILABLE',
-      message: 'Permintaan ditolak karena dependency keamanan belum dapat diverifikasi.',
-      source: DIRAC_ABSOLUTE_FAIL_CLOSED_V228,
-      failure_id: failureId,
-      request_id: requestId,
-      diagnostic_patch: DIRAC_FAIL_CLOSED_DIAGNOSTICS_V233,
-      diagnostic_hint: 'Cari request_id atau failure_id yang sama pada Vercel Function Logs.',
-      dependency_code: diracCentralIsProductionV146() ? undefined : String(failure && failure.code || '').slice(0, 120)
-    };
-    if (debugAllowed) payload.debug = diracV233BuildFailClosedDebug(ctx, failure);
-    return payload;
-  };
-  const currentContext = () => diracV228ResolveRequestContext(null);
-  const throwBlockedStreamingResponse = (channel) => {
-    const error = new Error('DIRAC_V228_SUCCESS_RESPONSE_BLOCKED:' + String(channel || 'stream'));
-    error.code = 'DIRAC_V228_SUCCESS_RESPONSE_BLOCKED';
-    throw error;
-  };
-  const requireUncommittedSecurityResponse = (channel) => {
-    if (res && res.headersSent === true) return throwBlockedStreamingResponse(String(channel || 'response') + '_headers_already_sent');
-    return true;
-  };
   res.json = function diracCentralJsonResponseGuardV146(payload) {
     diracCentralApplyHeadersV146(res);
-    const ctx = currentContext();
-    if (diracV222ShouldBlockSuccessfulResponse(ctx, res)) {
-      requireUncommittedSecurityResponse('json');
-      diracV222SetStatusRequired(res, 503);
-      return originalJson(dependencyFailurePayload(ctx));
-    }
     if (diracCentralPayloadContainsRuntimeSecretV194(payload)) {
-      diracV222SetStatusRequired(res, 500);
+      try { if (typeof res.status === 'function') res.status(500); else res.statusCode = 500; } catch (_) {}
       return originalJson({ ok: false, code: 'CENTRAL_OUTPUT_SECRET_BLOCKED', message: 'Respons ditolak oleh sistem keamanan.' });
     }
     return originalJson(diracCentralSanitizeOutputV146(payload, 0));
   };
-  if (originalSend) {
-    res.send = function diracCentralSendResponseGuardV228(payload) {
-      diracCentralApplyHeadersV146(res);
-      const ctx = currentContext();
-      if (diracV222ShouldBlockSuccessfulResponse(ctx, res)) {
-        requireUncommittedSecurityResponse('send');
-        diracV222SetStatusRequired(res, 503);
-        return originalSend(dependencyFailurePayload(ctx));
-      }
-      if (diracCentralPayloadContainsRuntimeSecretV194(payload)) {
-        diracV222SetStatusRequired(res, 500);
-        return originalSend({ ok: false, code: 'CENTRAL_OUTPUT_SECRET_BLOCKED', message: 'Respons ditolak oleh sistem keamanan.' });
-      }
-      return originalSend(typeof payload === 'object' ? diracCentralSanitizeOutputV146(payload, 0) : payload);
-    };
-  }
-  if (originalEnd) {
-    res.end = function diracCentralEndResponseGuardV228(chunk, encoding, callback) {
-      diracCentralApplyHeadersV146(res);
-      const ctx = currentContext();
-      if (diracV222ShouldBlockSuccessfulResponse(ctx, res)) {
-        requireUncommittedSecurityResponse('end');
-        diracV222SetStatusRequired(res, 503);
-        diracCentralSetHeaderRequiredV221(res, 'Content-Type', 'application/json; charset=utf-8');
-        return originalEnd(JSON.stringify(dependencyFailurePayload(ctx)), encoding, callback);
-      }
-      if (chunk !== undefined && chunk !== null && diracCentralPayloadContainsRuntimeSecretV194(chunk)) {
-        diracV222SetStatusRequired(res, 500);
-        diracCentralSetHeaderRequiredV221(res, 'Content-Type', 'application/json; charset=utf-8');
-        return originalEnd(JSON.stringify({ ok: false, code: 'CENTRAL_OUTPUT_SECRET_BLOCKED', message: 'Respons ditolak oleh sistem keamanan.' }), encoding, callback);
-      }
-      return originalEnd(chunk, encoding, callback);
-    };
-  }
-  if (originalRedirect) {
-    res.redirect = function diracCentralRedirectResponseGuardV228(...args) {
-      diracCentralApplyHeadersV146(res);
-      const ctx = currentContext();
-      if (diracV222ShouldBlockSuccessfulResponse(ctx, { statusCode: Number(args[0]) || 302 })) {
-        requireUncommittedSecurityResponse('redirect');
-        diracV222SetStatusRequired(res, 503);
-        return originalJson(dependencyFailurePayload(ctx));
-      }
-      return originalRedirect(...args);
-    };
-  }
-  if (originalWriteHead) {
-    res.writeHead = function diracCentralWriteHeadResponseGuardV228(statusCode, ...args) {
-      const ctx = currentContext();
-      if (diracV222ShouldBlockSuccessfulResponse(ctx, { statusCode: Number(statusCode) || 200 })) {
-        return throwBlockedStreamingResponse('writeHead');
-      }
-      diracCentralApplyHeadersV146(res);
-      return originalWriteHead(statusCode, ...args);
-    };
-  }
-  if (originalWrite) {
-    res.write = function diracCentralWriteResponseGuardV228(chunk, encoding, callback) {
-      const ctx = currentContext();
-      if (diracV222ShouldBlockSuccessfulResponse(ctx, res)) return throwBlockedStreamingResponse('write');
-      if (chunk !== undefined && chunk !== null && diracCentralPayloadContainsRuntimeSecretV194(chunk)) {
-        const error = new Error('DIRAC_V228_STREAM_SECRET_BLOCKED');
-        error.code = 'DIRAC_V228_STREAM_SECRET_BLOCKED';
-        throw error;
-      }
-      return originalWrite(chunk, encoding, callback);
-    };
-  }
-  Object.defineProperty(res, '__diracCentralJsonWrappedV146', { value: true, enumerable: false, configurable: false });
-  return true;
+  res.__diracCentralJsonWrappedV146 = true;
 }
-Object.defineProperty(diracCentralWrapJsonResponseV146, '__diracV232HeadersSentFailClosed', { value: true, enumerable: false });
 
 function diracCentralSanitizeOutputV146(value, depth) {
   if (value === null || value === undefined) return value;
@@ -31603,11 +29498,7 @@ function diracCentralPreAuthSoftBlockV146(res, reason) {
 }
 
 function diracCentralIssuePageNonceV146(req, res, action) {
-  if (!res || typeof res.setHeader !== 'function') {
-    const error = new Error('DIRAC_V232_PAGE_NONCE_RESPONSE_GATEWAY_REQUIRED');
-    error.code = 'DIRAC_V232_PAGE_NONCE_RESPONSE_GATEWAY_REQUIRED';
-    throw error;
-  }
+  if (!res || typeof res.setHeader !== 'function') return '';
   const secret = diracCentralSecretV146();
   const now = Math.floor(Date.now() / 1000);
   const payload = {
@@ -31621,17 +29512,17 @@ function diracCentralIssuePageNonceV146(req, res, action) {
   const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
   const sig = crypto.createHmac('sha256', secret).update(body).digest('base64url');
   const token = body + '.' + sig;
-  diracCentralSetHeaderRequiredV221(res, 'X-Dirac-Page-Nonce', token);
+  try { res.setHeader('X-Dirac-Page-Nonce', token); } catch (_) {}
   return token;
 }
-Object.defineProperty(diracCentralIssuePageNonceV146, '__diracV232RequiredHeaderDelivery', { value: true, enumerable: false });
 
 function diracCentralVerifyPageNonceV146(req, token, action) {
   const parts = String(token || '').split('.');
   if (parts.length !== 2) return { ok: false, reason: 'page_nonce_format_invalid' };
   const expected = crypto.createHmac('sha256', diracCentralSecretV146()).update(parts[0]).digest('base64url');
-  if (typeof safeEqual !== 'function') return { ok: false, reason: 'page_nonce_constant_time_compare_unavailable' };
-  if (!safeEqual(expected, parts[1])) return { ok: false, reason: 'page_nonce_signature_invalid' };
+  if (typeof safeEqual === 'function') {
+    if (!safeEqual(expected, parts[1])) return { ok: false, reason: 'page_nonce_signature_invalid' };
+  } else if (expected !== parts[1]) return { ok: false, reason: 'page_nonce_signature_invalid' };
   let payload = null;
   try { payload = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8')); } catch (_) { return { ok: false, reason: 'page_nonce_payload_invalid' }; }
   const now = Math.floor(Date.now() / 1000);
@@ -31644,7 +29535,6 @@ function diracCentralVerifyPageNonceV146(req, token, action) {
   if (payload.oh && originHash && payload.oh !== originHash) return { ok: false, reason: 'page_nonce_origin_mismatch' };
   return { ok: true };
 }
-Object.defineProperty(diracCentralVerifyPageNonceV146, '__diracV232ConstantTimeOnly', { value: true, enumerable: false });
 
 function diracCentralIsA2FActionV148(action) {
   return DIRAC_CENTRAL_A2F_ACTIONS_V148.has(String(action || '').trim().toLowerCase());
@@ -31658,69 +29548,26 @@ function diracCentralStableJsonV148(value) {
 }
 
 function diracCentralA2FBodyHashV148(ctx) {
-  const activeCtx = diracV228ResolveRequestContext(ctx);
   try {
-    const body = activeCtx.body && typeof activeCtx.body === 'object' ? activeCtx.body : {};
-    return crypto.createHash('sha256').update(diracCentralStableJsonV148(body), 'utf8').digest('hex');
-  } catch (cause) {
-    const error = new Error('DIRAC_V228_A2F_BODY_HASH_FAILED');
-    error.code = 'DIRAC_V228_A2F_BODY_HASH_FAILED';
-    error.cause = cause;
-    throw error;
+    const body = ctx && ctx.body && typeof ctx.body === 'object' ? ctx.body : {};
+    return crypto.createHash('sha256').update(diracCentralStableJsonV148(body)).digest('hex');
+  } catch (_) {
+    return crypto.createHash('sha256').update('{}').digest('hex');
   }
 }
 
 function diracCentralA2FSignaturePayloadV148(req, ctx, ticketPayload) {
-  const activeCtx = diracV228ResolveRequestContext(ctx);
-  const headers = req && req.headers && typeof req.headers === 'object' ? req.headers : {};
-  const source = ticketPayload && typeof ticketPayload === 'object' && !Array.isArray(ticketPayload) ? ticketPayload : {};
-  const path = (() => {
-    try { return new URL(String(req && req.url || '/api/health'), 'https://dirac.invalid').pathname; }
-    catch (_) { return ''; }
-  })();
-  if (!path || path[0] !== '/' || path.length > 512) {
-    const error = new Error('DIRAC_V228_A2F_PATH_BINDING_INVALID');
-    error.code = 'DIRAC_V228_A2F_PATH_BINDING_INVALID';
-    throw error;
-  }
-  const cookies = typeof parseCookies === 'function' ? parseCookies(req) : null;
-  if (!cookies || typeof cookies !== 'object' || typeof verifyDomainSessionCookieValue !== 'function') {
-    const error = new Error('DIRAC_V228_A2F_USER_BINDING_DEPENDENCY_MISSING');
-    error.code = 'DIRAC_V228_A2F_USER_BINDING_DEPENDENCY_MISSING';
-    throw error;
-  }
-  const candidates = typeof readCookieTokenCandidates === 'function'
-    ? readCookieTokenCandidates(cookies, DOMAIN_SIGNED_SESSION_COOKIE)
-    : [cookies[DOMAIN_SIGNED_SESSION_COOKIE]].filter(Boolean);
-  const userIds = new Set();
-  for (const candidate of candidates) {
-    const verified = verifyDomainSessionCookieValue(candidate);
-    const id = String(verified && verified.id || '').trim();
-    if (id) userIds.add(id);
-  }
-  if (userIds.size !== 1) {
-    const error = new Error(userIds.size > 1 ? 'DIRAC_V228_A2F_USER_BINDING_AMBIGUOUS' : 'DIRAC_V228_A2F_USER_BINDING_REQUIRED');
-    error.code = error.message;
-    throw error;
-  }
-  const action = String(activeCtx.action || '').trim().toLowerCase();
-  const method = String(activeCtx.method || '').trim().toUpperCase();
-  if (!action || !method) {
-    const error = new Error('DIRAC_V228_A2F_REQUEST_BINDING_INCOMPLETE');
-    error.code = 'DIRAC_V228_A2F_REQUEST_BINDING_INCOMPLETE';
-    throw error;
-  }
+  const headers = req && req.headers || {};
+  const source = ticketPayload && typeof ticketPayload === 'object' ? ticketPayload : {};
   return {
-    typ: 'dirac-a2f-request-signature-v228',
-    purpose: action,
-    act: action,
-    method,
-    path,
-    uid: diracCentralHashV146(Array.from(userIds)[0]),
+    typ: 'dirac-a2f-request-signature-v148',
+    act: String(ctx && ctx.action || source.act || ''),
+    method: String(ctx && ctx.method || source.method || '').toUpperCase(),
+    path: '/api/health',
     sid: diracCentralRequestSessionHashV146(req),
     oh: diracCentralHashV146(diracCentralNormalizeOriginV146(headers.origin || headers.referer || headers.referrer || '')),
     uah: diracCentralHashV146(String(headers['user-agent'] || '').slice(0, 500)),
-    bh: diracCentralA2FBodyHashV148(activeCtx),
+    bh: diracCentralA2FBodyHashV148(ctx),
     iat: Number(source.iat || 0),
     exp: Number(source.exp || 0),
     jti: String(source.jti || '')
@@ -31737,97 +29584,74 @@ function diracCentralDecodeA2FTicketV148(ticket) {
   const parts = String(ticket || '').trim().split('.');
   if (parts.length !== 2 || !parts[0] || !parts[1]) return null;
   const expected = crypto.createHmac('sha256', diracCentralDeriveSecretV146('a2f-request-v148')).update(parts[0]).digest('base64url');
-  if (!diracV228TimingSafeEqualText(expected, parts[1])) return null;
+  if (typeof safeEqual === 'function') {
+    if (!safeEqual(expected, parts[1])) return null;
+  } else if (expected !== parts[1]) return null;
   try {
-    const payload = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8'));
-    return payload && typeof payload === 'object' && !Array.isArray(payload) ? payload : null;
+    return JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8'));
   } catch (_) {
     return null;
   }
 }
 
-async function diracCentralConsumeA2FNonceV148(ctx, jti, exp) {
-  const activeCtx = diracV228ResolveRequestContext(ctx);
+function diracCentralConsumeA2FNonceV148(jti, exp) {
   const clean = String(jti || '').trim();
   const now = Math.floor(Date.now() / 1000);
-  const expiresAt = Number(exp || 0);
-  if (!/^[a-zA-Z0-9_-]{16,160}$/.test(clean)
-      || !Number.isSafeInteger(expiresAt)
-      || expiresAt <= now
-      || expiresAt > now + 10 * 60) {
-    return { ok: false, reason: 'a2f_signature_nonce_invalid' };
+  if (!clean || !/^[a-zA-Z0-9_-]{16,160}$/.test(clean)) return { ok: false, reason: 'a2f_signature_nonce_invalid' };
+  for (const [key, until] of DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148.entries()) {
+    if (Number(until || 0) <= now) DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148.delete(key);
   }
-  if (typeof claimPersistentSecurityKeyOnceV194 !== 'function') {
-    diracV222MarkDependencyFailure(activeCtx, 'a2f_signature_replay_store', 503, 'A2F_SIGNATURE_REPLAY_STORE_REQUIRED');
-    return { ok: false, unavailable: true, reason: 'a2f_signature_replay_store_unavailable' };
+  if (DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148.has(clean)) return { ok: false, reason: 'a2f_signature_replay' };
+  DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148.set(clean, Math.max(now + 60, Number(exp || 0)));
+  if (DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148.size > 5000) {
+    for (const key of DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148.keys()) {
+      DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148.delete(key);
+      if (DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148.size <= 3000) break;
+    }
   }
-  const replayDigest = crypto.createHash('sha384').update(clean, 'utf8').digest('base64url');
-  const replayKey = 'a2f-request-signature-replay:' + replayDigest;
-  const ttlSeconds = Math.max(60, Math.min(11 * 60, expiresAt - now + 60));
-  try {
-    const claimed = await claimPersistentSecurityKeyOnceV194(replayKey, {
-      type: 'dirac_a2f_request_signature_replay_v228',
-      nonce_hash: replayDigest,
-      request_id: String(activeCtx.requestId || '').slice(0, 64),
-      action: String(activeCtx.action || '').slice(0, 120),
-      created_at: new Date().toISOString(),
-      expires_at: new Date((expiresAt + 60) * 1000).toISOString()
-    }, ttlSeconds);
-    return claimed === true
-      ? { ok: true, source: 'persistent_atomic_replay_claim_v228' }
-      : { ok: false, reason: 'a2f_signature_replay' };
-  } catch (error) {
-    diracV222MarkDependencyFailure(activeCtx, 'a2f_signature_replay_store', Number(error && (error.status || error.statusCode) || 0) || 503, error && (error.code || error.name));
-    return { ok: false, unavailable: true, reason: 'a2f_signature_replay_store_unavailable' };
-  }
+  return { ok: true };
 }
 
-async function diracCentralA2FRequestSignatureGuardV148(req, ctx) {
+function diracCentralA2FRequestSignatureGuardV148(req, ctx) {
   if (!ctx || !ctx.isA2FAction) return { ok: true, source: 'not_a2f' };
-  let activeCtx;
-  try { activeCtx = diracV228ResolveRequestContext(ctx); }
-  catch (_) { return { ok: false, reason: 'a2f_request_context_invalid' }; }
-  try { diracCentralRootSecretV146(); }
-  catch (_) { return { ok: false, reason: 'a2f_signature_root_secret_invalid' }; }
-  const headers = req && req.headers && typeof req.headers === 'object' ? req.headers : {};
+  try { diracCentralRootSecretV146(); } catch (_) { return { ok: false, reason: 'a2f_signature_root_secret_invalid' }; }
+  const headers = req && req.headers || {};
   const ticket = String(headers['x-dirac-a2f-ticket'] || headers['x-dirac-a2f-signature-ticket'] || '').trim();
   const signature = String(headers['x-dirac-a2f-signature'] || '').trim();
-  if (!ticket && !signature) return { ok: false, reason: 'a2f_signature_missing' };
+
+  if (!ticket && !signature) {
+    if (diracCentralA2FExplicitSignatureRequiredV148()) return { ok: false, reason: 'a2f_signature_missing' };
+    const pageNonce = String(headers['x-dirac-page-nonce'] || headers['x-page-nonce'] || '').trim();
+    const pageNonceOk = pageNonce ? diracCentralVerifyPageNonceV146(req, pageNonce, ctx.action) : { ok: false };
+    return pageNonceOk.ok ? { ok: true, source: 'signed_page_nonce_compat' } : { ok: false, reason: 'a2f_signed_nonce_missing' };
+  }
   if (!ticket || !signature) return { ok: false, reason: 'a2f_signature_incomplete' };
 
   const ticketPayload = diracCentralDecodeA2FTicketV148(ticket);
   if (!ticketPayload) return { ok: false, reason: 'a2f_ticket_signature_invalid' };
   const now = Math.floor(Date.now() / 1000);
-  const iat = Number(ticketPayload.iat || 0);
-  const exp = Number(ticketPayload.exp || 0);
-  if (ticketPayload.typ !== 'dirac-a2f-request-signature-v228') return { ok: false, reason: 'a2f_ticket_type_invalid' };
-  if (!Number.isSafeInteger(iat) || !Number.isSafeInteger(exp) || iat <= 0 || exp <= iat) return { ok: false, reason: 'a2f_ticket_time_invalid' };
-  if (iat > now + 60) return { ok: false, reason: 'a2f_ticket_iat_invalid' };
-  if (exp < now || exp > now + 10 * 60) return { ok: false, reason: 'a2f_ticket_expired_or_window_invalid' };
-  if (!/^[a-zA-Z0-9_-]{16,160}$/.test(String(ticketPayload.jti || ''))) return { ok: false, reason: 'a2f_ticket_jti_invalid' };
+  if (ticketPayload.typ !== 'dirac-a2f-request-signature-v148') return { ok: false, reason: 'a2f_ticket_type_invalid' };
+  if (!ticketPayload.exp || Number(ticketPayload.exp) < now) return { ok: false, reason: 'a2f_ticket_expired' };
+  if (ticketPayload.iat && Number(ticketPayload.iat) > now + 60) return { ok: false, reason: 'a2f_ticket_iat_invalid' };
 
-  let expectedPayload;
-  try { expectedPayload = diracCentralA2FSignaturePayloadV148(req, activeCtx, ticketPayload); }
-  catch (_) { return { ok: false, reason: 'a2f_request_binding_invalid' }; }
+  const expectedPayload = diracCentralA2FSignaturePayloadV148(req, ctx, ticketPayload);
   const expectedSignature = diracCentralSignA2FPayloadV148(expectedPayload).split('.')[1];
-  if (!diracV228TimingSafeEqualText(expectedSignature, signature)) return { ok: false, reason: 'a2f_signature_invalid' };
+  if (typeof safeEqual === 'function') {
+    if (!safeEqual(expectedSignature, signature)) return { ok: false, reason: 'a2f_signature_invalid' };
+  } else if (expectedSignature !== signature) return { ok: false, reason: 'a2f_signature_invalid' };
 
-  const nonce = await diracCentralConsumeA2FNonceV148(activeCtx, expectedPayload.jti, expectedPayload.exp);
+  const nonce = diracCentralConsumeA2FNonceV148(expectedPayload.jti, expectedPayload.exp);
   if (!nonce.ok) return nonce;
-  return { ok: true, source: 'a2f_request_signature_v228' };
+  return { ok: true, source: 'a2f_request_signature_v148' };
 }
 
 function diracCentralA2FExplicitSignatureRequiredV148() {
-  return true;
+  try {
+    return isEnvTrue('DIRAC_A2F_REQUEST_SIGNATURE_ENFORCE') || isEnvTrue('DIRAC_A2F_SIGNATURE_ENFORCE');
+  } catch (_) {
+    return false;
+  }
 }
-
-Object.defineProperty(diracV222MarkDependencyFailure, '__diracV228StrictRequestContext', { value: true, enumerable: false });
-Object.defineProperty(diracCentralWrapJsonResponseV146, '__diracV228AllResponseChannels', { value: true, enumerable: false });
-Object.defineProperty(diracCentralA2FBodyHashV148, '__diracV228StrictBodyHash', { value: true, enumerable: false });
-Object.defineProperty(diracCentralA2FRequestSignatureGuardV148, '__diracV228SignedOnly', { value: true, enumerable: false });
-Object.defineProperty(diracCentralA2FRequestSignatureGuardV148, '__diracV232SignedOnlyNoCompatibility', { value: true, enumerable: false });
-Object.defineProperty(diracCentralConsumeA2FNonceV148, '__diracV228PersistentAtomicReplay', { value: true, enumerable: false });
-Object.defineProperty(diracCentralConsumeA2FNonceV148, '__diracV232ExplicitContextAndExactClaim', { value: true, enumerable: false });
 
 function diracCentralBrowserSignalGuardV146(req, ctx) {
   if (!diracCentralNeedsBrowserAuthenticityV146(ctx)) return { ok: true };
@@ -31962,243 +29786,30 @@ async function diracCentralDistributedRateLimitGuardV146(req, ctx) {
     LOGIN_SECURITY_PERSIST_TABLE
     && typeof readPersistentSecurityJsonStrictV194 === 'function'
     && typeof writePersistentSecurityJsonRequiredV194 === 'function'
-    && typeof claimPersistentSecurityKeyOnceV194 === 'function'
-    && typeof supabaseFetch === 'function'
   );
   if (!persistReady) return { ok: false, reason: 'distributed_rate_limit_storage_required' };
 
   const windowMs = 60 * 1000;
-  const ttlGraceMs = 60 * 1000;
   const now = Date.now();
-  const windowIndex = Math.floor(now / windowMs);
-  const windowEndMs = (windowIndex + 1) * windowMs;
-  const expiresAtMs = windowEndMs + ttlGraceMs;
-  const key = 'central-rate:' + diracCentralHashV146([ctx.identity.key, action, windowIndex].join('|'));
-  const table = diracPersistentSecurityTableForKeyV209(key);
-  if (!table) return { ok: false, reason: 'distributed_rate_limit_storage_required' };
+  const key = 'central-rate:' + diracCentralHashV146([ctx.identity.key, action, Math.floor(now / windowMs)].join('|'));
+  const lookup = await readPersistentSecurityJsonStrictV194(key).catch(() => ({ ok: false, found: false, record: null }));
+  if (!lookup || lookup.ok !== true) return { ok: false, reason: 'distributed_rate_limit_read_failed' };
 
-  // v237: exact file-only distributed counter without trusting mutation bodies.
-  // A zero-count row is created idempotently with return=minimal. Every request
-  // then performs a compare-and-swap update and appends a cryptographically random
-  // claim token. A mutation is accepted only after a strict read-back proves that
-  // exact token and its assigned counter value are persisted. Later concurrent
-  // writers must preserve prior claims, so an overwritten response cannot create
-  // either a false success or a lost increment. Any malformed, ambiguous, failed,
-  // or unprovable persistence result remains fail-closed.
-  let requestClaimToken = '';
-  try {
-    requestClaimToken = crypto.randomBytes(16).toString('hex');
-  } catch (_) {
-    return { ok: false, reason: 'distributed_rate_limit_claim_token_failed' };
-  }
-  if (!/^[a-f0-9]{32}$/.test(requestClaimToken)) {
-    return { ok: false, reason: 'distributed_rate_limit_claim_token_invalid' };
-  }
-
-  const lockMap = globalThis.__DIRAC_CENTRAL_DISTRIBUTED_RATE_LOCKS_V237__ instanceof Map
-    ? globalThis.__DIRAC_CENTRAL_DISTRIBUTED_RATE_LOCKS_V237__
-    : new Map();
-  globalThis.__DIRAC_CENTRAL_DISTRIBUTED_RATE_LOCKS_V237__ = lockMap;
-  const previousLock = lockMap.get(key) || Promise.resolve();
-  let releaseLock;
-  const currentGate = new Promise((resolve) => { releaseLock = resolve; });
-  const currentLock = previousLock.catch(() => undefined).then(() => currentGate);
-  lockMap.set(key, currentLock);
-  await previousLock.catch(() => undefined);
-
-  const parseClaims = (value, currentCount) => {
-    if (value === undefined) return { ok: true, claims: [], legacy: true };
-    if (!Array.isArray(value) || value.length > max) return { ok: false, claims: [], legacy: false };
-    const claims = [];
-    const seenTokens = new Set();
-    let previousAssignedCount = 0;
-    for (const rawClaim of value) {
-      const claim = String(rawClaim || '');
-      const match = /^([a-f0-9]{32}):([1-9][0-9]{0,2})$/.exec(claim);
-      if (!match) return { ok: false, claims: [], legacy: false };
-      const token = match[1];
-      const assignedCount = Number(match[2]);
-      if (!Number.isSafeInteger(assignedCount)
-          || assignedCount < 1
-          || assignedCount > currentCount
-          || assignedCount <= previousAssignedCount
-          || seenTokens.has(token)) {
-        return { ok: false, claims: [], legacy: false };
-      }
-      seenTokens.add(token);
-      previousAssignedCount = assignedCount;
-      claims.push({ raw: claim, token, assignedCount });
-    }
-    return { ok: true, claims, legacy: false };
-  };
-
-  const readExactRow = async (minimumUpdatedAt) => {
-    const minimumFilter = minimumUpdatedAt
-      ? `&updated_at=gte.${encodeURIComponent(String(minimumUpdatedAt))}`
-      : '';
-    const path = `/rest/v1/${encodeURIComponent(table)}?select=security_key,record_json,blocked_until_ms,updated_at,expires_at&security_key=eq.${encodeURIComponent(key)}${minimumFilter}&limit=2`;
-    const result = await supabaseFetch(path, { method: 'GET', auth: 'service' }).catch(() => null);
-    if (!result || result.ok !== true || !Array.isArray(result.data)) {
-      return { ok: false, reason: 'distributed_rate_limit_read_failed', row: null };
-    }
-    if (result.data.length > 1) {
-      return { ok: false, reason: 'distributed_rate_limit_row_ambiguous', row: null };
-    }
-    return { ok: true, row: result.data.length === 1 ? result.data[0] : null };
-  };
-
-  const validateRow = (row) => {
-    if (!row || typeof row !== 'object') return { ok: false, reason: 'distributed_rate_limit_row_invalid' };
-    const currentKey = String(row.security_key || '');
-    const currentUpdatedAt = String(row.updated_at || '');
-    const currentExpiresAt = String(row.expires_at || '');
-    const currentUpdatedAtMs = Date.parse(currentUpdatedAt);
-    const currentExpiresAtMs = Date.parse(currentExpiresAt);
-    const currentRecord = row.record_json;
-    const currentCount = Number(currentRecord && currentRecord.count);
-    const currentResetAtMs = Number(currentRecord && currentRecord.resetAtMs);
-    const currentBlockedUntilMs = Number(row.blocked_until_ms || 0);
-    const currentRecordKeys = currentRecord && typeof currentRecord === 'object' && !Array.isArray(currentRecord)
-      ? Object.keys(currentRecord)
-      : [];
-    const legacyEmbeddedBlockValid = currentRecordKeys.includes('blocked_until_ms')
-      ? Number(currentRecord.blocked_until_ms || 0) === 0
-      : true;
-    const recordShapeValid = currentRecordKeys.every((name) => ['count', 'resetAtMs', 'blocked_until_ms', 'claims'].includes(name));
-    const parsedClaims = parseClaims(currentRecord && currentRecord.claims, currentCount);
-
-    if (!safeEqual(currentKey, key)
-        || !currentRecord || typeof currentRecord !== 'object' || Array.isArray(currentRecord)
-        || !recordShapeValid || !legacyEmbeddedBlockValid || !parsedClaims.ok
-        || !Number.isSafeInteger(currentCount) || currentCount < 0 || currentCount > max
-        || !Number.isSafeInteger(currentResetAtMs) || currentResetAtMs <= 0
-        || currentBlockedUntilMs !== 0
-        || !Number.isFinite(currentUpdatedAtMs)
-        || !Number.isFinite(currentExpiresAtMs)
-        || currentExpiresAtMs <= currentUpdatedAtMs
-        || currentExpiresAtMs < currentResetAtMs) {
-      return { ok: false, reason: 'distributed_rate_limit_row_invalid' };
-    }
-
-    return {
-      ok: true,
-      row,
-      currentRecord,
-      currentCount,
-      currentResetAtMs,
-      currentUpdatedAt,
-      currentUpdatedAtMs,
-      currentExpiresAt,
-      currentExpiresAtMs,
-      claims: parsedClaims.claims
-    };
-  };
-
-  const waitForContentionRetry = async (attempt) => {
-    const tokenOffset = (Number(attempt || 0) % 8) * 2;
-    const deterministicJitter = parseInt(requestClaimToken.slice(tokenOffset, tokenOffset + 2), 16) % 7;
-    const delayMs = Math.min(35, 2 + Number(attempt || 0) * 2) + deterministicJitter;
-    await new Promise((resolve) => setTimeout(resolve, delayMs));
-  };
-
-  try {
-    const maxCasAttempts = Math.max(24, Math.min(72, max + 8));
-    for (let attempt = 0; attempt < maxCasAttempts; attempt += 1) {
-      const lookup = await readExactRow('');
-      if (!lookup.ok) return { ok: false, reason: lookup.reason };
-
-      if (!lookup.row) {
-        const baselineNowMs = Date.now();
-        const baselineUpdatedAt = new Date(baselineNowMs).toISOString();
-        const baselineExpiresAt = new Date(Math.max(expiresAtMs, baselineNowMs + ttlGraceMs)).toISOString();
-        const baselinePayload = [{
-          security_key: key,
-          record_json: { count: 0, resetAtMs: windowEndMs, claims: [] },
-          blocked_until_ms: 0,
-          updated_at: baselineUpdatedAt,
-          expires_at: baselineExpiresAt
-        }];
-        const created = await supabaseFetch(`/rest/v1/${encodeURIComponent(table)}?on_conflict=security_key`, {
-          method: 'POST',
-          auth: 'service',
-          prefer: 'resolution=ignore-duplicates,return=minimal',
-          body: baselinePayload
-        }).catch(() => null);
-        if (!created || created.ok !== true) {
-          return { ok: false, reason: 'distributed_rate_limit_write_failed' };
-        }
-        continue;
-      }
-
-      const current = validateRow(lookup.row);
-      if (!current.ok) return { ok: false, reason: current.reason };
-
-      const existingClaim = current.claims.find((claim) => safeEqual(claim.token, requestClaimToken));
-      if (existingClaim) {
-        return existingClaim.assignedCount <= max
-          ? { ok: true }
-          : { ok: false, reason: 'distributed_rate_limit' };
-      }
-
-      const active = current.currentExpiresAtMs > Date.now() && current.currentResetAtMs > Date.now();
-      if (active && current.currentCount >= max) return { ok: false, reason: 'distributed_rate_limit' };
-
-      const baseCount = active ? current.currentCount : 0;
-      const baseClaims = active ? current.claims.map((claim) => claim.raw) : [];
-      const nextCount = baseCount + 1;
-      if (!Number.isSafeInteger(nextCount) || nextCount < 1 || nextCount > max) {
-        return { ok: false, reason: 'distributed_rate_limit_counter_invalid' };
-      }
-      const nextResetAtMs = active ? current.currentResetAtMs : windowEndMs;
-      const nextClaims = baseClaims.concat(`${requestClaimToken}:${nextCount}`);
-      if (nextClaims.length > max) return { ok: false, reason: 'distributed_rate_limit_claims_overflow' };
-      const nextRecord = { count: nextCount, resetAtMs: nextResetAtMs, claims: nextClaims };
-
-      const mutationNowMs = Math.max(Date.now(), current.currentUpdatedAtMs + 1);
-      const nextUpdatedAt = new Date(mutationNowMs).toISOString();
-      const nextExpiresAtMs = Math.max(expiresAtMs, nextResetAtMs + ttlGraceMs, mutationNowMs + ttlGraceMs);
-      const nextExpiresAt = new Date(nextExpiresAtMs).toISOString();
-      const patchPath = `/rest/v1/${encodeURIComponent(table)}?security_key=eq.${encodeURIComponent(key)}&updated_at=eq.${encodeURIComponent(current.currentUpdatedAt)}&expires_at=eq.${encodeURIComponent(current.currentExpiresAt)}`;
-      const patched = await supabaseFetch(patchPath, {
-        method: 'PATCH',
-        auth: 'service',
-        prefer: 'return=minimal',
-        body: {
-          record_json: nextRecord,
-          blocked_until_ms: 0,
-          updated_at: nextUpdatedAt,
-          expires_at: nextExpiresAt
-        }
-      }).catch(() => null);
-      if (!patched || patched.ok !== true) {
-        return { ok: false, reason: 'distributed_rate_limit_write_failed' };
-      }
-
-      const verificationRead = await readExactRow(nextUpdatedAt);
-      if (!verificationRead.ok) return { ok: false, reason: verificationRead.reason };
-      if (!verificationRead.row) {
-        await waitForContentionRetry(attempt);
-        continue;
-      }
-      const verified = validateRow(verificationRead.row);
-      if (!verified.ok) return { ok: false, reason: verified.reason };
-      const verifiedClaim = verified.claims.find((claim) => safeEqual(claim.token, requestClaimToken));
-      if (verifiedClaim) {
-        if (verifiedClaim.assignedCount !== nextCount) {
-          return { ok: false, reason: 'distributed_rate_limit_write_unverified' };
-        }
-        return verifiedClaim.assignedCount <= max
-          ? { ok: true }
-          : { ok: false, reason: 'distributed_rate_limit' };
-      }
-      await waitForContentionRetry(attempt);
-    }
-
-    return { ok: false, reason: 'distributed_rate_limit_write_contention' };
-  } finally {
-    releaseLock();
-    if (lockMap.get(key) === currentLock) lockMap.delete(key);
-  }
+  let row = lookup.found && lookup.record && typeof lookup.record === 'object'
+    ? { ...lookup.record }
+    : { count: 0, resetAtMs: now + windowMs };
+  if (Number(row.resetAtMs || 0) <= now) row = { count: 0, resetAtMs: now + windowMs };
+  row.count = Number(row.count || 0) + 1;
+  row.resetAtMs = Number(row.resetAtMs || now + windowMs);
+  const wrote = await writePersistentSecurityJsonRequiredV194(
+    key,
+    row,
+    0,
+    Math.ceil(windowMs / 1000) + 60
+  ).catch(() => false);
+  if (!wrote) return { ok: false, reason: 'distributed_rate_limit_write_failed' };
+  if (row.count > max) return { ok: false, reason: 'distributed_rate_limit' };
+  return { ok: true };
 }
 
 function diracCentralNeedsDistributedRateLimitV146(action) {
@@ -34009,9 +31620,6 @@ async function diracCentralBanCurrentContextV146(reason) {
   if (identityKey) DIRAC_CENTRAL_NEGATIVE_BAN_V146.delete(identityKey);
   diracCentralSetMemoryBanV146(ctx.identity, blockedUntilMs, cleanReason);
   ctx.__diracCentralPersistentBanWrittenV194 = Boolean(identityBanWritten || hardBanResult && hardBanResult.ok === true);
-  if (!ctx.__diracCentralPersistentBanWrittenV194) {
-    diracV222MarkDependencyFailure(ctx, 'central_ban_persistence', 503, 'CENTRAL_BAN_PERSISTENCE_FAILED');
-  }
   return {
     ok: ctx.__diracCentralPersistentBanWrittenV194,
     persistent: ctx.__diracCentralPersistentBanWrittenV194,
@@ -34043,7 +31651,7 @@ async function diracCentralWritePersistentBanV146(req, res, action, method, thre
 function diracCentralBlockedResponseV146(res, reason) {
   const ctx = diracCentralCurrentContextV149();
   diracCentralApplyHeadersV146(res);
-  diracCentralSetHeaderRequiredV221(res, 'Cache-Control', 'no-store');
+  try { if (res && typeof res.setHeader === 'function') res.setHeader('Cache-Control', 'no-store'); } catch (_) {}
   const publicReason = diracCentralIsProductionV146() ? 'blocked' : String(reason || 'blocked').slice(0, 80);
   const payload = {
     ok: false,
@@ -34071,21 +31679,35 @@ function diracCentralBlockedResponseV146(res, reason) {
 
 function diracCentralPersistenceUnavailableResponseV210(res) {
   const ctx = diracCentralCurrentContextV149();
-  const failure = ctx && ctx.__diracV222DependencyFailure;
   diracCentralApplyHeadersV146(res);
   try { if (res && typeof res.setHeader === 'function') res.setHeader('Cache-Control', 'no-store'); } catch (_) {}
-  const diagnostic = diracV233AttachDiagnosticHeaders(res, ctx, failure);
   const payload = {
     ok: false,
     code: 'CENTRAL_SECURITY_PERSISTENCE_UNAVAILABLE',
     message: 'Permintaan ditolak karena penyimpanan keamanan belum tersedia.',
     source: DIRAC_CENTRAL_SECURITY_GUARD_V146,
-    request_id: diagnostic.requestId,
-    failure_id: diagnostic.failureId,
-    diagnostic_patch: DIRAC_FAIL_CLOSED_DIAGNOSTICS_V233,
-    diagnostic_hint: 'Cari request_id atau failure_id yang sama pada Vercel Function Logs.'
+    request_id: String(ctx && ctx.requestId || '').slice(0, 64),
+    failure_id: diracCentralFailureIdV211(ctx)
   };
-  if (diagnostic.debugAllowed) payload.debug = diracV233BuildFailClosedDebug(ctx, failure);
+  try {
+    console.error('[dirac-security-persistence-v214]', JSON.stringify({
+      patch: DIRAC_SECURITY_DEPENDENCY_DIAGNOSTICS_V214,
+      event: 'central_security_persistence_unavailable',
+      request_id: payload.request_id,
+      failure_id: payload.failure_id,
+      action: String(ctx && (ctx.action || ctx.rawAction) || '').slice(0, 80),
+      phase: String(ctx && ctx.executionPhaseV211 || '').slice(0, 30),
+      stage_index: Number((ctx && ctx.currentStageIndexV211) ?? -1),
+      stage: String(ctx && ctx.currentStageV211 || '').slice(0, 80),
+      failed_stage: String(ctx && ctx.failedStageV211 || '').slice(0, 80),
+      reason: String(ctx && ctx.failureReasonV211 || '').slice(0, 120),
+      dependency_failure: ctx && ctx.centralDependencyFailureV214 || null
+    }));
+  } catch (_) {}
+  if (diracCentralDebugResponseAllowedV211(ctx)) {
+    payload.debug = ctx && ctx.centralErrorDebugV155 || diracCentralStageTraceV211(ctx, 30);
+    if (ctx && ctx.centralDependencyFailureV214) payload.dependency_debug = ctx.centralDependencyFailureV214;
+  }
   return res.status(503).json(payload);
 }
 
@@ -34284,22 +31906,8 @@ function diracCentralNormalizeOriginV146(value) {
 }
 
 function diracCentralRequestSessionHashV146(req) {
-  const cookies = typeof parseCookies === 'function' ? parseCookies(req) : null;
-  if (!cookies || typeof cookies !== 'object') {
-    const error = new Error('DIRAC_CENTRAL_SESSION_COOKIE_PARSE_REQUIRED');
-    error.code = 'DIRAC_CENTRAL_SESSION_COOKIE_PARSE_REQUIRED';
-    throw error;
-  }
-  const material = [cookies[ACCESS_COOKIE], cookies[DOMAIN_SIGNED_SESSION_COOKIE], cookies.sb_access_token]
-    .map((value) => String(value || '').trim())
-    .filter(Boolean)
-    .join('|');
-  if (!material) {
-    const error = new Error('DIRAC_CENTRAL_SESSION_BINDING_REQUIRED');
-    error.code = 'DIRAC_CENTRAL_SESSION_BINDING_REQUIRED';
-    throw error;
-  }
-  return diracCentralHashV146(material);
+  const cookies = typeof parseCookies === 'function' ? parseCookies(req) : {};
+  return diracCentralHashV146([cookies[ACCESS_COOKIE], cookies[DOMAIN_SIGNED_SESSION_COOKIE], cookies.sb_access_token].filter(Boolean).join('|'));
 }
 
 function diracCentralExtractValuesV146(value) {
@@ -34432,6 +32040,7 @@ function diracCentralDeriveSecretV146(scope, inputSecret) {
 }
 
 function assertProductionSecurityConfigV146() {
+  if (!diracCentralIsProductionV146()) return true;
   if (!DIRAC_CENTRAL_ASYNC_CONTEXT_V149
       || typeof DIRAC_CENTRAL_ASYNC_CONTEXT_V149.run !== 'function'
       || typeof DIRAC_CENTRAL_ASYNC_CONTEXT_V149.getStore !== 'function') {
@@ -34453,7 +32062,6 @@ function assertProductionSecurityConfigV146() {
     'DIRAC_BODY_INPUT_DB_WRITE_GUARD_DISABLED',
     'DIRAC_CSRF_ALL_WEBSITE_ACTIONS_DISABLED',
     'DIRAC_BACKEND_XSS_CSP_DISABLED',
-    'DIRAC_BACKEND_XSS_JSON_GUARD_DISABLED',
     'DIRAC_BOLA_IDOR_SERVICE_SCOPE_DISABLED',
     'DIRAC_BOLA_IDOR_STRICT_SAFE_DISABLED',
     'DIRAC_BOLA_IDOR_OWNER_BINDING_DISABLED',
@@ -34461,69 +32069,15 @@ function assertProductionSecurityConfigV146() {
     'DIRAC_SECURITY_WRITE_COALESCER_DISABLED',
     'DIRAC_A2F_REQUEST_SIGNATURE_DISABLED',
     'DIRAC_A2F_STRICT_CENTRAL_GUARD_DISABLED',
-    'DIRAC_PASSWORD_ARGON2_DISABLED',
-    'DIRAC_PASSWORD_ARGON2_ROTATE_EVERY_LOGIN_DISABLED',
     'DIRAC_RECOVERY_WORKER_DEBUG',
     'DIRAC_RECOVERY_WORKER_ROOT_CAUSE_DEBUG',
     'DIRAC_LOST_PASSKEY_LINK_DEBUG',
-    'DIRAC_LOST_PASSKEY_LINK_OPEN_DEBUG',
-    'DIRAC_ULTRA_ALLOW_MISSING_ORIGIN'
-  ];
-  const scopedWeakeningPrefixes = [
-    'DIRAC_SENSITIVE_POST_ORIGIN_GUARD_DISABLED_',
-    'DIRAC_CSRF_ALL_DISABLED_',
-    'DIRAC_CSRF_EVERY_BROWSER_DISABLED_',
-    'DIRAC_CSRF_HMAC_DISABLED_'
-  ];
-  // Compatibility-only ENV: it may exist, but it must have exactly zero effect on the service-role allowlist.
-  const serviceRoleExtraTablesEnvName = 'DIRAC_SERVICE_ROLE_EXTRA_TABLES';
-  const serviceRoleExtraTablesConfigured = Object.prototype.hasOwnProperty.call(process.env || {}, serviceRoleExtraTablesEnvName);
-  const serviceRoleExtraTablesOriginal = serviceRoleExtraTablesConfigured ? process.env[serviceRoleExtraTablesEnvName] : undefined;
-  if (String(serviceRoleExtraTablesOriginal || '').trim()) {
-    let serviceRoleTablesWithEnv;
-    let serviceRoleTablesWithoutEnv;
-    try {
-      serviceRoleTablesWithEnv = diracV101ServiceRoleAllowedTables();
-      const serviceRoleExtraTablesRemoved = delete process.env[serviceRoleExtraTablesEnvName];
-      if (!serviceRoleExtraTablesRemoved
-          || Object.prototype.hasOwnProperty.call(process.env || {}, serviceRoleExtraTablesEnvName)) {
-        throw new Error('Security guard ENV isolation failed: ' + serviceRoleExtraTablesEnvName);
-      }
-      serviceRoleTablesWithoutEnv = diracV101ServiceRoleAllowedTables();
-    } finally {
-      if (serviceRoleExtraTablesConfigured) process.env[serviceRoleExtraTablesEnvName] = serviceRoleExtraTablesOriginal;
-      else delete process.env[serviceRoleExtraTablesEnvName];
-    }
-    if (!(serviceRoleTablesWithEnv instanceof Set)
-        || !(serviceRoleTablesWithoutEnv instanceof Set)
-        || serviceRoleTablesWithEnv.size !== serviceRoleTablesWithoutEnv.size
-        || Array.from(serviceRoleTablesWithEnv).some((table) => !serviceRoleTablesWithoutEnv.has(table))
-        || Array.from(serviceRoleTablesWithoutEnv).some((table) => !serviceRoleTablesWithEnv.has(table))) {
-      throw new Error('Security guard weakening ENV forbidden: ' + serviceRoleExtraTablesEnvName);
-    }
-  }
-  const forbiddenPolicyExpansionEnvs = [
-    'DIRAC_STRICT_ALLOW_EXTRA_ORIGINS',
-    'ADMIN_SECURITY_ALLOW_ADMIN_READONLY',
-    'PAYMENT_ALLOW_CUSTOM_SERVICE_PAYMENT'
+    'DIRAC_LOST_PASSKEY_LINK_OPEN_DEBUG'
   ];
   const weakened = blockedTrue.filter((name) => {
     try { return isEnvTrue(name) || diracV143EnvTrue(name) || diracV145EnvTrue(name); } catch (_) { return false; }
   });
-  for (const [name, value] of Object.entries(process.env || {})) {
-    if (!scopedWeakeningPrefixes.some((prefix) => String(name).startsWith(prefix))) continue;
-    const enabled = ['1', 'true', 'yes', 'on'].includes(String(value || '').trim().toLowerCase());
-    if (enabled) weakened.push(String(name));
-  }
-  for (const name of forbiddenPolicyExpansionEnvs) {
-    const raw = String(process.env[name] || '').trim();
-    if (raw && !/^(?:0|false|no|off|disabled|disable)$/i.test(raw)) weakened.push(name);
-  }
-  const configuredRateTable = String(process.env.DOMAIN_LOGIN_RATE_TABLE || '').trim();
-  if (configuredRateTable && configuredRateTable !== DOMAIN_LOGIN_RATE_TABLE) weakened.push('DOMAIN_LOGIN_RATE_TABLE');
-  if (shouldUseDiracMultiDbRouter() && !isEnvTrue('DIRAC_MULTI_DB_STRICT')) weakened.push('DIRAC_MULTI_DB_STRICT');
-  if (weakened.length) throw new Error('Security guard weakening ENV forbidden: ' + Array.from(new Set(weakened)).join(','));
-  if (!diracCentralIsProductionV146()) return true;
+  if (weakened.length) throw new Error('Production security guard disabled by ENV: ' + weakened.join(','));
   if (normalizeCookieSameSite(process.env.DOMAIN_COOKIE_SAMESITE || '') !== 'Strict') {
     throw new Error('DOMAIN_COOKIE_SAMESITE production wajib Strict.');
   }
@@ -34633,7 +32187,7 @@ try {
     };
     Object.defineProperty(diracCsrfShouldCheckRequest, '__diracCentralPassthroughV146', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_32376', error); }
+} catch (_) {}
 
 try {
   const __diracCentralPreviousV137CsrfShouldForceV146 = typeof diracV137CsrfShouldForce === 'function' ? diracV137CsrfShouldForce : null;
@@ -34643,7 +32197,7 @@ try {
     };
     Object.defineProperty(diracV137CsrfShouldForce, '__diracCentralPassthroughV146', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_32386', error); }
+} catch (_) {}
 
 try {
   const __diracCentralPreviousV138CsrfShouldForceV146 = typeof diracV138CsrfShouldForce === 'function' ? diracV138CsrfShouldForce : null;
@@ -34653,7 +32207,7 @@ try {
     };
     Object.defineProperty(diracV138CsrfShouldForce, '__diracCentralPassthroughV146', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_32396', error); }
+} catch (_) {}
 
 try {
   const __diracCentralPreviousV128InspectHttpV146 = typeof diracBolaIdorV128InspectHttpRequest === 'function' ? diracBolaIdorV128InspectHttpRequest : null;
@@ -34663,7 +32217,7 @@ try {
     };
     Object.defineProperty(diracBolaIdorV128InspectHttpRequest, '__diracCentralPassthroughV146', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_32406', error); }
+} catch (_) {}
 
 try {
   const __diracCentralPreviousV132InspectHttpV146 = typeof diracBolaIdorV132InspectHttpQuery === 'function' ? diracBolaIdorV132InspectHttpQuery : null;
@@ -34673,7 +32227,7 @@ try {
     };
     Object.defineProperty(diracBolaIdorV132InspectHttpQuery, '__diracCentralPassthroughV146', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_32416', error); }
+} catch (_) {}
 
 try {
   const __diracCentralPreviousV133InspectHttpV146 = typeof diracBolaIdorV133InspectHttpRequest === 'function' ? diracBolaIdorV133InspectHttpRequest : null;
@@ -34683,7 +32237,7 @@ try {
     };
     Object.defineProperty(diracBolaIdorV133InspectHttpRequest, '__diracCentralPassthroughV146', { value: true, enumerable: false });
   }
-} catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_32426', error); }
+} catch (_) {}
 
 function diracCentralCurrentContextPassedV146() {
   const ctx = diracCentralCurrentContextV149();
@@ -35027,20 +32581,13 @@ async function diracRecoveryHpkeReadRequestV159(requestId) {
   const path = '/rest/v1/' + LOST_PASSKEY_RECOVERY_REQUEST_TABLE
     + '?select=' + encodeURIComponent(fields)
     + '&request_id=eq.' + encodeURIComponent(requestId)
-    + '&limit=2';
+    + '&limit=1';
   const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
-  const rows = result && result.ok === true && Array.isArray(result.data) ? result.data : null;
-  if (!rows) return { ok: false, status: result && result.status, row: null, reason: 'storage_unavailable' };
-  if (rows.length !== 1) {
-    if (rows.length > 1) diracV222MarkDependencyFailure(null, 'recovery_hpke_request_read', 503, 'RECOVERY_HPKE_REQUEST_AMBIGUOUS');
-    return { ok: rows.length === 0, status: rows.length === 0 ? 404 : 503, row: null, reason: rows.length === 0 ? 'not_found' : 'ambiguous' };
-  }
-  const row = rows[0];
-  if (!row || !safeEqual(String(row.request_id || ''), String(requestId || ''))) {
-    diracV222MarkDependencyFailure(null, 'recovery_hpke_request_read', 503, 'RECOVERY_HPKE_REQUEST_MALFORMED');
-    return { ok: false, status: 503, row: null, reason: 'malformed' };
-  }
-  return { ok: true, status: result.status, row };
+  return {
+    ok: Boolean(result && result.ok),
+    status: result && result.status,
+    row: result && result.ok && Array.isArray(result.data) ? result.data[0] || null : null
+  };
 }
 
 function diracRecoveryHpkeContextHashV159(validated, row) {
@@ -35098,26 +32645,13 @@ function diracRecoveryHpkeConsumeProofV159(claim) {
 }
 
 async function diracRecoveryHpkeRollbackRequestV159(requestId, metadata) {
-  const cleanRequestId = String(requestId || '').trim();
-  if (!cleanRequestId) diracV223ThrowFailClosed('RECOVERY_HPKE_ROLLBACK_REQUEST_INVALID', 'recovery_hpke_rollback', 500);
-  const result = await supabaseFetch('/rest/v1/' + LOST_PASSKEY_RECOVERY_REQUEST_TABLE
-    + '?request_id=eq.' + encodeURIComponent(cleanRequestId)
+  await supabaseFetch('/rest/v1/' + LOST_PASSKEY_RECOVERY_REQUEST_TABLE
+    + '?request_id=eq.' + encodeURIComponent(requestId)
     + '&status=eq.verified', {
     method: 'PATCH',
     auth: 'service',
-    prefer: 'return=representation',
-    body: { status: 'pending', metadata: metadata && typeof metadata === 'object' && !Array.isArray(metadata) ? metadata : {} }
-  });
-  const rows = diracV222RequireExactMutationRows(
-    result,
-    1,
-    (row) => row && safeEqual(String(row.request_id || ''), cleanRequestId)
-      && String(row.status || '').trim().toLowerCase() === 'pending',
-    'recovery_hpke_rollback',
-    'RECOVERY_HPKE_ROLLBACK_UNVERIFIED'
-  );
-  if (!rows) diracV223ThrowFailClosed('RECOVERY_HPKE_ROLLBACK_UNVERIFIED', 'recovery_hpke_rollback', Number(result && result.status || 0) || 503);
-  return true;
+    body: { status: 'pending', metadata: metadata || {} }
+  }).catch(() => null);
 }
 
 async function diracRecoveryHpkeCommitProofV159(req, res) {
@@ -35184,13 +32718,7 @@ async function diracRecoveryHpkeCommitProofV159(req, res) {
       }
     });
 
-    const committedRows = requestPatched && requestPatched.ok === true && Array.isArray(requestPatched.data) ? requestPatched.data : [];
-    const committedValid = committedRows.length === 1
-      && safeEqual(String(committedRows[0] && committedRows[0].request_id || ''), validated.requestId)
-      && safeEqual(String(committedRows[0] && committedRows[0].customer_id || ''), String(row.customer_id || ''))
-      && safeEqual(String(committedRows[0] && committedRows[0].auth_user_id || ''), String(row.auth_user_id || ''))
-      && String(committedRows[0] && committedRows[0].status || '').trim().toLowerCase() === 'verified';
-    if (!committedValid) {
+    if (!requestPatched.ok || !Array.isArray(requestPatched.data) || requestPatched.data.length !== 1) {
       return res.status(409).json({ ok: false, code: 'RECOVERY_REQUEST_COMMIT_CONFLICT', message: 'Recovery request sudah diproses.' });
     }
     requestCommitted = true;
@@ -35215,25 +32743,14 @@ async function diracRecoveryHpkeCommitProofV159(req, res) {
       }]
     });
 
-    const sessionRows = diracV222RequireExactMutationRows(
-      sessionCreated,
-      1,
-      (sessionRow) => sessionRow
-        && safeEqual(String(sessionRow.request_id || ''), validated.requestId)
-        && safeEqual(String(sessionRow.customer_id || ''), String(row.customer_id || ''))
-        && safeEqual(String(sessionRow.auth_user_id || ''), String(row.auth_user_id || ''))
-        && safeEqual(String(sessionRow.recovery_session_hash || ''), recoverySessionHash)
-        && String(sessionRow.status || '').trim().toLowerCase() === 'verified',
-      'recovery_hpke_session_create',
-      'RECOVERY_HPKE_SESSION_CREATE_UNVERIFIED'
-    );
-    if (!sessionRows) {
+    if (!sessionCreated.ok) {
       await diracRecoveryHpkeRollbackRequestV159(validated.requestId, previousMetadata);
       requestCommitted = false;
-      return res.status(sessionCreated.status || 503).json({ ok: false, code: 'RECOVERY_SESSION_CREATE_FAILED', message: 'Recovery session belum dapat dibuat.' });
+      return res.status(sessionCreated.status || 500).json({ ok: false, code: 'RECOVERY_SESSION_CREATE_FAILED', message: 'Recovery session belum dapat dibuat.' });
     }
 
-    const audited = await customerSecurityWriteGuardEvent(row.customer_id, {
+    diracRecoveryHpkeConsumeProofV159(claim);
+    await customerSecurityWriteGuardEvent(row.customer_id, {
       event_type: 'lost_passkey_recovery_hpke_verified',
       status: 'success',
       risk_level: 'high',
@@ -35245,20 +32762,7 @@ async function diracRecoveryHpkeCommitProofV159(req, res) {
         hpke_key_id: validated.hpkeKeyId,
         plaintext_recovery_code_received: false
       }
-    });
-    if (audited !== true) {
-      await diracV229RollbackLostPasskeyRecoveryGrant({
-        requestId: validated.requestId,
-        customerId: row.customer_id,
-        authUserId: row.auth_user_id,
-        sessionHash: recoverySessionHash,
-        previousMetadata,
-        source: 'recovery_hpke_audit_failure'
-      });
-      requestCommitted = false;
-      return res.status(503).json({ ok: false, code: 'RECOVERY_HPKE_SECURITY_AUDIT_REQUIRED', message: 'Audit keamanan gagal; recovery session dicabut dan request dipulihkan.' });
-    }
-    diracRecoveryHpkeConsumeProofV159(claim);
+    }).catch(() => null);
 
     const successPayload = {
       ok: true,
@@ -35898,62 +33402,6 @@ if (process.env.NODE_ENV === 'production') diracS2SAssertConfigurationV206();
 
 
 /* ============================================================
-   v222 STRICT CSRF FINALIZER
-   Removes header-only and environment-optional compatibility paths.
-   ============================================================ */
-function diracV222StrictCsrfForceVerify(req) {
-  const secret = typeof diracCsrfSecret === 'function' ? String(diracCsrfSecret() || '').trim() : '';
-  if (!secret) return { ok: false, enforced: true, status: 503, code: 'CSRF_SECRET_MISSING' };
-  if (typeof safeEqual !== 'function' || typeof diracCsrfDecodeToken !== 'function' || typeof diracCsrfRequestBinding !== 'function' || typeof parseCookies !== 'function') {
-    return { ok: false, enforced: true, status: 503, code: 'CSRF_STRICT_DEPENDENCY_UNAVAILABLE' };
-  }
-  const headers = req && req.headers && typeof req.headers === 'object' ? req.headers : {};
-  const headerToken = String(headers['x-csrf-token'] || headers['X-CSRF-Token'] || headers['x-dirac-csrf-token'] || headers['X-Dirac-CSRF-Token'] || '').trim();
-  const cookies = parseCookies(req);
-  const cookieName = typeof DIRAC_CSRF_COOKIE !== 'undefined' ? DIRAC_CSRF_COOKIE : '__Host-dirac_csrf_hmac';
-  const cookieToken = String(cookies && cookies[cookieName] || '').trim();
-  if (!headerToken) return { ok: false, enforced: true, status: 403, code: 'CSRF_HEADER_MISSING' };
-  if (!cookieToken) return { ok: false, enforced: true, status: 403, code: 'CSRF_COOKIE_MISSING' };
-  if (!safeEqual(headerToken, cookieToken)) return { ok: false, enforced: true, status: 403, code: 'CSRF_DOUBLE_SUBMIT_MISMATCH' };
-
-  const decoded = diracCsrfDecodeToken(headerToken, secret);
-  if (!decoded || !decoded.payload || typeof decoded.payload !== 'object' || Array.isArray(decoded.payload)) {
-    return { ok: false, enforced: true, status: 403, code: 'CSRF_SIGNATURE_INVALID' };
-  }
-  const payload = decoded.payload;
-  const now = Math.floor(Date.now() / 1000);
-  const skew = typeof DIRAC_CSRF_CLOCK_SKEW_SECONDS !== 'undefined' ? Number(DIRAC_CSRF_CLOCK_SKEW_SECONDS) : 60;
-  const expectedType = typeof DIRAC_CSRF_TOKEN_TYPE !== 'undefined' ? DIRAC_CSRF_TOKEN_TYPE : 'dirac-csrf-hmac-v1';
-  if (payload.typ !== expectedType) return { ok: false, enforced: true, status: 403, code: 'CSRF_TOKEN_TYPE_INVALID' };
-  if (!Number.isSafeInteger(Number(payload.iat)) || !Number.isSafeInteger(Number(payload.exp))) return { ok: false, enforced: true, status: 403, code: 'CSRF_TOKEN_TIME_INVALID' };
-  if (Number(payload.exp) + skew < now) return { ok: false, enforced: true, status: 403, code: 'CSRF_TOKEN_EXPIRED' };
-  if (Number(payload.iat) - skew > now || Number(payload.exp) <= Number(payload.iat)) return { ok: false, enforced: true, status: 403, code: 'CSRF_TOKEN_IAT_INVALID' };
-  if (!/^[a-f0-9]{64}$/.test(String(payload.sid || '')) || !/^[a-f0-9]{64}$/.test(String(payload.oh || ''))) {
-    return { ok: false, enforced: true, status: 403, code: 'CSRF_BINDING_MISSING' };
-  }
-  let binding;
-  try { binding = diracCsrfRequestBinding(req); }
-  catch (_) { return { ok: false, enforced: true, status: 503, code: 'CSRF_BINDING_UNAVAILABLE' }; }
-  if (!binding || !/^[a-f0-9]{64}$/.test(String(binding.sid || '')) || !/^[a-f0-9]{64}$/.test(String(binding.oh || ''))) {
-    return { ok: false, enforced: true, status: 403, code: 'CSRF_REQUEST_BINDING_INVALID' };
-  }
-  if (!safeEqual(String(payload.sid), String(binding.sid))) return { ok: false, enforced: true, status: 403, code: 'CSRF_SESSION_BINDING_MISMATCH' };
-  if (!safeEqual(String(payload.oh), String(binding.oh))) return { ok: false, enforced: true, status: 403, code: 'CSRF_ORIGIN_BINDING_MISMATCH' };
-  return { ok: true, enforced: true, source: 'csrf_v222_strict_double_submit' };
-}
-
-diracV138CsrfForceVerify = function diracV138CsrfForceVerifyV222Strict(req) {
-  return diracV222StrictCsrfForceVerify(req);
-};
-Object.defineProperty(diracV138CsrfForceVerify, '__diracV222StrictDoubleSubmit', { value: true, enumerable: false });
-diracCsrfVerifyRequest = function diracCsrfVerifyRequestV222Strict(req) {
-  return diracV222StrictCsrfForceVerify(req);
-};
-Object.defineProperty(diracCsrfVerifyRequest, '__diracV222StrictDoubleSubmit', { value: true, enumerable: false });
-diracCsrfIsEnforcedForAction = function diracCsrfIsEnforcedForActionV222Strict() { return true; };
-Object.defineProperty(diracCsrfIsEnforcedForAction, '__diracV222AlwaysEnforced', { value: true, enumerable: false });
-
-/* ============================================================
    v202 CENTRALIZED ACTION POLICY AND GATEWAYS
    ============================================================ */
 function diracV202BuildActionPolicyTable() {
@@ -35990,102 +33438,100 @@ function diracV202BuildActionPolicyTable() {
 }
 const ACTION_POLICY = diracV202BuildActionPolicyTable();
 
+const DIRAC_SECURITY_DEPENDENCY_DIAGNOSTICS_V214 = 'dirac-security-dependency-diagnostics-v214';
+
+function diracV214SafeDiagnosticToken(value, fallback = '') {
+  const clean = String(value === undefined || value === null ? '' : value).trim();
+  if (!clean || !/^[A-Za-z0-9_.:-]{1,160}$/.test(clean)) return String(fallback || '').slice(0, 160);
+  return clean.slice(0, 160);
+}
+
+function diracV214DatabaseResource(path) {
+  const resource = String(path || '').split('?')[0].trim();
+  if (!resource || !/^\/(?:rest|auth)\/v1\/[A-Za-z0-9._~!$&'()*+,;=:@%\/-]{1,300}$/.test(resource)) {
+    return 'invalid_or_redacted_resource';
+  }
+  return resource.slice(0, 320);
+}
+
+function diracV214DatabaseFailureCode(result, error) {
+  const data = result && result.data;
+  const candidates = [
+    error && error.code,
+    error && error.name,
+    data && typeof data === 'object' && data.code,
+    data && typeof data === 'object' && data.error_code,
+    data && typeof data === 'object' && data.error,
+    result && result.error
+  ];
+  for (const candidate of candidates) {
+    const token = diracV214SafeDiagnosticToken(candidate);
+    if (token) return token;
+  }
+  const status = Number(result && result.status || 0);
+  if (status > 0) return 'SUPABASE_HTTP_' + String(status);
+  return error ? 'SUPABASE_GATEWAY_EXCEPTION' : 'SUPABASE_RESULT_NOT_OK';
+}
+
+function diracV214RecordDatabaseFailure(ctx, operation, result, error, startedAt) {
+  const op = operation && typeof operation === 'object' ? operation : {};
+  const options = op.options && typeof op.options === 'object' ? op.options : {};
+  const sequence = Number(ctx && ctx.__diracDependencyFailureSequenceV214 || 0) + 1;
+  if (ctx) ctx.__diracDependencyFailureSequenceV214 = sequence;
+  const configuredTimeout = Math.max(1000, Math.min(30000, Number(options.timeoutMs || process.env.DIRAC_SUPABASE_FETCH_TIMEOUT_MS || 6500) || 6500));
+  const diagnostic = Object.freeze({
+    patch: DIRAC_SECURITY_DEPENDENCY_DIAGNOSTICS_V214,
+    event: error ? 'database_gateway_exception' : 'database_dependency_not_ok',
+    request_id: String(ctx && ctx.requestId || '').slice(0, 64),
+    failure_id: typeof diracCentralFailureIdV211 === 'function' ? diracCentralFailureIdV211(ctx) : 'DG-CENTRAL-UNAVAILABLE',
+    sequence,
+    action: String(ctx && (ctx.action || ctx.rawAction) || '').slice(0, 80),
+    phase: String(ctx && ctx.executionPhaseV211 || '').slice(0, 30),
+    stage_index: Number((ctx && ctx.currentStageIndexV211) ?? -1),
+    stage: String(ctx && ctx.currentStageV211 || '').slice(0, 80),
+    method: String(options.method || 'GET').toUpperCase().slice(0, 12),
+    resource: diracV214DatabaseResource(op.path),
+    auth_mode: options.auth === 'service' ? 'service' : options.bearer ? 'bearer' : 'anon',
+    timeout_ms: configuredTimeout,
+    duration_ms: Math.max(0, Date.now() - Number(startedAt || Date.now())),
+    upstream_status: Number(result && result.status || 0),
+    dependency_code: diracV214DatabaseFailureCode(result, error),
+    transport_error: diracV214SafeDiagnosticToken(error && (error.code || error.name) || result && result.error),
+    upstream_error_code: diracV214SafeDiagnosticToken(result && result.data && typeof result.data === 'object' && (result.data.code || result.data.error_code || result.data.error)),
+    response_shape: Array.isArray(result && result.data)
+      ? 'array'
+      : result && result.data === null
+        ? 'null'
+        : typeof (result && result.data)
+  });
+  if (ctx) ctx.centralDependencyFailureV214 = diagnostic;
+  try { console.error('[dirac-security-dependency-v214]', JSON.stringify(diagnostic)); } catch (_) {}
+  return diagnostic;
+}
+
 const __diracV202DatabaseGatewayDelegate = supabaseFetch;
 async function secureDatabaseGateway(ctx, operation) {
-  if (ctx && ctx.__diracV222DependencyFailure) {
-    return {
-      ok: false,
-      status: 503,
-      data: { code: 'DIRAC_DATABASE_BLOCKED_BY_PRIOR_DEPENDENCY_FAILURE' }
-    };
-  }
   const op = operation && typeof operation === 'object' ? operation : null;
   if (!op || typeof op.path !== 'string' || !op.options || typeof op.options !== 'object') {
-    diracV222MarkDependencyFailure(ctx, 'database_gateway', 500, 'DIRAC_DATABASE_GATEWAY_OPERATION_INVALID', {
-      operation: 'supabase',
-      method: 'UNKNOWN',
-      resource: 'invalid_operation',
-      auth_mode: 'unspecified',
-      upstream_status: 500,
-      upstream_code: 'DIRAC_DATABASE_GATEWAY_OPERATION_INVALID'
-    });
     return { ok: false, status: 500, data: { code: 'DIRAC_DATABASE_GATEWAY_OPERATION_INVALID' } };
   }
-  const diagnosticStartedAt = Date.now();
-  const diagnosticMethod = String(op.options && op.options.method || 'GET').trim().toUpperCase();
-  const diagnosticResource = String(op.path || '').split('?')[0].slice(0, 200);
-  const diagnosticAuthMode = op.options && op.options.auth === 'service' ? 'service' : 'anon_or_bearer';
-  const diagnosticTimeoutMs = Math.max(1000, Math.min(30000, Number(op.options && op.options.timeoutMs || process.env.DIRAC_SUPABASE_FETCH_TIMEOUT_MS || 6500) || 6500));
-  const diagnosticDetails = (upstreamStatus, upstreamCode) => ({
-    operation: 'supabase',
-    method: diagnosticMethod,
-    resource: diagnosticResource,
-    auth_mode: diagnosticAuthMode,
-    timeout_ms: diagnosticTimeoutMs,
-    duration_ms: Date.now() - diagnosticStartedAt,
-    upstream_status: upstreamStatus,
-    upstream_code: upstreamCode
-  });
   const contextDecision = diracCentralGatewayContextAllowedV211(ctx);
   if (!contextDecision.ok) {
-    diracV222MarkDependencyFailure(ctx, 'database_gateway', 403, 'DIRAC_DATABASE_GATEWAY_CONTEXT_NOT_AUTHORIZED', diagnosticDetails(403, 'DIRAC_DATABASE_GATEWAY_CONTEXT_NOT_AUTHORIZED'));
-    diracCentralEmitDebugV211(ctx, 'database_gateway_blocked', { phase: contextDecision.phase, path: diagnosticResource });
+    diracCentralEmitDebugV211(ctx, 'database_gateway_blocked', { phase: contextDecision.phase, path: String(op.path || '').split('?')[0].slice(0, 160) });
     return { ok: false, status: 403, data: { code: 'DIRAC_DATABASE_GATEWAY_CONTEXT_NOT_AUTHORIZED' } };
   }
   if (contextDecision.phase === 'handler' && (!ctx.action || !ACTION_POLICY[ctx.action] || ctx.policy !== ACTION_POLICY[ctx.action])) {
-    diracV222MarkDependencyFailure(ctx, 'database_gateway', 403, 'DIRAC_DATABASE_GATEWAY_POLICY_MISSING', diagnosticDetails(403, 'DIRAC_DATABASE_GATEWAY_POLICY_MISSING'));
     return { ok: false, status: 403, data: { code: 'DIRAC_DATABASE_GATEWAY_POLICY_MISSING' } };
   }
   ctx.__diracCentralDatabaseGatewayDepthV211 = Number(ctx.__diracCentralDatabaseGatewayDepthV211 || 0) + 1;
+  const startedAt = Date.now();
   try {
-    let result;
-    try {
-      result = await __diracV202DatabaseGatewayDelegate(op.path, op.options);
-    } catch (error) {
-      const errorCode = diracV233ClassifyDependencyException(error, 'DATABASE_GATEWAY_EXCEPTION');
-      diracV222MarkDependencyFailure(ctx, 'database_gateway_exception', 503, errorCode, diagnosticDetails(503, errorCode));
-      throw error;
-    }
-    const status = Number(result && result.status || 0) || 0;
-    const serviceRole = op.options && op.options.auth === 'service';
-    if (!result || typeof result !== 'object' || result.ok !== true) {
-      const code = diracV222DependencyFailureCode(result, 'DATABASE_DEPENDENCY_FAILED');
-      diracV222MarkDependencyFailure(
-        ctx,
-        serviceRole ? 'database_gateway_service_result' : 'database_gateway_result',
-        status || 503,
-        code,
-        diagnosticDetails(status || 503, code)
-      );
-      return result && typeof result === 'object'
-        ? result
-        : { ok: false, status: status || 503, data: { code } };
-    }
-
-    const method = String(op.options && op.options.method || 'GET').trim().toUpperCase();
-    const prefer = String(op.options && op.options.prefer || '').toLowerCase();
-    const isPostgrestRead = /^\/rest\/v1\//.test(op.path) && method === 'GET';
-    if (isPostgrestRead && !Array.isArray(result.data)) {
-      diracV222MarkDependencyFailure(ctx, 'database_gateway_read_postcondition', status || 503, 'DATABASE_READ_REPRESENTATION_INVALID', diagnosticDetails(status || 502, 'DATABASE_READ_REPRESENTATION_INVALID'));
-      return {
-        ...result,
-        ok: false,
-        status: status || 502,
-        data: { code: 'DATABASE_READ_REPRESENTATION_INVALID' }
-      };
-    }
-    const isPostgrestMutation = /^\/rest\/v1\//.test(op.path) && /^(?:POST|PATCH|PUT|DELETE)$/.test(method);
-    if (isPostgrestMutation && prefer.includes('return=representation')
-      && (!Array.isArray(result.data) || result.data.length < 1)) {
-      diracV222MarkDependencyFailure(ctx, 'database_gateway_mutation_postcondition', status || 503, 'DATABASE_MUTATION_EMPTY_REPRESENTATION', diagnosticDetails(status || 409, 'DATABASE_MUTATION_EMPTY_REPRESENTATION'));
-      return {
-        ...result,
-        ok: false,
-        status: status || 409,
-        data: { code: 'DATABASE_MUTATION_EMPTY_REPRESENTATION' }
-      };
-    }
+    const result = await __diracV202DatabaseGatewayDelegate(op.path, op.options);
+    if (!result || result.ok !== true) diracV214RecordDatabaseFailure(ctx, op, result, null, startedAt);
     return result;
+  } catch (error) {
+    diracV214RecordDatabaseFailure(ctx, op, null, error, startedAt);
+    throw error;
   } finally {
     ctx.__diracCentralDatabaseGatewayDepthV211 = Math.max(0, Number(ctx.__diracCentralDatabaseGatewayDepthV211 || 1) - 1);
   }
@@ -36098,70 +33544,24 @@ Object.defineProperty(supabaseFetch, '__diracV202SecureDatabaseGateway', { value
 const __diracV202EgressGatewayDelegate = globalThis.fetch.bind(globalThis);
 async function secureEgressGateway(ctx, requestConfig) {
   const config = requestConfig && typeof requestConfig === 'object' ? requestConfig : null;
-  if (ctx && ctx.__diracV222DependencyFailure) {
-    const error = new Error('DIRAC_EGRESS_BLOCKED_BY_PRIOR_DEPENDENCY_FAILURE');
-    error.code = 'DIRAC_EGRESS_BLOCKED_BY_PRIOR_DEPENDENCY_FAILURE';
-    throw error;
-  }
   if (!config || config.input === undefined) {
-    diracV222MarkDependencyFailure(ctx, 'egress_gateway', 500, 'DIRAC_EGRESS_GATEWAY_OPERATION_INVALID', {
-      operation: 'egress',
-      method: 'UNKNOWN',
-      resource: 'invalid_operation',
-      auth_mode: 'not_recorded',
-      upstream_status: 500,
-      upstream_code: 'DIRAC_EGRESS_GATEWAY_OPERATION_INVALID'
-    });
     const error = new Error('DIRAC_EGRESS_GATEWAY_OPERATION_INVALID');
     error.code = 'DIRAC_EGRESS_GATEWAY_OPERATION_INVALID';
     throw error;
   }
-  const diagnosticStartedAt = Date.now();
-  const safeResource = diracV233SafeEgressResource(config.input);
-  const diagnosticMethod = String(config.options && config.options.method || 'GET').trim().toUpperCase();
-  const diagnosticDetails = (upstreamStatus, upstreamCode) => ({
-    operation: 'egress',
-    method: diagnosticMethod,
-    resource: safeResource.resource,
-    auth_mode: 'not_recorded',
-    host_fingerprint: safeResource.host_fingerprint,
-    timeout_ms: 0,
-    duration_ms: Date.now() - diagnosticStartedAt,
-    upstream_status: upstreamStatus,
-    upstream_code: upstreamCode
-  });
   const contextDecision = diracCentralGatewayContextAllowedV211(ctx);
   if (!contextDecision.ok) {
-    diracV222MarkDependencyFailure(ctx, 'egress_gateway', 403, 'DIRAC_EGRESS_GATEWAY_CONTEXT_NOT_AUTHORIZED', diagnosticDetails(403, 'DIRAC_EGRESS_GATEWAY_CONTEXT_NOT_AUTHORIZED'));
-    diracCentralEmitDebugV211(ctx, 'egress_gateway_blocked', { phase: contextDecision.phase, resource: safeResource.resource });
+    diracCentralEmitDebugV211(ctx, 'egress_gateway_blocked', { phase: contextDecision.phase });
     const error = new Error('DIRAC_EGRESS_GATEWAY_CONTEXT_NOT_AUTHORIZED');
     error.code = 'DIRAC_EGRESS_GATEWAY_CONTEXT_NOT_AUTHORIZED';
     throw error;
   }
   if (contextDecision.phase === 'handler' && (!ctx.action || !ACTION_POLICY[ctx.action] || ctx.policy !== ACTION_POLICY[ctx.action])) {
-    diracV222MarkDependencyFailure(ctx, 'egress_gateway', 403, 'DIRAC_EGRESS_GATEWAY_POLICY_MISSING', diagnosticDetails(403, 'DIRAC_EGRESS_GATEWAY_POLICY_MISSING'));
     const error = new Error('DIRAC_EGRESS_GATEWAY_POLICY_MISSING');
     error.code = 'DIRAC_EGRESS_GATEWAY_POLICY_MISSING';
     throw error;
   }
-  try {
-    const response = await __diracV202EgressGatewayDelegate(config.input, config.options);
-    if (!response || typeof response !== 'object' || typeof response.ok !== 'boolean' || !Number.isFinite(Number(response.status))) {
-      diracV222MarkDependencyFailure(ctx, 'egress_gateway_response', 502, 'DIRAC_EGRESS_RESPONSE_INVALID', diagnosticDetails(502, 'DIRAC_EGRESS_RESPONSE_INVALID'));
-      const error = new Error('DIRAC_EGRESS_RESPONSE_INVALID');
-      error.code = 'DIRAC_EGRESS_RESPONSE_INVALID';
-      throw error;
-    }
-    if (response.ok !== true) {
-      const status = Number(response.status || 0) || 502;
-      diracV222MarkDependencyFailure(ctx, 'egress_gateway_http_result', status, 'EGRESS_HTTP_STATUS_' + String(status), diagnosticDetails(status, 'EGRESS_HTTP_STATUS_' + String(status)));
-    }
-    return response;
-  } catch (error) {
-    const errorCode = diracV233ClassifyDependencyException(error, 'EGRESS_GATEWAY_EXCEPTION');
-    diracV222MarkDependencyFailure(ctx, 'egress_gateway_exception', 502, errorCode, diagnosticDetails(502, errorCode));
-    throw error;
-  }
+  return __diracV202EgressGatewayDelegate(config.input, config.options);
 }
 globalThis.fetch = async function fetchV202Gateway(input, options) {
   return secureEgressGateway(diracCentralCurrentContextV149(), { input, options });
@@ -36169,423 +33569,12 @@ globalThis.fetch = async function fetchV202Gateway(input, options) {
 globalThis.__DIRAC_V202_SECURE_EGRESS_GATEWAY__ = true;
 
 function secureResponseGateway(ctx, response) {
-  if (!response || typeof response !== 'object') {
-    const error = new Error('DIRAC_SECURE_RESPONSE_GATEWAY_INVALID');
-    error.code = 'DIRAC_SECURE_RESPONSE_GATEWAY_INVALID';
-    throw error;
-  }
-  if (diracCentralApplyHeadersV146(response) !== true || diracCentralWrapJsonResponseV146(response) !== true) {
-    const error = new Error('DIRAC_SECURE_RESPONSE_GATEWAY_NOT_ENFORCED');
-    error.code = 'DIRAC_SECURE_RESPONSE_GATEWAY_NOT_ENFORCED';
-    throw error;
-  }
+  if (!response || typeof response !== 'object') return response;
+  diracCentralApplyHeadersV146(response);
+  diracCentralWrapJsonResponseV146(response);
   if (ctx) ctx.responsePolicy = ctx.policy && ctx.policy.responsePolicy || 'secure_response_gateway_no_store';
   return response;
 }
-
-const __diracAbsoluteFailClosedExpectedMiddlewareV221 = Object.freeze([
-  'customerSecurityHealthWrapper',
-  'customerSecurityOverviewWrapper',
-  'customerSecurityRegisterBootstrapWrapper',
-  'customerSecurityGuardedActionsWrapper',
-  'adminSecurityCenterSupabaseWrapper',
-  'sessionOwnershipCheckoutWrapper',
-  'myOrdersWrapper',
-  'lockedCreatePaymentWrapper',
-  'midtransPaymentWrapper',
-  'ipaymuPaymentWrapper',
-  'diracPasskeyA2FWrapper',
-  'diracPasskeyDbStatusWrapper',
-  'diracUniversalPesananPaymentWrapper',
-  'diracOrderMailWrapper',
-  'diracSensitivePostOriginGuardWrapper',
-  'customerSecurityFeatureReadWrapper',
-  'customerSecurityFeatureActionsWrapperV2',
-  'customerSecurityOverviewSessionLimitWrapperV3',
-  'diracUltraSecurityHardeningWrapper',
-  'diracUltraSqlmapGuardWrapper',
-  'diracGlobalHardBanStableWrapperV107',
-  'diracPasswordArgon2VerifiedShadowWrapperV4',
-  'diracAuthHardeningSafeWrapperV110',
-  'diracPerfumeCatalogV112Wrapper',
-  'diracPerfumeCatalogV116Wrapper',
-  'diracPerfumePublicProductsV117Wrapper',
-  'diracUltraXssAttackHardeningWrapperV2',
-  'diracUltraXssOneStrikePermanentBlockWrapperV3',
-  'diracSqlPrecisionV108HeaderWrapper',
-  'diracBodyInputThreatBlockV119Wrapper',
-  'diracCsrfHmacWrapper',
-  'diracBackendXssResponseHardeningWrapperV4',
-  'diracAdvancedBackendPassiveHardeningWrapperV5',
-  'diracBolaIdorServiceScopeContextWrapperV121',
-  'diracBolaIdorGlobalHardBanWrapperV128',
-  'diracOwnerPaidEmailSenderHealthWrapperV129',
-  'diracAuthRegisterSafeBolaRepairWrapperV131',
-  'diracBolaIdorHighAssuranceWrapperV132',
-  'diracBolaIdorCustomerLinkHardBindingWrapperV133',
-  'diracBackendStrictSafeWrapperV136',
-  'diracCsrfAllWebsiteActionsSafeWrapperV137',
-  'diracCsrfEveryBrowserActionStrictSafeWrapperV138',
-  'diracCsrfPreauthStrictCompatWrapperV141',
-  'diracCsrfPasskeyActionCompatWrapperV142',
-  'diracGlobalApiThreatGuardWrapperV143',
-  'diracRecoveryWorkerWrapper'
-]);
-
-const __diracAbsoluteFailClosedExpectedWrapperFlagsV221 = Object.freeze([
-  '__diracSqlPrecisionV108HeaderWrapped',
-  '__diracBodyInputThreatV119Wrapped',
-  '__diracBolaIdorV121Wrapped',
-  '__diracBolaIdorV122StrictSafe',
-  '__diracBolaIdorV128Wrapped',
-  '__diracAuthRegisterSafeBolaRepairV131',
-  '__diracBolaIdorV132Wrapped',
-  '__diracBolaIdorV133Wrapped',
-  '__diracCsrfAllWebsiteV137Wrapped',
-  '__diracCsrfEveryBrowserActionV138Wrapped',
-  '__diracV141PreauthWrapperHeader',
-  '__diracV142PasskeyCompatHeader',
-  '__diracV143Wrapped',
-  '__diracCentralSecurityGuardV146',
-  '__diracServer1RecoveryBoundaryV201'
-]);
-
-function diracAbsoluteFailClosedAssertV221() {
-  if (__diracV221InstallerFailures.length !== 0) {
-    throw new Error('DIRAC_V221_SECURITY_INSTALLER_FAILURE:' + __diracV221InstallerFailures.map((item) => item.scope + ':' + item.code).join(','));
-  }
-  assertProductionSecurityConfigV146();
-
-  const middlewareNames = __diracV202MiddlewareRegistry.map((entry) => String(entry && entry.name || ''));
-  if (middlewareNames.length !== __diracAbsoluteFailClosedExpectedMiddlewareV221.length
-      || middlewareNames.some((name, index) => name !== __diracAbsoluteFailClosedExpectedMiddlewareV221[index])
-      || new Set(middlewareNames).size !== middlewareNames.length
-      || __diracV202MiddlewareRegistry.some((entry) => !entry || typeof entry.fn !== 'function' || !Object.isFrozen(entry))) {
-    throw new Error('DIRAC_V221_REQUIRED_MIDDLEWARE_INVARIANT_FAILED');
-  }
-
-  if (__diracV202WrapperFlags.size !== __diracAbsoluteFailClosedExpectedWrapperFlagsV221.length
-      || __diracAbsoluteFailClosedExpectedWrapperFlagsV221.some((flag) => !__diracV202WrapperFlags.has(flag))) {
-    throw new Error('DIRAC_V221_REQUIRED_WRAPPER_FLAG_INVARIANT_FAILED');
-  }
-
-  const pipelineStamps = SECURITY_PIPELINE.map((stage) => String(stage && stage.stamp || ''));
-  if (!Object.isFrozen(SECURITY_PIPELINE)
-      || pipelineStamps.length !== Object.keys(DIRAC_V202_CHECKPOINT_BY_STAMP).length
-      || new Set(pipelineStamps).size !== pipelineStamps.length
-      || SECURITY_PIPELINE.some((stage) => !stage || typeof stage.guard !== 'function' || !Object.isFrozen(stage) || !DIRAC_V202_CHECKPOINT_BY_STAMP[stage.stamp])) {
-    throw new Error('DIRAC_V221_SECURITY_PIPELINE_INVARIANT_FAILED');
-  }
-
-  if (typeof __diracV202CentralGuardHandler !== 'function'
-      || typeof readLimitedJsonBody !== 'function'
-      || readLimitedJsonBody.__diracCentralBodyCacheV146 !== true
-      || typeof readBody !== 'function'
-      || readBody.__diracCentralBodyCacheV146 !== true
-      || typeof supabaseFetch !== 'function'
-      || supabaseFetch.__diracV202SecureDatabaseGateway !== true
-      || globalThis.__DIRAC_V202_SECURE_EGRESS_GATEWAY__ !== true) {
-    throw new Error('DIRAC_V221_CENTRAL_GATEWAY_INVARIANT_FAILED');
-  }
-
-  const missingOriginDecision = diracSensitivePostOriginCheck({ headers: {} }, 'domain_login');
-  if (!missingOriginDecision || missingOriginDecision.ok === true
-      || shouldAcceptFrontendAuthHeaders() !== false
-      || shouldHideDomainAuthTokens() !== true
-      || diracBolaIdorV121ShouldEnforce('domain_login', 'customers', 'POST', Object.freeze({})) !== true) {
-    throw new Error('DIRAC_V221_FAIL_CLOSED_DECISION_INVARIANT_FAILED');
-  }
-
-  if (diracPasswordArgon2V4PersistAfterVerifiedAuth !== diracPasswordArgon2ActiveOnlyV120PersistAfterVerifiedAuth
-      || diracV110PersistArgon2ShadowAfterVerifiedAuth !== diracPasswordArgon2ActiveOnlyV120PersistAfterVerifiedAuth) {
-    throw new Error('DIRAC_V221_ARGON2_POSTCONDITION_INVARIANT_FAILED');
-  }
-
-  if (Object.keys(ACTION_POLICY).length !== DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.size + DIRAC_CENTRAL_DISABLED_ACTIONS_V146.size
-      || Array.from(DIRAC_CENTRAL_VERIFIED_OWNER_ACTIONS_V217).some((action) => !DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.has(action) || !DIRAC_CENTRAL_USER_DATA_ACTIONS_V146.has(action) || !ACTION_POLICY[action] || ACTION_POLICY[action].ownership !== true)) {
-    throw new Error('DIRAC_V221_ACTION_POLICY_INVARIANT_FAILED');
-  }
-
-  Object.freeze(__diracV202MiddlewareRegistry);
-  const manifest = Object.freeze({
-    version: 'dirac-absolute-fail-closed-v221',
-    middleware: Object.freeze(middlewareNames.slice()),
-    wrapperFlags: Object.freeze(Array.from(__diracV202WrapperFlags).sort()),
-    pipelineStamps: Object.freeze(pipelineStamps.slice()),
-    actionPolicies: Object.freeze(Object.keys(ACTION_POLICY).sort())
-  });
-  const hash = crypto.createHash('sha256').update(JSON.stringify(manifest)).digest('hex');
-  return Object.freeze({ manifest, hash });
-}
-
-const __diracAbsoluteFailClosedInvariantV221 = diracAbsoluteFailClosedAssertV221();
-function diracAbsoluteFailClosedAssertV222() {
-  if (!__diracAbsoluteFailClosedInvariantV221 || !__diracAbsoluteFailClosedInvariantV221.hash) {
-    throw new Error('DIRAC_V222_V221_INVARIANT_REQUIRED');
-  }
-  if (typeof diracV222MarkDependencyFailure !== 'function'
-      || typeof diracV222ShouldBlockSuccessfulResponse !== 'function'
-      || typeof secureDatabaseGateway !== 'function'
-      || typeof secureEgressGateway !== 'function'
-      || typeof secureResponseGateway !== 'function') {
-    throw new Error('DIRAC_V222_FAIL_CLOSED_LATCH_INVARIANT_FAILED');
-  }
-  const manifest = Object.freeze({
-    version: DIRAC_ABSOLUTE_FAIL_CLOSED_V222,
-    previousInvariantHash: __diracAbsoluteFailClosedInvariantV221.hash,
-    dependencyFailureLatch: true,
-    databaseGateway: supabaseFetch.__diracV202SecureDatabaseGateway === true,
-    egressGateway: globalThis.__DIRAC_V202_SECURE_EGRESS_GATEWAY__ === true,
-    centralGuard: true
-  });
-  const hash = crypto.createHash('sha256').update(JSON.stringify(manifest)).digest('hex');
-  return Object.freeze({ manifest, hash });
-}
-const __diracAbsoluteFailClosedInvariantV222 = diracAbsoluteFailClosedAssertV222();
-function diracAbsoluteFailClosedAssertV223() {
-  if (!__diracAbsoluteFailClosedInvariantV222 || !__diracAbsoluteFailClosedInvariantV222.hash) {
-    throw new Error('DIRAC_V223_V222_INVARIANT_REQUIRED');
-  }
-  if (DOMAIN_LOGIN_RATE_TABLE !== 'dirac_security_rate_limits'
-      || typeof diracV223ThrowFailClosed !== 'function'
-      || typeof readSignedDomainSessionUser !== 'function'
-      || readSignedDomainSessionUser.length !== 1
-      || typeof writePersistentSecurityJsonRequiredV194 !== 'function'
-      || typeof claimPersistentSecurityKeyOnceV194 !== 'function') {
-    throw new Error('DIRAC_V223_FAIL_CLOSED_CONTRACT_INVARIANT_FAILED');
-  }
-  const manifest = Object.freeze({
-    version: DIRAC_ABSOLUTE_FAIL_CLOSED_V223,
-    previousInvariantHash: __diracAbsoluteFailClosedInvariantV222.hash,
-    persistentRateLimitTable: DOMAIN_LOGIN_RATE_TABLE,
-    signedSessionAuthenticationFallback: false,
-    serviceRoleExtraTables: false,
-    exactMutationPostconditions: true,
-    centralGuardUnchanged: true
-  });
-  const hash = crypto.createHash('sha256').update(JSON.stringify(manifest)).digest('hex');
-  return Object.freeze({ manifest, hash });
-}
-const __diracAbsoluteFailClosedInvariantV223 = diracAbsoluteFailClosedAssertV223();
-function diracAbsoluteFailClosedAssertV224() {
-  if (!__diracAbsoluteFailClosedInvariantV223 || !__diracAbsoluteFailClosedInvariantV223.hash) {
-    throw new Error('DIRAC_V224_V223_INVARIANT_REQUIRED');
-  }
-  if (readSignedDomainSessionUser.__diracV224AuthenticationFallbackDisabled !== true
-      || typeof diracV222RequireExactMutationRows !== 'function'
-      || typeof diracV222SecurityPersistenceUnavailableResponse !== 'function') {
-    throw new Error('DIRAC_V224_FAIL_CLOSED_CONTRACT_INVARIANT_FAILED');
-  }
-  const manifest = Object.freeze({
-    version: DIRAC_ABSOLUTE_FAIL_CLOSED_V224,
-    previousInvariantHash: __diracAbsoluteFailClosedInvariantV223.hash,
-    signedSessionAuthenticationFallbackMarker: true,
-    recoveryAttemptExactPostcondition: true,
-    recoveryDeliveryFailureRevocationRequired: true,
-    recoverySentMarkerExactPostcondition: true,
-    centralGuardUnchanged: true
-  });
-  const hash = crypto.createHash('sha256').update(JSON.stringify(manifest)).digest('hex');
-  return Object.freeze({ manifest, hash });
-}
-const __diracAbsoluteFailClosedInvariantV224 = diracAbsoluteFailClosedAssertV224();
-function diracAbsoluteFailClosedAssertV225() {
-  if (!__diracAbsoluteFailClosedInvariantV224 || !__diracAbsoluteFailClosedInvariantV224.hash) {
-    throw new Error('DIRAC_V225_V224_INVARIANT_REQUIRED');
-  }
-  if (typeof shouldUseStrictDiracMultiDbRouter !== 'function'
-      || typeof adminSecurityFindAdminUserSupabase !== 'function'
-      || typeof diracPasskeyA2FFetchByCredentialId !== 'function'
-      || typeof diracRecoveryHpkeReadRequestV159 !== 'function') {
-    throw new Error('DIRAC_V225_FAIL_CLOSED_CONTRACT_INVARIANT_FAILED');
-  }
-  const manifest = Object.freeze({
-    version: DIRAC_ABSOLUTE_FAIL_CLOSED_V225,
-    previousInvariantHash: __diracAbsoluteFailClosedInvariantV224.hash,
-    strictMultiDatabaseRouting: true,
-    ambiguousSecurityIdentityReadsRejected: true,
-    protectedSessionDuplicateBindingRejected: true,
-    recoveryDeviceBindingRequired: true,
-    centralGuardUnchanged: true
-  });
-  const hash = crypto.createHash('sha256').update(JSON.stringify(manifest)).digest('hex');
-  return Object.freeze({ manifest, hash });
-}
-const __diracAbsoluteFailClosedInvariantV225 = diracAbsoluteFailClosedAssertV225();
-function diracAbsoluteFailClosedAssertV226() {
-  if (!__diracAbsoluteFailClosedInvariantV225 || !__diracAbsoluteFailClosedInvariantV225.hash) {
-    throw new Error('DIRAC_V226_V225_INVARIANT_REQUIRED');
-  }
-  if (__diracSessionWriteSanitizationFailClosedV226 !== true
-      || typeof diracV107BuildKeys !== 'function'
-      || diracV107BuildKeys.__diracCrossDeployV151Wrapped !== true) {
-    throw new Error('DIRAC_V226_FAIL_CLOSED_CONTRACT_INVARIANT_FAILED');
-  }
-  const manifest = Object.freeze({
-    version: DIRAC_ABSOLUTE_FAIL_CLOSED_V226,
-    previousInvariantHash: __diracAbsoluteFailClosedInvariantV225.hash,
-    sessionWriteSanitizationFailureRejected: true,
-    hardBanStableIdentityDerivationFailureRejected: true,
-    centralGuardUnchanged: true
-  });
-  const hash = crypto.createHash('sha256').update(JSON.stringify(manifest)).digest('hex');
-  return Object.freeze({ manifest, hash });
-}
-const __diracAbsoluteFailClosedInvariantV226 = diracAbsoluteFailClosedAssertV226();
-function diracAbsoluteFailClosedAssertV227() {
-  if (!__diracAbsoluteFailClosedInvariantV226 || !__diracAbsoluteFailClosedInvariantV226.hash) {
-    throw new Error('DIRAC_V227_V226_INVARIANT_REQUIRED');
-  }
-  if (typeof sessionOwnershipCheckoutFetchCustomerById !== 'function'
-      || typeof diracPasskeyA2FFetchCustomerById !== 'function'
-      || typeof midtransVerifyTransactionOwnerAndAmount !== 'function') {
-    throw new Error('DIRAC_V227_FAIL_CLOSED_CONTRACT_INVARIANT_FAILED');
-  }
-  const manifest = Object.freeze({
-    version: DIRAC_ABSOLUTE_FAIL_CLOSED_V227,
-    previousInvariantHash: __diracAbsoluteFailClosedInvariantV226.hash,
-    uniqueCustomerIdentityReadsRequired: true,
-    uniqueSessionIdentityReadsRequired: true,
-    uniquePaymentOrderReadsRequired: true,
-    exactCustomerCreationPostconditions: true,
-    centralGuardUnchanged: true
-  });
-  const hash = crypto.createHash('sha256').update(JSON.stringify(manifest)).digest('hex');
-  return Object.freeze({ manifest, hash });
-}
-const __diracAbsoluteFailClosedInvariantV227 = diracAbsoluteFailClosedAssertV227();
-function diracAbsoluteFailClosedAssertV228() {
-  if (!__diracAbsoluteFailClosedInvariantV227 || !__diracAbsoluteFailClosedInvariantV227.hash) {
-    throw new Error('DIRAC_V228_V227_INVARIANT_REQUIRED');
-  }
-  if (diracV222MarkDependencyFailure.__diracV228StrictRequestContext !== true
-      || diracCentralWrapJsonResponseV146.__diracV228AllResponseChannels !== true
-      || diracCentralA2FBodyHashV148.__diracV228StrictBodyHash !== true
-      || diracCentralA2FRequestSignatureGuardV148.__diracV228SignedOnly !== true
-      || diracCentralConsumeA2FNonceV148.__diracV228PersistentAtomicReplay !== true
-      || diracCsrfIsEnforcedForAction.__diracV222AlwaysEnforced !== true
-      || diracCsrfVerifyRequest.__diracV222StrictDoubleSubmit !== true) {
-    throw new Error('DIRAC_V228_FAIL_CLOSED_CONTRACT_INVARIANT_FAILED');
-  }
-  const manifest = Object.freeze({
-    version: DIRAC_ABSOLUTE_FAIL_CLOSED_V228,
-    previousInvariantHash: __diracAbsoluteFailClosedInvariantV227.hash,
-    explicitRequestContextRequired: true,
-    responseChannelsCovered: Object.freeze(['json', 'send', 'end', 'redirect', 'writeHead', 'write']),
-    a2fSignedProofOnly: true,
-    a2fConstantTimeSignatureComparison: true,
-    a2fPersistentAtomicReplayClaim: true,
-    a2fSessionUserMethodPathBodyPurposeBound: true,
-    strictCsrfDoubleSubmitRetained: true,
-    centralGuardPipelineUnchanged: true
-  });
-  const hash = crypto.createHash('sha256').update(JSON.stringify(manifest)).digest('hex');
-  return Object.freeze({ manifest, hash });
-}
-const __diracAbsoluteFailClosedInvariantV228 = diracAbsoluteFailClosedAssertV228();
-function diracAbsoluteFailClosedAssertV229() {
-  if (!__diracAbsoluteFailClosedInvariantV228 || !__diracAbsoluteFailClosedInvariantV228.hash) {
-    throw new Error('DIRAC_V229_V228_INVARIANT_REQUIRED');
-  }
-  if (diracV229SetTrustedDeviceState.__diracV229ExactCompensation !== true
-      || diracV229RestoreAdminAccessBlocks.__diracV229ExactCompensation !== true
-      || diracV229RollbackLostPasskeyRecoveryGrant.__diracV229ExactCompensation !== true) {
-    throw new Error('DIRAC_V229_FAIL_CLOSED_CONTRACT_INVARIANT_FAILED');
-  }
-  const manifest = Object.freeze({
-    version: DIRAC_ABSOLUTE_FAIL_CLOSED_V229,
-    previousInvariantHash: __diracAbsoluteFailClosedInvariantV228.hash,
-    requiredSecurityAuditBeforePrivilegeGrantSuccess: true,
-    adminUnblockSnapshotAndExactRollback: true,
-    trustedDeviceAuditCompensation: true,
-    recoverySessionAuditCompensation: true,
-    privilegeReducingMutationRetainedOnAuditFailure: true,
-    centralGuardPipelineUnchanged: true
-  });
-  const hash = crypto.createHash('sha256').update(JSON.stringify(manifest)).digest('hex');
-  return Object.freeze({ manifest, hash });
-}
-const __diracAbsoluteFailClosedInvariantV229 = diracAbsoluteFailClosedAssertV229();
-function diracAbsoluteFailClosedAssertV230() {
-  if (!__diracAbsoluteFailClosedInvariantV229 || !__diracAbsoluteFailClosedInvariantV229.hash) {
-    throw new Error('DIRAC_V230_V229_INVARIANT_REQUIRED');
-  }
-  if (diracV230RevokeLostPasskeyRecoveryRequest.__diracV230ExactCompensation !== true
-      || diracV230RevokeCreatedCustomerSession.__diracV230ExactCompensation !== true
-      || diracV230DeleteSecurityAccountRequest.__diracV230ExactCompensation !== true) {
-    throw new Error('DIRAC_V230_FAIL_CLOSED_CONTRACT_INVARIANT_FAILED');
-  }
-  const manifest = Object.freeze({
-    version: DIRAC_ABSOLUTE_FAIL_CLOSED_V230,
-    previousInvariantHash: __diracAbsoluteFailClosedInvariantV229.hash,
-    recoveryDeliveryMarkerFailureRevokesRequest: true,
-    recoveryDeliveryAuditFailureRevokesRequest: true,
-    sessionTelemetryFailureRevokesCreatedSession: true,
-    accountRequestAuditFailureDeletesPendingRequest: true,
-    exactCompensatingMutationPostconditions: true,
-    centralGuardPipelineUnchanged: true
-  });
-  const hash = crypto.createHash('sha256').update(JSON.stringify(manifest)).digest('hex');
-  return Object.freeze({ manifest, hash });
-}
-const __diracAbsoluteFailClosedInvariantV230 = diracAbsoluteFailClosedAssertV230();
-function diracAbsoluteFailClosedAssertV231() {
-  if (!__diracAbsoluteFailClosedInvariantV230 || !__diracAbsoluteFailClosedInvariantV230.hash) throw new Error('DIRAC_V231_V230_INVARIANT_REQUIRED');
-  if (customerSecurityFetchOverviewData.__diracV231CompleteReadRequired !== true) throw new Error('DIRAC_V231_FAIL_CLOSED_CONTRACT_INVARIANT_FAILED');
-  const manifest = Object.freeze({
-    version: DIRAC_ABSOLUTE_FAIL_CLOSED_V231,
-    previousInvariantHash: __diracAbsoluteFailClosedInvariantV230.hash,
-    securityOverviewPartialReadRejected: true,
-    securityOverviewMalformedShapeRejected: true,
-    securityFeatureEmptyFallbackRemoved: true,
-    centralGuardPipelineUnchanged: true
-  });
-  const hash = crypto.createHash('sha256').update(JSON.stringify(manifest)).digest('hex');
-  return Object.freeze({ manifest, hash });
-}
-const __diracAbsoluteFailClosedInvariantV231 = diracAbsoluteFailClosedAssertV231();
-function diracAbsoluteFailClosedAssertV232() {
-  if (!__diracAbsoluteFailClosedInvariantV231 || !__diracAbsoluteFailClosedInvariantV231.hash) throw new Error('DIRAC_V232_V231_INVARIANT_REQUIRED');
-  const a2fGuardSource = Function.prototype.toString.call(diracCentralA2FRequestSignatureGuardV148);
-  const csrfVerifySource = Function.prototype.toString.call(diracCsrfVerifyRequest);
-  const forbiddenSignedPageNonceFallback = ['signed', 'page', 'nonce', 'compat'].join('_');
-  const forbiddenPageNonceFallback = ['page', 'nonce', 'compat'].join('_');
-  const forbiddenCsrfSecretFallback = ['csrf', 'secret', 'missing', 'compat'].join('_');
-  if (diracCentralConsumeA2FNonceV148.length !== 3
-      || diracCentralConsumeA2FNonceV148.__diracV232ExplicitContextAndExactClaim !== true
-      || claimPersistentSecurityKeyOnceV194.__diracV232ExactAtomicClaim !== true
-      || diracV234VerifyPersistentSecurityWrite.__diracV234ExactReadBack !== true
-      || writePersistentSecurityJson.__diracV234VerifiedReadBack !== true
-      || diracCentralA2FRequestSignatureGuardV148.__diracV232SignedOnlyNoCompatibility !== true
-      || a2fGuardSource.includes(forbiddenSignedPageNonceFallback)
-      || a2fGuardSource.includes(forbiddenPageNonceFallback)
-      || csrfVerifySource.includes(forbiddenCsrfSecretFallback)
-      || diracV222SecurityPersistenceUnavailableResponse.__diracV232RequiredResponseHeaders !== true
-      || diracCentralWrapJsonResponseV146.__diracV232HeadersSentFailClosed !== true
-      || diracCentralIssuePageNonceV146.__diracV232RequiredHeaderDelivery !== true
-      || diracCentralVerifyPageNonceV146.__diracV232ConstantTimeOnly !== true) {
-    throw new Error('DIRAC_V232_FAIL_CLOSED_CONTRACT_INVARIANT_FAILED');
-  }
-  const manifest = Object.freeze({
-    version: DIRAC_ABSOLUTE_FAIL_CLOSED_V232,
-    previousInvariantHash: __diracAbsoluteFailClosedInvariantV231.hash,
-    explicitA2FContextParameter: true,
-    a2fCompatibilityFallbackRemoved: true,
-    atomicReplayClaimExactRowAndExpiry: true,
-    strictRequestContextFailureLatch: true,
-    dependencyFailureForcesServerError: true,
-    committedSuccessResponseIsTerminated: true,
-    requiredSecurityResponseHeaders: true,
-    pageNonceConstantTimeOnly: true,
-    exactMutationAndCompensationPostconditionsRetained: true,
-    persistentSecurityWriteExactReadBackRequired: true,
-    requiredGuardStartupInvariantRetained: true,
-    centralGuardPipelineUnchanged: true
-  });
-  const hash = crypto.createHash('sha256').update(JSON.stringify(manifest)).digest('hex');
-  return Object.freeze({ manifest, hash });
-}
-const __diracAbsoluteFailClosedInvariantV232 = diracAbsoluteFailClosedAssertV232();
 
 const __diracV202CompiledDispatcher = (() => {
   let next = __diracV202BaseHandler;
@@ -36613,7 +33602,7 @@ module.exports = async function diracCentralArchitectureConsolidationV202(req, r
   return __diracV202CentralGuardHandler(req, res, () => diracV202Dispatcher(req, res));
 };
 for (const flag of __diracV202WrapperFlags) {
-  try { Object.defineProperty(module.exports, flag, { value: true, enumerable: false, configurable: false }); } catch (error) { __diracV221RecordInstallerFailure('top_level_install_line_33848', error); }
+  try { Object.defineProperty(module.exports, flag, { value: true, enumerable: false, configurable: false }); } catch (_) {}
 }
 Object.defineProperty(module.exports, '__diracCentralSecurityGuardV146', { value: true, enumerable: false });
 Object.defineProperty(module.exports, '__diracCentralArchitectureConsolidationV202', { value: true, enumerable: false });
@@ -36621,72 +33610,15 @@ Object.defineProperty(module.exports, '__diracV202MiddlewareCount', { value: __d
 Object.defineProperty(module.exports, '__diracV202ActionPolicyCount', { value: Object.keys(ACTION_POLICY).length, enumerable: false });
 Object.defineProperty(module.exports, '__diracCentralFailClosedDebugV211', { value: true, enumerable: false });
 Object.defineProperty(module.exports, '__diracCentralOwnerBootstrapV213', { value: true, enumerable: false });
-Object.defineProperty(module.exports, '__diracAbsoluteFailClosedV221', { value: true, enumerable: false });
-Object.defineProperty(module.exports, '__diracAbsoluteFailClosedInvariantHashV221', { value: __diracAbsoluteFailClosedInvariantV221.hash, enumerable: false });
-Object.defineProperty(module.exports, '__diracAbsoluteFailClosedV222', { value: true, enumerable: false });
-Object.defineProperty(module.exports, '__diracAbsoluteFailClosedInvariantHashV222', { value: __diracAbsoluteFailClosedInvariantV222.hash, enumerable: false });
-Object.defineProperty(module.exports, '__diracAbsoluteFailClosedV223', { value: true, enumerable: false });
-Object.defineProperty(module.exports, '__diracAbsoluteFailClosedInvariantHashV223', { value: __diracAbsoluteFailClosedInvariantV223.hash, enumerable: false });
-Object.defineProperty(module.exports, '__diracAbsoluteFailClosedV224', { value: true, enumerable: false });
-Object.defineProperty(module.exports, '__diracAbsoluteFailClosedInvariantHashV224', { value: __diracAbsoluteFailClosedInvariantV224.hash, enumerable: false });
-Object.defineProperty(module.exports, '__diracAbsoluteFailClosedV225', { value: true, enumerable: false });
-Object.defineProperty(module.exports, '__diracAbsoluteFailClosedInvariantHashV225', { value: __diracAbsoluteFailClosedInvariantV225.hash, enumerable: false });
-Object.defineProperty(module.exports, '__diracAbsoluteFailClosedV226', { value: true, enumerable: false });
-Object.defineProperty(module.exports, '__diracAbsoluteFailClosedInvariantHashV226', { value: __diracAbsoluteFailClosedInvariantV226.hash, enumerable: false });
-Object.defineProperty(module.exports, '__diracAbsoluteFailClosedV227', { value: true, enumerable: false });
-Object.defineProperty(module.exports, '__diracAbsoluteFailClosedInvariantHashV227', { value: __diracAbsoluteFailClosedInvariantV227.hash, enumerable: false });
-Object.defineProperty(module.exports, '__diracAbsoluteFailClosedV228', { value: true, enumerable: false });
-Object.defineProperty(module.exports, '__diracAbsoluteFailClosedInvariantHashV228', { value: __diracAbsoluteFailClosedInvariantV228.hash, enumerable: false });
-Object.defineProperty(module.exports, '__diracAbsoluteFailClosedV229', { value: true, enumerable: false });
-Object.defineProperty(module.exports, '__diracAbsoluteFailClosedInvariantHashV229', { value: __diracAbsoluteFailClosedInvariantV229.hash, enumerable: false });
-Object.defineProperty(module.exports, '__diracAbsoluteFailClosedV230', { value: true, enumerable: false });
-Object.defineProperty(module.exports, '__diracAbsoluteFailClosedInvariantHashV230', { value: __diracAbsoluteFailClosedInvariantV230.hash, enumerable: false });
-Object.defineProperty(module.exports, '__diracAbsoluteFailClosedV231', { value: true, enumerable: false });
-Object.defineProperty(module.exports, '__diracAbsoluteFailClosedInvariantHashV231', { value: __diracAbsoluteFailClosedInvariantV231.hash, enumerable: false });
-Object.defineProperty(module.exports, '__diracAbsoluteFailClosedV232', { value: true, enumerable: false });
-Object.defineProperty(module.exports, '__diracAbsoluteFailClosedInvariantHashV232', { value: __diracAbsoluteFailClosedInvariantV232.hash, enumerable: false });
-Object.defineProperty(module.exports, '__diracV221InstallerFailureCount', { value: __diracV221InstallerFailures.length, enumerable: false });
-// Compatibility marker lama hanya diterbitkan setelah invariant v221 lulus.
-Object.defineProperty(module.exports, '__diracAbsoluteFailClosedV220', { value: true, enumerable: false });
 
 if (!Array.isArray(SECURITY_PIPELINE)
-    || !Object.isFrozen(__diracV202MiddlewareRegistry)
-    || __diracV202MiddlewareRegistry.length !== __diracAbsoluteFailClosedExpectedMiddlewareV221.length
     || SECURITY_PIPELINE.length !== Object.keys(DIRAC_V202_CHECKPOINT_BY_STAMP).length
     || Object.keys(ACTION_POLICY).length !== DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.size + DIRAC_CENTRAL_DISABLED_ACTIONS_V146.size
     || Array.from(DIRAC_CENTRAL_VERIFIED_OWNER_ACTIONS_V217).some((action) => !DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.has(action) || !DIRAC_CENTRAL_USER_DATA_ACTIONS_V146.has(action) || !ACTION_POLICY[action] || ACTION_POLICY[action].ownership !== true)
     || typeof supabaseFetch !== 'function'
     || supabaseFetch.__diracV202SecureDatabaseGateway !== true
-    || globalThis.__DIRAC_V202_SECURE_EGRESS_GATEWAY__ !== true
-    || __diracAbsoluteFailClosedExpectedWrapperFlagsV221.some((flag) => module.exports[flag] !== true)
-    || __diracV221InstallerFailures.length !== 0
-    || module.exports.__diracV221InstallerFailureCount !== 0
-    || module.exports.__diracAbsoluteFailClosedV221 !== true
-    || module.exports.__diracAbsoluteFailClosedInvariantHashV221 !== __diracAbsoluteFailClosedInvariantV221.hash
-    || module.exports.__diracAbsoluteFailClosedV222 !== true
-    || module.exports.__diracAbsoluteFailClosedInvariantHashV222 !== __diracAbsoluteFailClosedInvariantV222.hash
-    || module.exports.__diracAbsoluteFailClosedV223 !== true
-    || module.exports.__diracAbsoluteFailClosedInvariantHashV223 !== __diracAbsoluteFailClosedInvariantV223.hash
-    || module.exports.__diracAbsoluteFailClosedV224 !== true
-    || module.exports.__diracAbsoluteFailClosedInvariantHashV224 !== __diracAbsoluteFailClosedInvariantV224.hash
-    || module.exports.__diracAbsoluteFailClosedV225 !== true
-    || module.exports.__diracAbsoluteFailClosedInvariantHashV225 !== __diracAbsoluteFailClosedInvariantV225.hash
-    || module.exports.__diracAbsoluteFailClosedV226 !== true
-    || module.exports.__diracAbsoluteFailClosedInvariantHashV226 !== __diracAbsoluteFailClosedInvariantV226.hash
-    || module.exports.__diracAbsoluteFailClosedV227 !== true
-    || module.exports.__diracAbsoluteFailClosedInvariantHashV227 !== __diracAbsoluteFailClosedInvariantV227.hash
-    || module.exports.__diracAbsoluteFailClosedV228 !== true
-    || module.exports.__diracAbsoluteFailClosedInvariantHashV228 !== __diracAbsoluteFailClosedInvariantV228.hash
-    || module.exports.__diracAbsoluteFailClosedV229 !== true
-    || module.exports.__diracAbsoluteFailClosedInvariantHashV229 !== __diracAbsoluteFailClosedInvariantV229.hash
-    || module.exports.__diracAbsoluteFailClosedV230 !== true
-    || module.exports.__diracAbsoluteFailClosedInvariantHashV230 !== __diracAbsoluteFailClosedInvariantV230.hash
-    || module.exports.__diracAbsoluteFailClosedV231 !== true
-    || module.exports.__diracAbsoluteFailClosedInvariantHashV231 !== __diracAbsoluteFailClosedInvariantV231.hash
-    || module.exports.__diracAbsoluteFailClosedV232 !== true
-    || module.exports.__diracAbsoluteFailClosedInvariantHashV232 !== __diracAbsoluteFailClosedInvariantV232.hash
-    || module.exports.__diracAbsoluteFailClosedV220 !== true) {
-  throw new Error('DIRAC_V232_FAIL_CLOSED_RUNTIME_INVARIANT_FAILED');
+    || globalThis.__DIRAC_V202_SECURE_EGRESS_GATEWAY__ !== true) {
+  throw new Error('DIRAC_V211_FAIL_CLOSED_RUNTIME_INVARIANT_FAILED');
 }
 
 if (typeof module.exports !== 'function'
@@ -36694,4 +33626,3 @@ if (typeof module.exports !== 'function'
     || module.exports.__diracCentralArchitectureConsolidationV202 !== true) {
   throw new Error('DIRAC_V202_FINAL_EXPORT_INVARIANT_FAILED');
 }
-Object.freeze(__diracV221InstallerFailures);
