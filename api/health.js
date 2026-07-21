@@ -28495,8 +28495,32 @@ function diracCentralAdvancedContractGuardV221(req, ctx) {
     }
   }
   if (ctx.body && typeof ctx.body === 'object' && Object.prototype.hasOwnProperty.call(ctx.body, 'action')) {
-    const bodyAction = String(ctx.body.action || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
-    if (bodyAction && bodyAction !== ctx.action) return { ok: false, reason: 'body_action_context_mismatch' };
+    const rawBodyAction = String(ctx.body.action || '');
+    const lowerBodyAction = rawBodyAction.trim().toLowerCase();
+    if (lowerBodyAction) {
+      const bodyActionFormat = diracCentralValidateActionFormatV146(rawBodyAction, lowerBodyAction);
+      if (!bodyActionFormat.ok) {
+        return { ok: false, reason: 'body_' + String(bodyActionFormat.reason || 'action_format_invalid') };
+      }
+      const bodyActionAlias = diracCentralNormalizeAliasV146(lowerBodyAction);
+      if (!bodyActionAlias.ok) {
+        return { ok: false, reason: 'body_' + String(bodyActionAlias.reason || 'action_alias_invalid') };
+      }
+      const canonicalBodyAction = bodyActionAlias.action === 'domain_mfa_passkey_start'
+        ? 'dirac_mfa_passkey_start'
+        : bodyActionAlias.action === 'domain_mfa_passkey_verify'
+          ? 'dirac_mfa_passkey_verify'
+          : bodyActionAlias.action;
+      const contextAction = String(ctx.action || '');
+      const canonicalContextAction = contextAction === 'domain_mfa_passkey_start'
+        ? 'dirac_mfa_passkey_start'
+        : contextAction === 'domain_mfa_passkey_verify'
+          ? 'dirac_mfa_passkey_verify'
+          : contextAction;
+      if (canonicalBodyAction !== canonicalContextAction) {
+        return { ok: false, reason: 'body_action_context_mismatch' };
+      }
+    }
   }
   const numericKeys = /^(?:quantity|qty|limit|total|client_price|client_subtotal|amount|attempt_count|active_passkey_count)$/i;
   for (const item of diracCentralFlattenObjectV146(source, 0, '', 800)) {
