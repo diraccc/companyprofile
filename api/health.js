@@ -28702,6 +28702,132 @@ function diracCentralDeviceJwtIdentityV222(token) {
   return { userId, email, sessionId };
 }
 
+const DIRAC_CENTRAL_DEVICE_SESSION_BINDING_V223 = 'dirac-central-device-session-binding-v223';
+const DIRAC_CENTRAL_DEVICE_SESSION_COOKIE_TYPE_V223 = 'dirac-central-device-session-cookie-v223';
+
+function diracCentralDeviceSessionCookieNameV223() {
+  return diracCentralIsProductionV146() ? '__Host-dirac_cg_session_v223' : 'dirac_cg_session_v223';
+}
+
+function diracCentralDeviceJwtUserV223(token) {
+  const payload = typeof decodeJwtPayloadUnsafe === 'function' ? decodeJwtPayloadUnsafe(token) : null;
+  if (!payload || typeof payload !== 'object') return null;
+  const userId = String(payload.sub || payload.user_id || '').trim();
+  const email = normalizeAuthEmail(payload.email || '');
+  if (!userId || !email) return null;
+  return { userId, email };
+}
+
+function diracCentralCreateDeviceSessionCookieV223(identity, maxAgeSeconds) {
+  const userId = String(identity && (identity.userId || identity.id) || '').trim();
+  const email = normalizeAuthEmail(identity && identity.email || '');
+  const maxAge = Math.max(60, Math.min(60 * 60 * 24 * 7, Math.floor(Number(maxAgeSeconds || 60 * 60 * 24 * 7))));
+  if (!userId || !email) return null;
+  const now = Math.floor(Date.now() / 1000);
+  const payload = {
+    typ: DIRAC_CENTRAL_DEVICE_SESSION_COOKIE_TYPE_V223,
+    uid: userId,
+    email,
+    bid: crypto.randomBytes(32).toString('base64url'),
+    iat: now,
+    exp: now + maxAge
+  };
+  const encoded = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const signature = crypto.createHmac('sha512', diracCentralDeriveSecretV146('central-device-session-cookie-v223'))
+    .update(encoded)
+    .digest('base64url');
+  const value = encoded + '.' + signature;
+  const binding = crypto.createHmac('sha256', diracCentralDeriveSecretV146('central-device-session-binding-v223'))
+    .update(JSON.stringify([DIRAC_CENTRAL_DEVICE_SESSION_BINDING_V223, userId, email, payload.bid]))
+    .digest('hex');
+  return {
+    value,
+    binding,
+    identity: { userId, email },
+    cookie: makeCookie(diracCentralDeviceSessionCookieNameV223(), value, { maxAge, domain: '' })
+  };
+}
+
+function diracCentralVerifyDeviceSessionCookieV223(req) {
+  const cookies = typeof parseCookies === 'function' ? parseCookies(req) : {};
+  const raw = String(cookies && cookies[diracCentralDeviceSessionCookieNameV223()] || '').trim();
+  const parts = raw.split('.');
+  if (parts.length !== 2 || !parts[0] || !parts[1]) return null;
+  const expected = crypto.createHmac('sha512', diracCentralDeriveSecretV146('central-device-session-cookie-v223'))
+    .update(parts[0])
+    .digest('base64url');
+  if (!(typeof safeEqual === 'function' ? safeEqual(parts[1], expected) : parts[1] === expected)) return null;
+  let payload;
+  try { payload = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8')); } catch (_) { return null; }
+  const now = Math.floor(Date.now() / 1000);
+  const userId = String(payload && payload.uid || '').trim();
+  const email = normalizeAuthEmail(payload && payload.email || '');
+  const issuedAt = Number(payload && payload.iat || 0);
+  const expiresAt = Number(payload && payload.exp || 0);
+  const bindingId = String(payload && payload.bid || '');
+  if (!payload || payload.typ !== DIRAC_CENTRAL_DEVICE_SESSION_COOKIE_TYPE_V223
+      || !userId || !email || !/^[A-Za-z0-9_-]{40,64}$/.test(bindingId)
+      || !Number.isSafeInteger(issuedAt) || !Number.isSafeInteger(expiresAt)
+      || issuedAt > now + 60 || expiresAt <= now
+      || expiresAt - issuedAt <= 0 || expiresAt - issuedAt > 60 * 60 * 24 * 7 + 60) return null;
+
+  const signedTokens = typeof readCookieTokenCandidates === 'function'
+    ? readCookieTokenCandidates(cookies, DOMAIN_SIGNED_SESSION_COOKIE).slice(0, 8)
+    : [cookies && cookies[DOMAIN_SIGNED_SESSION_COOKIE]].filter(Boolean);
+  const signedMatch = signedTokens.map((value) => verifyDomainSessionCookieValue(value)).filter(Boolean).some((signed) =>
+    String(signed.id || '') === userId && normalizeAuthEmail(signed.email || '') === email
+  );
+  if (!signedMatch) return null;
+
+  const accessTokens = typeof uniqueNonEmptyStrings === 'function'
+    ? uniqueNonEmptyStrings([
+      ...(typeof readCookieTokenCandidates === 'function' ? readCookieTokenCandidates(cookies, ACCESS_COOKIE) : [cookies && cookies[ACCESS_COOKIE]]),
+      ...(typeof readCookieTokenCandidates === 'function' ? readCookieTokenCandidates(cookies, 'sb_access_token') : [cookies && cookies.sb_access_token])
+    ]).slice(0, 12)
+    : [cookies && cookies[ACCESS_COOKIE], cookies && cookies.sb_access_token].filter(Boolean);
+  const accessIdentities = accessTokens.map(diracCentralDeviceJwtUserV223).filter(Boolean);
+  if (accessIdentities.length && !accessIdentities.some((item) => item.userId === userId && item.email === email)) return null;
+
+  const binding = crypto.createHmac('sha256', diracCentralDeriveSecretV146('central-device-session-binding-v223'))
+    .update(JSON.stringify([DIRAC_CENTRAL_DEVICE_SESSION_BINDING_V223, userId, email, bindingId]))
+    .digest('hex');
+  return { binding, identity: { userId, email }, payload };
+}
+
+function diracCentralBootstrapDeviceSessionV223(req, res) {
+  const cookies = typeof parseCookies === 'function' ? parseCookies(req) : {};
+  const signedTokens = typeof readCookieTokenCandidates === 'function'
+    ? readCookieTokenCandidates(cookies, DOMAIN_SIGNED_SESSION_COOKIE).slice(0, 8)
+    : [cookies && cookies[DOMAIN_SIGNED_SESSION_COOKIE]].filter(Boolean);
+  const signedIdentities = signedTokens.map((value) => verifyDomainSessionCookieValue(value)).filter(Boolean);
+  if (!signedIdentities.length) return null;
+
+  const accessTokens = typeof uniqueNonEmptyStrings === 'function'
+    ? uniqueNonEmptyStrings([
+      ...(typeof readCookieTokenCandidates === 'function' ? readCookieTokenCandidates(cookies, ACCESS_COOKIE) : [cookies && cookies[ACCESS_COOKIE]]),
+      ...(typeof readCookieTokenCandidates === 'function' ? readCookieTokenCandidates(cookies, 'sb_access_token') : [cookies && cookies.sb_access_token])
+    ]).slice(0, 12)
+    : [cookies && cookies[ACCESS_COOKIE], cookies && cookies.sb_access_token].filter(Boolean);
+  const accessIdentities = accessTokens.map(diracCentralDeviceJwtUserV223).filter(Boolean);
+  if (!accessIdentities.length) return null;
+
+  let matched = null;
+  for (const signed of signedIdentities) {
+    const userId = String(signed.id || '').trim();
+    const email = normalizeAuthEmail(signed.email || '');
+    if (accessIdentities.some((item) => item.userId === userId && item.email === email)) {
+      matched = { userId, email };
+      break;
+    }
+  }
+  if (!matched) return null;
+
+  const created = diracCentralCreateDeviceSessionCookieV223(matched, 60 * 60 * 24 * 7);
+  if (!created) return null;
+  appendSetCookie(res, created.cookie);
+  return created;
+}
+
 function diracCentralDeviceStableSessionBindingV222(req) {
   const cookies = typeof parseCookies === 'function' ? parseCookies(req) : {};
   const signedTokens = typeof readCookieTokenCandidates === 'function'
@@ -28784,12 +28910,13 @@ function diracCentralLegacyDeviceSessionHashesV222(req) {
 }
 
 function diracCentralDeviceSessionBindingV222(req) {
-  return diracCentralDeviceStableSessionBindingV222(req) || '';
+  const bound = diracCentralVerifyDeviceSessionCookieV223(req);
+  return bound && bound.binding ? bound.binding : (diracCentralDeviceStableSessionBindingV222(req) || '');
 }
 
-function diracCentralDeviceTokenV221(req) {
+function diracCentralDeviceTokenV221(req, sessionBindingOverride) {
   const now = Date.now();
-  const sessionBinding = diracCentralDeviceSessionBindingV222(req);
+  const sessionBinding = String(sessionBindingOverride || diracCentralDeviceSessionBindingV222(req) || '');
   if (!sessionBinding) throw new Error('DIRAC_DEVICE_SESSION_BINDING_MISSING');
   const payload = {
     typ: DIRAC_CENTRAL_HARDENING_V221,
@@ -28853,16 +28980,21 @@ function diracCentralVerifyDeviceTokenV221(req, token) {
 
 function diracCentralDeviceCredentialGuardV221(req, res, ctx) {
   if (!DIRAC_CENTRAL_USER_DATA_ACTIONS_V146.has(ctx.action) && !/^domain_dashboard|^customer_security|^admin_security/.test(ctx.action)) return { ok: true };
-  const session = diracCentralDeviceSessionBindingV222(req);
+  let session = diracCentralDeviceSessionBindingV222(req);
+  let bootstrapped = null;
+  if (!session) {
+    bootstrapped = diracCentralBootstrapDeviceSessionV223(req, res);
+    session = bootstrapped && bootstrapped.binding ? bootstrapped.binding : '';
+  }
   if (!session) return { ok: false, reason: 'device_credential_session_missing' };
   const cookies = typeof parseCookies === 'function' ? parseCookies(req) : {};
   const name = diracCentralDeviceCookieNameV221();
   const token = String(cookies && cookies[name] || '').trim();
   if (!token) {
     try {
-      const issued = diracCentralDeviceTokenV221(req);
+      const issued = diracCentralDeviceTokenV221(req, session);
       appendSetCookie(res, makeCookie(name, issued, { maxAge: 24 * 60 * 60, domain: '' }));
-      return { ok: true, issued: true };
+      return { ok: true, issued: true, bootstrapped: Boolean(bootstrapped) };
     } catch (_) {
       return { ok: false, reason: 'device_credential_issue_failed' };
     }
@@ -28877,6 +29009,43 @@ function diracCentralDeviceCredentialGuardV221(req, res, ctx) {
     return { ok: false, reason: 'device_credential_upgrade_failed' };
   }
 }
+
+try {
+  const __diracV223OriginalSetSessionCookies = typeof setSessionCookies === 'function' ? setSessionCookies : null;
+  if (__diracV223OriginalSetSessionCookies && !__diracV223OriginalSetSessionCookies.__diracV223Wrapped) {
+    setSessionCookies = function setSessionCookiesV223(res, session) {
+      const ok = __diracV223OriginalSetSessionCookies(res, session);
+      if (!ok) return false;
+      const identity = typeof extractUserForSignedDomainSession === 'function' ? extractUserForSignedDomainSession(session) : null;
+      const maxAge = typeof diracV110SessionMaxAgeSeconds === 'function' ? diracV110SessionMaxAgeSeconds() : 60 * 60 * 24 * 7;
+      const created = diracCentralCreateDeviceSessionCookieV223(identity, maxAge);
+      if (!created) {
+        clearSessionCookies(res);
+        return false;
+      }
+      appendSetCookie(res, [
+        created.cookie,
+        makeCookie(diracCentralDeviceCookieNameV221(), '', { maxAge: 0, domain: '' })
+      ]);
+      return true;
+    };
+    Object.defineProperty(setSessionCookies, '__diracV223Wrapped', { value: true, enumerable: false });
+  }
+} catch (errorV223) { diracCentralRecordSuppressedExceptionV221(errorV223); }
+
+try {
+  const __diracV223OriginalClearSessionCookies = typeof clearSessionCookies === 'function' ? clearSessionCookies : null;
+  if (__diracV223OriginalClearSessionCookies && !__diracV223OriginalClearSessionCookies.__diracV223Wrapped) {
+    clearSessionCookies = function clearSessionCookiesV223(res) {
+      __diracV223OriginalClearSessionCookies(res);
+      appendSetCookie(res, [
+        makeCookie(diracCentralDeviceSessionCookieNameV223(), '', { maxAge: 0, domain: '' }),
+        makeCookie(diracCentralDeviceCookieNameV221(), '', { maxAge: 0, domain: '' })
+      ]);
+    };
+    Object.defineProperty(clearSessionCookies, '__diracV223Wrapped', { value: true, enumerable: false });
+  }
+} catch (errorV223) { diracCentralRecordSuppressedExceptionV221(errorV223); }
 
 function diracCentralS2SEnvelopeGuardV221(req, ctx) {
   if (!diracS2SIsInternalActionV206(ctx)) return { ok: true };
