@@ -4523,14 +4523,22 @@ function getDomainSignedSessionSecret() {
   return diracCentralDeriveSecretV146('domain-signed-session').toString('base64url');
 }
 
+function normalizeDomainSignedSessionId(value) {
+  const clean = String(value || '').trim();
+  return /^[A-Za-z0-9][A-Za-z0-9._:-]{15,199}$/.test(clean) ? clean : '';
+}
+
 function extractUserForSignedDomainSession(session) {
   const sessionObj = session && typeof session === 'object' ? session : {};
   const user = sessionObj.user && typeof sessionObj.user === 'object' ? sessionObj.user : {};
   const jwt = decodeJwtPayloadUnsafe(sessionObj.access_token);
   const id = String(user.id || user.sub || (jwt && (jwt.sub || jwt.user_id)) || '').trim();
   const email = normalizeAuthEmail(user.email || (jwt && jwt.email) || '');
+  const sessionId = normalizeDomainSignedSessionId(
+    sessionObj.session_id || sessionObj.sessionId || (jwt && (jwt.session_id || jwt.sid)) || ''
+  );
   if (!id || !email) return null;
-  return { id, email };
+  return { id, email, sessionId };
 }
 
 function signDomainSessionPayload(payload) {
@@ -4556,8 +4564,9 @@ function verifyDomainSessionCookieValue(value) {
   if (!Number.isFinite(exp) || exp <= Math.floor(Date.now() / 1000)) return null;
   const id = String(payload.uid || payload.id || '').trim();
   const email = normalizeAuthEmail(payload.email || '');
-  if (!id || !email) return null;
-  return { id, email, exp };
+  const sessionId = payload.sid === undefined ? '' : normalizeDomainSignedSessionId(payload.sid);
+  if (!id || !email || (payload.sid !== undefined && !sessionId)) return null;
+  return { id, email, exp, sessionId };
 }
 
 function makeSignedDomainSessionCookieSet(session, options = {}) {
@@ -4567,14 +4576,16 @@ function makeSignedDomainSessionCookieSet(session, options = {}) {
   if (!user) return cookies;
 
   const now = Math.floor(Date.now() / 1000);
-  const value = signDomainSessionPayload({
+  const payload = {
     typ: DOMAIN_SIGNED_SESSION_TYPE,
     uid: user.id,
     email: user.email,
     iat: now,
     exp: now + maxAge,
     nonce: crypto.randomBytes(12).toString('base64url')
-  });
+  };
+  if (user.sessionId) payload.sid = user.sessionId;
+  const value = signDomainSessionPayload(payload);
   if (!value) return cookies;
 
   cookies.push(makeCookie(DOMAIN_SIGNED_SESSION_COOKIE, value, { maxAge, domain: '' }));
@@ -28679,11 +28690,111 @@ function diracCentralDeviceFingerprintV221(req) {
   ].join('|'));
 }
 
+const DIRAC_CENTRAL_DEVICE_SESSION_BINDING_V222 = 'dirac-central-device-session-binding-v222';
+
+function diracCentralDeviceJwtIdentityV222(token) {
+  const payload = typeof decodeJwtPayloadUnsafe === 'function' ? decodeJwtPayloadUnsafe(token) : null;
+  if (!payload || typeof payload !== 'object') return null;
+  const userId = String(payload.sub || payload.user_id || '').trim();
+  const email = normalizeAuthEmail(payload.email || '');
+  const sessionId = normalizeDomainSignedSessionId(payload.session_id || payload.sid || '');
+  if (!userId || !sessionId) return null;
+  return { userId, email, sessionId };
+}
+
+function diracCentralDeviceStableSessionBindingV222(req) {
+  const cookies = typeof parseCookies === 'function' ? parseCookies(req) : {};
+  const signedTokens = typeof readCookieTokenCandidates === 'function'
+    ? readCookieTokenCandidates(cookies, DOMAIN_SIGNED_SESSION_COOKIE).slice(0, 8)
+    : [cookies && cookies[DOMAIN_SIGNED_SESSION_COOKIE]].filter(Boolean);
+  const accessTokens = typeof uniqueNonEmptyStrings === 'function'
+    ? uniqueNonEmptyStrings([
+      ...(typeof readCookieTokenCandidates === 'function' ? readCookieTokenCandidates(cookies, ACCESS_COOKIE) : [cookies && cookies[ACCESS_COOKIE]]),
+      ...(typeof readCookieTokenCandidates === 'function' ? readCookieTokenCandidates(cookies, 'sb_access_token') : [cookies && cookies.sb_access_token])
+    ]).slice(0, 12)
+    : [cookies && cookies[ACCESS_COOKIE], cookies && cookies.sb_access_token].filter(Boolean);
+
+  const signedIdentities = signedTokens.map((value) => verifyDomainSessionCookieValue(value)).filter(Boolean);
+  const jwtIdentities = accessTokens.map(diracCentralDeviceJwtIdentityV222).filter(Boolean);
+
+  for (const jwt of jwtIdentities) {
+    for (const signed of signedIdentities) {
+      const sameUser = String(signed.id || '') === String(jwt.userId || '')
+        && (!signed.email || !jwt.email || normalizeAuthEmail(signed.email) === normalizeAuthEmail(jwt.email));
+      if (!sameUser) continue;
+      if (signed.sessionId && signed.sessionId !== jwt.sessionId) continue;
+      return crypto.createHmac('sha256', diracCentralDeriveSecretV146('central-device-session-v222'))
+        .update(JSON.stringify([
+          DIRAC_CENTRAL_DEVICE_SESSION_BINDING_V222,
+          String(signed.id || ''),
+          normalizeAuthEmail(signed.email || jwt.email || ''),
+          String(signed.sessionId || jwt.sessionId || '')
+        ]))
+        .digest('hex');
+    }
+  }
+
+  if (jwtIdentities.length === 0) {
+    for (const signed of signedIdentities) {
+      if (!signed.sessionId) continue;
+      return crypto.createHmac('sha256', diracCentralDeriveSecretV146('central-device-session-v222'))
+        .update(JSON.stringify([
+          DIRAC_CENTRAL_DEVICE_SESSION_BINDING_V222,
+          String(signed.id || ''),
+          normalizeAuthEmail(signed.email || ''),
+          String(signed.sessionId)
+        ]))
+        .digest('hex');
+    }
+  }
+
+  return '';
+}
+
+function diracCentralLegacyDeviceSessionHashesV222(req) {
+  const cookies = typeof parseCookies === 'function' ? parseCookies(req) : {};
+  const valuesFor = (name) => {
+    const raw = cookies && cookies[name];
+    const candidates = typeof readCookieTokenCandidates === 'function' ? readCookieTokenCandidates(cookies, name) : [];
+    const values = typeof uniqueNonEmptyStrings === 'function'
+      ? uniqueNonEmptyStrings([raw, ...candidates]).slice(0, 8)
+      : [raw, ...candidates].filter(Boolean).slice(0, 8);
+    return values.length ? values : [''];
+  };
+  const access = valuesFor(ACCESS_COOKIE);
+  const signed = valuesFor(DOMAIN_SIGNED_SESSION_COOKIE);
+  const supabase = valuesFor('sb_access_token');
+  const hashes = new Set();
+  const exact = diracCentralHashV146([
+    cookies && cookies[ACCESS_COOKIE],
+    cookies && cookies[DOMAIN_SIGNED_SESSION_COOKIE],
+    cookies && cookies.sb_access_token
+  ].filter(Boolean).join('|'));
+  if (exact) hashes.add(exact);
+  outer:
+  for (const accessValue of access) {
+    for (const signedValue of signed) {
+      for (const supabaseValue of supabase) {
+        hashes.add(diracCentralHashV146([accessValue, signedValue, supabaseValue].filter(Boolean).join('|')));
+        if (hashes.size >= 512) break outer;
+      }
+    }
+  }
+  return Array.from(hashes);
+}
+
+function diracCentralDeviceSessionBindingV222(req) {
+  return diracCentralDeviceStableSessionBindingV222(req) || '';
+}
+
 function diracCentralDeviceTokenV221(req) {
   const now = Date.now();
+  const sessionBinding = diracCentralDeviceSessionBindingV222(req);
+  if (!sessionBinding) throw new Error('DIRAC_DEVICE_SESSION_BINDING_MISSING');
   const payload = {
     typ: DIRAC_CENTRAL_HARDENING_V221,
-    session: diracCentralRequestSessionHashV146(req),
+    sbv: 2,
+    session: sessionBinding,
     device: diracCentralDeviceFingerprintV221(req),
     iat: now,
     exp: now + 24 * 60 * 60 * 1000,
@@ -28701,17 +28812,48 @@ function diracCentralVerifyDeviceTokenV221(req, token) {
   if (!(typeof safeEqual === 'function' ? safeEqual(parts[1], expected) : parts[1] === expected)) return { ok: false, reason: 'device_credential_signature_invalid' };
   let payload;
   try { payload = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8')); } catch (_) { return { ok: false, reason: 'device_credential_payload_invalid' }; }
-  if (!payload || payload.typ !== DIRAC_CENTRAL_HARDENING_V221 || Number(payload.exp || 0) <= Date.now()) return { ok: false, reason: 'device_credential_expired' };
-  const session = diracCentralRequestSessionHashV146(req);
+  const now = Date.now();
+  const issuedAt = Number(payload && payload.iat || 0);
+  const expiresAt = Number(payload && payload.exp || 0);
+  if (!payload || payload.typ !== DIRAC_CENTRAL_HARDENING_V221
+      || !Number.isSafeInteger(issuedAt) || !Number.isSafeInteger(expiresAt)
+      || issuedAt > now + 60 * 1000 || expiresAt <= now
+      || expiresAt - issuedAt <= 0 || expiresAt - issuedAt > 24 * 60 * 60 * 1000 + 60 * 1000
+      || !/^[A-Za-z0-9_-]{16,160}$/.test(String(payload.jti || ''))) {
+    return { ok: false, reason: 'device_credential_expired' };
+  }
   const device = diracCentralDeviceFingerprintV221(req);
-  if (!session || !payload.session || !(typeof safeEqual === 'function' ? safeEqual(String(payload.session), session) : String(payload.session) === session)) return { ok: false, reason: 'device_credential_session_mismatch' };
-  if (!payload.device || !(typeof safeEqual === 'function' ? safeEqual(String(payload.device), device) : String(payload.device) === device)) return { ok: false, reason: 'device_credential_fingerprint_mismatch' };
-  return { ok: true, payload };
+  if (!payload.device || !(typeof safeEqual === 'function' ? safeEqual(String(payload.device), device) : String(payload.device) === device)) {
+    return { ok: false, reason: 'device_credential_fingerprint_mismatch' };
+  }
+  if (!payload.session) return { ok: false, reason: 'device_credential_session_mismatch' };
+
+  if (payload.sbv !== undefined && Number(payload.sbv) !== 2) {
+    return { ok: false, reason: 'device_credential_binding_version_invalid' };
+  }
+
+  if (Number(payload.sbv || 0) === 2) {
+    const session = diracCentralDeviceSessionBindingV222(req);
+    if (!session || !(typeof safeEqual === 'function' ? safeEqual(String(payload.session), session) : String(payload.session) === session)) {
+      return { ok: false, reason: 'device_credential_session_mismatch' };
+    }
+    return { ok: true, payload };
+  }
+
+  const legacyHashes = diracCentralLegacyDeviceSessionHashesV222(req);
+  const legacyMatch = legacyHashes.some((hash) => typeof safeEqual === 'function'
+    ? safeEqual(String(payload.session), String(hash))
+    : String(payload.session) === String(hash));
+  if (legacyMatch) return { ok: true, payload, upgrade: true };
+
+  const stableSession = diracCentralDeviceStableSessionBindingV222(req);
+  if (!stableSession) return { ok: false, reason: 'device_credential_session_mismatch' };
+  return { ok: true, payload, upgrade: true, rotatedFromLegacySession: true };
 }
 
 function diracCentralDeviceCredentialGuardV221(req, res, ctx) {
   if (!DIRAC_CENTRAL_USER_DATA_ACTIONS_V146.has(ctx.action) && !/^domain_dashboard|^customer_security|^admin_security/.test(ctx.action)) return { ok: true };
-  const session = diracCentralRequestSessionHashV146(req);
+  const session = diracCentralDeviceSessionBindingV222(req);
   if (!session) return { ok: false, reason: 'device_credential_session_missing' };
   const cookies = typeof parseCookies === 'function' ? parseCookies(req) : {};
   const name = diracCentralDeviceCookieNameV221();
@@ -28725,7 +28867,15 @@ function diracCentralDeviceCredentialGuardV221(req, res, ctx) {
       return { ok: false, reason: 'device_credential_issue_failed' };
     }
   }
-  return diracCentralVerifyDeviceTokenV221(req, token);
+  const verified = diracCentralVerifyDeviceTokenV221(req, token);
+  if (!verified.ok || !verified.upgrade) return verified;
+  try {
+    const upgraded = diracCentralDeviceTokenV221(req);
+    appendSetCookie(res, makeCookie(name, upgraded, { maxAge: 24 * 60 * 60, domain: '' }));
+    return { ok: true, upgraded: true };
+  } catch (_) {
+    return { ok: false, reason: 'device_credential_upgrade_failed' };
+  }
 }
 
 function diracCentralS2SEnvelopeGuardV221(req, ctx) {
