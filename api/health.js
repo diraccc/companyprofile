@@ -31701,12 +31701,33 @@ function diracCentralPersistenceUnavailableResponseV210(res) {
       stage: String(ctx && ctx.currentStageV211 || '').slice(0, 80),
       failed_stage: String(ctx && ctx.failedStageV211 || '').slice(0, 80),
       reason: String(ctx && ctx.failureReasonV211 || '').slice(0, 120),
-      dependency_failure: ctx && ctx.centralDependencyFailureV214 || null
+      root_dependency_failure: ctx && (ctx.centralDependencyRootFailureV218 || ctx.centralDependencyFailureV214) || null,
+      dependency_failure: ctx && ctx.centralDependencyFailureV214 || null,
+      dependency_failure_count: Array.isArray(ctx && ctx.centralDependencyFailureHistoryV218) ? ctx.centralDependencyFailureHistoryV218.length : (ctx && ctx.centralDependencyFailureV214 ? 1 : 0),
+      dependency_failure_history: diracV218DependencyHistory(ctx)
     }));
   } catch (_) {}
   if (diracCentralDebugResponseAllowedV211(ctx)) {
     payload.debug = ctx && ctx.centralErrorDebugV155 || diracCentralStageTraceV211(ctx, 30);
-    if (ctx && ctx.centralDependencyFailureV214) payload.dependency_debug = ctx.centralDependencyFailureV214;
+  }
+  if (diracV218AdminDependencyDiagnosticAllowed(ctx)) {
+    const rootFailure = ctx && (ctx.centralDependencyRootFailureV218 || ctx.centralDependencyFailureV214) || null;
+    const lastFailure = ctx && ctx.centralDependencyFailureV214 || null;
+    const history = diracV218DependencyHistory(ctx);
+    payload.dependency_debug = {
+      patch: DIRAC_SECURITY_ROOT_CAUSE_DIAGNOSTICS_V218,
+      root_failure: rootFailure,
+      last_failure: lastFailure,
+      failure_count: history.length,
+      failure_history: history
+    };
+    try {
+      if (res && typeof res.setHeader === 'function') {
+        res.setHeader('X-Dirac-Dependency-Code', String(rootFailure && rootFailure.dependency_code || 'UNKNOWN').slice(0, 160));
+        res.setHeader('X-Dirac-Dependency-Stage', String(rootFailure && rootFailure.stage || 'unknown').slice(0, 80));
+        res.setHeader('X-Dirac-Dependency-Operation', String(rootFailure && rootFailure.operation_kind || 'unknown').slice(0, 80));
+      }
+    } catch (_) {}
   }
   return res.status(503).json(payload);
 }
@@ -33439,6 +33460,7 @@ function diracV202BuildActionPolicyTable() {
 const ACTION_POLICY = diracV202BuildActionPolicyTable();
 
 const DIRAC_SECURITY_DEPENDENCY_DIAGNOSTICS_V214 = 'dirac-security-dependency-diagnostics-v214';
+const DIRAC_SECURITY_ROOT_CAUSE_DIAGNOSTICS_V218 = 'dirac-security-root-cause-diagnostics-v218';
 
 function diracV214SafeDiagnosticToken(value, fallback = '') {
   const clean = String(value === undefined || value === null ? '' : value).trim();
@@ -33473,14 +33495,92 @@ function diracV214DatabaseFailureCode(result, error) {
   return error ? 'SUPABASE_GATEWAY_EXCEPTION' : 'SUPABASE_RESULT_NOT_OK';
 }
 
+function diracV218DatabaseOperationKind(path, options = {}) {
+  const rawPath = String(path || '');
+  const resource = rawPath.split('?')[0];
+  const query = rawPath.includes('?') ? rawPath.slice(rawPath.indexOf('?') + 1) : '';
+  const method = String(options.method || 'GET').toUpperCase();
+  if (resource === '/rest/v1/dirac_persistent_bans' || resource === '/rest/v1/dirac_s2s_security') {
+    if (method === 'GET' && /(?:^|&)security_key=in\./.test(query)) return 'security_multi_read';
+    if (method === 'GET' && /(?:^|&)security_key=eq\./.test(query)) return 'security_single_read';
+    if (method === 'POST' && /(?:^|&)on_conflict=security_key(?:&|$)/.test(query)) return 'security_upsert';
+    if (method === 'PATCH' && /(?:^|&)security_key=eq\./.test(query)) return 'security_exact_patch';
+    if (method === 'POST') return 'security_insert';
+    if (method === 'PATCH') return 'security_patch';
+    return 'security_' + method.toLowerCase();
+  }
+  if (resource.startsWith('/auth/v1/')) return 'supabase_auth_' + method.toLowerCase();
+  if (resource.startsWith('/rest/v1/')) return 'supabase_rest_' + method.toLowerCase();
+  return 'supabase_unknown_operation';
+}
+
+function diracV218DatabaseFailureCategory(result, error) {
+  const data = result && result.data;
+  const text = [
+    error && error.code,
+    error && error.name,
+    error && error.message,
+    result && result.error,
+    data && typeof data === 'object' && data.code,
+    data && typeof data === 'object' && data.error_code,
+    data && typeof data === 'object' && data.error,
+    data && typeof data === 'object' && data.message,
+    data && typeof data === 'object' && data.details,
+    data && typeof data === 'object' && data.hint
+  ].filter(Boolean).map(String).join(' | ').slice(0, 2000);
+  const status = Number(result && result.status || 0);
+  if (/SUPABASE_FETCH_TIMEOUT|AbortError/i.test(text) || status === 504) return 'network_timeout';
+  if (/SUPABASE_FETCH_FAILED|fetch failed|ECONNRESET|ECONNREFUSED|ENOTFOUND|EAI_AGAIN|UND_ERR/i.test(text) || status === 502) return 'network_transport_failure';
+  if (/42P01|relation .* does not exist|table .* does not exist/i.test(text)) return 'database_table_missing';
+  if (/42703|column .* does not exist/i.test(text)) return 'database_column_missing';
+  if (/42P10|no unique or exclusion constraint|on conflict specification/i.test(text)) return 'database_unique_constraint_missing';
+  if (/23505|duplicate key value/i.test(text)) return 'database_unique_conflict';
+  if (/42501|permission denied|row-level security|violates row-level security/i.test(text) || status === 403) return 'database_permission_denied';
+  if (/PGRST(?:\d+)|schema cache/i.test(text)) return 'postgrest_schema_or_contract_error';
+  if (/JWT|invalid token|apikey|API key|unauthorized/i.test(text) || status === 401) return 'supabase_authentication_failed';
+  if (status === 404) return 'supabase_resource_not_found';
+  if (status === 409) return 'supabase_write_conflict';
+  if (status === 429) return 'supabase_rate_limited';
+  if (status >= 500) return 'supabase_upstream_failure';
+  if (status >= 400) return 'supabase_request_rejected';
+  if (error) return 'database_gateway_exception';
+  return 'database_result_not_ok';
+}
+
+function diracV218AdminDependencyDiagnosticAllowed(ctx) {
+  try { return Boolean(ctx && ctx.req && isAdminRequest(ctx.req)); } catch (_) { return false; }
+}
+
+function diracV218DependencyHistory(ctx) {
+  const rows = Array.isArray(ctx && ctx.centralDependencyFailureHistoryV218)
+    ? ctx.centralDependencyFailureHistoryV218
+    : [];
+  return rows.slice(-12).map((entry) => ({
+    sequence: Number(entry && entry.sequence || 0),
+    root_failure: Boolean(entry && entry.root_failure),
+    stage_index: Number((entry && entry.stage_index) ?? -1),
+    stage: String(entry && entry.stage || '').slice(0, 80),
+    method: String(entry && entry.method || '').slice(0, 12),
+    resource: String(entry && entry.resource || '').slice(0, 320),
+    operation_kind: String(entry && entry.operation_kind || '').slice(0, 80),
+    upstream_status: Number(entry && entry.upstream_status || 0),
+    dependency_code: String(entry && entry.dependency_code || '').slice(0, 160),
+    failure_category: String(entry && entry.failure_category || '').slice(0, 100),
+    duration_ms: Number(entry && entry.duration_ms || 0)
+  }));
+}
+
 function diracV214RecordDatabaseFailure(ctx, operation, result, error, startedAt) {
   const op = operation && typeof operation === 'object' ? operation : {};
   const options = op.options && typeof op.options === 'object' ? op.options : {};
   const sequence = Number(ctx && ctx.__diracDependencyFailureSequenceV214 || 0) + 1;
   if (ctx) ctx.__diracDependencyFailureSequenceV214 = sequence;
   const configuredTimeout = Math.max(1000, Math.min(30000, Number(options.timeoutMs || process.env.DIRAC_SUPABASE_FETCH_TIMEOUT_MS || 6500) || 6500));
+  const isRootFailure = Boolean(ctx && !ctx.centralDependencyRootFailureV218);
   const diagnostic = Object.freeze({
     patch: DIRAC_SECURITY_DEPENDENCY_DIAGNOSTICS_V214,
+    root_patch: DIRAC_SECURITY_ROOT_CAUSE_DIAGNOSTICS_V218,
+    root_failure: isRootFailure,
     event: error ? 'database_gateway_exception' : 'database_dependency_not_ok',
     request_id: String(ctx && ctx.requestId || '').slice(0, 64),
     failure_id: typeof diracCentralFailureIdV211 === 'function' ? diracCentralFailureIdV211(ctx) : 'DG-CENTRAL-UNAVAILABLE',
@@ -33491,11 +33591,13 @@ function diracV214RecordDatabaseFailure(ctx, operation, result, error, startedAt
     stage: String(ctx && ctx.currentStageV211 || '').slice(0, 80),
     method: String(options.method || 'GET').toUpperCase().slice(0, 12),
     resource: diracV214DatabaseResource(op.path),
+    operation_kind: diracV218DatabaseOperationKind(op.path, options),
     auth_mode: options.auth === 'service' ? 'service' : options.bearer ? 'bearer' : 'anon',
     timeout_ms: configuredTimeout,
     duration_ms: Math.max(0, Date.now() - Number(startedAt || Date.now())),
     upstream_status: Number(result && result.status || 0),
     dependency_code: diracV214DatabaseFailureCode(result, error),
+    failure_category: diracV218DatabaseFailureCategory(result, error),
     transport_error: diracV214SafeDiagnosticToken(error && (error.code || error.name) || result && result.error),
     upstream_error_code: diracV214SafeDiagnosticToken(result && result.data && typeof result.data === 'object' && (result.data.code || result.data.error_code || result.data.error)),
     response_shape: Array.isArray(result && result.data)
@@ -33504,7 +33606,15 @@ function diracV214RecordDatabaseFailure(ctx, operation, result, error, startedAt
         ? 'null'
         : typeof (result && result.data)
   });
-  if (ctx) ctx.centralDependencyFailureV214 = diagnostic;
+  if (ctx) {
+    if (!ctx.centralDependencyRootFailureV218) ctx.centralDependencyRootFailureV218 = diagnostic;
+    const history = Array.isArray(ctx.centralDependencyFailureHistoryV218)
+      ? ctx.centralDependencyFailureHistoryV218.slice(-11)
+      : [];
+    history.push(diagnostic);
+    ctx.centralDependencyFailureHistoryV218 = history;
+    ctx.centralDependencyFailureV214 = diagnostic;
+  }
   try { console.error('[dirac-security-dependency-v214]', JSON.stringify(diagnostic)); } catch (_) {}
   return diagnostic;
 }
