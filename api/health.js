@@ -320,8 +320,8 @@ function diracPersistentSecurityTableForKeysV209(securityKeys) {
 }
 
 // LOGIN RATE LIMIT PATCH v1 - domain_login only.
-// Menggunakan tabel rate limit yang sudah ada. Tidak mengubah endpoint, hash, A2F, checkout, order, atau fitur lain.
-const DOMAIN_LOGIN_RATE_TABLE = String(process.env.DOMAIN_LOGIN_RATE_TABLE || '').trim();
+// Gunakan tabel persistent-ban hardened yang memang tersedia; jangan bergantung pada nama tabel ENV yang tidak tervalidasi.
+const DOMAIN_LOGIN_RATE_TABLE = DIRAC_PERSISTENT_BAN_TABLE;
 
 const DOMAIN_LOGIN_RATE_STORE = globalThis.__DIRAC_DOMAIN_LOGIN_RATE_STORE__ || new Map();
 globalThis.__DIRAC_DOMAIN_LOGIN_RATE_STORE__ = DOMAIN_LOGIN_RATE_STORE;
@@ -17766,11 +17766,8 @@ try {
 function diracV101ValidateServiceRoleSupabasePath(path, options = {}) {
   if (isEnvTrue('DIRAC_SERVICE_ROLE_GUARD_DISABLED')) return { ok: true };
   const raw = String(path || '').trim();
-  if (!raw || /https?:\/\//i.test(raw) || /(?:\.\.|\\|\u0000)/.test(raw)) {
+  if (!raw || /https?:\/\//i.test(raw) || /(?:\.\.|\\|\u0000|[\r\n])/.test(raw)) {
     return { ok: false, code: 'SERVICE_ROLE_PATH_INVALID' };
-  }
-  if (diracV101FindSqlInjectionThreat([raw], { source: 'service_role_path' }).detected) {
-    return { ok: false, code: 'SERVICE_ROLE_PATH_REJECTED' };
   }
 
   const method = String(options.method || 'GET').toUpperCase();
@@ -17778,11 +17775,21 @@ function diracV101ValidateServiceRoleSupabasePath(path, options = {}) {
     return { ok: false, code: 'SERVICE_ROLE_METHOD_REJECTED' };
   }
 
-  if (raw.startsWith('/auth/v1/admin/users')) return { ok: true, scope: 'auth_admin_users' };
+  if (raw.startsWith('/auth/v1/admin/users')) {
+    if (diracV101FindSqlInjectionThreat([raw], { source: 'service_role_path' }).detected) {
+      return { ok: false, code: 'SERVICE_ROLE_PATH_REJECTED' };
+    }
+    return { ok: true, scope: 'auth_admin_users' };
+  }
   if (!raw.startsWith('/rest/v1/')) return { ok: false, code: 'SERVICE_ROLE_SCOPE_REJECTED' };
 
   const tablePart = raw.slice('/rest/v1/'.length).split('?')[0].split('/')[0];
-  const table = decodeURIComponent(tablePart || '').trim();
+  let table = '';
+  try {
+    table = decodeURIComponent(tablePart || '').trim();
+  } catch (_) {
+    return { ok: false, code: 'SERVICE_ROLE_TABLE_INVALID' };
+  }
   if (!/^[a-zA-Z0-9_]+$/.test(table)) return { ok: false, code: 'SERVICE_ROLE_TABLE_INVALID' };
 
   const allowed = diracV101ServiceRoleAllowedTables();
@@ -17790,7 +17797,60 @@ function diracV101ValidateServiceRoleSupabasePath(path, options = {}) {
     return { ok: false, code: 'SERVICE_ROLE_TABLE_NOT_ALLOWED' };
   }
 
+  const pathOnly = raw.split('?')[0];
+  if (diracV101FindSqlInjectionThreat([pathOnly], { source: 'service_role_path' }).detected) {
+    return { ok: false, code: 'SERVICE_ROLE_PATH_REJECTED' };
+  }
+
+  const queryIndex = raw.indexOf('?');
+  if (queryIndex >= 0) {
+    const query = raw.slice(queryIndex + 1);
+    if (!query) return { ok: false, code: 'SERVICE_ROLE_QUERY_INVALID' };
+
+    const securityKeyTable = table === DIRAC_PERSISTENT_BAN_TABLE || table === DIRAC_S2S_SECURITY_TABLE;
+    for (const segment of query.split('&')) {
+      if (!segment) return { ok: false, code: 'SERVICE_ROLE_QUERY_INVALID' };
+      const separator = segment.indexOf('=');
+      const rawName = separator >= 0 ? segment.slice(0, separator) : segment;
+      const rawValue = separator >= 0 ? segment.slice(separator + 1) : '';
+      let name = '';
+      let value = '';
+      try {
+        name = decodeURIComponent(rawName.replace(/\+/g, ' '));
+        value = decodeURIComponent(rawValue.replace(/\+/g, ' '));
+      } catch (_) {
+        return { ok: false, code: 'SERVICE_ROLE_QUERY_INVALID' };
+      }
+      if (/[\u0000-\u001F\u007F]/.test(name) || /[\u0000-\u001F\u007F]/.test(value)) {
+        return { ok: false, code: 'SERVICE_ROLE_QUERY_INVALID' };
+      }
+      if (!name || !/^[A-Za-z0-9_.-]{1,80}$/.test(name)) {
+        return { ok: false, code: 'SERVICE_ROLE_QUERY_INVALID' };
+      }
+
+      if (securityKeyTable && name === 'security_key') {
+        if (!diracV101IsCanonicalSecurityKeyFilter(value)) {
+          return { ok: false, code: 'SERVICE_ROLE_SECURITY_KEY_FILTER_INVALID' };
+        }
+        continue;
+      }
+
+      if (diracV101FindSqlInjectionThreat([name, value], { source: 'service_role_path' }).detected) {
+        return { ok: false, code: 'SERVICE_ROLE_PATH_REJECTED' };
+      }
+    }
+  }
+
   return { ok: true, scope: 'rest_table', table };
+}
+
+function diracV101IsCanonicalSecurityKeyFilter(value) {
+  const raw = String(value || '');
+  const isKey = (key) => /^[A-Za-z0-9:_-]{1,1024}$/.test(String(key || ''));
+  if (raw.startsWith('eq.')) return isKey(raw.slice(3));
+  if (!raw.startsWith('in.(') || !raw.endsWith(')')) return false;
+  const keys = raw.slice(4, -1).split(',');
+  return keys.length >= 1 && keys.length <= 100 && keys.every(isKey);
 }
 
 function diracV101ServiceRoleAllowedTables() {
