@@ -29921,6 +29921,37 @@ function diracCentralContractGuardV146(req, ctx) {
   const contract = diracCentralContractForActionV146(ctx.action);
   if (!contract || !contract.methods || !contract.methods.length) return { ok: false, reason: 'action_contract_missing' };
   const source = ctx.method === 'GET' || ctx.method === 'HEAD' ? (req && req.query || {}) : (ctx.body || {});
+  if (ctx.action === 'customer_security_recovery_code_verify' && ctx.method === 'POST') {
+    const hasRecoveryCode = Object.prototype.hasOwnProperty.call(source, 'recovery_code');
+    const hasCodeAlias = Object.prototype.hasOwnProperty.call(source, 'code');
+    if (hasRecoveryCode === hasCodeAlias) return { ok: false, reason: 'recovery_code_field_ambiguous_or_missing' };
+    const field = hasRecoveryCode ? 'recovery_code' : 'code';
+    const rawRecoveryCode = source[field];
+    if (typeof rawRecoveryCode !== 'string'
+      || rawRecoveryCode.length !== LOST_PASSKEY_RECOVERY_CODE_LENGTH_V157
+      || !/^[A-Za-z0-9_-]+$/.test(rawRecoveryCode)) {
+      return { ok: false, reason: 'recovery_code_format_invalid' };
+    }
+    try {
+      if (Object.prototype.hasOwnProperty.call(ctx, '__diracRecoveryCodeContractProofV219')) {
+        return { ok: false, reason: 'recovery_code_contract_proof_duplicate' };
+      }
+      Object.defineProperty(ctx, '__diracRecoveryCodeContractProofV219', {
+        value: Object.freeze({
+          action: ctx.action,
+          method: ctx.method,
+          field,
+          length: rawRecoveryCode.length,
+          sha256: crypto.createHash('sha256').update(rawRecoveryCode, 'utf8').digest('hex')
+        }),
+        enumerable: false,
+        writable: false,
+        configurable: false
+      });
+    } catch (_) {
+      return { ok: false, reason: 'recovery_code_contract_proof_failed' };
+    }
+  }
   const clean = diracCentralFlattenObjectV146(source, 0, '', 400);
   const allowed = new Set(['action'].concat(contract.allowed || []));
   const required = new Set(contract.required || []);
@@ -29962,9 +29993,41 @@ function diracCentralSecurityReportGuardV146(req, ctx) {
 
 function diracCentralSampleCollectorV146(req, ctx) {
   const out = [];
+  let recoveryCodeProofFailure = '';
   const push = (key, value) => {
     if (out.join('\n').length > 10 * 1024) return;
     const cleanKey = String(key || '').toLowerCase();
+    const recoverySecretField = ctx.action === 'customer_security_recovery_code_verify'
+      && ctx.method === 'POST'
+      && (cleanKey === 'body.recovery_code' || cleanKey === 'body.code');
+    if (recoverySecretField) {
+      const field = cleanKey.slice('body.'.length);
+      const rawRecoveryCode = value;
+      const proof = ctx.__diracRecoveryCodeContractProofV219;
+      const currentSha256 = typeof rawRecoveryCode === 'string'
+        ? crypto.createHash('sha256').update(rawRecoveryCode, 'utf8').digest('hex')
+        : '';
+      const proofValid = Boolean(
+        ctx.guardPassport
+        && ctx.guardPassport.contract_checked === true
+        && proof
+        && proof.action === ctx.action
+        && proof.method === ctx.method
+        && proof.field === field
+        && proof.length === LOST_PASSKEY_RECOVERY_CODE_LENGTH_V157
+        && typeof rawRecoveryCode === 'string'
+        && rawRecoveryCode.length === LOST_PASSKEY_RECOVERY_CODE_LENGTH_V157
+        && /^[A-Za-z0-9_-]+$/.test(rawRecoveryCode)
+        && safeEqual(proof.sha256, currentSha256)
+      );
+      if (!proofValid) {
+        recoveryCodeProofFailure = 'recovery_code_contract_proof_invalid';
+        out.push(cleanKey + '=[recovery-code-proof-invalid]');
+        return;
+      }
+      out.push(cleanKey + '=[validated-recovery-code-redacted]');
+      return;
+    }
     if (diracCentralSensitiveKeyV146(cleanKey)) {
       out.push(cleanKey + '=[redacted-structure]');
       return;
@@ -29980,6 +30043,7 @@ function diracCentralSampleCollectorV146(req, ctx) {
   ['origin', 'referer', 'referrer', 'user-agent', 'sec-fetch-site', 'sec-fetch-mode', 'sec-fetch-dest', 'content-type', 'accept', 'accept-language'].forEach((key) => push(key, headers[key]));
   Object.entries(req && req.query || {}).slice(0, 80).forEach(([key, value]) => push('query.' + key, Array.isArray(value) ? value.join(',') : value));
   diracCentralFlattenObjectV146(ctx.body || {}, 0, '', 200).forEach((item) => push('body.' + item.key, item.value));
+  if (recoveryCodeProofFailure) return { ok: false, reason: recoveryCodeProofFailure };
   if (out.join('\n').length > 10 * 1024) return { ok: false, reason: 'sample_total_too_large' };
   ctx.sample = out.join('\n');
   return { ok: true };
