@@ -7106,11 +7106,9 @@ function customerSecurityRecoveryWorkerAllowedCaller() {
 }
 
 function customerSecurityRecoveryWorkerLocalDeploymentAllowed() {
-  const role = diracCentralEnvValueV150('DIRAC_CENTRAL_DEPLOYMENT_ROLE')
-    || diracCentralEnvValueV150('DIRAC_DEPLOYMENT_ROLE');
-  const enabled = diracCentralEnvTrueV150('DIRAC_CENTRAL_VERCEL2_ACTIONS_ENABLED')
-    || diracCentralEnvTrueV150('DIRAC_VERCEL2_ACTIONS_ENABLED');
-  return role === 'vercel2' && enabled;
+  // SERVER 1 boundary: this file may only authenticate, seal, send, and receive
+  // recovery messages. Environment drift must never enable local recovery work.
+  return false;
 }
 
 async function customerSecurityBlockLostPasskeyLocalProcessingOnServer1(req, res, action, reason) {
@@ -7277,10 +7275,9 @@ function customerSecurityRecoveryWorkerHeaderValue(req, name) {
 }
 
 function customerSecurityRecoveryWorkerLocalEnabled() {
-  return customerSecurityRecoveryWorkerLocalDeploymentAllowed()
-    && !customerSecurityRecoveryWorkerUrl()
-    && Boolean(customerSecurityRecoveryWorkerSecret())
-    && Boolean(customerSecurityRecoveryWorkerAllowedCaller());
+  // Fail closed permanently on Server 1. Incoming recovery-worker execution is
+  // forbidden; only the outbound encrypted worker channel is permitted.
+  return false;
 }
 
 function customerSecurityLostPasskeyCanonical(value) {
@@ -8562,10 +8559,22 @@ async function customerSecurityGenerateRecoveryCodes(req, res, action, override 
   if (!access) return;
 
   const requestBody = localWorker ? {} : await readBody(req);
+  // SERVER 1 proxy-only boundary: use only the already-authenticated session identity.
+  // Official customer/link/passkey resolution is repeated authoritatively on Server 2.
   const owner = localWorker && override && override.owner
     ? override.owner
-    : await customerSecurityResolveLostPasskeyOwner(access);
-  if (!owner.ok) return res.status(owner.status || 403).json({ ok: false, message: owner.message || 'Recovery passkey tidak dapat dibuat.' });
+    : {
+        ok: true,
+        authUserId: String(access && access.authUserId || ''),
+        customerId: String(access && access.customerId || ''),
+        email: normalizeAuthEmail(access && access.user && access.user.email)
+      };
+  if (!owner.ok
+      || !customerSecurityLooksLikeUuid(owner.authUserId)
+      || !customerSecurityLooksLikeUuid(owner.customerId)
+      || !isValidAuthEmail(owner.email)) {
+    return res.status(401).json({ ok: false, message: 'Sesi recovery tidak valid.' });
+  }
 
   let recoveryPdfOptions = null;
 
@@ -8610,18 +8619,15 @@ async function customerSecurityGenerateRecoveryCodes(req, res, action, override 
         message: 'Password akun wajib diisi untuk membuat password PDF recovery.'
       });
     }
-    const verifiedPassword = await customerSecurityVerifyAccountPasswordForPdfV156(owner.email, accountPassword);
-    if (!verifiedPassword.ok) {
-      await customerSecurityRegisterFailedVerification(req, action, 'recovery_pdf_account_password_invalid', access.customerId);
-      return res.status(403).json({ ok: false, code: 'ACCOUNT_PASSWORD_INVALID', message: 'Password akun belum sesuai.' });
-    }
+    // Credential verification is intentionally performed only by Server 2.
+    // Server 1 seals this material inside the hybrid worker envelope and relays it.
     recoveryPdfOptions = { accountPassword };
   }
 
   const activePasskeys = localWorker && override && Array.isArray(override.activePasskeys)
     ? override.activePasskeys
-    : await customerSecurityLostPasskeyActivePasskeys(owner);
-  if (!activePasskeys.length) {
+    : [];
+  if (localWorker && !activePasskeys.length) {
     return res.status(409).json({ ok: false, code: 'ACTIVE_PASSKEY_NOT_FOUND', message: 'Passkey aktif untuk akun ini belum ditemukan. Gunakan flow pembuatan Passkey normal.' });
   }
 
@@ -8826,13 +8832,8 @@ async function customerSecurityVerifyRecoveryCode(req, res, action) {
   if (!access) return;
 
   const body = await readBody(req);
-  const resolvedAliases = diracCentralResolveRecoveryVerifyAliasesV221(body);
-  if (!resolvedAliases.ok) {
-    await customerSecurityRegisterFailedVerification(req, action, resolvedAliases.reason, access.customerId);
-    return res.status(400).json({ ok: false, message: 'Payload recovery code tidak valid.' });
-  }
-  const requestId = customerSecurityNormalizeLostPasskeyRequestId(body[resolvedAliases.requestIdFields[0]]);
-  const code = customerSecurityNormalizeRecoveryCodeInput(body[resolvedAliases.recoveryCodeFields[0]]);
+  const requestId = customerSecurityNormalizeLostPasskeyRequestId(body.request_id || body.requestId || '');
+  const code = customerSecurityNormalizeRecoveryCodeInput(body.code || body.recovery_code || body.recoveryCode || '');
 
   if (!requestId) {
     await customerSecurityRegisterFailedVerification(req, action, 'invalid_recovery_request_id', access.customerId);
@@ -8846,19 +8847,21 @@ async function customerSecurityVerifyRecoveryCode(req, res, action) {
     });
   }
 
-  const owner = await customerSecurityResolveLostPasskeyOwner(access);
-  if (!owner.ok) {
-    return res.status(owner.status || 403).json({
-      ok: false,
-      message: owner.message || 'Recovery passkey tidak dapat diverifikasi.'
-    });
+  // SERVER 1 proxy-only boundary: no customer-table or passkey-table recovery lookup.
+  // Server 2 resolves and validates the official owner and active passkeys.
+  const owner = {
+    ok: true,
+    authUserId: String(access && access.authUserId || ''),
+    customerId: String(access && access.customerId || ''),
+    email: normalizeAuthEmail(access && access.user && access.user.email)
+  };
+  if (!customerSecurityLooksLikeUuid(owner.authUserId)
+      || !customerSecurityLooksLikeUuid(owner.customerId)
+      || !isValidAuthEmail(owner.email)) {
+    return res.status(401).json({ ok: false, message: 'Sesi recovery tidak valid.' });
   }
 
-  const activePasskeys = await customerSecurityLostPasskeyActivePasskeys(owner);
-  if (!activePasskeys.length) {
-    return res.status(409).json({ ok: false, code: 'ACTIVE_PASSKEY_NOT_FOUND', message: 'Passkey aktif untuk akun ini belum ditemukan. Gunakan flow pembuatan Passkey normal.' });
-  }
-
+  const activePasskeys = [];
   const bindings = customerSecurityLostPasskeyBindings(req, owner);
 
   return customerSecurityVerifyRecoveryCodeViaWorker(
@@ -28033,14 +28036,14 @@ const DIRAC_CENTRAL_ACTIVE_ACTIONS_V146 = new Set([
   'katalog_parfum',
   'katalog_produk',
   'lihat_produk',
-  DIRAC_RECOVERY_WORKER_ACTION,
   'security_report'
 ]);
 
 const DIRAC_CENTRAL_DISABLED_ACTIONS_V146 = new Set([
   'checkout_order_hp_test',
   'ipaymu_health',
-  'ipaymu_webhook'
+  'ipaymu_webhook',
+  DIRAC_RECOVERY_WORKER_ACTION
 ]);
 
 const DIRAC_CENTRAL_SERVER_ACTIONS_V146 = new Set(['midtrans_webhook', DIRAC_RECOVERY_WORKER_ACTION]);
@@ -29862,88 +29865,10 @@ function diracCentralLightGuardV146(req, ctx) {
   return { ok: true };
 }
 
-function diracCentralResolveRecoveryVerifyAliasesV221(source) {
-  if (!source || typeof source !== 'object' || Array.isArray(source)) {
-    return { ok: false, reason: 'recovery_verify_body_invalid' };
-  }
-
-  const requestIdFields = ['request_id', 'requestId'].filter((fieldName) =>
-    Object.prototype.hasOwnProperty.call(source, fieldName)
-  );
-  if (!requestIdFields.length) return { ok: false, reason: 'recovery_request_id_field_missing' };
-
-  const requestIdValues = requestIdFields.map((fieldName) => source[fieldName]);
-  if (requestIdValues.some((value) => typeof value !== 'string' || !/^[A-Za-z0-9_-]{16,120}$/.test(value))) {
-    return { ok: false, reason: 'recovery_request_id_format_invalid' };
-  }
-  for (let index = 1; index < requestIdValues.length; index += 1) {
-    if (requestIdValues[index] !== requestIdValues[0]) {
-      return { ok: false, reason: 'recovery_request_id_field_conflict' };
-    }
-  }
-  const requestIdSha256 = crypto.createHash('sha256').update(requestIdValues[0], 'utf8').digest('hex');
-
-  const recoveryCodeFields = ['recovery_code', 'recoveryCode', 'code'].filter((fieldName) =>
-    Object.prototype.hasOwnProperty.call(source, fieldName)
-  );
-  if (!recoveryCodeFields.length) return { ok: false, reason: 'recovery_code_field_missing' };
-
-  const recoveryCodeValues = recoveryCodeFields.map((fieldName) => source[fieldName]);
-  if (recoveryCodeValues.some((value) =>
-    typeof value !== 'string'
-    || value.length !== LOST_PASSKEY_RECOVERY_CODE_LENGTH_V157
-    || !/^[A-Za-z0-9_-]+$/.test(value)
-  )) {
-    return { ok: false, reason: 'recovery_code_format_invalid' };
-  }
-  for (let index = 1; index < recoveryCodeValues.length; index += 1) {
-    if (recoveryCodeValues[index] !== recoveryCodeValues[0]) {
-      return { ok: false, reason: 'recovery_code_field_conflict' };
-    }
-  }
-  const recoveryCodeSha256 = crypto.createHash('sha256').update(recoveryCodeValues[0], 'utf8').digest('hex');
-
-  return {
-    ok: true,
-    requestIdFields: Object.freeze(requestIdFields.slice()),
-    recoveryCodeFields: Object.freeze(recoveryCodeFields.slice()),
-    requestIdLength: requestIdValues[0].length,
-    recoveryCodeLength: recoveryCodeValues[0].length,
-    requestIdSha256,
-    recoveryCodeSha256
-  };
-}
-
 function diracCentralContractGuardV146(req, ctx) {
   const contract = diracCentralContractForActionV146(ctx.action);
   if (!contract || !contract.methods || !contract.methods.length) return { ok: false, reason: 'action_contract_missing' };
   const source = ctx.method === 'GET' || ctx.method === 'HEAD' ? (req && req.query || {}) : (ctx.body || {});
-  if (ctx.action === 'customer_security_recovery_code_verify' && ctx.method === 'POST') {
-    const resolved = diracCentralResolveRecoveryVerifyAliasesV221(source);
-    if (!resolved.ok) return resolved;
-    try {
-      if (Object.prototype.hasOwnProperty.call(ctx, '__diracRecoveryCodeContractProofV219')) {
-        return { ok: false, reason: 'recovery_code_contract_proof_duplicate' };
-      }
-      Object.defineProperty(ctx, '__diracRecoveryCodeContractProofV219', {
-        value: Object.freeze({
-          action: ctx.action,
-          method: ctx.method,
-          requestIdFields: resolved.requestIdFields,
-          recoveryCodeFields: resolved.recoveryCodeFields,
-          requestIdLength: resolved.requestIdLength,
-          recoveryCodeLength: resolved.recoveryCodeLength,
-          requestIdSha256: resolved.requestIdSha256,
-          recoveryCodeSha256: resolved.recoveryCodeSha256
-        }),
-        enumerable: false,
-        writable: false,
-        configurable: false
-      });
-    } catch (_) {
-      return { ok: false, reason: 'recovery_code_contract_proof_failed' };
-    }
-  }
   const clean = diracCentralFlattenObjectV146(source, 0, '', 400);
   const allowed = new Set(['action'].concat(contract.allowed || []));
   const required = new Set(contract.required || []);
@@ -29985,45 +29910,9 @@ function diracCentralSecurityReportGuardV146(req, ctx) {
 
 function diracCentralSampleCollectorV146(req, ctx) {
   const out = [];
-  let recoveryCodeProofFailure = '';
-  let recoveryVerifyProofValid = true;
-  if (ctx.action === 'customer_security_recovery_code_verify' && ctx.method === 'POST') {
-    const proof = ctx.__diracRecoveryCodeContractProofV219;
-    const resolved = diracCentralResolveRecoveryVerifyAliasesV221(ctx.body || {});
-    recoveryVerifyProofValid = Boolean(
-      ctx.guardPassport
-      && ctx.guardPassport.contract_checked === true
-      && proof
-      && resolved.ok
-      && proof.action === ctx.action
-      && proof.method === ctx.method
-      && proof.requestIdLength === resolved.requestIdLength
-      && proof.recoveryCodeLength === resolved.recoveryCodeLength
-      && Array.isArray(proof.requestIdFields)
-      && Array.isArray(proof.recoveryCodeFields)
-      && proof.requestIdFields.length === resolved.requestIdFields.length
-      && proof.recoveryCodeFields.length === resolved.recoveryCodeFields.length
-      && proof.requestIdFields.every((field, index) => field === resolved.requestIdFields[index])
-      && proof.recoveryCodeFields.every((field, index) => field === resolved.recoveryCodeFields[index])
-      && safeEqual(proof.requestIdSha256, resolved.requestIdSha256)
-      && safeEqual(proof.recoveryCodeSha256, resolved.recoveryCodeSha256)
-    );
-    if (!recoveryVerifyProofValid) recoveryCodeProofFailure = 'recovery_code_contract_proof_invalid';
-  }
   const push = (key, value) => {
     if (out.join('\n').length > 10 * 1024) return;
     const cleanKey = String(key || '').toLowerCase();
-    const recoverySecretField = ctx.action === 'customer_security_recovery_code_verify'
-      && ctx.method === 'POST'
-      && (cleanKey === 'body.recovery_code' || cleanKey === 'body.recoverycode' || cleanKey === 'body.code');
-    if (recoverySecretField) {
-      if (!recoveryVerifyProofValid) {
-        out.push(cleanKey + '=[recovery-code-proof-invalid]');
-        return;
-      }
-      out.push(cleanKey + '=[validated-recovery-code-redacted]');
-      return;
-    }
     if (diracCentralSensitiveKeyV146(cleanKey)) {
       out.push(cleanKey + '=[redacted-structure]');
       return;
@@ -30039,7 +29928,6 @@ function diracCentralSampleCollectorV146(req, ctx) {
   ['origin', 'referer', 'referrer', 'user-agent', 'sec-fetch-site', 'sec-fetch-mode', 'sec-fetch-dest', 'content-type', 'accept', 'accept-language'].forEach((key) => push(key, headers[key]));
   Object.entries(req && req.query || {}).slice(0, 80).forEach(([key, value]) => push('query.' + key, Array.isArray(value) ? value.join(',') : value));
   diracCentralFlattenObjectV146(ctx.body || {}, 0, '', 200).forEach((item) => push('body.' + item.key, item.value));
-  if (recoveryCodeProofFailure) return { ok: false, reason: recoveryCodeProofFailure };
   if (out.join('\n').length > 10 * 1024) return { ok: false, reason: 'sample_total_too_large' };
   ctx.sample = out.join('\n');
   return { ok: true };
@@ -31847,7 +31735,7 @@ function diracCentralContractForActionV146(action) {
   const postOnly = { methods: ['POST'], allowed: commonPost, required: [], maxBodyBytes: 20 * 1024, maxFieldBytes: 3000, mutation: true };
   const passkeyPost = { methods: ['POST'], allowed: ['action', 'method', 'identifier', 'email', 'setupToken', 'mfaSetupToken', 'token', 'passkeyMode', 'credential', 'id', 'rawId', 'type', 'response', 'clientExtensionResults', 'credProps', 'rk', 'clientDataJSON', 'attestationObject', 'authenticatorData', 'signature', 'userHandle', 'transports', 'authenticatorAttachment', 'challenge', 'code', 'recovery_session_token', 'recoverySessionToken', 'lost_passkey_recovery_session_token', 'lostPasskeyRecoverySessionToken', 'dirac_lost_passkey_recovery_session', 'csrf', 'nonce', 'idempotency_key'], required: [], maxBodyBytes: 192 * 1024, maxFieldBytes: 80 * 1024, mutation: true, allowArrayItems: true };
   const recoveryGeneratePost = { methods: ['POST'], allowed: ['action', 'csrf', 'nonce', 'idempotency_key', 'account_password', 'current_password', 'currentPassword'], required: [], maxBodyBytes: 2048, maxFieldBytes: 1024, mutation: true };
-  const recoveryVerifyPost = { methods: ['POST'], allowed: ['action', 'request_id', 'requestId', 'recovery_code', 'recoveryCode', 'code', 'csrf', 'nonce', 'idempotency_key'], required: [], maxBodyBytes: 4096, maxFieldBytes: 1200, mutation: true };
+  const recoveryVerifyPost = { methods: ['POST'], allowed: ['action', 'request_id', 'recovery_code', 'code', 'csrf', 'nonce', 'idempotency_key'], required: ['request_id'], maxBodyBytes: 4096, maxFieldBytes: 1200, mutation: true };
   const recoveryWorkerPost = {
     methods: ['POST'],
     allowed: ['action', 'worker_action', 'auth_user_id', 'customer_id', 'email', 'email_binding_hash', 'customer_binding_hash', 'auth_user_binding_hash', 'device_binding_hash', 'ip_hash', 'user_agent_hash', 'active_passkey_count', 'requested_at', 'account_password', 'request_id', 'recovery_code', 'code'],
@@ -33651,3 +33539,17 @@ if (typeof module.exports !== 'function'
     || module.exports.__diracCentralArchitectureConsolidationV202 !== true) {
   throw new Error('DIRAC_V202_FINAL_EXPORT_INVARIANT_FAILED');
 }
+
+
+/* ============================================================
+   DIRAC SERVER 1 RECOVERY PROXY-ONLY INVARIANT v220
+   Narrow invariant only; primary business handlers are untouched.
+   ============================================================ */
+if (customerSecurityRecoveryWorkerLocalDeploymentAllowed() !== false
+    || customerSecurityRecoveryWorkerLocalEnabled() !== false
+    || DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.has(DIRAC_RECOVERY_WORKER_ACTION)
+    || !DIRAC_CENTRAL_DISABLED_ACTIONS_V146.has(DIRAC_RECOVERY_WORKER_ACTION)) {
+  throw new Error('DIRAC_SERVER1_RECOVERY_PROXY_ONLY_INVARIANT_FAILED_V220');
+}
+Object.defineProperty(module.exports, '__diracServer1RecoveryProxyOnlyV220', { value: true, enumerable: false });
+Object.defineProperty(module.exports, '__diracServer1RecoveryTransportOnlyV220', { value: true, enumerable: false });
