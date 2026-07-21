@@ -29922,10 +29922,19 @@ function diracCentralContractGuardV146(req, ctx) {
   if (!contract || !contract.methods || !contract.methods.length) return { ok: false, reason: 'action_contract_missing' };
   const source = ctx.method === 'GET' || ctx.method === 'HEAD' ? (req && req.query || {}) : (ctx.body || {});
   if (ctx.action === 'customer_security_recovery_code_verify' && ctx.method === 'POST') {
-    const hasRecoveryCode = Object.prototype.hasOwnProperty.call(source, 'recovery_code');
-    const hasCodeAlias = Object.prototype.hasOwnProperty.call(source, 'code');
-    if (hasRecoveryCode === hasCodeAlias) return { ok: false, reason: 'recovery_code_field_ambiguous_or_missing' };
-    const field = hasRecoveryCode ? 'recovery_code' : 'code';
+    const recoveryRequestIdFields = ['request_id', 'requestId'].filter((fieldName) =>
+      Object.prototype.hasOwnProperty.call(source, fieldName)
+    );
+    if (recoveryRequestIdFields.length !== 1) return { ok: false, reason: 'recovery_request_id_field_ambiguous_or_missing' };
+    const rawRequestId = source[recoveryRequestIdFields[0]];
+    if (typeof rawRequestId !== 'string' || !/^[A-Za-z0-9_-]{16,120}$/.test(rawRequestId)) {
+      return { ok: false, reason: 'recovery_request_id_format_invalid' };
+    }
+    const recoveryCodeFields = ['recovery_code', 'recoveryCode', 'code'].filter((fieldName) =>
+      Object.prototype.hasOwnProperty.call(source, fieldName)
+    );
+    if (recoveryCodeFields.length !== 1) return { ok: false, reason: 'recovery_code_field_ambiguous_or_missing' };
+    const field = recoveryCodeFields[0];
     const rawRecoveryCode = source[field];
     if (typeof rawRecoveryCode !== 'string'
       || rawRecoveryCode.length !== LOST_PASSKEY_RECOVERY_CODE_LENGTH_V157
@@ -29999,9 +30008,13 @@ function diracCentralSampleCollectorV146(req, ctx) {
     const cleanKey = String(key || '').toLowerCase();
     const recoverySecretField = ctx.action === 'customer_security_recovery_code_verify'
       && ctx.method === 'POST'
-      && (cleanKey === 'body.recovery_code' || cleanKey === 'body.code');
+      && (cleanKey === 'body.recovery_code' || cleanKey === 'body.recoverycode' || cleanKey === 'body.code');
     if (recoverySecretField) {
-      const field = cleanKey.slice('body.'.length);
+      const field = cleanKey === 'body.recovery_code'
+        ? 'recovery_code'
+        : cleanKey === 'body.recoverycode'
+          ? 'recoveryCode'
+          : 'code';
       const rawRecoveryCode = value;
       const proof = ctx.__diracRecoveryCodeContractProofV219;
       const currentSha256 = typeof rawRecoveryCode === 'string'
@@ -31890,7 +31903,7 @@ function diracCentralContractForActionV146(action) {
   const postOnly = { methods: ['POST'], allowed: commonPost, required: [], maxBodyBytes: 20 * 1024, maxFieldBytes: 3000, mutation: true };
   const passkeyPost = { methods: ['POST'], allowed: ['action', 'method', 'identifier', 'email', 'setupToken', 'mfaSetupToken', 'token', 'passkeyMode', 'credential', 'id', 'rawId', 'type', 'response', 'clientExtensionResults', 'credProps', 'rk', 'clientDataJSON', 'attestationObject', 'authenticatorData', 'signature', 'userHandle', 'transports', 'authenticatorAttachment', 'challenge', 'code', 'recovery_session_token', 'recoverySessionToken', 'lost_passkey_recovery_session_token', 'lostPasskeyRecoverySessionToken', 'dirac_lost_passkey_recovery_session', 'csrf', 'nonce', 'idempotency_key'], required: [], maxBodyBytes: 192 * 1024, maxFieldBytes: 80 * 1024, mutation: true, allowArrayItems: true };
   const recoveryGeneratePost = { methods: ['POST'], allowed: ['action', 'csrf', 'nonce', 'idempotency_key', 'account_password', 'current_password', 'currentPassword'], required: [], maxBodyBytes: 2048, maxFieldBytes: 1024, mutation: true };
-  const recoveryVerifyPost = { methods: ['POST'], allowed: ['action', 'request_id', 'recovery_code', 'code', 'csrf', 'nonce', 'idempotency_key'], required: ['request_id'], maxBodyBytes: 4096, maxFieldBytes: 1200, mutation: true };
+  const recoveryVerifyPost = { methods: ['POST'], allowed: ['action', 'request_id', 'requestId', 'recovery_code', 'recoveryCode', 'code', 'csrf', 'nonce', 'idempotency_key'], required: [], maxBodyBytes: 4096, maxFieldBytes: 1200, mutation: true };
   const recoveryWorkerPost = {
     methods: ['POST'],
     allowed: ['action', 'worker_action', 'auth_user_id', 'customer_id', 'email', 'email_binding_hash', 'customer_binding_hash', 'auth_user_binding_hash', 'device_binding_hash', 'ip_hash', 'user_agent_hash', 'active_passkey_count', 'requested_at', 'account_password', 'request_id', 'recovery_code', 'code'],
