@@ -29384,6 +29384,8 @@ const DIRAC_CENTRAL_DEVICE_BOOTSTRAP_ACTIONS_V224 = Object.freeze(new Set([
   'domain_dashboard_me',
   'domain_mfa_status',
   'customer_security_overview',
+  'checkout_order',
+  'create_payment',
   'dirac_mfa_passkey_start',
   'dirac_mfa_passkey_verify',
   'domain_mfa_passkey_start',
