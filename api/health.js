@@ -8811,6 +8811,7 @@ async function customerSecurityGenerateRecoveryCodes(req, res, action, override 
    ============================================================ */
 
 const DIRAC_CUSTOMER_MFA_STABLE_SESSION_BINDING_V225 = 'dirac-customer-mfa-stable-session-binding-v225';
+const DIRAC_CUSTOMER_MFA_AUTHORITATIVE_SESSION_BINDING_V226 = 'dirac-customer-mfa-authoritative-session-binding-v226';
 
 function customerSecurityDashboardMfaStableSessionBindingV225(req) {
   let stableSession = '';
@@ -8823,12 +8824,24 @@ function customerSecurityDashboardMfaStableSessionBindingV225(req) {
   return customerMfaBindingHash('stable_session_v225', stableSession);
 }
 
+function customerSecurityDashboardMfaAuthoritativeSessionBindingV226(req) {
+  let authoritativeSession = '';
+  try {
+    authoritativeSession = typeof diracCentralDeviceSessionBindingV222 === 'function'
+      ? String(diracCentralDeviceSessionBindingV222(req) || '').trim()
+      : '';
+  } catch (_) {}
+  if (!/^[a-f0-9]{64}$/.test(authoritativeSession)) return '';
+  return customerMfaBindingHash('authoritative_session_v226', authoritativeSession);
+}
+
 function customerSecurityExpectedDashboardMfaSessionBindingV225(req, payload) {
   const rawVersion = payload && payload.sessionBindingVersion;
   const version = rawVersion === undefined || rawVersion === null || rawVersion === ''
     ? 1
     : Number(rawVersion);
   if (!Number.isSafeInteger(version)) return '';
+  if (version === 3) return customerSecurityDashboardMfaAuthoritativeSessionBindingV226(req);
   if (version === 2) return customerSecurityDashboardMfaStableSessionBindingV225(req);
   if (version !== 1) return '';
 
@@ -8847,7 +8860,7 @@ function customerSecurityCreateDashboardMfaToken(req, user, method = 'recovery_c
   const maxAgeSeconds = Math.max(15 * 60, Math.min(60 * 60, Number(process.env.DIRAC_DASHBOARD_MFA_MAX_AGE_SECONDS || 30 * 60)));
   const userId = String(user && user.id || '').trim();
   const customerId = String(user && (user.customer_id || user.customerId || user.customer || '') || '').trim();
-  const sessionHash = customerSecurityDashboardMfaStableSessionBindingV225(req);
+  const sessionHash = customerSecurityDashboardMfaAuthoritativeSessionBindingV226(req);
   if (!sessionHash) {
     return {
       token: '',
@@ -8863,7 +8876,7 @@ function customerSecurityCreateDashboardMfaToken(req, user, method = 'recovery_c
     emailHash: customerMfaProfileId(email),
     authUserIdHash: userId ? customerMfaBindingHash('auth_user_id', userId) : '',
     customerIdHash: customerId ? customerMfaBindingHash('customer_id', customerId) : '',
-    sessionBindingVersion: 2,
+    sessionBindingVersion: 3,
     sessionHash,
     jti: crypto.randomBytes(24).toString('base64url'),
     activeAtMs: now,
