@@ -34906,17 +34906,18 @@ const DIRAC_RECOVERY_HPKE_ACTION_V159 = 'customer_security_recovery_hpke_submit'
 const DIRAC_RECOVERY_HPKE_PROOF_VERSION_V159 = 'dirac-recovery-hpke-proof-v2';
 const DIRAC_RECOVERY_HPKE_SUITE_V159 = 'DHKEM-X25519-HKDF-SHA256+HKDF-SHA384+AES-256-GCM';
 const DIRAC_RECOVERY_HPKE_ARGON2_PROFILE_V159 = 'argon2id-salt-pepper-v1';
-const DIRAC_RECOVERY_HPKE_S2S_CALLER_BINDING_PATCH_V226 = 'dirac-recovery-hpke-s2s-caller-binding-v226';
+const DIRAC_RECOVERY_HPKE_S2S_CROSS_BINDING_PATCH_V227 = 'dirac-recovery-hpke-s2s-cross-binding-v227';
 
-function diracRecoveryHpkeAssertS2SCallerBindingV226() {
+function diracRecoveryHpkeAssertS2SCrossBindingConfigurationV227() {
   const expectedServerId = diracS2SIdV206(process.env.DIRAC_RECOVERY_WORKER_SERVER_ID || 'vercel2-recovery');
   const configuredCaller = diracRecoveryHpkeAsciiTokenV159(process.env.DIRAC_RECOVERY_HPKE_ALLOWED_CALLER);
-  if (!expectedServerId || !configuredCaller || !safeEqual(configuredCaller, expectedServerId)) {
-    throw new Error('DIRAC_RECOVERY_HPKE_S2S_CALLER_BINDING_INVALID_V226');
+  if (!expectedServerId || !configuredCaller) {
+    throw new Error('DIRAC_RECOVERY_HPKE_S2S_CROSS_BINDING_CONFIGURATION_INVALID_V227');
   }
   return true;
 }
 
+if (process.env.NODE_ENV === 'production') diracRecoveryHpkeAssertS2SCrossBindingConfigurationV227();
 const DIRAC_RECOVERY_HPKE_PROOF_REPLAY_V159 = globalThis.__DIRAC_RECOVERY_HPKE_PROOF_REPLAY_V159__ || new Map();
 globalThis.__DIRAC_RECOVERY_HPKE_PROOF_REPLAY_V159__ = DIRAC_RECOVERY_HPKE_PROOF_REPLAY_V159;
 
@@ -35088,7 +35089,7 @@ function diracRecoveryHpkeServer2OnlyEnvOnServer1V159() {
   return names.filter((name) => String(process.env[name] || '').trim() !== '');
 }
 
-function diracRecoveryHpkeProofSignatureV159(caller, timestampText, body) {
+function diracRecoveryHpkeProofSignatureV159(caller, timestampText, body, s2sCrossBinding) {
   const secretText = customerSecurityRecoveryWorkerSecret();
   if (!secretText) return '';
   const secret = Buffer.from(secretText, 'utf8');
@@ -35101,6 +35102,10 @@ function diracRecoveryHpkeProofSignatureV159(caller, timestampText, body) {
       .update(String(timestampText || ''))
       .update('\n')
       .update(customerSecurityLostPasskeyCanonical(body || {}))
+      .update('\n')
+      .update(DIRAC_RECOVERY_HPKE_S2S_CROSS_BINDING_PATCH_V227)
+      .update('\n')
+      .update(String(s2sCrossBinding || ''))
       .digest('base64url');
   } finally {
     secret.fill(0);
@@ -35198,8 +35203,7 @@ function diracRecoveryHpkeProofSignatureGuardV159(req, ctx) {
       || !expectedServerId
       || !configuredCaller
       || !safeEqual(signedServerId, expectedServerId)
-      || !safeEqual(caller, signedServerId)
-      || !safeEqual(configuredCaller, signedServerId)) {
+      || !safeEqual(caller, configuredCaller)) {
     return { ok: false, reason: 'recovery_hpke_caller_invalid' };
   }
 
@@ -35217,7 +35221,15 @@ function diracRecoveryHpkeProofSignatureGuardV159(req, ctx) {
     return { ok: false, reason: 'recovery_hpke_body_binding_invalid' };
   }
 
-  const expected = diracRecoveryHpkeProofSignatureV159(caller, timestampText, body);
+  const s2sCrossBinding = [
+    DIRAC_RECOVERY_HPKE_ACTION_V159,
+    'x-dirac-s2s-version', 'x-dirac-s2s-policy', 'x-dirac-network-id',
+    'x-dirac-server-id', 'x-dirac-target-server-id', 'x-dirac-key-version',
+    'x-dirac-timestamp', 'x-dirac-nonce', 'x-dirac-request-id', 'x-dirac-body-sha512',
+    'x-dirac-signature-1', 'x-dirac-signature-2', 'x-dirac-signature-3', 'x-dirac-signature-4',
+    'x-dirac-signature-5', 'x-dirac-signature-6', 'x-dirac-signature-7'
+  ].map((name, index) => index === 0 ? name : diracRecoveryHpkeHeaderV159(req, name)).join('\n');
+  const expected = diracRecoveryHpkeProofSignatureV159(caller, timestampText, body, s2sCrossBinding);
   if (!expected || !safeEqual(signature, expected)) return { ok: false, reason: 'recovery_hpke_signature_invalid' };
 
   req.__diracRecoveryHpkeProofVerifiedV159 = true;
