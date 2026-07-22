@@ -8827,10 +8827,15 @@ function customerSecurityDashboardMfaStableSessionBindingV225(req) {
 function customerSecurityDashboardMfaAuthoritativeSessionBindingV226(req) {
   let authoritativeSession = '';
   try {
-    authoritativeSession = typeof diracCentralDeviceSessionBindingV222 === 'function'
-      ? String(diracCentralDeviceSessionBindingV222(req) || '').trim()
+    authoritativeSession = typeof diracCentralReadVerifiedDeviceBindingV227 === 'function'
+      ? String(diracCentralReadVerifiedDeviceBindingV227(req) || '').trim()
       : '';
-  } catch (_) {}
+    if (!authoritativeSession && typeof diracCentralDeviceSessionBindingV222 === 'function') {
+      authoritativeSession = String(diracCentralDeviceSessionBindingV222(req) || '').trim();
+    }
+  } catch (_) {
+    authoritativeSession = '';
+  }
   if (!/^[a-f0-9]{64}$/.test(authoritativeSession)) return '';
   return customerMfaBindingHash('authoritative_session_v226', authoritativeSession);
 }
@@ -29047,7 +29052,11 @@ const DIRAC_CENTRAL_DEVICE_AUTH_CACHE_V224 = Symbol('dirac-central-device-auth-c
 const DIRAC_CENTRAL_DEVICE_BOOTSTRAP_ACTIONS_V224 = Object.freeze(new Set([
   'domain_me',
   'domain_dashboard_me',
-  'domain_mfa_status'
+  'domain_mfa_status',
+  'dirac_mfa_passkey_start',
+  'dirac_mfa_passkey_verify',
+  'domain_mfa_passkey_start',
+  'domain_mfa_passkey_verify'
 ]));
 
 function diracCentralDeviceAuthIdentityV224(user) {
@@ -29263,6 +29272,38 @@ function diracCentralReadVerifiedDeviceAuthV224(req) {
   return sealed.user;
 }
 
+function diracCentralReadVerifiedDeviceBindingV227(req) {
+  const sealed = req && req[DIRAC_CENTRAL_DEVICE_AUTH_CACHE_V224];
+  if (!sealed || sealed.patch !== DIRAC_CENTRAL_DEVICE_AUTH_BOOTSTRAP_V224) return '';
+
+  const ctx = typeof diracCentralCurrentContextV149 === 'function'
+    ? diracCentralCurrentContextV149()
+    : null;
+  if (!ctx || ctx.req !== req || String(sealed.requestId || '') !== String(ctx.requestId || '')) return '';
+
+  const now = Date.now();
+  const createdAtMs = Number(sealed.createdAtMs);
+  if (!Number.isSafeInteger(createdAtMs)
+      || createdAtMs > now + 1000
+      || now - createdAtMs > 60 * 1000) return '';
+
+  const identity = diracCentralDeviceAuthIdentityV224(sealed.user);
+  const sealedIdentity = sealed.identity && typeof sealed.identity === 'object' ? sealed.identity : null;
+  const contextAuthentication = ctx.authentication && typeof ctx.authentication === 'object'
+    ? ctx.authentication
+    : null;
+  if (!identity || !sealedIdentity || !contextAuthentication
+      || contextAuthentication.verified !== true
+      || contextAuthentication.bootstrap !== DIRAC_CENTRAL_DEVICE_AUTH_BOOTSTRAP_V224
+      || identity.userId !== String(sealedIdentity.userId || '')
+      || identity.email !== normalizeAuthEmail(sealedIdentity.email || '')
+      || identity.userId !== String(contextAuthentication.userId || '')
+      || identity.email !== normalizeAuthEmail(contextAuthentication.email || '')) return '';
+
+  const binding = String(sealed.binding || '').trim();
+  return /^[a-f0-9]{64}$/.test(binding) ? binding : '';
+}
+
 function diracCentralVerifyDeviceEnvelopeV224(req, token) {
   const parts = String(token || '').split('.');
   if (parts.length !== 2 || !parts[0] || !parts[1]) return { ok: false, reason: 'device_credential_shape_invalid' };
@@ -29324,7 +29365,11 @@ async function diracCentralStrictBootstrapDeviceSessionV224(req, res, ctx) {
 }
 
 async function diracCentralDeviceCredentialGuardV221(req, res, ctx) {
-  if (!DIRAC_CENTRAL_USER_DATA_ACTIONS_V146.has(ctx.action) && !/^domain_dashboard|^customer_security|^admin_security/.test(ctx.action)) return { ok: true };
+  const action = String(ctx && ctx.action || '');
+  const deviceCredentialRequired = DIRAC_CENTRAL_USER_DATA_ACTIONS_V146.has(action)
+    || /^domain_dashboard|^customer_security|^admin_security/.test(action)
+    || DIRAC_CENTRAL_DEVICE_BOOTSTRAP_ACTIONS_V224.has(action);
+  if (!deviceCredentialRequired) return { ok: true };
   const boundSessionCookie = diracCentralVerifyDeviceSessionCookieV223(req);
   let session = boundSessionCookie && boundSessionCookie.binding ? String(boundSessionCookie.binding) : '';
   let bootstrapped = null;
