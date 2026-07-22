@@ -2939,12 +2939,9 @@ function verifyCustomerDashboardMfaCookie(req, user) {
     return { ok: false, code: 'mfa_cookie_customer_mismatch', message: 'Sesi A2F backend tidak cocok dengan customer login.' };
   }
 
-  if (payload.sessionHash) {
-    let expectedSessionHash = '';
-    try { expectedSessionHash = typeof diracCentralRequestSessionHashV146 === 'function' ? diracCentralRequestSessionHashV146(req) : ''; } catch (_) {}
-    if (expectedSessionHash && !safeEqual(String(payload.sessionHash), expectedSessionHash)) {
-      return { ok: false, code: 'mfa_cookie_session_mismatch', message: 'Sesi A2F backend tidak cocok dengan sesi login.' };
-    }
+  const expectedSessionHash = customerSecurityExpectedDashboardMfaSessionBindingV225(req, payload);
+  if (!payload.sessionHash || !expectedSessionHash || !safeEqual(String(payload.sessionHash), expectedSessionHash)) {
+    return { ok: false, code: 'mfa_cookie_session_mismatch', message: 'Sesi A2F backend tidak cocok dengan sesi login.' };
   }
 
   if (payload.originHash) {
@@ -8813,20 +8810,60 @@ async function customerSecurityGenerateRecoveryCodes(req, res, action, override 
    - Tidak membuat dashboard MFA/full login session.
    ============================================================ */
 
+const DIRAC_CUSTOMER_MFA_STABLE_SESSION_BINDING_V225 = 'dirac-customer-mfa-stable-session-binding-v225';
+
+function customerSecurityDashboardMfaStableSessionBindingV225(req) {
+  let stableSession = '';
+  try {
+    stableSession = typeof diracCentralDeviceStableSessionBindingV222 === 'function'
+      ? String(diracCentralDeviceStableSessionBindingV222(req) || '').trim()
+      : '';
+  } catch (_) {}
+  if (!/^[a-f0-9]{64}$/.test(stableSession)) return '';
+  return customerMfaBindingHash('stable_session_v225', stableSession);
+}
+
+function customerSecurityExpectedDashboardMfaSessionBindingV225(req, payload) {
+  const rawVersion = payload && payload.sessionBindingVersion;
+  const version = rawVersion === undefined || rawVersion === null || rawVersion === ''
+    ? 1
+    : Number(rawVersion);
+  if (!Number.isSafeInteger(version)) return '';
+  if (version === 2) return customerSecurityDashboardMfaStableSessionBindingV225(req);
+  if (version !== 1) return '';
+
+  let legacySessionHash = '';
+  try {
+    legacySessionHash = typeof diracCentralRequestSessionHashV146 === 'function'
+      ? String(diracCentralRequestSessionHashV146(req) || '').trim()
+      : '';
+  } catch (_) {}
+  return /^[a-f0-9]{64}$/.test(legacySessionHash) ? legacySessionHash : '';
+}
+
 function customerSecurityCreateDashboardMfaToken(req, user, method = 'recovery_code') {
   const email = normalizeAuthEmail(user && user.email);
   const now = Date.now();
   const maxAgeSeconds = Math.max(15 * 60, Math.min(60 * 60, Number(process.env.DIRAC_DASHBOARD_MFA_MAX_AGE_SECONDS || 30 * 60)));
   const userId = String(user && user.id || '').trim();
   const customerId = String(user && (user.customer_id || user.customerId || user.customer || '') || '').trim();
-  let sessionHash = '';
-  try { sessionHash = typeof diracCentralRequestSessionHashV146 === 'function' ? diracCentralRequestSessionHashV146(req) : ''; } catch (_) {}
+  const sessionHash = customerSecurityDashboardMfaStableSessionBindingV225(req);
+  if (!sessionHash) {
+    return {
+      token: '',
+      expiresAtMs: 0,
+      activeAtMs: 0,
+      maxAgeSeconds: 0,
+      error: 'MFA_STABLE_SESSION_BINDING_UNAVAILABLE'
+    };
+  }
   const payload = {
     type: CUSTOMER_MFA_SESSION_TYPE,
     method,
     emailHash: customerMfaProfileId(email),
     authUserIdHash: userId ? customerMfaBindingHash('auth_user_id', userId) : '',
     customerIdHash: customerId ? customerMfaBindingHash('customer_id', customerId) : '',
+    sessionBindingVersion: 2,
     sessionHash,
     jti: crypto.randomBytes(24).toString('base64url'),
     activeAtMs: now,
@@ -13775,6 +13812,14 @@ async function diracPasskeyA2FVerify(req, res) {
   await diracPasskeyA2FMarkSettingsActive(owner);
 
   const proof = customerSecurityCreateDashboardMfaToken(req, user, 'passkey');
+  if (!proof || !proof.token) {
+    return res.status(503).json({
+      ok: false,
+      method: 'passkey',
+      code: proof && proof.error || 'MFA_STABLE_SESSION_BINDING_UNAVAILABLE',
+      message: 'Passkey berhasil diverifikasi, tetapi binding sesi MFA belum dapat dibentuk secara aman. Silakan login ulang lalu verifikasi Passkey kembali.'
+    });
+  }
   customerSecuritySetDashboardMfaCookie(res, proof);
 
   return res.status(200).json({
@@ -28649,7 +28694,7 @@ function diracCentralMfaEnvelopeV221(req, ctx) {
     return { ok: false, expected: false, reason: 'mfa_envelope_time_invalid' };
   }
   if (!/^[A-Za-z0-9_-]{16,160}$/.test(String(payload.jti || ''))) return { ok: false, expected: false, reason: 'mfa_envelope_jti_invalid' };
-  const sessionHash = diracCentralRequestSessionHashV146(req);
+  const sessionHash = customerSecurityExpectedDashboardMfaSessionBindingV225(req, payload);
   if (!sessionHash || !payload.sessionHash || !(typeof safeEqual === 'function' ? safeEqual(String(payload.sessionHash), sessionHash) : String(payload.sessionHash) === sessionHash)) {
     return { ok: false, expected: false, reason: 'mfa_envelope_session_mismatch' };
   }
