@@ -8462,7 +8462,7 @@ async function customerSecurityGenerateRecoveryCodesViaWorker(req, res, action, 
           target,
           action: DIRAC_RECOVERY_WORKER_ACTION,
           body: payload,
-          targetServerId: diracS2SIdV206(process.env.DIRAC_RECOVERY_WORKER_SERVER_ID || 'vercel2-recovery')
+          targetServerId: diracS2SIdV206(process.env.DIRAC_RECOVERY_WORKER_SERVER_ID)
         })
       },
       body: JSON.stringify(payload),
@@ -8628,7 +8628,7 @@ async function customerSecurityVerifyRecoveryCodeViaWorker(req, res, action, acc
           target,
           action: DIRAC_RECOVERY_WORKER_ACTION,
           body: payload,
-          targetServerId: diracS2SIdV206(process.env.DIRAC_RECOVERY_WORKER_SERVER_ID || 'vercel2-recovery')
+          targetServerId: diracS2SIdV206(process.env.DIRAC_RECOVERY_WORKER_SERVER_ID)
         })
       },
       body: JSON.stringify(payload),
@@ -29961,7 +29961,7 @@ function diracCentralRecoveryGenerateEgressTimeoutMsV225(input, options) {
     const s2sNonce = diracCentralEgressHeaderV225(options, 'x-dirac-nonce');
     const s2sRequestId = diracCentralEgressHeaderV225(options, 'x-dirac-request-id');
     const bodyHash = diracCentralEgressHeaderV225(options, 'x-dirac-body-sha512');
-    const expectedTargetServerId = diracS2SIdV206(process.env.DIRAC_RECOVERY_WORKER_SERVER_ID || 'vercel2-recovery');
+    const expectedTargetServerId = diracS2SIdV206(process.env.DIRAC_RECOVERY_WORKER_SERVER_ID);
     if (s2sVersion !== DIRAC_S2S_VERSION_V206
         || s2sPolicy !== DIRAC_S2S_POLICY_V206
         || networkId !== diracS2STextV206('DIRAC_S2S_NETWORK_ID')
@@ -34909,7 +34909,7 @@ const DIRAC_RECOVERY_HPKE_ARGON2_PROFILE_V159 = 'argon2id-salt-pepper-v1';
 const DIRAC_RECOVERY_HPKE_S2S_CALLER_BINDING_PATCH_V226 = 'dirac-recovery-hpke-s2s-caller-binding-v226';
 
 function diracRecoveryHpkeAssertS2SCallerBindingV226() {
-  const expectedServerId = diracS2SIdV206(process.env.DIRAC_RECOVERY_WORKER_SERVER_ID || 'vercel2-recovery');
+  const expectedServerId = diracS2SIdV206(process.env.DIRAC_RECOVERY_WORKER_SERVER_ID);
   const configuredCaller = diracRecoveryHpkeAsciiTokenV159(process.env.DIRAC_RECOVERY_HPKE_ALLOWED_CALLER);
   if (!expectedServerId || !configuredCaller || !safeEqual(configuredCaller, expectedServerId)) {
     throw new Error('DIRAC_RECOVERY_HPKE_S2S_CALLER_BINDING_INVALID_V226');
@@ -35190,7 +35190,7 @@ function diracRecoveryHpkeProofSignatureGuardV159(req, ctx) {
 
   const caller = diracRecoveryHpkeAsciiTokenV159(diracRecoveryHpkeHeaderV159(req, 'x-dirac-hpke-caller'));
   const signedServerId = diracS2SIdV206(diracRecoveryHpkeHeaderV159(req, 'x-dirac-server-id'));
-  const expectedServerId = diracS2SIdV206(process.env.DIRAC_RECOVERY_WORKER_SERVER_ID || 'vercel2-recovery');
+  const expectedServerId = diracS2SIdV206(process.env.DIRAC_RECOVERY_WORKER_SERVER_ID);
   const configuredCaller = diracRecoveryHpkeAsciiTokenV159(process.env.DIRAC_RECOVERY_HPKE_ALLOWED_CALLER);
   if (!ctx
       || ctx.__diracS2SSevenSignaturesVerifiedV206 !== true
