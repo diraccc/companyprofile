@@ -2939,8 +2939,20 @@ function verifyCustomerDashboardMfaCookie(req, user) {
     return { ok: false, code: 'mfa_cookie_customer_mismatch', message: 'Sesi A2F backend tidak cocok dengan customer login.' };
   }
 
-  const expectedSessionHash = customerSecurityExpectedDashboardMfaSessionBindingV225(req, payload);
-  if (!payload.sessionHash || !expectedSessionHash || !safeEqual(String(payload.sessionHash), expectedSessionHash)) {
+  const sessionBindingVersion = payload.sessionBindingVersion === undefined
+    || payload.sessionBindingVersion === null
+    || payload.sessionBindingVersion === ''
+    ? 1
+    : Number(payload.sessionBindingVersion);
+  const sessionBindingMatches = sessionBindingVersion === 4
+    ? customerSecuritySignedSessionAnchorMatchesV228(req, user, payload.sessionHash)
+    : (() => {
+      const expectedSessionHash = customerSecurityExpectedDashboardMfaSessionBindingV225(req, payload);
+      return Boolean(payload.sessionHash
+        && expectedSessionHash
+        && safeEqual(String(payload.sessionHash), expectedSessionHash));
+    })();
+  if (!payload.sessionHash || !sessionBindingMatches) {
     return { ok: false, code: 'mfa_cookie_session_mismatch', message: 'Sesi A2F backend tidak cocok dengan sesi login.' };
   }
 
@@ -8812,6 +8824,7 @@ async function customerSecurityGenerateRecoveryCodes(req, res, action, override 
 
 const DIRAC_CUSTOMER_MFA_STABLE_SESSION_BINDING_V225 = 'dirac-customer-mfa-stable-session-binding-v225';
 const DIRAC_CUSTOMER_MFA_AUTHORITATIVE_SESSION_BINDING_V226 = 'dirac-customer-mfa-authoritative-session-binding-v226';
+const DIRAC_CUSTOMER_MFA_SIGNED_SESSION_ANCHOR_V228 = 'dirac-customer-mfa-signed-session-anchor-v228';
 
 function customerSecurityDashboardMfaStableSessionBindingV225(req) {
   let stableSession = '';
@@ -8840,6 +8853,179 @@ function customerSecurityDashboardMfaAuthoritativeSessionBindingV226(req) {
   return customerMfaBindingHash('authoritative_session_v226', authoritativeSession);
 }
 
+
+function customerSecurityDecodeSignedSessionPayloadV228(value) {
+  const raw = String(value || '').trim();
+  const parts = raw.split('.');
+  if (parts.length !== 2 || !parts[0] || !parts[1]) return null;
+
+  const secret = getDomainSignedSessionSecret();
+  if (!secret) return null;
+  const expected = crypto.createHmac('sha256', secret).update(parts[0]).digest('base64url');
+  if (!safeEqual(parts[1], expected)) return null;
+
+  let payload;
+  try {
+    payload = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8'));
+  } catch (_) {
+    return null;
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const issuedAt = Number(payload && payload.iat || 0);
+  const expiresAt = Number(payload && payload.exp || 0);
+  const userId = String(payload && (payload.uid || payload.id) || '').trim();
+  const email = normalizeAuthEmail(payload && payload.email || '');
+  const sessionId = payload && payload.sid !== undefined
+    ? normalizeDomainSignedSessionId(payload.sid)
+    : '';
+
+  if (!payload || payload.typ !== DOMAIN_SIGNED_SESSION_TYPE
+      || !userId || !email
+      || !Number.isSafeInteger(issuedAt) || !Number.isSafeInteger(expiresAt)
+      || issuedAt > now + 60 || expiresAt <= now
+      || expiresAt - issuedAt <= 0 || expiresAt - issuedAt > 60 * 60 * 24 * 7 + 60
+      || (payload.sid !== undefined && !sessionId)) return null;
+
+  return { payload, userId, email, sessionId, issuedAt, expiresAt };
+}
+
+function customerSecurityDecodeSignedSessionAnchorV228(value) {
+  const decoded = customerSecurityDecodeSignedSessionPayloadV228(value);
+  if (!decoded) return null;
+
+  const now = Math.floor(Date.now() / 1000);
+  const anchorId = String(decoded.payload.mfa_bid_v228 || '').trim();
+  const anchorIssuedAt = Number(decoded.payload.mfa_iat_v228 || 0);
+  const anchorExpiresAt = Number(decoded.payload.mfa_exp_v228 || 0);
+
+  if (!/^[A-Za-z0-9_-]{43}$/.test(anchorId)
+      || !Number.isSafeInteger(anchorIssuedAt) || !Number.isSafeInteger(anchorExpiresAt)
+      || anchorIssuedAt > now + 60 || anchorExpiresAt <= now
+      || anchorIssuedAt < decoded.issuedAt - 60
+      || anchorExpiresAt > decoded.expiresAt
+      || anchorExpiresAt - anchorIssuedAt <= 0
+      || anchorExpiresAt - anchorIssuedAt > 60 * 60 + 60) return null;
+
+  const binding = customerMfaBindingHash(
+    'signed_session_anchor_v228',
+    JSON.stringify([
+      DIRAC_CUSTOMER_MFA_SIGNED_SESSION_ANCHOR_V228,
+      decoded.userId,
+      decoded.email,
+      anchorId
+    ])
+  );
+  if (!/^[a-f0-9]{64}$/.test(binding)) return null;
+
+  return Object.assign({}, decoded, {
+    anchorId,
+    anchorIssuedAt,
+    anchorExpiresAt,
+    binding
+  });
+}
+
+function customerSecurityIssueSignedSessionAnchorV228(req, res, user, requestedMaxAgeSeconds) {
+  const userId = String(user && user.id || '').trim();
+  const email = normalizeAuthEmail(user && user.email || '');
+  if (!userId || !email || !res) return null;
+
+  const cookies = parseCookies(req);
+  const candidates = readCookieTokenCandidates(cookies, DOMAIN_SIGNED_SESSION_COOKIE).slice(0, 8);
+  const matching = candidates
+    .map(customerSecurityDecodeSignedSessionPayloadV228)
+    .filter((item) => item && item.userId === userId && item.email === email)
+    .sort((a, b) => b.expiresAt - a.expiresAt);
+
+  let verifiedBootstrapUser = null;
+  try {
+    verifiedBootstrapUser = typeof diracCentralReadVerifiedDeviceAuthV224 === 'function'
+      ? diracCentralReadVerifiedDeviceAuthV224(req)
+      : null;
+  } catch (_) {
+    verifiedBootstrapUser = null;
+  }
+  const bootstrapMatches = verifiedBootstrapUser
+    && String(verifiedBootstrapUser.id || '') === userId
+    && normalizeAuthEmail(verifiedBootstrapUser.email || '') === email;
+
+  if (!matching.length && !bootstrapMatches) return null;
+
+  const now = Math.floor(Date.now() / 1000);
+  const sessionMaxAge = typeof diracV110SessionMaxAgeSeconds === 'function'
+    ? Math.max(60, Math.min(60 * 60 * 24 * 7, Math.floor(Number(diracV110SessionMaxAgeSeconds()) || 0)))
+    : 60 * 60 * 24 * 7;
+  const signedExpiresAt = matching.length
+    ? Math.min(matching[0].expiresAt, now + sessionMaxAge)
+    : now + sessionMaxAge;
+  const requestedMaxAgeRaw = Math.floor(Number(requestedMaxAgeSeconds));
+  const requestedMaxAge = Number.isSafeInteger(requestedMaxAgeRaw)
+    ? Math.max(15 * 60, Math.min(60 * 60, requestedMaxAgeRaw))
+    : 30 * 60;
+  const anchorExpiresAt = Math.min(signedExpiresAt, now + requestedMaxAge);
+  const signedMaxAge = signedExpiresAt - now;
+  const anchorMaxAge = anchorExpiresAt - now;
+  if (signedMaxAge < 60 || anchorMaxAge < 1) return null;
+
+  const anchorId = crypto.randomBytes(32).toString('base64url');
+  const payload = {
+    typ: DOMAIN_SIGNED_SESSION_TYPE,
+    uid: userId,
+    email,
+    iat: now,
+    exp: signedExpiresAt,
+    nonce: crypto.randomBytes(12).toString('base64url'),
+    mfa_bid_v228: anchorId,
+    mfa_iat_v228: now,
+    mfa_exp_v228: anchorExpiresAt
+  };
+  if (matching.length && matching[0].sessionId) payload.sid = matching[0].sessionId;
+
+  const value = signDomainSessionPayload(payload);
+  if (!value) return null;
+
+  const binding = customerMfaBindingHash(
+    'signed_session_anchor_v228',
+    JSON.stringify([
+      DIRAC_CUSTOMER_MFA_SIGNED_SESSION_ANCHOR_V228,
+      userId,
+      email,
+      anchorId
+    ])
+  );
+  if (!/^[a-f0-9]{64}$/.test(binding)) return null;
+
+  appendSetCookie(res, makeCookie(DOMAIN_SIGNED_SESSION_COOKIE, value, {
+    maxAge: signedMaxAge,
+    domain: ''
+  }));
+
+  return {
+    binding,
+    signedSessionValue: value,
+    expiresAtMs: anchorExpiresAt * 1000,
+    maxAgeSeconds: anchorMaxAge
+  };
+}
+
+function customerSecuritySignedSessionAnchorMatchesV228(req, user, expectedBinding) {
+  const expected = String(expectedBinding || '').trim();
+  const userId = String(user && user.id || '').trim();
+  const email = normalizeAuthEmail(user && user.email || '');
+  if (!/^[a-f0-9]{64}$/.test(expected) || !userId || !email) return false;
+
+  const cookies = parseCookies(req);
+  const candidates = readCookieTokenCandidates(cookies, DOMAIN_SIGNED_SESSION_COOKIE).slice(0, 8);
+  return candidates.some((value) => {
+    const decoded = customerSecurityDecodeSignedSessionAnchorV228(value);
+    return Boolean(decoded
+      && decoded.userId === userId
+      && decoded.email === email
+      && safeEqual(decoded.binding, expected));
+  });
+}
+
 function customerSecurityExpectedDashboardMfaSessionBindingV225(req, payload) {
   const rawVersion = payload && payload.sessionBindingVersion;
   const version = rawVersion === undefined || rawVersion === null || rawVersion === ''
@@ -8859,20 +9045,24 @@ function customerSecurityExpectedDashboardMfaSessionBindingV225(req, payload) {
   return /^[a-f0-9]{64}$/.test(legacySessionHash) ? legacySessionHash : '';
 }
 
-function customerSecurityCreateDashboardMfaToken(req, user, method = 'recovery_code') {
+function customerSecurityCreateDashboardMfaToken(req, user, method = 'recovery_code', res = null) {
   const email = normalizeAuthEmail(user && user.email);
   const now = Date.now();
-  const maxAgeSeconds = Math.max(15 * 60, Math.min(60 * 60, Number(process.env.DIRAC_DASHBOARD_MFA_MAX_AGE_SECONDS || 30 * 60)));
+  const configuredMaxAgeSeconds = Number(process.env.DIRAC_DASHBOARD_MFA_MAX_AGE_SECONDS || 30 * 60);
+  const requestedMaxAgeSeconds = Number.isFinite(configuredMaxAgeSeconds)
+    ? Math.max(15 * 60, Math.min(60 * 60, configuredMaxAgeSeconds))
+    : 30 * 60;
   const userId = String(user && user.id || '').trim();
   const customerId = String(user && (user.customer_id || user.customerId || user.customer || '') || '').trim();
-  const sessionHash = customerSecurityDashboardMfaAuthoritativeSessionBindingV226(req);
+  const anchor = customerSecurityIssueSignedSessionAnchorV228(req, res, user, requestedMaxAgeSeconds);
+  const sessionHash = anchor && anchor.binding ? String(anchor.binding) : '';
   if (!sessionHash) {
     return {
       token: '',
       expiresAtMs: 0,
       activeAtMs: 0,
       maxAgeSeconds: 0,
-      error: 'MFA_STABLE_SESSION_BINDING_UNAVAILABLE'
+      error: 'MFA_SIGNED_SESSION_ANCHOR_UNAVAILABLE'
     };
   }
   const payload = {
@@ -8881,11 +9071,11 @@ function customerSecurityCreateDashboardMfaToken(req, user, method = 'recovery_c
     emailHash: customerMfaProfileId(email),
     authUserIdHash: userId ? customerMfaBindingHash('auth_user_id', userId) : '',
     customerIdHash: customerId ? customerMfaBindingHash('customer_id', customerId) : '',
-    sessionBindingVersion: 3,
+    sessionBindingVersion: 4,
     sessionHash,
     jti: crypto.randomBytes(24).toString('base64url'),
     activeAtMs: now,
-    expiresAtMs: now + maxAgeSeconds * 1000,
+    expiresAtMs: Number(anchor.expiresAtMs),
     originHash: customerMfaBindingHash('origin', requestOrigin(req)),
     uaHash: customerMfaBindingHash('ua', requestUserAgent(req)),
     recoveryVerified: method === 'recovery_code'
@@ -8896,7 +9086,7 @@ function customerSecurityCreateDashboardMfaToken(req, user, method = 'recovery_c
     token: payloadBase64 + '.' + signature,
     expiresAtMs: payload.expiresAtMs,
     activeAtMs: payload.activeAtMs,
-    maxAgeSeconds
+    maxAgeSeconds: Number(anchor.maxAgeSeconds)
   };
 }
 
@@ -13829,7 +14019,7 @@ async function diracPasskeyA2FVerify(req, res) {
 
   await diracPasskeyA2FMarkSettingsActive(owner);
 
-  const proof = customerSecurityCreateDashboardMfaToken(req, user, 'passkey');
+  const proof = customerSecurityCreateDashboardMfaToken(req, user, 'passkey', res);
   if (!proof || !proof.token) {
     return res.status(503).json({
       ok: false,
