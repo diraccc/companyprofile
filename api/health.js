@@ -32138,9 +32138,10 @@ async function diracCentralIdorBolaGuardV146(req, ctx) {
     return await diracCentralRecoveryWorkerIdorGuardV146(req, ctx);
   }
   const ids = diracCentralCollectIdsV146(req, ctx.body);
+  const verifiedOwnerRequired = diracCentralVerifiedOwnerActionV217(ctx.action);
   if (diracCentralIsAuthBootstrapIdentityOnlyV146(ctx.action, ids)) return { ok: true, guarded: 'auth_bootstrap_identity_only' };
-  if (diracCentralIsAuthSelfReadOnlyV146(ctx.action, ids)) return { ok: true, guarded: 'auth_self_read_only' };
-  const needsOwner = ids.length > 0 || DIRAC_CENTRAL_USER_DATA_ACTIONS_V146.has(ctx.action);
+  if (diracCentralIsAuthSelfReadOnlyV146(ctx.action, ids) && !verifiedOwnerRequired) return { ok: true, guarded: 'auth_self_read_only' };
+  const needsOwner = verifiedOwnerRequired || ids.length > 0 || DIRAC_CENTRAL_USER_DATA_ACTIONS_V146.has(ctx.action);
   if (!needsOwner) return { ok: true, guarded: 'no_sensitive_id_and_not_user_data' };
   if (ids.length > 12) return { ok: false, reason: 'idor_too_many_ids' };
 
