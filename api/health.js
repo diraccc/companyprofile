@@ -4607,11 +4607,87 @@ function verifyDomainSessionCookieValue(value) {
   return { id, email, exp, sessionId };
 }
 
+const DIRAC_SIGNED_SESSION_MFA_CONTINUITY_V230 = 'dirac-signed-session-mfa-continuity-v230';
+
+function diracCurrentRequestForSignedSessionV230() {
+  try {
+    const ctx = typeof diracCentralCurrentContextV149 === 'function'
+      ? diracCentralCurrentContextV149()
+      : null;
+    return ctx && ctx.req && typeof ctx.req === 'object' ? ctx.req : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function diracVerifiedMfaSignedSessionContinuityV230(req, nextUser) {
+  const userId = String(nextUser && nextUser.id || '').trim();
+  const email = normalizeAuthEmail(nextUser && nextUser.email || '');
+  const nextSessionId = normalizeDomainSignedSessionId(nextUser && nextUser.sessionId || '');
+  if (!req || !userId || !email || !nextSessionId) return null;
+
+  const cookies = parseCookies(req);
+  const mfaCandidates = readCookieTokenCandidates(cookies, CUSTOMER_MFA_COOKIE).slice(0, 8);
+  if (mfaCandidates.length !== 1) return null;
+
+  const mfaPayload = decodeCustomerDashboardMfaToken(mfaCandidates[0]);
+  const nowMs = Date.now();
+  if (!mfaPayload || mfaPayload.type !== CUSTOMER_MFA_SESSION_TYPE
+      || Number(mfaPayload.sessionBindingVersion) !== 4
+      || !Number.isSafeInteger(Number(mfaPayload.expiresAtMs))
+      || Number(mfaPayload.expiresAtMs) <= nowMs
+      || !mfaPayload.sessionHash
+      || !safeEqual(String(mfaPayload.emailHash || ''), customerMfaProfileId(email))
+      || !safeEqual(String(mfaPayload.authUserIdHash || ''), customerMfaBindingHash('auth_user_id', userId))) {
+    return null;
+  }
+
+  const expectedOriginHash = customerMfaBindingHash('origin', requestOrigin(req));
+  const expectedUaHash = customerMfaBindingHash('ua', requestUserAgent(req));
+  if ((mfaPayload.originHash && (!expectedOriginHash || !safeEqual(String(mfaPayload.originHash), expectedOriginHash)))
+      || (mfaPayload.uaHash && (!expectedUaHash || !safeEqual(String(mfaPayload.uaHash), expectedUaHash)))) {
+    return null;
+  }
+
+  const signedCandidates = readCookieTokenCandidates(cookies, DOMAIN_SIGNED_SESSION_COOKIE).slice(0, 8);
+  if (signedCandidates.length !== 1) return null;
+  const selected = {
+    value: signedCandidates[0],
+    decoded: customerSecurityDecodeSignedSessionAnchorV228(signedCandidates[0])
+  };
+  if (!selected.decoded
+      || selected.decoded.userId !== userId
+      || selected.decoded.email !== email
+      || selected.decoded.sessionId !== nextSessionId
+      || !safeEqual(selected.decoded.binding, String(mfaPayload.sessionHash))) return null;
+
+  const remainingSeconds = Math.floor((Number(selected.decoded.expiresAt) * 1000 - nowMs) / 1000);
+  if (!Number.isSafeInteger(remainingSeconds) || remainingSeconds < 60) return null;
+
+  return Object.freeze({
+    patch: DIRAC_SIGNED_SESSION_MFA_CONTINUITY_V230,
+    value: selected.value,
+    maxAgeSeconds: remainingSeconds,
+    sessionId: nextSessionId,
+    binding: String(selected.decoded.binding)
+  });
+}
+
 function makeSignedDomainSessionCookieSet(session, options = {}) {
   const user = extractUserForSignedDomainSession(session);
   const maxAge = Math.max(60, Math.floor(Number(options.maxAge || 60 * 60 * 24 * 7)));
   const cookies = [];
   if (!user) return cookies;
+
+  const req = diracCurrentRequestForSignedSessionV230();
+  const continuity = diracVerifiedMfaSignedSessionContinuityV230(req, user);
+  if (continuity) {
+    cookies.push(makeCookie(DOMAIN_SIGNED_SESSION_COOKIE, continuity.value, {
+      maxAge: Math.min(maxAge, continuity.maxAgeSeconds),
+      domain: ''
+    }));
+    return cookies;
+  }
 
   const now = Math.floor(Date.now() / 1000);
   const payload = {
@@ -4627,6 +4703,12 @@ function makeSignedDomainSessionCookieSet(session, options = {}) {
   if (!value) return cookies;
 
   cookies.push(makeCookie(DOMAIN_SIGNED_SESSION_COOKIE, value, { maxAge, domain: '' }));
+  if (req) {
+    const requestCookies = parseCookies(req);
+    if (readCookieTokenCandidates(requestCookies, CUSTOMER_MFA_COOKIE).length) {
+      cookies.push(...makeClearTokenCookieSet(CUSTOMER_MFA_COOKIE));
+    }
+  }
   return cookies;
 }
 
