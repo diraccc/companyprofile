@@ -29866,161 +29866,15 @@ function diracCentralGuardBudgetMsV221(ctx) {
   return ctx && ctx.classification === 'server' ? 60 * 1000 : 30 * 1000;
 }
 
-const DIRAC_RECOVERY_GENERATE_EGRESS_TIMEOUT_PATCH_V225 = 'dirac-recovery-generate-egress-timeout-v225';
-
-function diracCentralEgressHeaderV225(options, name) {
-  const headers = options && options.headers;
-  const expected = String(name || '').toLowerCase();
-  if (!headers || !expected) return '';
-  if (typeof headers.get === 'function') return String(headers.get(expected) || '').trim();
-  for (const [key, value] of Object.entries(headers)) {
-    if (String(key || '').toLowerCase() === expected) {
-      return String(Array.isArray(value) ? value[0] || '' : value || '').trim();
-    }
-  }
-  return '';
-}
-
-function diracCentralRecoveryGenerateEgressTimeoutMsV225(input, options) {
-  let s2sMessage = null;
-  try {
-    const ctx = diracCentralCurrentContextV149();
-    if (!ctx
-        || !diracCentralHandlerContextFullyPassedV211(ctx, ctx.req)
-        || ctx.action !== 'customer_security_recovery_codes_generate'
-        || ctx.method !== 'POST'
-        || !ctx.ownership
-        || ctx.ownership.verified !== true
-        || ctx.ownership.action !== ctx.action) return 0;
-
-    const target = new URL(typeof input === 'string' ? input : input && input.url || '');
-    const queryEntries = Array.from(target.searchParams.entries());
-    if (target.protocol !== 'https:'
-        || target.hostname !== 'secure.diracgroup.store'
-        || (target.port && target.port !== '443')
-        || target.pathname !== '/api/health'
-        || target.username
-        || target.password
-        || target.hash
-        || queryEntries.length !== 1
-        || queryEntries[0][0] !== 'action'
-        || queryEntries[0][1] !== DIRAC_RECOVERY_WORKER_ACTION
-        || String(options && options.method || 'GET').toUpperCase() !== 'POST'
-        || String(options && options.redirect || '') !== 'error') return 0;
-
-    const bodyText = typeof (options && options.body) === 'string' ? options.body : '';
-    if (!bodyText
-        || Buffer.byteLength(bodyText, 'utf8') > customerSecurityRecoveryWorkerMaxBodyBytes()) return 0;
-    const envelope = JSON.parse(bodyText);
-    const expectedEnvelopeKeys = [
-      'action', 'aead_nonce_b64url', 'auth_tag_b64url', 'caller_id', 'ciphertext_b64url',
-      'expires_at_ms', 'hkdf_salt_b64url', 'mlkem_ciphertext_b64url', 'nonce',
-      'receiver_key_fingerprint', 'sent_at_ms', 'transport_suite', 'transport_version',
-      'worker_action', 'x25519_ephemeral_public_key_b64url'
-    ];
-    const envelopeKeys = Object.keys(envelope || {}).sort();
-    if (!envelope
-        || typeof envelope !== 'object'
-        || Array.isArray(envelope)
-        || envelopeKeys.length !== expectedEnvelopeKeys.length
-        || envelopeKeys.some((key, index) => key !== expectedEnvelopeKeys[index])
-        || envelope.action !== DIRAC_RECOVERY_WORKER_ACTION
-        || envelope.worker_action !== DIRAC_RECOVERY_WORKER_TASK_GENERATE
-        || envelope.transport_version !== DIRAC_RECOVERY_WORKER_TRANSPORT_VERSION_V190
-        || envelope.transport_suite !== DIRAC_RECOVERY_WORKER_TRANSPORT_SUITE_V190) return 0;
-
-    const caller = diracCentralEgressHeaderV225(options, 'x-dirac-worker-caller');
-    const workerTimestampText = diracCentralEgressHeaderV225(options, 'x-dirac-worker-timestamp');
-    const workerTimestamp = Number(workerTimestampText);
-    const workerSignature = diracCentralEgressHeaderV225(options, 'x-dirac-worker-signature');
-    if (!customerSecurityRecoveryWorkerAsciiToken(caller)
-        || caller !== customerSecurityRecoveryWorkerCaller()
-        || envelope.caller_id !== caller
-        || !Number.isSafeInteger(workerTimestamp)
-        || Math.abs(Date.now() - workerTimestamp) > customerSecurityRecoveryWorkerClockSkewMs()
-        || Number(envelope.sent_at_ms) !== workerTimestamp
-        || Number(envelope.expires_at_ms) !== workerTimestamp + DIRAC_RECOVERY_WORKER_TRANSPORT_TTL_MS_V190
-        || !/^[A-Za-z0-9_-]{43}$/.test(String(envelope.nonce || ''))
-        || !/^[A-Za-z0-9_-]{32,120}$/.test(workerSignature)) return 0;
-
-    const expectedWorkerSignature = customerSecurityRecoveryWorkerSign(
-      caller,
-      workerTimestampText,
-      customerSecurityLostPasskeyCanonical(envelope)
-    );
-    if (!safeEqual(workerSignature, expectedWorkerSignature)) return 0;
-
-    const s2sVersion = diracCentralEgressHeaderV225(options, 'x-dirac-s2s-version');
-    const s2sPolicy = diracCentralEgressHeaderV225(options, 'x-dirac-s2s-policy');
-    const networkId = diracCentralEgressHeaderV225(options, 'x-dirac-network-id');
-    const serverId = diracCentralEgressHeaderV225(options, 'x-dirac-server-id');
-    const targetServerId = diracCentralEgressHeaderV225(options, 'x-dirac-target-server-id');
-    const keyVersion = diracCentralEgressHeaderV225(options, 'x-dirac-key-version');
-    const s2sTimestampText = diracCentralEgressHeaderV225(options, 'x-dirac-timestamp');
-    const s2sTimestamp = Number(s2sTimestampText);
-    const s2sNonce = diracCentralEgressHeaderV225(options, 'x-dirac-nonce');
-    const s2sRequestId = diracCentralEgressHeaderV225(options, 'x-dirac-request-id');
-    const bodyHash = diracCentralEgressHeaderV225(options, 'x-dirac-body-sha512');
-    const expectedTargetServerId = diracS2SIdV206(process.env.DIRAC_RECOVERY_WORKER_SERVER_ID || 'vercel2-recovery');
-    if (s2sVersion !== DIRAC_S2S_VERSION_V206
-        || s2sPolicy !== DIRAC_S2S_POLICY_V206
-        || networkId !== diracS2STextV206('DIRAC_S2S_NETWORK_ID')
-        || serverId !== diracS2SIdV206(diracS2STextV206('DIRAC_S2S_SERVER_ID'))
-        || targetServerId !== expectedTargetServerId
-        || keyVersion !== diracS2SKeyVersionV206(diracS2STextV206('DIRAC_S2S_KEY_VERSION'))
-        || !Number.isSafeInteger(s2sTimestamp)
-        || Math.abs(Date.now() - s2sTimestamp) > DIRAC_S2S_MAX_CLOCK_SKEW_MS_V206
-        || !/^[A-Za-z0-9_-]{32,160}$/.test(s2sNonce)
-        || !/^[A-Za-z0-9_-]{24,160}$/.test(s2sRequestId)
-        || bodyHash !== diracS2SBodyHashV206(envelope)) return 0;
-
-    s2sMessage = diracS2SCanonicalV206({
-      networkId,
-      serverId,
-      targetServerId,
-      keyVersion,
-      method: 'POST',
-      path: diracS2SPathV206(target),
-      action: DIRAC_RECOVERY_WORKER_ACTION,
-      timestamp: s2sTimestampText,
-      nonce: s2sNonce,
-      requestId: s2sRequestId,
-      bodyHash
-    });
-    for (const spec of diracS2SSignatureSpecsV206()) {
-      const encoded = diracCentralEgressHeaderV225(options, 'x-dirac-signature-' + spec.index);
-      const signature = diracS2SDecodeSignatureV210(encoded);
-      try {
-        const privateKey = diracS2SKeyObjectV206(diracS2STextV206(spec.privateEnv), 'private', spec.type);
-        diracS2SAssertEcCurveV206(privateKey, spec.curve);
-        const publicKey = crypto.createPublicKey(privateKey);
-        if (!spec.verify(s2sMessage, publicKey, signature)) return 0;
-      } finally {
-        signature.fill(0);
-      }
-    }
-
-    const raw = Number(process.env.DIRAC_RECOVERY_WORKER_TIMEOUT_MS || 280000);
-    return Number.isFinite(raw) ? Math.max(5000, Math.min(290000, Math.floor(raw))) : 280000;
-  } catch (error) {
-    diracCentralRecordSuppressedExceptionV221(error);
-    return 0;
-  } finally {
-    if (s2sMessage) s2sMessage.fill(0);
-  }
-}
-
 function diracCentralEgressTimeoutMsV221() {
   const raw = Number(process.env.DIRAC_EGRESS_TIMEOUT_MS || 25000);
   return Number.isFinite(raw) ? Math.max(3000, Math.min(60000, Math.floor(raw))) : 25000;
 }
 
-function diracCentralTimeoutOptionsV221(options, exactTimeoutMs) {
+function diracCentralTimeoutOptionsV221(options) {
   const base = Object.assign({}, options || {});
   const controller = new AbortController();
-  const timeoutMs = Number.isSafeInteger(exactTimeoutMs) && exactTimeoutMs >= 3000 && exactTimeoutMs <= 290000
-    ? exactTimeoutMs
-    : diracCentralEgressTimeoutMsV221();
+  const timeoutMs = diracCentralEgressTimeoutMsV221();
   let upstreamListener = null;
   if (base.signal) {
     if (base.signal.aborted) controller.abort(base.signal.reason);
@@ -33973,11 +33827,7 @@ async function diracCentralFetchWithRedirectGuardV146(fetchImpl, input, options,
     error.diracSecurityThreat = rebinding;
     throw error;
   }
-  const exactTimeoutMs = diracCentralRecoveryGenerateEgressTimeoutMsV225(input, options);
-  const timeout = diracCentralTimeoutOptionsV221(
-    Object.assign({}, options || {}, { redirect: 'manual' }),
-    exactTimeoutMs
-  );
+  const timeout = diracCentralTimeoutOptionsV221(Object.assign({}, options || {}, { redirect: 'manual' }));
   let response;
   try {
     response = await fetchImpl(input, timeout.options);
@@ -34906,18 +34756,6 @@ const DIRAC_RECOVERY_HPKE_ACTION_V159 = 'customer_security_recovery_hpke_submit'
 const DIRAC_RECOVERY_HPKE_PROOF_VERSION_V159 = 'dirac-recovery-hpke-proof-v2';
 const DIRAC_RECOVERY_HPKE_SUITE_V159 = 'DHKEM-X25519-HKDF-SHA256+HKDF-SHA384+AES-256-GCM';
 const DIRAC_RECOVERY_HPKE_ARGON2_PROFILE_V159 = 'argon2id-salt-pepper-v1';
-const DIRAC_RECOVERY_HPKE_S2S_CROSS_BINDING_PATCH_V227 = 'dirac-recovery-hpke-s2s-cross-binding-v227';
-
-function diracRecoveryHpkeAssertS2SCrossBindingConfigurationV227() {
-  const expectedServerId = diracS2SIdV206(process.env.DIRAC_RECOVERY_WORKER_SERVER_ID || 'vercel2-recovery');
-  const configuredCaller = diracRecoveryHpkeAsciiTokenV159(process.env.DIRAC_RECOVERY_HPKE_ALLOWED_CALLER);
-  if (!expectedServerId || !configuredCaller) {
-    throw new Error('DIRAC_RECOVERY_HPKE_S2S_CROSS_BINDING_CONFIGURATION_INVALID_V227');
-  }
-  return true;
-}
-
-if (process.env.NODE_ENV === 'production') diracRecoveryHpkeAssertS2SCrossBindingConfigurationV227();
 const DIRAC_RECOVERY_HPKE_PROOF_REPLAY_V159 = globalThis.__DIRAC_RECOVERY_HPKE_PROOF_REPLAY_V159__ || new Map();
 globalThis.__DIRAC_RECOVERY_HPKE_PROOF_REPLAY_V159__ = DIRAC_RECOVERY_HPKE_PROOF_REPLAY_V159;
 
@@ -35089,7 +34927,7 @@ function diracRecoveryHpkeServer2OnlyEnvOnServer1V159() {
   return names.filter((name) => String(process.env[name] || '').trim() !== '');
 }
 
-function diracRecoveryHpkeProofSignatureV159(caller, timestampText, body, s2sCrossBinding) {
+function diracRecoveryHpkeProofSignatureV159(caller, timestampText, body) {
   const secretText = customerSecurityRecoveryWorkerSecret();
   if (!secretText) return '';
   const secret = Buffer.from(secretText, 'utf8');
@@ -35102,10 +34940,6 @@ function diracRecoveryHpkeProofSignatureV159(caller, timestampText, body, s2sCro
       .update(String(timestampText || ''))
       .update('\n')
       .update(customerSecurityLostPasskeyCanonical(body || {}))
-      .update('\n')
-      .update(DIRAC_RECOVERY_HPKE_S2S_CROSS_BINDING_PATCH_V227)
-      .update('\n')
-      .update(String(s2sCrossBinding || ''))
       .digest('base64url');
   } finally {
     secret.fill(0);
@@ -35193,17 +35027,8 @@ function diracRecoveryHpkeProofSignatureGuardV159(req, ctx) {
   if (!contentType.startsWith('application/json')) return { ok: false, reason: 'recovery_hpke_content_type_invalid' };
 
   const caller = diracRecoveryHpkeAsciiTokenV159(diracRecoveryHpkeHeaderV159(req, 'x-dirac-hpke-caller'));
-  const signedServerId = diracS2SIdV206(diracRecoveryHpkeHeaderV159(req, 'x-dirac-server-id'));
-  const expectedServerId = diracS2SIdV206(process.env.DIRAC_RECOVERY_WORKER_SERVER_ID || 'vercel2-recovery');
-  const configuredCaller = diracRecoveryHpkeAsciiTokenV159(process.env.DIRAC_RECOVERY_HPKE_ALLOWED_CALLER);
-  if (!ctx
-      || ctx.__diracS2SSevenSignaturesVerifiedV206 !== true
-      || !caller
-      || !signedServerId
-      || !expectedServerId
-      || !configuredCaller
-      || !safeEqual(signedServerId, expectedServerId)
-      || !safeEqual(caller, configuredCaller)) {
+  const allowedCaller = diracRecoveryHpkeAsciiTokenV159(process.env.DIRAC_RECOVERY_HPKE_ALLOWED_CALLER);
+  if (!caller || !allowedCaller || !safeEqual(caller, allowedCaller)) {
     return { ok: false, reason: 'recovery_hpke_caller_invalid' };
   }
 
@@ -35221,15 +35046,7 @@ function diracRecoveryHpkeProofSignatureGuardV159(req, ctx) {
     return { ok: false, reason: 'recovery_hpke_body_binding_invalid' };
   }
 
-  const s2sCrossBinding = [
-    DIRAC_RECOVERY_HPKE_ACTION_V159,
-    'x-dirac-s2s-version', 'x-dirac-s2s-policy', 'x-dirac-network-id',
-    'x-dirac-server-id', 'x-dirac-target-server-id', 'x-dirac-key-version',
-    'x-dirac-timestamp', 'x-dirac-nonce', 'x-dirac-request-id', 'x-dirac-body-sha512',
-    'x-dirac-signature-1', 'x-dirac-signature-2', 'x-dirac-signature-3', 'x-dirac-signature-4',
-    'x-dirac-signature-5', 'x-dirac-signature-6', 'x-dirac-signature-7'
-  ].map((name, index) => index === 0 ? name : diracRecoveryHpkeHeaderV159(req, name)).join('\n');
-  const expected = diracRecoveryHpkeProofSignatureV159(caller, timestampText, body, s2sCrossBinding);
+  const expected = diracRecoveryHpkeProofSignatureV159(caller, timestampText, body);
   if (!expected || !safeEqual(signature, expected)) return { ok: false, reason: 'recovery_hpke_signature_invalid' };
 
   req.__diracRecoveryHpkeProofVerifiedV159 = true;
