@@ -34906,6 +34906,18 @@ const DIRAC_RECOVERY_HPKE_ACTION_V159 = 'customer_security_recovery_hpke_submit'
 const DIRAC_RECOVERY_HPKE_PROOF_VERSION_V159 = 'dirac-recovery-hpke-proof-v2';
 const DIRAC_RECOVERY_HPKE_SUITE_V159 = 'DHKEM-X25519-HKDF-SHA256+HKDF-SHA384+AES-256-GCM';
 const DIRAC_RECOVERY_HPKE_ARGON2_PROFILE_V159 = 'argon2id-salt-pepper-v1';
+const DIRAC_RECOVERY_HPKE_S2S_CALLER_BINDING_PATCH_V226 = 'dirac-recovery-hpke-s2s-caller-binding-v226';
+
+function diracRecoveryHpkeAssertS2SCallerBindingV226() {
+  const expectedServerId = diracS2SIdV206(process.env.DIRAC_RECOVERY_WORKER_SERVER_ID || 'vercel2-recovery');
+  const configuredCaller = diracRecoveryHpkeAsciiTokenV159(process.env.DIRAC_RECOVERY_HPKE_ALLOWED_CALLER);
+  if (!expectedServerId || !configuredCaller || !safeEqual(configuredCaller, expectedServerId)) {
+    throw new Error('DIRAC_RECOVERY_HPKE_S2S_CALLER_BINDING_INVALID_V226');
+  }
+  return true;
+}
+
+if (process.env.NODE_ENV === 'production') diracRecoveryHpkeAssertS2SCallerBindingV226();
 const DIRAC_RECOVERY_HPKE_PROOF_REPLAY_V159 = globalThis.__DIRAC_RECOVERY_HPKE_PROOF_REPLAY_V159__ || new Map();
 globalThis.__DIRAC_RECOVERY_HPKE_PROOF_REPLAY_V159__ = DIRAC_RECOVERY_HPKE_PROOF_REPLAY_V159;
 
@@ -35177,8 +35189,18 @@ function diracRecoveryHpkeProofSignatureGuardV159(req, ctx) {
   if (!contentType.startsWith('application/json')) return { ok: false, reason: 'recovery_hpke_content_type_invalid' };
 
   const caller = diracRecoveryHpkeAsciiTokenV159(diracRecoveryHpkeHeaderV159(req, 'x-dirac-hpke-caller'));
-  const allowedCaller = diracRecoveryHpkeAsciiTokenV159(process.env.DIRAC_RECOVERY_HPKE_ALLOWED_CALLER);
-  if (!caller || !allowedCaller || !safeEqual(caller, allowedCaller)) {
+  const signedServerId = diracS2SIdV206(diracRecoveryHpkeHeaderV159(req, 'x-dirac-server-id'));
+  const expectedServerId = diracS2SIdV206(process.env.DIRAC_RECOVERY_WORKER_SERVER_ID || 'vercel2-recovery');
+  const configuredCaller = diracRecoveryHpkeAsciiTokenV159(process.env.DIRAC_RECOVERY_HPKE_ALLOWED_CALLER);
+  if (!ctx
+      || ctx.__diracS2SSevenSignaturesVerifiedV206 !== true
+      || !caller
+      || !signedServerId
+      || !expectedServerId
+      || !configuredCaller
+      || !safeEqual(signedServerId, expectedServerId)
+      || !safeEqual(caller, signedServerId)
+      || !safeEqual(configuredCaller, signedServerId)) {
     return { ok: false, reason: 'recovery_hpke_caller_invalid' };
   }
 
