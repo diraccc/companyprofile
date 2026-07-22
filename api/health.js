@@ -2902,8 +2902,13 @@ function customerMfaBindingHash(kind, value) {
 
 function getCustomerDashboardMfaToken(req) {
   const cookies = parseCookies(req);
-  const cookieToken = String(cookies[CUSTOMER_MFA_COOKIE] || '').trim();
-  if (cookieToken) return { token: cookieToken, source: 'http_only_cookie' };
+  const candidates = readCookieTokenCandidates(cookies, CUSTOMER_MFA_COOKIE).slice(0, 8);
+  if (candidates.length === 1) {
+    return { token: candidates[0], source: 'http_only_cookie' };
+  }
+  if (candidates.length > 1) {
+    return { token: '', source: 'ambiguous_http_only_cookie', ambiguous: true };
+  }
 
   // PATCH 3B: full backend customer auth.
   // MFA proof dari header frontend sengaja ditolak. JavaScript tidak boleh membawa
@@ -4278,6 +4283,30 @@ function appendSetCookie(res, cookies) {
       : [];
 
   res.setHeader('Set-Cookie', previousCookies.concat(nextCookies));
+}
+
+function replaceResponseCookieByNameV229(res, name, cookies) {
+  const cookieName = String(name || '').trim();
+  const nextCookies = (Array.isArray(cookies) ? cookies : [cookies]).filter(Boolean).map(String);
+  if (!res || typeof res.setHeader !== 'function' || !cookieName || !/^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/.test(cookieName) || !nextCookies.length) {
+    return false;
+  }
+
+  const current = typeof res.getHeader === 'function' ? res.getHeader('Set-Cookie') : null;
+  const previousCookies = Array.isArray(current)
+    ? current.map(String)
+    : current
+      ? [String(current)]
+      : [];
+  const retained = previousCookies.filter((value) => {
+    const first = String(value || '').split(';', 1)[0];
+    const separator = first.indexOf('=');
+    const existingName = separator === -1 ? first.trim() : first.slice(0, separator).trim();
+    return existingName !== cookieName;
+  });
+
+  res.setHeader('Set-Cookie', retained.concat(nextCookies));
+  return true;
 }
 
 function makeCookie(name, value, options = {}) {
@@ -8996,10 +9025,20 @@ function customerSecurityIssueSignedSessionAnchorV228(req, res, user, requestedM
   );
   if (!/^[a-f0-9]{64}$/.test(binding)) return null;
 
-  appendSetCookie(res, makeCookie(DOMAIN_SIGNED_SESSION_COOKIE, value, {
+  const legacyDomainClears = getCompactCookieDomainsForSession()
+    .filter((domain) => Boolean(normalizeCookieDomain(domain)))
+    .map((domain) => makeCookie(DOMAIN_SIGNED_SESSION_COOKIE, '', {
+      maxAge: 0,
+      domain
+    }));
+  const anchoredSignedSessionCookie = makeCookie(DOMAIN_SIGNED_SESSION_COOKIE, value, {
     maxAge: signedMaxAge,
     domain: ''
-  }));
+  });
+  if (!replaceResponseCookieByNameV229(res, DOMAIN_SIGNED_SESSION_COOKIE, [
+    ...legacyDomainClears,
+    anchoredSignedSessionCookie
+  ])) return null;
 
   return {
     binding,
@@ -9093,9 +9132,21 @@ function customerSecurityCreateDashboardMfaToken(req, user, method = 'recovery_c
 function customerSecuritySetDashboardMfaCookie(res, proof) {
   const token = proof && proof.token ? String(proof.token) : '';
   const maxAge = Math.max(1, Math.floor(Number(proof && proof.maxAgeSeconds || 0)));
-  if (!token || !maxAge) return;
-  appendSetCookie(res, [
-    makeCookie(CUSTOMER_MFA_COOKIE, token, { maxAge })
+  if (!token || !maxAge) return false;
+
+  const legacyDomainClears = getCompactCookieDomainsForSession()
+    .filter((domain) => Boolean(normalizeCookieDomain(domain)))
+    .map((domain) => makeCookie(CUSTOMER_MFA_COOKIE, '', {
+      maxAge: 0,
+      domain
+    }));
+  const canonicalMfaCookie = makeCookie(CUSTOMER_MFA_COOKIE, token, {
+    maxAge,
+    domain: ''
+  });
+  return replaceResponseCookieByNameV229(res, CUSTOMER_MFA_COOKIE, [
+    ...legacyDomainClears,
+    canonicalMfaCookie
   ]);
 }
 
@@ -14028,7 +14079,14 @@ async function diracPasskeyA2FVerify(req, res) {
       message: 'Passkey berhasil diverifikasi, tetapi binding sesi MFA belum dapat dibentuk secara aman. Silakan login ulang lalu verifikasi Passkey kembali.'
     });
   }
-  customerSecuritySetDashboardMfaCookie(res, proof);
+  if (!customerSecuritySetDashboardMfaCookie(res, proof)) {
+    return res.status(503).json({
+      ok: false,
+      method: 'passkey',
+      code: 'MFA_COOKIE_ATOMIC_PUBLICATION_FAILED',
+      message: 'Passkey berhasil diverifikasi, tetapi cookie MFA tidak dapat diterbitkan secara atomik. Silakan login ulang lalu verifikasi Passkey kembali.'
+    });
+  }
 
   return res.status(200).json({
     ok: true,
@@ -29243,6 +29301,7 @@ const DIRAC_CENTRAL_DEVICE_BOOTSTRAP_ACTIONS_V224 = Object.freeze(new Set([
   'domain_me',
   'domain_dashboard_me',
   'domain_mfa_status',
+  'customer_security_overview',
   'dirac_mfa_passkey_start',
   'dirac_mfa_passkey_verify',
   'domain_mfa_passkey_start',
