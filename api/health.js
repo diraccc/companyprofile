@@ -34917,6 +34917,7 @@ function diracRecoveryHpkeAssertS2SCallerBindingV226() {
   return true;
 }
 
+if (process.env.NODE_ENV === 'production') diracRecoveryHpkeAssertS2SCallerBindingV226();
 const DIRAC_RECOVERY_HPKE_PROOF_REPLAY_V159 = globalThis.__DIRAC_RECOVERY_HPKE_PROOF_REPLAY_V159__ || new Map();
 globalThis.__DIRAC_RECOVERY_HPKE_PROOF_REPLAY_V159__ = DIRAC_RECOVERY_HPKE_PROOF_REPLAY_V159;
 
@@ -35010,6 +35011,42 @@ diracCentralServerToServerGuardV146 = async function diracCentralServerToServerG
   return diracRecoveryHpkeProofSignatureGuardV159(req, ctx);
 };
 Object.defineProperty(diracCentralServerToServerGuardV146, '__diracRecoveryHpkeProofV159', { value: true, enumerable: false });
+
+const __diracRecoveryHpkePreviousDeviceCredentialGuardV159 =
+  diracCentralDeviceCredentialGuardV221;
+
+diracCentralDeviceCredentialGuardV221 =
+  async function diracCentralDeviceCredentialGuardRecoveryHpkeV159(req, res, ctx) {
+    if (!ctx || ctx.action !== DIRAC_RECOVERY_HPKE_ACTION_V159) {
+      return __diracRecoveryHpkePreviousDeviceCredentialGuardV159(req, res, ctx);
+    }
+
+    if (
+      ctx.method !== 'POST'
+      || ctx.classification !== 'server'
+      || ctx.authentication !== 'server'
+      || !DIRAC_CENTRAL_SERVER_ACTIONS_V146.has(ctx.action)
+      || ctx.__diracS2SSevenSignaturesVerifiedV206 !== true
+      || !req
+      || req.__diracRecoveryHpkeProofVerifiedV159 !== true
+    ) {
+      return {
+        ok: false,
+        reason: 'recovery_hpke_verified_s2s_device_binding_required'
+      };
+    }
+
+    return {
+      ok: true,
+      decision: 'verified_s2s_hpke_device_binding_not_applicable'
+    };
+  };
+
+Object.defineProperty(
+  diracCentralDeviceCredentialGuardV221,
+  '__diracRecoveryHpkeProofV159',
+  { value: true, enumerable: false }
+);
 
 const __diracRecoveryHpkePreviousIdorGuardV159 = diracCentralIdorBolaGuardV146;
 diracCentralIdorBolaGuardV146 = async function diracCentralIdorBolaGuardRecoveryHpkeV159(req, ctx) {
