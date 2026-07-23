@@ -11681,6 +11681,7 @@ async function lockedPaymentCreateForOrder(req, res) {
     gatewayName,
     gatewayReference,
     transactionId: transaction.id,
+    customerId,
     orderId,
     orderCode,
     amount,
@@ -12353,16 +12354,128 @@ function midtransAdjustItemDetailsToAmount(items, amount) {
   return details;
 }
 
+function midtransWebhookBindingSecret() {
+  const secret = String(process.env.DIRAC_MIDTRANS_BINDING_SECRET || '').trim();
+  const size = Buffer.byteLength(secret, 'utf8');
+  return size >= 64 && size <= 4096 ? secret : '';
+}
+
+function midtransWebhookBindingCanonical(input) {
+  const transactionId = String(input && input.transactionId || '').trim().toLowerCase();
+  const customerId = String(input && input.customerId || '').trim().toLowerCase();
+  const gatewayReference = String(input && input.gatewayReference || '').trim();
+  const parentType = String(input && input.parentType || '').trim().toLowerCase();
+  const parentId = String(input && input.parentId || '').trim().toLowerCase();
+  const serviceType = lockedPaymentNormalizeServiceType(input && input.serviceType || '');
+  const amount = midtransMoney(input && input.amount);
+  const currency = midtransSafeText(input && input.currency || 'IDR', 12).toUpperCase();
+
+  return [
+    'dirac-midtrans-webhook-binding-v2',
+    transactionId,
+    customerId,
+    gatewayReference,
+    parentType,
+    parentId,
+    serviceType,
+    String(amount),
+    currency
+  ].join('|');
+}
+
+function midtransWebhookBindingSignature(input) {
+  const secret = midtransWebhookBindingSecret();
+  if (!secret) return '';
+  return crypto
+    .createHmac('sha512', secret)
+    .update(midtransWebhookBindingCanonical(input), 'utf8')
+    .digest('base64url');
+}
+
+function midtransWebhookBindingBuildToken(input) {
+  const parentType = String(input && input.parentType || '').trim().toLowerCase();
+  const parentId = String(input && input.parentId || '').trim().toLowerCase();
+  const serviceType = lockedPaymentNormalizeServiceType(input && input.serviceType || '');
+  const signature = midtransWebhookBindingSignature(input);
+  if (!/^[rd]$/.test(parentType)
+      || !customerSecurityLooksLikeUuid(parentId)
+      || !/^[a-z0-9_]{1,64}$/.test(serviceType)
+      || !/^[A-Za-z0-9_-]{86}$/.test(signature)) return '';
+  const token = ['v2', parentType, parentId, serviceType, signature].join('.');
+  return Buffer.byteLength(token, 'utf8') <= 255 ? token : '';
+}
+
+function midtransWebhookBindingParseToken(value) {
+  const token = String(value || '').trim();
+  if (!token || Buffer.byteLength(token, 'utf8') > 255) return null;
+  const parts = token.split('.');
+  if (parts.length !== 5 || parts[0] !== 'v2') return null;
+  const parentType = String(parts[1] || '').trim().toLowerCase();
+  const parentId = String(parts[2] || '').trim().toLowerCase();
+  const serviceType = lockedPaymentNormalizeServiceType(parts[3] || '');
+  const signature = String(parts[4] || '').trim();
+  if (!/^[rd]$/.test(parentType)
+      || !customerSecurityLooksLikeUuid(parentId)
+      || !/^[a-z0-9_]{1,64}$/.test(serviceType)
+      || !/^[A-Za-z0-9_-]{86}$/.test(signature)) return null;
+  return { parentType, parentId, serviceType, signature };
+}
+
+function midtransWebhookBindingIsValid(input, suppliedSignature) {
+  const candidate = String(suppliedSignature || '').trim();
+  if (!/^[A-Za-z0-9_-]{86}$/.test(candidate)) return false;
+  const expected = midtransWebhookBindingSignature(input);
+  return Boolean(expected && safeEqual(candidate, expected));
+}
+
 async function midtransCreateSnapPayment(input) {
   const amount = midtransMoney(input.amount);
+  const transactionId = String(input && input.transactionId || '').trim();
+  const customerId = String(input && input.customerId || '').trim();
+  const gatewayReference = midtransSafeText(input && input.gatewayReference || '', 120);
+  const orderId = String(input && input.orderId || '').trim();
+  const domainOrderId = String(input && input.domainOrderId || '').trim();
+  const parentType = domainOrderId ? 'd' : 'r';
+  const parentId = domainOrderId || orderId;
+  const serviceType = lockedPaymentNormalizeServiceType(input && input.serviceType || '');
+  const currency = midtransSafeText(input && input.currency || 'IDR', 12).toUpperCase();
+
   if (amount <= 0) {
     return { ok: false, status: 409, message: 'Nominal Midtrans tidak valid.', error: 'invalid_amount' };
+  }
+  if (!customerSecurityLooksLikeUuid(transactionId)
+      || !customerSecurityLooksLikeUuid(customerId)
+      || !customerSecurityLooksLikeUuid(parentId)
+      || (orderId && domainOrderId && orderId !== domainOrderId)
+      || !gatewayReference
+      || !gatewayReference.startsWith('PAY-')
+      || !/^[A-Za-z0-9._:@-]{3,120}$/.test(gatewayReference)
+      || !/^[a-z0-9_]{1,64}$/.test(serviceType)
+      || currency !== 'IDR') {
+    return { ok: false, status: 409, message: 'Binding transaksi Midtrans tidak valid.', error: 'invalid_midtrans_binding' };
+  }
+  if (!midtransWebhookBindingSecret()) {
+    return { ok: false, status: 503, message: 'Secret binding Midtrans belum disetel.', error: 'midtrans_binding_secret_missing' };
+  }
+
+  const bindingToken = midtransWebhookBindingBuildToken({
+    transactionId,
+    customerId,
+    gatewayReference,
+    parentType,
+    parentId,
+    serviceType,
+    amount,
+    currency
+  });
+  if (!bindingToken) {
+    return { ok: false, status: 503, message: 'Binding Midtrans tidak dapat dibuat.', error: 'midtrans_binding_unavailable' };
   }
 
   const returnUrl = String(process.env.PAYMENT_RETURN_URL || process.env.DOMAIN_PAYMENT_RETURN_URL || process.env.DOMAIN_SITE_URL || 'https://diracgroup.store/pesanan.html').trim();
   const payload = {
     transaction_details: {
-      order_id: String(input.gatewayReference || '').trim(),
+      order_id: gatewayReference,
       gross_amount: amount
     },
     customer_details: {
@@ -12374,9 +12487,9 @@ async function midtransCreateSnapPayment(input) {
     callbacks: {
       finish: returnUrl
     },
-    custom_field1: String(input.transactionId || '').slice(0, 255),
-    custom_field2: String(input.orderId || input.domainOrderId || '').slice(0, 255),
-    custom_field3: String(input.serviceType || '').slice(0, 255)
+    custom_field1: transactionId,
+    custom_field2: customerId,
+    custom_field3: bindingToken
   };
 
   const enabledPayments = String(process.env.MIDTRANS_ENABLED_PAYMENTS || '').split(',').map((item) => item.trim()).filter(Boolean);
@@ -12513,6 +12626,7 @@ async function midtransCreateDomainPaymentInvoice(order, orderItems, customer) {
   const gateway = await midtransCreateSnapPayment({
     gatewayReference,
     transactionId: transaction.id,
+    customerId,
     domainOrderId,
     orderId: domainOrderId,
     orderCode,
@@ -12581,17 +12695,45 @@ async function midtransHandleWebhook(req, res) {
   const gatewayReference = midtransSafeText(body.order_id || '', 120);
   const gatewayEventId = midtransGatewayEventId(body);
   const grossAmount = midtransMoney(body.gross_amount);
+  const currency = midtransSafeText(body.currency || 'IDR', 12).toUpperCase();
+  const bindingTransactionId = midtransSafeText(body.custom_field1 || '', 80);
+  const bindingCustomerId = midtransSafeText(body.custom_field2 || '', 80);
+  const binding = midtransWebhookBindingParseToken(body.custom_field3 || '');
   const mappedStatus = midtransMappedPaymentStatus(body);
   const success = midtransSuccessStatus(body);
 
   if (!gatewayReference || !gatewayEventId || grossAmount <= 0) {
     return res.status(400).json({ ok: false, message: 'Payload Midtrans kurang lengkap.' });
   }
+  if (!customerSecurityLooksLikeUuid(bindingTransactionId)
+      || !customerSecurityLooksLikeUuid(bindingCustomerId)
+      || !binding) {
+    return res.status(403).json({ ok: false, message: 'Binding webhook Midtrans tidak valid.' });
+  }
+
+  const bindingValid = midtransWebhookBindingIsValid({
+    transactionId: bindingTransactionId,
+    customerId: bindingCustomerId,
+    gatewayReference,
+    parentType: binding.parentType,
+    parentId: binding.parentId,
+    serviceType: binding.serviceType,
+    amount: grossAmount,
+    currency
+  }, binding.signature);
+  if (!bindingValid) {
+    return res.status(403).json({ ok: false, message: 'Signature binding webhook Midtrans tidak valid.' });
+  }
 
   const txResult = await midtransFetchPaymentTransaction({
+    transactionId: bindingTransactionId,
+    customerId: bindingCustomerId,
     gatewayReference,
+    parentType: binding.parentType,
+    parentId: binding.parentId,
+    serviceType: binding.serviceType,
     grossAmount,
-    currency: midtransSafeText(body.currency || 'IDR', 12).toUpperCase()
+    currency
   });
   if (!txResult.ok) {
     await diracCentralBanCurrentContextV146('midtrans_transaction_not_found').catch(() => null);
@@ -12675,11 +12817,21 @@ async function midtransHandleWebhook(req, res) {
 }
 
 async function midtransFetchPaymentTransaction(input) {
+  const transactionId = String(input && input.transactionId || '').trim();
+  const customerId = String(input && input.customerId || '').trim();
   const gatewayReference = midtransSafeText(input && input.gatewayReference || '', 120);
+  const parentType = String(input && input.parentType || '').trim().toLowerCase();
+  const parentId = String(input && input.parentId || '').trim().toLowerCase();
+  const serviceType = lockedPaymentNormalizeServiceType(input && input.serviceType || '');
   const grossAmount = midtransMoney(input && input.grossAmount);
   const currency = midtransSafeText(input && input.currency || 'IDR', 12).toUpperCase();
 
-  if (!gatewayReference
+  if (!customerSecurityLooksLikeUuid(transactionId)
+      || !customerSecurityLooksLikeUuid(customerId)
+      || !customerSecurityLooksLikeUuid(parentId)
+      || !/^[rd]$/.test(parentType)
+      || !/^[a-z0-9_]{1,64}$/.test(serviceType)
+      || !gatewayReference
       || !gatewayReference.startsWith('PAY-')
       || !/^[A-Za-z0-9._:@-]{3,120}$/.test(gatewayReference)
       || !Number.isSafeInteger(grossAmount)
@@ -12688,16 +12840,38 @@ async function midtransFetchPaymentTransaction(input) {
     return { ok: false, status: 400, message: 'Binding payment transaction webhook tidak valid.' };
   }
 
-  const result = await supabaseFetch('/rest/v1/rpc/dirac_midtrans_lookup_payment_transaction_v1', {
-    method: 'POST',
+  const select = [
+    'id',
+    'customer_id',
+    'order_id',
+    'domain_order_id',
+    'service_type',
+    'gateway_name',
+    'gateway_reference',
+    'payment_status',
+    'amount',
+    'currency',
+    'payment_url',
+    'metadata'
+  ].join(',');
+  const parentFilter = parentType === 'd'
+    ? '&domain_order_id=eq.' + encodeURIComponent(parentId) + '&order_id=is.null'
+    : '&order_id=eq.' + encodeURIComponent(parentId) + '&domain_order_id=is.null';
+  const path = '/rest/v1/payment_transactions?select=' + encodeURIComponent(select)
+    + '&id=eq.' + encodeURIComponent(transactionId)
+    + '&customer_id=eq.' + encodeURIComponent(customerId)
+    + '&service_type=eq.' + encodeURIComponent(serviceType)
+    + '&gateway_name=eq.midtrans'
+    + '&gateway_reference=eq.' + encodeURIComponent(gatewayReference)
+    + '&amount=eq.' + encodeURIComponent(String(grossAmount))
+    + '&currency=eq.' + encodeURIComponent(currency)
+    + parentFilter
+    + '&limit=2';
+
+  const result = await supabaseFetch(path, {
+    method: 'GET',
     auth: 'service',
-    db: 'paymentService',
-    prefer: 'return=representation',
-    body: {
-      p_gateway_reference: gatewayReference,
-      p_gross_amount: grossAmount,
-      p_currency: currency
-    }
+    db: 'paymentService'
   });
 
   if (!result || result.ok !== true) {
@@ -12708,14 +12882,21 @@ async function midtransFetchPaymentTransaction(input) {
     };
   }
 
-  const row = Array.isArray(result.data)
-    ? (result.data.length === 1 ? result.data[0] : null)
-    : (result.data && typeof result.data === 'object' ? result.data : null);
+  const rows = Array.isArray(result.data) ? result.data : [];
+  const row = rows.length === 1 ? rows[0] : null;
+  const rowParentType = row && row.domain_order_id ? 'd' : 'r';
+  const rowParentId = String(row && (row.domain_order_id || row.order_id) || '').trim().toLowerCase();
 
   if (!row
       || !customerSecurityLooksLikeUuid(row.id)
       || !customerSecurityLooksLikeUuid(row.customer_id)
+      || !customerSecurityLooksLikeUuid(rowParentId)
       || Boolean(row.order_id) === Boolean(row.domain_order_id)
+      || String(row.id || '').trim() !== transactionId
+      || String(row.customer_id || '').trim() !== customerId
+      || rowParentType !== parentType
+      || rowParentId !== parentId
+      || lockedPaymentNormalizeServiceType(row.service_type || '') !== serviceType
       || String(row.gateway_name || '').trim().toLowerCase() !== 'midtrans'
       || String(row.gateway_reference || '').trim() !== gatewayReference
       || midtransMoney(row.amount) !== grossAmount
@@ -14782,6 +14963,7 @@ async function diracUniversalPesananCreatePayment(req, res) {
     gatewayName,
     gatewayReference,
     transactionId: transaction.id,
+    customerId,
     orderId: paymentInput.orderRefId,
     domainOrderId: paymentInput.domainOrderId || undefined,
     orderCode: paymentInput.orderCode,
