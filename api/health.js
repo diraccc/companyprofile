@@ -2131,7 +2131,9 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
       ? String(row.revoke_reason || 'session_revoked')
       : 'session_expired';
 
-    await supabaseFetch('/rest/v1/security_customer_sessions?id=eq.' + encodeURIComponent(row.id), {
+    await supabaseFetch('/rest/v1/security_customer_sessions?id=eq.' + encodeURIComponent(row.id)
+      + '&customer_id=eq.' + encodeURIComponent(customerId)
+      + '&session_token_hash=eq.' + encodeURIComponent(fingerprint.session_token_hash), {
       method: 'PATCH',
       auth: 'service',
       prefer: 'return=minimal',
@@ -5551,7 +5553,8 @@ async function customerSecurityEnsureSettingsRow(customerId) {
 
     if (alreadyMandatory) return { ok: true, created: false, enforced: false };
 
-    const patched = await supabaseFetch('/rest/v1/security_customer_settings?id=eq.' + encodeURIComponent(rows[0].id), {
+    const patched = await supabaseFetch('/rest/v1/security_customer_settings?id=eq.' + encodeURIComponent(rows[0].id)
+      + '&customer_id=eq.' + encodeURIComponent(customerId), {
       method: 'PATCH',
       auth: 'service',
       prefer: 'return=representation',
@@ -11238,7 +11241,10 @@ async function myOrdersFetchGenericOrders(owner, userEmail) {
   }
 
   const orderRows = Array.from(orderMap.values());
-  const itemMap = await myOrdersFetchOrderItems(orderRows.map((row) => row.id));
+  const itemMap = await myOrdersFetchOrderItems(
+    orderRows.map((row) => row.id),
+    owner && Array.isArray(owner.customerIds) ? owner.customerIds : []
+  );
 
   return {
     ok: errors.length === 0 || orderRows.length > 0,
@@ -11247,12 +11253,16 @@ async function myOrdersFetchGenericOrders(owner, userEmail) {
   };
 }
 
-async function myOrdersFetchOrderItems(orderIds) {
+async function myOrdersFetchOrderItems(orderIds, customerIds) {
   const ids = Array.from(new Set((orderIds || []).filter(customerSecurityLooksLikeUuid))).slice(0, 120);
+  const owners = Array.from(new Set((customerIds || []).filter(customerSecurityLooksLikeUuid))).slice(0, 20);
   const map = {};
-  if (!ids.length) return map;
-  const select = 'id,order_id,product_title,quantity,created_at';
-  const path = '/rest/v1/order_items?select=' + encodeURIComponent(select) + '&order_id=in.(' + ids.map(encodeURIComponent).join(',') + ')&order=created_at.asc';
+  if (!ids.length || !owners.length) return map;
+  const select = 'id,order_id,customer_id,product_title,quantity,created_at';
+  const path = '/rest/v1/order_items?select=' + encodeURIComponent(select)
+    + '&order_id=in.(' + ids.map(encodeURIComponent).join(',') + ')'
+    + '&customer_id=in.(' + owners.map(encodeURIComponent).join(',') + ')'
+    + '&order=created_at.asc';
   const result = await supabaseFetch(path, { method: 'GET', auth: 'service' }).catch(() => null);
   if (!result || !result.ok || !Array.isArray(result.data)) return map;
   result.data.forEach((item) => {
@@ -11323,7 +11333,10 @@ async function myOrdersFetchDomainOrders(owner, userEmail) {
   }
 
   const rows = Array.from(rowsMap.values());
-  const itemMap = await myOrdersFetchDomainOrderItems(rows.map((row) => row.id));
+  const itemMap = await myOrdersFetchDomainOrderItems(
+    rows.map((row) => row.id),
+    owner && Array.isArray(owner.customerIds) ? owner.customerIds : []
+  );
   return {
     ok: errors.length === 0 || rows.length > 0,
     error: errors[0] || '',
@@ -11331,12 +11344,15 @@ async function myOrdersFetchDomainOrders(owner, userEmail) {
   };
 }
 
-async function myOrdersFetchDomainOrderItems(orderIds) {
+async function myOrdersFetchDomainOrderItems(orderIds, customerIds) {
   const ids = Array.from(new Set((orderIds || []).filter(customerSecurityLooksLikeUuid))).slice(0, 120);
+  const owners = Array.from(new Set((customerIds || []).filter(customerSecurityLooksLikeUuid))).slice(0, 20);
   const map = {};
-  if (!ids.length) return map;
-  const select = 'id,order_id,domain_name,extension,years,register_price,renewal_price,subtotal';
-  const path = '/rest/v1/domain_order_items?select=' + encodeURIComponent(select) + '&order_id=in.(' + ids.map(encodeURIComponent).join(',') + ')';
+  if (!ids.length || !owners.length) return map;
+  const select = 'id,order_id,customer_id,domain_name,extension,years,register_price,renewal_price,subtotal';
+  const path = '/rest/v1/domain_order_items?select=' + encodeURIComponent(select)
+    + '&order_id=in.(' + ids.map(encodeURIComponent).join(',') + ')'
+    + '&customer_id=in.(' + owners.map(encodeURIComponent).join(',') + ')';
   const result = await supabaseFetch(path, { method: 'GET', auth: 'service' }).catch(() => null);
   if (!result || !result.ok || !Array.isArray(result.data)) return map;
   result.data.forEach((item) => {
@@ -11589,7 +11605,7 @@ async function lockedPaymentCreateForOrder(req, res) {
     });
   }
 
-  const itemCheck = await lockedPaymentValidateOrderItems(orderId, amount, serviceType);
+  const itemCheck = await lockedPaymentValidateOrderItems(orderId, customerId, amount, serviceType);
   if (!itemCheck.ok) {
     return res.status(itemCheck.status || 409).json({ ok: false, message: itemCheck.message });
   }
@@ -11743,12 +11759,14 @@ async function lockedPaymentFetchOwnedOrder(inputOrderId, customerId) {
   return { ok: true, order: row };
 }
 
-async function lockedPaymentValidateOrderItems(orderId, orderTotal, serviceType) {
+async function lockedPaymentValidateOrderItems(orderId, customerId, orderTotal, serviceType) {
   const amount = lockedPaymentMoney(orderTotal);
   const fallback = (reason) => lockedPaymentBuildFallbackOrderItem(amount, serviceType, reason);
 
-  const select = 'id,order_id,product_doc_id,product_title,quantity,unit_price,cost_price';
-  const path = '/rest/v1/order_items?select=' + encodeURIComponent(select) + '&order_id=eq.' + encodeURIComponent(orderId);
+  const select = 'id,order_id,customer_id,product_doc_id,product_title,quantity,unit_price,cost_price';
+  const path = '/rest/v1/order_items?select=' + encodeURIComponent(select)
+    + '&order_id=eq.' + encodeURIComponent(orderId)
+    + '&customer_id=eq.' + encodeURIComponent(customerId);
   const result = await supabaseFetch(path, { method: 'GET', auth: 'service' }).catch((error) => ({
     ok: false,
     status: 500,
@@ -12583,7 +12601,7 @@ async function midtransHandleWebhook(req, res) {
   const transactionAmount = midtransMoney(tx.amount);
   if (transactionAmount !== grossAmount) {
     await diracCentralBanCurrentContextV146('midtrans_amount_mismatch').catch(() => null);
-    await midtransInsertGatewayEventSafe(tx.id, gatewayEventId, 'failed', body, {
+    await midtransInsertGatewayEventSafe(tx.id, tx.customer_id, gatewayEventId, 'failed', body, {
       reason: 'amount_mismatch',
       expected_amount: transactionAmount,
       gross_amount: grossAmount
@@ -12594,7 +12612,7 @@ async function midtransHandleWebhook(req, res) {
   const ownerCheck = await midtransVerifyTransactionOwnerAndAmount(tx, grossAmount);
   if (!ownerCheck.ok) {
     await diracCentralBanCurrentContextV146(ownerCheck.reason || 'midtrans_owner_or_amount_mismatch').catch(() => null);
-    await midtransInsertGatewayEventSafe(tx.id, gatewayEventId, 'failed', body, {
+    await midtransInsertGatewayEventSafe(tx.id, tx.customer_id, gatewayEventId, 'failed', body, {
       reason: ownerCheck.reason || 'owner_or_amount_mismatch'
     });
     return res.status(ownerCheck.status || 409).json({ ok: false, message: ownerCheck.message || 'Payment tidak cocok dengan order/customer.' });
@@ -12603,7 +12621,7 @@ async function midtransHandleWebhook(req, res) {
   const eventStatus = success ? 'processed' : 'received';
   const eventInsert = duplicateEvent
     ? { ok: true, duplicate: true, skipped: 'gateway_event_already_exists' }
-    : await midtransInsertGatewayEventSafe(tx.id, gatewayEventId, eventStatus, body, {
+    : await midtransInsertGatewayEventSafe(tx.id, tx.customer_id, gatewayEventId, eventStatus, body, {
       mapped_payment_status: mappedStatus,
       success,
       gateway_reference: gatewayReference
@@ -12613,7 +12631,7 @@ async function midtransHandleWebhook(req, res) {
     return res.status(eventInsert.status || 500).json({ ok: false, message: 'Gagal menyimpan event webhook Midtrans.' });
   }
 
-  const txPatch = await midtransPatchPaymentTransaction(tx.id, mappedStatus, body, success);
+  const txPatch = await midtransPatchPaymentTransaction(tx, mappedStatus, body, success);
   if (!txPatch.ok) {
     return res.status(txPatch.status || 500).json({ ok: false, message: 'Gagal update payment transaction dari webhook Midtrans.' });
   }
@@ -12673,7 +12691,10 @@ async function midtransFetchPaymentTransaction(gatewayReference) {
 async function midtransVerifyTransactionOwnerAndAmount(tx, amount) {
   if (tx.order_id) {
     const select = 'id,customer_id,total,payment_status,order_status';
-    const result = await supabaseFetch('/rest/v1/orders?select=' + encodeURIComponent(select) + '&id=eq.' + encodeURIComponent(tx.order_id) + '&limit=1', {
+    const result = await supabaseFetch('/rest/v1/orders?select=' + encodeURIComponent(select)
+      + '&id=eq.' + encodeURIComponent(tx.order_id)
+      + '&customer_id=eq.' + encodeURIComponent(tx.customer_id)
+      + '&limit=1', {
       method: 'GET',
       auth: 'service'
     });
@@ -12687,7 +12708,10 @@ async function midtransVerifyTransactionOwnerAndAmount(tx, amount) {
 
   if (tx.domain_order_id) {
     const select = 'id,customer_id,total_price,payment_status,order_status,status';
-    const result = await supabaseFetch('/rest/v1/domain_orders?select=' + encodeURIComponent(select) + '&id=eq.' + encodeURIComponent(tx.domain_order_id) + '&limit=1', {
+    const result = await supabaseFetch('/rest/v1/domain_orders?select=' + encodeURIComponent(select)
+      + '&id=eq.' + encodeURIComponent(tx.domain_order_id)
+      + '&customer_id=eq.' + encodeURIComponent(tx.customer_id)
+      + '&limit=1', {
       method: 'GET',
       auth: 'service'
     });
@@ -12712,9 +12736,13 @@ async function midtransFetchGatewayEvent(gatewayEventId) {
   return { ok: true, exists: rows.length > 0, event: rows[0] || null };
 }
 
-async function midtransInsertGatewayEventSafe(paymentTransactionId, gatewayEventId, eventStatus, payload, metadata) {
+async function midtransInsertGatewayEventSafe(paymentTransactionId, customerId, gatewayEventId, eventStatus, payload, metadata) {
+  if (!customerSecurityLooksLikeUuid(paymentTransactionId) || !customerSecurityLooksLikeUuid(customerId)) {
+    return { ok: false, status: 409 };
+  }
   const basePayload = {
     payment_transaction_id: paymentTransactionId,
+    customer_id: customerId,
     gateway_event_id: gatewayEventId,
     event_status: eventStatus,
     payload,
@@ -12737,12 +12765,14 @@ async function midtransInsertGatewayEventSafe(paymentTransactionId, gatewayEvent
     basePayload,
     {
       payment_transaction_id: paymentTransactionId,
+      customer_id: customerId,
       gateway_event_id: gatewayEventId,
       event_status: eventStatus,
       payload
     },
     {
       payment_transaction_id: paymentTransactionId,
+      customer_id: customerId,
       gateway_event_id: gatewayEventId,
       event_status: eventStatus
     }
@@ -12767,7 +12797,15 @@ async function midtransInsertGatewayEventSafe(paymentTransactionId, gatewayEvent
   return { ok: false, status: 500 };
 }
 
-async function midtransPatchPaymentTransaction(transactionId, status, payload, success) {
+async function midtransPatchPaymentTransaction(transaction, status, payload, success) {
+  const transactionId = String(transaction && transaction.id || '').trim();
+  const customerId = String(transaction && transaction.customer_id || '').trim();
+  const gatewayReference = String(transaction && transaction.gateway_reference || '').trim();
+  if (!customerSecurityLooksLikeUuid(transactionId)
+      || !customerSecurityLooksLikeUuid(customerId)
+      || !gatewayReference) {
+    return { ok: false, status: 409 };
+  }
   const metadata = {
     midtrans_last_notification_at: diracNowIso(),
     midtrans_transaction_id: payload.transaction_id || null,
@@ -12786,7 +12824,11 @@ async function midtransPatchPaymentTransaction(transactionId, status, payload, s
 
   if (success) body.paid_at = payload.settlement_time || diracNowIso();
 
-  const first = await supabaseFetch('/rest/v1/payment_transactions?id=eq.' + encodeURIComponent(transactionId), {
+  const transactionPath = '/rest/v1/payment_transactions?id=eq.' + encodeURIComponent(transactionId)
+    + '&customer_id=eq.' + encodeURIComponent(customerId)
+    + '&gateway_reference=eq.' + encodeURIComponent(gatewayReference);
+
+  const first = await supabaseFetch(transactionPath, {
     method: 'PATCH',
     auth: 'service',
     prefer: 'return=representation',
@@ -12795,7 +12837,7 @@ async function midtransPatchPaymentTransaction(transactionId, status, payload, s
 
   if (first.ok) return first;
 
-  const fallback = await supabaseFetch('/rest/v1/payment_transactions?id=eq.' + encodeURIComponent(transactionId), {
+  const fallback = await supabaseFetch(transactionPath, {
     method: 'PATCH',
     auth: 'service',
     prefer: 'return=representation',
@@ -12809,7 +12851,8 @@ async function midtransPatchRelatedOrderPaid(tx, payload) {
   const paidAt = payload.settlement_time || diracNowIso();
 
   if (tx.order_id) {
-    const path = '/rest/v1/orders?id=eq.' + encodeURIComponent(tx.order_id);
+    const path = '/rest/v1/orders?id=eq.' + encodeURIComponent(tx.order_id)
+      + '&customer_id=eq.' + encodeURIComponent(tx.customer_id);
     const first = await supabaseFetch(path, {
       method: 'PATCH',
       auth: 'service',
@@ -12840,7 +12883,8 @@ async function midtransPatchRelatedOrderPaid(tx, payload) {
   }
 
   if (tx.domain_order_id) {
-    const path = '/rest/v1/domain_orders?id=eq.' + encodeURIComponent(tx.domain_order_id);
+    const path = '/rest/v1/domain_orders?id=eq.' + encodeURIComponent(tx.domain_order_id)
+      + '&customer_id=eq.' + encodeURIComponent(tx.customer_id);
     const first = await supabaseFetch(path, {
       method: 'PATCH',
       auth: 'service',
@@ -13557,11 +13601,15 @@ async function diracPasskeyA2FListActivePasskeys(owner) {
   return rows;
 }
 
-async function diracPasskeyA2FFetchByCredentialId(credentialId) {
+async function diracPasskeyA2FFetchByCredentialId(credentialId, owner) {
   const id = diracPasskeyA2FSafeString(credentialId, 4096);
-  if (!id) return { ok: true, data: [] };
+  const ownerCustomerId = String(owner && owner.customerId || '').trim();
+  if (!id || !customerSecurityLooksLikeUuid(ownerCustomerId)) return { ok: true, data: [] };
   const select = ['id', 'user_id', 'email', 'credential_id', 'credential_json', 'transports', 'sign_count', 'is_active', 'created_at', 'last_used_at'].join(',');
-  const path = '/rest/v1/domain_passkeys?select=' + encodeURIComponent(select) + '&credential_id=eq.' + encodeURIComponent(id) + '&limit=1';
+  const path = '/rest/v1/domain_passkeys?select=' + encodeURIComponent(select)
+    + '&credential_id=eq.' + encodeURIComponent(id)
+    + '&user_id=eq.' + encodeURIComponent(ownerCustomerId)
+    + '&limit=1';
   return supabaseFetch(path, { method: 'GET', auth: 'service' });
 }
 
@@ -13598,7 +13646,7 @@ async function diracPasskeyA2FSaveRegistration({ owner, credential, response, cl
     updated_at: nowIso
   };
 
-  const existingResult = await diracPasskeyA2FFetchByCredentialId(credentialId);
+  const existingResult = await diracPasskeyA2FFetchByCredentialId(credentialId, owner);
   if (!existingResult.ok) {
     return { ok: false, status: existingResult.status || 500, message: 'Gagal mengecek credential Passkey di database.' };
   }
@@ -13609,7 +13657,8 @@ async function diracPasskeyA2FSaveRegistration({ owner, credential, response, cl
   }
 
   if (existing && existing.id) {
-    const patch = await supabaseFetch('/rest/v1/domain_passkeys?id=eq.' + encodeURIComponent(existing.id), {
+    const patch = await supabaseFetch('/rest/v1/domain_passkeys?id=eq.' + encodeURIComponent(existing.id)
+      + '&user_id=eq.' + encodeURIComponent(owner.customerId), {
       method: 'PATCH',
       auth: 'service',
       prefer: 'return=representation',
@@ -13656,7 +13705,8 @@ async function diracPasskeyA2FUpdateUsage({ row, owner, response, credential, cl
     last_authentication: diracPasskeyA2FMinimalCredentialJson({ credential, response, clientData, payload, owner, req, mode: 'authentication' })
   };
 
-  const patched = await supabaseFetch('/rest/v1/domain_passkeys?id=eq.' + encodeURIComponent(row.id), {
+  const patched = await supabaseFetch('/rest/v1/domain_passkeys?id=eq.' + encodeURIComponent(row.id)
+    + '&user_id=eq.' + encodeURIComponent(owner.customerId), {
     method: 'PATCH',
     auth: 'service',
     prefer: 'return=representation',
@@ -13686,7 +13736,8 @@ async function diracPasskeyA2FMarkSettingsActive(owner) {
     };
     const rows = Array.isArray(existing && existing.data) ? existing.data : [];
     if (rows[0] && rows[0].id) {
-      const patched = await supabaseFetch('/rest/v1/security_customer_settings?id=eq.' + encodeURIComponent(rows[0].id), {
+      const patched = await supabaseFetch('/rest/v1/security_customer_settings?id=eq.' + encodeURIComponent(rows[0].id)
+        + '&customer_id=eq.' + encodeURIComponent(owner.customerId), {
         method: 'PATCH',
         auth: 'service',
         prefer: 'return=representation',
@@ -14112,7 +14163,7 @@ async function diracPasskeyA2FVerify(req, res) {
   let dbWrite = null;
   let registeredNow = false;
   if (isAuthentication) {
-    const existingResult = await diracPasskeyA2FFetchByCredentialId(credentialId);
+    const existingResult = await diracPasskeyA2FFetchByCredentialId(credentialId, owner);
     const row = existingResult.ok && Array.isArray(existingResult.data) ? existingResult.data[0] : null;
     if (!row || row.is_active !== true || !diracPasskeyA2FOwnerMatches(row, owner)) {
       await diracA2FHardBanCurrentRequest('passkey_a2f_credential_owner_mismatch');
