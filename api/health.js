@@ -12588,9 +12588,6 @@ async function midtransHandleWebhook(req, res) {
     return res.status(400).json({ ok: false, message: 'Payload Midtrans kurang lengkap.' });
   }
 
-  const existingEvent = await midtransFetchGatewayEvent(gatewayEventId);
-  const duplicateEvent = Boolean(existingEvent.ok && existingEvent.exists);
-
   const txResult = await midtransFetchPaymentTransaction(gatewayReference);
   if (!txResult.ok) {
     await diracCentralBanCurrentContextV146('midtrans_transaction_not_found').catch(() => null);
@@ -12598,6 +12595,8 @@ async function midtransHandleWebhook(req, res) {
   }
 
   const tx = txResult.transaction;
+  const existingEvent = await midtransFetchGatewayEvent(gatewayEventId, tx.customer_id);
+  const duplicateEvent = Boolean(existingEvent.ok && existingEvent.exists);
   const transactionAmount = midtransMoney(tx.amount);
   if (transactionAmount !== grossAmount) {
     await diracCentralBanCurrentContextV146('midtrans_amount_mismatch').catch(() => null);
@@ -12726,9 +12725,13 @@ async function midtransVerifyTransactionOwnerAndAmount(tx, amount) {
   return { ok: false, status: 409, message: 'Payment transaction tidak punya order_id/domain_order_id.', reason: 'missing_order_reference' };
 }
 
-async function midtransFetchGatewayEvent(gatewayEventId) {
-  const path = '/rest/v1/payment_gateway_events?select=' + encodeURIComponent('id,gateway_event_id')
+async function midtransFetchGatewayEvent(gatewayEventId, customerId) {
+  if (!gatewayEventId || !customerSecurityLooksLikeUuid(customerId)) {
+    return { ok: false, status: 409 };
+  }
+  const path = '/rest/v1/payment_gateway_events?select=' + encodeURIComponent('id,gateway_event_id,customer_id')
     + '&gateway_event_id=eq.' + encodeURIComponent(gatewayEventId)
+    + '&customer_id=eq.' + encodeURIComponent(customerId)
     + '&limit=1';
   const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
   if (!result.ok) return { ok: false, status: result.status };
@@ -12743,8 +12746,14 @@ async function midtransInsertGatewayEventSafe(paymentTransactionId, customerId, 
   const basePayload = {
     payment_transaction_id: paymentTransactionId,
     customer_id: customerId,
+    gateway_name: 'midtrans',
     gateway_event_id: gatewayEventId,
+    event_type: midtransSafeText(
+      payload && payload.transaction_status || 'notification',
+      80
+    ),
     event_status: eventStatus,
+    raw_payload: payload,
     payload,
     metadata: {
       provider: 'midtrans',
