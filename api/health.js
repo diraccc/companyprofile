@@ -12683,8 +12683,8 @@ async function midtransHandleWebhook(req, res) {
     return res.status(503).json({ ok: false, message: 'MIDTRANS_SERVER_KEY belum disetel.' });
   }
 
-  const body = await readBody(req);
-  if (!body || typeof body !== 'object') {
+  const body = req && req.__diracCentralParsedBodyV146;
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
     return res.status(400).json({ ok: false, message: 'Payload Midtrans tidak valid.' });
   }
 
