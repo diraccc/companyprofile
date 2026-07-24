@@ -37778,6 +37778,15 @@ module.exports = async function diracCentralArchitectureConsolidationV202(req, r
   try {
     await diracCentralBackendComplianceGateV230();
   } catch (error) {
+    try {
+      console.error('[dirac-v230-compliance-gate]', {
+        code: String(error?.code || ''),
+        message: String(error?.message || '').slice(0, 300)
+      });
+    } catch (loggingErrorV230) {
+      diracCentralRecordSuppressedExceptionV221(loggingErrorV230);
+    }
+
     diracCentralApplyHeadersV146(res);
     return res.status(503).json({ ok: false, code: 'DIRAC_BACKEND_COMPLIANCE_GATE_FAILED', message: 'Backend security compliance gate belum lulus.' });
   }
