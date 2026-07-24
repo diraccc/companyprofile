@@ -26833,7 +26833,9 @@ async function diracV143FetchOwnerRows(table, values, columns) {
 
   const select = table === 'payment_transactions'
     ? 'id,customer_id,order_id,domain_order_id,gateway_reference'
-    : 'id,customer_id,order_id';
+    : table === 'domain_orders'
+      ? 'id,customer_id'
+      : 'id,customer_id,order_id';
   const clauses = [];
   for (const column of safeColumns) {
     for (const value of cleanValues) {
