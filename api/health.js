@@ -26848,7 +26848,7 @@ async function diracV143FetchOwnerRows(table, values, columns) {
   const path = '/rest/v1/' + encodeURIComponent(safeTable) +
     '?select=' + encodeURIComponent(select) +
     '&or=' + encodeURIComponent('(' + clauses.slice(0, 50).join(',') + ')') +
-    '&limit=50';
+    '&limit=80';
 
   const result = await diracV143DirectSupabaseGet(path);
   if (!result || !result.ok || !Array.isArray(result.data)) {
@@ -26868,9 +26868,16 @@ async function diracV143FetchOwnerRows(table, values, columns) {
 
 function diracV143DirectSupabaseGet(path) {
   if (typeof supabaseFetch === 'function') {
-    return supabaseFetch(path, {
+    const ctx = typeof diracCentralCurrentContextV149 === 'function'
+      ? diracCentralCurrentContextV149()
+      : null;
+
+    if (ctx) ctx.__diracCentralOwnerLookupV194 = true;
+    return Promise.resolve(supabaseFetch(path, {
       method: 'GET',
       auth: 'service'
+    })).finally(() => {
+      if (ctx) delete ctx.__diracCentralOwnerLookupV194;
     });
   }
   return Promise.resolve({ ok: false, status: 0, data: null });
