@@ -26867,11 +26867,11 @@ async function diracV143FetchOwnerRows(table, values, columns) {
 }
 
 function diracV143DirectSupabaseGet(path) {
-  if (typeof diracBolaIdorV128DirectSupabaseServiceGet === 'function') {
-    return diracBolaIdorV128DirectSupabaseServiceGet(path);
-  }
-  if (typeof diracBolaIdorV133DirectSupabaseServiceGet === 'function') {
-    return diracBolaIdorV133DirectSupabaseServiceGet(path);
+  if (typeof supabaseFetch === 'function') {
+    return supabaseFetch(path, {
+      method: 'GET',
+      auth: 'service'
+    });
   }
   return Promise.resolve({ ok: false, status: 0, data: null });
 }
