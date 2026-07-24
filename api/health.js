@@ -17709,13 +17709,15 @@ __diracV202RegisterMiddleware(async function diracUltraSqlmapGuardWrapper(req, r
 
   const action = diracV101NormalizeAction(String((req && req.query && req.query.action) || ''));
   const method = String((req && req.method) || 'GET').toUpperCase();
+  const isPublicDomainHealthProbeV230 = action === 'domain_health' && (method === 'GET' || method === 'HEAD');
 
   try {
     const existingBlock = await diracV101CheckPersistentSqlmapBlock(req, action, method);
     if (existingBlock && existingBlock.unavailable) {
-      return diracStrictJsonResponseV229(res, 503, 'SECURITY_STORAGE_UNAVAILABLE', 'Penyimpanan keamanan belum tersedia.');
-    }
-    if (existingBlock && existingBlock.blocked) {
+      if (!isPublicDomainHealthProbeV230) {
+        return diracStrictJsonResponseV229(res, 503, 'SECURITY_STORAGE_UNAVAILABLE', 'Penyimpanan keamanan belum tersedia.');
+      }
+    } else if (existingBlock && existingBlock.blocked) {
       try { res.setHeader('Retry-After', String(existingBlock.retryAfterSeconds || 86400)); } catch (_) {}
       return res.status(403).json({
         ok: false,
