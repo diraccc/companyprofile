@@ -10,8 +10,10 @@ const crypto = require('crypto');
 const DIRAC_CENTRAL_ARCHITECTURE_CONSOLIDATION_V202 = 'dirac-central-architecture-consolidation-v202';
 const __diracV202MiddlewareRegistry = [];
 const __diracV202WrapperFlags = new Set();
+let __diracV202MiddlewareRegistryLockedV228 = false;
 function __diracV202DispatcherSentinel() {}
 function __diracV202RegisterMiddleware(fn, name) {
+  if (__diracV202MiddlewareRegistryLockedV228) throw new Error('DIRAC_V202_MIDDLEWARE_REGISTRY_LOCKED');
   if (typeof fn !== 'function') throw new Error('DIRAC_V202_MIDDLEWARE_INVALID');
   __diracV202MiddlewareRegistry.push(Object.freeze({ fn, name: String(name || fn.name || 'anonymous') }));
   return fn;
@@ -1076,28 +1078,19 @@ async function writePersistentSecurityJsonRequiredV194(securityKey, record, bloc
 async function claimPersistentSecurityKeyOnceV194(securityKey, record, ttlSeconds) {
   const key = String(securityKey || '').trim();
   const table = diracPersistentSecurityTableForKeyV209(key);
-  if (!table || !key) return false;
-  const now = Date.now();
-  const ttl = Math.max(60, Number(ttlSeconds || 60));
-  const payload = [{
-    security_key: key,
-    record_json: record && typeof record === 'object' ? record : {},
-    blocked_until_ms: 0,
-    updated_at: new Date(now).toISOString(),
-    expires_at: new Date(now + ttl * 1000).toISOString()
-  }];
-  try {
-    const result = await supabaseFetch(`/rest/v1/${encodeURIComponent(table)}?on_conflict=security_key`, {
-      method: 'POST',
-      auth: 'service',
-      prefer: 'resolution=ignore-duplicates,return=representation',
-      body: payload
-    });
-    return Boolean(result && result.ok === true && Array.isArray(result.data) && result.data.length === 1
-      && String(result.data[0] && result.data[0].security_key || '') === key);
-  } catch (_) {
-    return false;
-  }
+  if (!table || !/^[A-Za-z0-9:._-]{1,500}$/.test(key)) return false;
+  const ttl = Math.max(60, Math.min(100 * 365 * 24 * 60 * 60, Number(ttlSeconds || 60)));
+  const result = await supabaseFetch('/rest/v1/rpc/dirac_central_atomic_claim_record_v230', {
+    method: 'POST',
+    auth: 'service',
+    body: {
+      p_table_name: table,
+      p_security_key: key,
+      p_record_json: record && typeof record === 'object' ? record : {},
+      p_expires_at: new Date(Date.now() + ttl * 1000).toISOString()
+    }
+  }).catch(() => null);
+  return Boolean(result && result.ok === true && result.data === true);
 }
 
 async function readPersistentLoginSecurityRecord(identity) {
@@ -1415,69 +1408,110 @@ async function domainRegister(req, res, preloadedBody) {
   }
   if (whatsapp) userData.whatsapp = whatsapp;
 
+  const signupBody = { email, password };
+  if (Object.keys(userData).length) signupBody.data = userData;
+
   // Register duplicate check v2:
-  // cek backend-only memakai service role sebelum create user.
+  // cek backend-only memakai service role sebelum signup.
   // Tidak menyentuh domainLogin(), hash, A2F/MFA, cookie, token, dashboard, checkout, atau order.
   const existingAuthUser = await findSupabaseAuthUserByEmail(email);
   if (existingAuthUser && existingAuthUser.exists === true) {
     return res.status(409).json(buildDomainRegisterDuplicateEmailBody());
   }
 
-  // Email verification dihapus total untuk registrasi customer.
-  // Akun dibuat langsung terkonfirmasi melalui Supabase Admin API.
-  const createBody = {
-    email,
-    password,
-    email_confirm: true
-  };
-  if (Object.keys(userData).length) createBody.user_metadata = userData;
-
-  const created = await supabaseFetch('/auth/v1/admin/users', {
-    method: 'POST',
-    auth: 'service',
-    body: createBody
-  });
-
-  if (!created.ok) {
-    if (isSupabaseRegisterDuplicateEmailError(created.data)) {
-      return res.status(409).json(buildDomainRegisterDuplicateEmailBody());
-    }
-    return res.status(created.status || 502).json({
-      ok: false,
-      code: 'REGISTER_CREATE_FAILED',
-      message: 'Pendaftaran gagal. Silakan coba lagi.'
-    });
-  }
-
-  const sessionResult = await supabaseFetch('/auth/v1/token?grant_type=password', {
+  const result = await supabaseFetch('/auth/v1/signup', {
     method: 'POST',
     auth: 'anon',
-    body: { email, password }
+    body: signupBody
   });
 
-  if (!sessionResult.ok || !hasValidDomainSessionTokens(sessionResult.data)) {
-    clearSessionCookies(res);
-    return res.status(200).json({
-      ok: true,
-      code: 'REGISTER_CREATED_LOGIN_REQUIRED',
-      message: 'Akun berhasil dibuat. Silakan masuk.',
-      first_register_setup_required: true,
-      next: 'login',
-      user: sanitizeUser(normalizeSupabaseAdminUser(created.data)),
-      session: null
+  if (!result.ok) {
+    if (isSupabaseRegisterDuplicateEmailError(result.data)) {
+      return res.status(409).json(buildDomainRegisterDuplicateEmailBody());
+    }
+
+    // PATCH REGISTER EMAIL DELIVERY RECOVERY v1:
+    // Jika Supabase gagal mengirim confirmation email, jangan langsung menampilkan error mentah
+    // "Error sending confirmation email" ke customer. Backend mencoba recovery aman memakai
+    // service role: akun baru tetap dibuat/di-confirm tanpa mengirim email, lalu sesi hanya
+    // dikunci lewat HttpOnly cookie. domainLogin(), cookie helper, A2F/MFA, checkout, dan order
+    // tidak disentuh.
+    if (isSupabaseRegisterEmailDeliveryError(result.data)) {
+      const recovered = await recoverDomainRegisterFromSupabaseEmailDeliveryFailure({
+        email,
+        password,
+        userData
+      });
+
+      if (recovered && recovered.duplicate === true) {
+        return res.status(409).json(buildDomainRegisterDuplicateEmailBody());
+      }
+
+      if (recovered && recovered.ok === true) {
+        const recoveredSession = recovered.session && typeof recovered.session === 'object' ? recovered.session : {};
+        if (recoveredSession.access_token && recoveredSession.refresh_token) {
+          setSessionCookies(res, recoveredSession);
+        }
+
+        return res.status(200).json({
+          ok: true,
+          code: 'REGISTER_CREATED_EMAIL_DELIVERY_RECOVERED',
+          message: recoveredSession.access_token
+            ? 'Akun berhasil dibuat dan login otomatis. Silakan lanjutkan setup keamanan akun.'
+            : 'Akun berhasil dibuat. Silakan masuk lalu lanjutkan setup keamanan akun.',
+          needs_email_confirmation: false,
+          email_delivery_recovered: true,
+          first_register_setup_required: true,
+          next: 'security_setup_required',
+          user: sanitizeUser(recovered.user || recoveredSession.user),
+          session: buildDomainAuthSessionPayload(recoveredSession)
+        });
+      }
+
+      return res.status(recovered && recovered.status ? recovered.status : 502).json({
+        ok: false,
+        code: 'REGISTER_EMAIL_DELIVERY_FAILED',
+        message: 'Pendaftaran belum bisa diselesaikan karena layanan email verifikasi sedang bermasalah. Silakan coba lagi sebentar lagi.'
+      });
+    }
+
+    return res.status(result.status).json({
+      ok: false,
+      message: result.data.error_description || result.data.msg || result.data.message || 'Pendaftaran gagal.'
     });
   }
 
-  setSessionCookies(res, sessionResult.data);
+  const signupData = result.data && typeof result.data === 'object' ? result.data : {};
+
+  // Supabase Auth dengan email confirmation aktif dapat mengembalikan HTTP 200
+  // untuk email yang sudah terdaftar, tetapi user.identities kosong.
+  // Kondisi ini tidak boleh ditampilkan sebagai akun baru berhasil dibuat.
+  if (isSupabaseRegisterExistingAccountResponse(signupData, { email, precheck: existingAuthUser })) {
+    return res.status(409).json(buildDomainRegisterDuplicateEmailBody());
+  }
+
+  if (!hasSupabaseRegisterNewAccountEvidence(signupData, { email, precheck: existingAuthUser })) {
+    // Supabase kadang menyamarkan signup email lama sebagai respons tidak jelas.
+    // Untuk halaman customer, jangan tampilkan pesan ambigu dan jangan klaim akun baru dibuat.
+    // Treat as already registered agar user diarahkan masuk / lupa password / email lain.
+    return res.status(409).json(buildDomainRegisterDuplicateEmailBody());
+  }
+
+  const signupHasSession = hasValidDomainSessionTokens(signupData);
+  if (signupHasSession) {
+    setSessionCookies(res, signupData);
+  } else {
+    clearSessionCookies(res);
+  }
 
   return res.status(200).json({
     ok: true,
-    code: 'REGISTER_CREATED',
-    message: 'Akun berhasil dibuat dan login otomatis.',
-    first_register_setup_required: true,
-    next: 'security_setup_required',
-    user: sanitizeUser(sessionResult.data.user || normalizeSupabaseAdminUser(created.data)),
-    session: buildDomainAuthSessionPayload(sessionResult.data)
+    message: signupHasSession
+      ? 'Akun berhasil dibuat dan login otomatis.'
+      : 'Akun berhasil dibuat. Silakan cek email verifikasi jika diperlukan.',
+    needs_email_confirmation: !signupHasSession,
+    user: sanitizeUser(signupData.user),
+    session: buildDomainAuthSessionPayload(signupData)
   });
 }
 
@@ -1487,11 +1521,131 @@ function buildDomainRegisterDuplicateEmailBody() {
     code: 'EMAIL_ALREADY_REGISTERED',
     already_registered: true,
     email_already_registered: true,
+    needs_email_confirmation: false,
     next: 'login_or_reset_password',
     message: 'Email ini sudah terdaftar. Silakan masuk, atau gunakan lupa password jika tidak ingat kata sandi.'
   };
 }
 
+
+function isSupabaseRegisterEmailDeliveryError(data) {
+  const fields = [];
+  if (typeof data === 'string') fields.push(data);
+  if (data && typeof data === 'object') {
+    fields.push(
+      data.error,
+      data.error_code,
+      data.code,
+      data.msg,
+      data.message,
+      data.error_description,
+      data.detail
+    );
+  }
+
+  const text = fields
+    .filter((item) => item !== undefined && item !== null)
+    .map((item) => String(item).toLowerCase())
+    .join(' | ');
+
+  if (!text) return false;
+
+  return /error\s+sending\s+confirmation\s+email/i.test(text)
+    || /confirmation\s+email/i.test(text)
+    || /email.*(?:send|sending|sent|delivery|deliver|smtp|mailer|mailgun|sendgrid|resend|brevo|ses).*?(?:error|failed|fail|invalid|rejected)/i.test(text)
+    || /(?:send|sending|delivery|deliver|smtp|mailer|mailgun|sendgrid|resend|brevo|ses).*?email.*?(?:error|failed|fail|invalid|rejected)/i.test(text);
+}
+
+async function recoverDomainRegisterFromSupabaseEmailDeliveryFailure(input) {
+  const email = normalizeAuthEmail(input && input.email);
+  const password = String(input && input.password || '');
+  const userData = input && input.userData && typeof input.userData === 'object' ? input.userData : {};
+
+  if (!email || !isStrictDomainLoginEmail(email) || !password) {
+    return { ok: false, status: 400 };
+  }
+
+  // 1) Jika Supabase sudah sempat membuat user sebelum email gagal dikirim,
+  //    jangan buat user kedua. Recovery hanya boleh untuk user baru yang
+  //    created_at sangat dekat dengan request ini dan belum pernah confirmed.
+  const existing = await getSupabaseAuthUserByEmail(email);
+  if (existing && existing.user) {
+    if (!isSupabaseAuthUserSafeRecentUnconfirmed(existing.user)) {
+      return { ok: false, duplicate: true, status: 409 };
+    }
+
+    const confirmed = await confirmRecentSupabaseAuthUser(existing.user);
+    if (!confirmed.ok) {
+      return { ok: false, status: confirmed.status || 502 };
+    }
+
+    const login = await loginSupabaseAuthUserAfterRegisterRecovery(email, password);
+    if (!login.ok) {
+      return {
+        ok: true,
+        user: confirmed.user || existing.user,
+        session: null,
+        recovered_from: 'recent_unconfirmed_user'
+      };
+    }
+
+    return {
+      ok: true,
+      user: login.session && login.session.user ? login.session.user : (confirmed.user || existing.user),
+      session: login.session,
+      recovered_from: 'recent_unconfirmed_user'
+    };
+  }
+
+  // 2) Jika tidak ada user yang tercipta, buat akun lewat Admin API tanpa
+  //    mengirim confirmation email. Ini backend-only dan tetap tidak membuka token
+  //    ke JavaScript karena response session diproses oleh buildDomainAuthSessionPayload().
+  const createBody = {
+    email,
+    password,
+    email_confirm: true
+  };
+
+  if (Object.keys(userData).length) {
+    createBody.user_metadata = userData;
+  }
+
+  const created = await supabaseFetch('/auth/v1/admin/users', {
+    method: 'POST',
+    auth: 'service',
+    body: createBody
+  });
+
+  if (!created.ok) {
+    if (isSupabaseRegisterDuplicateEmailError(created.data)) {
+      return { ok: false, duplicate: true, status: 409 };
+    }
+
+    console.error('[register-email-recovery-create-failed]', customerSecuritySafeLogError(created.data));
+    return {
+      ok: false,
+      status: created.status || 502,
+      code: 'REGISTER_RECOVERY_CREATE_FAILED'
+    };
+  }
+
+  const login = await loginSupabaseAuthUserAfterRegisterRecovery(email, password);
+  if (!login.ok) {
+    return {
+      ok: true,
+      user: normalizeSupabaseAdminUser(created.data),
+      session: null,
+      recovered_from: 'admin_create_confirmed_user'
+    };
+  }
+
+  return {
+    ok: true,
+    user: login.session && login.session.user ? login.session.user : normalizeSupabaseAdminUser(created.data),
+    session: login.session,
+    recovered_from: 'admin_create_confirmed_user'
+  };
+}
 
 async function getSupabaseAuthUserByEmail(email) {
   const normalizedEmail = normalizeAuthEmail(email);
@@ -1529,6 +1683,59 @@ function normalizeSupabaseAdminUser(data) {
   return data;
 }
 
+function isSupabaseAuthUserSafeRecentUnconfirmed(user) {
+  if (!user || typeof user !== 'object') return false;
+
+  const confirmedAt = user.confirmed_at || user.email_confirmed_at || '';
+  if (confirmedAt) return false;
+
+  const createdAtMs = Date.parse(user.created_at || user.createdAt || '');
+  if (!Number.isFinite(createdAtMs)) return false;
+
+  const ageMs = Math.abs(Date.now() - createdAtMs);
+  const maxRecoveryAgeMs = Math.max(60 * 1000, Number(process.env.DOMAIN_REGISTER_EMAIL_RECOVERY_MAX_AGE_MS || 10 * 60 * 1000));
+  return ageMs <= maxRecoveryAgeMs;
+}
+
+async function confirmRecentSupabaseAuthUser(user) {
+  const userId = String(user && user.id || '').trim();
+  if (!userId) return { ok: false, status: 400 };
+
+  const result = await supabaseFetch(`/auth/v1/admin/users/${encodeURIComponent(userId)}`, {
+    method: 'PUT',
+    auth: 'service',
+    body: {
+      email_confirm: true
+    }
+  });
+
+  if (!result.ok) {
+    console.error('[register-recovery-confirm-failed]', customerSecuritySafeLogError(result.data));
+    return { ok: false, status: result.status || 502, code: 'REGISTER_RECOVERY_CONFIRM_FAILED' };
+  }
+
+  return { ok: true, user: normalizeSupabaseAdminUser(result.data) || user };
+}
+
+async function loginSupabaseAuthUserAfterRegisterRecovery(email, password) {
+  const result = await supabaseFetch('/auth/v1/token?grant_type=password', {
+    method: 'POST',
+    auth: 'anon',
+    body: {
+      email: normalizeAuthEmail(email),
+      password: String(password || '')
+    }
+  });
+
+  if (!result.ok || !result.data || !result.data.access_token) {
+    console.error('[register-recovery-login-failed]', customerSecuritySafeLogError(result.data));
+    return { ok: false, status: result.status || 401, code: 'REGISTER_RECOVERY_LOGIN_FAILED' };
+  }
+
+  return { ok: true, session: result.data };
+}
+
+
 async function findSupabaseAuthUserByEmail(email) {
   const normalizedEmail = normalizeAuthEmail(email);
   if (!normalizedEmail || !isStrictDomainLoginEmail(normalizedEmail)) return { exists: false, checked: false };
@@ -1555,7 +1762,8 @@ async function findSupabaseAuthUserByEmail(email) {
 
     return { exists, checked: true };
   } catch (_) {
-    // Pre-check hanya penguat deteksi duplikat.
+    // Pre-check hanya penguat deteksi duplikat. Jika admin endpoint tidak tersedia,
+    // signup tetap berjalan dan tetap difilter oleh response checks di bawah.
     return { exists: false, checked: false };
   }
 }
@@ -1584,6 +1792,44 @@ function isSupabaseRegisterDuplicateEmailError(data) {
   return /(?:user|email|account|akun).*?(?:already|exists|registered|terdaftar|dipakai|digunakan)/i.test(text)
     || /(?:already|exists|registered|duplicate|terdaftar).*?(?:user|email|account|akun)/i.test(text)
     || /email_exists|user_already_exists|duplicate_email|email_already_registered/i.test(text);
+}
+
+function isSupabaseRegisterExistingAccountResponse(data, context = {}) {
+  const user = data && typeof data === 'object' && data.user && typeof data.user === 'object'
+    ? data.user
+    : null;
+  if (!user) return false;
+
+  // Sinyal resmi yang umum muncul pada signUp email lama saat confirmation aktif.
+  if (Array.isArray(user.identities) && user.identities.length === 0) {
+    return !hasSupabaseRegisterNewAccountEvidence(data, context);
+  }
+
+  return false;
+}
+
+function hasSupabaseRegisterNewAccountEvidence(data, context = {}) {
+  if (!data || typeof data !== 'object') return false;
+  if (data.access_token && data.refresh_token) return true;
+
+  const user = data.user && typeof data.user === 'object' ? data.user : null;
+  if (!user || !user.id) return false;
+
+  const expectedEmail = normalizeAuthEmail(context && context.email || '');
+  const userEmail = normalizeAuthEmail(user.email || user.email_address || '');
+  if (expectedEmail && userEmail && userEmail !== expectedEmail) return false;
+
+  if (Array.isArray(user.identities)) {
+    if (user.identities.length > 0) return true;
+    return Boolean(
+      userEmail
+      && (!expectedEmail || userEmail === expectedEmail)
+      && (user.created_at || user.confirmation_sent_at || user.aud === 'authenticated')
+    );
+  }
+
+  // Kompatibilitas untuk respons Supabase Auth lama yang tidak selalu menyertakan identities.
+  return Boolean(user.email || user.created_at || user.aud === 'authenticated');
 }
 
 async function domainMe(req, res) {
@@ -7496,6 +7742,207 @@ function customerSecurityLostPasskeyAesGcmEncrypt(key, plaintext, aad) {
 }
 
 
+// PDF recovery patch v156: encrypted PDF is the user-facing recovery container.
+// The complete PDF password is never stored and never returned; website shows only website_recovery_code.
+const DIRAC_RECOVERY_PDF_PATCH = 'lost-passkey-pdf-password-v156';
+const DIRAC_PDF_PADDING_V156 = Buffer.from([0x28,0xBF,0x4E,0x5E,0x4E,0x75,0x8A,0x41,0x64,0x00,0x4E,0x56,0xFF,0xFA,0x01,0x08,0x2E,0x2E,0x00,0xB6,0xD0,0x68,0x3E,0x80,0x2F,0x0C,0xA9,0xFE,0x64,0x53,0x69,0x7A]);
+
+function customerSecurityRecoveryPdfMd5V156(value) {
+  return crypto.createHash('md5').update(Buffer.from(value)).digest();
+}
+
+function customerSecurityRecoveryPdfPasswordBytesV156(password) {
+  const raw = Buffer.from(String(password || '').normalize('NFC'), 'utf8');
+  if (raw.length >= 32) return raw.subarray(0, 32);
+  return Buffer.concat([raw, DIRAC_PDF_PADDING_V156]).subarray(0, 32);
+}
+
+function customerSecurityRecoveryPdfRc4V156(key, data) {
+  const s = Array.from({ length: 256 }, (_, i) => i);
+  let j = 0;
+  for (let i = 0; i < 256; i += 1) {
+    j = (j + s[i] + key[i % key.length]) & 255;
+    const tmp = s[i]; s[i] = s[j]; s[j] = tmp;
+  }
+  const input = Buffer.from(data);
+  const out = Buffer.alloc(input.length);
+  let i = 0; j = 0;
+  for (let k = 0; k < input.length; k += 1) {
+    i = (i + 1) & 255;
+    j = (j + s[i]) & 255;
+    const tmp = s[i]; s[i] = s[j]; s[j] = tmp;
+    out[k] = input[k] ^ s[(s[i] + s[j]) & 255];
+  }
+  return out;
+}
+
+function customerSecurityRecoveryPdfComputeOV156(userPassword, ownerPassword) {
+  let digest = customerSecurityRecoveryPdfMd5V156(customerSecurityRecoveryPdfPasswordBytesV156(ownerPassword || userPassword));
+  for (let i = 0; i < 50; i += 1) digest = customerSecurityRecoveryPdfMd5V156(digest);
+  let out = customerSecurityRecoveryPdfRc4V156(digest.subarray(0, 16), customerSecurityRecoveryPdfPasswordBytesV156(userPassword));
+  for (let i = 1; i <= 19; i += 1) {
+    const key = Buffer.from(digest.subarray(0, 16).map((item) => item ^ i));
+    out = customerSecurityRecoveryPdfRc4V156(key, out);
+  }
+  return out;
+}
+
+function customerSecurityRecoveryPdfFileKeyV156(userPassword, ownerValue, permissionValue, documentId) {
+  const p = Number(permissionValue || -3904);
+  const permission = Buffer.from([p & 255, (p >> 8) & 255, (p >> 16) & 255, (p >> 24) & 255]);
+  let digest = customerSecurityRecoveryPdfMd5V156(Buffer.concat([
+    customerSecurityRecoveryPdfPasswordBytesV156(userPassword),
+    Buffer.from(ownerValue),
+    permission,
+    Buffer.from(documentId)
+  ]));
+  for (let i = 0; i < 50; i += 1) digest = customerSecurityRecoveryPdfMd5V156(digest.subarray(0, 16));
+  return digest.subarray(0, 16);
+}
+
+function customerSecurityRecoveryPdfComputeUV156(fileKey, documentId) {
+  let out = customerSecurityRecoveryPdfRc4V156(fileKey, customerSecurityRecoveryPdfMd5V156(Buffer.concat([DIRAC_PDF_PADDING_V156, Buffer.from(documentId)])));
+  for (let i = 1; i <= 19; i += 1) {
+    const key = Buffer.from(fileKey.map((item) => item ^ i));
+    out = customerSecurityRecoveryPdfRc4V156(key, out);
+  }
+  return Buffer.concat([out, Buffer.alloc(16)]);
+}
+
+function customerSecurityRecoveryPdfEncryptObjectV156(fileKey, objectNumber, generationNumber, plaintext) {
+  const n = Buffer.alloc(5);
+  n[0] = objectNumber & 255;
+  n[1] = (objectNumber >> 8) & 255;
+  n[2] = (objectNumber >> 16) & 255;
+  n[3] = generationNumber & 255;
+  n[4] = (generationNumber >> 8) & 255;
+  const objectKey = customerSecurityRecoveryPdfMd5V156(Buffer.concat([Buffer.from(fileKey), n, Buffer.from('sAlT', 'binary')])).subarray(0, 16);
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv('aes-128-cbc', objectKey, iv);
+  return Buffer.concat([iv, cipher.update(Buffer.from(plaintext)), cipher.final()]);
+}
+
+function customerSecurityRecoveryPdfSafeTextV156(value) {
+  return String(value || '').normalize('NFKC').replace(/[^\x20-\x7E]/g, '?').slice(0, 1600);
+}
+
+function customerSecurityRecoveryPdfEscapeTextV156(value) {
+  return customerSecurityRecoveryPdfSafeTextV156(value).replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+}
+
+function customerSecurityRecoveryPdfTextLineV156(text, x, y, size, font) {
+  return 'BT /' + String(font || 'F2') + ' ' + String(size || 9) + ' Tf ' + String(x || 72) + ' ' + String(y || 720) + ' Td (' + customerSecurityRecoveryPdfEscapeTextV156(text) + ') Tj ET\n';
+}
+
+function customerSecurityRecoveryPdfWrapLinesV156(value, width) {
+  const text = customerSecurityRecoveryPdfSafeTextV156(value);
+  const max = Math.max(24, Number(width || 88));
+  const lines = [];
+  for (let i = 0; i < text.length; i += max) lines.push(text.slice(i, i + max));
+  return lines.length ? lines : [''];
+}
+
+function customerSecurityGenerateWebsiteRecoveryCodeV156() {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let out = 'DG';
+  for (let i = 0; i < 6; i += 1) out += alphabet[crypto.randomInt(0, alphabet.length)];
+  return out;
+}
+
+function customerSecurityGenerateEmailPdfCodeV156() {
+  return String(crypto.randomInt(0, 100)).padStart(2, '0');
+}
+
+function customerSecurityExtractAccountPasswordForPdfV156(body) {
+  const value = String(body && (body.account_password || body.current_password || body.currentPassword || '') || '').normalize('NFC');
+  if (Buffer.byteLength(value, 'utf8') < 6) return '';
+  if (Buffer.byteLength(value, 'utf8') > 512) return '';
+  return value;
+}
+
+function customerSecurityBuildPdfPasswordV156(accountPassword, websiteRecoveryCode, emailPdfCode) {
+  // PDF Standard Security Handler only uses the first 32 bytes of the entered password.
+  // Therefore the complete user-entered PDF password must fit inside 32 bytes.
+  return String(websiteRecoveryCode || '').trim() + String(emailPdfCode || '').trim() + String(accountPassword || '').normalize('NFC');
+}
+
+function customerSecurityBuildPdfPasswordContextV156(accountPassword, websiteRecoveryCode, emailPdfCode) {
+  const pdfPassword = customerSecurityBuildPdfPasswordV156(accountPassword, websiteRecoveryCode, emailPdfCode);
+  const byteLength = Buffer.byteLength(pdfPassword, 'utf8');
+  return {
+    ok: byteLength >= 12 && byteLength <= 32,
+    pdfPassword,
+    byteLength,
+    maxBytes: 32,
+    accountPasswordMaxBytes: Math.max(0, 32 - Buffer.byteLength(String(websiteRecoveryCode || '').trim() + String(emailPdfCode || '').trim(), 'utf8'))
+  };
+}
+
+async function customerSecurityVerifyAccountPasswordForPdfV156(email, accountPassword) {
+  const normalizedEmail = normalizeAuthEmail(email);
+  const password = String(accountPassword || '');
+  if (!isValidAuthEmail(normalizedEmail) || !password) return { ok: false, status: 400 };
+  const result = await supabaseFetch('/auth/v1/token?grant_type=password', {
+    method: 'POST',
+    auth: 'anon',
+    body: { email: normalizedEmail, password }
+  });
+  return { ok: !!result.ok, status: result.status || (result.ok ? 200 : 403) };
+}
+
+function customerSecurityBuildEncryptedRecoveryPdfV156(input) {
+  const password = String(input && input.pdfPassword || '').normalize('NFC');
+  if (Buffer.byteLength(password, 'utf8') < 12) {
+    const err = new Error('Recovery PDF password material is invalid.');
+    err.statusCode = 500;
+    throw err;
+  }
+  const documentId = crypto.randomBytes(16);
+  const permission = -3904;
+  const ownerValue = customerSecurityRecoveryPdfComputeOV156(password, password + ':owner:' + String(input.requestId || ''));
+  const fileKey = customerSecurityRecoveryPdfFileKeyV156(password, ownerValue, permission, documentId);
+  const userValue = customerSecurityRecoveryPdfComputeUV156(fileKey, documentId);
+
+  let content = '';
+  content += customerSecurityRecoveryPdfTextLineV156('DIRACGROUP SECURE RECOVERY', 72, 760, 16, 'F1');
+  content += customerSecurityRecoveryPdfTextLineV156('Dokumen Pemulihan Passkey Terenkripsi', 72, 738, 12, 'F1');
+  content += customerSecurityRecoveryPdfTextLineV156('Request ID: ' + String(input.requestId || ''), 72, 704, 9, 'F2');
+  content += customerSecurityRecoveryPdfTextLineV156('Berlaku sampai: ' + String(input.expiresAt || ''), 72, 690, 9, 'F2');
+  content += customerSecurityRecoveryPdfTextLineV156('Tujuan: register_new_passkey', 72, 676, 9, 'F2');
+  content += customerSecurityRecoveryPdfTextLineV156('Kode recovery di bawah ini hanya dapat digunakan satu kali.', 72, 650, 9, 'F2');
+  content += customerSecurityRecoveryPdfTextLineV156('Recovery Code:', 72, 622, 10, 'F1');
+  let y = 604;
+  for (const line of customerSecurityRecoveryPdfWrapLinesV156(input.recoveryCode || '', 82)) {
+    content += customerSecurityRecoveryPdfTextLineV156(line, 72, y, 8, 'F2');
+    y -= 11;
+    if (y < 70) break;
+  }
+  content += customerSecurityRecoveryPdfTextLineV156('Jika Anda tidak meminta pemulihan ini, segera hubungi bantuan DiracGroup.', 72, 48, 8, 'F2');
+
+  const encryptedContent = customerSecurityRecoveryPdfEncryptObjectV156(fileKey, 4, 0, Buffer.from(content, 'binary'));
+  const objects = [];
+  const putObject = (number, body) => { objects[number] = String(number) + ' 0 obj\n' + body + '\nendobj\n'; };
+  putObject(1, '<< /Type /Catalog /Pages 2 0 R >>');
+  putObject(2, '<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
+  putObject(3, '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R /F2 7 0 R >> >> /Contents 4 0 R >>');
+  objects[4] = '4 0 obj\n<< /Length ' + String(encryptedContent.length) + ' >>\nstream\n' + encryptedContent.toString('binary') + '\nendstream\nendobj\n';
+  putObject(5, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
+  putObject(6, '<< /Filter /Standard /V 4 /R 4 /Length 128 /O <' + ownerValue.toString('hex') + '> /U <' + userValue.toString('hex') + '> /P ' + String(permission) + ' /EncryptMetadata true /CF << /StdCF << /AuthEvent /DocOpen /CFM /AESV2 /Length 16 >> >> /StmF /StdCF /StrF /StdCF >>');
+  putObject(7, '<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>');
+
+  let pdf = '%PDF-1.6\n%\xE2\xE3\xCF\xD3\n';
+  const offsets = [0];
+  for (let i = 1; i < objects.length; i += 1) {
+    offsets[i] = Buffer.byteLength(pdf, 'binary');
+    pdf += objects[i];
+  }
+  const xrefOffset = Buffer.byteLength(pdf, 'binary');
+  pdf += 'xref\n0 ' + String(objects.length) + '\n0000000000 65535 f \n';
+  for (let i = 1; i < objects.length; i += 1) pdf += String(offsets[i]).padStart(10, '0') + ' 00000 n \n';
+  pdf += 'trailer\n<< /Size ' + String(objects.length) + ' /Root 1 0 R /Encrypt 6 0 R /ID [<' + documentId.toString('hex') + '> <' + documentId.toString('hex') + '>] >>\nstartxref\n' + String(xrefOffset) + '\n%%EOF\n';
+  return Buffer.from(pdf, 'binary');
+}
+
 function customerSecurityLostPasskeySign(data) {
   const raw = String(process.env.DIRAC_RECOVERY_FILE_SIGNING_PRIVATE_KEY || '').trim();
   if (!raw) {
@@ -7701,16 +8148,54 @@ function customerSecurityRecoveryDotStuff(value) {
 }
 
 
-function customerSecurityRecoveryEmailHtml(context = {}) {
+function customerSecurityRecoveryEmailTextV156(context = {}) {
+  const requestId = String(context.requestId || '');
+  const expiresAt = String(context.expiresAt || '');
+  const emailPdfCode = String(context.emailPdfCode || '').padStart(2, '0').slice(-2);
+  return [
+    'DIRACGROUP SECURE RECOVERY',
+    '',
+    'Dokumen pemulihan Passkey terenkripsi telah dibuat untuk akun Anda.',
+    '',
+    'Request ID: ' + requestId,
+    'Berlaku sampai: ' + expiresAt,
+    'Kode 2 digit email: ' + emailPdfCode,
+    '',
+    'Cara membuka PDF:',
+    'Password PDF = kode website + 2 digit kode email + password akun Anda. Ketik berurutan tanpa spasi.',
+    '',
+    'Jangan kirimkan PDF, kode website, atau kode email ini kepada pihak lain.',
+    'Jika Anda tidak meminta pemulihan ini, segera hubungi bantuan DiracGroup.'
+  ].join('\n');
+}
+
+function customerSecurityRecoveryEmailHtmlV156(context = {}) {
   const requestId = String(context.requestId || '').replace(/[<>&]/g, '');
   const expiresAt = String(context.expiresAt || '').replace(/[<>&]/g, '');
-  return '<div style="font-family:Arial,Helvetica,sans-serif;color:#111827">'
-    + '<h2>DiracGroup Secure Recovery</h2>'
-    + '<p>File recovery Passkey terenkripsi terlampir.</p>'
-    + '<p><b>Request ID:</b> ' + requestId + '</p>'
-    + '<p><b>Berlaku sampai:</b> ' + expiresAt + '</p>'
-    + '<p>Jangan bagikan file recovery ini kepada pihak lain.</p>'
-    + '</div>';
+  const emailPdfCode = String(context.emailPdfCode || '').padStart(2, '0').slice(-2).replace(/[^0-9]/g, '');
+  return '<div style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;color:#111827">'
+    + '<div style="max-width:640px;margin:0 auto;padding:28px 16px">'
+    + '<div style="background:#0f172a;color:#ffffff;border-radius:18px 18px 0 0;padding:22px 24px">'
+    + '<div style="font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#93c5fd">DiracGroup Secure Recovery</div>'
+    + '<div style="font-size:24px;font-weight:700;margin-top:8px">Dokumen Pemulihan Passkey</div>'
+    + '<div style="font-size:13px;color:#cbd5e1;margin-top:6px">File PDF terenkripsi terlampir pada email ini.</div>'
+    + '</div>'
+    + '<div style="background:#ffffff;border:1px solid #e5e7eb;border-top:0;border-radius:0 0 18px 18px;padding:24px">'
+    + '<p style="margin:0 0 14px;line-height:1.6">Permintaan pemulihan Passkey Anda telah diproses. Lampiran PDF hanya dapat dibuka dengan kombinasi password yang benar.</p>'
+    + '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:14px;padding:16px;margin:18px 0">'
+    + '<div style="font-size:12px;color:#1d4ed8;font-weight:700;text-transform:uppercase;letter-spacing:.08em">Kode 2 digit email</div>'
+    + '<div style="font-size:34px;letter-spacing:.22em;font-weight:800;color:#0f172a;margin-top:6px">' + emailPdfCode + '</div>'
+    + '<div style="font-size:12px;color:#475569;margin-top:6px">Gabungkan setelah kode website, lalu lanjutkan dengan password akun Anda.</div>'
+    + '</div>'
+    + '<table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px">'
+    + '<tr><td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#64748b">Request ID</td><td style="padding:10px;border-bottom:1px solid #e5e7eb;font-weight:700;text-align:right">' + requestId + '</td></tr>'
+    + '<tr><td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#64748b">Berlaku sampai</td><td style="padding:10px;border-bottom:1px solid #e5e7eb;font-weight:700;text-align:right">' + expiresAt + '</td></tr>'
+    + '</table>'
+    + '<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:14px;padding:14px;line-height:1.55;font-size:13px;color:#7c2d12">'
+    + '<b>Cara membuka PDF:</b><br>Password PDF = kode website + 2 digit kode email + password akun Anda. Ketik berurutan tanpa spasi. Jangan bagikan kode atau file ini kepada siapa pun.'
+    + '</div>'
+    + '<p style="font-size:12px;color:#64748b;margin-top:18px;line-height:1.6">Jika Anda tidak meminta pemulihan ini, abaikan email ini dan segera hubungi bantuan DiracGroup.</p>'
+    + '</div></div></div>';
 }
 
 async function customerSecuritySmtpRead(socket) {
@@ -7757,14 +8242,14 @@ async function customerSecuritySendRecoveryEmailViaSmtp(to, fileName, fileBuffer
   const fromEmail = customerSecurityRecoveryEmailAddress(from);
   if (!isValidAuthEmail(fromEmail)) return { ok: false, status: 503, code: 'RECOVERY_SMTP_FROM_INVALID', message: 'Email pengirim recovery tidak valid.' };
 
-  const subject = 'DiracGroup Secure Recovery - File Pemulihan Passkey';
+  const subject = 'DiracGroup Secure Recovery - PDF Pemulihan Passkey';
   const text = [
     'File recovery Passkey terenkripsi terlampir.',
     'Request ID: ' + String(context.requestId || ''),
     'Berlaku sampai: ' + String(context.expiresAt || ''),
-    'Jangan kirimkan file ini ke pihak lain.'
+    'Jangan kirimkan file ini ke pihak lain. Kata sandi file hanya diberikan owner setelah verifikasi SOP.'
   ].join('\r\n\r\n');
-  const html = customerSecurityRecoveryEmailHtml(context);
+  const html = customerSecurityRecoveryEmailHtmlV156(context);
   const boundary = 'dirac-recovery-' + crypto.randomBytes(18).toString('hex');
   const mime = [
     'From: ' + from,
@@ -7789,8 +8274,8 @@ async function customerSecuritySendRecoveryEmailViaSmtp(to, fileName, fileBuffer
     '--' + boundary + '-alt--',
     '',
     '--' + boundary,
-    'Content-Type: application/octet-stream; name="' + String(fileName || 'recovery.enc').replace(/["\r\n]/g, '') + '"',
-    'Content-Disposition: attachment; filename="' + String(fileName || 'recovery.enc').replace(/["\r\n]/g, '') + '"',
+    'Content-Type: ' + (String(fileName || '').toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream') + '; name="' + String(fileName || 'recovery.pdf').replace(/["\r\n]/g, '') + '"',
+    'Content-Disposition: attachment; filename="' + String(fileName || 'recovery.pdf').replace(/["\r\n]/g, '') + '"',
     'Content-Transfer-Encoding: base64',
     '',
     customerSecurityRecoveryBase64Lines(Buffer.from(fileBuffer)),
@@ -7801,7 +8286,7 @@ async function customerSecuritySendRecoveryEmailViaSmtp(to, fileName, fileBuffer
   let socket = null;
   try {
     const tls = require('tls');
-    socket = tls.connect({ host: config.host, port: config.port, servername: config.host, timeout: 20_000 });
+    socket = await diracCentralOpenSmtpSocketV230(config.host, config.port, true, 20_000);
     await customerSecuritySmtpCommand(socket, '', 220);
     await customerSecuritySmtpCommand(socket, 'EHLO diracgroup.store', 250);
     const auth = Buffer.from('\u0000' + config.user + '\u0000' + config.pass, 'utf8').toString('base64');
@@ -7826,14 +8311,14 @@ async function customerSecuritySendLostPasskeyRecoveryEmail(to, fileName, fileBu
     return customerSecuritySendRecoveryEmailViaSmtp(email, fileName, fileBuffer, context);
   }
   const from = String(process.env.DIRAC_RECOVERY_EMAIL_FROM || process.env.DIRAC_EMAIL_FROM || process.env.RESEND_FROM || 'Dirac Secure <no-reply@diracgroup.store>').trim();
-  const subject = 'DiracGroup Secure Recovery - File Pemulihan Passkey';
+  const subject = 'DiracGroup Secure Recovery - PDF Pemulihan Passkey';
   const text = [
     'File recovery Passkey terenkripsi terlampir.',
     'Request ID: ' + String(context.requestId || ''),
     'Berlaku sampai: ' + String(context.expiresAt || ''),
-    'Jangan kirimkan file ini ke pihak lain.'
+    'Jangan kirimkan file ini ke pihak lain. Kata sandi file hanya diberikan owner setelah verifikasi SOP.'
   ].join('\n\n');
-  const html = customerSecurityRecoveryEmailHtml(context);
+  const html = customerSecurityRecoveryEmailHtmlV156(context);
   const content = Buffer.from(fileBuffer).toString('base64');
   if (process.env.RESEND_API_KEY) {
     try {
@@ -7886,7 +8371,7 @@ async function customerSecurityRecoveryCodesStatus(req, res, action) {
   return res.status(200).json({ ok: true, ready: true, total: activeRows.length, pending, verified, used, locked, generated: activeRows.length > 0, message: activeRows.length ? 'Lost passkey recovery request tersedia.' : 'Lost passkey recovery belum dibuat.', direct_frontend_table_access: false, time: diracNowIso() });
 }
 
-async function customerSecurityGenerateRecoveryCodesViaWorker(req, res, action, access, owner, activePasskeys, bindings) {
+async function customerSecurityGenerateRecoveryCodesViaWorker(req, res, action, access, owner, activePasskeys, bindings, pdfOptions = {}) {
   const workerEnvDiagnostics = customerSecurityRecoveryWorkerMainEnvDiagnostics();
   if (!workerEnvDiagnostics.ok) {
     try {
@@ -7933,7 +8418,8 @@ async function customerSecurityGenerateRecoveryCodesViaWorker(req, res, action, 
     ip_hash: bindings.ipHash,
     user_agent_hash: bindings.userAgentHash,
     active_passkey_count: Math.max(0, activePasskeys.length),
-    requested_at: diracNowIso()
+    requested_at: diracNowIso(),
+    password_latest_material: String(pdfOptions.passwordLatestMaterial || pdfOptions.password_latest_material || pdfOptions.accountPassword || pdfOptions.account_password || '')
   };
   const timestamp = String(Date.now());
   let transportContext = null;
@@ -8013,8 +8499,10 @@ async function customerSecurityGenerateRecoveryCodesViaWorker(req, res, action, 
       ok: true,
       request_id: String(data.request_id || ''),
       expires_at: String(data.expires_at || ''),
-      delivery: 'encrypted_email_attachment',
-      message: data.message || 'File recovery terenkripsi sudah dikirim ke email resmi akun.',
+      delivery: 'encrypted_pdf_email_attachment',
+      website_recovery_code: String(data.website_recovery_code || ''),
+      email_code_delivery: 'included_in_email',
+      message: data.message || 'PDF recovery terenkripsi sudah dikirim ke email resmi akun.',
       time: data.time || diracNowIso()
     });
   } catch (error) {
@@ -8217,6 +8705,7 @@ async function customerSecurityGenerateRecoveryCodes(req, res, action, override 
     : await customerSecurityRequireAccess(req, res, { action, requireMfa: false, rateLimit: { limit: 2, windowMs: 10 * 60_000 } });
   if (!access) return;
 
+  const requestBody = localWorker ? {} : await readBody(req);
   // SERVER 1 proxy-only boundary: use only the already-authenticated session identity.
   // Official customer/link/passkey resolution is repeated authoritatively on Server 2.
   const owner = localWorker && override && override.owner
@@ -8234,6 +8723,54 @@ async function customerSecurityGenerateRecoveryCodes(req, res, action, override 
     return res.status(401).json({ ok: false, message: 'Sesi recovery tidak valid.' });
   }
 
+  let recoveryPdfOptions = null;
+
+  if (localWorker) {
+    const accountPassword = customerSecurityExtractAccountPasswordForPdfV156({ account_password: override && override.accountPassword || '' });
+    if (!accountPassword) {
+      return res.status(400).json({
+        ok: false,
+        code: 'ACCOUNT_PASSWORD_REQUIRED_FOR_RECOVERY_PDF',
+        message: 'Password akun wajib diisi untuk membuat password PDF recovery.'
+      });
+    }
+    const verifiedPassword = await customerSecurityVerifyAccountPasswordForPdfV156(owner.email, accountPassword);
+    if (!verifiedPassword.ok) {
+      await customerSecurityRegisterFailedVerification(req, action, 'recovery_pdf_account_password_invalid', access.customerId);
+      return res.status(403).json({ ok: false, code: 'ACCOUNT_PASSWORD_INVALID', message: 'Password akun belum sesuai.' });
+    }
+    const websiteRecoveryCode = customerSecurityGenerateWebsiteRecoveryCodeV156();
+    const emailPdfCode = customerSecurityGenerateEmailPdfCodeV156();
+    const pdfPasswordContext = customerSecurityBuildPdfPasswordContextV156(accountPassword, websiteRecoveryCode, emailPdfCode);
+    if (!pdfPasswordContext.ok) {
+      return res.status(400).json({
+        ok: false,
+        code: 'RECOVERY_PDF_PASSWORD_TOO_LONG',
+        message: 'Password akun terlalu panjang untuk password PDF recovery. Total kode website + 2 digit email + password akun wajib maksimal 32 byte agar tidak ada karakter yang diabaikan PDF reader.',
+        max_account_password_bytes: pdfPasswordContext.accountPasswordMaxBytes
+      });
+    }
+    recoveryPdfOptions = {
+      pdfPassword: pdfPasswordContext.pdfPassword,
+      websiteRecoveryCode,
+      emailPdfCode
+    };
+  }
+
+  if (!localWorker) {
+    const accountPassword = customerSecurityExtractAccountPasswordForPdfV156(requestBody);
+    if (!accountPassword) {
+      return res.status(400).json({
+        ok: false,
+        code: 'ACCOUNT_PASSWORD_REQUIRED_FOR_RECOVERY_PDF',
+        message: 'Password akun wajib diisi untuk membuat password PDF recovery.'
+      });
+    }
+    // Credential verification is intentionally performed only by Server 2.
+    // Server 1 seals this material inside the hybrid worker envelope and relays it.
+    recoveryPdfOptions = { accountPassword };
+  }
+
   const activePasskeys = localWorker && override && Array.isArray(override.activePasskeys)
     ? override.activePasskeys
     : [];
@@ -8246,7 +8783,7 @@ async function customerSecurityGenerateRecoveryCodes(req, res, action, override 
     : customerSecurityLostPasskeyBindings(req, owner);
 
   if (!localWorker) {
-    return customerSecurityGenerateRecoveryCodesViaWorker(req, res, action, access, owner, activePasskeys, bindings);
+    return customerSecurityGenerateRecoveryCodesViaWorker(req, res, action, access, owner, activePasskeys, bindings, recoveryPdfOptions || {});
   }
 
   const nowMs = Date.now();
@@ -8256,6 +8793,12 @@ async function customerSecurityGenerateRecoveryCodes(req, res, action, override 
   const requestId = customerSecurityLostPasskeyRequestId();
   const recoveryCode = customerSecurityGenerateLostPasskeyRecoveryCode();
   const fileKeyText = customerSecurityGenerateFileKeyText();
+  const websiteRecoveryCode = String(recoveryPdfOptions && recoveryPdfOptions.websiteRecoveryCode || '').trim();
+  const emailPdfCode = String(recoveryPdfOptions && recoveryPdfOptions.emailPdfCode || '').trim();
+  const pdfPassword = String(recoveryPdfOptions && recoveryPdfOptions.pdfPassword || '').normalize('NFC');
+  if (!websiteRecoveryCode || !/^\d{2}$/.test(emailPdfCode) || Buffer.byteLength(pdfPassword, 'utf8') < 12) {
+    return res.status(400).json({ ok: false, code: 'RECOVERY_PDF_PASSWORD_CONTEXT_INVALID', message: 'Konteks password PDF recovery tidak valid.' });
+  }
   const salt = crypto.randomBytes(LOST_PASSKEY_RECOVERY_RANDOM_BYTES);
   const ownerKeySalt = crypto.randomBytes(LOST_PASSKEY_RECOVERY_RANDOM_BYTES);
   const dekSeed = crypto.randomBytes(LOST_PASSKEY_RECOVERY_RANDOM_BYTES);
@@ -8275,9 +8818,14 @@ async function customerSecurityGenerateRecoveryCodes(req, res, action, override 
     ownerKeySalt,
     fileKeyText
   });
-  const fileName = 'recovery-' + requestId + '.enc';
-  const fileBuffer = Buffer.from(JSON.stringify(encrypted.file), 'utf8');
-  const recoveryFileSha256 = customerSecurityLostPasskeySha256B64(fileBuffer);
+  const fileName = 'recovery-' + requestId + '.pdf';
+  const fileBuffer = customerSecurityBuildEncryptedRecoveryPdfV156({
+    pdfPassword,
+    requestId,
+    recoveryCode,
+    expiresAt
+  });
+  const recoveryPdfSha256 = customerSecurityLostPasskeySha256B64(fileBuffer);
   const insertBody = [{
     request_id: requestId,
     customer_id: owner.customerId,
@@ -8294,7 +8842,7 @@ async function customerSecurityGenerateRecoveryCodes(req, res, action, override 
     file_key_wrap_tag: wrappedFileKey.tag,
     salt: salt.toString('base64url'),
     owner_key_salt: ownerKeySalt.toString('base64url'),
-    file_sha256: recoveryFileSha256,
+    file_sha256: recoveryPdfSha256,
     aad_hash: encrypted.aadHash,
     server_signature: encrypted.signature,
     old_passkey_ids: activePasskeys.map((row) => row.id).filter(Boolean),
@@ -8305,9 +8853,13 @@ async function customerSecurityGenerateRecoveryCodes(req, res, action, override 
     expires_at: expiresAt,
     metadata: {
       source: 'lost_passkey_recovery',
-      delivery: 'encrypted_email_attachment',
+      delivery: 'encrypted_pdf_email_attachment',
       file_name: fileName,
-      file_format: 'dirac_encrypted_recovery_file',
+      file_format: 'password_protected_pdf',
+      pdf_password_formula: 'website_code_plus_email_2_digit_code_plus_account_password',
+      website_recovery_code_hash: customerSecurityLostPasskeyHashHex('website-recovery-code', websiteRecoveryCode),
+      email_pdf_code_hash: customerSecurityLostPasskeyHashHex('email-pdf-code', emailPdfCode),
+      inner_encrypted_file_sha256: encrypted.fileSha256,
       passkey_count: activePasskeys.length,
       file_key_min_bytes: LOST_PASSKEY_RECOVERY_FILE_KEY_MIN_BYTES,
       recovery_code_length: LOST_PASSKEY_RECOVERY_CODE_LENGTH_V157,
@@ -8321,7 +8873,7 @@ async function customerSecurityGenerateRecoveryCodes(req, res, action, override 
     return res.status(created.status || 500).json({ ok: false, message: 'Gagal menyimpan lost passkey recovery request.' });
   }
 
-  const sent = await customerSecuritySendLostPasskeyRecoveryEmail(owner.email, fileName, fileBuffer, { requestId, expiresAt });
+  const sent = await customerSecuritySendLostPasskeyRecoveryEmail(owner.email, fileName, fileBuffer, { requestId, expiresAt, emailPdfCode });
   if (!sent.ok) {
     await supabaseFetch('/rest/v1/' + LOST_PASSKEY_RECOVERY_REQUEST_TABLE + '?request_id=eq.' + encodeURIComponent(requestId), {
       method: 'PATCH',
@@ -8353,15 +8905,17 @@ async function customerSecurityGenerateRecoveryCodes(req, res, action, override 
     risk_level: 'high',
     description: 'File recovery passkey terenkripsi dikirim ke email resmi customer.',
     req,
-    metadata: { action, request_id: requestId, file_sha256: recoveryFileSha256, delivery_provider: sent.provider || null, delivery: 'encrypted_email_attachment' }
+    metadata: { action, request_id: requestId, file_sha256: recoveryPdfSha256, delivery_provider: sent.provider || null, delivery: 'encrypted_pdf_email_attachment' }
   });
 
   return res.status(200).json({
     ok: true,
     request_id: requestId,
     expires_at: expiresAt,
-    delivery: 'encrypted_email_attachment',
-    message: 'File recovery terenkripsi sudah dikirim ke email resmi akun.',
+    delivery: 'encrypted_pdf_email_attachment',
+    website_recovery_code: websiteRecoveryCode,
+    email_code_delivery: 'included_in_email',
+    message: 'PDF recovery terenkripsi sudah dikirim ke email resmi akun.',
     time: nowIso
   });
 }
@@ -15514,9 +16068,7 @@ async function orderMailSendViaSmtp(config, message) {
 
     const run = async () => {
       resetTimer();
-      socket = config.secure
-        ? tls.connect({ host, port, servername: host, rejectUnauthorized: true })
-        : net.connect({ host, port });
+      socket = await diracCentralOpenSmtpSocketV230(host, port, config.secure === true, timeoutMs);
       socket.setEncoding('utf8');
       socket.on('error', fail);
       socket.on('data', (chunk) => { buffer += chunk.toString('utf8'); });
@@ -15529,7 +16081,7 @@ async function orderMailSendViaSmtp(config, message) {
         socket.removeAllListeners('data');
         socket.removeAllListeners('error');
         buffer = '';
-        socket = tls.connect({ socket, servername: host, rejectUnauthorized: true });
+        socket = diracCentralUpgradeSmtpTlsV230(socket, host);
         socket.setEncoding('utf8');
         socket.on('error', fail);
         socket.on('data', (chunk) => { buffer += chunk.toString('utf8'); });
@@ -27321,6 +27873,10 @@ async function customerSecurityHandleRecoveryWorkerGenerate(req, res, action) {
   if (!body || body.action !== DIRAC_RECOVERY_WORKER_ACTION) {
     return res.status(404).json({ ok: false, code: 'RECOVERY_WORKER_ACTION_INVALID', message: 'Worker action tidak valid.' });
   }
+  if (body.pdf_password !== undefined || body.website_recovery_code !== undefined || body.email_pdf_code !== undefined) {
+    return res.status(403).json({ ok: false, code: 'RECOVERY_WORKER_LEGACY_FIELD_REJECTED', message: 'Payload worker recovery legacy ditolak.' });
+  }
+
   const owner = await customerSecurityResolveLostPasskeyWorkerOwner(body);
   if (!owner.ok) return res.status(owner.status || 403).json({ ok: false, message: owner.message || 'Worker recovery ditolak.' });
   const bindings = customerSecurityLostPasskeyWorkerBindings(body, owner);
@@ -27337,7 +27893,8 @@ async function customerSecurityHandleRecoveryWorkerGenerate(req, res, action) {
       access: { customerId: owner.customerId },
       owner,
       activePasskeys,
-      bindings
+      bindings,
+      accountPassword: String(body.account_password || '')
     });
   }
 
@@ -27393,8 +27950,16 @@ const DIRAC_CENTRAL_ASYNC_CONTEXT_V149 = globalThis.__DIRAC_CENTRAL_ASYNC_CONTEX
     return null;
   }
 })();
+const DIRAC_CENTRAL_DATABASE_EGRESS_CONTEXT_V230 = (() => {
+  try {
+    const { AsyncLocalStorage } = require('async_hooks');
+    return new AsyncLocalStorage();
+  } catch (_) {
+    return null;
+  }
+})();
 const DIRAC_CENTRAL_SECRET_CACHE_V146 = globalThis.__DIRAC_CENTRAL_SECRET_CACHE_V146__ || new Map();
-const DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148 = globalThis.__DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148__ || new Map();
+const DIRAC_CENTRAL_HARDENING_V228 = 'dirac-central-owasp-hardening-v228';
 globalThis.__DIRAC_CENTRAL_MEMORY_BAN_V146__ = DIRAC_CENTRAL_MEMORY_BAN_V146;
 globalThis.__DIRAC_CENTRAL_NEGATIVE_BAN_V146__ = DIRAC_CENTRAL_NEGATIVE_BAN_V146;
 globalThis.__DIRAC_CENTRAL_DEVICE_BINDINGS_V146__ = DIRAC_CENTRAL_DEVICE_BINDINGS_V146;
@@ -27404,7 +27969,9 @@ globalThis.__DIRAC_CENTRAL_DNS_CACHE_V146__ = DIRAC_CENTRAL_DNS_CACHE_V146;
 globalThis.__DIRAC_CENTRAL_CONTEXT_STACK_V146__ = DIRAC_CENTRAL_CONTEXT_STACK_V146;
 globalThis.__DIRAC_CENTRAL_ASYNC_CONTEXT_V149__ = DIRAC_CENTRAL_ASYNC_CONTEXT_V149;
 globalThis.__DIRAC_CENTRAL_SECRET_CACHE_V146__ = DIRAC_CENTRAL_SECRET_CACHE_V146;
-globalThis.__DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148__ = DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148;
+if (diracCentralIsProductionV146() && !DIRAC_CENTRAL_ASYNC_CONTEXT_V149) {
+  throw new Error('DIRAC_ASYNC_LOCAL_STORAGE_REQUIRED_V228');
+}
 
 /* ============================================================
    DIRAC CENTRAL FAIL-CLOSED + SAFE DEBUG v211
@@ -27424,12 +27991,36 @@ function diracCentralRecordSuppressedExceptionV221(error) {
     previous.count = Number(previous.count || 0) + 1;
     previous.lastSeenMs = Date.now();
     store.set(key, previous);
+    const powerOfTwo = previous.count > 0 && (previous.count & (previous.count - 1)) === 0;
+    if (previous.count === 1 || powerOfTwo) {
+      try {
+        console.error('[dirac-central-security-telemetry]', JSON.stringify({
+          event: 'suppressed_exception',
+          error_key: key,
+          name,
+          code,
+          count: previous.count,
+          first_seen_ms: previous.firstSeenMs,
+          last_seen_ms: previous.lastSeenMs,
+          patch: DIRAC_CENTRAL_HARDENING_V228
+        }));
+      } catch (telemetryOutputErrorV228) {
+        void telemetryOutputErrorV228;
+      }
+      if (globalThis.__DIRAC_V230_RUNTIME_READY__ === true) {
+        void diracCentralSecurityTelemetryV230({
+          event_type: 'suppressed_exception', severity: 'warning', reason_code: code,
+          event_json: { error_key: key, name, code, count: previous.count }
+        }).catch(() => false);
+      }
+    }
     if (store.size > 512) {
       const oldest = Array.from(store.entries()).sort((a, b) => Number(a[1] && a[1].lastSeenMs || 0) - Number(b[1] && b[1].lastSeenMs || 0));
       for (const [entryKey] of oldest.slice(0, store.size - 384)) store.delete(entryKey);
     }
     return true;
   } catch (telemetryErrorV221) {
+    void telemetryErrorV221;
     return false;
   }
 }
@@ -27944,10 +28535,10 @@ function guardCsrfV202(ctx) {
   const postVerify = diracCentralCsrfPostVerifyV221(ctx.req, ctx);
   return postVerify.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: postVerify.reason });
 }
-function guardPageNonceV202(ctx) {
+async function guardPageNonceV202(ctx) {
   if (ctx.preflightValidatedV221 === true) return diracCentralPreflightStageResultV221(ctx, 'page_nonce');
   if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
-  const result = diracCentralPageNonceGuardV146(ctx.req, ctx.res, ctx);
+  const result = await diracCentralPageNonceGuardV146(ctx.req, ctx.res, ctx);
   return result.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: result.reason });
 }
 function guardBrowserSignalsV202(ctx) {
@@ -27979,10 +28570,10 @@ async function guardAdminAuthenticationV202(ctx) {
   const stepUp = diracCentralAdminStepUpGuardV221(ctx.req, ctx);
   return stepUp.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: stepUp.reason });
 }
-function guardPublicReadV202(ctx) {
+async function guardPublicReadV202(ctx) {
   if (ctx.preflightValidatedV221 === true) return diracCentralPreflightStageResultV221(ctx, 'public_read_policy');
   if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
-  const result = diracCentralPublicReadGuardV146(ctx.req, ctx);
+  const result = await diracCentralPublicReadGuardV146(ctx.req, ctx);
   return result.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: result.reason });
 }
 async function guardBodyV202(ctx) {
@@ -28009,10 +28600,10 @@ function guardContractV202(ctx) {
   const advanced = diracCentralAdvancedContractGuardV221(ctx.req, ctx);
   return advanced.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: advanced.reason });
 }
-function guardA2FV202(ctx) {
+async function guardA2FV202(ctx) {
   if (ctx.preflightValidatedV221 === true) return diracCentralPreflightStageResultV221(ctx, 'a2f_signature');
   if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
-  const result = diracCentralA2FRequestSignatureGuardV148(ctx.req, ctx);
+  const result = await diracCentralA2FRequestSignatureGuardV148(ctx.req, ctx);
   return result.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: result.reason });
 }
 async function guardSecurityReportV202(ctx) {
@@ -28376,27 +28967,63 @@ function diracCentralClassifyFailureV221(reason, stage, directCode) {
   });
 }
 
+function diracCentralDecodeEscapesV228(input) {
+  return String(input || '')
+    .replace(/\\u\{([0-9a-f]{1,6})\}/gi, (_, hex) => {
+      const code = parseInt(hex, 16);
+      return Number.isInteger(code) && code <= 0x10ffff ? String.fromCodePoint(code) : '';
+    })
+    .replace(/\\u([0-9a-f]{4})/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+    .replace(/\\x([0-9a-f]{2})/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+    .replace(/\\([0-9a-f]{1,6})(?:\r\n|[\t\n\f\r ])?/gi, (_, hex) => {
+      const code = parseInt(hex, 16);
+      return Number.isInteger(code) && code <= 0x10ffff ? String.fromCodePoint(code) : '';
+    });
+}
+
 function diracCentralCanonicalVariantsV221(value) {
   const variants = new Set();
+  const queue = [];
   const add = (input) => {
     let text = String(input === undefined || input === null ? '' : input).slice(0, 12 * 1024);
-    if (!text) return;
+    if (!text || variants.has(text) || variants.size >= 160) return;
     try { text = text.normalize('NFKC'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+    if (!text || variants.has(text)) return;
     variants.add(text);
-    variants.add(text.toLowerCase());
-    variants.add(text.replace(/\+/g, ' '));
-    variants.add(diracCentralHtmlEntityDecodeV146(text));
-    variants.add(text.replace(/\\u([0-9a-f]{4})/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16))));
+    queue.push(text);
   };
-  let current = String(value === undefined || value === null ? '' : value);
-  add(current);
-  for (let index = 0; index < 3; index += 1) {
-    try {
-      const decoded = decodeURIComponent(current);
-      add(decoded);
-      if (decoded === current) break;
-      current = decoded;
-    } catch (_) { break; }
+  add(value);
+  for (let index = 0; index < queue.length && index < 160; index += 1) {
+    const text = queue[index];
+    add(text.toLowerCase());
+    add(text.replace(/\+/g, ' '));
+    add(text.replace(/[\u0000\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff]/g, ''));
+    add(text.replace(/\\/g, '/'));
+    add(text.replace(/\/\*[\s\S]*?\*\//g, ' '));
+    add(text.replace(/\/\*[\s\S]*?\*\//g, ''));
+    add(text.replace(/[\t\r\n\f ]+/g, ' '));
+    add(diracCentralDecodeEscapesV228(text));
+    add(text.replace(/\$\{(?:(?:lower|upper):|::-) ?([A-Za-z0-9])\}/gi, (_, char) => char));
+    let entity = text;
+    for (let round = 0; round < 4; round += 1) {
+      const decodedEntity = diracCentralHtmlEntityDecodeV146(entity);
+      add(decodedEntity);
+      if (decodedEntity === entity) break;
+      entity = decodedEntity;
+    }
+    let encoded = text;
+    for (let round = 0; round < 6; round += 1) {
+      try {
+        const decoded = decodeURIComponent(encoded);
+        add(decoded);
+        add(decoded.replace(/\+/g, ' '));
+        if (decoded === encoded) break;
+        encoded = decoded;
+      } catch (decodeErrorV228) {
+        void decodeErrorV228;
+        break;
+      }
+    }
   }
   return Array.from(variants).map((item) => String(item).slice(0, 12 * 1024));
 }
@@ -28595,13 +29222,165 @@ function diracCentralPlainJsonStructureV221(value, depth, counters) {
   return { ok: true };
 }
 
+function diracCentralNormalizeIngressHostV228(value) {
+  const raw = String(value || '').trim().toLowerCase();
+  if (!raw || raw.includes(',') || /[\s\u0000-\u001f\u007f]/.test(raw)) return '';
+  try {
+    const parsed = new URL(raw.includes('://') ? raw : 'https://' + raw);
+    if (parsed.username || parsed.password || parsed.pathname !== '/' || parsed.search || parsed.hash) return '';
+    if (parsed.port && parsed.port !== '443') return '';
+    return parsed.hostname.replace(/\.$/, '');
+  } catch (errorV228) {
+    void errorV228;
+    return '';
+  }
+}
+
+function diracCentralIngressAllowedHostsV228() {
+  const allowed = new Set([
+    'diracgroup.store',
+    'www.diracgroup.store',
+    'companyprofilee-ochre.vercel.app',
+    'companyprofilee-expk.vercel.app'
+  ]);
+  ['DOMAIN_SITE_URL', 'SITE_URL', 'VERCEL_URL'].forEach((name) => {
+    const raw = String(process.env[name] || '').trim();
+    if (!raw) return;
+    const host = diracCentralNormalizeIngressHostV228(raw);
+    if (host) allowed.add(host);
+  });
+  return allowed;
+}
+
+function diracCentralRawHeaderValuesV228(req, expectedName) {
+  const expected = String(expectedName || '').toLowerCase();
+  const values = [];
+  const raw = req && Array.isArray(req.rawHeaders) ? req.rawHeaders : [];
+  if (raw.length % 2 !== 0) return { ok: false, values: [] };
+  for (let index = 0; index < raw.length; index += 2) {
+    if (String(raw[index] || '').toLowerCase() === expected) values.push(String(raw[index + 1] || ''));
+  }
+  if (!values.length && req && req.headers && req.headers[expected] !== undefined) {
+    const value = req.headers[expected];
+    if (Array.isArray(value)) values.push(...value.map(String));
+    else values.push(String(value));
+  }
+  return { ok: true, values };
+}
+
+function diracCentralRawRequestHeaderGuardV228(req, ctx) {
+  const allowedHosts = diracCentralIngressAllowedHostsV228();
+  const criticalNames = [
+    'host', ':authority', 'x-forwarded-host', 'x-forwarded-proto',
+    'content-length', 'transfer-encoding', 'connection', 'upgrade', 'expect'
+  ];
+  const critical = Object.fromEntries(criticalNames.map((name) => [name, diracCentralRawHeaderValuesV228(req, name)]));
+  if (!Object.values(critical).every((entry) => entry.ok)) return { ok: false, reason: 'raw_header_array_malformed' };
+  for (const name of criticalNames) {
+    if (critical[name].values.length > 1) return { ok: false, reason: 'duplicate_critical_header_' + name.replace(/[^a-z0-9]+/g, '_') };
+  }
+  const transferEncoding = String(critical['transfer-encoding'].values[0] || '').trim();
+  const contentLength = String(critical['content-length'].values[0] || '').trim();
+  const connection = String(critical.connection.values[0] || '').trim().toLowerCase();
+  const upgrade = String(critical.upgrade.values[0] || '').trim();
+  const expect = String(critical.expect.values[0] || '').trim();
+  if (transferEncoding) return { ok: false, reason: 'transfer_encoding_rejected' };
+  if (transferEncoding && contentLength) return { ok: false, reason: 'content_length_transfer_encoding_conflict' };
+  if (upgrade) return { ok: false, reason: 'protocol_upgrade_rejected' };
+  if (expect) return { ok: false, reason: 'expect_header_rejected' };
+  if (/(?:^|,)\s*(?:upgrade|transfer-encoding|trailer)\s*(?:,|$)/i.test(connection)) return { ok: false, reason: 'connection_hop_by_hop_token_rejected' };
+  if (contentLength && (!/^(?:0|[1-9]\d{0,15})$/.test(contentLength) || !Number.isSafeInteger(Number(contentLength)))) {
+    return { ok: false, reason: 'content_length_invalid' };
+  }
+  const host = diracCentralNormalizeIngressHostV228(critical.host.values[0] || '');
+  const authority = diracCentralNormalizeIngressHostV228(critical[':authority'].values[0] || '');
+  const forwardedHost = diracCentralNormalizeIngressHostV228(critical['x-forwarded-host'].values[0] || '');
+  const forwardedProto = String(critical['x-forwarded-proto'].values[0] || '').trim().toLowerCase();
+  if (diracCentralIsProductionV146() && !host && !authority) return { ok: false, reason: 'host_header_missing' };
+  for (const candidate of [host, authority, forwardedHost].filter(Boolean)) {
+    if (!allowedHosts.has(candidate)) return { ok: false, reason: 'host_header_not_allowlisted' };
+  }
+  if (host && authority && host !== authority) return { ok: false, reason: 'host_authority_mismatch' };
+  if (forwardedHost && host && forwardedHost !== host) return { ok: false, reason: 'host_forwarded_host_mismatch' };
+  if (forwardedHost && authority && forwardedHost !== authority) return { ok: false, reason: 'authority_forwarded_host_mismatch' };
+  if (diracCentralIsProductionV146() && forwardedProto !== 'https') return { ok: false, reason: 'forwarded_proto_not_https' };
+  const rawUrl = String(req && req.url || '');
+  if (/[^\x20-\x7e]/.test(rawUrl) || rawUrl.includes('\\') || /%(?:0d|0a|00)/i.test(rawUrl)) return { ok: false, reason: 'raw_url_invalid' };
+  const queryIndex = rawUrl.indexOf('?');
+  if (queryIndex >= 0) {
+    const rawQuery = rawUrl.slice(queryIndex + 1);
+    const params = new URLSearchParams(rawQuery);
+    for (const key of new Set(params.keys())) {
+      if (params.getAll(key).length > 1) return { ok: false, reason: 'duplicate_raw_query_parameter_' + String(key).slice(0, 80) };
+    }
+  }
+  return { ok: true };
+}
+
+function diracCentralCaptureRawRequestV230(req) {
+  if (!req || typeof req !== 'object') return { ok: false, reason: 'raw_request_object_required' };
+  try {
+    const candidates = [req.__diracRawBodyBufferV230, req.__diracRawJsonV221, req.rawBody, req.bodyRaw, req.raw];
+    let buffer = null;
+    for (const value of candidates) {
+      if (Buffer.isBuffer(value) || value instanceof Uint8Array) { buffer = Buffer.from(value); break; }
+      if (typeof value === 'string') { buffer = Buffer.from(value, 'utf8'); break; }
+    }
+    if (!buffer && (Buffer.isBuffer(req.body) || req.body instanceof Uint8Array)) buffer = Buffer.from(req.body);
+    if (!buffer && typeof req.body === 'string') buffer = Buffer.from(req.body, 'utf8');
+    const method = String(req.method || 'GET').toUpperCase();
+    const declared = String(req.headers && req.headers['content-length'] || '').trim();
+    const bodyExpected = !['GET', 'HEAD', 'OPTIONS'].includes(method)
+      && (Number(declared || 0) > 0 || (req.body !== undefined && req.body !== null));
+    if (!buffer) return bodyExpected ? { ok: false, reason: 'raw_body_capture_required' } : { ok: true, empty: true };
+    const rawText = buffer.toString('utf8');
+    if (!Buffer.from(rawText, 'utf8').equals(buffer)) return { ok: false, reason: 'raw_body_utf8_invalid' };
+    if (declared && Number(declared) !== buffer.length) return { ok: false, reason: 'content_length_raw_body_mismatch' };
+    const hash = crypto.createHash('sha256').update(buffer).digest('hex');
+    const seal = (name, value, equal) => {
+      const descriptor = Object.getOwnPropertyDescriptor(req, name);
+      if (descriptor) return Object.prototype.hasOwnProperty.call(descriptor, 'value') && equal(descriptor.value, value);
+      Object.defineProperty(req, name, { value, enumerable: false, writable: false, configurable: false });
+      return true;
+    };
+    if (!seal('__diracRawBodyBufferV230', buffer, (a, b) => (Buffer.isBuffer(a) || a instanceof Uint8Array) && Buffer.from(a).equals(b))) return { ok: false, reason: 'raw_body_buffer_evidence_conflict' };
+    if (!seal('__diracRawBodyLengthV230', buffer.length, (a, b) => Number(a) === b)) return { ok: false, reason: 'raw_body_length_evidence_conflict' };
+    if (!seal('__diracRawBodySha256V230', hash, (a, b) => String(a) === b)) return { ok: false, reason: 'raw_body_hash_evidence_conflict' };
+    if (!seal('__diracRawJsonV221', rawText, (a, b) => String(a) === b)) return { ok: false, reason: 'raw_json_evidence_conflict' };
+    return { ok: true, bytes: buffer.length, sha256: hash };
+  } catch (_) {
+    return { ok: false, reason: 'raw_body_capture_exception' };
+  }
+}
+
+function diracCentralRawJsonEvidenceV228(req) {
+  if (!req) return '';
+  const candidates = [req.__diracRawJsonV221, req.rawBody, req.bodyRaw, req.raw];
+  for (const value of candidates) {
+    if (Buffer.isBuffer(value) || value instanceof Uint8Array) return Buffer.from(value).toString('utf8');
+    if (typeof value === 'string') return value;
+  }
+  if (typeof req.body === 'string') return req.body;
+  return '';
+}
+
 function diracCentralAdvancedContractGuardV221(req, ctx) {
   const headers = req && req.headers || {};
+  const rawHeaderGuard = diracCentralRawRequestHeaderGuardV228(req, ctx);
+  if (!rawHeaderGuard.ok) return rawHeaderGuard;
   const headerNames = Object.keys(headers);
   if (headerNames.length > 100) return { ok: false, reason: 'header_count_exceeded' };
   const totalHeaderBytes = headerNames.reduce((sum, name) => sum + Buffer.byteLength(String(name), 'utf8') + Buffer.byteLength(String(headers[name] || ''), 'utf8'), 0);
   if (totalHeaderBytes > 32 * 1024) return { ok: false, reason: 'header_total_size_exceeded' };
   if (String(headers['transfer-encoding'] || '').trim() && String(headers['content-length'] || '').trim()) return { ok: false, reason: 'content_length_transfer_encoding_conflict' };
+  const rawJson = diracCentralRawJsonEvidenceV228(req);
+  if (rawJson) {
+    const scan = diracCentralJsonDuplicateScanV221(rawJson || '{}');
+    if (scan.duplicate) return { ok: false, reason: 'duplicate_json_key_' + String(scan.key || 'duplicate').slice(0, 80) };
+    if (scan.malformed) return { ok: false, reason: 'raw_json_malformed' };
+    const declared = String(headers['content-length'] || '').trim();
+    if (declared && Number(declared) !== Buffer.byteLength(rawJson, 'utf8')) return { ok: false, reason: 'content_length_raw_body_mismatch' };
+  }
   if (req && req.__diracRawJsonDuplicateV221) return { ok: false, reason: 'duplicate_json_key_' + String(req.__diracRawJsonDuplicateV221).slice(0, 80) };
   if (req && req.__diracRawJsonMalformedV221) return { ok: false, reason: 'raw_json_malformed' };
   const source = ['GET', 'HEAD'].includes(ctx.method) ? (req && req.query || {}) : (ctx.body || {});
@@ -28613,9 +29392,30 @@ function diracCentralAdvancedContractGuardV221(req, ctx) {
     if (Array.isArray(value) && !(contract.allowArrayItems && (contract.allowed || []).includes(key))) return { ok: false, reason: 'duplicate_query_parameter_' + key };
   }
   if (!['GET', 'HEAD', 'OPTIONS'].includes(ctx.method)) {
-    const contentType = String(headers['content-type'] || '').split(';')[0].trim().toLowerCase();
-    if (Number(headers['content-length'] || 0) > 0 && contentType !== 'application/json') {
-      return { ok: false, reason: 'strict_json_content_type_required' };
+    const contentTypeRaw = String(headers['content-type'] || '').trim().toLowerCase();
+    const contentType = contentTypeRaw.split(';')[0].trim();
+    const emptyLogout = ctx.action === 'domain_logout' && ctx.method === 'POST' && Number(headers['content-length'] || 0) === 0 && !rawJson;
+    if (!emptyLogout && contentType !== 'application/json') return { ok: false, reason: 'strict_json_content_type_required' };
+    if (!emptyLogout && ctx.body && typeof ctx.body === 'object' && !rawJson) {
+      return { ok: false, reason: 'raw_json_evidence_required' };
+    }
+    if (!emptyLogout && rawJson) {
+      const rawBytes = Buffer.byteLength(rawJson, 'utf8');
+      if (!Number.isSafeInteger(Number(req && req.__diracRawBodyLengthV230)) || Number(req.__diracRawBodyLengthV230) !== rawBytes) {
+        return { ok: false, reason: 'raw_json_byte_evidence_invalid' };
+      }
+      const rawHash = crypto.createHash('sha256').update(rawJson, 'utf8').digest('hex');
+      if (!/^[a-f0-9]{64}$/.test(String(req && req.__diracRawBodySha256V230 || ''))
+          || String(req.__diracRawBodySha256V230) !== rawHash) return { ok: false, reason: 'raw_json_hash_evidence_invalid' };
+      let reparsed;
+      try { reparsed = JSON.parse(rawJson || '{}'); } catch (_) { return { ok: false, reason: 'raw_json_malformed' }; }
+      let parsedCanonical = '';
+      let rawCanonical = '';
+      try {
+        parsedCanonical = diracCentralStableJsonV148(ctx.body || {});
+        rawCanonical = diracCentralStableJsonV148(reparsed || {});
+      } catch (_) { return { ok: false, reason: 'raw_json_parser_differential' }; }
+      if (parsedCanonical !== rawCanonical) return { ok: false, reason: 'raw_json_parser_differential' };
     }
   }
   if (ctx.body && typeof ctx.body === 'object' && Object.prototype.hasOwnProperty.call(ctx.body, 'action')) {
@@ -28623,13 +29423,9 @@ function diracCentralAdvancedContractGuardV221(req, ctx) {
     const lowerBodyAction = rawBodyAction.trim().toLowerCase();
     if (lowerBodyAction) {
       const bodyActionFormat = diracCentralValidateActionFormatV146(rawBodyAction, lowerBodyAction);
-      if (!bodyActionFormat.ok) {
-        return { ok: false, reason: 'body_' + String(bodyActionFormat.reason || 'action_format_invalid') };
-      }
+      if (!bodyActionFormat.ok) return { ok: false, reason: 'body_' + String(bodyActionFormat.reason || 'action_format_invalid') };
       const bodyActionAlias = diracCentralNormalizeAliasV146(lowerBodyAction);
-      if (!bodyActionAlias.ok) {
-        return { ok: false, reason: 'body_' + String(bodyActionAlias.reason || 'action_alias_invalid') };
-      }
+      if (!bodyActionAlias.ok) return { ok: false, reason: 'body_' + String(bodyActionAlias.reason || 'action_alias_invalid') };
       const canonicalBodyAction = bodyActionAlias.action === 'domain_mfa_passkey_start'
         ? 'dirac_mfa_passkey_start'
         : bodyActionAlias.action === 'domain_mfa_passkey_verify'
@@ -28641,9 +29437,7 @@ function diracCentralAdvancedContractGuardV221(req, ctx) {
         : contextAction === 'domain_mfa_passkey_verify'
           ? 'dirac_mfa_passkey_verify'
           : contextAction;
-      if (canonicalBodyAction !== canonicalContextAction) {
-        return { ok: false, reason: 'body_action_context_mismatch' };
-      }
+      if (canonicalBodyAction !== canonicalContextAction) return { ok: false, reason: 'body_action_context_mismatch' };
     }
   }
   const numericKeys = /^(?:quantity|qty|limit|total|client_price|client_subtotal|amount|attempt_count|active_passkey_count)$/i;
@@ -29762,9 +30556,8 @@ function diracCentralTimeoutOptionsV221(options, exactTimeoutMs) {
 
 async function diracCentralFreshDnsV221(host) {
   try {
-    const dns = require('dns').promises;
     const rows = await Promise.race([
-      dns.lookup(String(host || ''), { all: true, verbatim: true }),
+      DIRAC_CENTRAL_NATIVE_DNS_LOOKUP_V230(String(host || ''), { all: true, verbatim: true }),
       new Promise((resolve) => setTimeout(() => resolve([]), 1500))
     ]);
     return Array.from(new Set((rows || []).map((row) => String(row && row.address || '')).filter(Boolean))).slice(0, 32);
@@ -29989,6 +30782,9 @@ try {
           throw error;
         }
         req.__diracRawJsonV221 = req.body;
+        req.__diracRawBodyBufferV230 = Buffer.from(req.body, 'utf8');
+        req.__diracRawBodyLengthV230 = req.__diracRawBodyBufferV230.length;
+        req.__diracRawBodySha256V230 = crypto.createHash('sha256').update(req.__diracRawBodyBufferV230).digest('hex');
         const scan = diracCentralJsonDuplicateScanV221(req.body || '{}');
         if (scan.duplicate) req.__diracRawJsonDuplicateV221 = scan.key || 'duplicate';
         if (scan.malformed) req.__diracRawJsonMalformedV221 = scan.reason || 'malformed';
@@ -30722,6 +31518,9 @@ try {
           throw error;
         }
         req.__diracRawJsonV221 = req.body;
+        req.__diracRawBodyBufferV230 = Buffer.from(req.body, 'utf8');
+        req.__diracRawBodyLengthV230 = req.__diracRawBodyBufferV230.length;
+        req.__diracRawBodySha256V230 = crypto.createHash('sha256').update(req.__diracRawBodyBufferV230).digest('hex');
         const scan = diracCentralJsonDuplicateScanV221(req.body || '{}');
         if (scan.duplicate) {
           req.__diracRawJsonDuplicateV221 = scan.key || 'duplicate';
@@ -31241,13 +32040,10 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
 
 function diracCentralApplyHeadersV146(res) {
   if (!res || typeof res.setHeader !== 'function') return;
-  try { res.setHeader('X-Dirac-Central-Security-Guard', DIRAC_CENTRAL_SECURITY_GUARD_V146); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
-  try { res.setHeader('X-Dirac-Fail-Closed', DIRAC_CENTRAL_FAIL_CLOSED_DEBUG_V211); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
   try {
     const ctx = diracCentralCurrentContextV149();
     if (ctx && ctx.requestId) res.setHeader('X-Dirac-Request-Id', String(ctx.requestId).slice(0, 64));
   } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
-  try { res.setHeader('X-Dirac-Dashboard-Session-Fix', 'v147-bola-direct-timeout-fast-self-read'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
   try { res.setHeader('Cache-Control', 'no-store'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
   try { res.setHeader('X-Content-Type-Options', 'nosniff'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
   try { res.setHeader('X-Frame-Options', 'DENY'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
@@ -31263,8 +32059,31 @@ function diracCentralApplyHeadersV146(res) {
   try { res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=(), browsing-topics=(), interest-cohort=(), fullscreen=(self)'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
   try { res.setHeader('X-DNS-Prefetch-Control', 'off'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
   try { res.setHeader('X-Download-Options', 'noopen'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
-  try { res.setHeader('X-Dirac-Central-Hardening', DIRAC_CENTRAL_HARDENING_V221); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
-  try { res.setHeader('X-Dirac-Pipeline-Hash', DIRAC_CENTRAL_PIPELINE_HASH_V221); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+}
+
+function diracCentralSecureJsonSerializeV230(payload) {
+  const seen = new WeakSet();
+  let nodes = 0;
+  const inspect = (value, depth) => {
+    nodes += 1;
+    if (nodes > 10000 || depth > 12) throw Object.assign(new Error('DIRAC_OUTPUT_COMPLEXITY_REJECTED'), { code: 'DIRAC_OUTPUT_COMPLEXITY_REJECTED' });
+    if (value === null || value === undefined || typeof value !== 'object') return;
+    if (seen.has(value)) throw Object.assign(new Error('DIRAC_OUTPUT_CIRCULAR_REJECTED'), { code: 'DIRAC_OUTPUT_CIRCULAR_REJECTED' });
+    seen.add(value);
+    if (!Array.isArray(value)) {
+      const proto = Object.getPrototypeOf(value);
+      if (proto !== Object.prototype && proto !== null) throw Object.assign(new Error('DIRAC_OUTPUT_PROTOTYPE_REJECTED'), { code: 'DIRAC_OUTPUT_PROTOTYPE_REJECTED' });
+      if (Object.keys(value).length > 1000 || Object.getOwnPropertySymbols(value).length) throw Object.assign(new Error('DIRAC_OUTPUT_SHAPE_REJECTED'), { code: 'DIRAC_OUTPUT_SHAPE_REJECTED' });
+    }
+    for (const child of Array.isArray(value) ? value : Object.values(value)) inspect(child, depth + 1);
+  };
+  inspect(payload, 0);
+  if (diracCentralPayloadContainsRuntimeSecretV194(payload)) throw Object.assign(new Error('CENTRAL_OUTPUT_SECRET_BLOCKED'), { code: 'CENTRAL_OUTPUT_SECRET_BLOCKED' });
+  const sanitized = diracCentralSanitizeOutputV146(payload, 0);
+  const serialized = JSON.stringify(sanitized);
+  const maximum = Math.max(64 * 1024, Math.min(8 * 1024 * 1024, Number(process.env.DIRAC_OUTPUT_MAX_BYTES || 2 * 1024 * 1024)));
+  if (Buffer.byteLength(serialized, 'utf8') > maximum) throw Object.assign(new Error('DIRAC_OUTPUT_TOO_LARGE'), { code: 'DIRAC_OUTPUT_TOO_LARGE' });
+  return sanitized;
 }
 
 function diracCentralWrapJsonResponseV146(res) {
@@ -31272,32 +32091,48 @@ function diracCentralWrapJsonResponseV146(res) {
   const originalJson = res.json.bind(res);
   res.json = function diracCentralJsonResponseGuardV146(payload) {
     diracCentralApplyHeadersV146(res);
-    if (diracCentralPayloadContainsRuntimeSecretV194(payload)) {
+    try { res.setHeader('Content-Type', 'application/json; charset=utf-8'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+    try {
+      return originalJson(diracCentralSecureJsonSerializeV230(payload));
+    } catch (error) {
+      diracCentralRecordSuppressedExceptionV221(error);
       try { if (typeof res.status === 'function') res.status(500); else res.statusCode = 500; } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
-      return originalJson({ ok: false, code: 'CENTRAL_OUTPUT_SECRET_BLOCKED', message: 'Respons ditolak oleh sistem keamanan.' });
+      return originalJson({ ok: false, code: String(error && error.code || 'CENTRAL_OUTPUT_BLOCKED'), message: 'Respons ditolak oleh sistem keamanan.' });
     }
-    return originalJson(diracCentralSanitizeOutputV146(payload, 0));
   };
   res.__diracCentralJsonWrappedV146 = true;
+}
+
+function diracCentralRedactOutputStringV228(value) {
+  let text = String(value || '').replace(/[\u0000\u202a-\u202e\u2066-\u2069]/g, '');
+  text = text
+    .replace(/-----BEGIN(?: RSA| EC| OPENSSH)? PRIVATE KEY-----[\s\S]*?-----END(?: RSA| EC| OPENSSH)? PRIVATE KEY-----/gi, '[redacted-private-key]')
+    .replace(/\bBearer\s+[A-Za-z0-9._~+\/-]{16,}={0,2}\b/gi, 'Bearer [redacted]')
+    .replace(/\beyJ[A-Za-z0-9_-]{12,}\.[A-Za-z0-9_-]{12,}\.[A-Za-z0-9_-]{8,}\b/g, '[redacted-jwt]')
+    .replace(/\b(?:sk|rk|whsec|SB-Mid-server|Mid-server)[A-Za-z0-9_.:-]{12,}\b/g, '[redacted-secret]');
+  const decoded = diracCentralHtmlEntityDecodeV146(text);
+  if (/<\s*\/?\s*(?:script|svg|iframe|object|embed|math|meta|link)\b|\bon[a-z]{3,30}\s*=|(?:javascript|vbscript)\s*:|data\s*:\s*text\/html|expression\s*\(/i.test(decoded)) {
+    text = text
+      .replace(/(?:javascript|vbscript)\s*:/gi, '[blocked-script-scheme]:')
+      .replace(/data\s*:\s*text\/html/gi, '[blocked-data-html]')
+      .replace(/\bon([a-z]{3,30})\s*=/gi, '[blocked-event-$1]=')
+      .replace(/expression\s*\(/gi, '[blocked-css-expression](')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  return text;
 }
 
 function diracCentralSanitizeOutputV146(value, depth) {
   if (value === null || value === undefined) return value;
   if (depth > 8) return null;
-  if (typeof value === 'string') {
-    return value
-      .replace(/<script/gi, '&lt;script')
-      .replace(/<\/script/gi, '&lt;/script')
-      .replace(/javascript:/gi, 'javascript-blocked:')
-      .replace(/\bon[a-z]{3,30}\s*=/gi, 'data-blocked=');
-  }
+  if (typeof value === 'string') return diracCentralRedactOutputStringV228(value);
   if (Array.isArray(value)) return value.slice(0, 1000).map((item) => diracCentralSanitizeOutputV146(item, depth + 1));
   if (typeof value === 'object') {
     const out = Object.create(null);
     Object.entries(value).slice(0, 1000).forEach(([key, child]) => {
       const cleanKey = String(key || '').replace(/[\u0000-\u001f\u007f<>]/g, '').slice(0, 120);
       if (!cleanKey || /^(?:__proto__|prototype|constructor)$/i.test(cleanKey)) return;
-      if (/secret|service_role|authorization|access_token|refresh_token|password|cookie|apikey|api_key/i.test(cleanKey)) return;
+      if (/secret|service_role|authorization|access_token|refresh_token|password|cookie|apikey|api_key|private_key|client_secret|signature_key/i.test(cleanKey)) return;
       out[cleanKey] = diracCentralSanitizeOutputV146(child, depth + 1);
     });
     return out;
@@ -31759,7 +32594,7 @@ function diracCentralNeedsCsrfNonceV146(ctx) {
   return ctx.classification === 'browser' || ctx.classification === 'admin' || DIRAC_CENTRAL_SENSITIVE_ACTIONS_V146.has(ctx.action);
 }
 
-function diracCentralPageNonceGuardV146(req, res, ctx) {
+async function diracCentralPageNonceGuardV146(req, res, ctx) {
   try { diracCentralRootSecretV146(); } catch (_) { return { ok: false, reason: 'page_nonce_root_secret_invalid' }; }
   if ((ctx.method === 'GET' || ctx.method === 'HEAD') && ctx.classification !== 'server') {
     diracCentralIssuePageNonceV146(req, res, diracCentralPageNonceIssueTargetV146(req, ctx));
@@ -31770,7 +32605,10 @@ function diracCentralPageNonceGuardV146(req, res, ctx) {
   if (!nonce) return { ok: false, reason: 'page_nonce_missing' };
   const verified = diracCentralVerifyPageNonceV146(req, nonce, ctx.action);
   if (!verified.ok) return { ok: false, reason: verified.reason || 'page_nonce_invalid' };
-  return { ok: true };
+  ctx.__diracPageNonceProofV228 = Object.freeze({ token: nonce, payload: Object.freeze({ ...verified.payload }) });
+  if (ctx.isA2FAction) return { ok: true, source: 'page_nonce_verified_pending_a2f_consume' };
+  const consumed = await diracCentralConsumePageNonceV228(verified.payload);
+  return consumed.ok ? { ok: true, source: 'single_use_page_nonce_v228' } : consumed;
 }
 
 function diracCentralIsPasskeyBrowserActionV146(ctx) {
@@ -31819,10 +32657,20 @@ function diracCentralIssuePageNonceV146(req, res, action) {
   const secret = diracCentralSecretV146();
   const now = Math.floor(Date.now() / 1000);
   const payload = {
-    typ: 'dirac-page-nonce-v1',
+    typ: diracCentralIsA2FActionV148(action) ? 'dirac-a2f-action-ticket-v230' : 'dirac-page-nonce-v1',
     iat: now,
     exp: now + 300,
+    jti: crypto.randomBytes(24).toString('base64url'),
     act: String(action || ''),
+    mth: (() => {
+      const contract = diracCentralContractForActionV146(String(action || ''));
+      if (contract && Array.isArray(contract.methods)) {
+        if (contract.methods.includes('POST')) return 'POST';
+        if (contract.methods.includes('GET')) return 'GET';
+        if (contract.methods.includes('HEAD')) return 'HEAD';
+      }
+      return 'POST';
+    })(),
     sid: diracCentralRequestSessionHashV146(req),
     oh: diracCentralHashV146(diracCentralNormalizeOriginV146(req && req.headers && (req.headers.origin || req.headers.referer || req.headers.referrer) || ''))
   };
@@ -31830,6 +32678,7 @@ function diracCentralIssuePageNonceV146(req, res, action) {
   const sig = crypto.createHmac('sha256', secret).update(body).digest('base64url');
   const token = body + '.' + sig;
   try { res.setHeader('X-Dirac-Page-Nonce', token); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  if (diracCentralIsA2FActionV148(action)) diracCentralIssueA2FRequestProofV230(req, res, action);
   return token;
 }
 
@@ -31843,14 +32692,19 @@ function diracCentralVerifyPageNonceV146(req, token, action) {
   let payload = null;
   try { payload = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8')); } catch (_) { return { ok: false, reason: 'page_nonce_payload_invalid' }; }
   const now = Math.floor(Date.now() / 1000);
-  if (!payload || payload.typ !== 'dirac-page-nonce-v1') return { ok: false, reason: 'page_nonce_type_invalid' };
-  if (!payload.exp || Number(payload.exp) < now) return { ok: false, reason: 'page_nonce_expired' };
+  const expectedType = diracCentralIsA2FActionV148(action) ? 'dirac-a2f-action-ticket-v230' : 'dirac-page-nonce-v1';
+  if (!payload || payload.typ !== expectedType) return { ok: false, reason: 'page_nonce_type_invalid' };
+  if (!Number.isSafeInteger(Number(payload.iat)) || !Number.isSafeInteger(Number(payload.exp))) return { ok: false, reason: 'page_nonce_time_invalid' };
+  if (Number(payload.iat) > now + 30 || Number(payload.iat) < now - 600 || Number(payload.exp) <= now || Number(payload.exp) > Number(payload.iat) + 600) return { ok: false, reason: 'page_nonce_expired_or_time_invalid' };
+  if (!/^[A-Za-z0-9_-]{32}$/.test(String(payload.jti || ''))) return { ok: false, reason: 'page_nonce_jti_invalid' };
   if (String(payload.act || '') !== String(action || '')) return { ok: false, reason: 'page_nonce_action_mismatch' };
+  const requestMethod = String(req && req.method || '').toUpperCase();
+  if (!payload.mth || String(payload.mth).toUpperCase() !== requestMethod) return { ok: false, reason: 'page_nonce_method_mismatch' };
   const sid = diracCentralRequestSessionHashV146(req);
   if (payload.sid && sid && payload.sid !== sid) return { ok: false, reason: 'page_nonce_session_mismatch' };
   const originHash = diracCentralHashV146(diracCentralNormalizeOriginV146(req && req.headers && (req.headers.origin || req.headers.referer || req.headers.referrer) || ''));
   if (payload.oh && originHash && payload.oh !== originHash) return { ok: false, reason: 'page_nonce_origin_mismatch' };
-  return { ok: true };
+  return { ok: true, payload };
 }
 
 function diracCentralIsA2FActionV148(action) {
@@ -31866,6 +32720,10 @@ function diracCentralStableJsonV148(value) {
 
 function diracCentralA2FBodyHashV148(ctx) {
   try {
+    const override = String(ctx && ctx.__diracA2FBodyHashV230 || '').trim().toLowerCase();
+    if (/^[a-f0-9]{64}$/.test(override)) return override;
+    const rawHash = String(ctx && ctx.req && ctx.req.__diracRawBodySha256V230 || '').trim().toLowerCase();
+    if (/^[a-f0-9]{64}$/.test(rawHash)) return rawHash;
     const body = ctx && ctx.body && typeof ctx.body === 'object' ? ctx.body : {};
     return crypto.createHash('sha256').update(diracCentralStableJsonV148(body)).digest('hex');
   } catch (_) {
@@ -31897,6 +32755,37 @@ function diracCentralSignA2FPayloadV148(payload) {
   return body + '.' + sig;
 }
 
+
+function diracCentralIssueA2FRequestProofV230(req, res, action) {
+  if (!res || typeof res.setHeader !== 'function' || !diracCentralIsA2FActionV148(action)) return { ok: false, reason: 'a2f_issuer_not_applicable' };
+  const query = req && req.query && typeof req.query === 'object' ? req.query : {};
+  const bodyHash = String(query._dirac_a2f_body_hash || '').trim().toLowerCase();
+  if (!/^[a-f0-9]{64}$/.test(bodyHash)) return { ok: false, reason: 'a2f_body_hash_required' };
+  const contract = diracCentralContractForActionV146(String(action || ''));
+  const method = contract && Array.isArray(contract.methods) && contract.methods.includes('POST') ? 'POST' : '';
+  if (!method) return { ok: false, reason: 'a2f_action_method_invalid' };
+  const now = Math.floor(Date.now() / 1000);
+  const payload = diracCentralA2FSignaturePayloadV148(req, {
+    action: String(action || ''),
+    method,
+    __diracA2FBodyHashV230: bodyHash
+  }, {
+    iat: now,
+    exp: now + 120,
+    jti: crypto.randomBytes(24).toString('base64url')
+  });
+  const ticket = diracCentralSignA2FPayloadV148(payload);
+  const signature = ticket.split('.')[1] || '';
+  if (!signature) return { ok: false, reason: 'a2f_issuer_signature_failed' };
+  try {
+    res.setHeader('X-Dirac-A2F-Ticket', ticket);
+    res.setHeader('X-Dirac-A2F-Signature', signature);
+  } catch (_) {
+    return { ok: false, reason: 'a2f_issuer_header_failed' };
+  }
+  return { ok: true, ticket, signature, payload };
+}
+
 function diracCentralDecodeA2FTicketV148(ticket) {
   const parts = String(ticket || '').trim().split('.');
   if (parts.length !== 2 || !parts[0] || !parts[1]) return null;
@@ -31911,45 +32800,83 @@ function diracCentralDecodeA2FTicketV148(ticket) {
   }
 }
 
-function diracCentralConsumeA2FNonceV148(jti, exp) {
-  const clean = String(jti || '').trim();
+async function diracCentralAtomicConsumeV230({ namespace, jti, expiresAt, contextHash }) {
+  const cleanNamespace = String(namespace || '').trim().toLowerCase();
+  const cleanJti = String(jti || '').trim();
   const now = Math.floor(Date.now() / 1000);
-  if (!clean || !/^[a-zA-Z0-9_-]{16,160}$/.test(clean)) return { ok: false, reason: 'a2f_signature_nonce_invalid' };
-  for (const [key, until] of DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148.entries()) {
-    if (Number(until || 0) <= now) DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148.delete(key);
+  const exp = Number(expiresAt || 0);
+  if (!/^[a-z0-9_-]{3,60}$/.test(cleanNamespace) || !/^[A-Za-z0-9_-]{16,160}$/.test(cleanJti)) {
+    return { ok: false, reason: cleanNamespace + '_nonce_invalid' };
   }
-  if (DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148.has(clean)) return { ok: false, reason: 'a2f_signature_replay' };
-  DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148.set(clean, Math.max(now + 60, Number(exp || 0)));
-  if (DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148.size > 5000) {
-    for (const key of DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148.keys()) {
-      DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148.delete(key);
-      if (DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148.size <= 3000) break;
+  if (!Number.isSafeInteger(exp) || exp <= now || exp > now + 15 * 60) return { ok: false, reason: cleanNamespace + '_nonce_expiry_invalid' };
+  const securityKey = 's2s-central-atomic-v230:' + diracCentralHashV146([cleanNamespace, cleanJti, String(contextHash || '')].join('|'));
+  const result = await supabaseFetch('/rest/v1/rpc/dirac_central_atomic_consume_v230', {
+    method: 'POST',
+    auth: 'service',
+    body: {
+      p_security_key: securityKey,
+      p_record_json: {
+        type: 'dirac_central_atomic_consume_v230',
+        namespace: cleanNamespace,
+        nonce_hash: diracCentralHashV146(cleanJti),
+        context_hash: diracCentralHashV146(String(contextHash || '')),
+        consumed_at_ms: Date.now(),
+        expires_at_s: exp
+      },
+      p_expires_at: new Date(exp * 1000).toISOString()
     }
-  }
+  }).catch(() => null);
+  if (!result || result.ok !== true || result.data !== true) return { ok: false, reason: cleanNamespace + '_replay_or_atomic_storage_unavailable' };
   return { ok: true };
 }
 
-function diracCentralA2FRequestSignatureGuardV148(req, ctx) {
+async function diracCentralClaimSingleUseNonceV228(scope, jti, exp, binding) {
+  return diracCentralAtomicConsumeV230({
+    namespace: scope,
+    jti,
+    expiresAt: Number(exp || 0),
+    contextHash: String(binding || '')
+  });
+}
+
+async function diracCentralConsumePageNonceV228(payload) {
+  const source = payload && typeof payload === 'object' ? payload : {};
+  return diracCentralClaimSingleUseNonceV228('page_nonce', source.jti, Number(source.exp || 0), [source.act, source.sid, source.oh, source.mth].join('|'));
+}
+
+async function diracCentralConsumeA2FNonceV148(jti, exp, binding) {
+  return diracCentralClaimSingleUseNonceV228('a2f_signature', jti, exp, binding);
+}
+
+async function diracCentralA2FRequestSignatureGuardV148(req, ctx) {
   if (!ctx || !ctx.isA2FAction) return { ok: true, source: 'not_a2f' };
   try { diracCentralRootSecretV146(); } catch (_) { return { ok: false, reason: 'a2f_signature_root_secret_invalid' }; }
   const headers = req && req.headers || {};
   const ticket = String(headers['x-dirac-a2f-ticket'] || headers['x-dirac-a2f-signature-ticket'] || '').trim();
   const signature = String(headers['x-dirac-a2f-signature'] || '').trim();
+  const pageProof = ctx.__diracPageNonceProofV228 && ctx.__diracPageNonceProofV228.payload
+    ? ctx.__diracPageNonceProofV228.payload
+    : null;
 
-  if (!ticket && !signature) {
-    if (diracCentralA2FExplicitSignatureRequiredV148()) return { ok: false, reason: 'a2f_signature_missing' };
-    const pageNonce = String(headers['x-dirac-page-nonce'] || headers['x-page-nonce'] || '').trim();
-    const pageNonceOk = pageNonce ? diracCentralVerifyPageNonceV146(req, pageNonce, ctx.action) : { ok: false };
-    return pageNonceOk.ok ? { ok: true, source: 'signed_page_nonce_compat' } : { ok: false, reason: 'a2f_signed_nonce_missing' };
-  }
+  if (!ticket && !signature) return { ok: false, reason: 'a2f_signature_required' };
   if (!ticket || !signature) return { ok: false, reason: 'a2f_signature_incomplete' };
 
   const ticketPayload = diracCentralDecodeA2FTicketV148(ticket);
   if (!ticketPayload) return { ok: false, reason: 'a2f_ticket_signature_invalid' };
   const now = Math.floor(Date.now() / 1000);
   if (ticketPayload.typ !== 'dirac-a2f-request-signature-v148') return { ok: false, reason: 'a2f_ticket_type_invalid' };
-  if (!ticketPayload.exp || Number(ticketPayload.exp) < now) return { ok: false, reason: 'a2f_ticket_expired' };
-  if (ticketPayload.iat && Number(ticketPayload.iat) > now + 60) return { ok: false, reason: 'a2f_ticket_iat_invalid' };
+  const issuedAt = Number(ticketPayload.iat || 0);
+  const expiresAt = Number(ticketPayload.exp || 0);
+  if (!Number.isSafeInteger(issuedAt) || !Number.isSafeInteger(expiresAt)
+      || issuedAt > now + 30 || issuedAt < now - 180 || expiresAt <= now || expiresAt > issuedAt + 120) {
+    return { ok: false, reason: 'a2f_ticket_time_invalid' };
+  }
+  if (!/^[A-Za-z0-9_-]{32}$/.test(String(ticketPayload.jti || ''))) return { ok: false, reason: 'a2f_ticket_jti_invalid' };
+  const actualBodyHash = diracCentralA2FBodyHashV148(ctx);
+  if (!/^[a-f0-9]{64}$/.test(String(ticketPayload.bh || ''))
+      || !(typeof safeEqual === 'function' ? safeEqual(String(ticketPayload.bh), actualBodyHash) : String(ticketPayload.bh) === actualBodyHash)) {
+    return { ok: false, reason: 'a2f_ticket_body_hash_mismatch' };
+  }
 
   const expectedPayload = diracCentralA2FSignaturePayloadV148(req, ctx, ticketPayload);
   const expectedSignature = diracCentralSignA2FPayloadV148(expectedPayload).split('.')[1];
@@ -31957,17 +32884,17 @@ function diracCentralA2FRequestSignatureGuardV148(req, ctx) {
     if (!safeEqual(expectedSignature, signature)) return { ok: false, reason: 'a2f_signature_invalid' };
   } else if (expectedSignature !== signature) return { ok: false, reason: 'a2f_signature_invalid' };
 
-  const nonce = diracCentralConsumeA2FNonceV148(expectedPayload.jti, expectedPayload.exp);
+  const nonce = await diracCentralConsumeA2FNonceV148(expectedPayload.jti, expectedPayload.exp, diracCentralStableJsonV148(expectedPayload));
   if (!nonce.ok) return nonce;
-  return { ok: true, source: 'a2f_request_signature_v148' };
+  if (pageProof) {
+    const pageConsumed = await diracCentralConsumePageNonceV228(pageProof);
+    if (!pageConsumed.ok) return { ok: false, reason: pageConsumed.reason || 'page_nonce_replay' };
+  }
+  return { ok: true, source: 'a2f_request_signature_single_use_v228' };
 }
 
 function diracCentralA2FExplicitSignatureRequiredV148() {
-  try {
-    return isEnvTrue('DIRAC_A2F_REQUEST_SIGNATURE_ENFORCE') || isEnvTrue('DIRAC_A2F_SIGNATURE_ENFORCE');
-  } catch (_) {
-    return false;
-  }
+  return true;
 }
 
 function diracCentralBrowserSignalGuardV146(req, ctx) {
@@ -32060,7 +32987,7 @@ async function diracCentralAdminAuthGuardV146(req, res, ctx) {
   return { ok: false, reason: 'admin_guard_missing' };
 }
 
-function diracCentralPublicReadGuardV146(req, ctx) {
+async function diracCentralPublicReadGuardV146(req, ctx) {
   if (ctx.classification !== 'public_read') return { ok: true };
   const headers = req && req.headers || {};
   const origin = diracCentralNormalizeOriginV146(headers.origin || '');
@@ -32079,6 +33006,8 @@ function diracCentralPublicReadGuardV146(req, ctx) {
     if (!nonce) return { ok: false, reason: 'public_nonce_missing' };
     const verified = diracCentralVerifyPageNonceV146(req, nonce, ctx.action);
     if (!verified.ok) return { ok: false, reason: verified.reason || 'public_nonce_invalid' };
+    const consumed = await diracCentralConsumePageNonceV228(verified.payload);
+    if (!consumed.ok) return { ok: false, reason: consumed.reason || 'public_nonce_replay' };
     if (typeof diracV138CsrfForceVerify === 'function') {
       const csrf = diracV138CsrfForceVerify(req, ctx.action);
       if (!csrf || !csrf.ok) return { ok: false, reason: csrf && csrf.code || 'public_csrf_invalid' };
@@ -32091,6 +33020,39 @@ function diracCentralPublicReadGuardV146(req, ctx) {
   return { ok: true };
 }
 
+async function diracCentralAtomicRateLimitV230({ key, limit, windowSeconds, blockSeconds }) {
+  const cleanKey = String(key || '').trim();
+  const max = Math.max(1, Math.min(10000, Number(limit || 1)));
+  const window = Math.max(1, Math.min(86400, Number(windowSeconds || 60)));
+  const block = Math.max(0, Math.min(86400, Number(blockSeconds || 0)));
+  if (!cleanKey || cleanKey.length > 500) return { ok: false, reason: 'atomic_rate_key_invalid' };
+  const result = await supabaseFetch('/rest/v1/rpc/dirac_central_atomic_rate_limit_v230', {
+    method: 'POST',
+    auth: 'service',
+    body: { p_security_key: cleanKey, p_limit: max, p_window_seconds: window, p_block_seconds: block }
+  }).catch(() => null);
+  const row = result && result.ok === true && Array.isArray(result.data) ? result.data[0] : null;
+  if (!row || typeof row.allowed !== 'boolean' || !Number.isFinite(Number(row.current_count))) {
+    return { ok: false, reason: 'distributed_rate_limit_atomic_storage_unavailable' };
+  }
+  return {
+    ok: row.allowed === true,
+    count: Number(row.current_count),
+    resetAt: Date.parse(String(row.reset_at || '')) || 0,
+    blockedUntil: Date.parse(String(row.blocked_until || '')) || 0,
+    reason: row.allowed === true ? '' : 'distributed_rate_limit'
+  };
+}
+
+async function diracCentralAtomicRateSlotV228(ctx, action, windowMs, max) {
+  return diracCentralAtomicRateLimitV230({
+    key: 's2s-central-rate-v230:' + diracCentralHashV146([ctx.identity.key, action].join('|')),
+    limit: max,
+    windowSeconds: Math.ceil(Number(windowMs || 60000) / 1000),
+    blockSeconds: Math.ceil(Number(windowMs || 60000) / 1000)
+  });
+}
+
 async function diracCentralDistributedRateLimitGuardV146(req, ctx) {
   const action = String(ctx && ctx.action || '');
   const method = String(ctx && ctx.method || '').toUpperCase();
@@ -32099,34 +33061,9 @@ async function diracCentralDistributedRateLimitGuardV146(req, ctx) {
   const max = diracCentralDistributedRateLimitMaxV146(action);
   const local = diracCentralRateLimitV146(ctx.identity.key + ':distributed-local:' + action, 60 * 1000, max);
   if (!local.ok) return { ok: false, reason: 'distributed_rate_limit_local' };
-  const persistReady = Boolean(
-    LOGIN_SECURITY_PERSIST_TABLE
-    && typeof readPersistentSecurityJsonStrictV194 === 'function'
-    && typeof writePersistentSecurityJsonRequiredV194 === 'function'
-  );
-  if (!persistReady) return { ok: false, reason: 'distributed_rate_limit_storage_required' };
-
-  const windowMs = 60 * 1000;
-  const now = Date.now();
-  const key = 'central-rate:' + diracCentralHashV146([ctx.identity.key, action, Math.floor(now / windowMs)].join('|'));
-  const lookup = await readPersistentSecurityJsonStrictV194(key).catch(() => ({ ok: false, found: false, record: null }));
-  if (!lookup || lookup.ok !== true) return { ok: false, reason: 'distributed_rate_limit_read_failed' };
-
-  let row = lookup.found && lookup.record && typeof lookup.record === 'object'
-    ? { ...lookup.record }
-    : { count: 0, resetAtMs: now + windowMs };
-  if (Number(row.resetAtMs || 0) <= now) row = { count: 0, resetAtMs: now + windowMs };
-  row.count = Number(row.count || 0) + 1;
-  row.resetAtMs = Number(row.resetAtMs || now + windowMs);
-  const wrote = await writePersistentSecurityJsonRequiredV194(
-    key,
-    row,
-    0,
-    Math.ceil(windowMs / 1000) + 60
-  ).catch(() => false);
-  if (!wrote) return { ok: false, reason: 'distributed_rate_limit_write_failed' };
-  if (row.count > max) return { ok: false, reason: 'distributed_rate_limit' };
-  return { ok: true };
+  const persistReady = Boolean(DIRAC_S2S_SECURITY_TABLE === 'dirac_s2s_security' && typeof claimPersistentSecurityKeyOnceV194 === 'function');
+  if (!persistReady) return { ok: false, reason: 'distributed_rate_limit_atomic_storage_required' };
+  return diracCentralAtomicRateSlotV228(ctx, action, 60 * 1000, max);
 }
 
 function diracCentralNeedsDistributedRateLimitV146(action) {
@@ -33632,6 +34569,327 @@ function diracCentralBlockedSupabaseResultV146(decision) {
   };
 }
 
+function diracCentralHeaderObjectV230(headers) {
+  const out = Object.create(null);
+  if (!headers) return out;
+  if (typeof headers.forEach === 'function') headers.forEach((value, key) => { out[String(key).toLowerCase()] = String(value); });
+  else Object.entries(headers).forEach(([key, value]) => { out[String(key).toLowerCase()] = Array.isArray(value) ? value.join(', ') : String(value); });
+  return out;
+}
+
+function diracCentralBodyBytesV230(body) {
+  if (body === undefined || body === null) return Buffer.alloc(0);
+  if (Buffer.isBuffer(body)) return Buffer.from(body);
+  if (body instanceof Uint8Array) return Buffer.from(body);
+  if (body instanceof ArrayBuffer) return Buffer.from(new Uint8Array(body));
+  if (typeof body === 'string') return Buffer.from(body, 'utf8');
+  if (body && body.constructor && body.constructor.name === 'URLSearchParams') return Buffer.from(body.toString(), 'utf8');
+  throw Object.assign(new Error('DIRAC_EGRESS_BODY_TYPE_UNSUPPORTED'), { code: 'DIRAC_EGRESS_BODY_TYPE_UNSUPPORTED' });
+}
+
+const DIRAC_CENTRAL_DATABASE_TABLES_V230 = Object.freeze(new Set([
+  'admin_users',
+  'customers',
+  'dirac_persistent_bans',
+  'dirac_s2s_security',
+  'domain_order_items',
+  'domain_orders',
+  'domain_passkeys',
+  'domain_tld_prices',
+  'order_items',
+  'orders',
+  'payment_gateway_events',
+  'payment_transactions',
+  'products',
+  'security_customer_access_blocks',
+  'security_customer_account_requests',
+  'security_customer_auth_links',
+  'security_customer_events',
+  'security_customer_login_logs',
+  'security_customer_password_hashes',
+  'security_customer_recovery_codes',
+  'security_customer_sessions',
+  'security_customer_settings',
+  'security_lost_passkey_recovery_requests',
+  'security_lost_passkey_recovery_sessions',
+  'voucher_tiers'
+]));
+const DIRAC_CENTRAL_DATABASE_RPCS_V230 = Object.freeze(new Set([
+  'dirac_central_atomic_consume_v230',
+  'dirac_central_atomic_claim_record_v230',
+  'dirac_central_atomic_rate_limit_v230',
+  'dirac_central_security_log_v230'
+]));
+const DIRAC_CENTRAL_DATABASE_QUERY_KEYS_V230 = Object.freeze(new Set([
+  'select', 'order', 'limit', 'offset', 'on_conflict', 'or', 'and'
+]));
+
+function diracCentralEffectiveActionV230(ctx) {
+  const direct = String(ctx && ctx.action || '').trim().toLowerCase();
+  if (direct && (DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.has(direct) || DIRAC_CENTRAL_DISABLED_ACTIONS_V146.has(direct))) return direct;
+  const raw = String(ctx && ctx.rawAction || '').trim().toLowerCase();
+  if (!raw) return '';
+  const format = diracCentralValidateActionFormatV146(raw, raw);
+  if (!format.ok) return '';
+  const alias = diracCentralNormalizeAliasV146(raw);
+  if (!alias.ok) return '';
+  return DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.has(alias.action) || DIRAC_CENTRAL_DISABLED_ACTIONS_V146.has(alias.action)
+    ? alias.action
+    : '';
+}
+
+function diracCentralDatabaseAuthRouteAllowedV230(action, url, method, authMode) {
+  const path = String(url.pathname || '');
+  const verb = String(method || 'GET').toUpperCase();
+  const active = Boolean(action && (DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.has(action) || DIRAC_CENTRAL_DISABLED_ACTIONS_V146.has(action)));
+  if (!active) return false;
+  if (path === '/auth/v1/signup') return verb === 'POST' && authMode === 'anon' && action === 'domain_register' && url.search === '';
+  if (path === '/auth/v1/token') {
+    if (verb !== 'POST' || authMode !== 'anon' || Array.from(url.searchParams.keys()).some((key) => key !== 'grant_type') || url.searchParams.getAll('grant_type').length !== 1) return false;
+    const grant = String(url.searchParams.get('grant_type') || '');
+    if (grant === 'password') return /^(?:domain_login|domain_register)$/.test(action) || /(?:recovery|password|passkey|customer_security)/.test(action);
+    if (grant === 'refresh_token') return action !== 'domain_health' && action !== 'hostinger_check' && action !== 'domain_check';
+    return false;
+  }
+  if (path === '/auth/v1/user') return ['GET', 'PUT'].includes(verb) && url.search === '' && action !== 'domain_health' && action !== 'hostinger_check' && action !== 'domain_check';
+  if (path === '/auth/v1/admin/users' || /^\/auth\/v1\/admin\/users\/[0-9a-f-]{36}$/i.test(path)) {
+    if (authMode !== 'service' || !['GET', 'POST', 'PUT', 'DELETE'].includes(verb)) return false;
+    if (Array.from(url.searchParams.keys()).some((key) => key !== 'email') || url.searchParams.getAll('email').length > 1) return false;
+    return /^(?:domain_register|domain_login)$/.test(action) || /(?:admin|customer_security|recovery|password|passkey)/.test(action);
+  }
+  return false;
+}
+
+function diracCentralDatabaseRestRouteAllowedV230(action, url, method, authMode) {
+  const match = /^\/rest\/v1\/([a-z][a-z0-9_]*)$/.exec(String(url.pathname || ''));
+  if (!match || !DIRAC_CENTRAL_DATABASE_TABLES_V230.has(match[1])) return false;
+  if (!action || !(DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.has(action) || DIRAC_CENTRAL_DISABLED_ACTIONS_V146.has(action))) return false;
+  if (!['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(String(method || '').toUpperCase())) return false;
+  if (!['service', 'anon'].includes(authMode)) return false;
+  if (String(url.search || '').length > 16384) return false;
+  const seen = new Set();
+  for (const [key, value] of url.searchParams.entries()) {
+    if (seen.has(key)) return false;
+    seen.add(key);
+    if (!DIRAC_CENTRAL_DATABASE_QUERY_KEYS_V230.has(key) && !/^[a-z][a-z0-9_]{0,62}$/.test(key)) return false;
+    if (String(value).length > 8192 || /[\r\n\0]/.test(String(value))) return false;
+  }
+  if (url.searchParams.has('on_conflict') && String(method || '').toUpperCase() !== 'POST') return false;
+  return true;
+}
+
+function diracCentralDatabaseRpcRouteAllowedV230(action, url, method, authMode) {
+  const match = /^\/rest\/v1\/rpc\/([a-z][a-z0-9_]*)$/.exec(String(url.pathname || ''));
+  if (!match || !DIRAC_CENTRAL_DATABASE_RPCS_V230.has(match[1])) return false;
+  if (String(method || '').toUpperCase() !== 'POST' || authMode !== 'service' || url.search !== '') return false;
+  return Boolean(action && (DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.has(action) || DIRAC_CENTRAL_DISABLED_ACTIONS_V146.has(action)));
+}
+
+function diracCentralDatabasePathPolicyV230(ctx, path, options) {
+  const cleanPath = String(path || '');
+  const source = options && typeof options === 'object' ? options : {};
+  const method = String(source.method || 'GET').toUpperCase();
+  const authMode = source.auth === 'service' ? 'service' : 'anon';
+  const action = diracCentralEffectiveActionV230(ctx);
+  if (!action || !cleanPath.startsWith('/') || cleanPath.startsWith('//') || cleanPath.includes('\\') || /[\r\n\0]/.test(cleanPath) || cleanPath.length > 24576) {
+    return { ok: false, reason: 'database_route_format_invalid' };
+  }
+  let url;
+  try { url = new URL(cleanPath, 'https://dirac-database.invalid'); } catch (_) { return { ok: false, reason: 'database_route_url_invalid' }; }
+  if (url.origin !== 'https://dirac-database.invalid' || /%(?:2f|5c|00|0d|0a)/i.test(url.pathname)) return { ok: false, reason: 'database_route_canonical_invalid' };
+  const allowed = diracCentralDatabaseRpcRouteAllowedV230(action, url, method, authMode)
+    || diracCentralDatabaseAuthRouteAllowedV230(action, url, method, authMode)
+    || diracCentralDatabaseRestRouteAllowedV230(action, url, method, authMode);
+  return allowed
+    ? { ok: true, action, authMode, method, canonicalPath: url.pathname + url.search }
+    : { ok: false, reason: 'database_route_not_allowlisted' };
+}
+
+function diracCentralCurrentDatabaseEgressPermitV230() {
+  try {
+    return DIRAC_CENTRAL_DATABASE_EGRESS_CONTEXT_V230 && DIRAC_CENTRAL_DATABASE_EGRESS_CONTEXT_V230.getStore() || null;
+  } catch (_) {
+    return null;
+  }
+}
+
+
+function diracCentralDatabaseCallsiteRegistryV230() {
+  const source = require('fs').readFileSync(__filename, 'utf8').split(/\r?\n/);
+  const entries = new Map();
+  for (let index = 0; index < source.length; index += 1) {
+    const line = source[index];
+    if (!/\bsupabaseFetch\s*\(/.test(line)
+        || /(?:async\s+function\s+supabaseFetch\s*\(|supabaseFetch\s*=\s*async\s+function)/.test(line)) continue;
+    const normalized = String(line || '').trim();
+    entries.set(index + 1, crypto.createHash('sha256').update(normalized).digest('hex'));
+  }
+  return entries;
+}
+const DIRAC_CENTRAL_DATABASE_CALLSITES_V230 = diracCentralDatabaseCallsiteRegistryV230();
+const DIRAC_CENTRAL_DATABASE_CALLSITES_HASH_V230 = crypto.createHash('sha256')
+  .update(Array.from(DIRAC_CENTRAL_DATABASE_CALLSITES_V230.entries()).map(([line, hash]) => line + ':' + hash).join('|'))
+  .digest('hex');
+
+function diracCentralDatabaseCallerEvidenceV230() {
+  const stack = String(new Error('DIRAC_DATABASE_CALLSITE').stack || '').split('\n').slice(1);
+  for (const frame of stack) {
+    const match = /\((.*):(\d+):(\d+)\)$/.exec(frame) || /\bat (.*):(\d+):(\d+)$/.exec(frame);
+    if (!match) continue;
+    const filename = String(match[1] || '').replace(/^file:\/\//, '');
+    const line = Number(match[2] || 0);
+    if (filename !== __filename || !DIRAC_CENTRAL_DATABASE_CALLSITES_V230.has(line)) continue;
+    return Object.freeze({ line, hash: DIRAC_CENTRAL_DATABASE_CALLSITES_V230.get(line) });
+  }
+  return null;
+}
+
+function diracCentralCreateDatabaseEgressPermitV230(ctx, op, callerEvidence) {
+  const cleanPath = String(op && op.path || '');
+  const caller = callerEvidence && typeof callerEvidence === 'object' ? callerEvidence : null;
+  if (!caller || !Number.isSafeInteger(Number(caller.line))
+      || DIRAC_CENTRAL_DATABASE_CALLSITES_V230.get(Number(caller.line)) !== String(caller.hash || '')) return null;
+  const options = op && op.options && typeof op.options === 'object' ? op.options : {};
+  const route = diracCentralDatabasePathPolicyV230(ctx, cleanPath, options);
+  if (!route.ok) return null;
+  const targetKey = resolveDiracSupabaseTargetKey(cleanPath, options);
+  const target = readDiracSupabaseCredentials(targetKey);
+  let origin;
+  try { origin = new URL(String(target.url || '')).origin; } catch (_) { return null; }
+  const apiKey = route.authMode === 'service' ? target.serviceKey : target.anonKey;
+  const bearer = String(options.bearer || apiKey || '');
+  let serializedBody = '';
+  try { serializedBody = options.body === undefined ? '' : JSON.stringify(options.body); } catch (_) { return null; }
+  const bodyBytes = Buffer.byteLength(serializedBody, 'utf8');
+  if (bodyBytes > 16 * 1024 * 1024) return null;
+  return Object.freeze({
+    action: route.action,
+    caller: String(ctx && ctx.classification || ''),
+    callerLine: Number(caller.line),
+    callerHash: String(caller.hash),
+    authMode: route.authMode,
+    origin,
+    path: route.canonicalPath,
+    method: route.method,
+    bodyBytes,
+    bodyHash: crypto.createHash('sha256').update(serializedBody).digest('hex'),
+    apiKeyHash: crypto.createHash('sha256').update(String(apiKey || '')).digest('hex'),
+    bearerHash: crypto.createHash('sha256').update(bearer).digest('hex'),
+    expiresAtMs: Date.now() + 30000
+  });
+}
+
+
+function diracCentralDatabaseEgressPermitMatchesV230(url, method, ctx, options) {
+  const permit = diracCentralCurrentDatabaseEgressPermitV230();
+  if (!permit || Date.now() > Number(permit.expiresAtMs || 0)) return false;
+  const effectiveAction = diracCentralEffectiveActionV230(ctx);
+  const effectiveCaller = String(ctx && ctx.classification || '');
+  if (permit.action !== effectiveAction || permit.caller !== effectiveCaller) return false;
+  if (!Number.isSafeInteger(Number(permit.callerLine))
+      || DIRAC_CENTRAL_DATABASE_CALLSITES_V230.get(Number(permit.callerLine)) !== String(permit.callerHash || '')) return false;
+  if (String(url.origin) !== permit.origin || String(url.pathname) + String(url.search) !== permit.path || String(method).toUpperCase() !== permit.method) return false;
+  const route = diracCentralDatabasePathPolicyV230(ctx, permit.path, { method: permit.method, auth: permit.authMode });
+  if (!route.ok || route.action !== permit.action || route.authMode !== permit.authMode) return false;
+  let body;
+  try { body = diracCentralBodyBytesV230(options && options.body); } catch (_) { return false; }
+  if (body.length !== permit.bodyBytes || crypto.createHash('sha256').update(body).digest('hex') !== permit.bodyHash) return false;
+  const headers = diracCentralHeaderObjectV230(options && options.headers);
+  if (crypto.createHash('sha256').update(String(headers.apikey || '')).digest('hex') !== permit.apiKeyHash) return false;
+  const bearer = String(headers.authorization || '').replace(/^Bearer\s+/i, '');
+  if (crypto.createHash('sha256').update(bearer).digest('hex') !== permit.bearerHash) return false;
+  return true;
+}
+
+
+function diracCentralEgressRouteAllowedV228(url, method, ctx, options) {
+  const host = String(url && url.hostname || '').toLowerCase();
+  const path = String(url && url.pathname || '');
+  const verb = String(method || 'GET').toUpperCase();
+  const action = diracCentralEffectiveActionV230(ctx);
+  const classification = String(ctx && ctx.classification || '').trim().toLowerCase();
+  const knownAction = Boolean(action && (DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.has(action) || DIRAC_CENTRAL_DISABLED_ACTIONS_V146.has(action)));
+  if (!knownAction) return { ok: false, reason: 'egress_action_context_not_allowlisted' };
+  const actionAllowed = (patterns) => patterns.some((pattern) => pattern instanceof RegExp ? pattern.test(action) : String(pattern) === action);
+  const noQuery = () => Array.from(url.searchParams.keys()).length === 0;
+  const exact = (expectedHost, expectedPath, methods, actions, policy) => {
+    if (host !== expectedHost || path !== expectedPath || !methods.includes(verb) || !noQuery() || !actionAllowed(actions)) return null;
+    return { ok: true, policy, action };
+  };
+  const configuredExact = (envName, defaultBase, suffix, methods, actions, policy, allowedQueryKeys) => {
+    try {
+      const base = new URL(String(process.env[envName] || defaultBase).replace(/\/+$/, '') + '/');
+      const expectedPath = (base.pathname.replace(/\/+$/, '') + suffix).replace(/\/{2,}/g, '/');
+      if (url.origin !== base.origin || path !== expectedPath || !methods.includes(verb) || !actionAllowed(actions)) return null;
+      const actualKeys = Array.from(url.searchParams.keys()).sort();
+      const expectedKeys = Array.from(allowedQueryKeys || []).sort();
+      if (actualKeys.length !== expectedKeys.length || actualKeys.some((key, index) => key !== expectedKeys[index])) return null;
+      return { ok: true, policy, action };
+    } catch (errorV228) {
+      diracCentralRecordSuppressedExceptionV221(errorV228);
+      return null;
+    }
+  };
+
+  const emailActions = [/^domain_register$/, /^domain_checkout$/, /^create_payment$/, /^midtrans_webhook$/, /^customer_security_/, /^admin_/, /^domain_login$/];
+  const resend = exact('api.resend.com', '/emails', ['POST'], emailActions, 'resend_email');
+  if (resend) return resend;
+  const brevo = exact('api.brevo.com', '/v3/smtp/email', ['POST'], emailActions, 'brevo_email');
+  if (brevo) return brevo;
+  const midtrans = exact('app.midtrans.com', '/snap/v1/transactions', ['POST'], ['domain_checkout', 'create_payment'], 'midtrans_snap')
+    || exact('app.sandbox.midtrans.com', '/snap/v1/transactions', ['POST'], ['domain_checkout', 'create_payment'], 'midtrans_snap');
+  if (midtrans) return midtrans;
+  const firebase = exact('www.googleapis.com', '/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com', ['GET'], [/^admin_/, /^customer_security_/, 'domain_dashboard_me'], 'firebase_certificates');
+  if (firebase && (classification === 'admin' || actionAllowed([/^admin_/, /^customer_security_/, 'domain_dashboard_me']))) return firebase;
+
+  const domainProviderActions = ['hostinger_check', 'domain_check', 'domain_checkout'];
+  const namecomRoute = configuredExact('NAMECOM_API_BASE', 'https://api.name.com', '/core/v1/domains:checkAvailability', ['POST'], domainProviderActions, 'namecom_availability', []);
+  if (namecomRoute) return namecomRoute;
+  const namesiloRoute = configuredExact('NAMESILO_API_BASE', 'https://www.namesilo.com/api', '/checkRegisterAvailability', ['GET'], domainProviderActions, 'namesilo_availability', ['domains', 'key', 'type', 'version']);
+  if (namesiloRoute) return namesiloRoute;
+  const whoisJsonRoute = configuredExact('WHOISJSON_API_BASE', 'https://whoisjson.com/api/v1', '/domain-availability', ['GET'], domainProviderActions, 'whoisjson_availability', ['domain']);
+  if (whoisJsonRoute) return whoisJsonRoute;
+  const hostingerAvailability = configuredExact('HOSTINGER_API_BASE', HOSTINGER_API_BASE, '/api/domains/v1/availability', ['POST'], domainProviderActions, 'hostinger_availability', []);
+  if (hostingerAvailability) return hostingerAvailability;
+  const hostingerCatalog = configuredExact('HOSTINGER_API_BASE', HOSTINGER_API_BASE, '/api/billing/v1/catalog', ['GET'], domainProviderActions, 'hostinger_catalog', []);
+  if (hostingerCatalog) return hostingerCatalog;
+
+  const supabaseHosts = diracCentralConfiguredSupabaseHostsV194();
+  if (supabaseHosts.has(host)) {
+    if (!diracCentralDatabaseEgressPermitMatchesV230(url, verb, ctx, options)) return { ok: false, reason: 'supabase_exact_database_permit_required' };
+    return { ok: true, policy: 'supabase_exact_database_permit_v230', action };
+  }
+
+  const recoveryUrl = String(process.env.DIRAC_RECOVERY_WORKER_URL || '').trim();
+  if (recoveryUrl && actionAllowed([/recovery/, /passkey/, /^customer_security_/])) {
+    try {
+      const configured = new URL(recoveryUrl);
+      if (host === configured.hostname.toLowerCase()
+          && path === configured.pathname.replace(/\/+$/, '')
+          && verb === 'POST'
+          && url.searchParams.get('action') === DIRAC_RECOVERY_WORKER_ACTION
+          && Array.from(url.searchParams.keys()).length === 1) {
+        return { ok: true, policy: 'recovery_worker_exact', action };
+      }
+    } catch (errorV228) {
+      diracCentralRecordSuppressedExceptionV221(errorV228);
+    }
+  }
+
+  const securityWebhook = String(process.env.DIRAC_LOGIN_SECURITY_WEBHOOK_URL || '').trim();
+  if (securityWebhook) {
+    try {
+      const configured = new URL(securityWebhook);
+      if (url.origin === configured.origin && path === configured.pathname && url.search === configured.search && verb === 'POST') {
+        return { ok: true, policy: 'security_webhook_exact', action };
+      }
+    } catch (errorV228) {
+      diracCentralRecordSuppressedExceptionV221(errorV228);
+    }
+  }
+  return { ok: false, reason: 'egress_route_or_action_not_allowlisted' };
+}
+
 async function diracCentralInspectEgressV146(input, options = {}) {
   let url;
   try { url = new URL(typeof input === 'string' ? input : input && input.url || ''); } catch (_) { return { block: true, reason: 'egress_url_invalid' }; }
@@ -33645,6 +34903,8 @@ async function diracCentralInspectEgressV146(input, options = {}) {
   if (!host || host !== String(url.hostname || '').toLowerCase()) return { block: true, reason: 'egress_host_canonicalization_invalid' };
   if (diracCentralIsUnsafeHostV146(host)) return { block: true, reason: 'egress_private_or_metadata_host' };
   if (!diracCentralAllowedEgressHostV146(host)) return { block: true, reason: 'egress_host_not_allowlisted' };
+  const route = diracCentralEgressRouteAllowedV228(url, method, diracCentralCurrentContextV149(), options);
+  if (!route.ok) return { block: true, reason: route.reason || 'egress_route_not_allowlisted' };
   if (url.hash) return { block: true, reason: 'egress_fragment_rejected' };
   const directService = diracCentralDirectServiceRoleFetchV146(url, input, options);
   if (directService.block) return directService;
@@ -33655,7 +34915,163 @@ async function diracCentralInspectEgressV146(input, options = {}) {
   catch (_) { return { block: true, reason: 'egress_dns_resolution_failed' }; }
   if (!Array.isArray(dns) || dns.length < 1) return { block: true, reason: 'egress_dns_resolution_empty' };
   if (dns.some(diracCentralIsUnsafeIpV146)) return { block: true, reason: 'egress_dns_resolved_private_ip' };
-  return { ok: true, host, ips: dns.slice() };
+  return { ok: true, host, ips: dns.slice(), route: route.policy };
+}
+
+function diracCentralEgressResponseMaxBytesV228(host) {
+  const configured = Number(process.env.DIRAC_EGRESS_RESPONSE_MAX_BYTES || 8 * 1024 * 1024);
+  const base = Number.isFinite(configured) ? Math.max(64 * 1024, Math.min(32 * 1024 * 1024, configured)) : 8 * 1024 * 1024;
+  if (host === 'www.googleapis.com') return Math.min(base, 1024 * 1024);
+  if (host === 'api.resend.com' || host === 'api.brevo.com') return Math.min(base, 2 * 1024 * 1024);
+  return base;
+}
+
+function diracCentralGuardEgressResponseV228(response, host) {
+  if (!response || !response.headers || typeof response.headers.get !== 'function' || response.__diracEgressResponseGuardV228) return response;
+  const max = diracCentralEgressResponseMaxBytesV228(host);
+  const declared = Number(response.headers.get('content-length') || 0);
+  if (Number.isFinite(declared) && declared > max) {
+    try { if (response.body && typeof response.body.cancel === 'function') response.body.cancel(); } catch (errorV228) { diracCentralRecordSuppressedExceptionV221(errorV228); }
+    const error = new Error('DIRAC_EGRESS_RESPONSE_TOO_LARGE');
+    error.code = 'DIRAC_EGRESS_RESPONSE_TOO_LARGE';
+    throw error;
+  }
+  const wrap = (name, measure) => {
+    if (typeof response[name] !== 'function') return;
+    const original = response[name].bind(response);
+    response[name] = async function diracCentralBoundedEgressResponseV228() {
+      const value = await original();
+      const bytes = measure(value);
+      if (bytes > max) {
+        const error = new Error('DIRAC_EGRESS_RESPONSE_TOO_LARGE');
+        error.code = 'DIRAC_EGRESS_RESPONSE_TOO_LARGE';
+        throw error;
+      }
+      return value;
+    };
+  };
+  wrap('text', (value) => Buffer.byteLength(String(value || ''), 'utf8'));
+  wrap('arrayBuffer', (value) => value && Number(value.byteLength || 0));
+  wrap('blob', (value) => value && Number(value.size || 0));
+  wrap('json', (value) => {
+    try { return Buffer.byteLength(JSON.stringify(value), 'utf8'); } catch (_) { return max + 1; }
+  });
+  Object.defineProperty(response, '__diracEgressResponseGuardV228', { value: true, enumerable: false });
+  return response;
+}
+
+const DIRAC_CENTRAL_NATIVE_HTTP_REQUEST_V230 = require('http').request;
+const DIRAC_CENTRAL_NATIVE_HTTPS_REQUEST_V230 = require('https').request;
+const DIRAC_CENTRAL_NATIVE_NET_SOCKET_V230 = require('net').Socket;
+const DIRAC_CENTRAL_NATIVE_NET_SOCKET_CONNECT_V230 = DIRAC_CENTRAL_NATIVE_NET_SOCKET_V230.prototype.connect;
+const DIRAC_CENTRAL_NATIVE_NET_CONNECT_V230 = function diracCentralNativeNetConnectV230(options) {
+  const socket = new DIRAC_CENTRAL_NATIVE_NET_SOCKET_V230();
+  return DIRAC_CENTRAL_NATIVE_NET_SOCKET_CONNECT_V230.call(socket, options);
+};
+const DIRAC_CENTRAL_NATIVE_TLS_CONNECT_V230 = require('tls').connect;
+const DIRAC_CENTRAL_NATIVE_DNS_PROMISES_V230 = require('dns').promises;
+const DIRAC_CENTRAL_NATIVE_DNS_RESOLVE4_V230 = DIRAC_CENTRAL_NATIVE_DNS_PROMISES_V230.resolve4.bind(DIRAC_CENTRAL_NATIVE_DNS_PROMISES_V230);
+const DIRAC_CENTRAL_NATIVE_DNS_RESOLVE6_V230 = DIRAC_CENTRAL_NATIVE_DNS_PROMISES_V230.resolve6.bind(DIRAC_CENTRAL_NATIVE_DNS_PROMISES_V230);
+const DIRAC_CENTRAL_NATIVE_DNS_RESOLVE_CNAME_V230 = DIRAC_CENTRAL_NATIVE_DNS_PROMISES_V230.resolveCname.bind(DIRAC_CENTRAL_NATIVE_DNS_PROMISES_V230);
+const DIRAC_CENTRAL_NATIVE_DNS_LOOKUP_V230 = DIRAC_CENTRAL_NATIVE_DNS_PROMISES_V230.lookup.bind(DIRAC_CENTRAL_NATIVE_DNS_PROMISES_V230);
+
+function diracCentralBoundedReadableStreamV230(incoming, request, maximumBytes) {
+  const { Transform } = require('stream');
+  const maximum = Math.max(1, Number(maximumBytes || 0));
+  let total = 0;
+  const limiter = new Transform({
+    transform(chunk, _encoding, callback) {
+      total += Buffer.byteLength(chunk);
+      if (total > maximum) {
+        const error = Object.assign(new Error('DIRAC_EGRESS_RESPONSE_TOO_LARGE'), { code: 'DIRAC_EGRESS_RESPONSE_TOO_LARGE' });
+        try { incoming.destroy(error); } catch (errorV230) { diracCentralRecordSuppressedExceptionV221(errorV230); }
+        try { request.destroy(error); } catch (errorV230) { diracCentralRecordSuppressedExceptionV221(errorV230); }
+        callback(error);
+        return;
+      }
+      callback(null, chunk);
+    }
+  });
+  incoming.on('error', (error) => limiter.destroy(error));
+  incoming.pipe(limiter);
+  return limiter;
+}
+
+async function diracCentralPinnedHttpsFetchV230(parsedUrl, options, verifiedIps, maximumBytes) {
+  const net = require('net');
+  const { Readable } = require('stream');
+  const ips = Array.from(new Set((verifiedIps || []).map(String))).filter((ip) => net.isIP(ip) && !diracCentralIsUnsafeIpV146(ip));
+  if (!ips.length) throw Object.assign(new Error('DIRAC_PINNED_DNS_IP_REQUIRED'), { code: 'DIRAC_PINNED_DNS_IP_REQUIRED' });
+  const pinnedIp = ips.sort()[0];
+  const method = String(options && options.method || 'GET').toUpperCase();
+  const headers = diracCentralHeaderObjectV230(options && options.headers);
+  const body = diracCentralBodyBytesV230(options && options.body);
+  if (body.length && headers['content-length'] === undefined) headers['content-length'] = String(body.length);
+  const signal = options && options.signal;
+  return await new Promise((resolve, reject) => {
+    let settled = false;
+    const request = DIRAC_CENTRAL_NATIVE_HTTPS_REQUEST_V230({
+      protocol: 'https:', hostname: parsedUrl.hostname, port: Number(parsedUrl.port || 443),
+      servername: parsedUrl.hostname, method, path: parsedUrl.pathname + parsedUrl.search,
+      headers, agent: false, rejectUnauthorized: true, minVersion: 'TLSv1.2',
+      lookup(_hostname, _options, callback) { callback(null, pinnedIp, net.isIP(pinnedIp)); }
+    }, (incoming) => {
+      const limiter = diracCentralBoundedReadableStreamV230(incoming, request, maximumBytes);
+      incoming.setTimeout(Math.max(1000, Math.min(120000, Number(process.env.DIRAC_EGRESS_STREAM_TIMEOUT_MS || 30000))), () => {
+        const error = Object.assign(new Error('DIRAC_EGRESS_STREAM_TIMEOUT'), { code: 'DIRAC_EGRESS_STREAM_TIMEOUT' });
+        incoming.destroy(error);
+        request.destroy(error);
+      });
+      const responseHeaders = new Headers();
+      for (const [name, value] of Object.entries(incoming.headers || {})) {
+        if (Array.isArray(value)) value.forEach((item) => responseHeaders.append(name, String(item)));
+        else if (value !== undefined) responseHeaders.set(name, String(value));
+      }
+      const noBody = method === 'HEAD' || [204, 205, 304].includes(Number(incoming.statusCode || 0));
+      const webBody = noBody ? null : Readable.toWeb(limiter);
+      settled = true;
+      resolve(new Response(webBody, { status: Number(incoming.statusCode || 502), statusText: String(incoming.statusMessage || ''), headers: responseHeaders }));
+    });
+    const streamTimeoutMs = Math.max(1000, Math.min(120000, Number(process.env.DIRAC_EGRESS_STREAM_TIMEOUT_MS || 30000)));
+    request.setTimeout(streamTimeoutMs, () => request.destroy(Object.assign(new Error('DIRAC_EGRESS_STREAM_TIMEOUT'), { code: 'DIRAC_EGRESS_STREAM_TIMEOUT' })));
+    request.on('error', (error) => { if (!settled) reject(error); });
+    if (signal) {
+      if (signal.aborted) request.destroy(signal.reason instanceof Error ? signal.reason : new Error('AbortError'));
+      else signal.addEventListener('abort', () => request.destroy(signal.reason instanceof Error ? signal.reason : Object.assign(new Error('AbortError'), { name: 'AbortError' })), { once: true });
+    }
+    if (body.length) request.write(body);
+    request.end();
+  });
+}
+
+async function diracCentralOpenSmtpSocketV230(host, port, secure, timeoutMs) {
+  const tls = require('tls');
+  const net = require('net');
+  const cleanHost = String(host || '').trim().toLowerCase();
+  const cleanPort = Number(port || 0);
+  const allowedPorts = new Set([465, 587]);
+  const configuredHosts = new Set(Object.keys(process.env).filter((name) => /(?:^|_)SMTP_HOST$/.test(name)).map((name) => String(process.env[name] || '').trim().toLowerCase()).filter(Boolean));
+  if (!cleanHost || !configuredHosts.has(cleanHost) || !allowedPorts.has(cleanPort) || diracCentralIsUnsafeHostV146(cleanHost)) {
+    throw Object.assign(new Error('DIRAC_SMTP_EGRESS_POLICY_REJECTED'), { code: 'DIRAC_SMTP_EGRESS_POLICY_REJECTED' });
+  }
+  const ips = await diracCentralResolveHostIpsV146(cleanHost);
+  const pinnedIp = ips.find((ip) => net.isIP(ip) && !diracCentralIsUnsafeIpV146(ip));
+  if (!pinnedIp) throw Object.assign(new Error('DIRAC_SMTP_PINNED_IP_REQUIRED'), { code: 'DIRAC_SMTP_PINNED_IP_REQUIRED' });
+  const socket = secure
+    ? DIRAC_CENTRAL_NATIVE_TLS_CONNECT_V230({ host: pinnedIp, port: cleanPort, servername: cleanHost, rejectUnauthorized: true, minVersion: 'TLSv1.2', timeout: timeoutMs })
+    : DIRAC_CENTRAL_NATIVE_NET_CONNECT_V230({ host: pinnedIp, port: cleanPort, timeout: timeoutMs });
+  Object.defineProperty(socket, '__diracSmtpPinnedHostV230', { value: cleanHost, enumerable: false, writable: false, configurable: false });
+  Object.defineProperty(socket, '__diracSmtpPinnedIpV230', { value: pinnedIp, enumerable: false, writable: false, configurable: false });
+  return socket;
+}
+
+function diracCentralUpgradeSmtpTlsV230(socket, host) {
+  const tls = require('tls');
+  const cleanHost = String(host || '').trim().toLowerCase();
+  if (!socket || !cleanHost || socket.__diracSmtpPinnedHostV230 !== cleanHost || !socket.__diracSmtpPinnedIpV230 || diracCentralIsUnsafeHostV146(cleanHost)) {
+    throw Object.assign(new Error('DIRAC_SMTP_TLS_UPGRADE_INVALID'), { code: 'DIRAC_SMTP_TLS_UPGRADE_INVALID' });
+  }
+  return DIRAC_CENTRAL_NATIVE_TLS_CONNECT_V230({ socket, servername: cleanHost, rejectUnauthorized: true, minVersion: 'TLSv1.2' });
 }
 
 async function diracCentralFetchWithRedirectGuardV146(fetchImpl, input, options, depth) {
@@ -33665,8 +35081,7 @@ async function diracCentralFetchWithRedirectGuardV146(fetchImpl, input, options,
     error.code = 'DIRAC_EGRESS_REDIRECT_LIMIT';
     throw error;
   }
-  const inspection = await diracCentralInspectEgressV146(input, options)
-    .catch(() => ({ block: true, reason: 'egress_guard_exception' }));
+  const inspection = await diracCentralInspectEgressV146(input, options).catch(() => ({ block: true, reason: 'egress_guard_exception' }));
   if (!inspection || inspection.block || inspection.ok !== true) {
     const error = new Error('DIRAC_EGRESS_BLOCKED');
     error.code = 'DIRAC_EGRESS_BLOCKED';
@@ -33689,13 +35104,13 @@ async function diracCentralFetchWithRedirectGuardV146(fetchImpl, input, options,
     throw error;
   }
   const exactTimeoutMs = diracCentralRecoveryGenerateEgressTimeoutMsV225(input, options);
-  const timeout = diracCentralTimeoutOptionsV221(
-    Object.assign({}, options || {}, { redirect: 'manual' }),
-    exactTimeoutMs
-  );
+  const timeout = diracCentralTimeoutOptionsV221(Object.assign({}, options || {}, { redirect: 'manual' }), exactTimeoutMs);
   let response;
   try {
-    response = await fetchImpl(input, timeout.options);
+    const firstIpSet = new Set((inspection.ips || []).map(String));
+    const pinnedIps = Array.from(new Set((rebinding.ips || []).map(String).filter((ip) => firstIpSet.has(ip))));
+    if (!pinnedIps.length) throw Object.assign(new Error('DIRAC_EGRESS_DNS_PIN_INTERSECTION_EMPTY'), { code: 'DIRAC_EGRESS_DNS_PIN_INTERSECTION_EMPTY' });
+    response = await diracCentralPinnedHttpsFetchV230(parsedUrl, timeout.options, pinnedIps, diracCentralEgressResponseMaxBytesV228(parsedUrl.hostname.toLowerCase()));
   } catch (error) {
     if (timeout.options.signal && timeout.options.signal.aborted && (!error || error.name === 'AbortError')) {
       const timeoutError = new Error('DIRAC_EGRESS_TIMEOUT');
@@ -33706,6 +35121,7 @@ async function diracCentralFetchWithRedirectGuardV146(fetchImpl, input, options,
   } finally {
     timeout.cleanup();
   }
+  response = diracCentralGuardEgressResponseV228(response, parsedUrl.hostname.toLowerCase());
   const status = Number(response && response.status || 0);
   if (status < 300 || status > 399 || !response || !response.headers || typeof response.headers.get !== 'function') return response;
   const location = response.headers.get('location');
@@ -33723,8 +35139,7 @@ async function diracCentralFetchWithRedirectGuardV146(fetchImpl, input, options,
     error.code = 'DIRAC_EGRESS_MUTATING_REDIRECT_BLOCKED';
     throw error;
   }
-  const decision = await diracCentralInspectEgressV146(nextUrl.toString(), options)
-    .catch(() => ({ block: true, reason: 'egress_redirect_guard_exception' }));
+  const decision = await diracCentralInspectEgressV146(nextUrl.toString(), options).catch(() => ({ block: true, reason: 'egress_redirect_guard_exception' }));
   if (decision && decision.block) {
     const error = new Error('DIRAC_EGRESS_REDIRECT_BLOCKED');
     error.code = 'DIRAC_EGRESS_REDIRECT_BLOCKED';
@@ -33828,36 +35243,86 @@ async function diracCentralOutboundSecretLeakGuardV194(url, input, options) {
 }
 
 async function diracCentralResolveHostIpsV146(host) {
-  const cleanHost = String(host || '').toLowerCase();
+  const cleanHost = String(host || '').trim().toLowerCase().replace(/\.$/, '');
+  if (!cleanHost || diracCentralIsUnsafeHostV146(cleanHost)) return [];
   const cached = DIRAC_CENTRAL_DNS_CACHE_V146.get(cleanHost);
   if (cached && Number(cached.until || 0) > Date.now()) return cached.ips || [];
-  try {
-    const dns = require('dns').promises;
-    const rows = await Promise.race([
-      dns.lookup(cleanHost, { all: true, verbatim: true }),
-      new Promise((resolve) => setTimeout(() => resolve([]), 1000))
+  const visited = new Set();
+  const ips = new Set();
+  const walk = async (name, depth) => {
+    const canonical = String(name || '').trim().toLowerCase().replace(/\.$/, '');
+    if (!canonical || depth > 8 || visited.has(canonical) || diracCentralIsUnsafeHostV146(canonical)) throw new Error('DIRAC_DNS_CHAIN_INVALID');
+    visited.add(canonical);
+    const [v4, v6, cnames] = await Promise.all([
+      DIRAC_CENTRAL_NATIVE_DNS_RESOLVE4_V230(canonical).catch(() => []),
+      DIRAC_CENTRAL_NATIVE_DNS_RESOLVE6_V230(canonical).catch(() => []),
+      DIRAC_CENTRAL_NATIVE_DNS_RESOLVE_CNAME_V230(canonical).catch(() => [])
     ]);
-    const ips = (rows || []).map((row) => String(row && row.address || '')).filter(Boolean).slice(0, 20);
-    DIRAC_CENTRAL_DNS_CACHE_V146.set(cleanHost, { until: Date.now() + 60 * 1000, ips });
+    for (const ip of [...v4, ...v6]) {
+      const clean = String(ip || '').trim();
+      if (!clean || diracCentralIsUnsafeIpV146(clean)) throw new Error('DIRAC_DNS_PRIVATE_OR_RESERVED_IP');
+      ips.add(clean);
+    }
+    for (const cname of cnames.slice(0, 8)) await walk(cname, depth + 1);
+    if (!v4.length && !v6.length && !cnames.length) {
+      const rows = await DIRAC_CENTRAL_NATIVE_DNS_LOOKUP_V230(canonical, { all: true, verbatim: true });
+      for (const row of rows || []) {
+        const clean = String(row && row.address || '').trim();
+        if (!clean || diracCentralIsUnsafeIpV146(clean)) throw new Error('DIRAC_DNS_PRIVATE_OR_RESERVED_IP');
+        ips.add(clean);
+      }
+    }
+  };
+  try {
+    await Promise.race([walk(cleanHost, 0), new Promise((_, reject) => setTimeout(() => reject(new Error('DIRAC_DNS_TIMEOUT')), 2500))]);
+    const result = Array.from(ips).slice(0, 32);
+    DIRAC_CENTRAL_DNS_CACHE_V146.set(cleanHost, { until: Date.now() + 30 * 1000, ips: result });
     diracCentralCleanupMapV146(DIRAC_CENTRAL_DNS_CACHE_V146, 2000, 1000);
-    return ips;
+    return result;
   } catch (_) {
-    DIRAC_CENTRAL_DNS_CACHE_V146.set(cleanHost, { until: Date.now() + 10 * 1000, ips: [] });
+    DIRAC_CENTRAL_DNS_CACHE_V146.set(cleanHost, { until: Date.now() + 5000, ips: [] });
     return [];
   }
 }
 
+function diracCentralIpv6BytesV228(ip) {
+  let text = String(ip || '').trim().toLowerCase().replace(/^\[|\]$/g, '').split('%')[0];
+  if (!text) return null;
+  if (text.includes('.')) {
+    const lastColon = text.lastIndexOf(':');
+    if (lastColon < 0) return null;
+    const ipv4 = text.slice(lastColon + 1).split('.').map(Number);
+    if (ipv4.length !== 4 || ipv4.some((item) => !Number.isInteger(item) || item < 0 || item > 255)) return null;
+    text = text.slice(0, lastColon) + ':' + ((ipv4[0] << 8) | ipv4[1]).toString(16) + ':' + ((ipv4[2] << 8) | ipv4[3]).toString(16);
+  }
+  const halves = text.split('::');
+  if (halves.length > 2) return null;
+  const left = halves[0] ? halves[0].split(':').filter(Boolean) : [];
+  const right = halves.length === 2 && halves[1] ? halves[1].split(':').filter(Boolean) : [];
+  const missing = 8 - left.length - right.length;
+  if ((halves.length === 1 && missing !== 0) || missing < 0) return null;
+  const words = [...left, ...Array(halves.length === 2 ? missing : 0).fill('0'), ...right];
+  if (words.length !== 8 || words.some((word) => !/^[0-9a-f]{1,4}$/.test(word))) return null;
+  const bytes = Buffer.alloc(16);
+  words.forEach((word, index) => bytes.writeUInt16BE(parseInt(word, 16), index * 2));
+  return bytes;
+}
+
+function diracCentralIpv4FromBytesV228(bytes, offset) {
+  if (!Buffer.isBuffer(bytes) || bytes.length < offset + 4) return '';
+  return [bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3]].join('.');
+}
+
 function diracCentralIsUnsafeIpV146(ip) {
-  let clean = String(ip || '').trim().toLowerCase();
+  let clean = String(ip || '').trim().toLowerCase().replace(/^\[|\]$/g, '').split('%')[0];
   if (!clean) return true;
-  if (/^::ffff:\d{1,3}(?:\.\d{1,3}){3}$/.test(clean)) clean = clean.slice(7);
   let version = 0;
   try { version = require('net').isIP(clean); } catch (_) { version = 0; }
   if (!version) return true;
   if (version === 4) {
     const octets = clean.split('.').map(Number);
     if (octets.length !== 4 || octets.some((value) => !Number.isInteger(value) || value < 0 || value > 255)) return true;
-    const [a, b] = octets;
+    const [a, b, c] = octets;
     return a === 0
       || a === 10
       || a === 127
@@ -33866,16 +35331,31 @@ function diracCentralIsUnsafeIpV146(ip) {
       || (a === 172 && b >= 16 && b <= 31)
       || (a === 192 && b === 0)
       || (a === 192 && b === 168)
+      || (a === 192 && b === 0 && c === 2)
       || (a === 198 && (b === 18 || b === 19))
+      || (a === 198 && b === 51 && c === 100)
+      || (a === 203 && b === 0 && c === 113)
       || a >= 224;
   }
-  const normalized = clean.replace(/^\[|\]$/g, '');
-  return normalized === '::'
-    || normalized === '::1'
-    || /^f[cd][0-9a-f]{2}:/i.test(normalized)
-    || /^fe[89ab][0-9a-f]:/i.test(normalized)
-    || /^ff/i.test(normalized)
-    || /^2001:db8:/i.test(normalized);
+  const bytes = diracCentralIpv6BytesV228(clean);
+  if (!bytes) return true;
+  const prefix = (offset, values) => values.every((value, index) => bytes[offset + index] === value);
+  if (bytes.every((value) => value === 0)) return true;
+  if (bytes.slice(0, 15).every((value) => value === 0) && bytes[15] === 1) return true;
+  if ((bytes[0] & 0xfe) === 0xfc) return true;
+  if (bytes[0] === 0xfe && (bytes[1] & 0xc0) === 0x80) return true;
+  if (bytes[0] === 0xfe && (bytes[1] & 0xc0) === 0xc0) return true;
+  if (bytes[0] === 0xff) return true;
+  if (prefix(0, [0x20, 0x01, 0x0d, 0xb8])) return true;
+  if (prefix(0, [0x01, 0x00]) && bytes.slice(2, 8).every((value) => value === 0)) return true;
+  if (prefix(0, [0x20, 0x01, 0x00, 0x00])) return true;
+  if (prefix(0, [0x20, 0x01, 0x00, 0x02])) return true;
+  if (prefix(0, [0x20, 0x01, 0x00, 0x10]) || prefix(0, [0x20, 0x01, 0x00, 0x20])) return true;
+  if (prefix(0, [0x00, 0x64, 0xff, 0x9b, 0x00, 0x01])) return true;
+  if (bytes.slice(0, 10).every((value) => value === 0) && bytes[10] === 0xff && bytes[11] === 0xff) return true;
+  if (prefix(0, [0x00, 0x64, 0xff, 0x9b])) return true;
+  if (prefix(0, [0x20, 0x02])) return true;
+  return false;
 }
 
 function diracCentralAllowedEgressHostV146(host) {
@@ -33883,22 +35363,22 @@ function diracCentralAllowedEgressHostV146(host) {
     'developers.hostinger.com',
     'api.resend.com',
     'api.brevo.com',
-    'api.midtrans.com',
     'app.midtrans.com',
     'app.sandbox.midtrans.com',
     'www.googleapis.com',
     'api.name.com',
     'www.namesilo.com',
-    'whoisjson.com',
-    'whoisjsonapi.com'
+    'whoisjson.com'
   ]);
-  [...Object.keys(process.env).filter((name) => /SUPABASE_URL$/.test(name)), 'DIRAC_RECOVERY_WORKER_URL'].forEach((name) => {
+  [...Object.keys(process.env).filter((name) => /SUPABASE_URL$/.test(name)),
+    'NAMECOM_API_BASE', 'NAMESILO_API_BASE', 'WHOISJSON_API_BASE', 'HOSTINGER_API_BASE',
+    'DIRAC_RECOVERY_WORKER_URL', 'DIRAC_LOGIN_SECURITY_WEBHOOK_URL'].forEach((name) => {
     try {
       const value = String(process.env[name] || '').trim();
       if (value) allowed.add(new URL(value).hostname.toLowerCase());
     } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
   });
-  return allowed.has(host);
+  return allowed.has(String(host || '').toLowerCase());
 }
 
 function diracCentralCircuitBreakerV146(req, ctx, event) {
@@ -34104,7 +35584,7 @@ function diracCentralStableMfaReadGateV146(req, res, ctx) {
 
 function diracCentralContractForActionV146(action) {
   const clean = String(action || '');
-  const commonGet = ['action', '_csrf_boot', '_csrf_a2f', '_csrf_login_final', '_csrf_probe', '_dirac_page_nonce_for', '_page_nonce_for', 'page_nonce_for', '_ts', '_t', '_', 'domain', 'limit', 'type', 'include_expired', 'order_id', 'order_code', 'domain_order_id', 'payment_id', 'transaction_id', 'invoice_id', 'gateway_reference', 'session_id', 'recovery_code_id', 'credential_id', 'project_id', 'document_id', 'item_id', 'email', 'slug'];
+  const commonGet = ['action', '_csrf_boot', '_csrf_a2f', '_csrf_login_final', '_csrf_probe', '_dirac_page_nonce_for', '_page_nonce_for', 'page_nonce_for', '_dirac_a2f_body_hash', '_ts', '_t', '_', 'domain', 'limit', 'type', 'include_expired', 'order_id', 'order_code', 'domain_order_id', 'payment_id', 'transaction_id', 'invoice_id', 'gateway_reference', 'session_id', 'recovery_code_id', 'credential_id', 'project_id', 'document_id', 'item_id', 'email', 'slug'];
   const commonPost = ['action', 'email', 'password', 'fullName', 'full_name', 'name', 'phone', 'domain', 'domain_name', 'quantity', 'items', 'order_id', 'order_code', 'domain_order_id', 'payment_id', 'transaction_id', 'invoice_id', 'gateway_reference', 'session_id', 'recovery_code', 'recovery_code_id', 'credential_id', 'user_id', 'challenge', 'response', 'setupToken', 'mfaSetupToken', 'code', 'reason', 'csrf', 'nonce', 'idempotency_key'];
   const getOnly = { methods: ['GET', 'HEAD'], allowed: commonGet, required: [], maxBodyBytes: 1024, maxFieldBytes: 3000, mutation: false };
   const postOnly = { methods: ['POST'], allowed: commonPost, required: [], maxBodyBytes: 20 * 1024, maxFieldBytes: 3000, mutation: true };
@@ -34292,10 +35772,23 @@ function diracCentralNormalizeKeyV146(key) {
 
 function diracCentralHtmlEntityDecodeV146(value) {
   return String(value || '')
+    .replace(/&#x([0-9a-f]{1,6});?/gi, (_, hex) => {
+      const code = parseInt(hex, 16);
+      return Number.isInteger(code) && code <= 0x10ffff && !(code >= 0xd800 && code <= 0xdfff) ? String.fromCodePoint(code) : '';
+    })
+    .replace(/&#([0-9]{1,7});?/g, (_, decimal) => {
+      const code = parseInt(decimal, 10);
+      return Number.isInteger(code) && code <= 0x10ffff && !(code >= 0xd800 && code <= 0xdfff) ? String.fromCodePoint(code) : '';
+    })
     .replace(/&lt;/gi, '<')
     .replace(/&gt;/gi, '>')
     .replace(/&quot;/gi, '"')
-    .replace(/&#x27;|&#39;/gi, "'")
+    .replace(/&apos;|&#x27;|&#39;/gi, "'")
+    .replace(/&colon;/gi, ':')
+    .replace(/&sol;/gi, '/')
+    .replace(/&bsol;/gi, '\\')
+    .replace(/&Tab;/gi, '\t')
+    .replace(/&NewLine;/gi, '\n')
     .replace(/&amp;/gi, '&');
 }
 
@@ -35884,9 +37377,14 @@ async function secureDatabaseGateway(ctx, operation) {
   if (contextDecision.phase === 'handler' && (!ctx.action || !ACTION_POLICY[ctx.action] || ctx.policy !== ACTION_POLICY[ctx.action])) {
     return { ok: false, status: 403, data: { code: 'DIRAC_DATABASE_GATEWAY_POLICY_MISSING' } };
   }
+  const callerEvidence = diracCentralDatabaseCallerEvidenceV230();
+  const permit = diracCentralCreateDatabaseEgressPermitV230(ctx, op, callerEvidence);
+  if (!permit || !DIRAC_CENTRAL_DATABASE_EGRESS_CONTEXT_V230) {
+    return { ok: false, status: 403, data: { code: 'DIRAC_DATABASE_EGRESS_PERMIT_REJECTED' } };
+  }
   ctx.__diracCentralDatabaseGatewayDepthV211 = Number(ctx.__diracCentralDatabaseGatewayDepthV211 || 0) + 1;
   try {
-    return await __diracV202DatabaseGatewayDelegate(op.path, op.options);
+    return await DIRAC_CENTRAL_DATABASE_EGRESS_CONTEXT_V230.run(permit, () => __diracV202DatabaseGatewayDelegate(op.path, op.options));
   } finally {
     ctx.__diracCentralDatabaseGatewayDepthV211 = Math.max(0, Number(ctx.__diracCentralDatabaseGatewayDepthV211 || 1) - 1);
   }
@@ -35921,7 +37419,184 @@ async function secureEgressGateway(ctx, requestConfig) {
 globalThis.fetch = async function fetchV202Gateway(input, options) {
   return secureEgressGateway(diracCentralCurrentContextV149(), { input, options });
 };
-globalThis.__DIRAC_V202_SECURE_EGRESS_GATEWAY__ = true;
+const DIRAC_V228_FINAL_FETCH_GATEWAY = globalThis.fetch;
+try {
+  Object.defineProperty(globalThis, 'fetch', {
+    value: DIRAC_V228_FINAL_FETCH_GATEWAY,
+    writable: false,
+    configurable: false,
+    enumerable: true
+  });
+} catch (error) {
+  throw new Error('DIRAC_V228_FINAL_FETCH_LOCK_FAILED', { cause: error });
+}
+Object.defineProperty(globalThis, '__DIRAC_V202_SECURE_EGRESS_GATEWAY__', {
+  value: true,
+  writable: false,
+  configurable: false,
+  enumerable: false
+});
+
+
+const DIRAC_CENTRAL_SECURE_DATABASE_GATEWAY_V230 = supabaseFetch;
+const DIRAC_CENTRAL_GUARD_REFERENCE_LIST_V230 = Object.freeze([
+  diracCentralRawRequestHeaderGuardV228,
+  diracCentralCaptureRawRequestV230,
+  diracCentralAdvancedContractGuardV221,
+  diracCentralA2FRequestSignatureGuardV148,
+  diracCentralAtomicConsumeV230,
+  diracCentralAtomicRateLimitV230,
+  diracCentralEgressRouteAllowedV228,
+  diracCentralInspectEgressV146,
+  diracCentralPinnedHttpsFetchV230,
+  diracCentralFetchWithRedirectGuardV146,
+  diracCentralGuardEgressResponseV228,
+  diracCentralSecureJsonSerializeV230,
+  diracCentralDatabaseCallerEvidenceV230,
+  diracCentralCreateDatabaseEgressPermitV230,
+  diracCentralDirectNetworkBypassBlockedV230
+]);
+function diracCentralRuntimeReferenceHashV230() {
+  const source = DIRAC_CENTRAL_GUARD_REFERENCE_LIST_V230.map((fn) => Function.prototype.toString.call(fn)).join('\n---DIRAC-V230---\n');
+  const registry = [
+    ...Array.from(DIRAC_CENTRAL_DATABASE_TABLES_V230).sort(),
+    ...Array.from(DIRAC_CENTRAL_DATABASE_RPCS_V230).sort()
+  ].join('|');
+  return crypto.createHash('sha256').update(source + '|' + registry).digest('hex');
+}
+const DIRAC_CENTRAL_RUNTIME_REFERENCE_HASH_V230 = diracCentralRuntimeReferenceHashV230();
+
+function diracCentralDirectNetworkBypassBlockedV230() {
+  const error = Object.assign(new Error('DIRAC_DIRECT_NETWORK_BYPASS_BLOCKED'), { code: 'DIRAC_DIRECT_NETWORK_BYPASS_BLOCKED' });
+  throw error;
+}
+const DIRAC_CENTRAL_BLOCKED_HTTP_REQUEST_V230 = function diracCentralBlockedHttpRequestV230() { return diracCentralDirectNetworkBypassBlockedV230(); };
+const DIRAC_CENTRAL_BLOCKED_HTTP_GET_V230 = function diracCentralBlockedHttpGetV230() { return diracCentralDirectNetworkBypassBlockedV230(); };
+const DIRAC_CENTRAL_BLOCKED_HTTPS_REQUEST_V230 = function diracCentralBlockedHttpsRequestV230() { return diracCentralDirectNetworkBypassBlockedV230(); };
+const DIRAC_CENTRAL_BLOCKED_HTTPS_GET_V230 = function diracCentralBlockedHttpsGetV230() { return diracCentralDirectNetworkBypassBlockedV230(); };
+const DIRAC_CENTRAL_BLOCKED_NET_CONNECT_V230 = function diracCentralBlockedNetConnectV230() { return diracCentralDirectNetworkBypassBlockedV230(); };
+const DIRAC_CENTRAL_BLOCKED_TLS_CONNECT_V230 = function diracCentralBlockedTlsConnectV230() { return diracCentralDirectNetworkBypassBlockedV230(); };
+const DIRAC_CENTRAL_BLOCKED_HTTP2_CONNECT_V230 = function diracCentralBlockedHttp2ConnectV230() { return diracCentralDirectNetworkBypassBlockedV230(); };
+const DIRAC_CENTRAL_BLOCKED_DGRAM_SOCKET_V230 = function diracCentralBlockedDgramSocketV230() { return diracCentralDirectNetworkBypassBlockedV230(); };
+const DIRAC_CENTRAL_BLOCKED_DNS_OPERATION_V230 = function diracCentralBlockedDnsOperationV230() { return diracCentralDirectNetworkBypassBlockedV230(); };
+const DIRAC_CENTRAL_BLOCKED_NETWORK_CONSTRUCTOR_V230 = function diracCentralBlockedNetworkConstructorV230() { return diracCentralDirectNetworkBypassBlockedV230(); };
+const DIRAC_CENTRAL_BLOCKED_SOCKET_CONNECT_V230 = function diracCentralBlockedSocketConnectV230() { return diracCentralDirectNetworkBypassBlockedV230(); };
+const DIRAC_CENTRAL_BLOCKED_WEBSOCKET_V230 = function diracCentralBlockedWebSocketV230() { return diracCentralDirectNetworkBypassBlockedV230(); };
+const DIRAC_CENTRAL_BLOCKED_AGENT_V230 = Object.freeze({
+  addRequest: DIRAC_CENTRAL_BLOCKED_NETWORK_CONSTRUCTOR_V230,
+  createConnection: DIRAC_CENTRAL_BLOCKED_NETWORK_CONSTRUCTOR_V230,
+  getName: DIRAC_CENTRAL_BLOCKED_NETWORK_CONSTRUCTOR_V230
+});
+
+function diracCentralLockBackendRuntimeV230() {
+  if (!DIRAC_CENTRAL_ASYNC_CONTEXT_V149 || !DIRAC_CENTRAL_DATABASE_EGRESS_CONTEXT_V230) throw new Error('DIRAC_RUNTIME_ASYNC_CONTEXT_REQUIRED');
+  const http = require('http');
+  const https = require('https');
+  const net = require('net');
+  const tls = require('tls');
+  const http2 = require('http2');
+  const dgram = require('dgram');
+  const dns = require('dns');
+  const dnsPromises = dns.promises;
+  const locks = [
+    [http, 'request', DIRAC_CENTRAL_BLOCKED_HTTP_REQUEST_V230],
+    [http, 'get', DIRAC_CENTRAL_BLOCKED_HTTP_GET_V230],
+    [https, 'request', DIRAC_CENTRAL_BLOCKED_HTTPS_REQUEST_V230],
+    [https, 'get', DIRAC_CENTRAL_BLOCKED_HTTPS_GET_V230],
+    [net, 'connect', DIRAC_CENTRAL_BLOCKED_NET_CONNECT_V230],
+    [net, 'createConnection', DIRAC_CENTRAL_BLOCKED_NET_CONNECT_V230],
+    [tls, 'connect', DIRAC_CENTRAL_BLOCKED_TLS_CONNECT_V230],
+    [http2, 'connect', DIRAC_CENTRAL_BLOCKED_HTTP2_CONNECT_V230],
+    [dgram, 'createSocket', DIRAC_CENTRAL_BLOCKED_DGRAM_SOCKET_V230],
+    [http, 'ClientRequest', DIRAC_CENTRAL_BLOCKED_NETWORK_CONSTRUCTOR_V230],
+    [http, 'Agent', DIRAC_CENTRAL_BLOCKED_NETWORK_CONSTRUCTOR_V230],
+    [http, 'WebSocket', DIRAC_CENTRAL_BLOCKED_WEBSOCKET_V230],
+    [http, 'globalAgent', DIRAC_CENTRAL_BLOCKED_AGENT_V230],
+    [https, 'Agent', DIRAC_CENTRAL_BLOCKED_NETWORK_CONSTRUCTOR_V230],
+    [https, 'globalAgent', DIRAC_CENTRAL_BLOCKED_AGENT_V230],
+    [net.Socket.prototype, 'connect', DIRAC_CENTRAL_BLOCKED_SOCKET_CONNECT_V230],
+    [dns, 'Resolver', DIRAC_CENTRAL_BLOCKED_NETWORK_CONSTRUCTOR_V230],
+    [dnsPromises, 'Resolver', DIRAC_CENTRAL_BLOCKED_NETWORK_CONSTRUCTOR_V230]
+  ];
+  for (const name of ['lookup', 'lookupService', 'resolve', 'resolve4', 'resolve6', 'resolveAny', 'resolveCaa', 'resolveCname', 'resolveMx', 'resolveNaptr', 'resolveNs', 'resolvePtr', 'resolveSoa', 'resolveSrv', 'resolveTxt', 'reverse', 'setServers']) {
+    if (typeof dns[name] === 'function') locks.push([dns, name, DIRAC_CENTRAL_BLOCKED_DNS_OPERATION_V230]);
+  }
+  for (const name of ['lookup', 'lookupService', 'resolve', 'resolve4', 'resolve6', 'resolveAny', 'resolveCaa', 'resolveCname', 'resolveMx', 'resolveNaptr', 'resolveNs', 'resolvePtr', 'resolveSoa', 'resolveSrv', 'resolveTxt', 'reverse', 'setServers']) {
+    if (typeof dnsPromises[name] === 'function') locks.push([dnsPromises, name, DIRAC_CENTRAL_BLOCKED_DNS_OPERATION_V230]);
+  }
+  if (typeof globalThis.WebSocket === 'function') locks.push([globalThis, 'WebSocket', DIRAC_CENTRAL_BLOCKED_WEBSOCKET_V230]);
+  for (const [target, name, value] of locks) {
+    const descriptor = Object.getOwnPropertyDescriptor(target, name);
+    if (!descriptor || descriptor.configurable === false) throw new Error('DIRAC_RUNTIME_NETWORK_LOCK_UNAVAILABLE:' + name);
+    Object.defineProperty(target, name, { value, writable: false, configurable: false, enumerable: descriptor.enumerable === true });
+  }
+  Object.defineProperty(globalThis, '__DIRAC_V230_RUNTIME_READY__', { value: true, writable: false, configurable: false, enumerable: false });
+  return Object.freeze({
+    ok: true,
+    referenceHash: DIRAC_CENTRAL_RUNTIME_REFERENCE_HASH_V230,
+    callsiteHash: DIRAC_CENTRAL_DATABASE_CALLSITES_HASH_V230,
+    callsiteCount: DIRAC_CENTRAL_DATABASE_CALLSITES_V230.size,
+    middlewareCount: __diracV202MiddlewareRegistry.length,
+    actionCount: Object.keys(ACTION_POLICY).length,
+    pipelineLength: SECURITY_PIPELINE.length
+  });
+}
+const DIRAC_CENTRAL_RUNTIME_LOCK_V230 = diracCentralLockBackendRuntimeV230();
+
+function diracCentralRuntimeInvariantGuardV230() {
+  const failures = [];
+  const expect = (condition, name) => { if (!condition) failures.push(name); };
+  expect(globalThis.__DIRAC_V230_RUNTIME_READY__ === true, 'runtime_ready_flag_invalid');
+  expect(globalThis.fetch === DIRAC_V228_FINAL_FETCH_GATEWAY, 'fetch_gateway_mutated');
+  expect(supabaseFetch === DIRAC_CENTRAL_SECURE_DATABASE_GATEWAY_V230, 'database_gateway_mutated');
+  expect(require('http').request === DIRAC_CENTRAL_BLOCKED_HTTP_REQUEST_V230 && require('http').get === DIRAC_CENTRAL_BLOCKED_HTTP_GET_V230, 'http_exports_mutated');
+  expect(require('https').request === DIRAC_CENTRAL_BLOCKED_HTTPS_REQUEST_V230 && require('https').get === DIRAC_CENTRAL_BLOCKED_HTTPS_GET_V230, 'https_exports_mutated');
+  expect(require('net').connect === DIRAC_CENTRAL_BLOCKED_NET_CONNECT_V230 && require('net').createConnection === DIRAC_CENTRAL_BLOCKED_NET_CONNECT_V230, 'net_exports_mutated');
+  expect(require('tls').connect === DIRAC_CENTRAL_BLOCKED_TLS_CONNECT_V230, 'tls_export_mutated');
+  expect(require('http2').connect === DIRAC_CENTRAL_BLOCKED_HTTP2_CONNECT_V230, 'http2_export_mutated');
+  expect(require('dgram').createSocket === DIRAC_CENTRAL_BLOCKED_DGRAM_SOCKET_V230, 'dgram_export_mutated');
+  expect(require('http').ClientRequest === DIRAC_CENTRAL_BLOCKED_NETWORK_CONSTRUCTOR_V230 && require('http').Agent === DIRAC_CENTRAL_BLOCKED_NETWORK_CONSTRUCTOR_V230 && require('http').WebSocket === DIRAC_CENTRAL_BLOCKED_WEBSOCKET_V230, 'http_constructor_exports_mutated');
+  expect(require('http').globalAgent === DIRAC_CENTRAL_BLOCKED_AGENT_V230 && require('https').Agent === DIRAC_CENTRAL_BLOCKED_NETWORK_CONSTRUCTOR_V230 && require('https').globalAgent === DIRAC_CENTRAL_BLOCKED_AGENT_V230, 'agent_exports_mutated');
+  expect(require('net').Socket.prototype.connect === DIRAC_CENTRAL_BLOCKED_SOCKET_CONNECT_V230, 'socket_connect_prototype_mutated');
+  expect(require('dns').Resolver === DIRAC_CENTRAL_BLOCKED_NETWORK_CONSTRUCTOR_V230 && require('dns').promises.Resolver === DIRAC_CENTRAL_BLOCKED_NETWORK_CONSTRUCTOR_V230, 'dns_resolver_exports_mutated');
+  expect(['lookup', 'resolve', 'resolve4', 'resolve6', 'resolveCname', 'reverse'].every((name) => require('dns')[name] === DIRAC_CENTRAL_BLOCKED_DNS_OPERATION_V230 && require('dns').promises[name] === DIRAC_CENTRAL_BLOCKED_DNS_OPERATION_V230), 'dns_exports_mutated');
+  expect(typeof globalThis.WebSocket !== 'function' || globalThis.WebSocket === DIRAC_CENTRAL_BLOCKED_WEBSOCKET_V230, 'global_websocket_mutated');
+  expect(DIRAC_CENTRAL_DATABASE_CALLSITES_V230.size === DIRAC_CENTRAL_RUNTIME_LOCK_V230.callsiteCount
+    && DIRAC_CENTRAL_DATABASE_CALLSITES_HASH_V230 === DIRAC_CENTRAL_RUNTIME_LOCK_V230.callsiteHash, 'database_callsite_registry_mutated');
+  expect(Object.isFrozen(__diracV202MiddlewareRegistry) && __diracV202MiddlewareRegistry.length === DIRAC_CENTRAL_RUNTIME_LOCK_V230.middlewareCount, 'middleware_registry_mutated');
+  expect(Object.isFrozen(SECURITY_PIPELINE) && SECURITY_PIPELINE.length === DIRAC_CENTRAL_RUNTIME_LOCK_V230.pipelineLength, 'security_pipeline_mutated');
+  expect(Object.isFrozen(ACTION_POLICY) && Object.keys(ACTION_POLICY).length === DIRAC_CENTRAL_RUNTIME_LOCK_V230.actionCount, 'action_policy_mutated');
+  expect(diracCentralRuntimeReferenceHashV230() === DIRAC_CENTRAL_RUNTIME_LOCK_V230.referenceHash, 'guard_reference_hash_mutated');
+  return Object.freeze({ ok: failures.length === 0, failures: Object.freeze(failures) });
+}
+
+async function diracCentralRunInternalComplianceContextV230(operation) {
+  if (typeof operation !== 'function' || !DIRAC_CENTRAL_ASYNC_CONTEXT_V149) throw new Error('DIRAC_INTERNAL_COMPLIANCE_CONTEXT_UNAVAILABLE');
+  const req = { method: 'POST', url: '/api/health?action=domain_health', headers: {}, query: { action: 'domain_health' } };
+  const ctx = {
+    req, res: {}, requestId: crypto.randomBytes(16).toString('hex'), action: 'domain_health', rawAction: 'domain_health',
+    method: 'POST', classification: 'public_read', executionPhaseV211: 'guard', currentStageV211: 'backend_compliance_gate',
+    currentStageIndexV211: 0, policy: ACTION_POLICY.domain_health || null
+  };
+  return DIRAC_CENTRAL_ASYNC_CONTEXT_V149.run({ ctx }, operation);
+}
+
+async function diracCentralSecurityTelemetryV230(event) {
+  const source = event && typeof event === 'object' ? event : {};
+  const eventType = String(source.event_type || 'central_security_event').toLowerCase().replace(/[^a-z0-9._:-]+/g, '_').slice(0, 120);
+  const severity = ['info', 'warning', 'high', 'critical'].includes(String(source.severity || 'warning')) ? String(source.severity || 'warning') : 'warning';
+  const reasonCode = String(source.reason_code || '').replace(/[^A-Za-z0-9:._-]+/g, '_').slice(0, 160);
+  const safeEvent = diracCentralSecureJsonSerializeV230(source.event_json && typeof source.event_json === 'object' ? source.event_json : {});
+  return diracCentralRunInternalComplianceContextV230(async () => {
+    const result = await supabaseFetch('/rest/v1/rpc/dirac_central_security_log_v230', {
+      method: 'POST', auth: 'service', body: {
+        p_event_type: eventType || 'central_security_event', p_severity: severity,
+        p_request_id_hash: '', p_action_name: 'domain_health', p_reason_code: reasonCode, p_event_json: safeEvent
+      }
+    }).catch(() => null);
+    return Boolean(result && result.ok === true && result.data === true);
+  });
+}
 
 function secureResponseGateway(ctx, response) {
   if (!response || typeof response !== 'object') return response;
@@ -35930,6 +37605,9 @@ function secureResponseGateway(ctx, response) {
   if (ctx) ctx.responsePolicy = ctx.policy && ctx.policy.responsePolicy || 'secure_response_gateway_no_store';
   return response;
 }
+
+__diracV202MiddlewareRegistryLockedV228 = true;
+Object.freeze(__diracV202MiddlewareRegistry);
 
 const __diracV202CompiledDispatcher = (() => {
   let next = __diracV202BaseHandler;
@@ -35953,7 +37631,156 @@ async function diracV202Dispatcher(req, res) {
   return __diracV202CompiledDispatcher(req, res);
 }
 
+function diracCentralVerifyBuildAttestationV230() {
+    const encoded = String(process.env.DIRAC_BACKEND_BUILD_ATTESTATION_V230 || '').trim();
+  const signature = String(process.env.DIRAC_BACKEND_BUILD_ATTESTATION_SIGNATURE_V230 || '').trim();
+  const publicKeyPem = String(process.env.DIRAC_BACKEND_ATTESTATION_PUBLIC_KEY_PEM || '').trim();
+  if (!encoded || !signature || !publicKeyPem) return { ok: false, reason: 'build_attestation_missing' };
+  let publicKey;
+  try { publicKey = crypto.createPublicKey(publicKeyPem); } catch (_) { return { ok: false, reason: 'build_attestation_public_key_invalid' }; }
+  if (!publicKey || publicKey.asymmetricKeyType !== 'ed25519') return { ok: false, reason: 'build_attestation_public_key_type_invalid' };
+  let signatureBytes;
+  try { signatureBytes = Buffer.from(signature, 'base64url'); } catch (_) { return { ok: false, reason: 'build_attestation_signature_encoding_invalid' }; }
+  if (signatureBytes.length !== 64 || !crypto.verify(null, Buffer.from(encoded, 'utf8'), publicKey, signatureBytes)) {
+    return { ok: false, reason: 'build_attestation_signature_invalid' };
+  }
+  const publicKeyDer = publicKey.export({ type: 'spki', format: 'der' });
+  const publicKeyFingerprint = crypto.createHash('sha256').update(publicKeyDer).digest('hex');
+  let payload;
+  try { payload = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8')); } catch (_) { return { ok: false, reason: 'build_attestation_payload_invalid' }; }
+  let actualHash = '';
+  try { actualHash = crypto.createHash('sha256').update(require('fs').readFileSync(__filename)).digest('hex'); } catch (_) { return { ok: false, reason: 'build_attestation_file_hash_unavailable' }; }
+  const now = Date.now();
+  const testedAt = Date.parse(String(payload.tested_at || ''));
+  const expiresAt = Date.parse(String(payload.expires_at || ''));
+  const mandatoryPassClaims = [
+    'syntax_test',
+    'unit_security_tests',
+    'adversarial_10000',
+    'replay_cross_instance',
+    'concurrency_race',
+    'ssrf',
+    'dns_rebinding',
+    'request_smuggling',
+    'sast',
+    'sca',
+    'secret_scan',
+    'artifact_hash'
+  ];
+  if (String(payload.attestation_type || '') !== 'dirac-backend-security-attestation-v230'
+      || String(payload.attestation_key_sha256 || '') !== publicKeyFingerprint
+      || String(payload.build_sha256 || '') !== actualHash
+      || String(payload.node_version || '') !== process.version
+      || String(payload.owasp_profile || '') !== 'OWASP-TOP-10-2025-BACKEND'
+      || String(payload.asvs_profile || '') !== 'OWASP-ASVS-5.0-L2-BACKEND'
+      || payload.owasp_backend_gate !== 'PASS'
+      || Number(payload.tests_passed) < 10000
+      || Number(payload.tests_failed) !== 0
+      || Number(payload.critical_open) !== 0
+      || Number(payload.high_open) !== 0
+      || mandatoryPassClaims.some((name) => String(payload[name] || '') !== 'PASS')
+      || !Number.isFinite(testedAt)
+      || !Number.isFinite(expiresAt)
+      || testedAt > now + 5 * 60 * 1000
+      || expiresAt <= now
+      || expiresAt > testedAt + 7 * 24 * 60 * 60 * 1000) {
+    return { ok: false, reason: 'build_attestation_claim_invalid' };
+  }
+  return { ok: true, payload };
+}
+
+function diracCentralBackendComplianceStaticGateV230() {
+  const failures = [];
+  const expect = (condition, name) => { if (!condition) failures.push(name); };
+  expect(diracCentralA2FExplicitSignatureRequiredV148() === true, 'a2f_signature_required');
+  expect(typeof diracCentralIssueA2FRequestProofV230 === 'function', 'a2f_backend_issuer_missing');
+  expect(typeof diracCentralAtomicConsumeV230 === 'function', 'atomic_consume_missing');
+  expect(typeof diracCentralAtomicRateLimitV230 === 'function', 'atomic_rate_missing');
+  expect(typeof diracCentralCaptureRawRequestV230 === 'function', 'raw_body_capture_missing');
+  expect(typeof diracCentralPinnedHttpsFetchV230 === 'function', 'dns_pinned_fetch_missing');
+  expect(typeof diracCentralOpenSmtpSocketV230 === 'function', 'smtp_gateway_missing');
+  expect(typeof diracCentralBoundedReadableStreamV230 === 'function', 'bounded_stream_missing');
+  expect(typeof diracCentralSecureJsonSerializeV230 === 'function', 'secure_serializer_missing');
+  expect(typeof diracCentralLockBackendRuntimeV230 === 'function' && DIRAC_CENTRAL_RUNTIME_LOCK_V230.ok === true, 'runtime_lock_missing');
+  expect(typeof diracCentralRuntimeInvariantGuardV230 === 'function' && diracCentralRuntimeInvariantGuardV230().ok === true, 'runtime_invariant_failed');
+  expect(typeof diracCentralSecurityTelemetryV230 === 'function', 'durable_telemetry_missing');
+  expect(DIRAC_CENTRAL_DATABASE_CALLSITES_V230.size >= 150, 'database_callsite_registry_incomplete');
+  expect(typeof diracCentralDatabaseCallerEvidenceV230 === 'function', 'database_caller_identity_missing');
+  expect(require('http').request === DIRAC_CENTRAL_BLOCKED_HTTP_REQUEST_V230 && require('https').request === DIRAC_CENTRAL_BLOCKED_HTTPS_REQUEST_V230 && require('net').connect === DIRAC_CENTRAL_BLOCKED_NET_CONNECT_V230 && require('tls').connect === DIRAC_CENTRAL_BLOCKED_TLS_CONNECT_V230, 'direct_network_exports_not_blocked');
+  expect(require('http').ClientRequest === DIRAC_CENTRAL_BLOCKED_NETWORK_CONSTRUCTOR_V230 && require('net').Socket.prototype.connect === DIRAC_CENTRAL_BLOCKED_SOCKET_CONNECT_V230, 'direct_network_constructors_not_blocked');
+  expect(require('dns').resolve4 === DIRAC_CENTRAL_BLOCKED_DNS_OPERATION_V230 && require('dns').promises.resolve4 === DIRAC_CENTRAL_BLOCKED_DNS_OPERATION_V230, 'direct_dns_exports_not_blocked');
+  expect(typeof globalThis.WebSocket !== 'function' || globalThis.WebSocket === DIRAC_CENTRAL_BLOCKED_WEBSOCKET_V230, 'direct_websocket_not_blocked');
+  expect(Boolean(DIRAC_CENTRAL_ASYNC_CONTEXT_V149), 'async_local_storage_missing');
+  expect(Boolean(DIRAC_CENTRAL_DATABASE_EGRESS_CONTEXT_V230), 'database_permit_async_context_missing');
+  expect(Object.isFrozen(__diracV202MiddlewareRegistry), 'middleware_registry_not_frozen');
+  expect(Object.isFrozen(SECURITY_PIPELINE), 'security_pipeline_not_frozen');
+  expect(Object.isFrozen(ACTION_POLICY), 'action_policy_not_frozen');
+  expect(globalThis.fetch === DIRAC_V228_FINAL_FETCH_GATEWAY, 'fetch_gateway_mutated');
+  const routeSource = Function.prototype.toString.call(diracCentralEgressRouteAllowedV228);
+  expect(!routeSource.includes("'/storage/v1/'") && !routeSource.includes("'/functions/v1/'"), 'broad_supabase_route_present');
+  expect(DIRAC_CENTRAL_DATABASE_TABLES_V230.size === 25 && DIRAC_CENTRAL_DATABASE_RPCS_V230.size === 4, 'database_exact_registry_invalid');
+  const rawSource = Function.prototype.toString.call(diracCentralAdvancedContractGuardV221);
+  expect(rawSource.includes('raw_json_evidence_required') && !rawSource.includes("isEnvTrue('DIRAC_STRICT_RAW_JSON_EVIDENCE')"), 'raw_evidence_not_mandatory');
+  const a2fSource = Function.prototype.toString.call(diracCentralA2FRequestSignatureGuardV148);
+  expect(a2fSource.includes('a2f_signature_required') && !a2fSource.includes('signed_single_use_a2f_action_ticket_v230') && !a2fSource.includes('page_nonce_compatibility'), 'a2f_header_signature_fallback_present');
+  const fileSource = require('fs').readFileSync(__filename, 'utf8');
+  expect((fileSource.match(/\b(?:net|tls)\.connect\s*\(/g) || []).length === 0, 'direct_socket_call_present');
+  expect((fileSource.match(/\b(?:http|https)\.request\s*\(/g) || []).length === 0, 'direct_http_request_call_present');
+  return Object.freeze({ ok: failures.length === 0, failures: Object.freeze(failures) });
+}
+
+const DIRAC_CENTRAL_BACKEND_STATIC_GATE_V230 = diracCentralBackendComplianceStaticGateV230();
+if (!DIRAC_CENTRAL_BACKEND_STATIC_GATE_V230.ok) throw new Error('DIRAC_BACKEND_COMPLIANCE_STATIC_GATE_FAILED:' + DIRAC_CENTRAL_BACKEND_STATIC_GATE_V230.failures.join(','));
+let DIRAC_CENTRAL_BACKEND_DYNAMIC_GATE_PROMISE_V230 = null;
+async function diracCentralBackendComplianceGateV230() {
+  const attestation = diracCentralVerifyBuildAttestationV230();
+  if (!attestation.ok) throw new Error('DIRAC_BACKEND_ATTESTATION_FAILED:' + attestation.reason);
+  const runtime = diracCentralRuntimeInvariantGuardV230();
+  if (!runtime.ok) throw new Error('DIRAC_BACKEND_RUNTIME_INVARIANT_FAILED:' + runtime.failures.join(','));
+  if (!DIRAC_CENTRAL_BACKEND_DYNAMIC_GATE_PROMISE_V230) {
+    DIRAC_CENTRAL_BACKEND_DYNAMIC_GATE_PROMISE_V230 = diracCentralRunInternalComplianceContextV230(async () => {
+      const probe = crypto.randomBytes(24).toString('base64url');
+      const first = await supabaseFetch('/rest/v1/rpc/dirac_central_atomic_consume_v230', {
+        method: 'POST', auth: 'service', body: { p_security_key: 's2s-central-v230-gate:' + probe, p_record_json: { type: 'v230_gate' }, p_expires_at: new Date(Date.now() + 120000).toISOString() }
+      });
+      const second = await supabaseFetch('/rest/v1/rpc/dirac_central_atomic_consume_v230', {
+        method: 'POST', auth: 'service', body: { p_security_key: 's2s-central-v230-gate:' + probe, p_record_json: { type: 'v230_gate' }, p_expires_at: new Date(Date.now() + 120000).toISOString() }
+      });
+      if (!first || first.ok !== true || first.data !== true || !second || second.ok !== true || second.data !== false) throw new Error('DIRAC_BACKEND_ATOMIC_CONSUME_GATE_FAILED');
+      const record = await supabaseFetch('/rest/v1/rpc/dirac_central_atomic_claim_record_v230', {
+        method: 'POST', auth: 'service', body: { p_table_name: 'dirac_s2s_security', p_security_key: 's2s-central-v230-record-gate:' + probe, p_record_json: { type: 'v230_record_gate' }, p_expires_at: new Date(Date.now() + 120000).toISOString() }
+      });
+      if (!record || record.ok !== true || record.data !== true) throw new Error('DIRAC_BACKEND_ATOMIC_RECORD_GATE_FAILED');
+      const rate = await supabaseFetch('/rest/v1/rpc/dirac_central_atomic_rate_limit_v230', {
+        method: 'POST', auth: 'service', body: { p_security_key: 's2s-central-v230-rate-gate:' + probe, p_limit: 2, p_window_seconds: 60, p_block_seconds: 60 }
+      });
+      if (!rate || rate.ok !== true || !Array.isArray(rate.data) || !rate.data[0] || typeof rate.data[0].allowed !== 'boolean') throw new Error('DIRAC_BACKEND_ATOMIC_RATE_GATE_FAILED');
+      const logged = await supabaseFetch('/rest/v1/rpc/dirac_central_security_log_v230', {
+        method: 'POST', auth: 'service', body: { p_event_type: 'backend_compliance_probe', p_severity: 'info', p_request_id_hash: '', p_action_name: 'domain_health', p_reason_code: 'v230_gate', p_event_json: { probe_hash: diracCentralHashV146(probe) } }
+      });
+      if (!logged || logged.ok !== true || logged.data !== true) throw new Error('DIRAC_BACKEND_DURABLE_LOG_GATE_FAILED');
+      return Object.freeze({ ok: true, mode: 'production_dynamic' });
+    }).catch((error) => {
+      DIRAC_CENTRAL_BACKEND_DYNAMIC_GATE_PROMISE_V230 = null;
+      throw error;
+    });
+  }
+  const dynamic = await DIRAC_CENTRAL_BACKEND_DYNAMIC_GATE_PROMISE_V230;
+  return Object.freeze({ ...dynamic, attestation: attestation.payload || null });
+}
+
 module.exports = async function diracCentralArchitectureConsolidationV202(req, res) {
+  const rawCaptureV230 = diracCentralCaptureRawRequestV230(req);
+  if (!rawCaptureV230.ok) {
+    diracCentralApplyHeadersV146(res);
+    return res.status(400).json({ ok: false, code: String(rawCaptureV230.reason || 'DIRAC_RAW_BODY_CAPTURE_FAILED'), message: 'Request ditolak oleh pemeriksaan integritas raw body.' });
+  }
+  try {
+    await diracCentralBackendComplianceGateV230();
+  } catch (error) {
+    diracCentralApplyHeadersV146(res);
+    return res.status(503).json({ ok: false, code: 'DIRAC_BACKEND_COMPLIANCE_GATE_FAILED', message: 'Backend security compliance gate belum lulus.' });
+  }
   return __diracV202CentralGuardHandler(req, res, () => diracV202Dispatcher(req, res));
 };
 for (const flag of __diracV202WrapperFlags) {
@@ -35972,6 +37799,10 @@ Object.defineProperty(module.exports, '__diracCentralSelfTestV221', { value: DIR
 Object.defineProperty(module.exports, '__diracCentralPatchTargetCountV221', { value: DIRAC_CENTRAL_PATCH_TARGETS_V221.length, enumerable: false });
 Object.defineProperty(module.exports, '__diracCentralPatchTargetsV221', { value: DIRAC_CENTRAL_PATCH_TARGETS_V221, enumerable: false });
 Object.defineProperty(module.exports, '__diracCentralDeviceAuthBootstrapV224', { value: true, enumerable: false });
+Object.defineProperty(module.exports, '__diracCentralOwaspHardeningV228', { value: true, enumerable: false });
+Object.defineProperty(module.exports, '__diracCentralBackendComplianceV230', { value: true, enumerable: false });
+Object.defineProperty(module.exports, '__diracCentralBackendStaticGateV230', { value: DIRAC_CENTRAL_BACKEND_STATIC_GATE_V230, enumerable: false });
+Object.defineProperty(module.exports, '__diracCentralRuntimeLockV230', { value: DIRAC_CENTRAL_RUNTIME_LOCK_V230, enumerable: false });
 
 if (!Array.isArray(SECURITY_PIPELINE)
     || SECURITY_PIPELINE.length !== Object.keys(DIRAC_V202_CHECKPOINT_BY_STAMP).length
@@ -35980,6 +37811,16 @@ if (!Array.isArray(SECURITY_PIPELINE)
     || typeof supabaseFetch !== 'function'
     || supabaseFetch.__diracV202SecureDatabaseGateway !== true
     || globalThis.__DIRAC_V202_SECURE_EGRESS_GATEWAY__ !== true
+    || globalThis.fetch !== DIRAC_V228_FINAL_FETCH_GATEWAY
+    || !DIRAC_CENTRAL_DATABASE_EGRESS_CONTEXT_V230
+    || !Object.isFrozen(__diracV202MiddlewareRegistry)
+    || __diracV202MiddlewareRegistryLockedV228 !== true
+    || module.exports.__diracCentralBackendComplianceV230 !== true
+    || !DIRAC_CENTRAL_BACKEND_STATIC_GATE_V230
+    || DIRAC_CENTRAL_BACKEND_STATIC_GATE_V230.ok !== true
+    || !module.exports.__diracCentralRuntimeLockV230
+    || module.exports.__diracCentralRuntimeLockV230.ok !== true
+    || !diracCentralRuntimeInvariantGuardV230().ok
     || module.exports.__diracCentralHardeningV221 !== true
     || module.exports.__diracCentralSecurityScoreV221 !== 100
     || module.exports.__diracCentralPatchTargetCountV221 !== 22
@@ -36009,3 +37850,8 @@ if (customerSecurityRecoveryWorkerLocalDeploymentAllowed() !== false
 }
 Object.defineProperty(module.exports, '__diracServer1RecoveryProxyOnlyV220', { value: true, enumerable: false });
 Object.defineProperty(module.exports, '__diracServer1RecoveryTransportOnlyV220', { value: true, enumerable: false });
+
+Object.freeze(module.exports);
+if (!Object.isFrozen(module.exports)) {
+  throw new Error('DIRAC_V230_FINAL_EXPORT_FREEZE_FAILED');
+}
