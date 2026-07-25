@@ -29344,7 +29344,7 @@ function diracCentralRawRequestHeaderGuardV228(req, ctx) {
   return { ok: true };
 }
 
-function diracCentralCaptureRawRequestV230(req) {
+async function diracCentralCaptureRawRequestV230(req) {
   if (!req || typeof req !== 'object') return { ok: false, reason: 'raw_request_object_required' };
   try {
     const candidates = [req.__diracRawBodyBufferV230, req.__diracRawJsonV221, req.rawBody, req.bodyRaw, req.raw];
@@ -29357,8 +29357,46 @@ function diracCentralCaptureRawRequestV230(req) {
     if (!buffer && typeof req.body === 'string') buffer = Buffer.from(req.body, 'utf8');
     const method = String(req.method || 'GET').toUpperCase();
     const declared = String(req.headers && req.headers['content-length'] || '').trim();
-    const bodyExpected = !['GET', 'HEAD', 'OPTIONS'].includes(method)
-      && (Number(declared || 0) > 0 || (req.body !== undefined && req.body !== null));
+    const bodyCapable = !['GET', 'HEAD', 'OPTIONS'].includes(method);
+    const streamReadable = req.body === undefined && typeof req.on === 'function' && !req.readableEnded;
+    const bodyExpected = bodyCapable
+      && (Number(declared || 0) > 0 || (req.body !== undefined && req.body !== null) || streamReadable);
+    if (!buffer && bodyExpected && streamReadable) {
+      const rawQuery = String(req.url || '').split('?').slice(1).join('?');
+      const action = diracV143NormalizeAction(String(req.query && req.query.action || new URLSearchParams(rawQuery).get('action') || ''));
+      const contractLimit = Number(diracCentralContractForActionV146(action).maxBodyBytes || 0);
+      const rawLimit = Math.max(1024, contractLimit || Number(diracUltraBodyLimitBytes(action, method) || 128 * 1024));
+      if (declared && Number(declared) > rawLimit) return { ok: false, reason: 'raw_body_too_large' };
+      buffer = await new Promise((resolve, reject) => {
+        const chunks = [];
+        let total = 0;
+        let completed = false;
+        const fail = (code) => {
+          if (completed) return;
+          completed = true;
+          const error = new Error(code);
+          error.code = code;
+          reject(error);
+        };
+        req.on('data', (chunk) => {
+          if (completed) return;
+          const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+          total += bytes.length;
+          if (total > rawLimit) return fail('raw_body_too_large');
+          chunks.push(bytes);
+        });
+        req.on('end', () => {
+          if (completed) return;
+          completed = true;
+          resolve(Buffer.concat(chunks, total));
+        });
+        req.on('error', () => fail('raw_body_stream_error'));
+        req.on('aborted', () => fail('raw_body_stream_aborted'));
+        req.on('close', () => {
+          if (!completed && !req.readableEnded) fail('raw_body_stream_closed');
+        });
+      });
+    }
     if (!buffer) return bodyExpected ? { ok: false, reason: 'raw_body_capture_required' } : { ok: true, empty: true };
     const rawText = buffer.toString('utf8');
     if (!Buffer.from(rawText, 'utf8').equals(buffer)) return { ok: false, reason: 'raw_body_utf8_invalid' };
@@ -29374,9 +29412,10 @@ function diracCentralCaptureRawRequestV230(req) {
     if (!seal('__diracRawBodyLengthV230', buffer.length, (a, b) => Number(a) === b)) return { ok: false, reason: 'raw_body_length_evidence_conflict' };
     if (!seal('__diracRawBodySha256V230', hash, (a, b) => String(a) === b)) return { ok: false, reason: 'raw_body_hash_evidence_conflict' };
     if (!seal('__diracRawJsonV221', rawText, (a, b) => String(a) === b)) return { ok: false, reason: 'raw_json_evidence_conflict' };
+    if (req.body === undefined) req.body = rawText;
     return { ok: true, bytes: buffer.length, sha256: hash };
-  } catch (_) {
-    return { ok: false, reason: 'raw_body_capture_exception' };
+  } catch (error) {
+    return { ok: false, reason: String(error && error.code || 'raw_body_capture_exception') };
   }
 }
 
@@ -37900,7 +37939,7 @@ async function diracCentralBackendComplianceGateV230() {
 }
 
 module.exports = async function diracCentralArchitectureConsolidationV202(req, res) {
-  const rawCaptureV230 = diracCentralCaptureRawRequestV230(req);
+  const rawCaptureV230 = await diracCentralCaptureRawRequestV230(req);
   if (!rawCaptureV230.ok) {
     diracCentralApplyHeadersV146(res);
     return res.status(400).json({ ok: false, code: String(rawCaptureV230.reason || 'DIRAC_RAW_BODY_CAPTURE_FAILED'), message: 'Request ditolak oleh pemeriksaan integritas raw body.' });
@@ -37922,6 +37961,7 @@ module.exports = async function diracCentralArchitectureConsolidationV202(req, r
   }
   return __diracV202CentralGuardHandler(req, res, () => diracV202Dispatcher(req, res));
 };
+Object.defineProperty(module.exports, 'config', { value: Object.freeze({ api: Object.freeze({ bodyParser: false }) }), enumerable: true, writable: false, configurable: false });
 for (const flag of __diracV202WrapperFlags) {
   try { Object.defineProperty(module.exports, flag, { value: true, enumerable: false, configurable: false }); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
 }
