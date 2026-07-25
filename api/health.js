@@ -37481,7 +37481,8 @@ const DIRAC_CENTRAL_GUARD_REFERENCE_LIST_V230 = Object.freeze([
   diracCentralSecureJsonSerializeV230,
   diracCentralDatabaseCallerEvidenceV230,
   diracCentralCreateDatabaseEgressPermitV230,
-  diracCentralDirectNetworkBypassBlockedV230
+  diracCentralDirectNetworkBypassBlockedV230,
+  diracCentralNativeNetworkSurfaceIntactV231
 ]);
 function diracCentralRuntimeReferenceHashV230() {
   const source = DIRAC_CENTRAL_GUARD_REFERENCE_LIST_V230.map((fn) => Function.prototype.toString.call(fn)).join('\n---DIRAC-V230---\n');
@@ -37515,8 +37516,41 @@ const DIRAC_CENTRAL_BLOCKED_AGENT_V230 = Object.freeze({
   getName: DIRAC_CENTRAL_BLOCKED_NETWORK_CONSTRUCTOR_V230
 });
 
-function diracCentralLockBackendRuntimeV230() {
-  if (!DIRAC_CENTRAL_ASYNC_CONTEXT_V149 || !DIRAC_CENTRAL_DATABASE_EGRESS_CONTEXT_V230) throw new Error('DIRAC_RUNTIME_ASYNC_CONTEXT_REQUIRED');
+const DIRAC_CENTRAL_NATIVE_NETWORK_SURFACE_V231 = Object.freeze({
+  httpRequest: require('http').request,
+  httpGet: require('http').get,
+  httpClientRequest: require('http').ClientRequest,
+  httpAgent: require('http').Agent,
+  httpGlobalAgent: require('http').globalAgent,
+  httpWebSocket: require('http').WebSocket,
+  httpsRequest: require('https').request,
+  httpsGet: require('https').get,
+  httpsAgent: require('https').Agent,
+  httpsGlobalAgent: require('https').globalAgent,
+  netConnect: require('net').connect,
+  netCreateConnection: require('net').createConnection,
+  netSocketConnect: require('net').Socket.prototype.connect,
+  tlsConnect: require('tls').connect,
+  http2Connect: require('http2').connect,
+  dgramCreateSocket: require('dgram').createSocket,
+  dnsResolver: require('dns').Resolver,
+  dnsPromisesResolver: require('dns').promises.Resolver,
+  dnsLookup: require('dns').lookup,
+  dnsResolve: require('dns').resolve,
+  dnsResolve4: require('dns').resolve4,
+  dnsResolve6: require('dns').resolve6,
+  dnsResolveCname: require('dns').resolveCname,
+  dnsReverse: require('dns').reverse,
+  dnsPromisesLookup: require('dns').promises.lookup,
+  dnsPromisesResolve: require('dns').promises.resolve,
+  dnsPromisesResolve4: require('dns').promises.resolve4,
+  dnsPromisesResolve6: require('dns').promises.resolve6,
+  dnsPromisesResolveCname: require('dns').promises.resolveCname,
+  dnsPromisesReverse: require('dns').promises.reverse,
+  globalWebSocket: typeof globalThis.WebSocket === 'function' ? globalThis.WebSocket : null
+});
+
+function diracCentralNativeNetworkSurfaceIntactV231() {
   const http = require('http');
   const https = require('https');
   const net = require('net');
@@ -37525,41 +37559,60 @@ function diracCentralLockBackendRuntimeV230() {
   const dgram = require('dgram');
   const dns = require('dns');
   const dnsPromises = dns.promises;
-  const locks = [
-    [http, 'request', DIRAC_CENTRAL_BLOCKED_HTTP_REQUEST_V230],
-    [http, 'get', DIRAC_CENTRAL_BLOCKED_HTTP_GET_V230],
-    [https, 'request', DIRAC_CENTRAL_BLOCKED_HTTPS_REQUEST_V230],
-    [https, 'get', DIRAC_CENTRAL_BLOCKED_HTTPS_GET_V230],
-    [net, 'connect', DIRAC_CENTRAL_BLOCKED_NET_CONNECT_V230],
-    [net, 'createConnection', DIRAC_CENTRAL_BLOCKED_NET_CONNECT_V230],
-    [tls, 'connect', DIRAC_CENTRAL_BLOCKED_TLS_CONNECT_V230],
-    [http2, 'connect', DIRAC_CENTRAL_BLOCKED_HTTP2_CONNECT_V230],
-    [dgram, 'createSocket', DIRAC_CENTRAL_BLOCKED_DGRAM_SOCKET_V230],
-    [http, 'ClientRequest', DIRAC_CENTRAL_BLOCKED_NETWORK_CONSTRUCTOR_V230],
-    [http, 'Agent', DIRAC_CENTRAL_BLOCKED_NETWORK_CONSTRUCTOR_V230],
-    [http, 'WebSocket', DIRAC_CENTRAL_BLOCKED_WEBSOCKET_V230],
-    [http, 'globalAgent', DIRAC_CENTRAL_BLOCKED_AGENT_V230],
-    [https, 'Agent', DIRAC_CENTRAL_BLOCKED_NETWORK_CONSTRUCTOR_V230],
-    [https, 'globalAgent', DIRAC_CENTRAL_BLOCKED_AGENT_V230],
-    [net.Socket.prototype, 'connect', DIRAC_CENTRAL_BLOCKED_SOCKET_CONNECT_V230],
-    [dns, 'Resolver', DIRAC_CENTRAL_BLOCKED_NETWORK_CONSTRUCTOR_V230],
-    [dnsPromises, 'Resolver', DIRAC_CENTRAL_BLOCKED_NETWORK_CONSTRUCTOR_V230]
-  ];
-  for (const name of ['lookup', 'lookupService', 'resolve', 'resolve4', 'resolve6', 'resolveAny', 'resolveCaa', 'resolveCname', 'resolveMx', 'resolveNaptr', 'resolveNs', 'resolvePtr', 'resolveSoa', 'resolveSrv', 'resolveTxt', 'reverse', 'setServers']) {
-    if (typeof dns[name] === 'function') locks.push([dns, name, DIRAC_CENTRAL_BLOCKED_DNS_OPERATION_V230]);
+  const native = DIRAC_CENTRAL_NATIVE_NETWORK_SURFACE_V231;
+  return Boolean(
+    http.request === native.httpRequest
+    && http.get === native.httpGet
+    && http.ClientRequest === native.httpClientRequest
+    && http.Agent === native.httpAgent
+    && http.globalAgent === native.httpGlobalAgent
+    && http.WebSocket === native.httpWebSocket
+    && https.request === native.httpsRequest
+    && https.get === native.httpsGet
+    && https.Agent === native.httpsAgent
+    && https.globalAgent === native.httpsGlobalAgent
+    && net.connect === native.netConnect
+    && net.createConnection === native.netCreateConnection
+    && net.Socket.prototype.connect === native.netSocketConnect
+    && tls.connect === native.tlsConnect
+    && http2.connect === native.http2Connect
+    && dgram.createSocket === native.dgramCreateSocket
+    && dns.Resolver === native.dnsResolver
+    && dnsPromises.Resolver === native.dnsPromisesResolver
+    && dns.lookup === native.dnsLookup
+    && dns.resolve === native.dnsResolve
+    && dns.resolve4 === native.dnsResolve4
+    && dns.resolve6 === native.dnsResolve6
+    && dns.resolveCname === native.dnsResolveCname
+    && dns.reverse === native.dnsReverse
+    && dnsPromises.lookup === native.dnsPromisesLookup
+    && dnsPromises.resolve === native.dnsPromisesResolve
+    && dnsPromises.resolve4 === native.dnsPromisesResolve4
+    && dnsPromises.resolve6 === native.dnsPromisesResolve6
+    && dnsPromises.resolveCname === native.dnsPromisesResolveCname
+    && dnsPromises.reverse === native.dnsPromisesReverse
+    && (native.globalWebSocket === null
+      ? typeof globalThis.WebSocket !== 'function'
+      : globalThis.WebSocket === native.globalWebSocket)
+  );
+}
+
+function diracCentralLockBackendRuntimeV230() {
+  if (!DIRAC_CENTRAL_ASYNC_CONTEXT_V149 || !DIRAC_CENTRAL_DATABASE_EGRESS_CONTEXT_V230) {
+    throw new Error('DIRAC_RUNTIME_ASYNC_CONTEXT_REQUIRED');
   }
-  for (const name of ['lookup', 'lookupService', 'resolve', 'resolve4', 'resolve6', 'resolveAny', 'resolveCaa', 'resolveCname', 'resolveMx', 'resolveNaptr', 'resolveNs', 'resolvePtr', 'resolveSoa', 'resolveSrv', 'resolveTxt', 'reverse', 'setServers']) {
-    if (typeof dnsPromises[name] === 'function') locks.push([dnsPromises, name, DIRAC_CENTRAL_BLOCKED_DNS_OPERATION_V230]);
+  if (!diracCentralNativeNetworkSurfaceIntactV231()) {
+    throw new Error('DIRAC_RUNTIME_NATIVE_NETWORK_SURFACE_MUTATED');
   }
-  if (typeof globalThis.WebSocket === 'function') locks.push([globalThis, 'WebSocket', DIRAC_CENTRAL_BLOCKED_WEBSOCKET_V230]);
-  for (const [target, name, value] of locks) {
-    const descriptor = Object.getOwnPropertyDescriptor(target, name);
-    if (!descriptor || descriptor.configurable === false) throw new Error('DIRAC_RUNTIME_NETWORK_LOCK_UNAVAILABLE:' + name);
-    Object.defineProperty(target, name, { value, writable: false, configurable: false, enumerable: descriptor.enumerable === true });
-  }
-  Object.defineProperty(globalThis, '__DIRAC_V230_RUNTIME_READY__', { value: true, writable: false, configurable: false, enumerable: false });
+  Object.defineProperty(globalThis, '__DIRAC_V230_RUNTIME_READY__', {
+    value: true,
+    writable: false,
+    configurable: false,
+    enumerable: false
+  });
   return Object.freeze({
     ok: true,
+    mode: 'native_network_integrity_non_invasive_v231',
     referenceHash: DIRAC_CENTRAL_RUNTIME_REFERENCE_HASH_V230,
     callsiteHash: DIRAC_CENTRAL_DATABASE_CALLSITES_HASH_V230,
     callsiteCount: DIRAC_CENTRAL_DATABASE_CALLSITES_V230.size,
@@ -37574,20 +37627,10 @@ function diracCentralRuntimeInvariantGuardV230() {
   const failures = [];
   const expect = (condition, name) => { if (!condition) failures.push(name); };
   expect(globalThis.__DIRAC_V230_RUNTIME_READY__ === true, 'runtime_ready_flag_invalid');
+  expect(DIRAC_CENTRAL_RUNTIME_LOCK_V230.mode === 'native_network_integrity_non_invasive_v231', 'runtime_lock_mode_invalid');
   expect(globalThis.fetch === DIRAC_V228_FINAL_FETCH_GATEWAY, 'fetch_gateway_mutated');
   expect(supabaseFetch === DIRAC_CENTRAL_SECURE_DATABASE_GATEWAY_V230, 'database_gateway_mutated');
-  expect(require('http').request === DIRAC_CENTRAL_BLOCKED_HTTP_REQUEST_V230 && require('http').get === DIRAC_CENTRAL_BLOCKED_HTTP_GET_V230, 'http_exports_mutated');
-  expect(require('https').request === DIRAC_CENTRAL_BLOCKED_HTTPS_REQUEST_V230 && require('https').get === DIRAC_CENTRAL_BLOCKED_HTTPS_GET_V230, 'https_exports_mutated');
-  expect(require('net').connect === DIRAC_CENTRAL_BLOCKED_NET_CONNECT_V230 && require('net').createConnection === DIRAC_CENTRAL_BLOCKED_NET_CONNECT_V230, 'net_exports_mutated');
-  expect(require('tls').connect === DIRAC_CENTRAL_BLOCKED_TLS_CONNECT_V230, 'tls_export_mutated');
-  expect(require('http2').connect === DIRAC_CENTRAL_BLOCKED_HTTP2_CONNECT_V230, 'http2_export_mutated');
-  expect(require('dgram').createSocket === DIRAC_CENTRAL_BLOCKED_DGRAM_SOCKET_V230, 'dgram_export_mutated');
-  expect(require('http').ClientRequest === DIRAC_CENTRAL_BLOCKED_NETWORK_CONSTRUCTOR_V230 && require('http').Agent === DIRAC_CENTRAL_BLOCKED_NETWORK_CONSTRUCTOR_V230 && require('http').WebSocket === DIRAC_CENTRAL_BLOCKED_WEBSOCKET_V230, 'http_constructor_exports_mutated');
-  expect(require('http').globalAgent === DIRAC_CENTRAL_BLOCKED_AGENT_V230 && require('https').Agent === DIRAC_CENTRAL_BLOCKED_NETWORK_CONSTRUCTOR_V230 && require('https').globalAgent === DIRAC_CENTRAL_BLOCKED_AGENT_V230, 'agent_exports_mutated');
-  expect(require('net').Socket.prototype.connect === DIRAC_CENTRAL_BLOCKED_SOCKET_CONNECT_V230, 'socket_connect_prototype_mutated');
-  expect(require('dns').Resolver === DIRAC_CENTRAL_BLOCKED_NETWORK_CONSTRUCTOR_V230 && require('dns').promises.Resolver === DIRAC_CENTRAL_BLOCKED_NETWORK_CONSTRUCTOR_V230, 'dns_resolver_exports_mutated');
-  expect(['lookup', 'resolve', 'resolve4', 'resolve6', 'resolveCname', 'reverse'].every((name) => require('dns')[name] === DIRAC_CENTRAL_BLOCKED_DNS_OPERATION_V230 && require('dns').promises[name] === DIRAC_CENTRAL_BLOCKED_DNS_OPERATION_V230), 'dns_exports_mutated');
-  expect(typeof globalThis.WebSocket !== 'function' || globalThis.WebSocket === DIRAC_CENTRAL_BLOCKED_WEBSOCKET_V230, 'global_websocket_mutated');
+  expect(diracCentralNativeNetworkSurfaceIntactV231(), 'native_network_surface_mutated');
   expect(DIRAC_CENTRAL_DATABASE_CALLSITES_V230.size === DIRAC_CENTRAL_RUNTIME_LOCK_V230.callsiteCount
     && DIRAC_CENTRAL_DATABASE_CALLSITES_HASH_V230 === DIRAC_CENTRAL_RUNTIME_LOCK_V230.callsiteHash, 'database_callsite_registry_mutated');
   expect(Object.isFrozen(__diracV202MiddlewareRegistry) && __diracV202MiddlewareRegistry.length === DIRAC_CENTRAL_RUNTIME_LOCK_V230.middlewareCount, 'middleware_registry_mutated');
@@ -37733,10 +37776,11 @@ function diracCentralBackendComplianceStaticGateV230() {
   expect(typeof diracCentralSecurityTelemetryV230 === 'function', 'durable_telemetry_missing');
   expect(DIRAC_CENTRAL_DATABASE_CALLSITES_V230.size >= 150, 'database_callsite_registry_incomplete');
   expect(typeof diracCentralDatabaseCallerEvidenceV230 === 'function', 'database_caller_identity_missing');
-  expect(require('http').request === DIRAC_CENTRAL_BLOCKED_HTTP_REQUEST_V230 && require('https').request === DIRAC_CENTRAL_BLOCKED_HTTPS_REQUEST_V230 && require('net').connect === DIRAC_CENTRAL_BLOCKED_NET_CONNECT_V230 && require('tls').connect === DIRAC_CENTRAL_BLOCKED_TLS_CONNECT_V230, 'direct_network_exports_not_blocked');
-  expect(require('http').ClientRequest === DIRAC_CENTRAL_BLOCKED_NETWORK_CONSTRUCTOR_V230 && require('net').Socket.prototype.connect === DIRAC_CENTRAL_BLOCKED_SOCKET_CONNECT_V230, 'direct_network_constructors_not_blocked');
-  expect(require('dns').resolve4 === DIRAC_CENTRAL_BLOCKED_DNS_OPERATION_V230 && require('dns').promises.resolve4 === DIRAC_CENTRAL_BLOCKED_DNS_OPERATION_V230, 'direct_dns_exports_not_blocked');
-  expect(typeof globalThis.WebSocket !== 'function' || globalThis.WebSocket === DIRAC_CENTRAL_BLOCKED_WEBSOCKET_V230, 'direct_websocket_not_blocked');
+  expect(DIRAC_CENTRAL_RUNTIME_LOCK_V230.mode === 'native_network_integrity_non_invasive_v231', 'runtime_network_mode_invalid');
+  expect(diracCentralNativeNetworkSurfaceIntactV231(), 'native_network_surface_mutated');
+  expect(DIRAC_CENTRAL_NATIVE_HTTPS_REQUEST_V230 === DIRAC_CENTRAL_NATIVE_NETWORK_SURFACE_V231.httpsRequest, 'pinned_https_native_reference_invalid');
+  expect(DIRAC_CENTRAL_NATIVE_TLS_CONNECT_V230 === DIRAC_CENTRAL_NATIVE_NETWORK_SURFACE_V231.tlsConnect, 'pinned_tls_native_reference_invalid');
+  expect(DIRAC_CENTRAL_NATIVE_NET_SOCKET_CONNECT_V230 === DIRAC_CENTRAL_NATIVE_NETWORK_SURFACE_V231.netSocketConnect, 'pinned_tcp_native_reference_invalid');
   expect(Boolean(DIRAC_CENTRAL_ASYNC_CONTEXT_V149), 'async_local_storage_missing');
   expect(Boolean(DIRAC_CENTRAL_DATABASE_EGRESS_CONTEXT_V230), 'database_permit_async_context_missing');
   expect(Object.isFrozen(__diracV202MiddlewareRegistry), 'middleware_registry_not_frozen');
@@ -37753,6 +37797,10 @@ function diracCentralBackendComplianceStaticGateV230() {
   const fileSource = require('fs').readFileSync(__filename, 'utf8');
   expect((fileSource.match(/\b(?:net|tls)\.connect\s*\(/g) || []).length === 0, 'direct_socket_call_present');
   expect((fileSource.match(/\b(?:http|https)\.request\s*\(/g) || []).length === 0, 'direct_http_request_call_present');
+  expect((fileSource.match(/DIRAC_CENTRAL_NATIVE_HTTPS_REQUEST_V230\s*\(/g) || []).length === 1, 'pinned_https_callsite_count_invalid');
+  expect((fileSource.match(/DIRAC_CENTRAL_NATIVE_TLS_CONNECT_V230\s*\(/g) || []).length === 2, 'pinned_tls_callsite_count_invalid');
+  expect((fileSource.match(/DIRAC_CENTRAL_NATIVE_NET_CONNECT_V230\s*\(/g) || []).length === 1, 'pinned_tcp_callsite_count_invalid');
+  expect((fileSource.match(/DIRAC_CENTRAL_NATIVE_DNS_(?:RESOLVE4|RESOLVE6|RESOLVE_CNAME|LOOKUP)_V230\s*\(/g) || []).length === 5, 'pinned_dns_callsite_count_invalid');
   return Object.freeze({ ok: failures.length === 0, failures: Object.freeze(failures) });
 }
 
