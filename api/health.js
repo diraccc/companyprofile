@@ -37973,7 +37973,9 @@ async function diracCentralBackendComplianceGateV230() {
               first: summarizeAtomicConsumeResultV232(first),
               replay: summarizeAtomicConsumeResultV232(second)
             });
-          } catch (_) {}
+          } catch (diagnosticTelemetryErrorV232) {
+            diracCentralRecordSuppressedExceptionV221(diagnosticTelemetryErrorV232);
+          }
         }
         if (!first || first.ok !== true || first.data !== true || !second || second.ok !== true || second.data !== false) throw new Error('DIRAC_BACKEND_ATOMIC_CONSUME_GATE_FAILED');
         gateStageV231 = 'atomic_record';
