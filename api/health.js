@@ -37947,6 +37947,34 @@ async function diracCentralBackendComplianceGateV230() {
           method: 'POST', auth: 'service', timeoutMs: 3000, signal: gateSignalV231,
           body: { p_security_key: 's2s-central-v230-gate:' + probe, p_record_json: { type: 'v230_gate' }, p_expires_at: new Date(Date.now() + 120000).toISOString() }
         });
+        if (!first || first.ok !== true || first.data !== true || !second || second.ok !== true || second.data !== false) {
+          try {
+            const summarizeAtomicConsumeResultV232 = (result) => {
+              const data = result && Object.prototype.hasOwnProperty.call(result, 'data')
+                ? result.data
+                : undefined;
+              return Object.freeze({
+                present: Boolean(result),
+                ok: Boolean(result && result.ok === true),
+                status: result && Number.isInteger(result.status) ? result.status : null,
+                data_type: data === null ? 'null' : (Array.isArray(data) ? 'array' : typeof data),
+                data_boolean: typeof data === 'boolean' ? data : null,
+                upstream_code: data && typeof data === 'object' && !Array.isArray(data)
+                  ? String(data.code || '').slice(0, 96)
+                  : '',
+                transport_error: result && typeof result.error === 'string'
+                  ? result.error.slice(0, 96)
+                  : ''
+              });
+            };
+            console.error('[dirac-v230-atomic-consume-diagnostic]', {
+              target: 'security',
+              expected: Object.freeze({ first: true, replay: false }),
+              first: summarizeAtomicConsumeResultV232(first),
+              replay: summarizeAtomicConsumeResultV232(second)
+            });
+          } catch (_) {}
+        }
         if (!first || first.ok !== true || first.data !== true || !second || second.ok !== true || second.data !== false) throw new Error('DIRAC_BACKEND_ATOMIC_CONSUME_GATE_FAILED');
         gateStageV231 = 'atomic_record';
         const record = await supabaseFetch('/rest/v1/rpc/dirac_central_atomic_claim_record_v230', {
