@@ -3843,6 +3843,12 @@ function resolveDiracSupabaseTargetKey(path, options = {}) {
   const forced = String(options.db || options.database || '').trim();
   if (forced && DIRAC_SUPABASE_TARGET_ENVS[forced]) return forced;
 
+  const exactPath = String(path || '');
+  if (exactPath === '/rest/v1/rpc/dirac_central_atomic_consume_v230'
+      || exactPath === '/rest/v1/rpc/dirac_central_atomic_claim_record_v230'
+      || exactPath === '/rest/v1/rpc/dirac_central_atomic_rate_limit_v230'
+      || exactPath === '/rest/v1/rpc/dirac_central_security_log_v230') return 'security';
+
   const tableName = getDiracRestTableFromPath(path);
   const dedicatedSecurityTables = new Set([
     DIRAC_PERSISTENT_BAN_TABLE,
