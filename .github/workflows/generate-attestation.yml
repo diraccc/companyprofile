@@ -1,0 +1,94 @@
+name: Generate Backend Attestation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+
+      - name: Check required files
+        run: |
+          test -f api/health.js || {
+            echo "ERROR: api/health.js tidak ditemukan"
+            exit 1
+          }
+
+          test -f tools/generate_backend_attestation_v230.js || {
+            echo "ERROR: generator tidak ditemukan"
+            exit 1
+          }
+
+          test -f ci-report.json || {
+            echo "ERROR: ci-report.json tidak ditemukan"
+            exit 1
+          }
+
+          node --check api/health.js
+          echo "Node:"
+          node --version
+          echo "Hash health.js:"
+          sha256sum api/health.js
+
+      - name: Generate attestation
+        env:
+          DIRAC_BACKEND_ATTESTATION_PRIVATE_KEY_PEM: ${{ secrets.DIRAC_BACKEND_ATTESTATION_PRIVATE_KEY_PEM }}
+          DIRAC_ATTEST_TARGET_FILE: api/health.js
+          DIRAC_ATTEST_CI_REPORT: ci-report.json
+          DIRAC_ATTEST_EXPIRY_HOURS: "168"
+          DIRAC_ATTEST_OUTPUT: attestation-output.json
+        run: |
+          node tools/generate_backend_attestation_v230.js
+
+      - name: Print ENV values
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+
+          const output = JSON.parse(
+            fs.readFileSync('attestation-output.json', 'utf8')
+          );
+
+          console.log('');
+          console.log('===== DIRAC_BACKEND_BUILD_ATTESTATION_V230 =====');
+          console.log(output.encoded);
+
+          console.log('');
+          console.log('===== DIRAC_BACKEND_BUILD_ATTESTATION_SIGNATURE_V230 =====');
+          console.log(output.signature);
+
+          console.log('');
+          console.log('===== DIRAC_BACKEND_ATTESTATION_PUBLIC_KEY_PEM =====');
+          console.log(output.public_key_pem);
+
+          console.log('');
+          console.log('===== NODE VERSION =====');
+          console.log(output.payload.node_version);
+
+          console.log('');
+          console.log('===== BUILD SHA256 =====');
+          console.log(output.payload.build_sha256);
+
+          console.log('');
+          console.log('===== EXPIRES AT =====');
+          console.log(output.payload.expires_at);
+          NODE
+
+      - name: Upload result
+        uses: actions/upload-artifact@v4
+        with:
+          name: dirac-backend-attestation
+          path: attestation-output.json
+          retention-days: 7
