@@ -18512,6 +18512,40 @@ function diracV101ValidateServiceRoleSupabasePath(path, options = {}) {
   if (raw.startsWith('/auth/v1/admin/users')) return { ok: true, scope: 'auth_admin_users' };
   if (!raw.startsWith('/rest/v1/')) return { ok: false, code: 'SERVICE_ROLE_SCOPE_REJECTED' };
 
+  if (raw.startsWith('/rest/v1/rpc/')) {
+    if (method !== 'POST') {
+      return { ok: false, code: 'SERVICE_ROLE_RPC_METHOD_REJECTED' };
+    }
+
+    const rpcPart = raw.slice('/rest/v1/rpc/'.length);
+    if (!rpcPart || rpcPart.includes('?') || rpcPart.includes('#') || rpcPart.includes('/')) {
+      return { ok: false, code: 'SERVICE_ROLE_RPC_INVALID' };
+    }
+
+    let rpc;
+    try {
+      rpc = decodeURIComponent(rpcPart);
+    } catch (_) {
+      return { ok: false, code: 'SERVICE_ROLE_RPC_INVALID' };
+    }
+
+    if (rpc !== rpcPart || rpc !== rpc.trim() || !/^[a-zA-Z0-9_]+$/.test(rpc)) {
+      return { ok: false, code: 'SERVICE_ROLE_RPC_INVALID' };
+    }
+
+    const allowedRpc =
+      rpc === 'dirac_central_atomic_consume_v230' ||
+      rpc === 'dirac_central_atomic_claim_record_v230' ||
+      rpc === 'dirac_central_atomic_rate_limit_v230' ||
+      rpc === 'dirac_central_security_log_v230';
+
+    if (!allowedRpc) {
+      return { ok: false, code: 'SERVICE_ROLE_RPC_NOT_ALLOWED' };
+    }
+
+    return { ok: true, scope: 'rest_rpc', rpc };
+  }
+
   const tablePart = raw.slice('/rest/v1/'.length).split('?')[0].split('/')[0];
   const table = decodeURIComponent(tablePart || '').trim();
   if (!/^[a-zA-Z0-9_]+$/.test(table)) return { ok: false, code: 'SERVICE_ROLE_TABLE_INVALID' };
