@@ -35120,7 +35120,14 @@ async function diracCentralPinnedHttpsFetchV230(parsedUrl, options, verifiedIps,
       protocol: 'https:', hostname: parsedUrl.hostname, port: Number(parsedUrl.port || 443),
       servername: parsedUrl.hostname, method, path: parsedUrl.pathname + parsedUrl.search,
       headers, agent: false, rejectUnauthorized: true, minVersion: 'TLSv1.2',
-      lookup(_hostname, _options, callback) { callback(null, pinnedIp, net.isIP(pinnedIp)); }
+      lookup(_hostname, lookupOptions, callback) {
+        const pinnedFamily = net.isIP(pinnedIp);
+        if (lookupOptions && lookupOptions.all === true) {
+          callback(null, [{ address: pinnedIp, family: pinnedFamily }]);
+          return;
+        }
+        callback(null, pinnedIp, pinnedFamily);
+      }
     }, (incoming) => {
       const limiter = diracCentralBoundedReadableStreamV230(incoming, request, maximumBytes);
       incoming.setTimeout(Math.max(1000, Math.min(120000, Number(process.env.DIRAC_EGRESS_STREAM_TIMEOUT_MS || 30000))), () => {
