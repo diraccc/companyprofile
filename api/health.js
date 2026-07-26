@@ -29467,6 +29467,7 @@ async function diracCentralCaptureRawRequestV230(req) {
     if (!buffer && typeof bodyValueV230 === 'string') {
       buffer = Buffer.from(bodyValueV230, 'utf8');
     }
+
     const method = String(req.method || 'GET').toUpperCase();
     const declared = String(req.headers && req.headers['content-length'] || '').trim();
     const bodyCapable = !['GET', 'HEAD', 'OPTIONS'].includes(method);
@@ -29603,6 +29604,7 @@ async function diracCentralCaptureRawRequestV230(req) {
 
       publishRawBodyV230();
     }
+
     return { ok: true, bytes: buffer.length, sha256: hash };
   } catch (error) {
     return { ok: false, reason: String(error && error.code || 'raw_body_capture_exception') };
@@ -35355,7 +35357,13 @@ function diracCentralBoundedReadableStreamV230(incoming, request, maximumBytes) 
   return limiter;
 }
 
-async function diracCentralPinnedHttpsFetchV230(parsedUrl, options, verifiedIps, maximumBytes) {
+async function diracCentralPinnedHttpsFetchV230(
+  parsedUrl,
+  options,
+  verifiedIps,
+  maximumBytes,
+  streamTimeoutOverrideMs
+) {
   const net = require('net');
   const { Readable } = require('stream');
   const ips = Array.from(new Set((verifiedIps || []).map(String))).filter((ip) => net.isIP(ip) && !diracCentralIsUnsafeIpV146(ip));
@@ -35366,6 +35374,19 @@ async function diracCentralPinnedHttpsFetchV230(parsedUrl, options, verifiedIps,
   const body = diracCentralBodyBytesV230(options && options.body);
   if (body.length && headers['content-length'] === undefined) headers['content-length'] = String(body.length);
   const signal = options && options.signal;
+  const streamTimeoutMs =
+    Number.isSafeInteger(streamTimeoutOverrideMs) &&
+    streamTimeoutOverrideMs >= 3000 &&
+    streamTimeoutOverrideMs <= 290000
+      ? streamTimeoutOverrideMs
+      : Math.max(
+          1000,
+          Math.min(
+            120000,
+            Number(process.env.DIRAC_EGRESS_STREAM_TIMEOUT_MS || 30000)
+          )
+        );
+
   return await new Promise((resolve, reject) => {
     let settled = false;
     const request = DIRAC_CENTRAL_NATIVE_HTTPS_REQUEST_V230({
@@ -35382,7 +35403,7 @@ async function diracCentralPinnedHttpsFetchV230(parsedUrl, options, verifiedIps,
       }
     }, (incoming) => {
       const limiter = diracCentralBoundedReadableStreamV230(incoming, request, maximumBytes);
-      incoming.setTimeout(Math.max(1000, Math.min(120000, Number(process.env.DIRAC_EGRESS_STREAM_TIMEOUT_MS || 30000))), () => {
+      incoming.setTimeout(streamTimeoutMs, () => {
         const error = Object.assign(new Error('DIRAC_EGRESS_STREAM_TIMEOUT'), { code: 'DIRAC_EGRESS_STREAM_TIMEOUT' });
         incoming.destroy(error);
         request.destroy(error);
@@ -35397,7 +35418,6 @@ async function diracCentralPinnedHttpsFetchV230(parsedUrl, options, verifiedIps,
       settled = true;
       resolve(new Response(webBody, { status: Number(incoming.statusCode || 502), statusText: String(incoming.statusMessage || ''), headers: responseHeaders }));
     });
-    const streamTimeoutMs = Math.max(1000, Math.min(120000, Number(process.env.DIRAC_EGRESS_STREAM_TIMEOUT_MS || 30000)));
     request.setTimeout(streamTimeoutMs, () => request.destroy(Object.assign(new Error('DIRAC_EGRESS_STREAM_TIMEOUT'), { code: 'DIRAC_EGRESS_STREAM_TIMEOUT' })));
     request.on('error', (error) => { if (!settled) reject(error); });
     if (signal) {
@@ -35475,7 +35495,15 @@ async function diracCentralFetchWithRedirectGuardV146(fetchImpl, input, options,
     const firstIpSet = new Set((inspection.ips || []).map(String));
     const pinnedIps = Array.from(new Set((rebinding.ips || []).map(String).filter((ip) => firstIpSet.has(ip))));
     if (!pinnedIps.length) throw Object.assign(new Error('DIRAC_EGRESS_DNS_PIN_INTERSECTION_EMPTY'), { code: 'DIRAC_EGRESS_DNS_PIN_INTERSECTION_EMPTY' });
-    response = await diracCentralPinnedHttpsFetchV230(parsedUrl, timeout.options, pinnedIps, diracCentralEgressResponseMaxBytesV228(parsedUrl.hostname.toLowerCase()));
+    response = await diracCentralPinnedHttpsFetchV230(
+      parsedUrl,
+      timeout.options,
+      pinnedIps,
+      diracCentralEgressResponseMaxBytesV228(
+        parsedUrl.hostname.toLowerCase()
+      ),
+      exactTimeoutMs
+    );
   } catch (error) {
     if (timeout.options.signal && timeout.options.signal.aborted && (!error || error.name === 'AbortError')) {
       const timeoutError = new Error('DIRAC_EGRESS_TIMEOUT');
