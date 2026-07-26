@@ -30887,10 +30887,61 @@ try {
           error.code = 'BODY_TOO_LARGE';
           throw error;
         }
-        req.__diracRawJsonV221 = req.body;
-        req.__diracRawBodyBufferV230 = Buffer.from(req.body, 'utf8');
-        req.__diracRawBodyLengthV230 = req.__diracRawBodyBufferV230.length;
-        req.__diracRawBodySha256V230 = crypto.createHash('sha256').update(req.__diracRawBodyBufferV230).digest('hex');
+        const verifiedRawBodyBufferV230 = Buffer.from(req.body, 'utf8');
+        const verifiedRawBodySha256V230 = crypto
+          .createHash('sha256')
+          .update(verifiedRawBodyBufferV230)
+          .digest('hex');
+
+        const sealedRawJsonDescriptorV230 =
+          Object.getOwnPropertyDescriptor(req, '__diracRawJsonV221');
+        const sealedRawBufferDescriptorV230 =
+          Object.getOwnPropertyDescriptor(req, '__diracRawBodyBufferV230');
+        const sealedRawLengthDescriptorV230 =
+          Object.getOwnPropertyDescriptor(req, '__diracRawBodyLengthV230');
+        const sealedRawHashDescriptorV230 =
+          Object.getOwnPropertyDescriptor(req, '__diracRawBodySha256V230');
+
+        const sealedRawBodyBufferV230 = req.__diracRawBodyBufferV230;
+
+        const rawEvidenceValidV230 =
+          sealedRawJsonDescriptorV230 &&
+          sealedRawJsonDescriptorV230.writable === false &&
+          sealedRawJsonDescriptorV230.configurable === false &&
+          sealedRawJsonDescriptorV230.enumerable === false &&
+          typeof sealedRawJsonDescriptorV230.value === 'string' &&
+          sealedRawJsonDescriptorV230.value === req.body &&
+
+          sealedRawBufferDescriptorV230 &&
+          sealedRawBufferDescriptorV230.writable === false &&
+          sealedRawBufferDescriptorV230.configurable === false &&
+          sealedRawBufferDescriptorV230.enumerable === false &&
+          (Buffer.isBuffer(sealedRawBodyBufferV230) ||
+            sealedRawBodyBufferV230 instanceof Uint8Array) &&
+          Buffer.from(sealedRawBodyBufferV230).equals(verifiedRawBodyBufferV230) &&
+
+          sealedRawLengthDescriptorV230 &&
+          sealedRawLengthDescriptorV230.writable === false &&
+          sealedRawLengthDescriptorV230.configurable === false &&
+          sealedRawLengthDescriptorV230.enumerable === false &&
+          Number.isSafeInteger(Number(sealedRawLengthDescriptorV230.value)) &&
+          Number(sealedRawLengthDescriptorV230.value) ===
+            verifiedRawBodyBufferV230.length &&
+
+          sealedRawHashDescriptorV230 &&
+          sealedRawHashDescriptorV230.writable === false &&
+          sealedRawHashDescriptorV230.configurable === false &&
+          sealedRawHashDescriptorV230.enumerable === false &&
+          /^[a-f0-9]{64}$/.test(String(sealedRawHashDescriptorV230.value)) &&
+          String(sealedRawHashDescriptorV230.value) ===
+            verifiedRawBodySha256V230;
+
+        if (!rawEvidenceValidV230) {
+          const error = new Error('RAW_BODY_EVIDENCE_MISMATCH');
+          error.statusCode = 400;
+          error.code = 'RAW_BODY_EVIDENCE_MISMATCH';
+          throw error;
+        }
         const scan = diracCentralJsonDuplicateScanV221(req.body || '{}');
         if (scan.duplicate) req.__diracRawJsonDuplicateV221 = scan.key || 'duplicate';
         if (scan.malformed) req.__diracRawJsonMalformedV221 = scan.reason || 'malformed';
@@ -31623,10 +31674,61 @@ try {
           error.code = 'BODY_TOO_LARGE';
           throw error;
         }
-        req.__diracRawJsonV221 = req.body;
-        req.__diracRawBodyBufferV230 = Buffer.from(req.body, 'utf8');
-        req.__diracRawBodyLengthV230 = req.__diracRawBodyBufferV230.length;
-        req.__diracRawBodySha256V230 = crypto.createHash('sha256').update(req.__diracRawBodyBufferV230).digest('hex');
+        const verifiedRawBodyBufferV230 = Buffer.from(req.body, 'utf8');
+        const verifiedRawBodySha256V230 = crypto
+          .createHash('sha256')
+          .update(verifiedRawBodyBufferV230)
+          .digest('hex');
+
+        const sealedRawJsonDescriptorV230 =
+          Object.getOwnPropertyDescriptor(req, '__diracRawJsonV221');
+        const sealedRawBufferDescriptorV230 =
+          Object.getOwnPropertyDescriptor(req, '__diracRawBodyBufferV230');
+        const sealedRawLengthDescriptorV230 =
+          Object.getOwnPropertyDescriptor(req, '__diracRawBodyLengthV230');
+        const sealedRawHashDescriptorV230 =
+          Object.getOwnPropertyDescriptor(req, '__diracRawBodySha256V230');
+
+        const sealedRawBodyBufferV230 = req.__diracRawBodyBufferV230;
+
+        const rawEvidenceValidV230 =
+          sealedRawJsonDescriptorV230 &&
+          sealedRawJsonDescriptorV230.writable === false &&
+          sealedRawJsonDescriptorV230.configurable === false &&
+          sealedRawJsonDescriptorV230.enumerable === false &&
+          typeof sealedRawJsonDescriptorV230.value === 'string' &&
+          sealedRawJsonDescriptorV230.value === req.body &&
+
+          sealedRawBufferDescriptorV230 &&
+          sealedRawBufferDescriptorV230.writable === false &&
+          sealedRawBufferDescriptorV230.configurable === false &&
+          sealedRawBufferDescriptorV230.enumerable === false &&
+          (Buffer.isBuffer(sealedRawBodyBufferV230) ||
+            sealedRawBodyBufferV230 instanceof Uint8Array) &&
+          Buffer.from(sealedRawBodyBufferV230).equals(verifiedRawBodyBufferV230) &&
+
+          sealedRawLengthDescriptorV230 &&
+          sealedRawLengthDescriptorV230.writable === false &&
+          sealedRawLengthDescriptorV230.configurable === false &&
+          sealedRawLengthDescriptorV230.enumerable === false &&
+          Number.isSafeInteger(Number(sealedRawLengthDescriptorV230.value)) &&
+          Number(sealedRawLengthDescriptorV230.value) ===
+            verifiedRawBodyBufferV230.length &&
+
+          sealedRawHashDescriptorV230 &&
+          sealedRawHashDescriptorV230.writable === false &&
+          sealedRawHashDescriptorV230.configurable === false &&
+          sealedRawHashDescriptorV230.enumerable === false &&
+          /^[a-f0-9]{64}$/.test(String(sealedRawHashDescriptorV230.value)) &&
+          String(sealedRawHashDescriptorV230.value) ===
+            verifiedRawBodySha256V230;
+
+        if (!rawEvidenceValidV230) {
+          const error = new Error('RAW_BODY_EVIDENCE_MISMATCH');
+          error.statusCode = 400;
+          error.code = 'RAW_BODY_EVIDENCE_MISMATCH';
+          throw error;
+        }
         const scan = diracCentralJsonDuplicateScanV221(req.body || '{}');
         if (scan.duplicate) {
           req.__diracRawJsonDuplicateV221 = scan.key || 'duplicate';
