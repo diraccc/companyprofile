@@ -4739,15 +4739,22 @@ function __diracChatCentralGuardRequireV1(id) {
 }
 
 const __diracChatCentralGuardLocalModuleV1 = { exports: {} };
-const __diracChatCentralGuardFactoryV1 = new Function(
-  'module',
-  'exports',
-  'require',
-  '__filename',
-  '__dirname',
-  '__diracChatCentralGuardBusinessHandlerV1',
-  '__diracChatCentralGuardRestoreRequestV1',
-  __diracChatCentralGuardRuntimeSourceV1
+const __diracChatCentralGuardFactoryV1 = require('vm').compileFunction(
+  __diracChatCentralGuardRuntimeSourceV1,
+  [
+    'module',
+    'exports',
+    'require',
+    '__filename',
+    '__dirname',
+    '__diracChatCentralGuardBusinessHandlerV1',
+    '__diracChatCentralGuardRestoreRequestV1'
+  ],
+  {
+    filename: __diracChatCentralGuardVirtualFilenameV1,
+    lineOffset: 0,
+    columnOffset: 0
+  }
 );
 __diracChatCentralGuardFactoryV1(
   __diracChatCentralGuardLocalModuleV1,
