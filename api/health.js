@@ -29444,14 +29444,42 @@ async function diracCentralCaptureRawRequestV230(req) {
       if (Buffer.isBuffer(value) || value instanceof Uint8Array) { buffer = Buffer.from(value); break; }
       if (typeof value === 'string') { buffer = Buffer.from(value, 'utf8'); break; }
     }
-    if (!buffer && (Buffer.isBuffer(req.body) || req.body instanceof Uint8Array)) buffer = Buffer.from(req.body);
-    if (!buffer && typeof req.body === 'string') buffer = Buffer.from(req.body, 'utf8');
+    const bodyDescriptorV230 =
+      Object.getOwnPropertyDescriptor(req, 'body');
+    const bodyHasDataValueV230 = Boolean(
+      bodyDescriptorV230 &&
+      Object.prototype.hasOwnProperty.call(bodyDescriptorV230, 'value')
+    );
+    const bodyValueV230 = bodyHasDataValueV230
+      ? bodyDescriptorV230.value
+      : undefined;
+    const bodyValuePresentV230 =
+      bodyValueV230 !== undefined && bodyValueV230 !== null;
+
+    if (
+      !buffer &&
+      (Buffer.isBuffer(bodyValueV230) ||
+        bodyValueV230 instanceof Uint8Array)
+    ) {
+      buffer = Buffer.from(bodyValueV230);
+    }
+
+    if (!buffer && typeof bodyValueV230 === 'string') {
+      buffer = Buffer.from(bodyValueV230, 'utf8');
+    }
     const method = String(req.method || 'GET').toUpperCase();
     const declared = String(req.headers && req.headers['content-length'] || '').trim();
     const bodyCapable = !['GET', 'HEAD', 'OPTIONS'].includes(method);
-    const streamReadable = req.body === undefined && typeof req.on === 'function' && !req.readableEnded;
+    const streamReadable =
+      typeof req.on === 'function' &&
+      !req.readableEnded &&
+      req.destroyed !== true;
     const bodyExpected = bodyCapable
-      && (Number(declared || 0) > 0 || (req.body !== undefined && req.body !== null) || streamReadable);
+      && (
+        Number(declared || 0) > 0 ||
+        bodyValuePresentV230 ||
+        streamReadable
+      );
     if (!buffer && bodyExpected && streamReadable) {
       const rawQuery = String(req.url || '').split('?').slice(1).join('?');
       const action = diracV143NormalizeAction(String(req.query && req.query.action || new URLSearchParams(rawQuery).get('action') || ''));
@@ -29503,7 +29531,78 @@ async function diracCentralCaptureRawRequestV230(req) {
     if (!seal('__diracRawBodyLengthV230', buffer.length, (a, b) => Number(a) === b)) return { ok: false, reason: 'raw_body_length_evidence_conflict' };
     if (!seal('__diracRawBodySha256V230', hash, (a, b) => String(a) === b)) return { ok: false, reason: 'raw_body_hash_evidence_conflict' };
     if (!seal('__diracRawJsonV221', rawText, (a, b) => String(a) === b)) return { ok: false, reason: 'raw_json_evidence_conflict' };
-    if (req.body === undefined) req.body = rawText;
+    const bodyDescriptorAfterCaptureV230 =
+      Object.getOwnPropertyDescriptor(req, 'body');
+
+    const publishRawBodyV230 = () => {
+      Object.defineProperty(req, 'body', {
+        value: rawText,
+        enumerable: true,
+        writable: true,
+        configurable: true
+      });
+    };
+
+    if (!bodyDescriptorAfterCaptureV230) {
+      publishRawBodyV230();
+    } else if (
+      Object.prototype.hasOwnProperty.call(
+        bodyDescriptorAfterCaptureV230,
+        'value'
+      )
+    ) {
+      const existingBodyV230 =
+        bodyDescriptorAfterCaptureV230.value;
+
+      const existingBodyMatchesV230 =
+        existingBodyV230 === undefined ||
+        existingBodyV230 === null ||
+        (
+          typeof existingBodyV230 === 'string' &&
+          existingBodyV230 === rawText
+        ) ||
+        (
+          (
+            Buffer.isBuffer(existingBodyV230) ||
+            existingBodyV230 instanceof Uint8Array
+          ) &&
+          Buffer.from(existingBodyV230).equals(buffer)
+        );
+
+      if (!existingBodyMatchesV230) {
+        return {
+          ok: false,
+          reason: 'raw_body_preparsed_value_conflict'
+        };
+      }
+
+      if (bodyDescriptorAfterCaptureV230.writable === true) {
+        req.body = rawText;
+      } else if (
+        typeof existingBodyV230 === 'string' &&
+        existingBodyV230 === rawText
+      ) {
+        // Nilai sudah identik. Tidak perlu ditulis ulang.
+      } else if (
+        bodyDescriptorAfterCaptureV230.configurable === true
+      ) {
+        publishRawBodyV230();
+      } else {
+        return {
+          ok: false,
+          reason: 'raw_body_property_not_replaceable'
+        };
+      }
+    } else {
+      if (bodyDescriptorAfterCaptureV230.configurable !== true) {
+        return {
+          ok: false,
+          reason: 'raw_body_accessor_not_replaceable'
+        };
+      }
+
+      publishRawBodyV230();
+    }
     return { ok: true, bytes: buffer.length, sha256: hash };
   } catch (error) {
     return { ok: false, reason: String(error && error.code || 'raw_body_capture_exception') };
