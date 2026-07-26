@@ -1373,6 +1373,34 @@ async function domainRegister(req, res, preloadedBody) {
   try {
     body = preloadedBody || await readLimitedJsonBody(req, LOGIN_SECURITY_BODY_LIMIT_BYTES);
   } catch (error) {
+    try {
+      console.error('[dirac-register-400-diagnostic]', {
+        stage: 'body_reader',
+        status: Number.isInteger(Number(error && error.statusCode))
+          ? Number(error.statusCode)
+          : 400,
+        code: String(error && error.code || 'REGISTER_REQUEST_INVALID').slice(0, 96),
+        body_type: req && req.body === null
+          ? 'null'
+          : (Buffer.isBuffer(req && req.body)
+              ? 'buffer'
+              : typeof (req && req.body)),
+        sealed_raw_json: Boolean(
+          req && Object.getOwnPropertyDescriptor(req, '__diracRawJsonV221')
+        ),
+        sealed_raw_buffer: Boolean(
+          req && Object.getOwnPropertyDescriptor(req, '__diracRawBodyBufferV230')
+        ),
+        sealed_raw_length: Boolean(
+          req && Object.getOwnPropertyDescriptor(req, '__diracRawBodyLengthV230')
+        ),
+        sealed_raw_hash: Boolean(
+          req && Object.getOwnPropertyDescriptor(req, '__diracRawBodySha256V230')
+        )
+      });
+    } catch (registerBodyDiagnosticErrorV233) {
+      diracCentralRecordSuppressedExceptionV221(registerBodyDiagnosticErrorV233);
+    }
     return res.status(error.statusCode || 400).json({
       ok: false,
       code: error.code || 'REGISTER_REQUEST_INVALID',
@@ -1394,10 +1422,33 @@ async function domainRegister(req, res, preloadedBody) {
     endpoint: '/api/health?action=domain_register'
   });
   if (!registerGuard.ok) {
+    try {
+      console.error('[dirac-register-400-diagnostic]', {
+        stage: 'input_guard',
+        status: Number.isInteger(Number(registerGuard.status))
+          ? Number(registerGuard.status)
+          : 400,
+        code: String(
+          registerGuard && registerGuard.body && registerGuard.body.code
+            || 'REGISTER_INPUT_GUARD_REJECTED'
+        ).slice(0, 96)
+      });
+    } catch (registerGuardDiagnosticErrorV233) {
+      diracCentralRecordSuppressedExceptionV221(registerGuardDiagnosticErrorV233);
+    }
     return res.status(registerGuard.status).json(registerGuard.body);
   }
 
   if (password.length < 6) {
+    try {
+      console.error('[dirac-register-400-diagnostic]', {
+        stage: 'password_minimum',
+        status: 400,
+        code: 'PASSWORD_MINIMUM_LENGTH'
+      });
+    } catch (registerPasswordDiagnosticErrorV233) {
+      diracCentralRecordSuppressedExceptionV221(registerPasswordDiagnosticErrorV233);
+    }
     return res.status(400).json({ ok: false, message: 'Password minimal 6 karakter.' });
   }
 
@@ -38118,11 +38169,32 @@ async function diracCentralBackendComplianceGateV230() {
 }
 
 module.exports = async function diracCentralArchitectureConsolidationV202(req, res) {
+  const registerDiagnosticStateV233 =
+    /(?:^|[?&])action=domain_register(?:&|$)/.test(String(req && req.url || ''))
+      ? { stage: 'raw_capture' }
+      : null;
+
+  if (registerDiagnosticStateV233 && res && typeof res.once === 'function') {
+    res.once('finish', () => {
+      if (Number(res.statusCode) !== 400) return;
+      try {
+        console.error('[dirac-register-400-diagnostic]', {
+          stage: String(registerDiagnosticStateV233.stage || 'unknown').slice(0, 48),
+          status: 400,
+          code: 'REGISTER_RESPONSE_400'
+        });
+      } catch (registerFinishDiagnosticErrorV233) {
+        diracCentralRecordSuppressedExceptionV221(registerFinishDiagnosticErrorV233);
+      }
+    });
+  }
+
   const rawCaptureV230 = await diracCentralCaptureRawRequestV230(req);
   if (!rawCaptureV230.ok) {
     diracCentralApplyHeadersV146(res);
     return res.status(400).json({ ok: false, code: String(rawCaptureV230.reason || 'DIRAC_RAW_BODY_CAPTURE_FAILED'), message: 'Request ditolak oleh pemeriksaan integritas raw body.' });
   }
+  if (registerDiagnosticStateV233) registerDiagnosticStateV233.stage = 'compliance_gate';
   try {
     await diracCentralBackendComplianceGateV230();
   } catch (error) {
@@ -38138,7 +38210,11 @@ module.exports = async function diracCentralArchitectureConsolidationV202(req, r
     diracCentralApplyHeadersV146(res);
     return res.status(503).json({ ok: false, code: 'DIRAC_BACKEND_COMPLIANCE_GATE_FAILED', message: 'Backend security compliance gate belum lulus.' });
   }
-  return __diracV202CentralGuardHandler(req, res, () => diracV202Dispatcher(req, res));
+  if (registerDiagnosticStateV233) registerDiagnosticStateV233.stage = 'central_guard';
+  return __diracV202CentralGuardHandler(req, res, () => {
+    if (registerDiagnosticStateV233) registerDiagnosticStateV233.stage = 'dispatcher';
+    return diracV202Dispatcher(req, res);
+  });
 };
 Object.defineProperty(module.exports, 'config', { value: Object.freeze({ api: Object.freeze({ bodyParser: false }) }), enumerable: true, writable: false, configurable: false });
 for (const flag of __diracV202WrapperFlags) {
