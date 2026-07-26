@@ -38191,6 +38191,21 @@ module.exports = async function diracCentralArchitectureConsolidationV202(req, r
 
   const rawCaptureV230 = await diracCentralCaptureRawRequestV230(req);
   if (!rawCaptureV230.ok) {
+    if (registerDiagnosticStateV233) {
+      console.error('[dirac-register-raw-capture-diagnostic]', {
+        reason: String(rawCaptureV230.reason || '').slice(0, 96),
+        body_type: req.body === null
+          ? 'null'
+          : Buffer.isBuffer(req.body)
+            ? 'buffer'
+            : typeof req.body,
+        stream_available: typeof req.on === 'function',
+        readable_ended: Boolean(req.readableEnded),
+        content_length_present: Boolean(
+          String(req.headers && req.headers['content-length'] || '').trim()
+        )
+      });
+    }
     diracCentralApplyHeadersV146(res);
     return res.status(400).json({ ok: false, code: String(rawCaptureV230.reason || 'DIRAC_RAW_BODY_CAPTURE_FAILED'), message: 'Request ditolak oleh pemeriksaan integritas raw body.' });
   }
