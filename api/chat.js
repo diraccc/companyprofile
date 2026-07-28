@@ -4612,7 +4612,42 @@ async function __diracChatCentralGuardPrimeBodyActionV2(req) {
   if (!buffer && (Buffer.isBuffer(req.body) || req.body instanceof Uint8Array)) buffer = Buffer.from(req.body);
   if (!buffer && typeof req.body === 'string') buffer = Buffer.from(req.body, 'utf8');
   if (!buffer && req.body && typeof req.body === 'object' && !Array.isArray(req.body)) {
-    buffer = Buffer.from(JSON.stringify(req.body), 'utf8');
+    const action = String(
+      req &&
+      req.query &&
+      req.query.action || ''
+    ).trim().toLowerCase();
+
+    if (action === 'passkey_sync_push') {
+      const keys = Object.keys(req.body);
+      const eventId = String(req.body.event_id || '')
+        .trim()
+        .toLowerCase();
+
+      if (
+        keys.length !== 1 ||
+        keys[0] !== 'event_id' ||
+        !/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(eventId)
+      ) {
+        const error = new Error(
+          'DIRAC_CHAT_PASSKEY_SYNC_RAW_BODY_INVALID'
+        );
+        error.code =
+          'DIRAC_CHAT_PASSKEY_SYNC_RAW_BODY_INVALID';
+        error.statusCode = 400;
+        throw error;
+      }
+
+      buffer = Buffer.from(
+        '{"event_id": "' + eventId + '"}',
+        'utf8'
+      );
+    } else {
+      buffer = Buffer.from(
+        JSON.stringify(req.body),
+        'utf8'
+      );
+    }
   }
   if (!buffer && typeof req.on === 'function' && !req.readableEnded && req.destroyed !== true) {
     buffer = await new Promise((resolve, reject) => {
