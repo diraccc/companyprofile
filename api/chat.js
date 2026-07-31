@@ -5141,6 +5141,58 @@ async function __diracChatCentralGuardPrimeBodyActionV2(req) {
         '{"event_id": "' + eventId + '"}',
         'utf8'
       );
+    } else if (action === 'customer_binding_sync_push') {
+      const expectedKeys = [
+        'event_id',
+        'event_version',
+        'operation',
+        'row_id',
+        'source_table'
+      ];
+      const keys = Object.keys(req.body).sort();
+      const eventId = String(req.body.event_id || '')
+        .trim()
+        .toLowerCase();
+      const rowId = String(req.body.row_id || '')
+        .trim()
+        .toLowerCase();
+      const sourceTable = String(req.body.source_table || '')
+        .trim()
+        .toLowerCase();
+      const operation = String(req.body.operation || '')
+        .trim()
+        .toUpperCase();
+      const eventVersion = req.body.event_version;
+
+      if (
+        keys.length !== expectedKeys.length ||
+        keys.some((key, index) => key !== expectedKeys[index]) ||
+        !/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(eventId) ||
+        !/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(rowId) ||
+        !/^(?:customers|security_customer_auth_links|security_customer_sessions)$/.test(sourceTable) ||
+        !/^(?:INSERT|UPDATE|DELETE)$/.test(operation) ||
+        typeof eventVersion !== 'number' ||
+        !Number.isSafeInteger(eventVersion) ||
+        eventVersion < 1
+      ) {
+        const error = new Error(
+          'DIRAC_CHAT_CUSTOMER_BINDING_SYNC_RAW_BODY_INVALID'
+        );
+        error.code =
+          'DIRAC_CHAT_CUSTOMER_BINDING_SYNC_RAW_BODY_INVALID';
+        error.statusCode = 400;
+        throw error;
+      }
+
+      buffer = Buffer.from(
+        '{"row_id": "' + rowId +
+          '", "event_id": "' + eventId +
+          '", "operation": "' + operation +
+          '", "source_table": "' + sourceTable +
+          '", "event_version": ' + String(eventVersion) +
+          '}',
+        'utf8'
+      );
     } else {
       buffer = Buffer.from(
         JSON.stringify(req.body),
