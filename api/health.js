@@ -20570,7 +20570,7 @@ async function diracPerfumePublicProductsV117Handle(req, res) {
 
   const limitRaw = Number((req && req.query && (req.query.limit || req.query.per_page)) || 5000);
   const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.floor(limitRaw), 1), 5000) : 5000;
-  const select = 'slug,doc_id,firebase_id,title,name,price,stock,status,is_ready,is_active,img,image_url,description,notes,long_description';
+  const select = 'slug,doc_id,firebase_id,title,name,category,price,stock,status,is_ready,is_active,img,image_url,description,notes,long_description';
   const path = '/rest/v1/products?select=' + encodeURIComponent(select)
     + '&order=doc_id.asc'
     + '&limit=' + encodeURIComponent(String(limit));
@@ -20603,6 +20603,7 @@ async function diracPerfumePublicProductsV117Handle(req, res) {
         firebaseId,
         title: diracPerfumePublicProductsV117Clean(row.title || row.name || 'Produk Parfum', 180),
         name: diracPerfumePublicProductsV117Clean(row.name || row.title || 'Produk Parfum', 180),
+        category: diracPerfumePublicProductsV117Clean(row.category || '', 80),
         price,
         price_label: formatCurrency(price, 'IDR'),
         stock: Number.isFinite(Number(row.stock)) ? Number(row.stock) : null,
