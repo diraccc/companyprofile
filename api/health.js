@@ -4678,6 +4678,38 @@ function clearSessionCookies(res) {
   ]);
 }
 
+function clearCurrentRequestSessionCookiesV235(req, res) {
+  const requestCookies = parseCookies(req);
+  const baseNames = [
+    ACCESS_COOKIE,
+    REFRESH_COOKIE,
+    CUSTOMER_MFA_COOKIE,
+    DOMAIN_SIGNED_SESSION_COOKIE
+  ];
+  const namesToClear = new Set(baseNames);
+
+  baseNames.forEach((baseName) => {
+    for (let index = 0; index < DOMAIN_COOKIE_MAX_CHUNKS; index += 1) {
+      const chunkName = `${baseName}__${index}`;
+      const duplicateValues = requestCookies.__all
+        && Array.isArray(requestCookies.__all[chunkName])
+        ? requestCookies.__all[chunkName]
+        : [];
+      if (Object.prototype.hasOwnProperty.call(requestCookies, chunkName)
+          || duplicateValues.length > 0) {
+        namesToClear.add(chunkName);
+      }
+    }
+  });
+
+  const clearCookies = [];
+  namesToClear.forEach((name) => {
+    clearCookies.push(...makeCompactClearCookie(name));
+  });
+  appendSetCookie(res, clearCookies);
+  return clearCookies.length > 0;
+}
+
 function base64UrlJson(value) {
   return Buffer.from(JSON.stringify(value)).toString('base64url');
 }
@@ -14316,7 +14348,9 @@ async function diracPasskeyA2FMarkSettingsActive(owner) {
       last_security_check_at: new Date().toISOString()
     };
     if (rows[0] && rows[0].id) {
-      const patched = await supabaseFetch('/rest/v1/security_customer_settings?id=eq.' + encodeURIComponent(rows[0].id)
+      const patched = await supabaseFetch('/rest/v1/security_customer_settings?select='
+        + encodeURIComponent('id,customer_id,security_epoch')
+        + '&id=eq.' + encodeURIComponent(rows[0].id)
         + '&customer_id=eq.' + encodeURIComponent(owner.customerId), {
         method: 'PATCH',
         auth: 'service',
@@ -14324,6 +14358,16 @@ async function diracPasskeyA2FMarkSettingsActive(owner) {
         body
       });
       const patchedRows = patched.ok && Array.isArray(patched.data) ? patched.data : [];
+      if (patched.ok !== true || patchedRows.length !== 1) {
+        console.error('[dirac-passkey-settings-activation-failed]', {
+          status: Number(patched.status || 0),
+          row_count: patchedRows.length,
+          provider_code: String(
+            patched.data && (patched.data.code || patched.data.error_code) || ''
+          ).slice(0, 80),
+          has_security_epoch: Boolean(patchedRows[0] && patchedRows[0].security_epoch)
+        });
+      }
       const patchedRow = patchedRows.length === 1 ? patchedRows[0] : null;
       const securityEpoch = Number(patchedRow && patchedRow.security_epoch || rows[0].security_epoch || 0);
       return {
@@ -14800,7 +14844,7 @@ async function diracPasskeyA2FVerify(req, res) {
       || !Number.isSafeInteger(securityEpoch) || securityEpoch < 1
       || (lostRecoveryRotation && lostRecoveryRotation.ok
         && Number(settingsActivation.securityEpoch) !== securityEpoch)) {
-    clearSessionCookies(res);
+    clearCurrentRequestSessionCookiesV235(req, res);
     return res.status(503).json({
       ok: false,
       method: 'passkey',
@@ -14820,7 +14864,7 @@ async function diracPasskeyA2FVerify(req, res) {
     : null;
   if (!issuedSession || issuedSession.ok !== true || !issuedSession.session_id
       || Number(issuedSession.security_epoch || 0) !== securityEpoch) {
-    clearSessionCookies(res);
+    clearCurrentRequestSessionCookiesV235(req, res);
     return res.status(503).json({
       ok: false,
       method: 'passkey',
@@ -14840,7 +14884,7 @@ async function diracPasskeyA2FVerify(req, res) {
       issuedSession.session_id,
       'mfa_binding_publication_failed'
     );
-    clearSessionCookies(res);
+    clearCurrentRequestSessionCookiesV235(req, res);
     return res.status(503).json({
       ok: false,
       method: 'passkey',
@@ -14855,7 +14899,7 @@ async function diracPasskeyA2FVerify(req, res) {
       issuedSession.session_id,
       'mfa_cookie_publication_failed'
     );
-    clearSessionCookies(res);
+    clearCurrentRequestSessionCookiesV235(req, res);
     return res.status(503).json({
       ok: false,
       method: 'passkey',
