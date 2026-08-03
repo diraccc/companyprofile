@@ -4678,38 +4678,6 @@ function clearSessionCookies(res) {
   ]);
 }
 
-function clearCurrentRequestSessionCookiesV235(req, res) {
-  const requestCookies = parseCookies(req);
-  const baseNames = [
-    ACCESS_COOKIE,
-    REFRESH_COOKIE,
-    CUSTOMER_MFA_COOKIE,
-    DOMAIN_SIGNED_SESSION_COOKIE
-  ];
-  const namesToClear = new Set(baseNames);
-
-  baseNames.forEach((baseName) => {
-    for (let index = 0; index < DOMAIN_COOKIE_MAX_CHUNKS; index += 1) {
-      const chunkName = `${baseName}__${index}`;
-      const duplicateValues = requestCookies.__all
-        && Array.isArray(requestCookies.__all[chunkName])
-        ? requestCookies.__all[chunkName]
-        : [];
-      if (Object.prototype.hasOwnProperty.call(requestCookies, chunkName)
-          || duplicateValues.length > 0) {
-        namesToClear.add(chunkName);
-      }
-    }
-  });
-
-  const clearCookies = [];
-  namesToClear.forEach((name) => {
-    clearCookies.push(...makeCompactClearCookie(name));
-  });
-  appendSetCookie(res, clearCookies);
-  return clearCookies.length > 0;
-}
-
 function base64UrlJson(value) {
   return Buffer.from(JSON.stringify(value)).toString('base64url');
 }
@@ -14348,9 +14316,7 @@ async function diracPasskeyA2FMarkSettingsActive(owner) {
       last_security_check_at: new Date().toISOString()
     };
     if (rows[0] && rows[0].id) {
-      const patched = await supabaseFetch('/rest/v1/security_customer_settings?select='
-        + encodeURIComponent('id,customer_id,security_epoch')
-        + '&id=eq.' + encodeURIComponent(rows[0].id)
+      const patched = await supabaseFetch('/rest/v1/security_customer_settings?id=eq.' + encodeURIComponent(rows[0].id)
         + '&customer_id=eq.' + encodeURIComponent(owner.customerId), {
         method: 'PATCH',
         auth: 'service',
@@ -14358,16 +14324,6 @@ async function diracPasskeyA2FMarkSettingsActive(owner) {
         body
       });
       const patchedRows = patched.ok && Array.isArray(patched.data) ? patched.data : [];
-      if (patched.ok !== true || patchedRows.length !== 1) {
-        console.error('[dirac-passkey-settings-activation-failed]', {
-          status: Number(patched.status || 0),
-          row_count: patchedRows.length,
-          provider_code: String(
-            patched.data && (patched.data.code || patched.data.error_code) || ''
-          ).slice(0, 80),
-          has_security_epoch: Boolean(patchedRows[0] && patchedRows[0].security_epoch)
-        });
-      }
       const patchedRow = patchedRows.length === 1 ? patchedRows[0] : null;
       const securityEpoch = Number(patchedRow && patchedRow.security_epoch || rows[0].security_epoch || 0);
       return {
@@ -14844,7 +14800,7 @@ async function diracPasskeyA2FVerify(req, res) {
       || !Number.isSafeInteger(securityEpoch) || securityEpoch < 1
       || (lostRecoveryRotation && lostRecoveryRotation.ok
         && Number(settingsActivation.securityEpoch) !== securityEpoch)) {
-    clearCurrentRequestSessionCookiesV235(req, res);
+    clearSessionCookies(res);
     return res.status(503).json({
       ok: false,
       method: 'passkey',
@@ -14864,7 +14820,7 @@ async function diracPasskeyA2FVerify(req, res) {
     : null;
   if (!issuedSession || issuedSession.ok !== true || !issuedSession.session_id
       || Number(issuedSession.security_epoch || 0) !== securityEpoch) {
-    clearCurrentRequestSessionCookiesV235(req, res);
+    clearSessionCookies(res);
     return res.status(503).json({
       ok: false,
       method: 'passkey',
@@ -14884,7 +14840,7 @@ async function diracPasskeyA2FVerify(req, res) {
       issuedSession.session_id,
       'mfa_binding_publication_failed'
     );
-    clearCurrentRequestSessionCookiesV235(req, res);
+    clearSessionCookies(res);
     return res.status(503).json({
       ok: false,
       method: 'passkey',
@@ -14899,7 +14855,7 @@ async function diracPasskeyA2FVerify(req, res) {
       issuedSession.session_id,
       'mfa_cookie_publication_failed'
     );
-    clearCurrentRequestSessionCookiesV235(req, res);
+    clearSessionCookies(res);
     return res.status(503).json({
       ok: false,
       method: 'passkey',
@@ -20568,12 +20524,22 @@ async function diracPerfumePublicProductsV117Handle(req, res) {
   try { res.setHeader('Pragma', 'no-cache'); } catch (_) {}
   try { res.setHeader('Expires', '0'); } catch (_) {}
 
-  const limitRaw = Number((req && req.query && (req.query.limit || req.query.per_page)) || 5000);
-  const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.floor(limitRaw), 1), 5000) : 5000;
+  const limitText = String((req && req.query && req.query.limit) || '40').trim();
+  if (!/^(?:[1-9]|[1-3][0-9]|40)$/.test(limitText)) {
+    return res.status(400).json({ ok: false, code: 'PRODUCT_BATCH_LIMIT_INVALID', message: 'Limit katalog harus 1 sampai 40.' });
+  }
+
+  const limit = Number(limitText);
+  const cursor = String((req && req.query && req.query.slug) || '').trim();
+  if (cursor && !/^[A-Za-z0-9._:@-]{1,120}$/.test(cursor)) {
+    return res.status(400).json({ ok: false, code: 'PRODUCT_CURSOR_INVALID', message: 'Cursor katalog tidak valid.' });
+  }
+
   const select = 'slug,doc_id,firebase_id,title,name,price,stock,status,is_ready,is_active,img,image_url,description,notes,long_description';
-  const path = '/rest/v1/products?select=' + encodeURIComponent(select)
-    + '&order=doc_id.asc'
-    + '&limit=' + encodeURIComponent(String(limit));
+  let path = '/rest/v1/products?select=' + encodeURIComponent(select)
+    + '&order=doc_id.asc';
+  if (cursor) path += '&doc_id=gt.' + encodeURIComponent(cursor);
+  path += '&limit=' + encodeURIComponent(String(limit + 1));
 
   const result = await supabaseFetch(path, {
     method: 'GET',
@@ -20585,7 +20551,17 @@ async function diracPerfumePublicProductsV117Handle(req, res) {
   }
 
   const rows = Array.isArray(result.data) ? result.data : [];
-  const products = rows
+  const pageRows = rows.slice(0, limit);
+  const hasMore = rows.length > limit;
+  const nextCursor = hasMore && pageRows.length
+    ? String(pageRows[pageRows.length - 1].doc_id || '').trim()
+    : '';
+
+  if (hasMore && !/^[A-Za-z0-9._:@-]{1,120}$/.test(nextCursor)) {
+    return res.status(500).json({ ok: false, code: 'PRODUCT_CURSOR_GENERATION_FAILED', message: 'Cursor katalog berikutnya tidak dapat dibuat.' });
+  }
+
+  const products = pageRows
     .filter((row) => row && row.is_active !== false && row.is_ready !== false && !['inactive', 'disabled', 'deleted', 'archived', 'hidden', 'draft'].includes(String(row.status || '').toLowerCase()))
     .map((row) => {
       const slug = String(row.slug || '').trim();
@@ -20598,27 +20574,18 @@ async function diracPerfumePublicProductsV117Handle(req, res) {
         id,
         slug,
         doc_id: docId,
-        docId,
         firebase_id: firebaseId,
-        firebaseId,
         title: diracPerfumePublicProductsV117Clean(row.title || row.name || 'Produk Parfum', 180),
         name: diracPerfumePublicProductsV117Clean(row.name || row.title || 'Produk Parfum', 180),
         price,
-        price_label: formatCurrency(price, 'IDR'),
         stock: Number.isFinite(Number(row.stock)) ? Number(row.stock) : null,
         status: String(row.status || '').trim() || 'ready',
         is_ready: row.is_ready !== false,
         is_active: row.is_active !== false,
-        img: image,
-        image: image,
         image_url: image,
-        imageUrl: image,
-        desc: diracPerfumePublicProductsV117Clean(row.description || row.notes || '', 900),
-        description: diracPerfumePublicProductsV117Clean(row.description || '', 1200),
+        description: diracPerfumePublicProductsV117Clean(row.description || row.notes || '', 1200),
         notes: diracPerfumePublicProductsV117Clean(row.notes || '', 900),
-        long_desc: diracPerfumePublicProductsV117Clean(row.long_description || row.description || row.notes || '', 1800),
-        longDesc: diracPerfumePublicProductsV117Clean(row.long_description || row.description || row.notes || '', 1800),
-        long_description: diracPerfumePublicProductsV117Clean(row.long_description || '', 1800)
+        long_description: diracPerfumePublicProductsV117Clean(row.long_description || row.description || row.notes || '', 1800)
       };
     })
     .filter((row) => row.id && row.title && row.price > 0);
@@ -20629,7 +20596,10 @@ async function diracPerfumePublicProductsV117Handle(req, res) {
     patch: DIRAC_PERFUME_PUBLIC_PRODUCTS_TABLE_READER_V117,
     source: 'products',
     table: 'products',
+    batch_size: limit,
     count: products.length,
+    has_more: hasMore,
+    next_cursor: nextCursor,
     products
   });
 }
