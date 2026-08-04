@@ -13648,7 +13648,10 @@ const DIRAC_PASSKEY_A2F_ACTIONS = new Set([
 ]);
 const DIRAC_PASSKEY_A2F_TOKEN_TYPE = 'dirac-passkey-a2f-challenge-v3';
 const DIRAC_PASSKEY_A2F_TTL_MS = Math.max(60_000, Number(process.env.DIRAC_PASSKEY_A2F_TTL_MS || 5 * 60_000));
-const DIRAC_PASSKEY_ROTATION_VERSION_V237 = 'dirac-passkey-single-active-rotation-v237';
+const DIRAC_PASSKEY_ROTATION_VERSION_V237 = 'dirac-passkey-single-active-rotation-v240';
+const DIRAC_PASSKEY_DATABASE_PERMIT_TYPE_V240 = 'dirac-passkey-database-mutation-permit-v240';
+const DIRAC_PASSKEY_DATABASE_PERMIT_TTL_MS_V240 = 90 * 1000;
+const DIRAC_PASSKEY_DATABASE_ROW_SELECT_V240 = 'id,user_id,email,credential_id,credential_json,transports,sign_count,is_active,created_at,updated_at,last_used_at';
 const DIRAC_PASSKEY_ROTATION_PENDING_TTL_MS_V237 = 5 * 60_000;
 const DIRAC_PASSKEY_ROTATION_AUTH_TTL_MS_V237 = 2 * 60_000;
 const DIRAC_PASSKEY_PURPOSES_V237 = new Set([
@@ -14380,15 +14383,128 @@ function diracPasskeyA2FOwnerMatches(row, owner) {
   return false;
 }
 
+function diracPasskeyA2FHydrateDatabaseRowV240(row) {
+  if (!row || typeof row !== 'object') return row;
+  const credentialJson = row.credential_json && typeof row.credential_json === 'object'
+    ? row.credential_json
+    : {};
+  const webauthn = credentialJson.webauthn && typeof credentialJson.webauthn === 'object'
+    ? credentialJson.webauthn
+    : {};
+  const rotation = credentialJson.rotation && typeof credentialJson.rotation === 'object'
+    ? credentialJson.rotation
+    : {};
+  const state = String(rotation.state || (row.is_active === true ? 'active' : 'revoked'));
+  return {
+    ...row,
+    transports: Array.isArray(row.transports) ? row.transports : [],
+    credential_epoch: Number(webauthn.credential_epoch || rotation.credential_epoch || 0),
+    backup_eligible: webauthn.backup_eligible === true,
+    backup_state: webauthn.backup_state === true,
+    rotation_id: String(rotation.id || ''),
+    rotation_state: state,
+    rotation_purpose: String(rotation.purpose || ''),
+    expected_security_epoch: Number(rotation.expected_security_epoch || 0),
+    authorizing_credential_id_hash: String(rotation.authorizing_credential_id_hash || ''),
+    current_auth_session_id: String(rotation.current_auth_session_id || ''),
+    recovery_request_id: String(rotation.recovery_request_id || ''),
+    recovery_session_id: String(rotation.recovery_session_id || ''),
+    recovery_session_hash: String(rotation.recovery_session_hash || ''),
+    pending_expires_at: rotation.pending_expires_at || null,
+    confirmed_at: rotation.confirmed_at || null,
+    activated_at: rotation.activated_at || null,
+    public_key_sha256: String(webauthn.public_key_sha256 || ''),
+    replaced_by: rotation.replaced_by || null,
+    revoked_at: rotation.revoked_at || null,
+    revoke_reason: rotation.revoke_reason || null
+  };
+}
+
+function diracPasskeyA2FDatabaseGuardV240(operation, permitKey) {
+  const cleanOperation = String(operation || '').trim();
+  const cleanPermitKey = String(permitKey || '').trim();
+  if (!/^(?:insert_pending|record_assertion|finalize_rotation|revoke_clone)$/.test(cleanOperation)
+      || !/^passkey-v240:[A-Za-z0-9_-]{32,160}$/.test(cleanPermitKey)) {
+    return null;
+  }
+  return {
+    type: DIRAC_PASSKEY_DATABASE_PERMIT_TYPE_V240,
+    operation: cleanOperation,
+    permit_key: cleanPermitKey
+  };
+}
+
+async function diracPasskeyA2FCreateDatabaseMutationPermitV240({
+  operation,
+  owner,
+  passkeyId,
+  credentialId,
+  publicKeySha256,
+  rotationId,
+  expectedSecurityEpoch,
+  expectedSignCount,
+  newSignCount,
+  assertionPurpose,
+  currentAuthSessionId
+}) {
+  const cleanOperation = String(operation || '').trim();
+  const cleanPasskeyId = String(passkeyId || '').trim();
+  if (!/^(?:insert_pending|record_assertion|finalize_rotation|revoke_clone)$/.test(cleanOperation)
+      || !owner
+      || !customerSecurityLooksLikeUuid(owner.customerId)
+      || !customerSecurityLooksLikeUuid(owner.authUserId)
+      || !customerSecurityLooksLikeUuid(cleanPasskeyId)) {
+    return { ok: false, status: 400, code: 'PASSKEY_DATABASE_PERMIT_INPUT_INVALID' };
+  }
+  const permitKey = 'passkey-v240:' + crypto.randomBytes(32).toString('base64url');
+  const now = Date.now();
+  const expiresAt = new Date(now + DIRAC_PASSKEY_DATABASE_PERMIT_TTL_MS_V240).toISOString();
+  const record = {
+    type: DIRAC_PASSKEY_DATABASE_PERMIT_TYPE_V240,
+    operation: cleanOperation,
+    customer_id: String(owner.customerId),
+    auth_user_id: String(owner.authUserId),
+    passkey_id: cleanPasskeyId,
+    credential_id_hash: credentialId
+      ? crypto.createHash('sha256').update(String(credentialId)).digest('hex')
+      : '',
+    public_key_sha256: String(publicKeySha256 || ''),
+    rotation_id: String(rotationId || ''),
+    expected_security_epoch: Math.max(0, Number(expectedSecurityEpoch || 0)),
+    expected_sign_count: Math.max(0, Number(expectedSignCount || 0)),
+    new_sign_count: Math.max(0, Number(newSignCount || 0)),
+    assertion_purpose: String(assertionPurpose || ''),
+    current_auth_session_id: String(currentAuthSessionId || ''),
+    issued_at_ms: now,
+    expires_at_ms: now + DIRAC_PASSKEY_DATABASE_PERMIT_TTL_MS_V240,
+    nonce_hash: crypto.createHash('sha256').update(permitKey).digest('hex')
+  };
+  const claimed = await supabaseFetch('/rest/v1/rpc/dirac_central_atomic_claim_record_v230', {
+    method: 'POST',
+    auth: 'service',
+    body: {
+      p_table_name: 'dirac_s2s_security',
+      p_security_key: permitKey,
+      p_record_json: record,
+      p_expires_at: expiresAt
+    }
+  }).catch(() => null);
+  if (!claimed || claimed.ok !== true || claimed.data !== true) {
+    return { ok: false, status: claimed && claimed.status || 503, code: 'PASSKEY_DATABASE_PERMIT_CREATE_FAILED' };
+  }
+  return { ok: true, permitKey, expiresAt, record };
+}
+
 async function diracPasskeyA2FListActivePasskeys(owner) {
-  const select = ['id', 'user_id', 'email', 'credential_id', 'credential_json', 'transports', 'sign_count', 'is_active', 'credential_epoch', 'backup_eligible', 'backup_state', 'rotation_id', 'rotation_state', 'rotation_purpose', 'expected_security_epoch', 'authorizing_credential_id_hash', 'current_auth_session_id', 'recovery_request_id', 'recovery_session_id', 'recovery_session_hash', 'pending_expires_at', 'confirmed_at', 'activated_at', 'public_key_sha256', 'replaced_by', 'revoked_at', 'revoke_reason', 'created_at', 'updated_at', 'last_used_at'].join(',');
   const seen = new Set();
   const rows = [];
   const fetchRows = async (filter) => {
-    const path = '/rest/v1/domain_passkeys?select=' + encodeURIComponent(select) + '&is_active=eq.true&' + filter + '&order=created_at.desc&limit=20';
+    const path = '/rest/v1/domain_passkeys?select=' + encodeURIComponent(DIRAC_PASSKEY_DATABASE_ROW_SELECT_V240)
+      + '&is_active=eq.true&' + filter + '&order=created_at.desc&limit=20';
     const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
     if (!result.ok) return;
-    for (const row of (Array.isArray(result.data) ? result.data : [])) {
+    for (const rawRow of (Array.isArray(result.data) ? result.data : [])) {
+      const row = diracPasskeyA2FHydrateDatabaseRowV240(rawRow);
       const key = String(row && (row.id || row.credential_id) || '');
       if (!key || seen.has(key) || !diracPasskeyA2FOwnerMatches(row, owner)) continue;
       seen.add(key);
@@ -14407,18 +14523,22 @@ async function diracPasskeyA2FFetchByCredentialId(credentialId, owner) {
   const id = diracPasskeyA2FSafeString(credentialId, 4096);
   const ownerCustomerId = String(owner && owner.customerId || '').trim();
   if (!id || !customerSecurityLooksLikeUuid(ownerCustomerId)) return { ok: true, data: [] };
-  const select = ['id', 'user_id', 'email', 'credential_id', 'credential_json', 'transports', 'sign_count', 'is_active', 'credential_epoch', 'backup_eligible', 'backup_state', 'rotation_id', 'rotation_state', 'rotation_purpose', 'expected_security_epoch', 'authorizing_credential_id_hash', 'current_auth_session_id', 'recovery_request_id', 'recovery_session_id', 'recovery_session_hash', 'pending_expires_at', 'confirmed_at', 'activated_at', 'public_key_sha256', 'replaced_by', 'revoked_at', 'revoke_reason', 'created_at', 'updated_at', 'last_used_at'].join(',');
-  const path = '/rest/v1/domain_passkeys?select=' + encodeURIComponent(select)
+  const path = '/rest/v1/domain_passkeys?select=' + encodeURIComponent(DIRAC_PASSKEY_DATABASE_ROW_SELECT_V240)
     + '&credential_id=eq.' + encodeURIComponent(id)
     + '&user_id=eq.' + encodeURIComponent(ownerCustomerId)
     + '&limit=1';
-  return supabaseFetch(path, { method: 'GET', auth: 'service' });
+  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+  if (result && result.ok && Array.isArray(result.data)) {
+    result.data = result.data.map(diracPasskeyA2FHydrateDatabaseRowV240);
+  }
+  return result;
 }
 
 async function diracPasskeyA2FSaveRegistration({ owner, credential, response, clientData, payload, req }) {
   const credentialId = diracPasskeyA2FCredentialId(credential);
   if (!credentialId) return { ok: false, status: 400, message: 'Credential Passkey kosong. Coba ulangi.' };
-  if (!owner || !owner.customerId || !customerSecurityLooksLikeUuid(owner.customerId)) {
+  if (!owner || !owner.customerId || !customerSecurityLooksLikeUuid(owner.customerId)
+      || !customerSecurityLooksLikeUuid(owner.authUserId)) {
     return { ok: false, status: 409, message: 'Customer owner Passkey tidak valid. Login ulang dulu.' };
   }
   const purpose = String(payload && payload.purpose || '');
@@ -14436,8 +14556,33 @@ async function diracPasskeyA2FSaveRegistration({ owner, credential, response, cl
   if (Array.isArray(globalCheck.data) && globalCheck.data.length > 0) {
     return { ok: false, status: 409, message: 'Credential Passkey sudah pernah terdaftar.', code: 'PASSKEY_CREDENTIAL_ID_ALREADY_EXISTS' };
   }
+
   const nowIso = new Date().toISOString();
+  const pendingExpiresAt = new Date(Date.now() + DIRAC_PASSKEY_ROTATION_PENDING_TTL_MS_V237).toISOString();
   const signCount = Math.max(0, Number(registration.signCount || diracPasskeyA2FSignCount(response) || 0));
+  const passkeyId = crypto.randomUUID();
+  const rotationPurpose = purpose.replace('_register_pending', '');
+  const publicKeySha256 = crypto.createHash('sha256')
+    .update(diracPasskeyA2FBase64UrlToBuffer(registration.credentialPublicKeyCose))
+    .digest('hex');
+  const permit = await diracPasskeyA2FCreateDatabaseMutationPermitV240({
+    operation: 'insert_pending',
+    owner,
+    passkeyId,
+    credentialId,
+    publicKeySha256,
+    rotationId: payload && payload.rotationId,
+    expectedSecurityEpoch: payload && payload.expectedSecurityEpoch,
+    currentAuthSessionId: payload && payload.currentAuthSessionId
+  });
+  if (!permit.ok) {
+    return { ok: false, status: permit.status || 503, message: 'Izin mutasi database Passkey tidak tersedia.', code: permit.code };
+  }
+  const databaseGuard = diracPasskeyA2FDatabaseGuardV240('insert_pending', permit.permitKey);
+  if (!databaseGuard) {
+    return { ok: false, status: 500, message: 'Kontrak izin database Passkey tidak valid.', code: 'PASSKEY_DATABASE_GUARD_INVALID' };
+  }
+
   const credentialJson = diracPasskeyA2FMinimalCredentialJson({ credential, response, clientData, payload, owner, req, mode: 'registration' });
   credentialJson.webauthn = {
     rp_id: String(payload && payload.rpId || diracPasskeyA2FRpId(req)),
@@ -14447,48 +14592,61 @@ async function diracPasskeyA2FSaveRegistration({ owner, credential, response, cl
     sign_count: signCount,
     backup_eligible: registration.backupEligible === true,
     backup_state: registration.backupState === true,
+    credential_epoch: 0,
     rotation_version: DIRAC_PASSKEY_ROTATION_VERSION_V237,
+    public_key_sha256: publicKeySha256,
     attestation_format: registration.attestationFormat,
     verified_at: nowIso
   };
-  const publicKeySha256 = crypto.createHash('sha256')
-    .update(diracPasskeyA2FBase64UrlToBuffer(registration.credentialPublicKeyCose))
-    .digest('hex');
-  const rpc = await supabaseFetch('/rest/v1/rpc/dirac_passkey_create_pending_v237', {
-    method: 'POST',
-    auth: 'service',
-    prefer: 'return=representation',
-    body: {
-      p_customer_id: owner.customerId,
-      p_auth_user_id: owner.authUserId,
-      p_email: owner.email,
-      p_credential_id: credentialId,
-      p_credential_json: credentialJson,
-      p_transports: diracPasskeyA2FTransports(credential, response),
-      p_sign_count: signCount,
-      p_backup_eligible: registration.backupEligible === true,
-      p_backup_state: registration.backupState === true,
-      p_rotation_id: String(payload && payload.rotationId || ''),
-      p_rotation_purpose: purpose.replace('_register_pending', ''),
-      p_expected_security_epoch: Number(payload && payload.expectedSecurityEpoch || 0),
-      p_authorizing_credential_id_hash: String(payload && payload.authorizingCredentialIdHash || ''),
-      p_current_auth_session_id: String(payload && payload.currentAuthSessionId || ''),
-      p_recovery_request_id: payload && payload.lostPasskeyRecovery ? String(payload.lostPasskeyRecovery.requestId || '') : null,
-      p_recovery_session_id: payload && payload.lostPasskeyRecovery ? String(payload.lostPasskeyRecovery.sessionId || '') : null,
-      p_recovery_session_hash: payload && payload.lostPasskeyRecovery ? String(payload.lostPasskeyRecovery.sessionHash || '') : null,
-      p_public_key_sha256: publicKeySha256,
-      p_pending_expires_at: new Date(Date.now() + DIRAC_PASSKEY_ROTATION_PENDING_TTL_MS_V237).toISOString()
+  credentialJson.rotation = {
+    id: String(payload && payload.rotationId || ''),
+    state: 'pending',
+    purpose: rotationPurpose,
+    expected_security_epoch: Number(payload && payload.expectedSecurityEpoch || 0),
+    authorizing_credential_id_hash: String(payload && payload.authorizingCredentialIdHash || ''),
+    current_auth_session_id: String(payload && payload.currentAuthSessionId || ''),
+    recovery_request_id: payload && payload.lostPasskeyRecovery ? String(payload.lostPasskeyRecovery.requestId || '') : '',
+    recovery_session_id: payload && payload.lostPasskeyRecovery ? String(payload.lostPasskeyRecovery.sessionId || '') : '',
+    recovery_session_hash: payload && payload.lostPasskeyRecovery ? String(payload.lostPasskeyRecovery.sessionHash || '') : '',
+    pending_expires_at: pendingExpiresAt,
+    confirmed_at: null,
+    activated_at: null,
+    revoked_at: null,
+    revoke_reason: null,
+    replaced_by: null
+  };
+  credentialJson.database_guard = databaseGuard;
+
+  const inserted = await supabaseFetch(
+    '/rest/v1/domain_passkeys?select=' + encodeURIComponent(DIRAC_PASSKEY_DATABASE_ROW_SELECT_V240),
+    {
+      method: 'POST',
+      auth: 'service',
+      prefer: 'return=representation',
+      body: [{
+        id: passkeyId,
+        user_id: owner.customerId,
+        email: owner.email,
+        credential_id: credentialId,
+        credential_json: credentialJson,
+        transports: diracPasskeyA2FTransports(credential, response),
+        sign_count: signCount,
+        is_active: false,
+        created_at: nowIso,
+        updated_at: nowIso,
+        last_used_at: null
+      }]
     }
-  });
-  const data = rpc.ok && Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
-  if (!rpc.ok || !data || data.ok !== true || !data.passkey_id) {
-    console.error('[passkey-pending-create-failed]', customerSecuritySafeLogError(rpc.data));
-    return { ok: false, status: rpc.status || 409, message: 'Gagal menyimpan Passkey pending secara atomik.', code: 'PASSKEY_PENDING_CREATE_FAILED' };
-  }
-  const fetched = await diracPasskeyA2FFetchByCredentialId(credentialId, owner);
-  const row = fetched.ok && Array.isArray(fetched.data) ? fetched.data[0] : null;
-  if (!row || String(row.id || '') !== String(data.passkey_id) || row.rotation_state !== 'pending') {
-    return { ok: false, status: 409, message: 'Bukti penyimpanan Passkey pending tidak valid.', code: 'PASSKEY_PENDING_COMMIT_PROOF_INVALID' };
+  );
+  const insertedRows = inserted && inserted.ok && Array.isArray(inserted.data)
+    ? inserted.data.map(diracPasskeyA2FHydrateDatabaseRowV240)
+    : [];
+  const row = insertedRows[0] || null;
+  if (!inserted || inserted.ok !== true || insertedRows.length !== 1
+      || !row || String(row.id || '') !== passkeyId
+      || row.rotation_state !== 'pending' || row.is_active !== false) {
+    console.error('[passkey-pending-create-failed]', customerSecuritySafeLogError(inserted && inserted.data));
+    return { ok: false, status: inserted && inserted.status || 409, message: 'Gagal menyimpan Passkey pending secara atomik.', code: 'PASSKEY_PENDING_CREATE_FAILED' };
   }
   return { ok: true, created: true, row };
 }
@@ -14506,6 +14664,27 @@ async function diracPasskeyA2FUpdateUsage({ row, owner, response, credential, cl
   }
   const signCount = Math.max(0, Number(assertion.signCount || diracPasskeyA2FSignCount(response) || 0));
   const nowIso = new Date().toISOString();
+  const assertionPurpose = confirmPending ? 'confirm_pending' : String(payload && payload.purpose || 'login');
+  const permit = await diracPasskeyA2FCreateDatabaseMutationPermitV240({
+    operation: 'record_assertion',
+    owner,
+    passkeyId: row.id,
+    credentialId: row.credential_id,
+    publicKeySha256: row.public_key_sha256,
+    rotationId: payload && payload.rotationId,
+    expectedSecurityEpoch: payload && payload.expectedSecurityEpoch,
+    expectedSignCount: row.sign_count,
+    newSignCount: signCount,
+    assertionPurpose,
+    currentAuthSessionId: payload && payload.currentAuthSessionId
+  });
+  if (!permit.ok) {
+    return { ok: false, status: permit.status || 503, message: 'Izin pembaruan Passkey tidak tersedia.', code: permit.code };
+  }
+  const databaseGuard = diracPasskeyA2FDatabaseGuardV240('record_assertion', permit.permitKey);
+  if (!databaseGuard) {
+    return { ok: false, status: 500, message: 'Kontrak izin pembaruan Passkey tidak valid.', code: 'PASSKEY_DATABASE_GUARD_INVALID' };
+  }
   const credentialJson = {
     ...(row.credential_json && typeof row.credential_json === 'object' ? row.credential_json : {}),
     webauthn: {
@@ -14514,36 +14693,36 @@ async function diracPasskeyA2FUpdateUsage({ row, owner, response, credential, cl
       backup_state: assertion.backupState === true,
       last_verified_at: nowIso
     },
-    last_authentication: diracPasskeyA2FMinimalCredentialJson({ credential, response, clientData, payload, owner, req, mode: 'authentication' })
+    last_authentication: diracPasskeyA2FMinimalCredentialJson({ credential, response, clientData, payload, owner, req, mode: 'authentication' }),
+    database_guard: databaseGuard
   };
-  const rpc = await supabaseFetch('/rest/v1/rpc/dirac_passkey_record_assertion_v237', {
-    method: 'POST',
+  const patchPath = '/rest/v1/domain_passkeys?select=' + encodeURIComponent(DIRAC_PASSKEY_DATABASE_ROW_SELECT_V240)
+    + '&id=eq.' + encodeURIComponent(String(row.id))
+    + '&user_id=eq.' + encodeURIComponent(String(owner.customerId))
+    + '&credential_id=eq.' + encodeURIComponent(String(row.credential_id || ''))
+    + '&sign_count=eq.' + encodeURIComponent(String(Math.max(0, Number(row.sign_count || 0))));
+  const patched = await supabaseFetch(patchPath, {
+    method: 'PATCH',
     auth: 'service',
     prefer: 'return=representation',
     body: {
-      p_customer_id: owner.customerId,
-      p_passkey_id: row.id,
-      p_expected_sign_count: Math.max(0, Number(row.sign_count || 0)),
-      p_new_sign_count: signCount,
-      p_backup_state: assertion.backupState === true,
-      p_credential_json: credentialJson,
-      p_confirm_pending: confirmPending === true,
-      p_auth_user_id: owner.authUserId,
-      p_assertion_purpose: confirmPending ? 'confirm_pending' : String(payload && payload.purpose || 'login'),
-      p_rotation_id: payload && payload.rotationId ? String(payload.rotationId) : null,
-      p_expected_security_epoch: Number(payload && payload.expectedSecurityEpoch || 0),
-      p_current_auth_session_id: payload && payload.currentAuthSessionId ? String(payload.currentAuthSessionId) : null
+      sign_count: signCount,
+      credential_json: credentialJson,
+      last_used_at: nowIso,
+      updated_at: nowIso
     }
   });
-  const data = rpc.ok && Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
-  if (!rpc.ok || !data || data.ok !== true || !data.passkey_id) {
-    console.error('[passkey-usage-update-failed]', customerSecuritySafeLogError(rpc.data));
-    return { ok: false, status: rpc.status || 409, message: 'Counter atau status Passkey berubah secara bersamaan.', code: 'PASSKEY_USAGE_ATOMIC_CONFLICT' };
+  const patchedRows = patched && patched.ok && Array.isArray(patched.data)
+    ? patched.data.map(diracPasskeyA2FHydrateDatabaseRowV240)
+    : [];
+  const updatedRow = patchedRows[0] || null;
+  if (!patched || patched.ok !== true || patchedRows.length !== 1
+      || !updatedRow || String(updatedRow.id || '') !== String(row.id)) {
+    console.error('[passkey-usage-update-failed]', customerSecuritySafeLogError(patched && patched.data));
+    return { ok: false, status: patched && patched.status || 409, message: 'Counter atau status Passkey berubah secara bersamaan.', code: 'PASSKEY_USAGE_ATOMIC_CONFLICT' };
   }
-  const fetched = await diracPasskeyA2FFetchByCredentialId(String(row.credential_id || ''), owner);
-  const updatedRow = fetched.ok && Array.isArray(fetched.data) ? fetched.data[0] : null;
-  if (!updatedRow || String(updatedRow.id || '') !== String(row.id)) {
-    return { ok: false, status: 409, message: 'Bukti pembaruan Passkey tidak valid.', code: 'PASSKEY_USAGE_COMMIT_PROOF_INVALID' };
+  if (confirmPending && !updatedRow.confirmed_at) {
+    return { ok: false, status: 409, message: 'Konfirmasi Passkey pending tidak tercatat.', code: 'PASSKEY_PENDING_CONFIRMATION_COMMIT_PROOF_INVALID' };
   }
   return { ok: true, row: updatedRow, assertion };
 }
@@ -14781,9 +14960,13 @@ async function diracPasskeyA2FCompleteLostRecoveryRotation({ owner, newCredentia
 async function diracPasskeyA2FFetchCredentialGloballyV237(credentialId) {
   const id = diracPasskeyA2FSafeString(credentialId, 4096);
   if (!id) return { ok: true, data: [] };
-  const path = '/rest/v1/domain_passkeys?select=' + encodeURIComponent('id,user_id,credential_id,rotation_state,is_active')
+  const path = '/rest/v1/domain_passkeys?select=' + encodeURIComponent(DIRAC_PASSKEY_DATABASE_ROW_SELECT_V240)
     + '&credential_id=eq.' + encodeURIComponent(id) + '&limit=2';
-  return supabaseFetch(path, { method: 'GET', auth: 'service' });
+  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+  if (result && result.ok && Array.isArray(result.data)) {
+    result.data = result.data.map(diracPasskeyA2FHydrateDatabaseRowV240);
+  }
+  return result;
 }
 
 async function diracPasskeyA2FReadSecurityEpochV237(owner) {
@@ -14917,53 +15100,108 @@ async function diracPasskeyA2FBuildSetupV237({ req, owner, purpose, activePasske
 }
 
 async function diracPasskeyA2FFinalizeRotationV237({ owner, pendingRow, payload }) {
-  const rpc = await supabaseFetch('/rest/v1/rpc/dirac_passkey_finalize_rotation_v237', {
-    method: 'POST',
+  if (!owner || !pendingRow || !pendingRow.id || pendingRow.rotation_state !== 'pending' || !pendingRow.confirmed_at) {
+    return { ok: false, status: 409, code: 'PASSKEY_PENDING_FINALIZE_INPUT_INVALID' };
+  }
+  const permit = await diracPasskeyA2FCreateDatabaseMutationPermitV240({
+    operation: 'finalize_rotation',
+    owner,
+    passkeyId: pendingRow.id,
+    credentialId: pendingRow.credential_id,
+    publicKeySha256: pendingRow.public_key_sha256,
+    rotationId: payload && payload.rotationId,
+    expectedSecurityEpoch: payload && payload.expectedSecurityEpoch,
+    expectedSignCount: pendingRow.sign_count,
+    newSignCount: pendingRow.sign_count,
+    assertionPurpose: String(payload && payload.purpose || ''),
+    currentAuthSessionId: payload && payload.currentAuthSessionId
+  });
+  if (!permit.ok) return { ok: false, status: permit.status || 503, code: permit.code };
+  const databaseGuard = diracPasskeyA2FDatabaseGuardV240('finalize_rotation', permit.permitKey);
+  if (!databaseGuard) return { ok: false, status: 500, code: 'PASSKEY_DATABASE_GUARD_INVALID' };
+  const credentialJson = {
+    ...(pendingRow.credential_json && typeof pendingRow.credential_json === 'object' ? pendingRow.credential_json : {}),
+    database_guard: databaseGuard
+  };
+  const patchPath = '/rest/v1/domain_passkeys?select=' + encodeURIComponent(DIRAC_PASSKEY_DATABASE_ROW_SELECT_V240)
+    + '&id=eq.' + encodeURIComponent(String(pendingRow.id))
+    + '&user_id=eq.' + encodeURIComponent(String(owner.customerId))
+    + '&credential_id=eq.' + encodeURIComponent(String(pendingRow.credential_id || ''))
+    + '&is_active=eq.false';
+  const patched = await supabaseFetch(patchPath, {
+    method: 'PATCH',
     auth: 'service',
     prefer: 'return=representation',
-    body: {
-      p_customer_id: owner.customerId,
-      p_auth_user_id: owner.authUserId,
-      p_rotation_id: String(payload.rotationId || ''),
-      p_pending_passkey_id: String(pendingRow.id || ''),
-      p_rotation_purpose: String(payload.purpose || '').replace('_confirm_pending', ''),
-      p_expected_security_epoch: Number(payload.expectedSecurityEpoch || 0),
-      p_authorizing_credential_id_hash: String(payload.authorizingCredentialIdHash || ''),
-      p_current_auth_session_id: String(payload.currentAuthSessionId || ''),
-      p_recovery_request_id: payload.lostPasskeyRecovery ? String(payload.lostPasskeyRecovery.requestId || '') : null,
-      p_recovery_session_id: payload.lostPasskeyRecovery ? String(payload.lostPasskeyRecovery.sessionId || '') : null,
-      p_recovery_session_hash: payload.lostPasskeyRecovery ? String(payload.lostPasskeyRecovery.sessionHash || '') : null
-    }
+    body: { credential_json: credentialJson, updated_at: new Date().toISOString() }
   });
-  const data = rpc.ok && Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
-  if (!rpc.ok || !data || data.ok !== true || Number(data.active_credentials || 0) !== 1) {
-    console.error('[passkey-rotation-finalize-failed]', customerSecuritySafeLogError(rpc.data));
-    return { ok: false, status: rpc.status || 409, code: 'PASSKEY_ATOMIC_ROTATION_FAILED' };
+  const rows = patched && patched.ok && Array.isArray(patched.data)
+    ? patched.data.map(diracPasskeyA2FHydrateDatabaseRowV240)
+    : [];
+  const row = rows[0] || null;
+  if (!patched || patched.ok !== true || rows.length !== 1 || !row
+      || row.is_active !== true || row.rotation_state !== 'active'
+      || !Number.isSafeInteger(Number(row.credential_epoch)) || Number(row.credential_epoch) < 1) {
+    console.error('[passkey-rotation-finalize-failed]', customerSecuritySafeLogError(patched && patched.data));
+    return { ok: false, status: patched && patched.status || 409, code: 'PASSKEY_ATOMIC_ROTATION_FAILED' };
   }
+  const epoch = await diracPasskeyA2FReadSecurityEpochV237(owner);
+  if (!epoch.ok || Number(epoch.securityEpoch) !== Number(row.credential_epoch)) {
+    return { ok: false, status: 409, code: 'PASSKEY_ROTATION_EPOCH_POSTCONDITION_FAILED' };
+  }
+  const rotation = row.credential_json && row.credential_json.rotation && typeof row.credential_json.rotation === 'object'
+    ? row.credential_json.rotation
+    : {};
   return {
     ok: true,
-    securityEpoch: Number(data.security_epoch || 0),
-    revokedCredentials: Math.max(0, Number(data.revoked_credentials || 0)),
-    activeCredentials: Number(data.active_credentials || 0)
+    securityEpoch: Number(row.credential_epoch),
+    revokedCredentials: Math.max(0, Number(rotation.revoked_credentials || 0)),
+    activeCredentials: 1
   };
 }
 
 async function diracPasskeyA2FRevokeCloneV237(owner, row) {
-  if (!owner || !row || !row.id) return { ok: false };
-  const rpc = await supabaseFetch('/rest/v1/rpc/dirac_passkey_revoke_clone_v237', {
-    method: 'POST',
+  if (!owner || !row || !row.id || row.rotation_state !== 'active' || row.is_active !== true) return { ok: false };
+  const permit = await diracPasskeyA2FCreateDatabaseMutationPermitV240({
+    operation: 'revoke_clone',
+    owner,
+    passkeyId: row.id,
+    credentialId: row.credential_id,
+    publicKeySha256: row.public_key_sha256,
+    rotationId: row.rotation_id,
+    expectedSecurityEpoch: row.credential_epoch,
+    expectedSignCount: row.sign_count,
+    newSignCount: row.sign_count,
+    assertionPurpose: 'passkey_sign_count_replay',
+    currentAuthSessionId: row.current_auth_session_id
+  });
+  if (!permit.ok) return { ok: false, code: permit.code };
+  const databaseGuard = diracPasskeyA2FDatabaseGuardV240('revoke_clone', permit.permitKey);
+  if (!databaseGuard) return { ok: false, code: 'PASSKEY_DATABASE_GUARD_INVALID' };
+  const credentialJson = {
+    ...(row.credential_json && typeof row.credential_json === 'object' ? row.credential_json : {}),
+    database_guard: databaseGuard
+  };
+  const patchPath = '/rest/v1/domain_passkeys?select=' + encodeURIComponent(DIRAC_PASSKEY_DATABASE_ROW_SELECT_V240)
+    + '&id=eq.' + encodeURIComponent(String(row.id))
+    + '&user_id=eq.' + encodeURIComponent(String(owner.customerId))
+    + '&credential_id=eq.' + encodeURIComponent(String(row.credential_id || ''))
+    + '&is_active=eq.true&sign_count=eq.' + encodeURIComponent(String(Math.max(0, Number(row.sign_count || 0))))
+    ;
+  const patched = await supabaseFetch(patchPath, {
+    method: 'PATCH',
     auth: 'service',
     prefer: 'return=representation',
-    body: {
-      p_customer_id: owner.customerId,
-      p_auth_user_id: owner.authUserId,
-      p_passkey_id: row.id,
-      p_expected_sign_count: Math.max(0, Number(row.sign_count || 0)),
-      p_reason: 'passkey_sign_count_replay'
-    }
+    body: { credential_json: credentialJson, updated_at: new Date().toISOString() }
   });
-  const data = rpc.ok && Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
-  return { ok: Boolean(rpc.ok && data && data.ok === true), data };
+  const rows = patched && patched.ok && Array.isArray(patched.data)
+    ? patched.data.map(diracPasskeyA2FHydrateDatabaseRowV240)
+    : [];
+  const revokedRow = rows[0] || null;
+  return {
+    ok: Boolean(patched && patched.ok === true && rows.length === 1 && revokedRow
+      && revokedRow.is_active === false && revokedRow.rotation_state === 'revoked'),
+    data: revokedRow
+  };
 }
 
 async function diracPasskeyA2FIssueSessionV237({ req, res, user, owner, securityEpoch, credentialId, registeredNow, rotationResult = null }) {
@@ -15286,11 +15524,20 @@ async function diracPasskeyA2FVerify(req, res) {
 
   if (confirmingPending) {
     const finalized = await diracPasskeyA2FFinalizeRotationV237({ owner, pendingRow: usage.row, payload });
+    clearCurrentRequestSessionCookiesV235(req, res);
     if (!finalized.ok) {
-      clearCurrentRequestSessionCookiesV235(req, res);
       return res.status(finalized.status || 409).json({ ok: false, method: 'passkey', code: finalized.code, message: 'Rotasi Passkey tidak berhasil diselesaikan secara atomik.' });
     }
-    return diracPasskeyA2FIssueSessionV237({ req, res, user, owner, securityEpoch: finalized.securityEpoch, credentialId, registeredNow: true, rotationResult: finalized });
+    return res.status(200).json({
+      ok: true,
+      verified: false,
+      method: 'passkey',
+      rotation_completed: true,
+      reauthentication_required: true,
+      securityEpoch: finalized.securityEpoch,
+      old_passkeys_deactivated: finalized.revokedCredentials,
+      message: 'Passkey berhasil diganti. Semua sesi lama telah dicabut. Login ulang menggunakan Passkey baru.'
+    });
   }
 
   if (purpose !== 'login') {
