@@ -3086,12 +3086,6 @@ function verifyCustomerDashboardMfaCookie(req, user) {
     activeAtMs: Number(payload.activeAtMs || 0),
     expiresAtMs: Number(payload.expiresAtMs || 0),
     securityEpoch,
-    credentialRole: DIRAC_PASSKEY_HIGH_ASSURANCE_ROLES_V236.has(String(payload.credentialRole || ''))
-      ? String(payload.credentialRole)
-      : '',
-    credentialIdHash: /^[a-f0-9]{64}$/.test(String(payload.credentialIdHash || ''))
-      ? String(payload.credentialIdHash)
-      : '',
     source: proof.source
   };
 }
@@ -9542,13 +9536,7 @@ function customerSecurityCreateDashboardMfaToken(req, user, method = 'recovery_c
     expiresAtMs: Number(anchor.expiresAtMs),
     originHash: customerMfaBindingHash('origin', requestOrigin(req)),
     uaHash: customerMfaBindingHash('ua', requestUserAgent(req)),
-    recoveryVerified: method === 'recovery_code',
-    credentialRole: method === 'passkey' && DIRAC_PASSKEY_HIGH_ASSURANCE_ROLES_V236.has(String(context && context.credentialRole || ''))
-      ? String(context.credentialRole)
-      : '',
-    credentialIdHash: method === 'passkey' && context && context.credentialId
-      ? crypto.createHash('sha256').update(String(context.credentialId)).digest('hex')
-      : ''
+    recoveryVerified: method === 'recovery_code'
   };
   const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString('base64url');
   const signature = signDashboardMfa(payloadBase64, getCustomerMfaSecret());
@@ -13658,10 +13646,26 @@ const DIRAC_PASSKEY_A2F_ACTIONS = new Set([
   'domain_mfa_passkey_start',
   'domain_mfa_passkey_verify'
 ]);
-const DIRAC_PASSKEY_A2F_TOKEN_TYPE = 'dirac-passkey-a2f-challenge-v2';
+const DIRAC_PASSKEY_A2F_TOKEN_TYPE = 'dirac-passkey-a2f-challenge-v3';
 const DIRAC_PASSKEY_A2F_TTL_MS = Math.max(60_000, Number(process.env.DIRAC_PASSKEY_A2F_TTL_MS || 5 * 60_000));
+const DIRAC_PASSKEY_ROTATION_VERSION_V237 = 'dirac-passkey-single-active-rotation-v237';
+const DIRAC_PASSKEY_ROTATION_PENDING_TTL_MS_V237 = 5 * 60_000;
+const DIRAC_PASSKEY_ROTATION_AUTH_TTL_MS_V237 = 2 * 60_000;
+const DIRAC_PASSKEY_PURPOSES_V237 = new Set([
+  'login',
+  'replace_authorize_old',
+  'replace_register_pending',
+  'replace_confirm_pending',
+  'initial_register_pending',
+  'initial_confirm_pending',
+  'recovery_register_pending',
+  'recovery_confirm_pending'
+]);
 const DIRAC_PASSKEY_A2F_CHALLENGE_STORE = globalThis.__DIRAC_PASSKEY_A2F_CHALLENGE_STORE__ || new Map();
 const DIRAC_PASSKEY_A2F_CONSUME_LOCKS = globalThis.__DIRAC_PASSKEY_A2F_CONSUME_LOCKS__ || new Set();
+const DIRAC_PASSKEY_PROMPT_CONTEXT_COOKIE_V238 = '__Host-dirac_passkey_context_v238';
+const DIRAC_PASSKEY_PROMPT_CONTEXT_TYPE_V238 = 'dirac-passkey-prompt-context-v238';
+const DIRAC_PASSKEY_PROMPT_CONTEXT_MAX_AGE_SECONDS_V238 = 60 * 60 * 24 * 345;
 globalThis.__DIRAC_PASSKEY_A2F_CHALLENGE_STORE__ = DIRAC_PASSKEY_A2F_CHALLENGE_STORE;
 globalThis.__DIRAC_PASSKEY_A2F_CONSUME_LOCKS__ = DIRAC_PASSKEY_A2F_CONSUME_LOCKS;
 
@@ -13714,6 +13718,143 @@ function diracPasskeyA2FDecodeToken(token) {
   }
 }
 
+function diracPasskeyA2FPromptContextOwnerHashV238(owner) {
+  const customerId = String(owner && owner.customerId || '').trim();
+  const authUserId = String(owner && owner.authUserId || '').trim();
+  if (!customerSecurityLooksLikeUuid(customerId) || !customerSecurityLooksLikeUuid(authUserId)) return '';
+  return crypto.createHmac('sha256', getCustomerMfaSecret())
+    .update('dirac-passkey-prompt-owner-v238|' + customerId + '|' + authUserId)
+    .digest('base64url');
+}
+
+function diracPasskeyA2FPromptContextCredentialHashV238(credentialId) {
+  const value = String(credentialId || '').trim();
+  if (!value || value.length > 4096) return '';
+  return crypto.createHash('sha256')
+    .update('dirac-passkey-prompt-credential-v238|' + value)
+    .digest('base64url');
+}
+
+function diracPasskeyA2FPromptContextSignV238(payloadBase64) {
+  return crypto.createHmac('sha256', getCustomerMfaSecret())
+    .update('dirac-passkey-prompt-context-v238|' + String(payloadBase64 || ''))
+    .digest('base64url');
+}
+
+function diracPasskeyA2FReadPromptContextV238(req, owner) {
+  const cookies = parseCookies(req);
+  const allValues = cookies && cookies.__all
+    && Array.isArray(cookies.__all[DIRAC_PASSKEY_PROMPT_CONTEXT_COOKIE_V238])
+      ? cookies.__all[DIRAC_PASSKEY_PROMPT_CONTEXT_COOKIE_V238].filter((value) => String(value || '').trim())
+      : [];
+  if (allValues.length === 0) return { ok: true, present: false };
+  if (allValues.length !== 1) return { ok: false, present: true, reason: 'prompt_context_cookie_ambiguous' };
+
+  const raw = String(allValues[0] || '').trim();
+  if (!raw || raw.length > 4096 || /\s/.test(raw)) {
+    return { ok: false, present: true, reason: 'prompt_context_cookie_format_invalid' };
+  }
+  const parts = raw.split('.');
+  if (parts.length !== 2 || !parts[0] || !parts[1]) {
+    return { ok: false, present: true, reason: 'prompt_context_cookie_format_invalid' };
+  }
+  const expectedSignature = diracPasskeyA2FPromptContextSignV238(parts[0]);
+  if (!safeEqual(parts[1], expectedSignature)) {
+    return { ok: false, present: true, reason: 'prompt_context_cookie_signature_invalid' };
+  }
+
+  let payload = null;
+  try {
+    payload = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8'));
+  } catch (_) {
+    return { ok: false, present: true, reason: 'prompt_context_cookie_payload_invalid' };
+  }
+  const now = Date.now();
+  const expectedOwnerHash = diracPasskeyA2FPromptContextOwnerHashV238(owner);
+  if (!payload || payload.type !== DIRAC_PASSKEY_PROMPT_CONTEXT_TYPE_V238
+      || !expectedOwnerHash || !payload.ownerHash
+      || !safeEqual(String(payload.ownerHash), expectedOwnerHash)
+      || !Number.isSafeInteger(Number(payload.securityEpoch))
+      || Number(payload.securityEpoch) < 1
+      || !String(payload.credentialIdHash || '').trim()
+      || !Number.isFinite(Number(payload.issuedAtMs))
+      || !Number.isFinite(Number(payload.expiresAtMs))
+      || Number(payload.issuedAtMs) > now + 60_000
+      || Number(payload.expiresAtMs) <= now
+      || Number(payload.expiresAtMs) - Number(payload.issuedAtMs) > DIRAC_PASSKEY_PROMPT_CONTEXT_MAX_AGE_SECONDS_V238 * 1000) {
+    return { ok: false, present: true, reason: 'prompt_context_cookie_contract_invalid' };
+  }
+  return {
+    ok: true,
+    present: true,
+    securityEpoch: Number(payload.securityEpoch),
+    credentialIdHash: String(payload.credentialIdHash),
+    issuedAtMs: Number(payload.issuedAtMs),
+    expiresAtMs: Number(payload.expiresAtMs)
+  };
+}
+
+function diracPasskeyA2FReadLegacyMfaEpochContextV238(req, owner) {
+  const proof = getCustomerDashboardMfaToken(req);
+  if (!proof || !proof.token) {
+    return proof && proof.ambiguous
+      ? { ok: false, present: true, reason: 'legacy_mfa_cookie_ambiguous' }
+      : { ok: true, present: false };
+  }
+  const payload = decodeCustomerDashboardMfaToken(proof.token);
+  const expectedEmailHash = customerMfaProfileId(owner && owner.email);
+  const expectedAuthUserIdHash = customerMfaBindingHash('auth_user_id', owner && owner.authUserId);
+  const expectedCustomerIdHash = customerMfaBindingHash('customer_id', owner && owner.customerId);
+  const expectedUaHash = customerMfaBindingHash('ua', requestUserAgent(req));
+  const expectedOriginHash = customerMfaBindingHash('origin', requestOrigin(req));
+  const securityEpoch = Number(payload && payload.securityEpoch || 0);
+  if (!payload || payload.type !== CUSTOMER_MFA_SESSION_TYPE
+      || !expectedEmailHash || !payload.emailHash || !safeEqual(String(payload.emailHash), expectedEmailHash)
+      || !expectedAuthUserIdHash || !payload.authUserIdHash || !safeEqual(String(payload.authUserIdHash), expectedAuthUserIdHash)
+      || !expectedCustomerIdHash || !payload.customerIdHash || !safeEqual(String(payload.customerIdHash), expectedCustomerIdHash)
+      || !expectedUaHash || !payload.uaHash || !safeEqual(String(payload.uaHash), expectedUaHash)
+      || !expectedOriginHash || !payload.originHash || !safeEqual(String(payload.originHash), expectedOriginHash)
+      || !Number.isSafeInteger(securityEpoch) || securityEpoch < 1) {
+    return { ok: false, present: true, reason: 'legacy_mfa_cookie_contract_invalid' };
+  }
+  return { ok: true, present: true, securityEpoch };
+}
+
+function diracPasskeyA2FSetPromptContextV238(res, owner, securityEpoch, credentialId) {
+  const epoch = Number(securityEpoch);
+  const ownerHash = diracPasskeyA2FPromptContextOwnerHashV238(owner);
+  const credentialIdHash = diracPasskeyA2FPromptContextCredentialHashV238(credentialId);
+  if (!res || !Number.isSafeInteger(epoch) || epoch < 1 || !ownerHash || !credentialIdHash) return false;
+  const now = Date.now();
+  const payload = {
+    type: DIRAC_PASSKEY_PROMPT_CONTEXT_TYPE_V238,
+    ownerHash,
+    securityEpoch: epoch,
+    credentialIdHash,
+    issuedAtMs: now,
+    expiresAtMs: now + DIRAC_PASSKEY_PROMPT_CONTEXT_MAX_AGE_SECONDS_V238 * 1000,
+    nonce: crypto.randomBytes(16).toString('base64url')
+  };
+  const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const value = payloadBase64 + '.' + diracPasskeyA2FPromptContextSignV238(payloadBase64);
+  const cookie = makeCookie(DIRAC_PASSKEY_PROMPT_CONTEXT_COOKIE_V238, value, {
+    maxAge: DIRAC_PASSKEY_PROMPT_CONTEXT_MAX_AGE_SECONDS_V238,
+    domain: ''
+  });
+  return replaceResponseCookieByNameV229(res, DIRAC_PASSKEY_PROMPT_CONTEXT_COOKIE_V238, cookie);
+}
+
+function diracPasskeyA2FPromptDeniedResponseV238(code) {
+  return {
+    ok: false,
+    verified: false,
+    method: 'passkey',
+    passkeyPromptAllowed: false,
+    code: String(code || 'PASSKEY_NOT_REGISTERED'),
+    message: 'Maaf, Passkey tidak terdaftar.'
+  };
+}
+
 function diracPasskeyA2FOriginHostname(origin) {
   try { return new URL(String(origin || '')).hostname.toLowerCase(); } catch (_) { return ''; }
 }
@@ -13731,825 +13872,7 @@ function diracPasskeyA2FRpName() {
 }
 
 function diracPasskeyA2FAttestationPolicy() {
-  return 'direct';
-}
-
-const DIRAC_PASSKEY_HIGH_ASSURANCE_VERSION_V236 = 'dirac-passkey-only-high-assurance-v236';
-const DIRAC_PASSKEY_HARDWARE_POLICY_VERSION_V236 = 'dirac-fido-hardware-policy-v236';
-const DIRAC_PASSKEY_MDS_TRUST_ROOT_SHA256_V236 = 'cbb522d7b7f127ad6a0113865bdf1cd4102e7d0759af635a7cf4720dc963c53b';
-const DIRAC_PASSKEY_HIGH_ASSURANCE_ROLES_V236 = new Set(['primary', 'offline_backup']);
-const DIRAC_PASSKEY_HIGH_ASSURANCE_FORMATS_V236 = new Set(['packed']);
-const DIRAC_PASSKEY_HIGH_ASSURANCE_ALGORITHMS_V236 = new Set([-7, -257]);
-const DIRAC_PASSKEY_MDS_BLOCKED_STATUSES_V236 = new Set([
-  'REVOKED',
-  'ATTESTATION_KEY_COMPROMISE',
-  'USER_KEY_REMOTE_COMPROMISE',
-  'USER_KEY_PHYSICAL_COMPROMISE',
-  'UPDATE_AVAILABLE',
-  'USER_VERIFICATION_BYPASS'
-]);
-const DIRAC_PASSKEY_MINIMUM_FIDO_CERTIFICATION_RANK_V236 = 20;
-const DIRAC_PASSKEY_MINIMUM_FIPS140_LEVEL_V236 = 1;
-let DIRAC_PASSKEY_HARDWARE_POLICY_CACHE_V236 = null;
-
-function diracPasskeyA2FFidoCertificationRankV236(statuses) {
-  const ranks = new Map([
-    ['FIDO_CERTIFIED', 1],
-    ['FIDO_CERTIFIED_L1', 10],
-    ['FIDO_CERTIFIED_L1PLUS', 15],
-    ['FIDO_CERTIFIED_L2', 20],
-    ['FIDO_CERTIFIED_L2PLUS', 25],
-    ['FIDO_CERTIFIED_L3', 30],
-    ['FIDO_CERTIFIED_L3PLUS', 35]
-  ]);
-  let best = { rank: 0, status: '' };
-  for (const raw of (Array.isArray(statuses) ? statuses : [])) {
-    const status = String(raw || '').trim().toUpperCase();
-    const rank = Number(ranks.get(status) || 0);
-    if (rank > best.rank) best = { rank, status };
-  }
-  return best;
-}
-
-function diracPasskeyA2FFips140LevelV236(statuses) {
-  let best = { level: 0, status: '' };
-  for (const raw of (Array.isArray(statuses) ? statuses : [])) {
-    const status = String(raw || '').trim().toUpperCase();
-    const match = /^FIPS140_CERTIFIED_L([1-4])$/.exec(status);
-    const level = match ? Number(match[1]) : 0;
-    if (level > best.level) best = { level, status };
-  }
-  return best;
-}
-
-function diracPasskeyA2FNormalizeAaguidV236(value) {
-  const clean = String(value || '').toLowerCase().replace(/[^a-f0-9]/g, '');
-  return /^[a-f0-9]{32}$/.test(clean) ? clean : '';
-}
-
-function diracPasskeyA2FCredentialRoleV236(row) {
-  const json = row && row.credential_json && typeof row.credential_json === 'object'
-    ? row.credential_json
-    : {};
-  const webauthn = json && json.webauthn && typeof json.webauthn === 'object'
-    ? json.webauthn
-    : {};
-  const role = String(row && row.credential_role || webauthn.credential_role || '').trim();
-  return DIRAC_PASSKEY_HIGH_ASSURANCE_ROLES_V236.has(role) ? role : '';
-}
-
-function diracPasskeyA2FDecodePolicyV236() {
-  const encoded = String(process.env.DIRAC_PASSKEY_HARDWARE_POLICY_B64 || '').trim();
-  const expectedHash = String(process.env.DIRAC_PASSKEY_HARDWARE_POLICY_SHA256 || '').trim().toLowerCase();
-  if (!encoded || !/^[A-Za-z0-9_\-+/=]{32,1048576}$/.test(encoded)) {
-    throw new Error('DIRAC_PASSKEY_HARDWARE_POLICY_MISSING');
-  }
-  if (!/^[a-f0-9]{64}$/.test(expectedHash)) {
-    throw new Error('DIRAC_PASSKEY_HARDWARE_POLICY_HASH_MISSING');
-  }
-
-  let raw;
-  try {
-    raw = Buffer.from(encoded, 'base64url');
-  } catch (_) {
-    throw new Error('DIRAC_PASSKEY_HARDWARE_POLICY_ENCODING_INVALID');
-  }
-  if (!raw.length || raw.length > 512 * 1024) {
-    throw new Error('DIRAC_PASSKEY_HARDWARE_POLICY_SIZE_INVALID');
-  }
-  const actualHash = crypto.createHash('sha256').update(raw).digest('hex');
-  if (!safeEqual(actualHash, expectedHash)) {
-    throw new Error('DIRAC_PASSKEY_HARDWARE_POLICY_HASH_MISMATCH');
-  }
-
-  if (DIRAC_PASSKEY_HARDWARE_POLICY_CACHE_V236
-      && DIRAC_PASSKEY_HARDWARE_POLICY_CACHE_V236.hash === actualHash) {
-    const cachedNextUpdateMs = Number(DIRAC_PASSKEY_HARDWARE_POLICY_CACHE_V236.nextUpdateMs || 0);
-    if (cachedNextUpdateMs > Date.now()) return DIRAC_PASSKEY_HARDWARE_POLICY_CACHE_V236;
-    DIRAC_PASSKEY_HARDWARE_POLICY_CACHE_V236 = null;
-  }
-
-  let document;
-  try {
-    document = JSON.parse(raw.toString('utf8'));
-  } catch (_) {
-    throw new Error('DIRAC_PASSKEY_HARDWARE_POLICY_JSON_INVALID');
-  }
-  if (!document || typeof document !== 'object' || Array.isArray(document)
-      || document.version !== DIRAC_PASSKEY_HARDWARE_POLICY_VERSION_V236
-      || document.metadata_source !== 'fido-mds-v3'
-      || document.metadata_signature_verified !== true
-      || String(document.metadata_trust_root_sha256 || '').trim().toLowerCase()
-        !== DIRAC_PASSKEY_MDS_TRUST_ROOT_SHA256_V236
-      || !/^[a-f0-9]{64}$/.test(String(document.metadata_blob_sha256 || '').trim().toLowerCase())
-      || !Array.isArray(document.metadata_signing_chain_sha256)
-      || document.metadata_signing_chain_sha256.length < 2
-      || document.metadata_signing_chain_sha256.length > 6
-      || document.metadata_signing_chain_sha256.some((value) => !/^[a-f0-9]{64}$/.test(String(value || '').trim().toLowerCase()))
-      || new Set(document.metadata_signing_chain_sha256.map((value) => String(value || '').trim().toLowerCase())).size
-        !== document.metadata_signing_chain_sha256.length
-      || !Array.isArray(document.metadata_crl_sha256)
-      || document.metadata_crl_sha256.length !== document.metadata_signing_chain_sha256.length
-      || document.metadata_crl_sha256.some((value) => !/^[a-f0-9]{64}$/.test(String(value || '').trim().toLowerCase()))
-      || new Set(document.metadata_crl_sha256.map((value) => String(value || '').trim().toLowerCase())).size
-        !== document.metadata_crl_sha256.length
-      || !Number.isSafeInteger(Number(document.mds_blob_no))
-      || Number(document.mds_blob_no) < 1) {
-    throw new Error('DIRAC_PASSKEY_HARDWARE_POLICY_CONTRACT_INVALID');
-  }
-
-  const nextUpdateMs = Date.parse(String(document.metadata_next_update || ''));
-  const verifiedAtMs = Date.parse(String(document.metadata_verified_at || ''));
-  if (!Number.isFinite(nextUpdateMs) || nextUpdateMs <= Date.now()
-      || !Number.isFinite(verifiedAtMs) || verifiedAtMs > Date.now() + 300000
-      || verifiedAtMs < Date.now() - 31 * 24 * 60 * 60 * 1000) {
-    throw new Error('DIRAC_PASSKEY_HARDWARE_POLICY_STALE');
-  }
-
-  const authenticators = Array.isArray(document.authenticators) ? document.authenticators : [];
-  if (!authenticators.length || authenticators.length > 32) {
-    throw new Error('DIRAC_PASSKEY_HARDWARE_POLICY_AUTHENTICATORS_INVALID');
-  }
-
-  const entries = new Map();
-  for (const rawEntry of authenticators) {
-    if (!rawEntry || typeof rawEntry !== 'object' || Array.isArray(rawEntry)) {
-      throw new Error('DIRAC_PASSKEY_HARDWARE_POLICY_ENTRY_INVALID');
-    }
-    const aaguid = diracPasskeyA2FNormalizeAaguidV236(rawEntry.aaguid);
-    const roles = Array.isArray(rawEntry.roles)
-      ? Array.from(new Set(rawEntry.roles.map((item) => String(item || '').trim())))
-      : [];
-    const formats = Array.isArray(rawEntry.attestation_formats)
-      ? Array.from(new Set(rawEntry.attestation_formats.map((item) => String(item || '').trim().toLowerCase())))
-      : [];
-    const algorithms = Array.isArray(rawEntry.algorithms)
-      ? Array.from(new Set(rawEntry.algorithms.map((item) => Number(item))))
-      : [];
-    const statusReports = Array.isArray(rawEntry.mds_status_reports)
-      ? rawEntry.mds_status_reports.map((item) => String(item || '').trim().toUpperCase()).filter(Boolean)
-      : [];
-    const rootsRaw = Array.isArray(rawEntry.attestation_roots_der_base64)
-      ? rawEntry.attestation_roots_der_base64
-      : [];
-
-    const manufacturer = String(rawEntry.manufacturer || '').trim();
-    const model = String(rawEntry.model || '').trim();
-    const certificationLevel = String(rawEntry.fido_certification_level || '').trim();
-    const minimumFidoCertificationRank = Number(rawEntry.minimum_fido_certification_rank);
-    const minimumFips140Level = Number(rawEntry.minimum_fips140_level);
-    const minimumFirmwareVersion = Number(rawEntry.minimum_firmware_version);
-    const fidoCertification = diracPasskeyA2FFidoCertificationRankV236(statusReports);
-    const fips140Certification = diracPasskeyA2FFips140LevelV236(statusReports);
-
-    if (!aaguid || rawEntry.status !== 'approved'
-        || !manufacturer || manufacturer.length > 120
-        || !model || model.length > 120
-        || !certificationLevel || certificationLevel.length > 80
-        || !roles.length || roles.some((role) => !DIRAC_PASSKEY_HIGH_ASSURANCE_ROLES_V236.has(role))
-        || !formats.length || formats.some((fmt) => !DIRAC_PASSKEY_HIGH_ASSURANCE_FORMATS_V236.has(fmt))
-        || !algorithms.length || algorithms.some((alg) => !DIRAC_PASSKEY_HIGH_ASSURANCE_ALGORITHMS_V236.has(alg))
-        || !Number.isSafeInteger(minimumFidoCertificationRank)
-        || minimumFidoCertificationRank < DIRAC_PASSKEY_MINIMUM_FIDO_CERTIFICATION_RANK_V236
-        || minimumFidoCertificationRank > 35
-        || fidoCertification.rank < minimumFidoCertificationRank
-        || !Number.isSafeInteger(minimumFips140Level)
-        || minimumFips140Level < DIRAC_PASSKEY_MINIMUM_FIPS140_LEVEL_V236
-        || minimumFips140Level > 4
-        || fips140Certification.level < minimumFips140Level
-        || !Number.isSafeInteger(minimumFirmwareVersion)
-        || minimumFirmwareVersion < 0
-        || rawEntry.require_aaguid_extension !== true
-        || statusReports.some((status) => DIRAC_PASSKEY_MDS_BLOCKED_STATUSES_V236.has(status))
-        || !rootsRaw.length || rootsRaw.length > 8) {
-      throw new Error('DIRAC_PASSKEY_HARDWARE_POLICY_ENTRY_REJECTED');
-    }
-
-    const roots = [];
-    const rootFingerprints = new Set();
-    for (const encodedRoot of rootsRaw) {
-      const encodedRootText = String(encodedRoot || '').trim();
-      if (!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(encodedRootText)) {
-        throw new Error('DIRAC_PASSKEY_ATTESTATION_ROOT_ENCODING_INVALID');
-      }
-      const rootDer = Buffer.from(encodedRootText, 'base64');
-      if (!rootDer.length || rootDer.length > 16384
-          || !safeEqual(rootDer.toString('base64'), encodedRootText)) {
-        throw new Error('DIRAC_PASSKEY_ATTESTATION_ROOT_INVALID');
-      }
-      let certificate;
-      try {
-        certificate = new crypto.X509Certificate(rootDer);
-      } catch (_) {
-        throw new Error('DIRAC_PASSKEY_ATTESTATION_ROOT_INVALID');
-      }
-      const validFromMs = Date.parse(certificate.validFrom);
-      const validToMs = Date.parse(certificate.validTo);
-      const now = Date.now();
-      if (certificate.ca !== true
-          || !Number.isFinite(validFromMs) || validFromMs > now
-          || !Number.isFinite(validToMs) || validToMs <= now
-          || certificate.checkIssued(certificate) !== true
-          || certificate.verify(certificate.publicKey) !== true) {
-        throw new Error('DIRAC_PASSKEY_ATTESTATION_ROOT_UNTRUSTED');
-      }
-      const fingerprint = String(certificate.fingerprint256 || '').replace(/:/g, '').toLowerCase();
-      if (!/^[a-f0-9]{64}$/.test(fingerprint) || rootFingerprints.has(fingerprint)) {
-        throw new Error('DIRAC_PASSKEY_ATTESTATION_ROOT_DUPLICATE');
-      }
-      rootFingerprints.add(fingerprint);
-      roots.push(certificate);
-    }
-
-    for (const role of roles) {
-      const key = role + ':' + aaguid;
-      if (entries.has(key)) throw new Error('DIRAC_PASSKEY_HARDWARE_POLICY_DUPLICATE_ENTRY');
-      entries.set(key, Object.freeze({
-        aaguid,
-        role,
-        formats: Object.freeze(formats.slice()),
-        algorithms: Object.freeze(algorithms.slice()),
-        roots: Object.freeze(roots.slice()),
-        rootFingerprints: Object.freeze(Array.from(rootFingerprints)),
-        manufacturer,
-        model,
-        certificationLevel,
-        fidoCertificationRank: fidoCertification.rank,
-        fidoCertificationStatus: fidoCertification.status,
-        fips140Level: fips140Certification.level,
-        fips140Status: fips140Certification.status,
-        minimumFirmwareVersion,
-        requireAaguidExtension: true,
-        statusReports: Object.freeze(statusReports.slice())
-      }));
-    }
-  }
-
-  for (const requiredRole of DIRAC_PASSKEY_HIGH_ASSURANCE_ROLES_V236) {
-    if (!Array.from(entries.values()).some((entry) => entry.role === requiredRole)) {
-      throw new Error('DIRAC_PASSKEY_HARDWARE_POLICY_ROLE_MISSING');
-    }
-  }
-  const primaryAaguids = new Set(Array.from(entries.values())
-    .filter((entry) => entry.role === 'primary')
-    .map((entry) => entry.aaguid));
-  const backupAaguids = new Set(Array.from(entries.values())
-    .filter((entry) => entry.role === 'offline_backup')
-    .map((entry) => entry.aaguid));
-  if (Array.from(primaryAaguids).some((aaguid) => backupAaguids.has(aaguid))) {
-    throw new Error('DIRAC_PASSKEY_HARDWARE_POLICY_ROLE_AAGUID_OVERLAP');
-  }
-
-  const policy = Object.freeze({
-    version: document.version,
-    hash: actualHash,
-    mdsBlobNo: Number(document.mds_blob_no),
-    mdsBlobSha256: String(document.metadata_blob_sha256).trim().toLowerCase(),
-    mdsTrustRootSha256: String(document.metadata_trust_root_sha256).trim().toLowerCase(),
-    mdsSigningChainSha256: Object.freeze(document.metadata_signing_chain_sha256
-      .map((value) => String(value).trim().toLowerCase())),
-    mdsCrlSha256: Object.freeze(document.metadata_crl_sha256
-      .map((value) => String(value).trim().toLowerCase())),
-    verifiedAtMs,
-    nextUpdateMs,
-    entries
-  });
-  DIRAC_PASSKEY_HARDWARE_POLICY_CACHE_V236 = policy;
-  return policy;
-}
-
-function diracPasskeyA2FPolicyEntryV236(role, aaguid) {
-  const cleanRole = String(role || '').trim();
-  const cleanAaguid = diracPasskeyA2FNormalizeAaguidV236(aaguid);
-  if (!DIRAC_PASSKEY_HIGH_ASSURANCE_ROLES_V236.has(cleanRole) || !cleanAaguid) return null;
-  const policy = diracPasskeyA2FDecodePolicyV236();
-  return policy.entries.get(cleanRole + ':' + cleanAaguid) || null;
-}
-
-function diracPasskeyA2FDerReadTlvV236(input, offset = 0) {
-  const buffer = Buffer.isBuffer(input) ? input : Buffer.from(input || []);
-  if (!Number.isSafeInteger(offset) || offset < 0 || offset >= buffer.length) {
-    throw new Error('DER_OFFSET_INVALID');
-  }
-  const tag = buffer[offset];
-  if ((tag & 0x1f) === 0x1f) throw new Error('DER_HIGH_TAG_UNSUPPORTED');
-  let cursor = offset + 1;
-  if (cursor >= buffer.length) throw new Error('DER_LENGTH_MISSING');
-  const firstLength = buffer[cursor++];
-  let length = 0;
-  if ((firstLength & 0x80) === 0) {
-    length = firstLength;
-  } else {
-    const count = firstLength & 0x7f;
-    if (count < 1 || count > 4 || cursor + count > buffer.length || buffer[cursor] === 0) {
-      throw new Error('DER_LENGTH_INVALID');
-    }
-    for (let index = 0; index < count; index += 1) {
-      length = (length * 256) + buffer[cursor + index];
-    }
-    cursor += count;
-    if (length < 128) throw new Error('DER_LENGTH_NON_MINIMAL');
-  }
-  const end = cursor + length;
-  if (!Number.isSafeInteger(length) || length < 0 || end > buffer.length) {
-    throw new Error('DER_VALUE_TRUNCATED');
-  }
-  return {
-    tag,
-    start: offset,
-    valueStart: cursor,
-    end,
-    value: buffer.slice(cursor, end)
-  };
-}
-
-function diracPasskeyA2FDerChildrenV236(input) {
-  const buffer = Buffer.isBuffer(input) ? input : Buffer.from(input || []);
-  const output = [];
-  let offset = 0;
-  while (offset < buffer.length) {
-    const child = diracPasskeyA2FDerReadTlvV236(buffer, offset);
-    output.push(child);
-    offset = child.end;
-  }
-  if (offset !== buffer.length) throw new Error('DER_CHILDREN_TRAILING_DATA');
-  return output;
-}
-
-function diracPasskeyA2FDerOidV236(input) {
-  const buffer = Buffer.isBuffer(input) ? input : Buffer.from(input || []);
-  if (!buffer.length) throw new Error('DER_OID_EMPTY');
-  const values = [Math.floor(buffer[0] / 40), buffer[0] % 40];
-  let current = 0;
-  let active = false;
-  for (let index = 1; index < buffer.length; index += 1) {
-    const byte = buffer[index];
-    if (!active && byte === 0x80) throw new Error('DER_OID_NON_MINIMAL');
-    active = true;
-    current = (current * 128) + (byte & 0x7f);
-    if (!Number.isSafeInteger(current)) throw new Error('DER_OID_TOO_LARGE');
-    if ((byte & 0x80) === 0) {
-      values.push(current);
-      current = 0;
-      active = false;
-    }
-  }
-  if (active) throw new Error('DER_OID_TRUNCATED');
-  return values.join('.');
-}
-
-function diracPasskeyA2FCertificateProfileV236(certificate) {
-  if (!(certificate instanceof crypto.X509Certificate)) {
-    throw new Error('ATTESTATION_CERTIFICATE_INVALID');
-  }
-  const outer = diracPasskeyA2FDerReadTlvV236(certificate.raw, 0);
-  if (outer.tag !== 0x30 || outer.end !== certificate.raw.length) {
-    throw new Error('ATTESTATION_CERTIFICATE_DER_INVALID');
-  }
-  const certificateParts = diracPasskeyA2FDerChildrenV236(outer.value);
-  if (certificateParts.length !== 3 || certificateParts[0].tag !== 0x30) {
-    throw new Error('ATTESTATION_CERTIFICATE_STRUCTURE_INVALID');
-  }
-  const tbsParts = diracPasskeyA2FDerChildrenV236(certificateParts[0].value);
-  if (!tbsParts.length || tbsParts[0].tag !== 0xa0) {
-    throw new Error('ATTESTATION_CERTIFICATE_VERSION_MISSING');
-  }
-  const versionParts = diracPasskeyA2FDerChildrenV236(tbsParts[0].value);
-  if (versionParts.length !== 1 || versionParts[0].tag !== 0x02
-      || versionParts[0].value.length !== 1 || versionParts[0].value[0] !== 0x02) {
-    throw new Error('ATTESTATION_CERTIFICATE_VERSION_NOT_V3');
-  }
-
-  const extensionsContainer = tbsParts.find((item) => item.tag === 0xa3);
-  if (!extensionsContainer) throw new Error('ATTESTATION_CERTIFICATE_EXTENSIONS_MISSING');
-  const extensionWrapper = diracPasskeyA2FDerChildrenV236(extensionsContainer.value);
-  if (extensionWrapper.length !== 1 || extensionWrapper[0].tag !== 0x30) {
-    throw new Error('ATTESTATION_CERTIFICATE_EXTENSIONS_INVALID');
-  }
-  const extensions = new Map();
-  for (const extensionTlv of diracPasskeyA2FDerChildrenV236(extensionWrapper[0].value)) {
-    if (extensionTlv.tag !== 0x30) throw new Error('ATTESTATION_CERTIFICATE_EXTENSION_INVALID');
-    const fields = diracPasskeyA2FDerChildrenV236(extensionTlv.value);
-    if (fields.length < 2 || fields.length > 3 || fields[0].tag !== 0x06) {
-      throw new Error('ATTESTATION_CERTIFICATE_EXTENSION_INVALID');
-    }
-    const oid = diracPasskeyA2FDerOidV236(fields[0].value);
-    let critical = false;
-    let valueIndex = 1;
-    if (fields[1].tag === 0x01) {
-      if (fields[1].value.length !== 1 || (fields[1].value[0] !== 0x00 && fields[1].value[0] !== 0xff)) {
-        throw new Error('ATTESTATION_CERTIFICATE_EXTENSION_CRITICAL_INVALID');
-      }
-      critical = fields[1].value[0] === 0xff;
-      valueIndex = 2;
-    }
-    if (!fields[valueIndex] || fields[valueIndex].tag !== 0x04 || valueIndex !== fields.length - 1
-        || extensions.has(oid)) {
-      throw new Error('ATTESTATION_CERTIFICATE_EXTENSION_INVALID');
-    }
-    extensions.set(oid, Object.freeze({ critical, value: fields[valueIndex].value }));
-  }
-  return Object.freeze({ extensions });
-}
-
-function diracPasskeyA2FDerUnsignedIntegerV236(input) {
-  const outer = diracPasskeyA2FDerReadTlvV236(input, 0);
-  const buffer = Buffer.isBuffer(input) ? input : Buffer.from(input || []);
-  if (outer.tag !== 0x02 || outer.end !== buffer.length || !outer.value.length
-      || (outer.value[0] & 0x80) !== 0
-      || (outer.value.length > 1 && outer.value[0] === 0x00 && (outer.value[1] & 0x80) === 0)
-      || outer.value.length > 7) {
-    throw new Error('DER_UNSIGNED_INTEGER_INVALID');
-  }
-  let value = 0;
-  for (const byte of outer.value) value = (value * 256) + byte;
-  if (!Number.isSafeInteger(value)) throw new Error('DER_UNSIGNED_INTEGER_TOO_LARGE');
-  return value;
-}
-
-function diracPasskeyA2FValidatePackedCertificateProfileV236(certificate, aaguid, policyEntry) {
-  if (!(certificate instanceof crypto.X509Certificate) || !policyEntry) {
-    return { ok: false, reason: 'attestation_certificate_profile_invalid' };
-  }
-  let legacy;
-  let profile;
-  try {
-    legacy = certificate.toLegacyObject();
-    profile = diracPasskeyA2FCertificateProfileV236(certificate);
-  } catch (_) {
-    return { ok: false, reason: 'attestation_certificate_profile_invalid' };
-  }
-  const subject = legacy && legacy.subject && typeof legacy.subject === 'object'
-    ? legacy.subject
-    : {};
-  if (!/^[A-Z]{2}$/.test(String(subject.C || ''))
-      || !String(subject.O || '').trim()
-      || String(subject.OU || '') !== 'Authenticator Attestation'
-      || !String(subject.CN || '').trim()
-      || certificate.ca === true) {
-    return { ok: false, reason: 'attestation_certificate_subject_invalid' };
-  }
-
-  const basicConstraints = profile.extensions.get('2.5.29.19');
-  if (!basicConstraints) {
-    return { ok: false, reason: 'attestation_certificate_basic_constraints_required' };
-  }
-  try {
-    const sequence = diracPasskeyA2FDerReadTlvV236(basicConstraints.value, 0);
-    if (sequence.tag !== 0x30 || sequence.end !== basicConstraints.value.length) {
-      return { ok: false, reason: 'attestation_certificate_basic_constraints_invalid' };
-    }
-    const fields = diracPasskeyA2FDerChildrenV236(sequence.value);
-    if (fields.length > 1
-        || (fields.length === 1
-          && (fields[0].tag !== 0x01
-            || fields[0].value.length !== 1
-            || fields[0].value[0] !== 0x00))) {
-      return { ok: false, reason: 'attestation_certificate_basic_constraints_invalid' };
-    }
-  } catch (_) {
-    return { ok: false, reason: 'attestation_certificate_basic_constraints_invalid' };
-  }
-
-  const aaguidExtension = profile.extensions.get('1.3.6.1.4.1.45724.1.1.4');
-  if (!aaguidExtension || aaguidExtension.critical === true) {
-    return { ok: false, reason: 'attestation_certificate_aaguid_extension_required' };
-  }
-  try {
-    const inner = diracPasskeyA2FDerReadTlvV236(aaguidExtension.value, 0);
-    if (inner.tag !== 0x04 || inner.end !== aaguidExtension.value.length
-        || inner.value.length !== 16
-        || !diracPasskeyA2FBufferEqual(inner.value, Buffer.from(String(aaguid || ''), 'hex'))) {
-      return { ok: false, reason: 'attestation_certificate_aaguid_mismatch' };
-    }
-  } catch (_) {
-    return { ok: false, reason: 'attestation_certificate_aaguid_mismatch' };
-  }
-
-  const firmwareExtension = profile.extensions.get('1.3.6.1.4.1.45724.1.1.5');
-  if (!firmwareExtension || firmwareExtension.critical === true) {
-    return { ok: false, reason: 'attestation_certificate_firmware_extension_required' };
-  }
-  let firmwareVersion = -1;
-  try {
-    firmwareVersion = diracPasskeyA2FDerUnsignedIntegerV236(firmwareExtension.value);
-  } catch (_) {
-    return { ok: false, reason: 'attestation_certificate_firmware_invalid' };
-  }
-  if (firmwareVersion < Number(policyEntry.minimumFirmwareVersion || 0)) {
-    return { ok: false, reason: 'attestation_certificate_firmware_outdated' };
-  }
-  return { ok: true, firmwareVersion };
-}
-
-function diracPasskeyA2FCertificateValidNowV236(certificate) {
-  if (!(certificate instanceof crypto.X509Certificate)) return false;
-  const now = Date.now();
-  const validFromMs = Date.parse(certificate.validFrom);
-  const validToMs = Date.parse(certificate.validTo);
-  return Number.isFinite(validFromMs) && validFromMs <= now
-    && Number.isFinite(validToMs) && validToMs > now;
-}
-
-function diracPasskeyA2FVerifyCertificateChainV236(x5c, policyEntry) {
-  if (!Array.isArray(x5c) || !x5c.length || x5c.length > 6 || !policyEntry) {
-    return { ok: false, reason: 'attestation_certificate_chain_missing' };
-  }
-  const certificates = [];
-  const seen = new Set();
-  for (const raw of x5c) {
-    if (!Buffer.isBuffer(raw) || !raw.length || raw.length > 16384) {
-      return { ok: false, reason: 'attestation_certificate_invalid' };
-    }
-    try {
-      const certificate = new crypto.X509Certificate(raw);
-      const fingerprint = String(certificate.fingerprint256 || '').replace(/:/g, '').toLowerCase();
-      if (!/^[a-f0-9]{64}$/.test(fingerprint) || seen.has(fingerprint)
-          || !diracPasskeyA2FCertificateValidNowV236(certificate)) {
-        return { ok: false, reason: 'attestation_certificate_invalid' };
-      }
-      seen.add(fingerprint);
-      certificates.push(certificate);
-    } catch (_) {
-      return { ok: false, reason: 'attestation_certificate_invalid' };
-    }
-  }
-
-  const leaf = certificates[0];
-  if (leaf.ca === true) return { ok: false, reason: 'attestation_leaf_certificate_is_ca' };
-  for (let index = 0; index < certificates.length - 1; index += 1) {
-    const child = certificates[index];
-    const issuer = certificates[index + 1];
-    if (issuer.ca !== true || child.checkIssued(issuer) !== true || child.verify(issuer.publicKey) !== true) {
-      return { ok: false, reason: 'attestation_certificate_chain_invalid' };
-    }
-  }
-
-  const chainTop = certificates[certificates.length - 1];
-  let trustedRoot = null;
-  for (const root of policyEntry.roots) {
-    const sameCertificate = diracPasskeyA2FBufferEqual(chainTop.raw, root.raw);
-    const issuedByRoot = sameCertificate
-      ? chainTop.verify(root.publicKey) === true
-      : chainTop.checkIssued(root) === true && chainTop.verify(root.publicKey) === true;
-    if (issuedByRoot) {
-      trustedRoot = root;
-      break;
-    }
-  }
-  if (!trustedRoot) return { ok: false, reason: 'attestation_root_not_trusted' };
-
-  const rootFingerprint = String(trustedRoot.fingerprint256 || '').replace(/:/g, '').toLowerCase();
-  if (!policyEntry.rootFingerprints.includes(rootFingerprint)) {
-    return { ok: false, reason: 'attestation_root_not_allowlisted' };
-  }
-  return {
-    ok: true,
-    leaf,
-    rootFingerprint,
-    leafFingerprint: String(leaf.fingerprint256 || '').replace(/:/g, '').toLowerCase()
-  };
-}
-
-function diracPasskeyA2FVerifyAttestationV236({ attestationMap, authData, parsed, response, role }) {
-  const fmt = String(attestationMap && attestationMap.get('fmt') || '').trim().toLowerCase();
-  const attStmt = attestationMap && attestationMap.get('attStmt');
-  if (!DIRAC_PASSKEY_HIGH_ASSURANCE_FORMATS_V236.has(fmt) || !(attStmt instanceof Map)) {
-    return { ok: false, reason: 'attestation_format_prohibited' };
-  }
-
-  let policy;
-  let policyEntry;
-  try {
-    policy = diracPasskeyA2FDecodePolicyV236();
-    policyEntry = diracPasskeyA2FPolicyEntryV236(role, parsed && parsed.aaguid);
-  } catch (_) {
-    return { ok: false, reason: 'fido_trust_policy_unavailable' };
-  }
-  if (!policyEntry || !policyEntry.formats.includes(fmt)) {
-    return { ok: false, reason: 'authenticator_not_approved' };
-  }
-
-  const x5c = attStmt.get('x5c');
-  const chain = diracPasskeyA2FVerifyCertificateChainV236(x5c, policyEntry);
-  if (!chain.ok) return chain;
-
-  const signature = attStmt.get('sig');
-  const clientDataRaw = diracPasskeyA2FBase64UrlToBuffer(response && response.clientDataJSON);
-  if (!Buffer.isBuffer(signature) || !signature.length || !clientDataRaw.length) {
-    return { ok: false, reason: 'attestation_signature_missing' };
-  }
-
-  if (fmt === 'packed') {
-    const algorithm = Number(attStmt.get('alg'));
-    if (!DIRAC_PASSKEY_HIGH_ASSURANCE_ALGORITHMS_V236.has(algorithm)
-        || !policyEntry.algorithms.includes(algorithm)) {
-      return { ok: false, reason: 'attestation_algorithm_prohibited' };
-    }
-    const leafPublicKey = chain.leaf.publicKey;
-    const keyType = String(leafPublicKey && leafPublicKey.asymmetricKeyType || '');
-    const keyDetails = leafPublicKey && leafPublicKey.asymmetricKeyDetails
-      && typeof leafPublicKey.asymmetricKeyDetails === 'object'
-      ? leafPublicKey.asymmetricKeyDetails
-      : {};
-    if ((algorithm === -7
-          && (keyType !== 'ec' || String(keyDetails.namedCurve || '') !== 'prime256v1'))
-        || (algorithm === -257
-          && (keyType !== 'rsa'
-            || Number(keyDetails.modulusLength || 0) < 2048
-            || Number(keyDetails.publicExponent || 0) !== 65537))) {
-      return { ok: false, reason: 'attestation_certificate_key_profile_mismatch' };
-    }
-    const certificateProfile = diracPasskeyA2FValidatePackedCertificateProfileV236(
-      chain.leaf,
-      parsed.aaguid,
-      policyEntry
-    );
-    if (!certificateProfile.ok) return certificateProfile;
-    const signedData = Buffer.concat([authData, diracPasskeyA2FSha256Buffer(clientDataRaw)]);
-    try {
-      if (crypto.verify('sha256', signedData, chain.leaf.publicKey, signature) !== true) {
-        return { ok: false, reason: 'attestation_signature_invalid' };
-      }
-    } catch (_) {
-      return { ok: false, reason: 'attestation_signature_invalid' };
-    }
-    return {
-      ok: true,
-      format: fmt,
-      algorithm,
-      policy,
-      policyEntry,
-      firmwareVersion: certificateProfile.firmwareVersion,
-      rootFingerprint: chain.rootFingerprint,
-      leafFingerprint: chain.leafFingerprint
-    };
-  }
-
-  return { ok: false, reason: 'attestation_format_prohibited' };
-}
-
-function diracPasskeyA2FStoredHighAssuranceV236(row) {
-  const json = row && row.credential_json && typeof row.credential_json === 'object'
-    ? row.credential_json
-    : {};
-  const webauthn = json && json.webauthn && typeof json.webauthn === 'object'
-    ? json.webauthn
-    : null;
-  if (!webauthn
-      || webauthn.high_assurance_version !== DIRAC_PASSKEY_HIGH_ASSURANCE_VERSION_V236
-      || webauthn.attestation_verified !== true
-      || webauthn.credential_device_type !== 'singleDevice'
-      || webauthn.credential_backed_up !== false
-      || webauthn.backup_eligible !== false
-      || webauthn.backup_state !== false) return null;
-  const role = diracPasskeyA2FCredentialRoleV236(row);
-  const aaguid = diracPasskeyA2FNormalizeAaguidV236(row && row.aaguid || webauthn.aaguid);
-  const rpId = String(webauthn.rp_id || '').trim().toLowerCase();
-  const rootFingerprint = String(webauthn.attestation_root_fingerprint_sha256 || '').trim().toLowerCase();
-  const leafFingerprint = String(webauthn.attestation_leaf_fingerprint_sha256 || '').trim().toLowerCase();
-  const policyHash = String(webauthn.fido_policy_sha256 || '').trim().toLowerCase();
-  const mdsBlobNo = Number(webauthn.fido_mds_blob_no || 0);
-  const mdsBlobSha256 = String(webauthn.fido_mds_blob_sha256 || '').trim().toLowerCase();
-  const mdsTrustRootSha256 = String(webauthn.fido_mds_trust_root_sha256 || '').trim().toLowerCase();
-  const mdsSigningChainSha256 = Array.isArray(webauthn.fido_mds_signing_chain_sha256)
-    ? webauthn.fido_mds_signing_chain_sha256.map((value) => String(value || '').trim().toLowerCase())
-    : [];
-  const mdsCrlSha256 = Array.isArray(webauthn.fido_mds_crl_sha256)
-    ? webauthn.fido_mds_crl_sha256.map((value) => String(value || '').trim().toLowerCase())
-    : [];
-  const attestationFormat = String(webauthn.attestation_format || '').trim().toLowerCase();
-  const attestationAlgorithm = Number(webauthn.attestation_algorithm);
-  const credentialAlgorithm = Number(webauthn.credential_algorithm);
-  const attestationFirmwareVersion = Number(webauthn.attestation_firmware_version);
-  const minimumFirmwareVersion = Number(webauthn.minimum_firmware_version);
-  const fidoCertificationRank = Number(webauthn.fido_certification_rank);
-  const fips140CertificationLevel = Number(webauthn.fips140_certification_level);
-  const credentialPublicKeyCose = String(webauthn.credential_public_key_cose || '').trim();
-  const publicKeyJwk = webauthn.public_key_jwk && typeof webauthn.public_key_jwk === 'object'
-    && !Array.isArray(webauthn.public_key_jwk)
-    ? webauthn.public_key_jwk
-    : null;
-  const manufacturer = String(webauthn.fido_manufacturer || '').trim();
-  const model = String(webauthn.fido_model || '').trim();
-  if (!role || !aaguid
-      || !/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(rpId)
-      || rpId.length > 253
-      || !/^[a-f0-9]{64}$/.test(rootFingerprint)
-      || !/^[a-f0-9]{64}$/.test(leafFingerprint)
-      || !/^[a-f0-9]{64}$/.test(policyHash)
-      || !/^[a-f0-9]{64}$/.test(mdsBlobSha256)
-      || !safeEqual(mdsTrustRootSha256, DIRAC_PASSKEY_MDS_TRUST_ROOT_SHA256_V236)
-      || mdsSigningChainSha256.length < 2 || mdsSigningChainSha256.length > 6
-      || mdsSigningChainSha256.some((value) => !/^[a-f0-9]{64}$/.test(value))
-      || new Set(mdsSigningChainSha256).size !== mdsSigningChainSha256.length
-      || mdsCrlSha256.length !== mdsSigningChainSha256.length
-      || mdsCrlSha256.some((value) => !/^[a-f0-9]{64}$/.test(value))
-      || new Set(mdsCrlSha256).size !== mdsCrlSha256.length
-      || !Number.isSafeInteger(mdsBlobNo) || mdsBlobNo < 1
-      || !DIRAC_PASSKEY_HIGH_ASSURANCE_FORMATS_V236.has(attestationFormat)
-      || !DIRAC_PASSKEY_HIGH_ASSURANCE_ALGORITHMS_V236.has(attestationAlgorithm)
-      || !DIRAC_PASSKEY_HIGH_ASSURANCE_ALGORITHMS_V236.has(credentialAlgorithm)
-      || !Number.isSafeInteger(attestationFirmwareVersion) || attestationFirmwareVersion < 0
-      || !Number.isSafeInteger(minimumFirmwareVersion) || minimumFirmwareVersion < 0
-      || attestationFirmwareVersion < minimumFirmwareVersion
-      || !Number.isSafeInteger(fidoCertificationRank)
-      || fidoCertificationRank < DIRAC_PASSKEY_MINIMUM_FIDO_CERTIFICATION_RANK_V236
-      || !Number.isSafeInteger(fips140CertificationLevel)
-      || fips140CertificationLevel < DIRAC_PASSKEY_MINIMUM_FIPS140_LEVEL_V236
-      || !/^[A-Za-z0-9_-]{32,4096}$/.test(credentialPublicKeyCose)
-      || !publicKeyJwk
-      || !manufacturer || manufacturer.length > 120
-      || !model || model.length > 120) return null;
-
-  let decodedJwk;
-  try {
-    const coseBuffer = Buffer.from(credentialPublicKeyCose, 'base64url');
-    if (!coseBuffer.length || !safeEqual(coseBuffer.toString('base64url'), credentialPublicKeyCose)) return null;
-    const decodedCose = diracPasskeyA2FParseCbor(coseBuffer, 0);
-    if (decodedCose.offset !== coseBuffer.length) return null;
-    decodedJwk = diracPasskeyA2FCoseToJwk(decodedCose.value);
-    const expectedCredentialAlgorithm = decodedJwk.alg === 'ES256' ? -7
-      : decodedJwk.alg === 'RS256' ? -257 : 0;
-    if (expectedCredentialAlgorithm !== credentialAlgorithm
-        || !safeEqual(String(decodedJwk.kty || ''), String(publicKeyJwk.kty || ''))
-        || !safeEqual(String(decodedJwk.alg || ''), String(publicKeyJwk.alg || ''))
-        || !safeEqual(String(decodedJwk.crv || ''), String(publicKeyJwk.crv || ''))
-        || !safeEqual(String(decodedJwk.x || ''), String(publicKeyJwk.x || ''))
-        || !safeEqual(String(decodedJwk.y || ''), String(publicKeyJwk.y || ''))
-        || !safeEqual(String(decodedJwk.n || ''), String(publicKeyJwk.n || ''))
-        || !safeEqual(String(decodedJwk.e || ''), String(publicKeyJwk.e || ''))) return null;
-    const keyObject = crypto.createPublicKey({ key: decodedJwk, format: 'jwk' });
-    const details = keyObject.asymmetricKeyDetails && typeof keyObject.asymmetricKeyDetails === 'object'
-      ? keyObject.asymmetricKeyDetails
-      : {};
-    if ((credentialAlgorithm === -7
-          && (keyObject.asymmetricKeyType !== 'ec' || String(details.namedCurve || '') !== 'prime256v1'))
-        || (credentialAlgorithm === -257
-          && (keyObject.asymmetricKeyType !== 'rsa'
-            || Number(details.modulusLength || 0) < 2048
-            || Number(details.publicExponent || 0) !== 65537))) return null;
-  } catch (_) {
-    return null;
-  }
-
-  return {
-    json,
-    webauthn,
-    role,
-    aaguid,
-    rpId,
-    rootFingerprint,
-    leafFingerprint,
-    policyHash,
-    mdsBlobNo,
-    mdsBlobSha256,
-    mdsTrustRootSha256,
-    mdsSigningChainSha256,
-    mdsCrlSha256,
-    attestationFormat,
-    attestationAlgorithm,
-    credentialAlgorithm,
-    attestationFirmwareVersion,
-    minimumFirmwareVersion,
-    fidoCertificationRank,
-    fips140CertificationLevel,
-    credentialPublicKeyCose,
-    publicKeyJwk: decodedJwk,
-    manufacturer,
-    model
-  };
-}
-
-function diracPasskeyA2FCurrentPolicyAllowsStoredV236(stored) {
-  if (!stored) return false;
-  try {
-    const policy = diracPasskeyA2FDecodePolicyV236();
-    const entry = diracPasskeyA2FPolicyEntryV236(stored.role, stored.aaguid);
-    return Boolean(entry
-      && /^[a-f0-9]{64}$/.test(policy.hash)
-      && safeEqual(policy.mdsTrustRootSha256, stored.mdsTrustRootSha256)
-      && Number(policy.mdsBlobNo || 0) >= Number(stored.mdsBlobNo || 0)
-      && entry.formats.includes(stored.attestationFormat)
-      && entry.algorithms.includes(stored.attestationAlgorithm)
-      && entry.algorithms.includes(stored.credentialAlgorithm)
-      && entry.rootFingerprints.includes(stored.rootFingerprint)
-      && entry.minimumFirmwareVersion <= stored.attestationFirmwareVersion
-      && entry.fidoCertificationRank >= DIRAC_PASSKEY_MINIMUM_FIDO_CERTIFICATION_RANK_V236
-      && entry.fidoCertificationRank >= stored.fidoCertificationRank
-      && entry.fips140Level >= DIRAC_PASSKEY_MINIMUM_FIPS140_LEVEL_V236
-      && entry.fips140Level >= stored.fips140CertificationLevel
-      && safeEqual(entry.manufacturer, stored.manufacturer)
-      && safeEqual(entry.model, stored.model));
-  } catch (_) {
-    return false;
-  }
-}
-
-function diracPasskeyA2FIsTrustedActiveV236(row) {
-  if (!row || row.is_active !== true) return false;
-  const stored = diracPasskeyA2FStoredHighAssuranceV236(row);
-  return Boolean(stored && diracPasskeyA2FCurrentPolicyAllowsStoredV236(stored));
+  return 'none';
 }
 
 function diracPasskeyA2FUserHandle(user) {
@@ -14604,34 +13927,6 @@ function diracPasskeyA2FCredentialId(credential) {
     (credential && (credential.id || credential.rawId)) || '',
     4096
   );
-}
-
-function diracPasskeyA2FStrictCredentialEnvelopeV236(credential) {
-  if (!credential || typeof credential !== 'object' || Array.isArray(credential)
-      || String(credential.type || '') !== 'public-key') {
-    return { ok: false, reason: 'credential_envelope_invalid' };
-  }
-  const id = String(credential.id || '').trim();
-  const rawId = String(credential.rawId || '').trim();
-  if (!/^[A-Za-z0-9_-]{16,4096}$/.test(id)
-      || !/^[A-Za-z0-9_-]{16,4096}$/.test(rawId)) {
-    return { ok: false, reason: 'credential_id_encoding_invalid' };
-  }
-  let idBytes;
-  let rawIdBytes;
-  try {
-    idBytes = Buffer.from(id, 'base64url');
-    rawIdBytes = Buffer.from(rawId, 'base64url');
-  } catch (_) {
-    return { ok: false, reason: 'credential_id_encoding_invalid' };
-  }
-  if (!idBytes.length || idBytes.length > 1024
-      || !diracPasskeyA2FBufferEqual(idBytes, rawIdBytes)
-      || !safeEqual(idBytes.toString('base64url'), id)
-      || !safeEqual(rawIdBytes.toString('base64url'), rawId)) {
-    return { ok: false, reason: 'credential_id_canonical_mismatch' };
-  }
-  return { ok: true, credentialId: id };
 }
 
 function diracPasskeyA2FTransports(credential, response) {
@@ -14717,7 +14012,6 @@ function diracPasskeyA2FParseCbor(data, offset = 0) {
       for (let i = 0; i < len.value; i += 1) {
         const key = read(cursor);
         const val = read(key.offset);
-        if (map.has(key.value)) throw new Error('CBOR_DUPLICATE_KEY');
         map.set(key.value, val.value);
         cursor = val.offset;
       }
@@ -14741,64 +14035,67 @@ function diracPasskeyA2FParseAuthData(authData, rpId, requireAttestedCredential)
   const flags = buf.readUInt8(32);
   if ((flags & 0x01) !== 0x01) return { ok: false, reason: 'user_presence_missing' };
   if ((flags & 0x04) !== 0x04) return { ok: false, reason: 'user_verification_missing' };
+  if ((flags & 0x22) !== 0) return { ok: false, reason: 'authenticator_reserved_flags_invalid' };
   const backupEligible = (flags & 0x08) === 0x08;
   const backupState = (flags & 0x10) === 0x10;
-  if (backupState && !backupEligible) {
-    return { ok: false, reason: 'passkey_backup_flags_invalid' };
-  }
-  const signCount = buf.readUInt32BE(33);
+  if (backupState && !backupEligible) return { ok: false, reason: 'passkey_backup_flags_invalid' };
   const hasAttestedCredential = (flags & 0x40) === 0x40;
   const hasExtensions = (flags & 0x80) === 0x80;
+  if (requireAttestedCredential && !hasAttestedCredential) return { ok: false, reason: 'attested_credential_missing' };
+  if (!requireAttestedCredential && hasAttestedCredential) return { ok: false, reason: 'assertion_attested_credential_unexpected' };
+  const signCount = buf.readUInt32BE(33);
   const parsed = {
     ok: true,
     flags,
     signCount,
     backupEligible,
     backupState,
+    hasExtensions,
     authData: buf
   };
   if (!requireAttestedCredential) {
-    if (hasAttestedCredential) return { ok: false, reason: 'unexpected_attested_credential_data' };
-    if (!hasExtensions && buf.length !== 37) return { ok: false, reason: 'authenticator_data_trailing_data' };
     if (hasExtensions) {
       try {
-        const extensionData = diracPasskeyA2FParseCbor(buf, 37);
-        if (!(extensionData.value instanceof Map) || extensionData.offset !== buf.length) {
+        const extension = diracPasskeyA2FParseCbor(buf, 37);
+        if (!(extension.value instanceof Map) || extension.offset !== buf.length) {
           return { ok: false, reason: 'authenticator_extensions_invalid' };
         }
       } catch (_) {
         return { ok: false, reason: 'authenticator_extensions_invalid' };
       }
+    } else if (buf.length !== 37) {
+      return { ok: false, reason: 'assertion_authenticator_data_trailing_bytes' };
     }
     return parsed;
   }
-  if (!hasAttestedCredential) return { ok: false, reason: 'attested_credential_missing' };
   if (buf.length < 55) return { ok: false, reason: 'attested_credential_too_short' };
   const aaguid = buf.slice(37, 53).toString('hex');
   const credentialIdLength = buf.readUInt16BE(53);
   const credentialStart = 55;
   const credentialEnd = credentialStart + credentialIdLength;
   if (!credentialIdLength || credentialEnd >= buf.length) return { ok: false, reason: 'credential_id_invalid' };
-  const credentialId = buf.slice(credentialStart, credentialEnd).toString('base64url');
-  const cose = diracPasskeyA2FParseCbor(buf, credentialEnd);
-  const publicKeyJwk = diracPasskeyA2FCoseToJwk(cose.value);
-  if (!hasExtensions && cose.offset !== buf.length) {
-    return { ok: false, reason: 'authenticator_data_trailing_data' };
-  }
+  const credentialIdBuffer = buf.slice(credentialStart, credentialEnd);
+  const credentialId = credentialIdBuffer.toString('base64url');
+  let cose;
+  try { cose = diracPasskeyA2FParseCbor(buf, credentialEnd); } catch (_) { return { ok: false, reason: 'credential_public_key_invalid' }; }
+  let publicKeyJwk;
+  try { publicKeyJwk = diracPasskeyA2FCoseToJwk(cose.value); } catch (_) { return { ok: false, reason: 'credential_public_key_invalid' }; }
+  let cursor = cose.offset;
   if (hasExtensions) {
     try {
-      const extensionData = diracPasskeyA2FParseCbor(buf, cose.offset);
-      if (!(extensionData.value instanceof Map) || extensionData.offset !== buf.length) {
-        return { ok: false, reason: 'authenticator_extensions_invalid' };
-      }
+      const extension = diracPasskeyA2FParseCbor(buf, cursor);
+      if (!(extension.value instanceof Map)) return { ok: false, reason: 'authenticator_extensions_invalid' };
+      cursor = extension.offset;
     } catch (_) {
       return { ok: false, reason: 'authenticator_extensions_invalid' };
     }
   }
+  if (cursor !== buf.length) return { ok: false, reason: 'registration_authenticator_data_trailing_bytes' };
   return {
     ...parsed,
     aaguid,
     credentialId,
+    credentialIdBuffer,
     credentialPublicKeyCose: buf.slice(credentialEnd, cose.offset).toString('base64url'),
     publicKeyJwk
   };
@@ -14818,11 +14115,7 @@ function diracPasskeyA2FCoseToJwk(cose) {
   if (kty === 3 && alg === -257) {
     const n = cose.get(-1);
     const e = cose.get(-2);
-    if (!Buffer.isBuffer(n) || !Buffer.isBuffer(e)
-        || n.length < 256 || n.length > 512
-        || e.length !== 3 || e.readUIntBE(0, 3) !== 65537) {
-      throw new Error('COSE_RS256_INVALID');
-    }
+    if (!Buffer.isBuffer(n) || !Buffer.isBuffer(e) || n.length < 256 || e.length < 3) throw new Error('COSE_RS256_INVALID');
     return { kty: 'RSA', n: n.toString('base64url'), e: e.toString('base64url'), alg: 'RS256', ext: true };
   }
   throw new Error('COSE_ALGORITHM_UNSUPPORTED');
@@ -14831,63 +14124,30 @@ function diracPasskeyA2FCoseToJwk(cose) {
 function diracPasskeyA2FValidateRegistrationResponse({ credential, response, payload, clientData, req }) {
   const attestation = diracPasskeyA2FBase64UrlToBuffer(response && response.attestationObject);
   if (!attestation.length) return { ok: false, reason: 'attestation_object_missing' };
-  let attestationMap;
-  try {
-    const decodedAttestation = diracPasskeyA2FParseCbor(attestation);
-    if (!decodedAttestation || decodedAttestation.offset !== attestation.length) {
-      return { ok: false, reason: 'attestation_object_trailing_data' };
-    }
-    attestationMap = decodedAttestation.value;
-  } catch (_) {
-    return { ok: false, reason: 'attestation_object_invalid' };
+  let decoded;
+  try { decoded = diracPasskeyA2FParseCbor(attestation); } catch (_) { return { ok: false, reason: 'attestation_object_invalid' }; }
+  const attestationMap = decoded && decoded.value;
+  if (!(attestationMap instanceof Map) || decoded.offset !== attestation.length) return { ok: false, reason: 'attestation_object_invalid' };
+  const fmt = String(attestationMap.get('fmt') || '');
+  const attStmt = attestationMap.get('attStmt');
+  if (fmt !== 'none' || !(attStmt instanceof Map) || attStmt.size !== 0) {
+    return { ok: false, reason: 'unverified_attestation_format_prohibited' };
   }
-  if (!(attestationMap instanceof Map)) return { ok: false, reason: 'attestation_object_invalid' };
   const authData = attestationMap.get('authData');
   if (!Buffer.isBuffer(authData)) return { ok: false, reason: 'attestation_auth_data_missing' };
   const rpId = String(payload && payload.rpId || diracPasskeyA2FRpId(req));
   let parsed;
-  try {
-    parsed = diracPasskeyA2FParseAuthData(authData, rpId, true);
-  } catch (_) {
-    return { ok: false, reason: 'authenticator_data_invalid' };
-  }
+  try { parsed = diracPasskeyA2FParseAuthData(authData, rpId, true); } catch (_) { return { ok: false, reason: 'authenticator_data_invalid' }; }
   if (!parsed.ok) return parsed;
-  if (parsed.backupEligible || parsed.backupState) {
-    return { ok: false, reason: 'synced_passkey_prohibited' };
-  }
-  const role = String(payload && payload.credentialRole || '').trim();
-  if (!DIRAC_PASSKEY_HIGH_ASSURANCE_ROLES_V236.has(role)) {
-    return { ok: false, reason: 'credential_role_invalid' };
-  }
   const browserCredentialId = diracPasskeyA2FCredentialId(credential);
-  if (!browserCredentialId || !safeEqual(browserCredentialId, parsed.credentialId)) {
+  const browserCredentialIdBuffer = diracPasskeyA2FBase64UrlToBuffer(browserCredentialId);
+  if (!browserCredentialIdBuffer.length
+      || !parsed.credentialIdBuffer
+      || !diracPasskeyA2FBufferEqual(browserCredentialIdBuffer, parsed.credentialIdBuffer)) {
     return { ok: false, reason: 'credential_id_attestation_mismatch' };
   }
-  if (String(clientData && clientData.type || '') !== 'webauthn.create') {
-    return { ok: false, reason: 'client_data_type_invalid' };
-  }
-  const attestationVerification = diracPasskeyA2FVerifyAttestationV236({
-    attestationMap,
-    authData,
-    parsed,
-    response,
-    role
-  });
-  if (!attestationVerification.ok) return attestationVerification;
-  return {
-    ok: true,
-    ...parsed,
-    backupEligible: false,
-    backupState: false,
-    credentialRole: role,
-    attestationFormat: attestationVerification.format,
-    attestationAlgorithm: attestationVerification.algorithm,
-    attestationRootFingerprint: attestationVerification.rootFingerprint,
-    attestationLeafFingerprint: attestationVerification.leafFingerprint,
-    attestationFirmwareVersion: attestationVerification.firmwareVersion,
-    policy: attestationVerification.policy,
-    policyEntry: attestationVerification.policyEntry
-  };
+  if (String(clientData && clientData.type || '') !== 'webauthn.create') return { ok: false, reason: 'client_data_type_invalid' };
+  return { ok: true, ...parsed, attestationFormat: fmt };
 }
 
 function diracPasskeyA2FStoredPublicKey(row) {
@@ -14900,33 +14160,34 @@ function diracPasskeyA2FValidateAuthenticationResponse({ row, response, payload,
   const authData = diracPasskeyA2FBase64UrlToBuffer(response && response.authenticatorData);
   const signature = diracPasskeyA2FBase64UrlToBuffer(response && response.signature);
   const clientDataRaw = diracPasskeyA2FBase64UrlToBuffer(response && response.clientDataJSON);
-  if (!authData.length || !signature.length || !clientDataRaw.length) {
-    return { ok: false, reason: 'assertion_response_incomplete' };
+  const responseUserHandle = diracPasskeyA2FBase64UrlToBuffer(response && response.userHandle);
+  const expectedUserHandle = diracPasskeyA2FBase64UrlToBuffer(payload && payload.userHandle);
+  if (!authData.length || !signature.length || !clientDataRaw.length) return { ok: false, reason: 'assertion_response_incomplete' };
+  if (responseUserHandle.length
+      && (!expectedUserHandle.length
+        || !diracPasskeyA2FBufferEqual(responseUserHandle, expectedUserHandle))) {
+    return { ok: false, reason: 'passkey_user_handle_mismatch' };
   }
   const rpId = String(payload && payload.rpId || diracPasskeyA2FRpId(req));
   let parsed;
-  try {
-    parsed = diracPasskeyA2FParseAuthData(authData, rpId, false);
-  } catch (_) {
-    return { ok: false, reason: 'authenticator_data_invalid' };
-  }
+  try { parsed = diracPasskeyA2FParseAuthData(authData, rpId, false); } catch (_) { return { ok: false, reason: 'authenticator_data_invalid' }; }
   if (!parsed.ok) return parsed;
-  if (parsed.backupEligible || parsed.backupState) {
-    return { ok: false, reason: 'synced_passkey_prohibited' };
+  if (String(clientData && clientData.type || '') !== 'webauthn.get') return { ok: false, reason: 'client_data_type_invalid' };
+  const storedWebauthn = row && row.credential_json && typeof row.credential_json === 'object'
+    && row.credential_json.webauthn && typeof row.credential_json.webauthn === 'object'
+    ? row.credential_json.webauthn
+    : null;
+  if (!storedWebauthn || typeof storedWebauthn.backup_eligible !== 'boolean') {
+    return { ok: false, reason: 'passkey_backup_eligibility_missing' };
   }
-  if (String(clientData && clientData.type || '') !== 'webauthn.get') {
-    return { ok: false, reason: 'client_data_type_invalid' };
+  if (storedWebauthn.backup_eligible !== parsed.backupEligible
+      || Boolean(row && row.backup_eligible) !== parsed.backupEligible) {
+    return { ok: false, reason: 'passkey_backup_eligibility_changed' };
   }
-  const stored = diracPasskeyA2FStoredHighAssuranceV236(row);
-  if (!stored) return { ok: false, reason: 'legacy_or_untrusted_passkey_prohibited' };
-  if (!safeEqual(stored.rpId, String(rpId || '').trim().toLowerCase())) {
-    return { ok: false, reason: 'stored_rp_id_mismatch' };
-  }
-  if (!diracPasskeyA2FCurrentPolicyAllowsStoredV236(stored)) {
-    return { ok: false, reason: 'authenticator_no_longer_approved' };
-  }
+  const jwk = diracPasskeyA2FStoredPublicKey(row);
+  if (!jwk) return { ok: false, reason: 'stored_public_key_missing' };
   try {
-    const publicKey = crypto.createPublicKey({ key: stored.publicKeyJwk, format: 'jwk' });
+    const publicKey = crypto.createPublicKey({ key: jwk, format: 'jwk' });
     const signedData = Buffer.concat([authData, diracPasskeyA2FSha256Buffer(clientDataRaw)]);
     const valid = crypto.verify('sha256', signedData, publicKey, signature);
     if (!valid) return { ok: false, reason: 'passkey_signature_invalid' };
@@ -14934,10 +14195,10 @@ function diracPasskeyA2FValidateAuthenticationResponse({ row, response, payload,
     return { ok: false, reason: 'passkey_signature_invalid' };
   }
   const previousCount = Math.max(0, Number(row && row.sign_count || 0));
-  if ((previousCount !== 0 || parsed.signCount !== 0) && parsed.signCount <= previousCount) {
-    return { ok: false, reason: 'passkey_sign_count_replay', cloneSuspected: true };
+  if ((previousCount > 0 || parsed.signCount > 0) && parsed.signCount <= previousCount) {
+    return { ok: false, reason: 'passkey_sign_count_replay' };
   }
-  return { ok: true, ...parsed, credentialRole: stored.role };
+  return { ok: true, ...parsed };
 }
 
 async function diracPasskeyA2FStoreChallenge(setupToken, payload) {
@@ -15120,7 +14381,7 @@ function diracPasskeyA2FOwnerMatches(row, owner) {
 }
 
 async function diracPasskeyA2FListActivePasskeys(owner) {
-  const select = ['id', 'user_id', 'email', 'credential_id', 'credential_role', 'backup_eligible', 'backup_state', 'attestation_verified', 'aaguid', 'credential_json', 'transports', 'sign_count', 'is_active', 'created_at', 'updated_at', 'last_used_at', 'revoked_at', 'revoke_reason'].join(',');
+  const select = ['id', 'user_id', 'email', 'credential_id', 'credential_json', 'transports', 'sign_count', 'is_active', 'credential_epoch', 'backup_eligible', 'backup_state', 'rotation_id', 'rotation_state', 'rotation_purpose', 'expected_security_epoch', 'authorizing_credential_id_hash', 'current_auth_session_id', 'recovery_request_id', 'recovery_session_id', 'recovery_session_hash', 'pending_expires_at', 'confirmed_at', 'activated_at', 'public_key_sha256', 'replaced_by', 'revoked_at', 'revoke_reason', 'created_at', 'updated_at', 'last_used_at'].join(',');
   const seen = new Set();
   const rows = [];
   const fetchRows = async (filter) => {
@@ -15139,16 +14400,6 @@ async function diracPasskeyA2FListActivePasskeys(owner) {
     await fetchRows('user_id=eq.' + encodeURIComponent(owner.customerId));
   }
 
-  let isRecoveryWorkerContext = false;
-  try {
-    const ctx = typeof diracCentralCurrentContextV149 === 'function' ? diracCentralCurrentContextV149() : null;
-    isRecoveryWorkerContext = Boolean(ctx && ctx.action === DIRAC_RECOVERY_WORKER_ACTION);
-  } catch (_) {}
-
-  if (!isRecoveryWorkerContext && owner && owner.email && isValidAuthEmail(owner.email)) {
-    await fetchRows('email=eq.' + encodeURIComponent(owner.email));
-  }
-
   return rows;
 }
 
@@ -15156,7 +14407,7 @@ async function diracPasskeyA2FFetchByCredentialId(credentialId, owner) {
   const id = diracPasskeyA2FSafeString(credentialId, 4096);
   const ownerCustomerId = String(owner && owner.customerId || '').trim();
   if (!id || !customerSecurityLooksLikeUuid(ownerCustomerId)) return { ok: true, data: [] };
-  const select = ['id', 'user_id', 'email', 'credential_id', 'credential_role', 'backup_eligible', 'backup_state', 'attestation_verified', 'aaguid', 'credential_json', 'transports', 'sign_count', 'is_active', 'created_at', 'updated_at', 'last_used_at', 'revoked_at', 'revoke_reason'].join(',');
+  const select = ['id', 'user_id', 'email', 'credential_id', 'credential_json', 'transports', 'sign_count', 'is_active', 'credential_epoch', 'backup_eligible', 'backup_state', 'rotation_id', 'rotation_state', 'rotation_purpose', 'expected_security_epoch', 'authorizing_credential_id_hash', 'current_auth_session_id', 'recovery_request_id', 'recovery_session_id', 'recovery_session_hash', 'pending_expires_at', 'confirmed_at', 'activated_at', 'public_key_sha256', 'replaced_by', 'revoked_at', 'revoke_reason', 'created_at', 'updated_at', 'last_used_at'].join(',');
   const path = '/rest/v1/domain_passkeys?select=' + encodeURIComponent(select)
     + '&credential_id=eq.' + encodeURIComponent(id)
     + '&user_id=eq.' + encodeURIComponent(ownerCustomerId)
@@ -15170,164 +14421,102 @@ async function diracPasskeyA2FSaveRegistration({ owner, credential, response, cl
   if (!owner || !owner.customerId || !customerSecurityLooksLikeUuid(owner.customerId)) {
     return { ok: false, status: 409, message: 'Customer owner Passkey tidak valid. Login ulang dulu.' };
   }
+  const purpose = String(payload && payload.purpose || '');
+  if (!['initial_register_pending', 'replace_register_pending', 'recovery_register_pending'].includes(purpose)) {
+    return { ok: false, status: 403, message: 'Purpose registrasi Passkey tidak valid.', code: 'PASSKEY_REGISTRATION_PURPOSE_INVALID' };
+  }
   const registration = diracPasskeyA2FValidateRegistrationResponse({ credential, response, payload, clientData, req });
   if (!registration.ok) {
-    return {
-      ok: false,
-      status: 403,
-      message: 'Attestation hardware security key tidak valid atau tidak diizinkan.',
-      code: registration.reason || 'PASSKEY_ATTESTATION_INVALID'
-    };
+    return { ok: false, status: 403, message: 'Data registrasi Passkey tidak valid.', code: registration.reason || 'PASSKEY_REGISTRATION_INVALID' };
   }
-
+  const globalCheck = await diracPasskeyA2FFetchCredentialGloballyV237(credentialId);
+  if (!globalCheck.ok) {
+    return { ok: false, status: globalCheck.status || 500, message: 'Gagal mengecek keunikan credential Passkey.' };
+  }
+  if (Array.isArray(globalCheck.data) && globalCheck.data.length > 0) {
+    return { ok: false, status: 409, message: 'Credential Passkey sudah pernah terdaftar.', code: 'PASSKEY_CREDENTIAL_ID_ALREADY_EXISTS' };
+  }
   const nowIso = new Date().toISOString();
   const signCount = Math.max(0, Number(registration.signCount || diracPasskeyA2FSignCount(response) || 0));
   const credentialJson = diracPasskeyA2FMinimalCredentialJson({ credential, response, clientData, payload, owner, req, mode: 'registration' });
   credentialJson.webauthn = {
-    high_assurance_version: DIRAC_PASSKEY_HIGH_ASSURANCE_VERSION_V236,
     rp_id: String(payload && payload.rpId || diracPasskeyA2FRpId(req)),
     public_key_jwk: registration.publicKeyJwk,
     credential_public_key_cose: registration.credentialPublicKeyCose,
     aaguid: registration.aaguid,
-    credential_role: registration.credentialRole,
-    credential_device_type: 'singleDevice',
-    credential_backed_up: false,
-    backup_eligible: false,
-    backup_state: false,
-    attestation_verified: true,
-    attestation_format: registration.attestationFormat,
-    attestation_algorithm: registration.attestationAlgorithm,
-    credential_algorithm: registration.publicKeyJwk && registration.publicKeyJwk.alg === 'ES256' ? -7 : -257,
-    attestation_root_fingerprint_sha256: registration.attestationRootFingerprint,
-    attestation_leaf_fingerprint_sha256: registration.attestationLeafFingerprint,
-    attestation_firmware_version: registration.attestationFirmwareVersion,
-    minimum_firmware_version: registration.policyEntry.minimumFirmwareVersion,
-    fido_policy_version: registration.policy.version,
-    fido_policy_sha256: registration.policy.hash,
-    fido_mds_blob_no: registration.policy.mdsBlobNo,
-    fido_mds_blob_sha256: registration.policy.mdsBlobSha256,
-    fido_mds_trust_root_sha256: registration.policy.mdsTrustRootSha256,
-    fido_mds_signing_chain_sha256: registration.policy.mdsSigningChainSha256,
-    fido_mds_crl_sha256: registration.policy.mdsCrlSha256,
-    fido_model: registration.policyEntry.model,
-    fido_manufacturer: registration.policyEntry.manufacturer,
-    fido_certification_level: registration.policyEntry.certificationLevel,
-    fido_certification_rank: registration.policyEntry.fidoCertificationRank,
-    fips140_certification_level: registration.policyEntry.fips140Level,
-    fips140_certification_status: registration.policyEntry.fips140Status,
-    fido_mds_status_reports: registration.policyEntry.statusReports,
     sign_count: signCount,
+    backup_eligible: registration.backupEligible === true,
+    backup_state: registration.backupState === true,
+    rotation_version: DIRAC_PASSKEY_ROTATION_VERSION_V237,
+    attestation_format: registration.attestationFormat,
     verified_at: nowIso
   };
-
-  if (payload && payload.highAssuranceChange === true) {
-    const currentAuthSessionId = diracPasskeyA2FCurrentAuthSessionIdV235(req, owner);
-    const manualPermit = payload.manualRecoveryPermit && typeof payload.manualRecoveryPermit === 'object'
-      ? payload.manualRecoveryPermit
-      : {};
-    if (!customerSecurityLooksLikeUuid(currentAuthSessionId)
-        || !customerSecurityLooksLikeUuid(String(owner.authUserId || ''))
-        || !Number.isSafeInteger(Number(payload.issuedAtMs || 0))) {
-      return {
-        ok: false,
-        status: 403,
-        message: 'Binding perubahan hardware security key tidak valid. Login ulang.',
-        code: 'PASSKEY_HIGH_ASSURANCE_CHANGE_BINDING_INVALID'
-      };
-    }
-    credentialJson.high_assurance_change_v236 = {
-      version: DIRAC_PASSKEY_HIGH_ASSURANCE_VERSION_V236,
-      role: registration.credentialRole,
-      auth_user_id: String(owner.authUserId),
-      current_auth_session_id: currentAuthSessionId,
-      issued_at_ms: Number(payload.issuedAtMs),
-      manual_recovery_permit_id: String(manualPermit.id || ''),
-      manual_recovery_permit_nonce_hash: String(manualPermit.nonceHash || ''),
-      authorizing_role: String(payload.authorizingCredentialRole || ''),
-      authorizing_credential_id_hash: String(payload.authorizingCredentialIdHash || '')
-    };
-  }
-
-  const rowBody = {
-    user_id: owner.customerId,
-    email: owner.email,
-    credential_id: credentialId,
-    credential_role: registration.credentialRole,
-    backup_eligible: false,
-    backup_state: false,
-    attestation_verified: true,
-    aaguid: registration.aaguid,
-    credential_json: credentialJson,
-    transports: diracPasskeyA2FTransports(credential, response),
-    sign_count: signCount,
-    is_active: true,
-    revoked_at: null,
-    revoke_reason: null,
-    updated_at: nowIso
-  };
-
-  const existingResult = await diracPasskeyA2FFetchByCredentialId(credentialId, owner);
-  if (!existingResult.ok) {
-    return { ok: false, status: existingResult.status || 500, message: 'Gagal mengecek credential Passkey di database.' };
-  }
-  const existing = Array.isArray(existingResult.data) && existingResult.data[0] ? existingResult.data[0] : null;
-  if (existing) {
-    return {
-      ok: false,
-      status: 409,
-      message: 'Credential hardware security key ini sudah pernah terdaftar dan tidak boleh diaktifkan ulang.',
-      code: 'PASSKEY_CREDENTIAL_ALREADY_REGISTERED'
-    };
-  }
-
-  const created = await supabaseFetch('/rest/v1/domain_passkeys', {
+  const publicKeySha256 = crypto.createHash('sha256')
+    .update(diracPasskeyA2FBase64UrlToBuffer(registration.credentialPublicKeyCose))
+    .digest('hex');
+  const rpc = await supabaseFetch('/rest/v1/rpc/dirac_passkey_create_pending_v237', {
     method: 'POST',
     auth: 'service',
     prefer: 'return=representation',
-    body: [rowBody]
-  });
-  const createdRows = created.ok && Array.isArray(created.data) ? created.data : [];
-  const createdRow = createdRows.length === 1 ? createdRows[0] : null;
-  if (!created.ok || !createdRow) {
-    console.error('[passkey-create-failed]', customerSecuritySafeLogError(created.data));
-    return { ok: false, status: created.status || 500, message: 'Gagal menyimpan hardware security key ke database.', code: 'PASSKEY_CREATE_FAILED' };
-  }
-
-  let committedSecurityEpoch = 0;
-  if (payload && payload.highAssuranceChange === true) {
-    const completed = createdRow.credential_json
-      && createdRow.credential_json.high_assurance_change_v236_completed;
-    committedSecurityEpoch = Number(completed && completed.security_epoch || 0);
-    if (!completed
-        || completed.version !== DIRAC_PASSKEY_HIGH_ASSURANCE_VERSION_V236
-        || completed.role !== registration.credentialRole
-        || !Number.isSafeInteger(committedSecurityEpoch) || committedSecurityEpoch < 2
-        || completed.application_sessions_revoked !== true
-        || completed.auth_sessions_revoked !== true
-        || completed.audit_event_written !== true) {
-      return {
-        ok: false,
-        status: 409,
-        message: 'Perubahan hardware security key belum terbukti atomik.',
-        code: 'PASSKEY_HIGH_ASSURANCE_CHANGE_COMMIT_PROOF_INVALID'
-      };
+    body: {
+      p_customer_id: owner.customerId,
+      p_auth_user_id: owner.authUserId,
+      p_email: owner.email,
+      p_credential_id: credentialId,
+      p_credential_json: credentialJson,
+      p_transports: diracPasskeyA2FTransports(credential, response),
+      p_sign_count: signCount,
+      p_backup_eligible: registration.backupEligible === true,
+      p_backup_state: registration.backupState === true,
+      p_rotation_id: String(payload && payload.rotationId || ''),
+      p_rotation_purpose: purpose.replace('_register_pending', ''),
+      p_expected_security_epoch: Number(payload && payload.expectedSecurityEpoch || 0),
+      p_authorizing_credential_id_hash: String(payload && payload.authorizingCredentialIdHash || ''),
+      p_current_auth_session_id: String(payload && payload.currentAuthSessionId || ''),
+      p_recovery_request_id: payload && payload.lostPasskeyRecovery ? String(payload.lostPasskeyRecovery.requestId || '') : null,
+      p_recovery_session_id: payload && payload.lostPasskeyRecovery ? String(payload.lostPasskeyRecovery.sessionId || '') : null,
+      p_recovery_session_hash: payload && payload.lostPasskeyRecovery ? String(payload.lostPasskeyRecovery.sessionHash || '') : null,
+      p_public_key_sha256: publicKeySha256,
+      p_pending_expires_at: new Date(Date.now() + DIRAC_PASSKEY_ROTATION_PENDING_TTL_MS_V237).toISOString()
     }
+  });
+  const data = rpc.ok && Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
+  if (!rpc.ok || !data || data.ok !== true || !data.passkey_id) {
+    console.error('[passkey-pending-create-failed]', customerSecuritySafeLogError(rpc.data));
+    return { ok: false, status: rpc.status || 409, message: 'Gagal menyimpan Passkey pending secara atomik.', code: 'PASSKEY_PENDING_CREATE_FAILED' };
   }
-
-  return {
-    ok: true,
-    created: true,
-    row: createdRow,
-    credentialRole: registration.credentialRole,
-    securityEpoch: committedSecurityEpoch
-  };
+  const fetched = await diracPasskeyA2FFetchByCredentialId(credentialId, owner);
+  const row = fetched.ok && Array.isArray(fetched.data) ? fetched.data[0] : null;
+  if (!row || String(row.id || '') !== String(data.passkey_id) || row.rotation_state !== 'pending') {
+    return { ok: false, status: 409, message: 'Bukti penyimpanan Passkey pending tidak valid.', code: 'PASSKEY_PENDING_COMMIT_PROOF_INVALID' };
+  }
+  return { ok: true, created: true, row };
 }
 
-async function diracPasskeyA2FRevokeCloneV236(row, owner, reason) {
-  if (!row || !row.id || !owner || !customerSecurityLooksLikeUuid(owner.customerId)) {
-    return { ok: false, status: 400 };
+async function diracPasskeyA2FUpdateUsage({ row, owner, response, credential, clientData, payload, req, confirmPending = false }) {
+  if (!row || !row.id || !diracPasskeyA2FOwnerMatches(row, owner)) {
+    return { ok: false, status: 403, message: 'Passkey tidak cocok dengan akun login ini.' };
   }
-  const result = await supabaseFetch('/rest/v1/rpc/dirac_passkey_clone_revoke_v236', {
+  const assertion = diracPasskeyA2FValidateAuthenticationResponse({ row, response, payload, clientData, req });
+  if (!assertion.ok) {
+    if (assertion.reason === 'passkey_sign_count_replay' && row.rotation_state === 'active') {
+      await diracPasskeyA2FRevokeCloneV237(owner, row).catch(() => null);
+    }
+    return { ok: false, status: 403, message: 'Signature Passkey tidak valid.', code: assertion.reason || 'PASSKEY_SIGNATURE_INVALID' };
+  }
+  const signCount = Math.max(0, Number(assertion.signCount || diracPasskeyA2FSignCount(response) || 0));
+  const nowIso = new Date().toISOString();
+  const credentialJson = {
+    ...(row.credential_json && typeof row.credential_json === 'object' ? row.credential_json : {}),
+    webauthn: {
+      ...(row.credential_json && row.credential_json.webauthn && typeof row.credential_json.webauthn === 'object' ? row.credential_json.webauthn : {}),
+      sign_count: signCount,
+      backup_state: assertion.backupState === true,
+      last_verified_at: nowIso
+    },
+    last_authentication: diracPasskeyA2FMinimalCredentialJson({ credential, response, clientData, payload, owner, req, mode: 'authentication' })
+  };
+  const rpc = await supabaseFetch('/rest/v1/rpc/dirac_passkey_record_assertion_v237', {
     method: 'POST',
     auth: 'service',
     prefer: 'return=representation',
@@ -15335,92 +14524,28 @@ async function diracPasskeyA2FRevokeCloneV236(row, owner, reason) {
       p_customer_id: owner.customerId,
       p_passkey_id: row.id,
       p_expected_sign_count: Math.max(0, Number(row.sign_count || 0)),
-      p_reason: String(reason || 'passkey_sign_count_replay').slice(0, 80)
+      p_new_sign_count: signCount,
+      p_backup_state: assertion.backupState === true,
+      p_credential_json: credentialJson,
+      p_confirm_pending: confirmPending === true,
+      p_auth_user_id: owner.authUserId,
+      p_assertion_purpose: confirmPending ? 'confirm_pending' : String(payload && payload.purpose || 'login'),
+      p_rotation_id: payload && payload.rotationId ? String(payload.rotationId) : null,
+      p_expected_security_epoch: Number(payload && payload.expectedSecurityEpoch || 0),
+      p_current_auth_session_id: payload && payload.currentAuthSessionId ? String(payload.currentAuthSessionId) : null
     }
-  }).catch(() => null);
-  const data = result && result.ok && Array.isArray(result.data) ? result.data[0] : result && result.data;
-  return {
-    ok: Boolean(result && result.ok === true && data && data.revoked === true),
-    status: Number(result && result.status || 0),
-    data
-  };
-}
-
-async function diracPasskeyA2FUpdateUsage({ row, owner, response, credential, clientData, payload, req }) {
-  if (!row || !row.id || !diracPasskeyA2FOwnerMatches(row, owner)) {
-    return { ok: false, status: 403, message: 'Passkey tidak cocok dengan akun login ini.' };
-  }
-  const assertion = diracPasskeyA2FValidateAuthenticationResponse({ row, response, payload, clientData, req });
-  if (!assertion.ok) {
-    if (assertion.cloneSuspected === true) {
-      const revoked = await diracPasskeyA2FRevokeCloneV236(row, owner, assertion.reason);
-      return {
-        ok: false,
-        status: revoked.ok ? 403 : 503,
-        message: revoked.ok
-          ? 'Credential diblokir karena signature counter menunjukkan kemungkinan clone atau replay.'
-          : 'Credential ditolak, tetapi pencabutan atomik belum dapat dibuktikan.',
-        code: revoked.ok ? 'PASSKEY_CLONE_SUSPECTED_REVOKED' : 'PASSKEY_CLONE_REVOCATION_FAILED'
-      };
-    }
-    return { ok: false, status: 403, message: 'Signature Passkey tidak valid.', code: assertion.reason || 'PASSKEY_SIGNATURE_INVALID' };
-  }
-  const signCount = Math.max(0, Number(assertion.signCount || diracPasskeyA2FSignCount(response) || 0));
-  const storedSignCount = Math.max(0, Number(row.sign_count || 0));
-  const nowIso = new Date().toISOString();
-  const previousJson = row.credential_json && typeof row.credential_json === 'object'
-    ? row.credential_json
-    : {};
-  const previousWebauthn = previousJson.webauthn && typeof previousJson.webauthn === 'object'
-    ? previousJson.webauthn
-    : {};
-  const body = {
-    last_used_at: nowIso,
-    updated_at: nowIso,
-    is_active: true,
-    sign_count: signCount,
-    backup_eligible: false,
-    backup_state: false,
-    credential_json: {
-      ...previousJson,
-      webauthn: {
-        ...previousWebauthn,
-        sign_count: signCount,
-        backup_eligible: false,
-        backup_state: false,
-        last_verified_at: nowIso
-      },
-      last_authentication: diracPasskeyA2FMinimalCredentialJson({ credential, response, clientData, payload, owner, req, mode: 'authentication' })
-    }
-  };
-
-  const patchPath = '/rest/v1/domain_passkeys?id=eq.' + encodeURIComponent(row.id)
-    + '&user_id=eq.' + encodeURIComponent(owner.customerId)
-    + '&credential_id=eq.' + encodeURIComponent(String(row.credential_id || ''))
-    + '&is_active=eq.true'
-    + '&sign_count=eq.' + encodeURIComponent(String(storedSignCount));
-  const patched = await supabaseFetch(patchPath, {
-    method: 'PATCH',
-    auth: 'service',
-    prefer: 'return=representation',
-    body
   });
-  const patchedRows = patched.ok && Array.isArray(patched.data) ? patched.data : [];
-  if (!patched.ok || patchedRows.length !== 1) {
-    console.error('[passkey-usage-update-failed]', customerSecuritySafeLogError(patched.data));
-    return {
-      ok: false,
-      status: patched.ok ? 409 : (patched.status || 500),
-      message: 'Counter Passkey berubah secara bersamaan atau credential sudah dicabut.',
-      code: 'PASSKEY_COUNTER_ATOMIC_CONFLICT'
-    };
+  const data = rpc.ok && Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
+  if (!rpc.ok || !data || data.ok !== true || !data.passkey_id) {
+    console.error('[passkey-usage-update-failed]', customerSecuritySafeLogError(rpc.data));
+    return { ok: false, status: rpc.status || 409, message: 'Counter atau status Passkey berubah secara bersamaan.', code: 'PASSKEY_USAGE_ATOMIC_CONFLICT' };
   }
-  return {
-    ok: true,
-    row: patchedRows[0],
-    assertion,
-    credentialRole: assertion.credentialRole
-  };
+  const fetched = await diracPasskeyA2FFetchByCredentialId(String(row.credential_id || ''), owner);
+  const updatedRow = fetched.ok && Array.isArray(fetched.data) ? fetched.data[0] : null;
+  if (!updatedRow || String(updatedRow.id || '') !== String(row.id)) {
+    return { ok: false, status: 409, message: 'Bukti pembaruan Passkey tidak valid.', code: 'PASSKEY_USAGE_COMMIT_PROOF_INVALID' };
+  }
+  return { ok: true, row: updatedRow, assertion };
 }
 
 async function diracPasskeyA2FMarkSettingsActive(owner) {
@@ -15652,537 +14777,243 @@ async function diracPasskeyA2FCompleteLostRecoveryRotation({ owner, newCredentia
   };
 }
 
-async function diracPasskeyA2FManualRecoveryPermitV236(owner) {
-  if (!owner || !customerSecurityLooksLikeUuid(owner.customerId)
-      || !customerSecurityLooksLikeUuid(owner.authUserId)) return null;
-  const select = 'id,customer_id,auth_user_id,status,not_before,expires_at,used_at,revoked_at,permit_nonce_hash';
-  const nowIso = new Date().toISOString();
-  const path = '/rest/v1/dirac_passkey_manual_recovery_permits_v236?select=' + encodeURIComponent(select)
-    + '&customer_id=eq.' + encodeURIComponent(owner.customerId)
-    + '&auth_user_id=eq.' + encodeURIComponent(owner.authUserId)
-    + '&status=eq.approved&used_at=is.null&revoked_at=is.null'
-    + '&not_before=lte.' + encodeURIComponent(nowIso)
-    + '&expires_at=gt.' + encodeURIComponent(nowIso)
-    + '&order=created_at.desc&limit=2';
-  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' }).catch(() => null);
+
+async function diracPasskeyA2FFetchCredentialGloballyV237(credentialId) {
+  const id = diracPasskeyA2FSafeString(credentialId, 4096);
+  if (!id) return { ok: true, data: [] };
+  const path = '/rest/v1/domain_passkeys?select=' + encodeURIComponent('id,user_id,credential_id,rotation_state,is_active')
+    + '&credential_id=eq.' + encodeURIComponent(id) + '&limit=2';
+  return supabaseFetch(path, { method: 'GET', auth: 'service' });
+}
+
+async function diracPasskeyA2FReadSecurityEpochV237(owner) {
+  if (!owner || !customerSecurityLooksLikeUuid(owner.customerId)) return { ok: false, status: 400 };
+  const ensured = await customerSecurityEnsureSettingsRow(owner.customerId).catch(() => null);
+  if (!ensured || ensured.ok !== true) return { ok: false, status: ensured && ensured.status || 500 };
+  const result = await customerSecurityFetchRows(
+    'security_customer_settings',
+    ['id', 'customer_id', 'security_epoch', 'two_factor_enabled', 'two_factor_method'],
+    owner.customerId,
+    'created_at.desc',
+    2
+  );
   const rows = result && result.ok && Array.isArray(result.data) ? result.data : [];
-  if (rows.length !== 1 || !customerSecurityLooksLikeUuid(rows[0].id)
-      || !/^[a-f0-9]{64}$/.test(String(rows[0].permit_nonce_hash || ''))) return null;
-  return { id: String(rows[0].id), nonceHash: String(rows[0].permit_nonce_hash) };
+  if (rows.length !== 1) return { ok: false, status: result && result.status || 409 };
+  const securityEpoch = Number(rows[0].security_epoch || 0);
+  if (!Number.isSafeInteger(securityEpoch) || securityEpoch < 1) return { ok: false, status: 409 };
+  return { ok: true, row: rows[0], securityEpoch };
 }
 
-async function diracPasskeyA2FHasCredentialHistoryV236(owner) {
-  if (!owner || !customerSecurityLooksLikeUuid(owner.customerId)) return true;
-  const path = '/rest/v1/domain_passkeys?select=id&user_id=eq.'
-    + encodeURIComponent(owner.customerId) + '&limit=1';
-  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' }).catch(() => null);
-  if (!result || !result.ok || !Array.isArray(result.data)) return true;
-  return result.data.length > 0;
+function diracPasskeyA2FPublicKeyForRegistrationV237({ challenge, rpId, userHandle, owner, excludeCredentials }) {
+  return {
+    challenge,
+    rp: { name: diracPasskeyA2FRpName(), id: rpId },
+    user: { id: userHandle, name: owner.email, displayName: owner.email },
+    pubKeyCredParams: [
+      { type: 'public-key', alg: -7 },
+      { type: 'public-key', alg: -257 }
+    ],
+    timeout: 60000,
+    attestation: diracPasskeyA2FAttestationPolicy(),
+    authenticatorSelection: {
+      authenticatorAttachment: 'platform',
+      residentKey: 'preferred',
+      requireResidentKey: false,
+      userVerification: 'required'
+    },
+    extensions: { credProps: true },
+    excludeCredentials: Array.isArray(excludeCredentials) && excludeCredentials.length ? excludeCredentials : undefined
+  };
 }
 
-async function diracPasskeyA2FStart(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ ok: false, method: 'passkey', message: 'Gunakan POST untuk Passkey A2F.' });
-
-  const user = await requireDomainUser(req, res);
-  if (!user) return;
-  const email = normalizeAuthEmail(user.email);
-  if (!isValidAuthEmail(email)) {
-    return res.status(400).json({ ok: false, method: 'passkey', message: 'Email akun tidak valid untuk membuat passkey. Login ulang dulu.' });
-  }
-  const owner = await diracPasskeyA2FResolveOwner(user, email);
-  if (!owner.ok) {
-    return res.status(owner.status || 409).json({ ok: false, method: 'passkey', message: owner.message || 'Akun belum siap untuk Passkey.' });
-  }
-
-  let body = {};
-  try { body = await readBody(req); } catch (_) { body = {}; }
-  const recoverySessionToken = diracPasskeyA2FLostRecoveryTokenFromBody(body);
-  if (recoverySessionToken) {
-    return res.status(403).json({
-      ok: false,
-      method: 'passkey',
-      code: 'HIGH_ASSURANCE_EMAIL_RECOVERY_PROHIBITED',
-      message: 'Email dan recovery code tidak cukup untuk mengganti hardware security key. Gunakan offline backup key atau permit pemulihan manual.'
-    });
-  }
-
-  try {
-    diracPasskeyA2FDecodePolicyV236();
-  } catch (_) {
-    return res.status(503).json({
-      ok: false,
-      method: 'passkey',
-      code: 'FIDO_HARDWARE_POLICY_UNAVAILABLE',
-      message: 'Kebijakan hardware security key belum tersedia atau sudah kedaluwarsa.'
-    });
-  }
-
+async function diracPasskeyA2FBuildSetupV237({ req, owner, purpose, activePasskeys, rotationContext = {}, lostRecoverySession = null }) {
+  if (!DIRAC_PASSKEY_PURPOSES_V237.has(purpose)) return { ok: false, status: 400, code: 'PASSKEY_PURPOSE_INVALID' };
+  const isAuthentication = purpose === 'login'
+    || purpose === 'replace_authorize_old'
+    || purpose.endsWith('_confirm_pending');
   const now = Date.now();
+  const ttl = purpose === 'replace_authorize_old' ? DIRAC_PASSKEY_ROTATION_AUTH_TTL_MS_V237 : DIRAC_PASSKEY_A2F_TTL_MS;
   const challenge = crypto.randomBytes(32).toString('base64url');
   const rpId = diracPasskeyA2FRpId(req);
-  const origin = normalizeDashboardMfaOrigin(requestOrigin(req));
-  if (!rpId || !origin) {
-    return res.status(403).json({
-      ok: false,
-      method: 'passkey',
-      code: 'PASSKEY_RP_ORIGIN_UNAVAILABLE',
-      message: 'RP ID atau origin resmi Passkey tidak dapat dipastikan.'
-    });
-  }
-
+  const origin = requestOrigin(req);
   const userHandle = diracPasskeyA2FUserHandle({ id: owner.customerId, email: owner.email });
-  const activePasskeys = await diracPasskeyA2FListActivePasskeys(owner);
-  const trustedActivePasskeys = activePasskeys.filter(diracPasskeyA2FIsTrustedActiveV236);
-  const legacyActivePasskeys = activePasskeys.filter((row) => !diracPasskeyA2FIsTrustedActiveV236(row));
-  const activePrimary = trustedActivePasskeys.filter((row) => diracPasskeyA2FCredentialRoleV236(row) === 'primary');
-  const activeBackup = trustedActivePasskeys.filter((row) => diracPasskeyA2FCredentialRoleV236(row) === 'offline_backup');
-  if (activePrimary.length > 1 || activeBackup.length > 1 || trustedActivePasskeys.length > 2) {
-    return res.status(409).json({ ok: false, method: 'passkey', code: 'PASSKEY_ACTIVE_SET_INVALID', message: 'Set hardware security key aktif tidak valid.' });
-  }
-
-  const requestedMode = String(body && body.passkeyMode || '').trim().toLowerCase();
-  const requestedRole = requestedMode === 'register_primary' || requestedMode === 'registration_primary'
-    ? 'primary'
-    : requestedMode === 'register_offline_backup' || requestedMode === 'registration_offline_backup'
-      ? 'offline_backup'
-      : '';
-  let mode = trustedActivePasskeys.length ? 'authentication' : 'registration';
-  let credentialRole = mode === 'registration' ? 'primary' : '';
-  let highAssuranceChange = false;
-  let manualRecoveryPermit = null;
-  let authorizingCredentialRole = '';
-  let authorizingCredentialIdHash = '';
-
-  if (requestedRole) {
-    const mfa = verifyCustomerDashboardMfaCookie(req, user);
-    const requiredAuthorizingRole = requestedRole === 'primary' ? 'offline_backup' : 'primary';
-    const fresh = mfa && mfa.ok === true && mfa.method === 'passkey'
-      && mfa.credentialRole === requiredAuthorizingRole
-      && /^[a-f0-9]{64}$/.test(String(mfa.credentialIdHash || ''))
-      && Number.isSafeInteger(Number(mfa.activeAtMs))
-      && now - Number(mfa.activeAtMs) >= 0
-      && now - Number(mfa.activeAtMs) <= 5 * 60 * 1000;
-    if (!fresh) {
-      return res.status(403).json({
-        ok: false,
-        method: 'passkey',
-        code: 'PASSKEY_ROLE_CHANGE_REAUTH_REQUIRED',
-        message: requestedRole === 'primary'
-          ? 'Verifikasi offline backup security key dalam lima menit terakhir untuk mengganti primary key.'
-          : 'Verifikasi primary security key dalam lima menit terakhir untuk menambah atau mengganti offline backup key.'
-      });
-    }
-    if (requestedRole === 'offline_backup' && activePrimary.length !== 1) {
-      return res.status(409).json({ ok: false, method: 'passkey', code: 'PASSKEY_PRIMARY_REQUIRED', message: 'Primary hardware security key aktif wajib tersedia.' });
-    }
-    if (requestedRole === 'primary' && activeBackup.length !== 1) {
-      return res.status(409).json({ ok: false, method: 'passkey', code: 'PASSKEY_OFFLINE_BACKUP_REQUIRED', message: 'Offline backup hardware security key aktif wajib tersedia.' });
-    }
-    mode = 'registration';
-    credentialRole = requestedRole;
-    highAssuranceChange = true;
-    authorizingCredentialRole = requiredAuthorizingRole;
-    authorizingCredentialIdHash = String(mfa.credentialIdHash);
-  } else if (!trustedActivePasskeys.length) {
-    const hasHistory = legacyActivePasskeys.length > 0
-      ? true
-      : await diracPasskeyA2FHasCredentialHistoryV236(owner);
-    if (hasHistory) {
-      manualRecoveryPermit = await diracPasskeyA2FManualRecoveryPermitV236(owner);
-      if (!manualRecoveryPermit) {
-        return res.status(403).json({
-          ok: false,
-          method: 'passkey',
-          code: 'HIGH_ASSURANCE_MANUAL_RECOVERY_REQUIRED',
-          message: 'Credential lama atau riwayat Passkey ditemukan. Permit pemulihan manual yang aktif wajib tersedia.'
-        });
-      }
-      highAssuranceChange = true;
-    }
-  }
-
   const jti = crypto.randomBytes(32).toString('base64url');
   const payload = {
     type: DIRAC_PASSKEY_A2F_TOKEN_TYPE,
     method: 'passkey',
-    mode,
-    credentialRole,
-    highAssuranceChange,
-    manualRecoveryPermit: manualRecoveryPermit || undefined,
-    authorizingCredentialRole,
-    authorizingCredentialIdHash,
+    mode: isAuthentication ? 'authentication' : 'registration',
+    purpose,
     jti,
     challenge,
     rpId,
     origin,
-    authUserId: owner.authUserId || String(user.id || ''),
+    userHandle,
+    authUserId: owner.authUserId,
     customerId: owner.customerId,
     emailHash: customerMfaProfileId(owner.email),
     uaHash: customerMfaBindingHash('ua', requestUserAgent(req)),
+    rotationId: rotationContext.rotationId || undefined,
+    expectedSecurityEpoch: Number(rotationContext.expectedSecurityEpoch || 0),
+    authorizingCredentialIdHash: rotationContext.authorizingCredentialIdHash || '',
+    currentAuthSessionId: rotationContext.currentAuthSessionId || '',
+    pendingPasskeyId: rotationContext.pendingPasskeyId || '',
+    pendingCredentialId: rotationContext.pendingCredentialId || '',
+    lostPasskeyRecovery: lostRecoverySession && lostRecoverySession.ok ? {
+      requestId: lostRecoverySession.requestId,
+      sessionId: lostRecoverySession.id,
+      sessionHash: lostRecoverySession.sessionHash
+    } : (rotationContext.lostPasskeyRecovery || undefined),
     issuedAtMs: now,
-    expiresAtMs: now + DIRAC_PASSKEY_A2F_TTL_MS
+    expiresAtMs: now + ttl
   };
   const setupToken = diracPasskeyA2FEncodeToken(payload);
   await diracPasskeyA2FStoreChallenge(setupToken, payload);
-
-  const basePublicKey = {
-    challenge,
-    rpId,
-    timeout: 60000,
-    userVerification: 'required'
-  };
-  if (mode === 'authentication') {
-    return res.status(200).json({
-      ok: true,
-      method: 'passkey',
-      passkeyMode: 'authentication',
-      needsRegistration: false,
-      setupToken,
-      mfaSetupToken: setupToken,
-      expires_in: Math.floor(DIRAC_PASSKEY_A2F_TTL_MS / 1000),
-      publicKey: {
-        ...basePublicKey,
-        hints: ['security-key'],
-        allowCredentials: trustedActivePasskeys
-          .filter((row) => row && row.credential_id)
-          .map((row) => ({
-            type: 'public-key',
-            id: String(row.credential_id),
-            transports: Array.isArray(row.transports) ? row.transports : []
-          }))
-      },
-      message: 'Gunakan hardware security key fisik yang terdaftar.'
-    });
-  }
-
-  return res.status(200).json({
-    ok: true,
-    method: 'passkey',
-    passkeyMode: 'registration',
-    credentialRole,
-    needsRegistration: true,
-    setupToken,
-    mfaSetupToken: setupToken,
-    expires_in: Math.floor(DIRAC_PASSKEY_A2F_TTL_MS / 1000),
-    publicKey: {
-      challenge,
-      rp: { name: diracPasskeyA2FRpName(), id: rpId },
-      user: { id: userHandle, name: owner.email, displayName: owner.email },
-      pubKeyCredParams: [
-        { type: 'public-key', alg: -7 },
-        { type: 'public-key', alg: -257 }
-      ],
-      timeout: 60000,
-      attestation: diracPasskeyA2FAttestationPolicy(),
-      hints: ['security-key'],
-      authenticatorSelection: {
-        authenticatorAttachment: 'cross-platform',
-        residentKey: 'required',
-        requireResidentKey: true,
-        userVerification: 'required'
-      },
-      extensions: { credProps: true },
-      excludeCredentials: activePasskeys
+  let publicKey;
+  if (isAuthentication) {
+    let credentials = [];
+    if (purpose.endsWith('_confirm_pending')) {
+      credentials = rotationContext.pendingCredentialId ? [{
+        type: 'public-key',
+        id: rotationContext.pendingCredentialId,
+        transports: Array.isArray(rotationContext.pendingTransports) ? rotationContext.pendingTransports : []
+      }] : [];
+    } else {
+      credentials = (Array.isArray(activePasskeys) ? activePasskeys : [])
         .filter((row) => row && row.credential_id)
         .map((row) => ({
           type: 'public-key',
           id: String(row.credential_id),
           transports: Array.isArray(row.transports) ? row.transports : []
-        }))
-    },
-    recovery_replacement: false,
-    legacy_credentials_pending_revocation: legacyActivePasskeys.length,
-    message: credentialRole === 'offline_backup'
-      ? 'Daftarkan hardware security key cadangan yang berbeda dari primary key.'
-      : 'Daftarkan primary hardware security key yang device-bound.'
-  });
-}
-async function diracPasskeyA2FVerify(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ ok: false, method: 'passkey', message: 'Gunakan POST untuk verifikasi Passkey A2F.' });
-
-  const user = await requireDomainUser(req, res);
-  if (!user) return;
-
-  const body = await readBody(req);
-  const email = normalizeAuthEmail(user.email);
-  const owner = await diracPasskeyA2FResolveOwner(user, email);
-  if (!owner.ok) {
-    return res.status(owner.status || 409).json({ ok: false, method: 'passkey', message: owner.message || 'Akun belum siap untuk Passkey.' });
-  }
-
-  const setupToken = String(body.setupToken || body.mfaSetupToken || body.token || '').trim();
-  const payload = diracPasskeyA2FDecodeToken(setupToken);
-  if (!payload || payload.type !== DIRAC_PASSKEY_A2F_TOKEN_TYPE || payload.method !== 'passkey') {
-    await diracA2FHardBanCurrentRequest('passkey_a2f_token_invalid');
-    return res.status(403).json({ ok: false, method: 'passkey', message: 'Challenge Passkey tidak valid. Tekan Buat passkey sekarang sekali lagi.' });
-  }
-  if (Number(payload.expiresAtMs || 0) <= Date.now()) {
-    await diracA2FHardBanCurrentRequest('passkey_a2f_token_expired');
-    return res.status(403).json({ ok: false, method: 'passkey', message: 'Challenge Passkey sudah expired. Ulangi dari tombol Passkey.' });
-  }
-  const challengeUse = await diracPasskeyA2FConsumeChallenge(setupToken, payload);
-  if (!challengeUse.ok) {
-    await diracA2FHardBanCurrentRequest(challengeUse.reason || 'passkey_a2f_challenge_replay');
-    return res.status(403).json({ ok: false, method: 'passkey', message: 'Challenge Passkey sudah dipakai atau tidak valid. Ulangi dari tombol Passkey.' });
-  }
-  if (!payload.emailHash || !safeEqual(String(payload.emailHash), customerMfaProfileId(owner.email))) {
-    await diracA2FHardBanCurrentRequest('passkey_a2f_email_mismatch');
-    return res.status(403).json({ ok: false, method: 'passkey', message: 'Passkey harus dibuat dari akun login yang sama.' });
-  }
-  if (payload.customerId && owner.customerId && String(payload.customerId) !== String(owner.customerId)) {
-    await diracA2FHardBanCurrentRequest('passkey_a2f_customer_mismatch');
-    return res.status(403).json({ ok: false, method: 'passkey', message: 'Customer owner Passkey tidak cocok. Login ulang dulu.' });
-  }
-
-  let lostRecoverySession = null;
-  if (payload.lostPasskeyRecovery) {
-    return res.status(403).json({
-      ok: false,
-      method: 'passkey',
-      code: 'HIGH_ASSURANCE_EMAIL_RECOVERY_PROHIBITED',
-      message: 'Email dan recovery code tidak cukup untuk mengganti hardware security key.'
-    });
-  }
-  if (payload.uaHash) {
-    const expectedUaHash = customerMfaBindingHash('ua', requestUserAgent(req));
-    if (!expectedUaHash || !safeEqual(String(payload.uaHash), expectedUaHash)) {
-      await diracA2FHardBanCurrentRequest('passkey_a2f_ua_mismatch');
-      return res.status(403).json({ ok: false, method: 'passkey', message: 'Passkey harus diselesaikan dari browser/perangkat yang sama.' });
+        }));
     }
-  }
-
-  const credential = body && body.credential && typeof body.credential === 'object' ? body.credential : null;
-  const response = credential && credential.response && typeof credential.response === 'object' ? credential.response : null;
-  const clientData = response ? diracPasskeyA2FDecodeClientData(response.clientDataJSON) : null;
-
-  if (!credential || !response || !clientData) {
-    return res.status(400).json({ ok: false, method: 'passkey', message: 'Data Passkey dari browser tidak lengkap. Coba ulangi Face ID/sidik jari/PIN.' });
-  }
-  const credentialEnvelope = diracPasskeyA2FStrictCredentialEnvelopeV236(credential);
-  if (!credentialEnvelope.ok) {
-    await diracA2FHardBanCurrentRequest(credentialEnvelope.reason || 'passkey_a2f_credential_envelope_invalid');
-    return res.status(403).json({ ok: false, method: 'passkey', message: 'Envelope credential Passkey tidak valid.' });
-  }
-  if (String(clientData.challenge || '') !== String(payload.challenge || '')) {
-    await diracA2FHardBanCurrentRequest('passkey_a2f_challenge_mismatch');
-    return res.status(403).json({ ok: false, method: 'passkey', message: 'Challenge Passkey tidak cocok. Minta challenge baru.' });
-  }
-  if (clientData.crossOrigin === true || String(clientData.topOrigin || '').trim()) {
-    await diracA2FHardBanCurrentRequest('passkey_a2f_cross_origin');
-    return res.status(403).json({ ok: false, method: 'passkey', message: 'Passkey harus dibuat dari origin website utama.' });
-  }
-  const clientType = String(clientData.type || '').toLowerCase();
-  const payloadMode = String(payload.mode || '').toLowerCase();
-  const isAuthentication = payloadMode === 'authentication';
-  if (isAuthentication && clientType !== 'webauthn.get') {
-    return res.status(400).json({ ok: false, method: 'passkey', message: 'Respons browser bukan login Passkey yang valid.' });
-  }
-  if (!isAuthentication && clientType !== 'webauthn.create') {
-    return res.status(400).json({ ok: false, method: 'passkey', message: 'Respons browser bukan pendaftaran Passkey yang valid.' });
-  }
-  const clientOrigin = normalizeDashboardMfaOrigin(clientData.origin || '');
-  const expectedOrigin = normalizeDashboardMfaOrigin(payload.origin || requestOrigin(req));
-  if (!expectedOrigin || !clientOrigin || clientOrigin !== expectedOrigin) {
-    await diracA2FHardBanCurrentRequest('passkey_a2f_origin_mismatch');
-    return res.status(403).json({ ok: false, method: 'passkey', message: 'Origin Passkey tidak cocok dengan domain login.' });
-  }
-  if (!isAuthentication && !response.attestationObject) {
-    return res.status(400).json({ ok: false, method: 'passkey', message: 'Browser tidak mengirim attestation Passkey. Coba ulangi.' });
-  }
-  if (isAuthentication && (!response.authenticatorData || !response.signature)) {
-    return res.status(400).json({ ok: false, method: 'passkey', message: 'Browser tidak mengirim bukti login Passkey. Coba ulangi.' });
-  }
-
-  const credentialId = credentialEnvelope.credentialId;
-  if (!credentialId) {
-    return res.status(400).json({ ok: false, method: 'passkey', message: 'Credential Passkey kosong. Coba ulangi.' });
-  }
-
-  let dbWrite = null;
-  let registeredNow = false;
-  if (isAuthentication) {
-    const existingResult = await diracPasskeyA2FFetchByCredentialId(credentialId, owner);
-    const row = existingResult.ok && Array.isArray(existingResult.data) ? existingResult.data[0] : null;
-    if (!row || row.is_active !== true || !diracPasskeyA2FOwnerMatches(row, owner)) {
-      await diracA2FHardBanCurrentRequest('passkey_a2f_credential_owner_mismatch');
-      return res.status(403).json({ ok: false, method: 'passkey', message: 'Passkey tidak terdaftar untuk akun ini. Buat Passkey dulu dari akun yang benar.' });
-    }
-    dbWrite = await diracPasskeyA2FUpdateUsage({ row, owner, response, credential, clientData, payload, req });
+    if (credentials.length !== 1) return { ok: false, status: 409, code: 'PASSKEY_EXPECTED_CREDENTIAL_AMBIGUOUS' };
+    publicKey = { challenge, rpId, timeout: 60000, userVerification: 'required', allowCredentials: credentials };
   } else {
-    dbWrite = await diracPasskeyA2FSaveRegistration({ owner, credential, response, clientData, payload, req });
-    registeredNow = Boolean(dbWrite && dbWrite.ok && dbWrite.created);
+    const excludes = (Array.isArray(activePasskeys) ? activePasskeys : [])
+      .filter((row) => row && row.credential_id)
+      .map((row) => ({ type: 'public-key', id: String(row.credential_id), transports: Array.isArray(row.transports) ? row.transports : [] }));
+    publicKey = diracPasskeyA2FPublicKeyForRegistrationV237({ challenge, rpId, userHandle, owner, excludeCredentials: excludes });
   }
-
-  if (!dbWrite || !dbWrite.ok) {
-    return res.status(dbWrite && dbWrite.status ? dbWrite.status : 500).json({
-      ok: false,
-      method: 'passkey',
-      message: diracPasskeyA2FPublicError(dbWrite && dbWrite.message ? dbWrite.message : 'Passkey belum tersimpan ke database.')
-    });
-  }
-
-  let lostRecoveryRotation = null;
-  if (!isAuthentication && lostRecoverySession && lostRecoverySession.ok) {
-    lostRecoveryRotation = await diracPasskeyA2FCompleteLostRecoveryRotation({
-      owner,
-      newCredentialId: credentialId,
-      recoverySession: lostRecoverySession,
-      req,
-      savedPasskeyRow: dbWrite.row
-    });
-    if (!lostRecoveryRotation.ok) {
-      return res.status(lostRecoveryRotation.status || 500).json({
-        ok: false,
-        method: 'passkey',
-        code: 'LOST_PASSKEY_ROTATION_INCOMPLETE',
-        message: 'Passkey baru tersimpan, tetapi passkey lama belum berhasil dinonaktifkan. Ulangi proses daftar Passkey baru dari halaman recovery.'
-      });
-    }
-  }
-
-  const settingsActivation = await diracPasskeyA2FMarkSettingsActive(owner);
-  const securityEpoch = Number(
-    dbWrite && Number.isSafeInteger(Number(dbWrite.securityEpoch)) && Number(dbWrite.securityEpoch) >= 1
-      ? Number(dbWrite.securityEpoch)
-      : lostRecoveryRotation && lostRecoveryRotation.ok
-        ? lostRecoveryRotation.securityEpoch
-        : settingsActivation && settingsActivation.securityEpoch
-  );
-  if (!settingsActivation || settingsActivation.ok !== true
-      || !Number.isSafeInteger(securityEpoch) || securityEpoch < 1
-      || (dbWrite && Number(dbWrite.securityEpoch || 0) >= 1
-        && Number(settingsActivation.securityEpoch) !== securityEpoch)
-      || (lostRecoveryRotation && lostRecoveryRotation.ok
-        && Number(settingsActivation.securityEpoch) !== securityEpoch)) {
-    clearCurrentRequestSessionCookiesV235(req, res);
-    return res.status(503).json({
-      ok: false,
-      method: 'passkey',
-      code: 'PASSKEY_SECURITY_EPOCH_UNAVAILABLE',
-      message: 'Passkey berhasil diverifikasi, tetapi versi keamanan akun belum dapat dipastikan. Silakan login ulang.'
-    });
-  }
-
-  if (!isAuthentication && Number(dbWrite && dbWrite.securityEpoch || 0) >= 2) {
-    clearCurrentRequestSessionCookiesV235(req, res);
-    return res.status(200).json({
+  return {
+    ok: true,
+    payload,
+    setupToken,
+    publicKey,
+    response: {
       ok: true,
-      verified: true,
-      active: true,
+      verified: false,
       method: 'passkey',
-      passkey_registered: true,
-      passkeyMode: 'registration',
-      needsRegistration: false,
-      database_saved: true,
-      registered_now: registeredNow,
-      owner_bound: true,
-      owner_source: owner.source,
-      credential_role: String(dbWrite.credentialRole || payload.credentialRole || ''),
-      high_assurance_version: DIRAC_PASSKEY_HIGH_ASSURANCE_VERSION_V236,
-      security_epoch: securityEpoch,
-      reauthentication_required: true,
-      all_sessions_revoked: true,
-      message: 'Perubahan hardware security key berhasil. Semua sesi dicabut. Login ulang menggunakan hardware security key aktif.'
-    });
-  }
+      passkeyMode: isAuthentication ? 'authentication' : 'registration',
+      needsRegistration: !isAuthentication,
+      setupToken,
+      mfaSetupToken: setupToken,
+      expires_in: Math.floor(ttl / 1000),
+      publicKey,
+      passkeyPromptAllowed: true,
+      rotation_in_progress: purpose !== 'login' && !purpose.startsWith('initial_register'),
+      purpose
+    }
+  };
+}
 
-  const issuancePermit = customerSecurityCreatePasskeySessionIssuancePermitV235(
-    req,
-    owner.customerId,
-    securityEpoch,
-    credentialId
-  );
+async function diracPasskeyA2FFinalizeRotationV237({ owner, pendingRow, payload }) {
+  const rpc = await supabaseFetch('/rest/v1/rpc/dirac_passkey_finalize_rotation_v237', {
+    method: 'POST',
+    auth: 'service',
+    prefer: 'return=representation',
+    body: {
+      p_customer_id: owner.customerId,
+      p_auth_user_id: owner.authUserId,
+      p_rotation_id: String(payload.rotationId || ''),
+      p_pending_passkey_id: String(pendingRow.id || ''),
+      p_rotation_purpose: String(payload.purpose || '').replace('_confirm_pending', ''),
+      p_expected_security_epoch: Number(payload.expectedSecurityEpoch || 0),
+      p_authorizing_credential_id_hash: String(payload.authorizingCredentialIdHash || ''),
+      p_current_auth_session_id: String(payload.currentAuthSessionId || ''),
+      p_recovery_request_id: payload.lostPasskeyRecovery ? String(payload.lostPasskeyRecovery.requestId || '') : null,
+      p_recovery_session_id: payload.lostPasskeyRecovery ? String(payload.lostPasskeyRecovery.sessionId || '') : null,
+      p_recovery_session_hash: payload.lostPasskeyRecovery ? String(payload.lostPasskeyRecovery.sessionHash || '') : null
+    }
+  });
+  const data = rpc.ok && Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
+  if (!rpc.ok || !data || data.ok !== true || Number(data.active_credentials || 0) !== 1) {
+    console.error('[passkey-rotation-finalize-failed]', customerSecuritySafeLogError(rpc.data));
+    return { ok: false, status: rpc.status || 409, code: 'PASSKEY_ATOMIC_ROTATION_FAILED' };
+  }
+  return {
+    ok: true,
+    securityEpoch: Number(data.security_epoch || 0),
+    revokedCredentials: Math.max(0, Number(data.revoked_credentials || 0)),
+    activeCredentials: Number(data.active_credentials || 0)
+  };
+}
+
+async function diracPasskeyA2FRevokeCloneV237(owner, row) {
+  if (!owner || !row || !row.id) return { ok: false };
+  const rpc = await supabaseFetch('/rest/v1/rpc/dirac_passkey_revoke_clone_v237', {
+    method: 'POST',
+    auth: 'service',
+    prefer: 'return=representation',
+    body: {
+      p_customer_id: owner.customerId,
+      p_auth_user_id: owner.authUserId,
+      p_passkey_id: row.id,
+      p_expected_sign_count: Math.max(0, Number(row.sign_count || 0)),
+      p_reason: 'passkey_sign_count_replay'
+    }
+  });
+  const data = rpc.ok && Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
+  return { ok: Boolean(rpc.ok && data && data.ok === true), data };
+}
+
+async function diracPasskeyA2FIssueSessionV237({ req, res, user, owner, securityEpoch, credentialId, registeredNow, rotationResult = null }) {
+  if (!Number.isSafeInteger(securityEpoch) || securityEpoch < 1) {
+    clearCurrentRequestSessionCookiesV235(req, res);
+    return res.status(503).json({ ok: false, method: 'passkey', code: 'PASSKEY_SECURITY_EPOCH_UNAVAILABLE', message: 'Versi keamanan akun belum dapat dipastikan. Silakan login ulang.' });
+  }
+  const issuancePermit = customerSecurityCreatePasskeySessionIssuancePermitV235(req, owner.customerId, securityEpoch, credentialId);
   const issuedSession = issuancePermit
     ? await customerSecurityTouchCurrentSession(req, owner.customerId, null, issuancePermit).catch(() => null)
     : null;
   if (!issuedSession || issuedSession.ok !== true || !issuedSession.session_id
       || Number(issuedSession.security_epoch || 0) !== securityEpoch) {
     clearCurrentRequestSessionCookiesV235(req, res);
-    return res.status(503).json({
-      ok: false,
-      method: 'passkey',
-      code: 'PASSKEY_PROTECTED_SESSION_ISSUANCE_FAILED',
-      message: 'Passkey berhasil diverifikasi, tetapi sesi perangkat baru belum dapat diterbitkan dengan aman. Silakan login ulang.'
-    });
+    return res.status(503).json({ ok: false, method: 'passkey', code: 'PASSKEY_PROTECTED_SESSION_ISSUANCE_FAILED', message: 'Passkey valid, tetapi sesi perangkat baru belum dapat diterbitkan dengan aman. Silakan login ulang.' });
   }
-
-  const verifiedCredentialRole = String(dbWrite && dbWrite.credentialRole
-    || dbWrite && dbWrite.assertion && dbWrite.assertion.credentialRole
-    || diracPasskeyA2FCredentialRoleV236(dbWrite && dbWrite.row)
-    || payload.credentialRole
-    || '');
-  if (!DIRAC_PASSKEY_HIGH_ASSURANCE_ROLES_V236.has(verifiedCredentialRole)) {
-    await customerSecurityRevokeIssuedSessionV235(
-      req,
-      owner.customerId,
-      issuedSession.session_id,
-      'passkey_role_binding_invalid'
-    );
-    clearCurrentRequestSessionCookiesV235(req, res);
-    return res.status(503).json({
-      ok: false,
-      method: 'passkey',
-      code: 'PASSKEY_ROLE_BINDING_INVALID',
-      message: 'Peran hardware security key tidak dapat diikat ke sesi.'
-    });
-  }
-  const proof = customerSecurityCreateDashboardMfaToken(req, user, 'passkey', res, {
-    customerId: owner.customerId,
-    securityEpoch,
-    credentialRole: verifiedCredentialRole,
-    credentialId
-  });
+  const proof = customerSecurityCreateDashboardMfaToken(req, user, 'passkey', res, { customerId: owner.customerId, securityEpoch });
   if (!proof || !proof.token) {
-    await customerSecurityRevokeIssuedSessionV235(
-      req,
-      owner.customerId,
-      issuedSession.session_id,
-      'mfa_binding_publication_failed'
-    );
+    await customerSecurityRevokeIssuedSessionV235(req, owner.customerId, issuedSession.session_id, 'mfa_binding_publication_failed');
     clearCurrentRequestSessionCookiesV235(req, res);
-    return res.status(503).json({
-      ok: false,
-      method: 'passkey',
-      code: proof && proof.error || 'MFA_STABLE_SESSION_BINDING_UNAVAILABLE',
-      message: 'Passkey berhasil diverifikasi, tetapi binding sesi MFA belum dapat dibentuk secara aman. Silakan login ulang lalu verifikasi Passkey kembali.'
-    });
+    return res.status(503).json({ ok: false, method: 'passkey', code: proof && proof.error || 'MFA_STABLE_SESSION_BINDING_UNAVAILABLE', message: 'Passkey valid, tetapi binding sesi MFA belum dapat dibentuk secara aman.' });
   }
   if (!customerSecuritySetDashboardMfaCookie(res, proof)) {
-    await customerSecurityRevokeIssuedSessionV235(
-      req,
-      owner.customerId,
-      issuedSession.session_id,
-      'mfa_cookie_publication_failed'
-    );
+    await customerSecurityRevokeIssuedSessionV235(req, owner.customerId, issuedSession.session_id, 'mfa_cookie_publication_failed');
     clearCurrentRequestSessionCookiesV235(req, res);
-    return res.status(503).json({
-      ok: false,
-      method: 'passkey',
-      code: 'MFA_COOKIE_ATOMIC_PUBLICATION_FAILED',
-      message: 'Passkey berhasil diverifikasi, tetapi cookie MFA tidak dapat diterbitkan secara atomik. Silakan login ulang lalu verifikasi Passkey kembali.'
-    });
+    return res.status(503).json({ ok: false, method: 'passkey', code: 'MFA_COOKIE_ATOMIC_PUBLICATION_FAILED', message: 'Passkey valid, tetapi cookie MFA tidak dapat diterbitkan secara atomik.' });
   }
-
+  if (!diracPasskeyA2FSetPromptContextV238(res, owner, securityEpoch, credentialId)) {
+    await customerSecurityRevokeIssuedSessionV235(req, owner.customerId, issuedSession.session_id, 'passkey_prompt_context_publication_failed');
+    clearCurrentRequestSessionCookiesV235(req, res);
+    return res.status(503).json({ ok: false, method: 'passkey', code: 'PASSKEY_PROMPT_CONTEXT_PUBLICATION_FAILED', message: 'Passkey valid, tetapi konteks perangkat tidak dapat diterbitkan secara aman.' });
+  }
   return res.status(200).json({
     ok: true,
     verified: true,
     active: true,
     method: 'passkey',
     passkey_registered: true,
-    passkeyMode: isAuthentication ? 'authentication' : 'registration',
+    passkeyMode: 'authentication',
     needsRegistration: false,
     database_saved: true,
-    registered_now: registeredNow,
-    lost_passkey_recovery_replacement: Boolean(lostRecoveryRotation && lostRecoveryRotation.ok),
-    old_passkeys_deactivated: lostRecoveryRotation && lostRecoveryRotation.ok ? lostRecoveryRotation.oldPasskeysDeactivated : 0,
+    registered_now: Boolean(registeredNow),
+    rotation_completed: Boolean(rotationResult && rotationResult.ok),
+    old_passkeys_deactivated: rotationResult && rotationResult.ok ? rotationResult.revokedCredentials : 0,
     owner_bound: true,
     owner_source: owner.source,
-    credential_role: verifiedCredentialRole,
-    high_assurance_version: DIRAC_PASSKEY_HIGH_ASSURANCE_VERSION_V236,
     credential_id_hint: crypto.createHash('sha256').update(String(credentialId)).digest('hex').slice(0, 12),
-    message: isAuthentication
-      ? 'Passkey tersimpan berhasil diverifikasi. Akses dashboard sudah dibuka.'
-      : 'Passkey berhasil diaktifkan dan tersimpan di database. Akses dashboard sudah diverifikasi.',
+    message: rotationResult && rotationResult.ok
+      ? 'Passkey baru aktif. Semua Passkey sebelumnya dan seluruh sesi lama sudah dicabut.'
+      : 'Passkey berhasil diverifikasi. Akses dashboard sudah dibuka.',
     dashboardSession: {
       verified: true,
       expiresAtMs: proof.expiresAtMs,
@@ -16193,6 +15024,280 @@ async function diracPasskeyA2FVerify(req, res) {
     },
     time: diracNowIso()
   });
+}
+
+async function diracPasskeyA2FStart(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ ok: false, method: 'passkey', message: 'Gunakan POST untuk Passkey A2F.' });
+  const user = await requireDomainUser(req, res);
+  if (!user) return;
+  const email = normalizeAuthEmail(user.email);
+  if (!isValidAuthEmail(email)) return res.status(400).json({ ok: false, method: 'passkey', message: 'Email akun tidak valid untuk membuat Passkey. Login ulang dulu.' });
+  const owner = await diracPasskeyA2FResolveOwner(user, email);
+  if (!owner.ok) return res.status(owner.status || 409).json({ ok: false, method: 'passkey', message: owner.message || 'Akun belum siap untuk Passkey.' });
+  let body = {};
+  try { body = await readBody(req); } catch (_) { body = {}; }
+  const intent = String(body.passkeyIntent || body.intent || 'login_or_register').trim().toLowerCase();
+  if (!['login_or_register', 'replace', 'recovery_replace'].includes(intent)) {
+    return res.status(400).json({ ok: false, method: 'passkey', code: 'PASSKEY_INTENT_INVALID', message: 'Intent Passkey tidak valid.' });
+  }
+  const activePasskeys = await diracPasskeyA2FListActivePasskeys(owner);
+  if (activePasskeys.length > 1) {
+    return res.status(409).json({ ok: false, verified: false, method: 'passkey', passkeyPromptAllowed: false, code: 'PASSKEY_ACTIVE_CREDENTIAL_AMBIGUOUS', message: 'Maaf, Passkey tidak terdaftar.' });
+  }
+  const epoch = await diracPasskeyA2FReadSecurityEpochV237(owner);
+  if (!epoch.ok) return res.status(epoch.status || 503).json({ ok: false, method: 'passkey', passkeyPromptAllowed: false, code: 'PASSKEY_SECURITY_EPOCH_UNAVAILABLE', message: 'Versi keamanan akun belum tersedia.' });
+  if (intent !== 'recovery_replace') {
+    const promptContext = diracPasskeyA2FReadPromptContextV238(req, owner);
+    if (!promptContext.ok) {
+      return res.status(403).json(diracPasskeyA2FPromptDeniedResponseV238('PASSKEY_PROMPT_CONTEXT_INVALID'));
+    }
+    const activeRow = activePasskeys.length === 1 ? activePasskeys[0] : null;
+    const activeEpoch = Number(activeRow && activeRow.credential_epoch || 0);
+    const activeCredentialIdHash = diracPasskeyA2FPromptContextCredentialHashV238(activeRow && activeRow.credential_id);
+    if (promptContext.present) {
+      if (!activeRow
+          || activeRow.is_active !== true
+          || activeRow.rotation_state !== 'active'
+          || activeRow.revoked_at
+          || !Number.isSafeInteger(activeEpoch)
+          || activeEpoch < 1
+          || activeEpoch !== Number(epoch.securityEpoch)
+          || promptContext.securityEpoch !== Number(epoch.securityEpoch)
+          || !activeCredentialIdHash
+          || !safeEqual(promptContext.credentialIdHash, activeCredentialIdHash)) {
+        return res.status(403).json(diracPasskeyA2FPromptDeniedResponseV238('PASSKEY_NOT_REGISTERED'));
+      }
+    } else {
+      const legacyMfaContext = diracPasskeyA2FReadLegacyMfaEpochContextV238(req, owner);
+      if (!legacyMfaContext.ok) {
+        return res.status(403).json(diracPasskeyA2FPromptDeniedResponseV238('PASSKEY_PROMPT_CONTEXT_INVALID'));
+      }
+      if (legacyMfaContext.present
+          && (!activeRow
+            || activeRow.is_active !== true
+            || activeRow.rotation_state !== 'active'
+            || activeRow.revoked_at
+            || !Number.isSafeInteger(activeEpoch)
+            || activeEpoch < 1
+            || activeEpoch !== Number(epoch.securityEpoch)
+            || legacyMfaContext.securityEpoch !== Number(epoch.securityEpoch))) {
+        return res.status(403).json(diracPasskeyA2FPromptDeniedResponseV238('PASSKEY_NOT_REGISTERED'));
+      }
+    }
+  }
+  const currentAuthSessionId = diracPasskeyA2FCurrentAuthSessionIdV235(req, owner);
+  if (!customerSecurityLooksLikeUuid(currentAuthSessionId)) {
+    return res.status(403).json({ ok: false, verified: false, method: 'passkey', passkeyPromptAllowed: false, code: 'PASSKEY_AUTH_SESSION_BINDING_REQUIRED', message: 'Sesi login aktif tidak dapat dibuktikan. Login ulang dulu.' });
+  }
+  const recoverySessionToken = diracPasskeyA2FLostRecoveryTokenFromBody(body);
+  let lostRecoverySession = null;
+  if (recoverySessionToken || intent === 'recovery_replace') {
+    if (!recoverySessionToken) return res.status(400).json({ ok: false, method: 'passkey', code: 'LOST_PASSKEY_RECOVERY_SESSION_REQUIRED', message: 'Recovery session diperlukan.' });
+    lostRecoverySession = await diracPasskeyA2FValidateLostRecoverySession(owner, recoverySessionToken);
+    if (!lostRecoverySession.ok) {
+      await diracA2FHardBanCurrentRequest(lostRecoverySession.reason || 'lost_passkey_recovery_session_invalid');
+      return res.status(lostRecoverySession.status || 403).json({ ok: false, method: 'passkey', code: 'LOST_PASSKEY_RECOVERY_SESSION_INVALID', message: 'Recovery session tidak valid atau sudah expired.' });
+    }
+  }
+  let purpose;
+  let rotationId = '';
+  if (lostRecoverySession && lostRecoverySession.ok) {
+    purpose = 'recovery_register_pending';
+    rotationId = crypto.randomUUID();
+  } else if (intent === 'replace') {
+    if (activePasskeys.length !== 1) return res.status(409).json({ ok: false, method: 'passkey', code: 'PASSKEY_ACTIVE_CREDENTIAL_REQUIRED', message: 'Passkey aktif diperlukan untuk penggantian normal.' });
+    purpose = 'replace_authorize_old';
+    rotationId = crypto.randomUUID();
+  } else if (activePasskeys.length === 1) {
+    purpose = 'login';
+  } else {
+    purpose = 'initial_register_pending';
+    rotationId = crypto.randomUUID();
+  }
+  const setup = await diracPasskeyA2FBuildSetupV237({
+    req,
+    owner,
+    purpose,
+    activePasskeys,
+    lostRecoverySession,
+    rotationContext: {
+      rotationId,
+      expectedSecurityEpoch: epoch.securityEpoch,
+      currentAuthSessionId
+    }
+  });
+  if (!setup.ok) return res.status(setup.status || 409).json({ ok: false, method: 'passkey', code: setup.code || 'PASSKEY_SETUP_FAILED', message: 'Challenge Passkey belum dapat dibuat.' });
+  setup.response.recovery_replacement = Boolean(lostRecoverySession && lostRecoverySession.ok);
+  setup.response.rotation_in_progress = purpose !== 'login';
+  setup.response.message = purpose === 'login'
+    ? 'Passkey aktif ditemukan. Verifikasi untuk masuk.'
+    : purpose === 'replace_authorize_old'
+      ? 'Verifikasi Passkey aktif untuk mengotorisasi penggantian.'
+      : 'Buat Passkey baru. Passkey belum aktif sebelum dikonfirmasi sekali lagi.';
+  return res.status(200).json(setup.response);
+}
+
+async function diracPasskeyA2FVerify(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ ok: false, method: 'passkey', message: 'Gunakan POST untuk verifikasi Passkey A2F.' });
+  const user = await requireDomainUser(req, res);
+  if (!user) return;
+  const body = await readBody(req);
+  const email = normalizeAuthEmail(user.email);
+  const owner = await diracPasskeyA2FResolveOwner(user, email);
+  if (!owner.ok) return res.status(owner.status || 409).json({ ok: false, method: 'passkey', message: owner.message || 'Akun belum siap untuk Passkey.' });
+  const setupToken = String(body.setupToken || body.mfaSetupToken || body.token || '').trim();
+  const payload = diracPasskeyA2FDecodeToken(setupToken);
+  if (!payload || payload.type !== DIRAC_PASSKEY_A2F_TOKEN_TYPE || payload.method !== 'passkey'
+      || !DIRAC_PASSKEY_PURPOSES_V237.has(String(payload.purpose || ''))) {
+    await diracA2FHardBanCurrentRequest('passkey_a2f_token_invalid');
+    return res.status(403).json({ ok: false, method: 'passkey', message: 'Challenge Passkey tidak valid.' });
+  }
+  if (Number(payload.expiresAtMs || 0) <= Date.now()) {
+    await diracA2FHardBanCurrentRequest('passkey_a2f_token_expired');
+    return res.status(403).json({ ok: false, method: 'passkey', message: 'Challenge Passkey sudah expired.' });
+  }
+  const challengeUse = await diracPasskeyA2FConsumeChallenge(setupToken, payload);
+  if (!challengeUse.ok) {
+    await diracA2FHardBanCurrentRequest(challengeUse.reason || 'passkey_a2f_challenge_replay');
+    return res.status(403).json({ ok: false, method: 'passkey', message: 'Challenge Passkey sudah dipakai atau tidak valid.' });
+  }
+  if (!payload.emailHash || !safeEqual(String(payload.emailHash), customerMfaProfileId(owner.email))) {
+    await diracA2FHardBanCurrentRequest('passkey_a2f_email_mismatch');
+    return res.status(403).json({ ok: false, method: 'passkey', message: 'Passkey harus diproses dari akun login yang sama.' });
+  }
+  if (String(payload.customerId || '') !== String(owner.customerId || '')
+      || String(payload.authUserId || '') !== String(owner.authUserId || '')) {
+    await diracA2FHardBanCurrentRequest('passkey_a2f_owner_mismatch');
+    return res.status(403).json({ ok: false, method: 'passkey', message: 'Pemilik challenge Passkey tidak cocok.' });
+  }
+  if (payload.uaHash) {
+    const expectedUaHash = customerMfaBindingHash('ua', requestUserAgent(req));
+    if (!expectedUaHash || !safeEqual(String(payload.uaHash), expectedUaHash)) {
+      await diracA2FHardBanCurrentRequest('passkey_a2f_ua_mismatch');
+      return res.status(403).json({ ok: false, method: 'passkey', message: 'Tahap Passkey harus diselesaikan dari browser yang sama.' });
+    }
+  }
+  let lostRecoverySession = null;
+  if (payload.lostPasskeyRecovery) {
+    lostRecoverySession = await diracPasskeyA2FValidateLostRecoverySessionPayload(owner, payload);
+    if (!lostRecoverySession.ok) {
+      await diracA2FHardBanCurrentRequest(lostRecoverySession.reason || 'lost_passkey_recovery_session_invalid_at_verify');
+      return res.status(lostRecoverySession.status || 403).json({ ok: false, method: 'passkey', code: 'LOST_PASSKEY_RECOVERY_SESSION_INVALID', message: 'Recovery session tidak valid atau sudah expired.' });
+    }
+  }
+  const credential = body && body.credential && typeof body.credential === 'object' ? body.credential : null;
+  const response = credential && credential.response && typeof credential.response === 'object' ? credential.response : null;
+  const clientData = response ? diracPasskeyA2FDecodeClientData(response.clientDataJSON) : null;
+  if (!credential || !response || !clientData) return res.status(400).json({ ok: false, method: 'passkey', message: 'Data Passkey dari browser tidak lengkap.' });
+  if (String(clientData.challenge || '') !== String(payload.challenge || '')) {
+    await diracA2FHardBanCurrentRequest('passkey_a2f_challenge_mismatch');
+    return res.status(403).json({ ok: false, method: 'passkey', message: 'Challenge Passkey tidak cocok.' });
+  }
+  if (clientData.crossOrigin === true) {
+    await diracA2FHardBanCurrentRequest('passkey_a2f_cross_origin');
+    return res.status(403).json({ ok: false, method: 'passkey', message: 'Passkey harus diproses dari origin utama.' });
+  }
+  const clientOrigin = normalizeDashboardMfaOrigin(clientData.origin || '');
+  const expectedOrigin = normalizeDashboardMfaOrigin(payload.origin || requestOrigin(req));
+  if (!clientOrigin || !expectedOrigin || clientOrigin !== expectedOrigin) {
+    await diracA2FHardBanCurrentRequest('passkey_a2f_origin_mismatch');
+    return res.status(403).json({ ok: false, method: 'passkey', message: 'Origin Passkey tidak cocok.' });
+  }
+  const purpose = String(payload.purpose || '');
+  const isAuthentication = payload.mode === 'authentication';
+  if (isAuthentication && String(clientData.type || '') !== 'webauthn.get') return res.status(400).json({ ok: false, method: 'passkey', message: 'Respons browser bukan autentikasi Passkey.' });
+  if (!isAuthentication && String(clientData.type || '') !== 'webauthn.create') return res.status(400).json({ ok: false, method: 'passkey', message: 'Respons browser bukan registrasi Passkey.' });
+  const credentialId = diracPasskeyA2FCredentialId(credential);
+  if (!credentialId) return res.status(400).json({ ok: false, method: 'passkey', message: 'Credential Passkey kosong.' });
+
+  if (!isAuthentication) {
+    const saved = await diracPasskeyA2FSaveRegistration({ owner, credential, response, clientData, payload, req });
+    if (!saved.ok) return res.status(saved.status || 500).json({ ok: false, method: 'passkey', code: saved.code, message: diracPasskeyA2FPublicError(saved.message) });
+    const confirmPurpose = purpose.replace('_register_pending', '_confirm_pending');
+    const confirm = await diracPasskeyA2FBuildSetupV237({
+      req,
+      owner,
+      purpose: confirmPurpose,
+      activePasskeys: [],
+      lostRecoverySession,
+      rotationContext: {
+        rotationId: payload.rotationId,
+        expectedSecurityEpoch: payload.expectedSecurityEpoch,
+        authorizingCredentialIdHash: payload.authorizingCredentialIdHash,
+        currentAuthSessionId: payload.currentAuthSessionId,
+        pendingPasskeyId: saved.row.id,
+        pendingCredentialId: saved.row.credential_id,
+        pendingTransports: saved.row.transports,
+        lostPasskeyRecovery: payload.lostPasskeyRecovery
+      }
+    });
+    if (!confirm.ok) return res.status(confirm.status || 409).json({ ok: false, method: 'passkey', code: confirm.code || 'PASSKEY_PENDING_CONFIRMATION_SETUP_FAILED', message: 'Challenge konfirmasi Passkey baru gagal dibuat.' });
+    return res.status(200).json({
+      ...confirm.response,
+      nextPasskeyStep: 'authentication',
+      rotation_in_progress: true,
+      message: 'Passkey baru tersimpan sebagai pending. Konfirmasikan Passkey baru sekali lagi sebelum aktivasi.'
+    });
+  }
+
+  const existingResult = await diracPasskeyA2FFetchByCredentialId(credentialId, owner);
+  const row = existingResult.ok && Array.isArray(existingResult.data) ? existingResult.data[0] : null;
+  if (!row || !diracPasskeyA2FOwnerMatches(row, owner)) {
+    await diracA2FHardBanCurrentRequest('passkey_a2f_credential_owner_mismatch');
+    return res.status(403).json({ ok: false, method: 'passkey', message: 'Passkey tidak terdaftar untuk akun ini.' });
+  }
+  const confirmingPending = purpose.endsWith('_confirm_pending');
+  if (confirmingPending) {
+    if (row.rotation_state !== 'pending' || row.is_active === true
+        || String(row.rotation_id || '') !== String(payload.rotationId || '')
+        || String(row.id || '') !== String(payload.pendingPasskeyId || '')) {
+      return res.status(403).json({ ok: false, method: 'passkey', code: 'PASSKEY_PENDING_BINDING_INVALID', message: 'Passkey pending tidak cocok dengan rotasi aktif.' });
+    }
+    const expiresAt = Date.parse(row.pending_expires_at || '');
+    if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) return res.status(403).json({ ok: false, method: 'passkey', code: 'PASSKEY_PENDING_EXPIRED', message: 'Passkey pending sudah expired.' });
+  } else if (row.is_active !== true || row.rotation_state !== 'active' || row.revoked_at) {
+    return res.status(403).json({ ok: false, method: 'passkey', code: 'PASSKEY_REVOKED', message: 'Passkey ini sudah diganti dan tidak berlaku lagi.' });
+  }
+  const usage = await diracPasskeyA2FUpdateUsage({ row, owner, response, credential, clientData, payload, req, confirmPending: confirmingPending });
+  if (!usage.ok) return res.status(usage.status || 403).json({ ok: false, method: 'passkey', code: usage.code, message: diracPasskeyA2FPublicError(usage.message) });
+
+  if (purpose === 'replace_authorize_old') {
+    const authorizingCredentialIdHash = crypto.createHash('sha256').update(String(row.credential_id || '')).digest('hex');
+    const next = await diracPasskeyA2FBuildSetupV237({
+      req,
+      owner,
+      purpose: 'replace_register_pending',
+      activePasskeys: [usage.row],
+      rotationContext: {
+        rotationId: payload.rotationId,
+        expectedSecurityEpoch: payload.expectedSecurityEpoch,
+        authorizingCredentialIdHash,
+        currentAuthSessionId: payload.currentAuthSessionId
+      }
+    });
+    if (!next.ok) return res.status(next.status || 409).json({ ok: false, method: 'passkey', code: next.code || 'PASSKEY_ROTATION_SETUP_FAILED', message: 'Challenge pembuatan Passkey pengganti gagal.' });
+    return res.status(200).json({ ...next.response, nextPasskeyStep: 'registration', rotation_in_progress: true, message: 'Passkey lama valid. Buat Passkey pengganti sekarang.' });
+  }
+
+  if (confirmingPending) {
+    const finalized = await diracPasskeyA2FFinalizeRotationV237({ owner, pendingRow: usage.row, payload });
+    if (!finalized.ok) {
+      clearCurrentRequestSessionCookiesV235(req, res);
+      return res.status(finalized.status || 409).json({ ok: false, method: 'passkey', code: finalized.code, message: 'Rotasi Passkey tidak berhasil diselesaikan secara atomik.' });
+    }
+    return diracPasskeyA2FIssueSessionV237({ req, res, user, owner, securityEpoch: finalized.securityEpoch, credentialId, registeredNow: true, rotationResult: finalized });
+  }
+
+  if (purpose !== 'login') {
+    return res.status(403).json({ ok: false, method: 'passkey', code: 'PASSKEY_PURPOSE_STATE_INVALID', message: 'Tahap Passkey tidak valid.' });
+  }
+  const epoch = await diracPasskeyA2FReadSecurityEpochV237(owner);
+  const credentialEpoch = Number(usage.row && usage.row.credential_epoch || 0);
+  if (!epoch.ok || !Number.isSafeInteger(credentialEpoch) || credentialEpoch < 1 || credentialEpoch !== epoch.securityEpoch) {
+    clearCurrentRequestSessionCookiesV235(req, res);
+    return res.status(403).json({ ok: false, method: 'passkey', code: 'PASSKEY_CREDENTIAL_EPOCH_REVOKED', message: 'Passkey ini sudah diganti dan tidak berlaku lagi.' });
+  }
+  return diracPasskeyA2FIssueSessionV237({ req, res, user, owner, securityEpoch: epoch.securityEpoch, credentialId, registeredNow: false });
 }
 
 
@@ -21278,12 +20383,7 @@ function diracV110PasswordArgon2Input(password, meta = {}) {
 }
 
 function diracV110SessionMaxAgeSeconds() {
-  return diracV110NumberFromEnv(
-    ['DIRAC_SESSION_COOKIE_MAX_AGE_SECONDS', 'DOMAIN_SESSION_MAX_AGE_SECONDS'],
-    12 * 60 * 60,
-    30 * 60,
-    12 * 60 * 60
-  );
+  return diracV110NumberFromEnv(['DIRAC_SESSION_COOKIE_MAX_AGE_SECONDS', 'DOMAIN_SESSION_MAX_AGE_SECONDS'], 24 * 60 * 60, 30 * 60, 7 * 24 * 60 * 60);
 }
 
 function diracV110NormalizeAction(action) {
