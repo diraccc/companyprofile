@@ -15036,10 +15036,16 @@ async function diracPasskeyA2FStart(req, res) {
   if (!owner.ok) return res.status(owner.status || 409).json({ ok: false, method: 'passkey', message: owner.message || 'Akun belum siap untuk Passkey.' });
   let body = {};
   try { body = await readBody(req); } catch (_) { body = {}; }
-  const intent = String(body.passkeyIntent || body.intent || 'login_or_register').trim().toLowerCase();
-  if (!['login_or_register', 'replace', 'recovery_replace'].includes(intent)) {
-    return res.status(400).json({ ok: false, method: 'passkey', code: 'PASSKEY_INTENT_INVALID', message: 'Intent Passkey tidak valid.' });
+  const recoverySessionToken = diracPasskeyA2FLostRecoveryTokenFromBody(body);
+  const requestedStartMode = String(body.passkeyMode || '').trim().toLowerCase();
+  if (requestedStartMode && requestedStartMode !== 'replace') {
+    return res.status(400).json({ ok: false, method: 'passkey', code: 'PASSKEY_START_MODE_INVALID', message: 'Mode awal Passkey tidak valid.' });
   }
+  const intent = recoverySessionToken
+    ? 'recovery_replace'
+    : requestedStartMode === 'replace'
+      ? 'replace'
+      : 'login_or_register';
   const activePasskeys = await diracPasskeyA2FListActivePasskeys(owner);
   if (activePasskeys.length > 1) {
     return res.status(409).json({ ok: false, verified: false, method: 'passkey', passkeyPromptAllowed: false, code: 'PASSKEY_ACTIVE_CREDENTIAL_AMBIGUOUS', message: 'Maaf, Passkey tidak terdaftar.' });
@@ -15089,7 +15095,6 @@ async function diracPasskeyA2FStart(req, res) {
   if (!customerSecurityLooksLikeUuid(currentAuthSessionId)) {
     return res.status(403).json({ ok: false, verified: false, method: 'passkey', passkeyPromptAllowed: false, code: 'PASSKEY_AUTH_SESSION_BINDING_REQUIRED', message: 'Sesi login aktif tidak dapat dibuktikan. Login ulang dulu.' });
   }
-  const recoverySessionToken = diracPasskeyA2FLostRecoveryTokenFromBody(body);
   let lostRecoverySession = null;
   if (recoverySessionToken || intent === 'recovery_replace') {
     if (!recoverySessionToken) return res.status(400).json({ ok: false, method: 'passkey', code: 'LOST_PASSKEY_RECOVERY_SESSION_REQUIRED', message: 'Recovery session diperlukan.' });
