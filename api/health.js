@@ -14459,7 +14459,7 @@ async function diracPasskeyA2FRpcV237(name, body) {
 
 function diracPasskeyA2FRpcProviderCodeV237(result) {
   return String(result && result.data && (
-    result.data.code || result.data.error_code || result.data.message || result.data.error
+    result.data.message || result.data.error || result.data.code || result.data.error_code
   ) || '').slice(0, 160);
 }
 
