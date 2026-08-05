@@ -6077,7 +6077,31 @@ async function customerSecurityRevokeIssuedSessionV235(req, customerId, sessionI
   if (!customerSecurityLooksLikeUuid(cleanCustomerId)
       || !customerSecurityLooksLikeUuid(cleanSessionId)
       || !fingerprint || !fingerprint.session_token_hash) return false;
-  const result = await supabaseFetch('/rest/v1/security_customer_sessions?id=eq.' + encodeURIComponent(cleanSessionId)
+
+  const readPath = '/rest/v1/security_customer_sessions?select=' +
+    encodeURIComponent('id,customer_id,session_token_hash,status,revoked_at') +
+    '&customer_id=eq.' + encodeURIComponent(cleanCustomerId) +
+    '&session_token_hash=eq.' + encodeURIComponent(fingerprint.session_token_hash) +
+    '&limit=2';
+  const readResult = await supabaseFetch(readPath, {
+    method: 'GET',
+    auth: 'service'
+  }).catch(() => null);
+  const rows = readResult && readResult.ok === true && Array.isArray(readResult.data)
+    ? readResult.data
+    : [];
+  if (rows.length !== 1) return false;
+
+  const row = rows[0];
+  const boundSessionId = String(row && row.id || '').trim();
+  if (!customerSecurityLooksLikeUuid(boundSessionId)
+      || !safeEqual(boundSessionId, cleanSessionId)
+      || !safeEqual(String(row && row.customer_id || ''), cleanCustomerId)
+      || !safeEqual(String(row && row.session_token_hash || ''), String(fingerprint.session_token_hash))
+      || String(row && row.status || '').trim().toLowerCase() !== 'active'
+      || Boolean(row && row.revoked_at)) return false;
+
+  const result = await supabaseFetch('/rest/v1/security_customer_sessions?id=eq.' + encodeURIComponent(boundSessionId)
     + '&customer_id=eq.' + encodeURIComponent(cleanCustomerId)
     + '&session_token_hash=eq.' + encodeURIComponent(fingerprint.session_token_hash), {
     method: 'PATCH',
