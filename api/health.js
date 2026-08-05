@@ -6235,6 +6235,7 @@ async function customerSecurityTouchCurrentSession(req, customerId, verifiedExis
       expires_at: fingerprint.expires_at
     };
     if (issuancePermit) {
+      updateBody.security_epoch = resolvedSecurityEpoch;
       updateBody.revoked_at = null;
       updateBody.revoke_reason = null;
     }
