@@ -14480,7 +14480,7 @@ async function diracPasskeyA2FFetchByCredentialId(credentialId, owner, readbackA
 const DIRAC_PASSKEY_ROTATION_PURPOSE_INITIAL_V237 = 'initial';
 const DIRAC_PASSKEY_ROTATION_PURPOSE_REPLACE_V237 = 'replace';
 const DIRAC_PASSKEY_ROTATION_PURPOSE_RECOVERY_V237 = 'recovery';
-const DIRAC_PASSKEY_ASSERTION_PURPOSE_V237 = 'authentication';
+const DIRAC_PASSKEY_ASSERTION_PURPOSE_V237 = 'login';
 const DIRAC_PASSKEY_ASSERTION_PURPOSE_CONFIRM_PENDING_V237 = 'confirm_pending';
 const DIRAC_PASSKEY_PENDING_TTL_MS_V237 = 5 * 60 * 1000;
 const DIRAC_PASSKEY_RPC_NAMES_V237 = new Set([
@@ -15287,7 +15287,7 @@ async function diracPasskeyA2FUpdateUsage({ row, owner, response, credential, cl
     p_confirm_pending: false,
     p_auth_user_id: String(owner.authUserId),
     p_assertion_purpose: DIRAC_PASSKEY_ASSERTION_PURPOSE_V237,
-    p_rotation_id: customerSecurityLooksLikeUuid(String(row.rotation_id || '')) ? String(row.rotation_id) : null,
+    p_rotation_id: null,
     p_expected_security_epoch: expectedSecurityEpoch,
     p_current_auth_session_id: currentAuthSessionId
   });
