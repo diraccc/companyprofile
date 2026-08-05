@@ -15272,7 +15272,6 @@ async function diracPasskeyA2FUpdateUsage({ row, owner, response, credential, cl
       required: true,
       key_id: deviceBinding.keyId,
       public_key_jwk: deviceBinding.publicKeyJwk,
-      last_verified_at: nowIso
     },
     last_authentication: diracPasskeyA2FMinimalCredentialJson({ credential, response, clientData, payload, owner, req, mode: 'authentication' })
   };
