@@ -32194,9 +32194,15 @@ function diracCentralRecoveryGenerateEgressTimeoutMsV225(input, options) {
   let s2sMessage = null;
   try {
     const ctx = diracCentralCurrentContextV149();
+    let expectedWorkerAction = '';
+    if (ctx && ctx.action === 'customer_security_recovery_codes_generate') {
+      expectedWorkerAction = DIRAC_RECOVERY_WORKER_TASK_GENERATE;
+    } else if (ctx && ctx.action === 'customer_security_recovery_code_verify') {
+      expectedWorkerAction = DIRAC_RECOVERY_WORKER_TASK_VERIFY;
+    }
     if (!ctx
         || !diracCentralHandlerContextFullyPassedV211(ctx, ctx.req)
-        || ctx.action !== 'customer_security_recovery_codes_generate'
+        || !expectedWorkerAction
         || ctx.method !== 'POST'
         || !ctx.ownership
         || ctx.ownership.verified !== true
@@ -32234,7 +32240,7 @@ function diracCentralRecoveryGenerateEgressTimeoutMsV225(input, options) {
         || envelopeKeys.length !== expectedEnvelopeKeys.length
         || envelopeKeys.some((key, index) => key !== expectedEnvelopeKeys[index])
         || envelope.action !== DIRAC_RECOVERY_WORKER_ACTION
-        || envelope.worker_action !== DIRAC_RECOVERY_WORKER_TASK_GENERATE
+        || envelope.worker_action !== expectedWorkerAction
         || envelope.transport_version !== DIRAC_RECOVERY_WORKER_TRANSPORT_VERSION_V190
         || envelope.transport_suite !== DIRAC_RECOVERY_WORKER_TRANSPORT_SUITE_V190) return 0;
 
