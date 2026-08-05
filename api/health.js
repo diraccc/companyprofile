@@ -9406,6 +9406,7 @@ function customerSecurityIssueSignedSessionAnchorV228(req, res, user, requestedM
     iat: now,
     exp: signedExpiresAt,
     nonce: crypto.randomBytes(12).toString('base64url'),
+    session_version: String(epoch),
     mfa_bid_v228: anchorId,
     mfa_iat_v228: now,
     mfa_exp_v228: anchorExpiresAt,
@@ -9415,6 +9416,16 @@ function customerSecurityIssueSignedSessionAnchorV228(req, res, user, requestedM
 
   const value = signDomainSessionPayload(payload);
   if (!value) return null;
+
+  const verifiedSignedSession = verifyDomainSessionCookieValue(value);
+  if (!verifiedSignedSession
+      || String(verifiedSignedSession.id || '') !== userId
+      || normalizeAuthEmail(verifiedSignedSession.email || '') !== email
+      || Number(verifiedSignedSession.exp || 0) !== signedExpiresAt
+      || (payload.sid !== undefined
+        && String(verifiedSignedSession.sessionId || '') !== String(payload.sid))) return null;
+  if (isEnvTrue('DOMAIN_SIGNED_SESSION_STRICT_VERSION')
+      && String(verifiedSignedSession.session_version || '') !== String(epoch)) return null;
 
   const binding = customerMfaBindingHash(
     'signed_session_anchor_v228',
