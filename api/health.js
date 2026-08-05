@@ -14675,6 +14675,7 @@ async function diracPasskeyA2FSaveRegistration({ owner, credential, response, cl
     public_key_jwk: registration.publicKeyJwk,
     credential_public_key_cose: registration.credentialPublicKeyCose,
     aaguid: registration.aaguid,
+    rotation_version: 'dirac-passkey-single-active-rotation-v237',
     sign_count: signCount,
     backup_eligible: registration.backupEligible === true,
     backup_state: registration.backupState === true,
