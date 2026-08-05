@@ -7510,7 +7510,17 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
         ? await window.DiracPasskeyDeviceBindingV1.authentication(credential, setup)
         : await window.DiracPasskeyDeviceBindingV1.registration(credential, setup);
       var verify = await callEndpoint('verify', {method:'passkey', action:'dirac_mfa_passkey_verify', identifier:identifier, setupToken:setup.setupToken || setup.mfaSetupToken || setup.token || '', passkeyMode:actualMode, credential:serialized, response:deviceBindingEnvelope});
-      if(verify && (verify.verified || verify.ok) && verify.device_binding_verified === true){ finishVerification('server', [], verify); return; }
+      if(verify && verify.confirmation_required === true){
+        if(String(verify.passkeyMode || '').toLowerCase() !== 'confirm_pending' || !verify.publicKey){ throw new Error('Server tidak mengirim kontrak konfirmasi Passkey pending yang lengkap.'); }
+        setMessage('status', lang()==='en' ? 'Confirming the newly registered passkey before activation...' : 'Mengonfirmasi Passkey baru sebelum aktivasi...');
+        var confirmationCredential = await navigator.credentials.get({publicKey:normalizePasskeyCreationOptions(verify.publicKey)});
+        var confirmationSerialized = serializePublicKeyCredential(confirmationCredential);
+        var confirmationEnvelope = await window.DiracPasskeyDeviceBindingV1.authentication(confirmationCredential, verify);
+        var confirmationToken = String(verify.setupToken || verify.mfaSetupToken || verify.token || '').trim();
+        if(!confirmationToken || !confirmationSerialized){ throw new Error('Bukti konfirmasi Passkey pending tidak lengkap.'); }
+        verify = await callEndpoint('verify', {method:'passkey', action:'dirac_mfa_passkey_verify', identifier:identifier, setupToken:confirmationToken, mfaSetupToken:confirmationToken, token:confirmationToken, passkeyMode:'confirm_pending', credential:confirmationSerialized, response:confirmationEnvelope});
+      }
+      if(verify && (verify.verified || verify.ok) && verify.device_binding_verified === true && verify.confirmation_required !== true){ finishVerification('server', [], verify); return; }
       throw new Error('Server menolak verifikasi passkey. Minta challenge baru lalu coba lagi.');
     }catch(e){
       var msg = e && e.message ? e.message : t('passkeyNeedsServer');
@@ -9163,6 +9173,27 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
         recovery_session_token:session.recovery_session_token,
         recoverySessionToken:session.recovery_session_token
       });
+      if(verify && verify.confirmation_required === true){
+        if(String(verify.passkeyMode || '').toLowerCase() !== 'confirm_pending' || !verify.publicKey){ throw new Error('Server tidak mengirim kontrak konfirmasi Passkey pending yang lengkap.'); }
+        showStatus(box, 'Konfirmasikan Passkey baru sekali lagi sebelum aktivasi dan pencabutan credential lama.', true);
+        var confirmationCredential = await navigator.credentials.get({publicKey:normalizePasskeyCreationOptions(verify.publicKey)});
+        var confirmationSerialized = serializePublicKeyCredential(confirmationCredential);
+        var confirmationEnvelope = await window.DiracPasskeyDeviceBindingV1.authentication(confirmationCredential, verify);
+        var confirmationToken = String(verify.setupToken || verify.mfaSetupToken || verify.token || '').trim();
+        if(!confirmationToken || !confirmationSerialized){ throw new Error('Bukti konfirmasi Passkey pending tidak lengkap.'); }
+        verify = await callRecoveryPasskeyAction('dirac_mfa_passkey_verify', {
+          action:'dirac_mfa_passkey_verify',
+          method:'passkey',
+          setupToken:confirmationToken,
+          mfaSetupToken:confirmationToken,
+          token:confirmationToken,
+          passkeyMode:'confirm_pending',
+          credential:confirmationSerialized,
+          response:confirmationEnvelope,
+          recovery_session_token:session.recovery_session_token,
+          recoverySessionToken:session.recovery_session_token
+        });
+      }
       var rotationProved = Boolean(verify
         && (verify.ok === true || verify.verified === true)
         && String(verify.passkeyMode || '').toLowerCase() === 'registration'
@@ -10863,7 +10894,11 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
           var url = raw ? new URL(raw, window.location.href) : null;
           if(url && /action=(dirac_mfa_passkey_verify|domain_mfa_passkey_verify)/i.test(url.search)){
             response.clone().json().then(function(data){
-              if(data && data.ok === true && (data.active === true || data.passkey_registered === true || data.database_saved === true)){
+              if(data && data.ok === true
+                  && data.confirmation_required !== true
+                  && data.active === true
+                  && data.passkey_registered === true
+                  && data.database_saved === true){
                 markPasskeyActive('passkey_verify_response');
               }
             }).catch(function(){});
