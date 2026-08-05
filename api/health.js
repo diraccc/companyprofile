@@ -14407,6 +14407,61 @@ async function diracPasskeyA2FReadSecurityEpoch(owner) {
   return epoch;
 }
 
+async function diracPasskeyA2FEnsureInitialSecurityEpoch(owner) {
+  const customerId = String(owner && owner.customerId || '').trim();
+  if (!customerSecurityLooksLikeUuid(customerId)) {
+    const error = new Error('PASSKEY_INITIAL_SECURITY_EPOCH_OWNER_INVALID');
+    error.code = 'PASSKEY_INITIAL_SECURITY_EPOCH_OWNER_INVALID';
+    error.statusCode = 503;
+    throw error;
+  }
+
+  const select = encodeURIComponent('id,customer_id,security_epoch');
+  const readState = async (freshAfterCreate) => {
+    const path = '/rest/v1/security_customer_settings?select=' + select
+      + '&customer_id=eq.' + encodeURIComponent(customerId)
+      + (freshAfterCreate === true
+        ? '&id=not.is.null&order=created_at.asc&limit=2'
+        : '&order=created_at.desc&limit=2');
+    const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+    if (!result.ok || !Array.isArray(result.data) || result.data.length > 1) {
+      const error = new Error('PASSKEY_INITIAL_SECURITY_EPOCH_READ_FAILED');
+      error.code = 'PASSKEY_INITIAL_SECURITY_EPOCH_READ_FAILED';
+      error.statusCode = 503;
+      throw error;
+    }
+    if (result.data.length === 0) return { exists: false, epoch: 0 };
+    const row = result.data[0];
+    const epoch = Number(row && row.security_epoch || 0);
+    if (!row || String(row.customer_id || '') !== customerId
+        || !Number.isSafeInteger(epoch) || epoch < 1) {
+      const error = new Error('PASSKEY_INITIAL_SECURITY_EPOCH_INVALID');
+      error.code = 'PASSKEY_INITIAL_SECURITY_EPOCH_INVALID';
+      error.statusCode = 503;
+      throw error;
+    }
+    return { exists: true, epoch };
+  };
+
+  const before = await readState(false);
+  if (before.exists) return before.epoch;
+
+  const created = await supabaseFetch('/rest/v1/security_customer_settings', {
+    method: 'POST',
+    auth: 'service',
+    prefer: 'return=minimal',
+    body: [{ customer_id: customerId }]
+  });
+
+  const after = await readState(true);
+  if (after.exists && after.epoch === 1) return 1;
+
+  const error = new Error('PASSKEY_INITIAL_SECURITY_EPOCH_BOOTSTRAP_FAILED');
+  error.code = 'PASSKEY_INITIAL_SECURITY_EPOCH_BOOTSTRAP_FAILED';
+  error.statusCode = Number(created && created.status || 503) || 503;
+  throw error;
+}
+
 async function diracPasskeyA2FFetchByCredentialId(credentialId, owner, readbackAfterInsert = false) {
   const id = diracPasskeyA2FSafeString(credentialId, 4096);
   const ownerCustomerId = String(owner && owner.customerId || '').trim();
@@ -15192,7 +15247,19 @@ async function diracPasskeyA2FStart(req, res) {
       message: 'Ditemukan lebih dari satu Passkey aktif. Gunakan lost Passkey untuk merotasi semuanya menjadi satu credential baru.'
     });
   }
-  if ((hasActivePasskey || isLostPasskeyRecoveryRegistration) && securityEpochAtStart < 1) {
+  if (!isLostPasskeyRecoveryRegistration && activePasskeys.length === 0 && securityEpochAtStart === 0) {
+    try {
+      securityEpochAtStart = await diracPasskeyA2FEnsureInitialSecurityEpoch(owner);
+    } catch (_) {
+      return res.status(503).json({
+        ok: false,
+        method: 'passkey',
+        code: 'PASSKEY_INITIAL_SECURITY_EPOCH_BOOTSTRAP_FAILED',
+        message: 'Versi keamanan awal akun tidak dapat dibuktikan. Sistem menolak membuat challenge Passkey.'
+      });
+    }
+  }
+  if (securityEpochAtStart < 1) {
     return res.status(503).json({ ok: false, method: 'passkey', code: 'PASSKEY_SECURITY_EPOCH_INVALID', message: 'Versi keamanan akun tidak valid. Sistem menolak Passkey.' });
   }
   const activeSetAtStart = diracPasskeyA2FActiveSetProof(activePasskeys);
