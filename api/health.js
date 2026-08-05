@@ -9442,15 +9442,19 @@ function customerSecurityIssueSignedSessionAnchorV228(req, res, user, requestedM
   const value = signDomainSessionPayload(payload);
   if (!value) return null;
 
-  const verifiedSignedSession = verifyDomainSessionCookieValue(value);
-  if (!verifiedSignedSession
-      || String(verifiedSignedSession.id || '') !== userId
-      || normalizeAuthEmail(verifiedSignedSession.email || '') !== email
-      || Number(verifiedSignedSession.exp || 0) !== signedExpiresAt
+  const verifiedAnchor = customerSecurityDecodeSignedSessionAnchorV228(value);
+  if (!verifiedAnchor
+      || verifiedAnchor.userId !== userId
+      || verifiedAnchor.email !== email
+      || verifiedAnchor.issuedAt !== now
+      || verifiedAnchor.expiresAt !== signedExpiresAt
+      || verifiedAnchor.anchorId !== anchorId
+      || verifiedAnchor.anchorIssuedAt !== now
+      || verifiedAnchor.anchorExpiresAt !== anchorExpiresAt
+      || verifiedAnchor.securityEpoch !== epoch
+      || String(verifiedAnchor.payload && verifiedAnchor.payload.session_version || '') !== String(epoch)
       || (payload.sid !== undefined
-        && String(verifiedSignedSession.sessionId || '') !== String(payload.sid))) return null;
-  if (isEnvTrue('DOMAIN_SIGNED_SESSION_STRICT_VERSION')
-      && String(verifiedSignedSession.session_version || '') !== String(epoch)) return null;
+        && verifiedAnchor.sessionId !== String(payload.sid))) return null;
 
   const binding = customerMfaBindingHash(
     'signed_session_anchor_v228',
@@ -9462,7 +9466,8 @@ function customerSecurityIssueSignedSessionAnchorV228(req, res, user, requestedM
       epoch
     ])
   );
-  if (!/^[a-f0-9]{64}$/.test(binding)) return null;
+  if (!/^[a-f0-9]{64}$/.test(binding)
+      || !safeEqual(verifiedAnchor.binding, binding)) return null;
 
   const legacyDomainClears = getCompactCookieDomainsForSession()
     .filter((domain) => Boolean(normalizeCookieDomain(domain)))
