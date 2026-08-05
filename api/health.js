@@ -19630,7 +19630,11 @@ function diracV101ValidateServiceRoleSupabasePath(path, options = {}) {
       rpc === 'dirac_central_atomic_consume_v230' ||
       rpc === 'dirac_central_atomic_claim_record_v230' ||
       rpc === 'dirac_central_atomic_rate_limit_v230' ||
-      rpc === 'dirac_central_security_log_v230';
+      rpc === 'dirac_central_security_log_v230' ||
+      rpc === 'dirac_passkey_create_pending_v237' ||
+      rpc === 'dirac_passkey_finalize_rotation_v237' ||
+      rpc === 'dirac_passkey_record_assertion_v237' ||
+      rpc === 'dirac_passkey_revoke_clone_v237';
 
     if (!allowedRpc) {
       return { ok: false, code: 'SERVICE_ROLE_RPC_NOT_ALLOWED' };
@@ -36023,8 +36027,18 @@ const DIRAC_CENTRAL_DATABASE_RPCS_V230 = Object.freeze(new Set([
   'dirac_central_atomic_consume_v230',
   'dirac_central_atomic_claim_record_v230',
   'dirac_central_atomic_rate_limit_v230',
-  'dirac_central_security_log_v230'
+  'dirac_central_security_log_v230',
+  'dirac_passkey_create_pending_v237',
+  'dirac_passkey_finalize_rotation_v237',
+  'dirac_passkey_record_assertion_v237',
+  'dirac_passkey_revoke_clone_v237'
 ]));
+const DIRAC_CENTRAL_DATABASE_RPC_ACTIONS_V230 = Object.freeze(Object.assign(Object.create(null), {
+  dirac_passkey_create_pending_v237: 'dirac_mfa_passkey_verify',
+  dirac_passkey_finalize_rotation_v237: 'dirac_mfa_passkey_verify',
+  dirac_passkey_record_assertion_v237: 'dirac_mfa_passkey_verify',
+  dirac_passkey_revoke_clone_v237: 'dirac_mfa_passkey_verify'
+}));
 const DIRAC_CENTRAL_DATABASE_QUERY_KEYS_V230 = Object.freeze(new Set([
   'select', 'order', 'limit', 'offset', 'on_conflict', 'or', 'and'
 ]));
@@ -36087,6 +36101,11 @@ function diracCentralDatabaseRpcRouteAllowedV230(action, url, method, authMode) 
   const match = /^\/rest\/v1\/rpc\/([a-z][a-z0-9_]*)$/.exec(String(url.pathname || ''));
   if (!match || !DIRAC_CENTRAL_DATABASE_RPCS_V230.has(match[1])) return false;
   if (String(method || '').toUpperCase() !== 'POST' || authMode !== 'service' || url.search !== '') return false;
+  const rpc = match[1];
+  const requiredAction = Object.prototype.hasOwnProperty.call(DIRAC_CENTRAL_DATABASE_RPC_ACTIONS_V230, rpc)
+    ? DIRAC_CENTRAL_DATABASE_RPC_ACTIONS_V230[rpc]
+    : '';
+  if (requiredAction && action !== requiredAction) return false;
   return Boolean(action && (DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.has(action) || DIRAC_CENTRAL_DISABLED_ACTIONS_V146.has(action)));
 }
 
@@ -38899,7 +38918,10 @@ function diracCentralRuntimeReferenceHashV230() {
   const source = DIRAC_CENTRAL_GUARD_REFERENCE_LIST_V230.map((fn) => Function.prototype.toString.call(fn)).join('\n---DIRAC-V230---\n');
   const registry = [
     ...Array.from(DIRAC_CENTRAL_DATABASE_TABLES_V230).sort(),
-    ...Array.from(DIRAC_CENTRAL_DATABASE_RPCS_V230).sort()
+    ...Array.from(DIRAC_CENTRAL_DATABASE_RPCS_V230).sort(),
+    ...Object.entries(DIRAC_CENTRAL_DATABASE_RPC_ACTIONS_V230)
+      .map(([rpc, action]) => rpc + '=>' + action)
+      .sort()
   ].join('|');
   return crypto.createHash('sha256').update(source + '|' + registry).digest('hex');
 }
@@ -39200,7 +39222,26 @@ function diracCentralBackendComplianceStaticGateV230() {
   expect(globalThis.fetch === DIRAC_V228_FINAL_FETCH_GATEWAY, 'fetch_gateway_mutated');
   const routeSource = Function.prototype.toString.call(diracCentralEgressRouteAllowedV228);
   expect(!routeSource.includes("'/storage/v1/'") && !routeSource.includes("'/functions/v1/'"), 'broad_supabase_route_present');
-  expect(DIRAC_CENTRAL_DATABASE_TABLES_V230.size === 25 && DIRAC_CENTRAL_DATABASE_RPCS_V230.size === 4, 'database_exact_registry_invalid');
+  expect(DIRAC_CENTRAL_DATABASE_TABLES_V230.size === 25 && DIRAC_CENTRAL_DATABASE_RPCS_V230.size === 8, 'database_exact_registry_invalid');
+  const expectedPasskeyRpcBindingsV230 = [
+    'dirac_passkey_create_pending_v237=>dirac_mfa_passkey_verify',
+    'dirac_passkey_finalize_rotation_v237=>dirac_mfa_passkey_verify',
+    'dirac_passkey_record_assertion_v237=>dirac_mfa_passkey_verify',
+    'dirac_passkey_revoke_clone_v237=>dirac_mfa_passkey_verify'
+  ].sort().join('|');
+  const actualPasskeyRpcBindingsV230 = Object.entries(DIRAC_CENTRAL_DATABASE_RPC_ACTIONS_V230)
+    .map(([rpc, action]) => rpc + '=>' + action)
+    .sort()
+    .join('|');
+  expect(Object.isFrozen(DIRAC_CENTRAL_DATABASE_RPC_ACTIONS_V230)
+    && actualPasskeyRpcBindingsV230 === expectedPasskeyRpcBindingsV230, 'database_rpc_action_registry_invalid');
+  for (const [rpcName, requiredAction] of Object.entries(DIRAC_CENTRAL_DATABASE_RPC_ACTIONS_V230)) {
+    const rpcUrl = new URL('/rest/v1/rpc/' + rpcName, 'https://dirac-database.invalid');
+    expect(diracCentralDatabaseRpcRouteAllowedV230(requiredAction, rpcUrl, 'POST', 'service') === true, 'passkey_rpc_exact_route_missing:' + rpcName);
+    expect(diracCentralDatabaseRpcRouteAllowedV230('domain_health', rpcUrl, 'POST', 'service') === false, 'passkey_rpc_action_scope_broad:' + rpcName);
+    expect(diracCentralDatabaseRpcRouteAllowedV230(requiredAction, rpcUrl, 'GET', 'service') === false, 'passkey_rpc_method_scope_broad:' + rpcName);
+    expect(diracCentralDatabaseRpcRouteAllowedV230(requiredAction, rpcUrl, 'POST', 'anon') === false, 'passkey_rpc_auth_scope_broad:' + rpcName);
+  }
   const rawSource = Function.prototype.toString.call(diracCentralAdvancedContractGuardV221);
   expect(rawSource.includes('raw_json_evidence_required') && !rawSource.includes("isEnvTrue('DIRAC_STRICT_RAW_JSON_EVIDENCE')"), 'raw_evidence_not_mandatory');
   const a2fSource = Function.prototype.toString.call(diracCentralA2FRequestSignatureGuardV148);
