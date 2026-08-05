@@ -14422,7 +14422,9 @@ async function diracPasskeyA2FFetchByCredentialId(credentialId, owner, readbackA
 }
 
 
-const DIRAC_PASSKEY_ROTATION_PURPOSE_V237 = 'register_new_passkey';
+const DIRAC_PASSKEY_ROTATION_PURPOSE_INITIAL_V237 = 'initial';
+const DIRAC_PASSKEY_ROTATION_PURPOSE_REPLACE_V237 = 'replace';
+const DIRAC_PASSKEY_ROTATION_PURPOSE_RECOVERY_V237 = 'recovery';
 const DIRAC_PASSKEY_ASSERTION_PURPOSE_V237 = 'authentication';
 const DIRAC_PASSKEY_PENDING_TTL_MS_V237 = 5 * 60 * 1000;
 const DIRAC_PASSKEY_RPC_NAMES_V237 = new Set([
@@ -14488,6 +14490,26 @@ async function diracPasskeyA2FFetchCredentialStateV237({ owner, credentialId, ro
 function diracPasskeyA2FExpectedEpochV237(payload) {
   const epoch = Number(payload && payload.securityEpochAtStart);
   return Number.isSafeInteger(epoch) && epoch >= 0 ? epoch : -1;
+}
+
+function diracPasskeyA2FRotationPurposeV237(payload) {
+  if (!payload || String(payload.mode || '').toLowerCase() !== 'registration') return '';
+  const declared = String(payload.rotationPurpose || '').toLowerCase();
+  const activeCount = Number(payload.activeCredentialCountAtStart);
+  if (!Number.isSafeInteger(activeCount) || activeCount < 0) return '';
+  const hasRecovery = Boolean(payload.lostPasskeyRecovery && typeof payload.lostPasskeyRecovery === 'object');
+  let expected = '';
+  if (hasRecovery) {
+    if (activeCount < 1) return '';
+    expected = DIRAC_PASSKEY_ROTATION_PURPOSE_RECOVERY_V237;
+  } else if (activeCount === 0) {
+    expected = DIRAC_PASSKEY_ROTATION_PURPOSE_INITIAL_V237;
+  } else if (activeCount === 1) {
+    expected = DIRAC_PASSKEY_ROTATION_PURPOSE_REPLACE_V237;
+  } else {
+    return '';
+  }
+  return declared && safeEqual(declared, expected) ? expected : '';
 }
 
 function diracPasskeyA2FCurrentSessionRequiredV237(req, owner) {
@@ -14565,9 +14587,10 @@ async function diracPasskeyA2FSaveRegistration({ owner, credential, response, cl
   }
 
   const expectedSecurityEpoch = diracPasskeyA2FExpectedEpochV237(payload);
+  const rotationPurpose = diracPasskeyA2FRotationPurposeV237(payload);
   const currentAuthSessionId = diracPasskeyA2FCurrentSessionRequiredV237(req, owner);
   const publicKeySha256 = diracPasskeyA2FPublicKeySha256V237(registration);
-  if (expectedSecurityEpoch < 0 || !currentAuthSessionId || !/^[a-f0-9]{64}$/.test(publicKeySha256)) {
+  if (expectedSecurityEpoch < 0 || !rotationPurpose || !currentAuthSessionId || !/^[a-f0-9]{64}$/.test(publicKeySha256)) {
     return {
       ok: false,
       status: 503,
@@ -14673,7 +14696,7 @@ async function diracPasskeyA2FSaveRegistration({ owner, credential, response, cl
     p_backup_eligible: registration.backupEligible === true,
     p_backup_state: registration.backupState === true,
     p_rotation_id: rotationId,
-    p_rotation_purpose: DIRAC_PASSKEY_ROTATION_PURPOSE_V237,
+    p_rotation_purpose: rotationPurpose,
     p_expected_security_epoch: expectedSecurityEpoch,
     p_authorizing_credential_id_hash: null,
     p_current_auth_session_id: currentAuthSessionId,
@@ -14710,7 +14733,7 @@ async function diracPasskeyA2FSaveRegistration({ owner, credential, response, cl
     p_auth_user_id: String(owner.authUserId),
     p_rotation_id: rotationId,
     p_pending_passkey_id: String(pendingRow.id),
-    p_rotation_purpose: DIRAC_PASSKEY_ROTATION_PURPOSE_V237,
+    p_rotation_purpose: rotationPurpose,
     p_expected_security_epoch: expectedSecurityEpoch,
     p_authorizing_credential_id_hash: null,
     p_current_auth_session_id: currentAuthSessionId,
@@ -15174,11 +15197,17 @@ async function diracPasskeyA2FStart(req, res) {
   }
   const activeSetAtStart = diracPasskeyA2FActiveSetProof(activePasskeys);
   const mode = isLostPasskeyRecoveryRegistration ? 'registration' : (hasActivePasskey ? 'authentication' : 'registration');
+  const rotationPurpose = isLostPasskeyRecoveryRegistration
+    ? DIRAC_PASSKEY_ROTATION_PURPOSE_RECOVERY_V237
+    : hasActivePasskey
+      ? DIRAC_PASSKEY_ROTATION_PURPOSE_REPLACE_V237
+      : DIRAC_PASSKEY_ROTATION_PURPOSE_INITIAL_V237;
   const jti = crypto.randomBytes(32).toString('base64url');
   const payload = {
     type: DIRAC_PASSKEY_A2F_TOKEN_TYPE,
     method: 'passkey',
     mode,
+    rotationPurpose,
     jti,
     challenge,
     rpId,
