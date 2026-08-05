@@ -14481,6 +14481,7 @@ const DIRAC_PASSKEY_ROTATION_PURPOSE_INITIAL_V237 = 'initial';
 const DIRAC_PASSKEY_ROTATION_PURPOSE_REPLACE_V237 = 'replace';
 const DIRAC_PASSKEY_ROTATION_PURPOSE_RECOVERY_V237 = 'recovery';
 const DIRAC_PASSKEY_ASSERTION_PURPOSE_V237 = 'authentication';
+const DIRAC_PASSKEY_ASSERTION_PURPOSE_CONFIRM_PENDING_V237 = 'confirm_pending';
 const DIRAC_PASSKEY_PENDING_TTL_MS_V237 = 5 * 60 * 1000;
 const DIRAC_PASSKEY_RPC_NAMES_V237 = new Set([
   'dirac_passkey_create_pending_v237',
@@ -14518,6 +14519,14 @@ function diracPasskeyA2FRpcProviderCodeV237(result) {
   ) || '').slice(0, 160);
 }
 
+function diracPasskeyA2FRpcDataObjectV237(result) {
+  const data = result && result.data;
+  if (data && typeof data === 'object' && !Array.isArray(data)) return data;
+  if (Array.isArray(data) && data.length === 1
+      && data[0] && typeof data[0] === 'object' && !Array.isArray(data[0])) return data[0];
+  return null;
+}
+
 async function diracPasskeyA2FFetchCredentialStateV237({ owner, credentialId, rotationId = '', passkeyId = '', activeOnly = false }) {
   const customerId = String(owner && owner.customerId || '').trim();
   const id = diracPasskeyA2FSafeString(credentialId, 4096);
@@ -14529,7 +14538,9 @@ async function diracPasskeyA2FFetchCredentialStateV237({ owner, credentialId, ro
   const select = [
     'id', 'user_id', 'email', 'credential_id', 'credential_json', 'transports',
     'sign_count', 'backup_eligible', 'backup_state', 'public_key_sha256', 'rotation_id',
-    'rotation_state', 'credential_epoch', 'is_active', 'pending_expires_at',
+    'rotation_state', 'rotation_purpose', 'credential_epoch', 'expected_security_epoch',
+    'authorizing_credential_id_hash', 'current_auth_session_id', 'recovery_request_id',
+    'recovery_session_id', 'recovery_session_hash', 'is_active', 'pending_expires_at',
     'confirmed_at', 'activated_at', 'revoked_at', 'revoke_reason', 'created_at', 'updated_at', 'last_used_at'
   ].join(',');
   let path = '/rest/v1/domain_passkeys?select=' + encodeURIComponent(select)
@@ -14570,6 +14581,125 @@ function diracPasskeyA2FRotationPurposeV237(payload) {
 function diracPasskeyA2FCurrentSessionRequiredV237(req, owner) {
   const id = diracPasskeyA2FCurrentAuthSessionIdV235(req, owner);
   return customerSecurityLooksLikeUuid(id) ? id : '';
+}
+
+async function diracPasskeyA2FCreatePendingConfirmationV237({ owner, pendingRow, payload, req, deviceBindingKeyId }) {
+  const nowMs = Date.now();
+  const customerId = String(owner && owner.customerId || '');
+  const authUserId = String(owner && owner.authUserId || '');
+  const credentialId = String(pendingRow && pendingRow.credential_id || '');
+  const passkeyId = String(pendingRow && pendingRow.id || '');
+  const rotationId = String(pendingRow && pendingRow.rotation_id || '');
+  const rotationPurpose = String(pendingRow && pendingRow.rotation_purpose || '');
+  const currentAuthSessionId = String(pendingRow && pendingRow.current_auth_session_id || '');
+  const expectedSecurityEpoch = Number(pendingRow && pendingRow.expected_security_epoch);
+  const previousSignCount = Number(pendingRow && pendingRow.sign_count);
+  const pendingExpiresAtMs = Date.parse(String(pendingRow && pendingRow.pending_expires_at || ''));
+  const originalExpectedEpoch = diracPasskeyA2FExpectedEpochV237(payload);
+  const originalSetCount = Number(payload && payload.activeCredentialCountAtStart);
+  const originalSetHash = String(payload && payload.activeCredentialSetHashAtStart || '');
+  const storedBinding = diracPasskeyA2FStoredDeviceBinding(pendingRow);
+  const publicKeySha256 = String(pendingRow && pendingRow.public_key_sha256 || '');
+
+  if (!customerSecurityLooksLikeUuid(customerId)
+      || !customerSecurityLooksLikeUuid(authUserId)
+      || !customerSecurityLooksLikeUuid(passkeyId)
+      || !customerSecurityLooksLikeUuid(rotationId)
+      || !customerSecurityLooksLikeUuid(currentAuthSessionId)
+      || !/^[A-Za-z0-9_-]{16,4096}$/.test(credentialId)
+      || !['initial', 'replace', 'recovery'].includes(rotationPurpose)
+      || !Number.isSafeInteger(expectedSecurityEpoch) || expectedSecurityEpoch < 1
+      || expectedSecurityEpoch !== originalExpectedEpoch
+      || !Number.isSafeInteger(previousSignCount) || previousSignCount < 0
+      || !Number.isSafeInteger(originalSetCount) || originalSetCount < 0
+      || !/^[a-f0-9]{64}$/.test(originalSetHash)
+      || !Number.isFinite(pendingExpiresAtMs) || pendingExpiresAtMs <= nowMs + 1000
+      || !/^[a-f0-9]{64}$/.test(publicKeySha256)
+      || !storedBinding.ok
+      || !/^[a-f0-9]{64}$/.test(String(deviceBindingKeyId || ''))
+      || !safeEqual(storedBinding.keyId, String(deviceBindingKeyId))) {
+    return { ok: false, status: 503, code: 'PASSKEY_CONFIRMATION_CHALLENGE_CONTEXT_INVALID' };
+  }
+
+  const expiresAtMs = Math.min(pendingExpiresAtMs, nowMs + DIRAC_PASSKEY_A2F_TTL_MS);
+  if (expiresAtMs <= nowMs + 1000) {
+    return { ok: false, status: 409, code: 'PASSKEY_CONFIRMATION_CHALLENGE_EXPIRED' };
+  }
+
+  const challenge = crypto.randomBytes(32).toString('base64url');
+  const jti = crypto.randomBytes(32).toString('base64url');
+  const confirmationPayload = {
+    type: DIRAC_PASSKEY_A2F_TOKEN_TYPE,
+    method: 'passkey',
+    mode: 'confirm_pending',
+    assertionPurpose: DIRAC_PASSKEY_ASSERTION_PURPOSE_CONFIRM_PENDING_V237,
+    jti,
+    challenge,
+    rpId: String(payload && payload.rpId || diracPasskeyA2FRpId(req)),
+    origin: String(payload && payload.origin || requestOrigin(req)),
+    authUserId,
+    customerId,
+    emailHash: customerMfaProfileId(owner.email),
+    uaHash: customerMfaBindingHash('ua', requestUserAgent(req)),
+    securityEpochAtStart: expectedSecurityEpoch,
+    activeCredentialCountAtStart: originalSetCount,
+    activeCredentialSetHashAtStart: originalSetHash,
+    pendingPasskeyId: passkeyId,
+    pendingCredentialId: credentialId,
+    pendingCredentialIdHash: crypto.createHash('sha256').update(credentialId).digest('hex'),
+    previousSignCount,
+    rotationId,
+    rotationPurpose,
+    currentAuthSessionId,
+    publicKeySha256,
+    deviceBindingKeyId: storedBinding.keyId,
+    pendingExpiresAtMs,
+    lostPasskeyRecovery: payload && payload.lostPasskeyRecovery && typeof payload.lostPasskeyRecovery === 'object'
+      ? {
+          requestId: String(payload.lostPasskeyRecovery.requestId || ''),
+          sessionId: String(payload.lostPasskeyRecovery.sessionId || ''),
+          sessionHash: String(payload.lostPasskeyRecovery.sessionHash || '')
+        }
+      : undefined,
+    issuedAtMs: nowMs,
+    expiresAtMs
+  };
+  const setupToken = diracPasskeyA2FEncodeToken(confirmationPayload);
+  await diracPasskeyA2FStoreChallenge(setupToken, confirmationPayload);
+
+  return {
+    ok: true,
+    confirmationResponse: {
+      ok: true,
+      verified: false,
+      active: false,
+      method: 'passkey',
+      passkeyMode: 'confirm_pending',
+      confirmation_required: true,
+      needsRegistration: false,
+      database_saved: true,
+      pending_created: true,
+      registered_now: false,
+      device_binding_required: true,
+      device_binding_policy: 'webcrypto-nonextractable-v1',
+      setupToken,
+      mfaSetupToken: setupToken,
+      expires_in: Math.max(1, Math.floor((expiresAtMs - nowMs) / 1000)),
+      publicKey: {
+        challenge,
+        rpId: confirmationPayload.rpId,
+        timeout: Math.max(1000, Math.min(60000, expiresAtMs - nowMs)),
+        userVerification: 'required',
+        allowCredentials: [{
+          type: 'public-key',
+          id: credentialId,
+          transports: Array.isArray(pendingRow.transports) ? pendingRow.transports : []
+        }]
+      },
+      credential_id_hint: confirmationPayload.pendingCredentialIdHash.slice(0, 12),
+      message: 'Passkey pending tersimpan. Konfirmasikan Passkey baru sekali lagi sebelum aktivasi.'
+    }
+  };
 }
 
 async function diracPasskeyA2FRevokeCloneV237({ row, owner, assertion, req }) {
@@ -14770,28 +14900,247 @@ async function diracPasskeyA2FSaveRegistration({ owner, credential, response, cl
     return { ok: false, status: created.status || 500, message: 'Gagal membuat Passkey pending secara atomik.', code: 'PASSKEY_CREATE_PENDING_RPC_FAILED' };
   }
 
-  const pendingReadback = await diracPasskeyA2FFetchCredentialStateV237({ owner, credentialId, rotationId });
+  const createdData = diracPasskeyA2FRpcDataObjectV237(created);
+  if (!createdData || createdData.ok !== true
+      || !customerSecurityLooksLikeUuid(String(createdData.passkey_id || ''))
+      || !safeEqual(String(createdData.rotation_id || ''), rotationId)
+      || String(createdData.rotation_state || '') !== 'pending') {
+    return { ok: false, status: 503, message: 'Bukti hasil RPC Passkey pending tidak valid.', code: 'PASSKEY_CREATE_PENDING_RPC_POSTCONDITION_FAILED' };
+  }
+
+  const pendingReadback = await diracPasskeyA2FFetchCredentialStateV237({
+    owner,
+    credentialId,
+    rotationId,
+    passkeyId: String(createdData.passkey_id)
+  });
   const pendingRows = pendingReadback.ok && Array.isArray(pendingReadback.data) ? pendingReadback.data : [];
   const pendingRow = pendingRows.length === 1 ? pendingRows[0] : null;
+  const pendingExpiryReadbackMs = Date.parse(String(pendingRow && pendingRow.pending_expires_at || ''));
+  const storedBinding = diracPasskeyA2FStoredDeviceBinding(pendingRow);
   if (!pendingRow || !customerSecurityLooksLikeUuid(String(pendingRow.id || ''))
+      || !safeEqual(String(pendingRow.id || ''), String(createdData.passkey_id || ''))
+      || !safeEqual(String(pendingRow.credential_id || ''), credentialId)
       || pendingRow.is_active !== false
       || String(pendingRow.rotation_state || '') !== 'pending'
+      || String(pendingRow.rotation_purpose || '') !== rotationPurpose
+      || pendingRow.credential_epoch == null || Number(pendingRow.credential_epoch) !== 0
+      || Number(pendingRow.expected_security_epoch || 0) !== expectedSecurityEpoch
       || !safeEqual(String(pendingRow.rotation_id || ''), rotationId)
+      || !safeEqual(String(pendingRow.current_auth_session_id || ''), currentAuthSessionId)
       || !safeEqual(String(pendingRow.public_key_sha256 || ''), publicKeySha256)
+      || Number(pendingRow.sign_count || 0) !== signCount
       || pendingRow.backup_eligible !== (registration.backupEligible === true)
       || pendingRow.backup_state !== (registration.backupState === true)
+      || pendingRow.confirmed_at || pendingRow.activated_at || pendingRow.revoked_at
+      || !Number.isFinite(pendingExpiryReadbackMs)
+      || Math.abs(pendingExpiryReadbackMs - pendingExpiresAtMs) > 1
+      || pendingExpiryReadbackMs <= Date.now()
+      || !storedBinding.ok
+      || !safeEqual(storedBinding.keyId, deviceBinding.keyId)
       || !diracPasskeyA2FOwnerMatches(pendingRow, owner)) {
     return { ok: false, status: 503, message: 'Postcondition Passkey pending tidak dapat dibuktikan.', code: 'PASSKEY_PENDING_POSTCONDITION_FAILED' };
   }
+
+  const confirmation = await diracPasskeyA2FCreatePendingConfirmationV237({
+    owner,
+    pendingRow,
+    payload,
+    req,
+    deviceBindingKeyId: deviceBinding.keyId
+  });
+  if (!confirmation.ok || !confirmation.confirmationResponse) {
+    return {
+      ok: false,
+      status: confirmation.status || 503,
+      message: 'Challenge konfirmasi Passkey pending tidak dapat dibentuk.',
+      code: confirmation.code || 'PASSKEY_CONFIRMATION_CHALLENGE_FAILED'
+    };
+  }
+
+  return {
+    ok: true,
+    created: false,
+    pendingCreated: true,
+    confirmationRequired: true,
+    confirmationResponse: confirmation.confirmationResponse,
+    row: pendingRow,
+    deviceBindingVerified: true,
+    deviceBindingKeyId: deviceBinding.keyId,
+    rotationId
+  };
+}
+
+
+async function diracPasskeyA2FConfirmPendingRegistrationV237({ row, owner, response, credential, clientData, payload, req, body, setupToken }) {
+  const credentialId = diracPasskeyA2FCredentialId(credential);
+  const passkeyId = String(row && row.id || '');
+  const rotationId = String(row && row.rotation_id || '');
+  const rotationPurpose = String(row && row.rotation_purpose || '');
+  const currentAuthSessionId = diracPasskeyA2FCurrentSessionRequiredV237(req, owner);
+  const expectedSecurityEpoch = diracPasskeyA2FExpectedEpochV237(payload);
+  const previousSignCount = Number(row && row.sign_count);
+  const pendingExpiresAtMs = Date.parse(String(row && row.pending_expires_at || ''));
+  const credentialIdHash = crypto.createHash('sha256').update(String(credentialId || '')).digest('hex');
+  const storedBinding = diracPasskeyA2FStoredDeviceBinding(row);
+
+  if (!credentialId
+      || !customerSecurityLooksLikeUuid(passkeyId)
+      || !customerSecurityLooksLikeUuid(rotationId)
+      || !customerSecurityLooksLikeUuid(currentAuthSessionId)
+      || !['initial', 'replace', 'recovery'].includes(rotationPurpose)
+      || !Number.isSafeInteger(expectedSecurityEpoch) || expectedSecurityEpoch < 1
+      || !Number.isSafeInteger(previousSignCount) || previousSignCount < 0
+      || !Number.isFinite(pendingExpiresAtMs) || pendingExpiresAtMs <= Date.now()
+      || !storedBinding.ok
+      || String(payload && payload.mode || '') !== 'confirm_pending'
+      || String(payload && payload.assertionPurpose || '') !== DIRAC_PASSKEY_ASSERTION_PURPOSE_CONFIRM_PENDING_V237
+      || !safeEqual(String(payload && payload.pendingPasskeyId || ''), passkeyId)
+      || !safeEqual(String(payload && payload.pendingCredentialId || ''), credentialId)
+      || !safeEqual(String(payload && payload.pendingCredentialIdHash || ''), credentialIdHash)
+      || Number(payload && payload.previousSignCount) !== previousSignCount
+      || !safeEqual(String(payload && payload.rotationId || ''), rotationId)
+      || String(payload && payload.rotationPurpose || '') !== rotationPurpose
+      || !safeEqual(String(payload && payload.currentAuthSessionId || ''), currentAuthSessionId)
+      || !safeEqual(String(payload && payload.publicKeySha256 || ''), String(row && row.public_key_sha256 || ''))
+      || !safeEqual(String(payload && payload.deviceBindingKeyId || ''), storedBinding.keyId)
+      || Number(payload && payload.pendingExpiresAtMs) !== pendingExpiresAtMs
+      || row.is_active !== false
+      || String(row.rotation_state || '') !== 'pending'
+      || row.credential_epoch == null || Number(row.credential_epoch) !== 0
+      || Number(row.expected_security_epoch || 0) !== expectedSecurityEpoch
+      || !safeEqual(String(row.current_auth_session_id || ''), currentAuthSessionId)
+      || row.confirmed_at || row.activated_at || row.revoked_at
+      || !diracPasskeyA2FOwnerMatches(row, owner)) {
+    return { ok: false, status: 409, message: 'Kontrak Passkey pending berubah atau tidak valid.', code: 'PASSKEY_CONFIRM_PENDING_CONTEXT_INVALID' };
+  }
+
+  const assertion = diracPasskeyA2FValidateAuthenticationResponse({ row, response, payload, clientData, req });
+  if (!assertion.ok) {
+    return {
+      ok: false,
+      status: 403,
+      message: assertion.reason === 'passkey_backup_flags_invalid'
+        || assertion.reason === 'passkey_backup_eligibility_changed'
+        || assertion.reason === 'stored_passkey_backup_policy_missing'
+        ? 'Status backup Passkey pending berubah atau tidak valid.'
+        : 'Signature konfirmasi Passkey pending tidak valid.',
+      code: assertion.reason || 'PASSKEY_CONFIRM_PENDING_SIGNATURE_INVALID'
+    };
+  }
+
+  const deviceBinding = diracPasskeyA2FValidateAuthenticationDeviceBinding({
+    row,
+    body,
+    setupToken,
+    payload,
+    credentialId
+  });
+  if (!deviceBinding.ok || !safeEqual(deviceBinding.keyId, storedBinding.keyId)) {
+    return {
+      ok: false,
+      status: 403,
+      message: 'Binding perangkat untuk konfirmasi Passkey pending tidak cocok.',
+      code: String(deviceBinding.reason || 'PASSKEY_CONFIRM_PENDING_DEVICE_BINDING_INVALID').toUpperCase()
+    };
+  }
+
+  const signCount = Math.max(0, Number(assertion.signCount || diracPasskeyA2FSignCount(response) || 0));
+  if (!Number.isSafeInteger(signCount)
+      || ((previousSignCount > 0 || signCount > 0) && signCount <= previousSignCount)) {
+    return { ok: false, status: 403, message: 'Counter konfirmasi Passkey pending tidak meningkat secara sah.', code: 'PASSKEY_CONFIRM_PENDING_COUNTER_INVALID' };
+  }
+
+  const nowIso = new Date().toISOString();
+  const currentCredentialJson = row.credential_json && typeof row.credential_json === 'object' ? row.credential_json : {};
+  const updatedCredentialJson = {
+    ...currentCredentialJson,
+    webauthn: {
+      ...(currentCredentialJson.webauthn && typeof currentCredentialJson.webauthn === 'object' ? currentCredentialJson.webauthn : {}),
+      sign_count: signCount,
+      backup_state: assertion.backupState === true,
+      last_verified_at: nowIso
+    },
+    last_authentication: diracPasskeyA2FMinimalCredentialJson({
+      credential,
+      response,
+      clientData,
+      payload,
+      owner,
+      req,
+      mode: 'confirm_pending'
+    })
+  };
+
+  const recorded = await diracPasskeyA2FRpcV237('dirac_passkey_record_assertion_v237', {
+    p_customer_id: String(owner.customerId),
+    p_passkey_id: passkeyId,
+    p_expected_sign_count: previousSignCount,
+    p_new_sign_count: signCount,
+    p_backup_state: assertion.backupState === true,
+    p_credential_json: updatedCredentialJson,
+    p_confirm_pending: true,
+    p_auth_user_id: String(owner.authUserId),
+    p_assertion_purpose: DIRAC_PASSKEY_ASSERTION_PURPOSE_CONFIRM_PENDING_V237,
+    p_rotation_id: rotationId,
+    p_expected_security_epoch: expectedSecurityEpoch,
+    p_current_auth_session_id: currentAuthSessionId
+  });
+  if (!recorded.ok) {
+    console.error('[passkey-confirm-pending-assertion-rpc-failed]', {
+      status: Number(recorded.status || 0),
+      provider_code: diracPasskeyA2FRpcProviderCodeV237(recorded)
+    });
+    return { ok: false, status: recorded.status || 409, message: 'Konfirmasi Passkey pending ditolak oleh transaksi atomik.', code: 'PASSKEY_CONFIRM_PENDING_ASSERTION_RPC_FAILED' };
+  }
+  const recordedData = diracPasskeyA2FRpcDataObjectV237(recorded);
+  if (!recordedData || recordedData.ok !== true
+      || !safeEqual(String(recordedData.passkey_id || ''), passkeyId)
+      || String(recordedData.rotation_state || '') !== 'pending'
+      || recordedData.confirmed !== true) {
+    return { ok: false, status: 503, message: 'Bukti RPC pending_confirmed tidak valid.', code: 'PASSKEY_CONFIRM_PENDING_RPC_POSTCONDITION_FAILED' };
+  }
+
+  const confirmedReadback = await diracPasskeyA2FFetchCredentialStateV237({
+    owner,
+    credentialId,
+    rotationId,
+    passkeyId
+  });
+  const confirmedRows = confirmedReadback.ok && Array.isArray(confirmedReadback.data) ? confirmedReadback.data : [];
+  const confirmedRow = confirmedRows.length === 1 ? confirmedRows[0] : null;
+  if (!confirmedRow
+      || confirmedRow.is_active !== false
+      || String(confirmedRow.rotation_state || '') !== 'pending'
+      || String(confirmedRow.rotation_purpose || '') !== rotationPurpose
+      || confirmedRow.credential_epoch == null || Number(confirmedRow.credential_epoch) !== 0
+      || Number(confirmedRow.expected_security_epoch || 0) !== expectedSecurityEpoch
+      || confirmedRow.sign_count == null || Number(confirmedRow.sign_count) !== signCount
+      || confirmedRow.backup_state !== (assertion.backupState === true)
+      || !safeEqual(String(confirmedRow.rotation_id || ''), rotationId)
+      || !safeEqual(String(confirmedRow.current_auth_session_id || ''), currentAuthSessionId)
+      || !safeEqual(String(confirmedRow.public_key_sha256 || ''), String(row.public_key_sha256 || ''))
+      || !confirmedRow.confirmed_at || confirmedRow.activated_at || confirmedRow.revoked_at
+      || Date.parse(String(confirmedRow.pending_expires_at || '')) <= Date.now()
+      || !diracPasskeyA2FOwnerMatches(confirmedRow, owner)) {
+    return { ok: false, status: 503, message: 'Postcondition confirmed_at Passkey pending tidak dapat dibuktikan.', code: 'PASSKEY_CONFIRM_PENDING_READBACK_FAILED' };
+  }
+
+  const recoveryRequestId = confirmedRow.recovery_request_id ? String(confirmedRow.recovery_request_id) : null;
+  const recoverySessionId = confirmedRow.recovery_session_id ? String(confirmedRow.recovery_session_id) : null;
+  const recoverySessionHash = confirmedRow.recovery_session_hash ? String(confirmedRow.recovery_session_hash) : null;
+  const authorizingCredentialIdHash = /^[a-f0-9]{64}$/.test(String(confirmedRow.authorizing_credential_id_hash || ''))
+    ? String(confirmedRow.authorizing_credential_id_hash)
+    : null;
 
   const finalized = await diracPasskeyA2FRpcV237('dirac_passkey_finalize_rotation_v237', {
     p_customer_id: String(owner.customerId),
     p_auth_user_id: String(owner.authUserId),
     p_rotation_id: rotationId,
-    p_pending_passkey_id: String(pendingRow.id),
+    p_pending_passkey_id: passkeyId,
     p_rotation_purpose: rotationPurpose,
     p_expected_security_epoch: expectedSecurityEpoch,
-    p_authorizing_credential_id_hash: null,
+    p_authorizing_credential_id_hash: authorizingCredentialIdHash,
     p_current_auth_session_id: currentAuthSessionId,
     p_recovery_request_id: recoveryRequestId,
     p_recovery_session_id: recoverySessionId,
@@ -14802,35 +15151,49 @@ async function diracPasskeyA2FSaveRegistration({ owner, credential, response, cl
       status: Number(finalized.status || 0),
       provider_code: diracPasskeyA2FRpcProviderCodeV237(finalized)
     });
-    return { ok: false, status: finalized.status || 500, message: 'Gagal mengaktifkan rotasi Passkey secara atomik.', code: 'PASSKEY_FINALIZE_ROTATION_RPC_FAILED' };
+    return { ok: false, status: finalized.status || 500, message: 'Gagal mengaktifkan rotasi Passkey setelah konfirmasi.', code: 'PASSKEY_FINALIZE_ROTATION_RPC_FAILED' };
+  }
+  const finalizedData = diracPasskeyA2FRpcDataObjectV237(finalized);
+  const finalizedSecurityEpoch = Number(finalizedData && finalizedData.security_epoch);
+  if (!finalizedData || finalizedData.ok !== true
+      || !Number.isSafeInteger(finalizedSecurityEpoch)
+      || finalizedSecurityEpoch !== expectedSecurityEpoch + 1
+      || Number(finalizedData.active_credentials) !== 1) {
+    return { ok: false, status: 503, message: 'Bukti commit rotasi Passkey tidak valid.', code: 'PASSKEY_FINALIZE_RPC_POSTCONDITION_FAILED' };
   }
 
   const activeReadback = await diracPasskeyA2FFetchCredentialStateV237({
     owner,
     credentialId,
     rotationId,
-    passkeyId: String(pendingRow.id),
+    passkeyId,
     activeOnly: true
   });
   const activeRows = activeReadback.ok && Array.isArray(activeReadback.data) ? activeReadback.data : [];
   const activeRow = activeRows.length === 1 ? activeRows[0] : null;
   const allActiveRows = await diracPasskeyA2FListActivePasskeys(owner, true);
+  const finalBinding = diracPasskeyA2FStoredDeviceBinding(activeRow);
   if (!activeRow || activeRow.is_active !== true
       || String(activeRow.rotation_state || '') !== 'active'
+      || String(activeRow.rotation_purpose || '') !== rotationPurpose
       || !safeEqual(String(activeRow.rotation_id || ''), rotationId)
-      || !Number.isSafeInteger(Number(activeRow.credential_epoch || 0))
-      || Number(activeRow.credential_epoch || 0) < 1
-      || !activeRow.confirmed_at || !activeRow.activated_at || activeRow.revoked_at
+      || Number(activeRow.credential_epoch || 0) !== finalizedSecurityEpoch
+      || !activeRow.confirmed_at || !activeRow.activated_at
+      || activeRow.pending_expires_at || activeRow.revoked_at
+      || activeRow.sign_count == null || Number(activeRow.sign_count) !== signCount
       || allActiveRows.length !== 1
       || !safeEqual(String(allActiveRows[0] && allActiveRows[0].id || ''), String(activeRow.id || ''))
+      || !finalBinding.ok
+      || !safeEqual(finalBinding.keyId, deviceBinding.keyId)
       || !diracPasskeyA2FOwnerMatches(activeRow, owner)) {
-    return { ok: false, status: 503, message: 'Status aktif Passkey setelah rotasi tidak dapat dibuktikan.', code: 'PASSKEY_FINAL_STATE_POSTCONDITION_FAILED' };
+    return { ok: false, status: 503, message: 'Status aktif Passkey setelah konfirmasi tidak dapat dibuktikan.', code: 'PASSKEY_FINAL_STATE_POSTCONDITION_FAILED' };
   }
 
   return {
     ok: true,
     created: true,
     row: activeRow,
+    securityEpoch: finalizedSecurityEpoch,
     deviceBindingVerified: true,
     deviceBindingKeyId: deviceBinding.keyId,
     rotationId
@@ -15408,6 +15771,10 @@ async function diracPasskeyA2FVerify(req, res) {
     await diracA2FHardBanCurrentRequest('passkey_a2f_customer_mismatch');
     return res.status(403).json({ ok: false, method: 'passkey', message: 'Customer owner Passkey tidak cocok. Login ulang dulu.' });
   }
+  if (!payload.authUserId || !safeEqual(String(payload.authUserId), String(owner.authUserId || ''))) {
+    await diracA2FHardBanCurrentRequest('passkey_a2f_auth_user_mismatch');
+    return res.status(403).json({ ok: false, method: 'passkey', message: 'User autentikasi Passkey tidak cocok. Login ulang dulu.' });
+  }
 
   let lostRecoverySession = null;
   if (payload.lostPasskeyRecovery) {
@@ -15448,10 +15815,12 @@ async function diracPasskeyA2FVerify(req, res) {
   const clientType = String(clientData.type || '').toLowerCase();
   const payloadMode = String(payload.mode || body.passkeyMode || '').toLowerCase();
   const isAuthentication = payloadMode === 'authentication';
-  if (isAuthentication && clientType !== 'webauthn.get') {
-    return res.status(400).json({ ok: false, method: 'passkey', message: 'Respons browser bukan login Passkey yang valid.' });
+  const isPendingConfirmation = payloadMode === 'confirm_pending';
+  const isAssertion = isAuthentication || isPendingConfirmation;
+  if (isAssertion && clientType !== 'webauthn.get') {
+    return res.status(400).json({ ok: false, method: 'passkey', message: 'Respons browser bukan assertion Passkey yang valid.' });
   }
-  if (!isAuthentication && clientType !== 'webauthn.create') {
+  if (!isAssertion && clientType !== 'webauthn.create') {
     return res.status(400).json({ ok: false, method: 'passkey', message: 'Respons browser bukan pendaftaran Passkey yang valid.' });
   }
   const clientOrigin = normalizeDashboardMfaOrigin(clientData.origin || '');
@@ -15460,11 +15829,11 @@ async function diracPasskeyA2FVerify(req, res) {
     await diracA2FHardBanCurrentRequest('passkey_a2f_origin_mismatch');
     return res.status(403).json({ ok: false, method: 'passkey', message: 'Origin Passkey tidak cocok dengan domain login.' });
   }
-  if (!isAuthentication && !response.attestationObject) {
+  if (!isAssertion && !response.attestationObject) {
     return res.status(400).json({ ok: false, method: 'passkey', message: 'Browser tidak mengirim attestation Passkey. Coba ulangi.' });
   }
-  if (isAuthentication && (!response.authenticatorData || !response.signature)) {
-    return res.status(400).json({ ok: false, method: 'passkey', message: 'Browser tidak mengirim bukti login Passkey. Coba ulangi.' });
+  if (isAssertion && (!response.authenticatorData || !response.signature)) {
+    return res.status(400).json({ ok: false, method: 'passkey', message: 'Browser tidak mengirim bukti assertion Passkey. Coba ulangi.' });
   }
 
   const credentialId = diracPasskeyA2FCredentialId(credential);
@@ -15495,7 +15864,40 @@ async function diracPasskeyA2FVerify(req, res) {
 
   let dbWrite = null;
   let registeredNow = false;
-  if (isAuthentication) {
+  if (isPendingConfirmation) {
+    const pendingCredentialId = String(payload.pendingCredentialId || '');
+    const pendingPasskeyId = String(payload.pendingPasskeyId || '');
+    const pendingRotationId = String(payload.rotationId || '');
+    if (!safeEqual(credentialId, pendingCredentialId)
+        || !customerSecurityLooksLikeUuid(pendingPasskeyId)
+        || !customerSecurityLooksLikeUuid(pendingRotationId)) {
+      await diracA2FHardBanCurrentRequest('passkey_confirm_pending_credential_binding_invalid');
+      return res.status(403).json({ ok: false, method: 'passkey', code: 'PASSKEY_CONFIRM_PENDING_BINDING_INVALID', message: 'Credential konfirmasi tidak cocok dengan Passkey pending.' });
+    }
+    const pendingReadback = await diracPasskeyA2FFetchCredentialStateV237({
+      owner,
+      credentialId: pendingCredentialId,
+      rotationId: pendingRotationId,
+      passkeyId: pendingPasskeyId
+    });
+    const pendingRows = pendingReadback.ok && Array.isArray(pendingReadback.data) ? pendingReadback.data : [];
+    const pendingRow = pendingRows.length === 1 ? pendingRows[0] : null;
+    if (!pendingRow) {
+      return res.status(409).json({ ok: false, method: 'passkey', code: 'PASSKEY_CONFIRM_PENDING_NOT_FOUND', message: 'Passkey pending tidak ditemukan atau sudah berubah.' });
+    }
+    dbWrite = await diracPasskeyA2FConfirmPendingRegistrationV237({
+      row: pendingRow,
+      owner,
+      response,
+      credential,
+      clientData,
+      payload,
+      req,
+      body,
+      setupToken
+    });
+    registeredNow = Boolean(dbWrite && dbWrite.ok && dbWrite.created);
+  } else if (isAuthentication) {
     if (activeBeforeVerify.length !== 1) {
       return res.status(409).json({ ok: false, method: 'passkey', code: 'ACTIVE_PASSKEY_CARDINALITY_INVALID', message: 'Autentikasi hanya diizinkan jika tepat satu Passkey aktif.' });
     }
@@ -15515,7 +15917,6 @@ async function diracPasskeyA2FVerify(req, res) {
       return res.status(409).json({ ok: false, method: 'passkey', code: 'PASSKEY_REGISTRATION_STATE_CHANGED', message: 'Passkey aktif sudah ada. Pendaftaran baru tanpa recovery ditolak.' });
     }
     dbWrite = await diracPasskeyA2FSaveRegistration({ owner, credential, response, clientData, payload, req, body, setupToken });
-    registeredNow = Boolean(dbWrite && dbWrite.ok && dbWrite.created);
   }
 
   if (!dbWrite || !dbWrite.ok) {
@@ -15525,6 +15926,9 @@ async function diracPasskeyA2FVerify(req, res) {
       code: dbWrite && dbWrite.code ? String(dbWrite.code) : 'PASSKEY_DATABASE_WRITE_FAILED',
       message: diracPasskeyA2FPublicError(dbWrite && dbWrite.message ? dbWrite.message : 'Passkey belum tersimpan ke database.')
     });
+  }
+  if (dbWrite.confirmationRequired === true && dbWrite.confirmationResponse) {
+    return res.status(202).json(dbWrite.confirmationResponse);
   }
 
   let lostRecoveryRotation = null;
@@ -15555,6 +15959,7 @@ async function diracPasskeyA2FVerify(req, res) {
   if (!settingsActivation || settingsActivation.ok !== true
       || !Number.isSafeInteger(securityEpoch) || securityEpoch < 1
       || (isAuthentication && securityEpoch !== Number(payload.securityEpochAtStart))
+      || (isPendingConfirmation && securityEpoch !== Number(dbWrite && dbWrite.securityEpoch))
       || (lostRecoveryRotation && lostRecoveryRotation.ok
         && (Number(settingsActivation.securityEpoch) !== securityEpoch
           || securityEpoch <= Number(payload.securityEpochAtStart)))) {
