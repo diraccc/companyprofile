@@ -15487,19 +15487,57 @@ async function diracPasskeyA2FCompleteLostRecoveryRotation({ owner, newCredentia
   const credentialId = diracPasskeyA2FSafeString(newCredentialId, 4096);
   const completed = savedPasskeyRow && savedPasskeyRow.credential_json
     && savedPasskeyRow.credential_json.lost_passkey_rotation_v235_completed;
-  const securityEpoch = Number(completed && completed.security_epoch || 0);
-  if (!credentialId || !completed
-      || completed.version !== 'dirac-lost-passkey-rotation-v235'
-      || !Number.isSafeInteger(securityEpoch) || securityEpoch < 2
-      || completed.auth_sessions_revoked !== true
-      || completed.application_sessions_revoked !== true) {
+  const legacySecurityEpoch = Number(completed && completed.security_epoch || 0);
+  const legacyCommitProofValid = Boolean(credentialId && completed
+    && completed.version === 'dirac-lost-passkey-rotation-v235'
+    && Number.isSafeInteger(legacySecurityEpoch) && legacySecurityEpoch >= 2
+    && completed.auth_sessions_revoked === true
+    && completed.application_sessions_revoked === true);
+
+  const v237SecurityEpoch = Number(savedPasskeyRow && savedPasskeyRow.credential_epoch || 0);
+  const v237CommitProofValid = Boolean(credentialId
+    && savedPasskeyRow
+    && customerSecurityLooksLikeUuid(String(savedPasskeyRow.id || ''))
+    && diracPasskeyA2FOwnerMatches(savedPasskeyRow, owner)
+    && safeEqual(String(savedPasskeyRow.credential_id || ''), credentialId)
+    && savedPasskeyRow.is_active === true
+    && String(savedPasskeyRow.rotation_state || '') === 'active'
+    && String(savedPasskeyRow.rotation_purpose || '') === DIRAC_PASSKEY_ROTATION_PURPOSE_RECOVERY_V237
+    && customerSecurityLooksLikeUuid(String(savedPasskeyRow.rotation_id || ''))
+    && Number.isSafeInteger(v237SecurityEpoch) && v237SecurityEpoch >= 2
+    && Number(savedPasskeyRow.expected_security_epoch || 0) === v237SecurityEpoch - 1
+    && customerSecurityLooksLikeUuid(String(savedPasskeyRow.current_auth_session_id || ''))
+    && !String(savedPasskeyRow.authorizing_credential_id_hash || '')
+    && safeEqual(String(savedPasskeyRow.recovery_request_id || ''), String(recoverySession.requestId || ''))
+    && safeEqual(String(savedPasskeyRow.recovery_session_id || ''), String(recoverySession.id || ''))
+    && safeEqual(String(savedPasskeyRow.recovery_session_hash || ''), String(recoverySession.sessionHash || ''))
+    && Boolean(savedPasskeyRow.confirmed_at)
+    && Boolean(savedPasskeyRow.activated_at)
+    && !savedPasskeyRow.pending_expires_at
+    && !savedPasskeyRow.revoked_at);
+
+  if (!legacyCommitProofValid && !v237CommitProofValid) {
     return { ok: false, status: 409, reason: 'lost_passkey_rotation_commit_proof_invalid' };
   }
+  if (legacyCommitProofValid && v237CommitProofValid && legacySecurityEpoch !== v237SecurityEpoch) {
+    return { ok: false, status: 409, reason: 'lost_passkey_rotation_commit_proof_epoch_mismatch' };
+  }
+  const securityEpoch = v237CommitProofValid ? v237SecurityEpoch : legacySecurityEpoch;
 
   const activePasskeys = await diracPasskeyA2FListActivePasskeys(owner, true);
-  if (activePasskeys.length !== 1
-      || !activePasskeys[0]
-      || !safeEqual(String(activePasskeys[0].credential_id || ''), credentialId)) {
+  const activePasskey = activePasskeys.length === 1 ? activePasskeys[0] : null;
+  if (!activePasskey
+      || !safeEqual(String(activePasskey.credential_id || ''), credentialId)
+      || (v237CommitProofValid && (
+        !safeEqual(String(activePasskey.id || ''), String(savedPasskeyRow.id || ''))
+        || !diracPasskeyA2FOwnerMatches(activePasskey, owner)
+        || activePasskey.is_active !== true
+        || String(activePasskey.rotation_state || '') !== 'active'
+        || !safeEqual(String(activePasskey.rotation_id || ''), String(savedPasskeyRow.rotation_id || ''))
+        || Number(activePasskey.credential_epoch || 0) !== securityEpoch
+        || !activePasskey.confirmed_at
+        || !activePasskey.activated_at
+        || activePasskey.revoked_at))) {
     return { ok: false, status: 409, reason: 'lost_passkey_rotation_active_credential_invalid' };
   }
 
@@ -15514,7 +15552,7 @@ async function diracPasskeyA2FCompleteLostRecoveryRotation({ owner, newCredentia
   }
 
   const sessionPath = '/rest/v1/' + LOST_PASSKEY_RECOVERY_SESSION_TABLE
-    + '?select=' + encodeURIComponent('id,request_id,customer_id,auth_user_id,status,used_at,revoked_at,metadata')
+    + '?select=' + encodeURIComponent('id,request_id,customer_id,auth_user_id,recovery_session_hash,status,used_at,revoked_at,metadata')
     + '&id=eq.' + encodeURIComponent(recoverySession.id)
     + '&request_id=eq.' + encodeURIComponent(recoverySession.requestId)
     + '&customer_id=eq.' + encodeURIComponent(owner.customerId)
@@ -15527,6 +15565,7 @@ async function diracPasskeyA2FCompleteLostRecoveryRotation({ owner, newCredentia
     ? closedRow.metadata
     : null;
   if (!closedRow || closedRow.status !== 'used' || !closedRow.used_at || closedRow.revoked_at
+      || !safeEqual(String(closedRow.recovery_session_hash || ''), String(recoverySession.sessionHash || ''))
       || Number(closedMetadata && closedMetadata.security_epoch || 0) !== securityEpoch
       || closedMetadata.auth_sessions_revoked !== true
       || closedMetadata.application_sessions_revoked !== true) {
@@ -15541,9 +15580,14 @@ async function diracPasskeyA2FCompleteLostRecoveryRotation({ owner, newCredentia
     return { ok: false, status: 409, reason: 'lost_passkey_application_sessions_still_active' };
   }
 
+  const oldPasskeysDeactivated = Math.max(0, Number(
+    v237CommitProofValid
+      ? ((closedMetadata && closedMetadata.old_passkey_count) || 0)
+      : ((completed && completed.old_passkeys_deactivated) || 0)
+  ));
   return {
     ok: true,
-    oldPasskeysDeactivated: Math.max(0, Number(completed.old_passkeys_deactivated || 0)),
+    oldPasskeysDeactivated,
     recoverySessionClosed: true,
     securityEpoch
   };
