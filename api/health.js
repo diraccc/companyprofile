@@ -1507,15 +1507,22 @@ async function domainRegister(req, res, preloadedBody) {
 
       if (recovered && recovered.ok === true) {
         const recoveredSession = recovered.session && typeof recovered.session === 'object' ? recovered.session : {};
-        if (recoveredSession.access_token && recoveredSession.refresh_token) {
-          const recoveredSessionCookiesPublished = setSessionCookies(res, recoveredSession);
-          if (recoveredSessionCookiesPublished !== true) {
-            return res.status(502).json({
-              ok: false,
-              code: 'REGISTER_RECOVERY_SESSION_COOKIE_PUBLICATION_FAILED',
-              message: 'Akun berhasil dipulihkan, tetapi sesi perangkat tidak dapat diterbitkan secara aman. Silakan login ulang.'
-            });
-          }
+        if (!hasValidDomainSessionTokens(recoveredSession)) {
+          clearSessionCookies(res);
+          return res.status(502).json({
+            ok: false,
+            code: 'REGISTER_RECOVERY_VERIFIED_SESSION_MISSING',
+            message: 'Akun berhasil dipulihkan, tetapi sesi autentikasi terverifikasi tidak tersedia. Silakan login ulang.'
+          });
+        }
+
+        const recoveredSessionCookiesPublished = setSessionCookies(res, recoveredSession);
+        if (recoveredSessionCookiesPublished !== true) {
+          return res.status(502).json({
+            ok: false,
+            code: 'REGISTER_RECOVERY_SESSION_COOKIE_PUBLICATION_FAILED',
+            message: 'Akun berhasil dipulihkan, tetapi sesi perangkat tidak dapat diterbitkan secara aman. Silakan login ulang.'
+          });
         }
 
         return res.status(200).json({
@@ -1562,9 +1569,20 @@ async function domainRegister(req, res, preloadedBody) {
     return res.status(409).json(buildDomainRegisterDuplicateEmailBody());
   }
 
-  const signupHasSession = hasValidDomainSessionTokens(signupData);
+  const signupSessionOffered = hasValidDomainSessionTokens(signupData)
+    || hasValidDomainSessionTokens(signupData.session);
+  const verifiedSignupLogin = await loginSupabaseAuthUserAfterRegisterRecovery(
+    email,
+    password,
+    signupData.user
+  );
+  const signupSession = verifiedSignupLogin && verifiedSignupLogin.ok === true
+    ? verifiedSignupLogin.session
+    : null;
+  const signupHasSession = hasValidDomainSessionTokens(signupSession);
+
   if (signupHasSession) {
-    const signupSessionCookiesPublished = setSessionCookies(res, signupData);
+    const signupSessionCookiesPublished = setSessionCookies(res, signupSession);
     if (signupSessionCookiesPublished !== true) {
       return res.status(502).json({
         ok: false,
@@ -1574,6 +1592,13 @@ async function domainRegister(req, res, preloadedBody) {
     }
   } else {
     clearSessionCookies(res);
+    if (signupSessionOffered) {
+      return res.status(502).json({
+        ok: false,
+        code: 'REGISTER_SESSION_VERIFICATION_FAILED',
+        message: 'Akun berhasil dibuat, tetapi sesi hasil pendaftaran gagal diverifikasi ulang. Silakan login ulang.'
+      });
+    }
   }
 
   return res.status(200).json({
@@ -1582,8 +1607,8 @@ async function domainRegister(req, res, preloadedBody) {
       ? 'Akun berhasil dibuat dan login otomatis.'
       : 'Akun berhasil dibuat. Silakan cek email verifikasi jika diperlukan.',
     needs_email_confirmation: !signupHasSession,
-    user: sanitizeUser(signupData.user),
-    session: buildDomainAuthSessionPayload(signupData)
+    user: sanitizeUser(verifiedSignupLogin && verifiedSignupLogin.user || signupData.user),
+    session: buildDomainAuthSessionPayload(signupSession)
   });
 }
 
@@ -1651,7 +1676,11 @@ async function recoverDomainRegisterFromSupabaseEmailDeliveryFailure(input) {
       return { ok: false, status: confirmed.status || 502 };
     }
 
-    const login = await loginSupabaseAuthUserAfterRegisterRecovery(email, password);
+    const login = await loginSupabaseAuthUserAfterRegisterRecovery(
+      email,
+      password,
+      confirmed.user || existing.user
+    );
     if (!login.ok) {
       return {
         ok: true,
@@ -1701,11 +1730,12 @@ async function recoverDomainRegisterFromSupabaseEmailDeliveryFailure(input) {
     };
   }
 
-  const login = await loginSupabaseAuthUserAfterRegisterRecovery(email, password);
+  const createdUser = normalizeSupabaseAdminUser(created.data);
+  const login = await loginSupabaseAuthUserAfterRegisterRecovery(email, password, createdUser);
   if (!login.ok) {
     return {
       ok: true,
-      user: normalizeSupabaseAdminUser(created.data),
+      user: createdUser,
       session: null,
       recovered_from: 'admin_create_confirmed_user'
     };
@@ -1713,7 +1743,7 @@ async function recoverDomainRegisterFromSupabaseEmailDeliveryFailure(input) {
 
   return {
     ok: true,
-    user: login.session && login.session.user ? login.session.user : normalizeSupabaseAdminUser(created.data),
+    user: login.session && login.session.user ? login.session.user : createdUser,
     session: login.session,
     recovered_from: 'admin_create_confirmed_user'
   };
@@ -1904,22 +1934,66 @@ async function confirmRecentSupabaseAuthUser(user) {
   return { ok: true, user: normalizeSupabaseAdminUser(result.data) || user };
 }
 
-async function loginSupabaseAuthUserAfterRegisterRecovery(email, password) {
+async function loginSupabaseAuthUserAfterRegisterRecovery(email, password, expectedUser) {
+  const normalizedEmail = normalizeAuthEmail(email);
+  const expected = expectedUser && typeof expectedUser === 'object' ? expectedUser : {};
+  const expectedUserId = String(expected.id || expected.user_id || expected.sub || '').trim();
+  const expectedEmail = normalizeAuthEmail(expected.email || normalizedEmail);
+
+  if (!normalizedEmail || !expectedUserId || expectedEmail !== normalizedEmail) {
+    return { ok: false, status: 502, code: 'REGISTER_VERIFIED_LOGIN_IDENTITY_MISSING' };
+  }
+
   const result = await supabaseFetch('/auth/v1/token?grant_type=password', {
     method: 'POST',
     auth: 'anon',
     body: {
-      email: normalizeAuthEmail(email),
+      email: normalizedEmail,
       password: String(password || '')
     }
   });
 
-  if (!result.ok || !result.data || !result.data.access_token) {
+  if (!result.ok || !hasValidDomainSessionTokens(result.data)) {
     console.error('[register-recovery-login-failed]', customerSecuritySafeLogError(result.data));
     return { ok: false, status: result.status || 401, code: 'REGISTER_RECOVERY_LOGIN_FAILED' };
   }
 
-  return { ok: true, session: result.data };
+  const userResult = await supabaseFetch('/auth/v1/user', {
+    method: 'GET',
+    auth: 'anon',
+    bearer: result.data.access_token
+  });
+  const verifiedUser = userResult && userResult.ok && userResult.data && typeof userResult.data === 'object'
+    ? userResult.data
+    : null;
+  const verifiedUserId = String(verifiedUser && (verifiedUser.id || verifiedUser.user_id || verifiedUser.sub) || '').trim();
+  const verifiedEmail = normalizeAuthEmail(verifiedUser && verifiedUser.email || '');
+  const jwtIdentity = typeof diracCentralDeviceJwtUserV223 === 'function'
+    ? diracCentralDeviceJwtUserV223(result.data.access_token)
+    : null;
+
+  if (!verifiedUser || !verifiedUserId || !verifiedEmail
+      || verifiedUserId !== expectedUserId
+      || verifiedEmail !== normalizedEmail
+      || !jwtIdentity
+      || jwtIdentity.userId !== verifiedUserId
+      || jwtIdentity.email !== verifiedEmail) {
+    console.error('[register-verified-session-identity-failed]', {
+      provider_user_present: Boolean(verifiedUser),
+      provider_user_id_present: Boolean(verifiedUserId),
+      provider_email_present: Boolean(verifiedEmail),
+      jwt_identity_present: Boolean(jwtIdentity),
+      expected_identity_match: Boolean(verifiedUserId === expectedUserId && verifiedEmail === normalizedEmail),
+      jwt_provider_identity_match: Boolean(jwtIdentity && jwtIdentity.userId === verifiedUserId && jwtIdentity.email === verifiedEmail)
+    });
+    return { ok: false, status: 502, code: 'REGISTER_VERIFIED_SESSION_IDENTITY_MISMATCH' };
+  }
+
+  return {
+    ok: true,
+    user: verifiedUser,
+    session: Object.assign({}, result.data, { user: verifiedUser })
+  };
 }
 
 
