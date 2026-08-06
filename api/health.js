@@ -16185,7 +16185,7 @@ async function diracPasskeyA2FStart(req, res) {
 }
 
 
-const DIRAC_PASSKEY_COOKIE_ROUNDTRIP_V241 = 'dirac-passkey-cookie-roundtrip-v243';
+const DIRAC_PASSKEY_COOKIE_ROUNDTRIP_V241 = 'dirac-passkey-cookie-roundtrip-v244';
 const DIRAC_PASSKEY_COOKIE_ROUNDTRIP_MAX_CANDIDATES_V243 = 4;
 
 function diracPasskeyCookieRoundtripFailureV241(res, code, details = {}) {
@@ -16203,7 +16203,7 @@ function diracPasskeyCookieRoundtripFailureV241(res, code, details = {}) {
     res.setHeader('X-Dirac-Passkey-Roundtrip-Code', safeCode);
   } catch (_) {}
   try {
-    console.error('[dirac-passkey-cookie-roundtrip-v243]', JSON.stringify({
+    console.error('[dirac-passkey-cookie-roundtrip-v244]', JSON.stringify({
       patch: DIRAC_PASSKEY_COOKIE_ROUNDTRIP_V241,
       event: 'cookie_roundtrip_not_ready',
       code: safeCode,
@@ -16255,6 +16255,152 @@ function diracPasskeyRoundtripCanonicalRequestV243(req, selected, targetNames) {
   }
   headers.cookie = retained.join('; ');
   return { headers };
+}
+
+function diracPasskeyObservedAuthCookieNamesV244(req) {
+  const cookies = typeof parseCookies === 'function' ? parseCookies(req) : {};
+  const names = new Set([ACCESS_COOKIE, REFRESH_COOKIE, 'sb_access_token']);
+  [ACCESS_COOKIE, REFRESH_COOKIE, 'sb_access_token'].forEach((baseName) => {
+    for (let index = 0; index < DOMAIN_COOKIE_MAX_CHUNKS; index += 1) {
+      const chunkName = baseName + '__' + index;
+      const duplicateValues = cookies && cookies.__all && Array.isArray(cookies.__all[chunkName])
+        ? cookies.__all[chunkName]
+        : [];
+      if (Object.prototype.hasOwnProperty.call(cookies || {}, chunkName)
+          || duplicateValues.length > 0) names.add(chunkName);
+    }
+  });
+  return Array.from(names).filter((name) => /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/.test(name));
+}
+
+function diracPasskeyReplaceResponseCookiesV244(res, replacedNames, nextCookies) {
+  if (!res || typeof res.setHeader !== 'function') return false;
+  const names = new Set((replacedNames || []).map((name) => String(name || '').trim()).filter(Boolean));
+  const additions = (Array.isArray(nextCookies) ? nextCookies : [nextCookies]).filter(Boolean).map(String);
+  if (!names.size || !additions.length) return false;
+
+  const current = typeof res.getHeader === 'function' ? res.getHeader('Set-Cookie') : null;
+  const previous = Array.isArray(current)
+    ? current.map(String)
+    : current
+      ? [String(current)]
+      : [];
+  const retained = previous.filter((cookieValue) => {
+    const first = String(cookieValue || '').split(';', 1)[0];
+    const separator = first.indexOf('=');
+    const name = separator === -1 ? first.trim() : first.slice(0, separator).trim();
+    return !names.has(name);
+  });
+  res.setHeader('Set-Cookie', retained.concat(additions));
+  return true;
+}
+
+function diracPasskeyRepairDashboardCookieChainV244(req, res, signedValue, mfaValue, signedAnchor, mfa) {
+  try {
+    const nowMs = Date.now();
+    const remainingMs = Math.min(
+      Number(signedAnchor && signedAnchor.expiresAt || 0) * 1000 - nowMs,
+      Number(mfa && mfa.expiresAtMs || 0) - nowMs
+    );
+    const deviceSessionMaxAgeSeconds = Math.floor(remainingMs / 1000);
+    if (!Number.isSafeInteger(deviceSessionMaxAgeSeconds) || deviceSessionMaxAgeSeconds < 60) {
+      return { ok: false, reason: 'passkey_cookie_repair_lifetime_invalid' };
+    }
+
+    const identity = {
+      userId: String(signedAnchor && signedAnchor.userId || '').trim(),
+      email: normalizeAuthEmail(signedAnchor && signedAnchor.email || '')
+    };
+    const deviceSession = diracCentralCreateDeviceSessionCookieV223(
+      identity,
+      Math.min(60 * 60 * 24 * 7, deviceSessionMaxAgeSeconds)
+    );
+    if (!deviceSession || !deviceSession.value || !deviceSession.cookie
+        || !/^[a-f0-9]{64}$/.test(String(deviceSession.binding || ''))) {
+      return { ok: false, reason: 'passkey_cookie_repair_device_session_issue_failed' };
+    }
+
+    const deviceCredential = diracCentralDeviceTokenV221(req, deviceSession.binding);
+    const deviceCredentialEnvelope = diracCentralVerifyDeviceEnvelopeV224(req, deviceCredential);
+    if (!deviceCredentialEnvelope || deviceCredentialEnvelope.ok !== true
+        || !deviceCredentialEnvelope.payload
+        || Number(deviceCredentialEnvelope.payload.sbv) !== 2
+        || !safeEqual(String(deviceCredentialEnvelope.payload.session || ''), String(deviceSession.binding))) {
+      return { ok: false, reason: 'passkey_cookie_repair_device_credential_issue_failed' };
+    }
+
+    const deviceSessionCookieName = diracCentralDeviceSessionCookieNameV223();
+    const deviceCredentialCookieName = diracCentralDeviceCookieNameV221();
+    const authCookieNames = diracPasskeyObservedAuthCookieNamesV244(req);
+    if (authCookieNames.length > 12) {
+      return { ok: false, reason: 'passkey_cookie_repair_auth_cookie_limit_exceeded' };
+    }
+    const virtualTargetNames = [
+      DOMAIN_SIGNED_SESSION_COOKIE,
+      CUSTOMER_MFA_COOKIE,
+      deviceSessionCookieName,
+      deviceCredentialCookieName,
+      ...authCookieNames
+    ];
+    const virtualReq = diracPasskeyRoundtripCanonicalRequestV243(req, {
+      [DOMAIN_SIGNED_SESSION_COOKIE]: signedValue,
+      [CUSTOMER_MFA_COOKIE]: mfaValue,
+      [deviceSessionCookieName]: deviceSession.value,
+      [deviceCredentialCookieName]: deviceCredential
+    }, virtualTargetNames);
+
+    const centralDeviceSession = diracCentralVerifyDeviceSessionCookieV223(virtualReq);
+    const centralDeviceCredential = centralDeviceSession
+      ? diracCentralVerifyDeviceTokenV221(virtualReq, deviceCredential)
+      : null;
+    if (!centralDeviceSession || !centralDeviceSession.binding
+        || !centralDeviceCredential || centralDeviceCredential.ok !== true
+        || !safeEqual(String(centralDeviceSession.binding), String(deviceSession.binding))) {
+      return { ok: false, reason: 'passkey_cookie_repair_central_verification_failed' };
+    }
+
+    const cookieDomains = getCompactCookieDomainsForSession();
+    const authClears = [];
+    authCookieNames.forEach((name) => {
+      cookieDomains.forEach((domain) => {
+        authClears.push(makeCookie(name, '', { maxAge: 0, domain }));
+      });
+    });
+    const deviceCredentialMaxAgeSeconds = Math.min(24 * 60 * 60, deviceSessionMaxAgeSeconds);
+    const replacementCookies = [
+      ...authClears,
+      String(deviceSession.cookie),
+      makeCookie(deviceCredentialCookieName, deviceCredential, {
+        maxAge: deviceCredentialMaxAgeSeconds,
+        domain: ''
+      })
+    ];
+    const replacedNames = [...authCookieNames, deviceSessionCookieName, deviceCredentialCookieName];
+    if (!diracPasskeyReplaceResponseCookiesV244(res, replacedNames, replacementCookies)) {
+      return { ok: false, reason: 'passkey_cookie_repair_publication_failed' };
+    }
+
+    const publishedRaw = res.getHeader('Set-Cookie');
+    const published = Array.isArray(publishedRaw)
+      ? publishedRaw.map(String)
+      : publishedRaw
+        ? [String(publishedRaw)]
+        : [];
+    const expectedDeviceCookies = replacementCookies.slice(authClears.length);
+    if (expectedDeviceCookies.some((cookieValue) => published.filter((item) => item === cookieValue).length !== 1)
+        || authClears.some((cookieValue) => published.filter((item) => item === cookieValue).length !== 1)) {
+      return { ok: false, reason: 'passkey_cookie_repair_publication_verification_failed' };
+    }
+
+    return {
+      ok: true,
+      authCookieNamesCleared: authCookieNames.length,
+      deviceSessionIssued: true,
+      deviceCredentialIssued: true
+    };
+  } catch (_) {
+    return { ok: false, reason: 'passkey_cookie_repair_exception' };
+  }
 }
 
 function diracPasskeyConfirmDashboardCookieRoundtripV241(req, res) {
@@ -16349,6 +16495,7 @@ function diracPasskeyConfirmDashboardCookieRoundtripV241(req, res) {
     let expiryInvalid = false;
     let validChain = null;
     let validChainCount = 0;
+    let repairContext = null;
 
     for (const signedValue of signedSet.values) {
       const signedAnchor = customerSecurityDecodeSignedSessionAnchorV228(signedValue);
@@ -16367,6 +16514,13 @@ function diracPasskeyConfirmDashboardCookieRoundtripV241(req, res) {
         if (!mfa || mfa.ok !== true || mfa.method !== 'passkey'
             || Number(mfa.securityEpoch) !== Number(signedAnchor.securityEpoch)) continue;
         mfaValid = true;
+        if (!repairContext
+            && signedSet.values.length === 1
+            && mfaSet.values.length === 1
+            && deviceSessionSet.values.length === 1
+            && deviceCredentialSet.values.length === 1) {
+          repairContext = { signedValue, mfaValue, signedAnchor, mfa };
+        }
 
         for (const deviceSessionValue of deviceSessionSet.values) {
           const deviceSessionReq = diracPasskeyRoundtripCanonicalRequestV243(req, {
@@ -16414,6 +16568,35 @@ function diracPasskeyConfirmDashboardCookieRoundtripV241(req, res) {
             validChain = { expiresAtMs };
           }
         }
+      }
+    }
+
+    if (!validChain && repairContext) {
+      const repaired = diracPasskeyRepairDashboardCookieChainV244(
+        req,
+        res,
+        repairContext.signedValue,
+        repairContext.mfaValue,
+        repairContext.signedAnchor,
+        repairContext.mfa
+      );
+      if (repaired && repaired.ok === true) {
+        return diracPasskeyCookieRoundtripFailureV241(
+          res,
+          'PASSKEY_COOKIE_CHAIN_REPAIRED_RETRY',
+          failureDetails
+        );
+      }
+      if (repaired && repaired.reason === 'passkey_cookie_repair_central_verification_failed') {
+        res.setHeader('Cache-Control', 'no-store, max-age=0');
+        res.setHeader('X-Dirac-Passkey-Roundtrip-Code', 'PASSKEY_CENTRAL_DEVICE_POLICY_INCONSISTENT');
+        return res.status(503).json({
+          ok: false,
+          ready: false,
+          patch: DIRAC_PASSKEY_COOKIE_ROUNDTRIP_V241,
+          code: 'PASSKEY_CENTRAL_DEVICE_POLICY_INCONSISTENT',
+          message: 'Rantai cookie baru tidak diterima oleh verifier Central Guard. Dashboard tetap dikunci.'
+        });
       }
     }
 
