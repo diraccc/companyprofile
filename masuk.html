@@ -7513,6 +7513,39 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       && expiresAtMs > activeAtMs);
     return {valid:valid, expiresAtMs:valid ? expiresAtMs : 0};
   }
+  async function confirmPasskeyDashboardCookieRoundtrip(){
+    var delays = [100, 250, 500, 1000];
+    var lastMessage = lang()==='en'
+      ? 'The browser has not returned the complete Passkey session cookies.'
+      : 'Browser belum mengirim kembali cookie sesi Passkey secara lengkap.';
+    for(var i=0;i<delays.length;i++){
+      await new Promise(function(resolve){ setTimeout(resolve, delays[i]); });
+      try{
+        var response = await fetch('/api/health?action=domain_health&_csrf_bootstrap=passkey_cookie_roundtrip_v241&_t='+Date.now(), {
+          method:'GET',
+          mode:'same-origin',
+          credentials:'include',
+          cache:'no-store',
+          redirect:'error',
+          referrerPolicy:'strict-origin-when-cross-origin',
+          headers:{'Accept':'application/json'}
+        });
+        var data = await response.clone().json().catch(function(){ return null; });
+        if(response.ok && data && data.ok===true && data.ready===true && data.method==='passkey'){
+          var expiresAtMs = Number(data.expiresAtMs || 0);
+          if(Number.isSafeInteger(expiresAtMs) && expiresAtMs > Date.now()){
+            return {ok:true, expiresAtMs:expiresAtMs};
+          }
+          return {ok:false, message:lang()==='en' ? 'The returned Passkey session expiry is invalid.' : 'Masa berlaku sesi Passkey yang dikembalikan tidak valid.'};
+        }
+        if(data && data.message) lastMessage = String(data.message);
+        if(response.status !== 409) return {ok:false, message:lastMessage};
+      }catch(error){
+        if(error && error.message) lastMessage = String(error.message);
+      }
+    }
+    return {ok:false, message:lastMessage};
+  }
   async function startPasskey(){
     if(passkeyWasJustReplaced()){
       clearResult();
@@ -7564,8 +7597,18 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       }
       var handoffProof = passkeyDashboardHandoffProof(verify);
       if(handoffProof.valid && verify.confirmation_required !== true){
+        setMessage('status', lang()==='en'
+          ? 'Confirming that the browser returned every dashboard cookie...'
+          : 'Memastikan browser mengirim kembali seluruh cookie dashboard...');
+        var roundtrip = await confirmPasskeyDashboardCookieRoundtrip();
+        if(!roundtrip.ok){
+          throw new Error(roundtrip.message || 'Cookie sesi Passkey belum kembali lengkap. Dashboard tetap dikunci.');
+        }
         state.passkeyDashboardHandoffVerified = true;
-        state.passkeyDashboardHandoffExpiresAtMs = handoffProof.expiresAtMs;
+        state.passkeyDashboardHandoffExpiresAtMs = Math.min(
+          handoffProof.expiresAtMs,
+          roundtrip.expiresAtMs
+        );
         finishVerification('server', [], verify);
         return;
       }
@@ -7904,9 +7947,31 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     var done = $('#a2fDoneBtn');
     if(done){ done.disabled = true; done.textContent = lang()==='en' ? 'Checking system...' : 'Mengecek sistem...'; }
     playDashboardLaunchAnimation().then(function(){
-      window.location.href = dashboardRedirectUrl();
-    }).catch(function(){
-      window.location.href = dashboardRedirectUrl();
+      if(state.method !== 'passkey'){
+        window.location.href = dashboardRedirectUrl();
+        return null;
+      }
+      return confirmPasskeyDashboardCookieRoundtrip().then(function(roundtrip){
+        if(!roundtrip.ok){
+          throw new Error(roundtrip.message || 'Cookie sesi Passkey tidak lengkap. Dashboard tetap terkunci.');
+        }
+        state.passkeyDashboardHandoffExpiresAtMs = Math.min(
+          Number(state.passkeyDashboardHandoffExpiresAtMs || roundtrip.expiresAtMs),
+          roundtrip.expiresAtMs
+        );
+        window.location.href = dashboardRedirectUrl();
+        return null;
+      });
+    }).catch(function(error){
+      if(state.method !== 'passkey'){
+        window.location.href = dashboardRedirectUrl();
+        return;
+      }
+      state.finishing = false;
+      if(done){ done.disabled = false; done.textContent = lang()==='en' ? 'Open Dashboard' : 'Buka Dashboard'; }
+      setMessage('error', error && error.message
+        ? error.message
+        : (lang()==='en' ? 'The final Passkey cookie check failed. The dashboard remains locked.' : 'Pemeriksaan akhir cookie Passkey gagal. Dashboard tetap terkunci.'));
     });
   }
   function trapFocus(e){
