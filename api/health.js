@@ -9381,10 +9381,31 @@ function customerSecurityDecodeSignedSessionAnchorV228(value) {
 }
 
 function customerSecurityIssueSignedSessionAnchorV228(req, res, user, requestedMaxAgeSeconds, securityEpoch) {
+  const debugFailure = (stage, details = {}) => {
+    try {
+      console.error('[dirac-passkey-a2f-publication-debug-v238]', JSON.stringify(Object.assign(
+        {},
+        details && typeof details === 'object' ? details : {},
+        {
+          patch: 'dirac-passkey-a2f-publication-debug-v238',
+          event: 'signed_session_anchor_failed',
+          stage: String(stage || 'unknown').slice(0, 80)
+        }
+      )));
+    } catch (_) {}
+    return null;
+  };
   const userId = String(user && user.id || '').trim();
   const email = normalizeAuthEmail(user && user.email || '');
   const epoch = Number(securityEpoch || 0);
-  if (!userId || !email || !res || !Number.isSafeInteger(epoch) || epoch < 1) return null;
+  if (!userId || !email || !res || !Number.isSafeInteger(epoch) || epoch < 1) {
+    return debugFailure('input_validation', {
+      user_id_present: Boolean(userId),
+      email_present: Boolean(email),
+      response_present: Boolean(res),
+      security_epoch_valid: Number.isSafeInteger(epoch) && epoch >= 1
+    });
+  }
 
   const cookies = parseCookies(req);
   const candidates = readCookieTokenCandidates(cookies, DOMAIN_SIGNED_SESSION_COOKIE).slice(0, 8);
@@ -9405,7 +9426,14 @@ function customerSecurityIssueSignedSessionAnchorV228(req, res, user, requestedM
     && String(verifiedBootstrapUser.id || '') === userId
     && normalizeAuthEmail(verifiedBootstrapUser.email || '') === email;
 
-  if (!matching.length && !bootstrapMatches) return null;
+  if (!matching.length && !bootstrapMatches) {
+    return debugFailure('bootstrap_authority_missing', {
+      signed_session_candidate_count: candidates.length,
+      matching_signed_session_count: matching.length,
+      verified_bootstrap_present: Boolean(verifiedBootstrapUser),
+      verified_bootstrap_matches: Boolean(bootstrapMatches)
+    });
+  }
 
   const now = Math.floor(Date.now() / 1000);
   const sessionMaxAge = typeof diracV110SessionMaxAgeSeconds === 'function'
@@ -9421,7 +9449,12 @@ function customerSecurityIssueSignedSessionAnchorV228(req, res, user, requestedM
   const anchorExpiresAt = Math.min(signedExpiresAt, now + requestedMaxAge);
   const signedMaxAge = signedExpiresAt - now;
   const anchorMaxAge = anchorExpiresAt - now;
-  if (signedMaxAge < 60 || anchorMaxAge < 1) return null;
+  if (signedMaxAge < 60 || anchorMaxAge < 1) {
+    return debugFailure('lifetime_validation', {
+      signed_max_age_seconds: signedMaxAge,
+      anchor_max_age_seconds: anchorMaxAge
+    });
+  }
 
   const anchorId = crypto.randomBytes(32).toString('base64url');
   const payload = {
@@ -9440,7 +9473,7 @@ function customerSecurityIssueSignedSessionAnchorV228(req, res, user, requestedM
   if (matching.length && matching[0].sessionId) payload.sid = matching[0].sessionId;
 
   const value = signDomainSessionPayload(payload);
-  if (!value) return null;
+  if (!value) return debugFailure('signed_session_signing');
 
   const verifiedAnchor = customerSecurityDecodeSignedSessionAnchorV228(value);
   if (!verifiedAnchor
@@ -9454,7 +9487,23 @@ function customerSecurityIssueSignedSessionAnchorV228(req, res, user, requestedM
       || verifiedAnchor.securityEpoch !== epoch
       || String(verifiedAnchor.payload && verifiedAnchor.payload.session_version || '') !== String(epoch)
       || (payload.sid !== undefined
-        && verifiedAnchor.sessionId !== String(payload.sid))) return null;
+        && verifiedAnchor.sessionId !== String(payload.sid))) {
+    return debugFailure('anchor_self_verification', {
+      decoded: Boolean(verifiedAnchor),
+      user_match: Boolean(verifiedAnchor && verifiedAnchor.userId === userId),
+      email_match: Boolean(verifiedAnchor && verifiedAnchor.email === email),
+      issued_at_match: Boolean(verifiedAnchor && verifiedAnchor.issuedAt === now),
+      expires_at_match: Boolean(verifiedAnchor && verifiedAnchor.expiresAt === signedExpiresAt),
+      anchor_id_match: Boolean(verifiedAnchor && verifiedAnchor.anchorId === anchorId),
+      anchor_issued_at_match: Boolean(verifiedAnchor && verifiedAnchor.anchorIssuedAt === now),
+      anchor_expires_at_match: Boolean(verifiedAnchor && verifiedAnchor.anchorExpiresAt === anchorExpiresAt),
+      security_epoch_match: Boolean(verifiedAnchor && verifiedAnchor.securityEpoch === epoch),
+      session_version_match: Boolean(verifiedAnchor
+        && String(verifiedAnchor.payload && verifiedAnchor.payload.session_version || '') === String(epoch)),
+      session_id_match: Boolean(payload.sid === undefined
+        || (verifiedAnchor && verifiedAnchor.sessionId === String(payload.sid)))
+    });
+  }
 
   const binding = customerMfaBindingHash(
     'signed_session_anchor_v228',
@@ -9467,7 +9516,12 @@ function customerSecurityIssueSignedSessionAnchorV228(req, res, user, requestedM
     ])
   );
   if (!/^[a-f0-9]{64}$/.test(binding)
-      || !safeEqual(verifiedAnchor.binding, binding)) return null;
+      || !safeEqual(verifiedAnchor.binding, binding)) {
+    return debugFailure('anchor_binding_verification', {
+      binding_format_valid: /^[a-f0-9]{64}$/.test(binding),
+      decoded_binding_matches: Boolean(verifiedAnchor && safeEqual(verifiedAnchor.binding, binding))
+    });
+  }
 
   const legacyDomainClears = getCompactCookieDomainsForSession()
     .filter((domain) => Boolean(normalizeCookieDomain(domain)))
@@ -9482,7 +9536,12 @@ function customerSecurityIssueSignedSessionAnchorV228(req, res, user, requestedM
   if (!replaceResponseCookieByNameV229(res, DOMAIN_SIGNED_SESSION_COOKIE, [
     ...legacyDomainClears,
     anchoredSignedSessionCookie
-  ])) return null;
+  ])) {
+    return debugFailure('signed_session_cookie_publication', {
+      legacy_domain_clear_count: legacyDomainClears.length,
+      canonical_cookie_constructed: Boolean(anchoredSignedSessionCookie)
+    });
+  }
 
   return {
     binding,
@@ -9601,7 +9660,18 @@ function customerSecurityCreateDashboardMfaToken(req, user, method = 'recovery_c
 function customerSecuritySetDashboardMfaCookie(res, proof) {
   const token = proof && proof.token ? String(proof.token) : '';
   const maxAge = Math.max(1, Math.floor(Number(proof && proof.maxAgeSeconds || 0)));
-  if (!token || !maxAge) return false;
+  if (!token || !maxAge) {
+    try {
+      console.error('[dirac-passkey-a2f-publication-debug-v238]', JSON.stringify({
+        patch: 'dirac-passkey-a2f-publication-debug-v238',
+        event: 'dashboard_mfa_cookie_failed',
+        stage: 'input_validation',
+        token_present: Boolean(token),
+        max_age_valid: Number.isSafeInteger(maxAge) && maxAge >= 1
+      }));
+    } catch (_) {}
+    return false;
+  }
 
   const legacyDomainClears = getCompactCookieDomainsForSession()
     .filter((domain) => Boolean(normalizeCookieDomain(domain)))
@@ -9613,10 +9683,22 @@ function customerSecuritySetDashboardMfaCookie(res, proof) {
     maxAge,
     domain: ''
   });
-  return replaceResponseCookieByNameV229(res, CUSTOMER_MFA_COOKIE, [
+  const published = replaceResponseCookieByNameV229(res, CUSTOMER_MFA_COOKIE, [
     ...legacyDomainClears,
     canonicalMfaCookie
   ]);
+  if (!published) {
+    try {
+      console.error('[dirac-passkey-a2f-publication-debug-v238]', JSON.stringify({
+        patch: 'dirac-passkey-a2f-publication-debug-v238',
+        event: 'dashboard_mfa_cookie_failed',
+        stage: 'response_cookie_publication',
+        legacy_domain_clear_count: legacyDomainClears.length,
+        canonical_cookie_constructed: Boolean(canonicalMfaCookie)
+      }));
+    } catch (_) {}
+  }
+  return published;
 }
 
 async function customerSecurityVerifyRecoveryCode(req, res, action) {
@@ -16105,12 +16187,21 @@ async function diracPasskeyA2FVerify(req, res) {
     securityEpoch
   });
   if (!proof || !proof.token) {
-    await customerSecurityRevokeIssuedSessionV235(
+    const rollbackOk = await customerSecurityRevokeIssuedSessionV235(
       req,
       owner.customerId,
       issuedSession.session_id,
       'mfa_binding_publication_failed'
     );
+    try {
+      console.error('[dirac-passkey-a2f-publication-debug-v238]', JSON.stringify({
+        patch: 'dirac-passkey-a2f-publication-debug-v238',
+        event: 'passkey_mfa_publication_failed',
+        stage: 'proof_creation',
+        proof_error: String(proof && proof.error || 'MFA_STABLE_SESSION_BINDING_UNAVAILABLE').slice(0, 80),
+        rollback_ok: Boolean(rollbackOk)
+      }));
+    } catch (_) {}
     clearCurrentRequestSessionCookiesV235(req, res);
     return res.status(503).json({
       ok: false,
@@ -16120,12 +16211,21 @@ async function diracPasskeyA2FVerify(req, res) {
     });
   }
   if (!customerSecuritySetDashboardMfaCookie(res, proof)) {
-    await customerSecurityRevokeIssuedSessionV235(
+    const rollbackOk = await customerSecurityRevokeIssuedSessionV235(
       req,
       owner.customerId,
       issuedSession.session_id,
       'mfa_cookie_publication_failed'
     );
+    try {
+      console.error('[dirac-passkey-a2f-publication-debug-v238]', JSON.stringify({
+        patch: 'dirac-passkey-a2f-publication-debug-v238',
+        event: 'passkey_mfa_publication_failed',
+        stage: 'mfa_cookie_publication',
+        proof_present: Boolean(proof && proof.token),
+        rollback_ok: Boolean(rollbackOk)
+      }));
+    } catch (_) {}
     clearCurrentRequestSessionCookiesV235(req, res);
     return res.status(503).json({
       ok: false,
