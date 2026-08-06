@@ -662,7 +662,14 @@ async function domainLogin(req, res, preloadedBody) {
 
   await clearDomainLoginRateLimit(req, loginGuard.email);
 
-  setSessionCookies(res, result.data);
+  const sessionCookiesPublished = setSessionCookies(res, result.data);
+  if (sessionCookiesPublished !== true) {
+    return res.status(502).json({
+      ok: false,
+      code: 'LOGIN_SESSION_COOKIE_PUBLICATION_FAILED',
+      message: 'Login berhasil di server autentikasi, tetapi sesi perangkat tidak dapat diterbitkan secara aman. Silakan login ulang.'
+    });
+  }
 
   return res.status(200).json({
     ok: true,
@@ -1501,7 +1508,14 @@ async function domainRegister(req, res, preloadedBody) {
       if (recovered && recovered.ok === true) {
         const recoveredSession = recovered.session && typeof recovered.session === 'object' ? recovered.session : {};
         if (recoveredSession.access_token && recoveredSession.refresh_token) {
-          setSessionCookies(res, recoveredSession);
+          const recoveredSessionCookiesPublished = setSessionCookies(res, recoveredSession);
+          if (recoveredSessionCookiesPublished !== true) {
+            return res.status(502).json({
+              ok: false,
+              code: 'REGISTER_RECOVERY_SESSION_COOKIE_PUBLICATION_FAILED',
+              message: 'Akun berhasil dipulihkan, tetapi sesi perangkat tidak dapat diterbitkan secara aman. Silakan login ulang.'
+            });
+          }
         }
 
         return res.status(200).json({
@@ -1550,7 +1564,14 @@ async function domainRegister(req, res, preloadedBody) {
 
   const signupHasSession = hasValidDomainSessionTokens(signupData);
   if (signupHasSession) {
-    setSessionCookies(res, signupData);
+    const signupSessionCookiesPublished = setSessionCookies(res, signupData);
+    if (signupSessionCookiesPublished !== true) {
+      return res.status(502).json({
+        ok: false,
+        code: 'REGISTER_SESSION_COOKIE_PUBLICATION_FAILED',
+        message: 'Akun berhasil dibuat, tetapi sesi perangkat tidak dapat diterbitkan secara aman. Silakan login ulang.'
+      });
+    }
   } else {
     clearSessionCookies(res);
   }
