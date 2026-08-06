@@ -472,6 +472,10 @@ function cleanupPublicDomainRateStore(now = Date.now()) {
 async function domainHealth(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
 
+  if (String(req.query && req.query._csrf_bootstrap || '').trim() === 'passkey_cookie_roundtrip_v241') {
+    return diracPasskeyConfirmDashboardCookieRoundtripV241(req, res);
+  }
+
   return res.status(200).json({
     ok: true,
     service: 'dirac-domain',
@@ -16181,6 +16185,137 @@ async function diracPasskeyA2FStart(req, res) {
 }
 
 
+const DIRAC_PASSKEY_COOKIE_ROUNDTRIP_V241 = 'dirac-passkey-cookie-roundtrip-v241';
+
+function diracPasskeyCookieRoundtripFailureV241(res, code) {
+  return res.status(409).json({
+    ok: false,
+    ready: false,
+    patch: DIRAC_PASSKEY_COOKIE_ROUNDTRIP_V241,
+    code: String(code || 'PASSKEY_COOKIE_ROUNDTRIP_FAILED').slice(0, 96),
+    message: 'Cookie sesi Passkey belum kembali lengkap dari browser. Dashboard tetap dikunci.'
+  });
+}
+
+function diracPasskeyConfirmDashboardCookieRoundtripV241(req, res) {
+  try {
+    const guardContext = typeof diracCentralCurrentContextV149 === 'function'
+      ? diracCentralCurrentContextV149()
+      : null;
+    const fullGuardPassed = Boolean(
+      guardContext
+      && guardContext.req === req
+      && String(guardContext.action || '') === 'domain_health'
+      && typeof diracCentralHandlerContextFullyPassedV211 === 'function'
+      && diracCentralHandlerContextFullyPassedV211(guardContext, req)
+    );
+    if (!fullGuardPassed) {
+      return res.status(503).json({
+        ok: false,
+        ready: false,
+        patch: DIRAC_PASSKEY_COOKIE_ROUNDTRIP_V241,
+        code: 'PASSKEY_COOKIE_ROUNDTRIP_FULL_GUARD_REQUIRED',
+        message: 'Pemeriksaan cookie Passkey hanya berjalan setelah seluruh Central Guard lulus.'
+      });
+    }
+
+    const headers = req && req.headers || {};
+    const host = String(headers['x-forwarded-host'] || headers.host || '')
+      .split(',', 1)[0]
+      .trim()
+      .toLowerCase()
+      .replace(/:\d+$/, '');
+    let refererUrl = null;
+    try { refererUrl = new URL(String(headers.referer || headers.referrer || '').trim()); } catch (_) {}
+    if (!host || !refererUrl
+        || refererUrl.protocol !== 'https:'
+        || refererUrl.hostname.toLowerCase() !== host
+        || refererUrl.pathname !== '/masuk.html') {
+      return res.status(403).json({
+        ok: false,
+        ready: false,
+        patch: DIRAC_PASSKEY_COOKIE_ROUNDTRIP_V241,
+        code: 'PASSKEY_COOKIE_ROUNDTRIP_REFERER_INVALID',
+        message: 'Sumber konfirmasi sesi Passkey tidak valid.'
+      });
+    }
+
+    const cookies = parseCookies(req);
+    const exactValues = (name) => {
+      const values = cookies && cookies.__all && Array.isArray(cookies.__all[name])
+        ? cookies.__all[name].map(String)
+        : [];
+      return values.slice(0, 8);
+    };
+
+    const signedValues = exactValues(DOMAIN_SIGNED_SESSION_COOKIE);
+    if (signedValues.length !== 1 || !signedValues[0]) {
+      return diracPasskeyCookieRoundtripFailureV241(res, 'PASSKEY_SIGNED_SESSION_MISSING_OR_AMBIGUOUS');
+    }
+    const signedAnchor = customerSecurityDecodeSignedSessionAnchorV228(signedValues[0]);
+    if (!signedAnchor) {
+      return diracPasskeyCookieRoundtripFailureV241(res, 'PASSKEY_SIGNED_SESSION_INVALID');
+    }
+
+    const mfaValues = exactValues(CUSTOMER_MFA_COOKIE);
+    if (mfaValues.length !== 1 || !mfaValues[0]) {
+      return diracPasskeyCookieRoundtripFailureV241(res, 'PASSKEY_MFA_SESSION_MISSING_OR_AMBIGUOUS');
+    }
+    const mfa = verifyCustomerDashboardMfaCookie(req, {
+      id: signedAnchor.userId,
+      email: signedAnchor.email
+    });
+    if (!mfa || mfa.ok !== true || mfa.method !== 'passkey'
+        || Number(mfa.securityEpoch) !== Number(signedAnchor.securityEpoch)) {
+      return diracPasskeyCookieRoundtripFailureV241(res, 'PASSKEY_MFA_SESSION_INVALID');
+    }
+
+    const deviceSessionCookieName = diracCentralDeviceSessionCookieNameV223();
+    const deviceSessionValues = exactValues(deviceSessionCookieName);
+    if (deviceSessionValues.length !== 1 || !deviceSessionValues[0]) {
+      return diracPasskeyCookieRoundtripFailureV241(res, 'PASSKEY_DEVICE_SESSION_MISSING_OR_AMBIGUOUS');
+    }
+    const deviceSession = diracCentralVerifyDeviceSessionCookieV223(req);
+    if (!deviceSession || !deviceSession.identity || !deviceSession.payload
+        || String(deviceSession.identity.userId || '') !== String(signedAnchor.userId || '')
+        || normalizeAuthEmail(deviceSession.identity.email || '') !== normalizeAuthEmail(signedAnchor.email || '')) {
+      return diracPasskeyCookieRoundtripFailureV241(res, 'PASSKEY_DEVICE_SESSION_INVALID');
+    }
+
+    const deviceCredentialCookieName = diracCentralDeviceCookieNameV221();
+    const deviceCredentialValues = exactValues(deviceCredentialCookieName);
+    if (deviceCredentialValues.length !== 1 || !deviceCredentialValues[0]) {
+      return diracPasskeyCookieRoundtripFailureV241(res, 'PASSKEY_DEVICE_CREDENTIAL_MISSING_OR_AMBIGUOUS');
+    }
+    const deviceCredential = diracCentralVerifyDeviceTokenV221(req, deviceCredentialValues[0]);
+    if (!deviceCredential || deviceCredential.ok !== true || !deviceCredential.payload
+        || !safeEqual(String(deviceCredential.payload.session || ''), String(deviceSession.binding || ''))) {
+      return diracPasskeyCookieRoundtripFailureV241(res, 'PASSKEY_DEVICE_CREDENTIAL_INVALID');
+    }
+
+    const expiresAtMs = Math.min(
+      Number(mfa.expiresAtMs || 0),
+      Number(signedAnchor.expiresAt || 0) * 1000,
+      Number(deviceSession.payload.exp || 0) * 1000,
+      Number(deviceCredential.payload.exp || 0)
+    );
+    if (!Number.isSafeInteger(expiresAtMs) || expiresAtMs <= Date.now()) {
+      return diracPasskeyCookieRoundtripFailureV241(res, 'PASSKEY_COOKIE_ROUNDTRIP_EXPIRY_INVALID');
+    }
+
+    res.setHeader('Cache-Control', 'no-store, max-age=0');
+    return res.status(200).json({
+      ok: true,
+      ready: true,
+      patch: DIRAC_PASSKEY_COOKIE_ROUNDTRIP_V241,
+      method: 'passkey',
+      expiresAtMs
+    });
+  } catch (_) {
+    return diracPasskeyCookieRoundtripFailureV241(res, 'PASSKEY_COOKIE_ROUNDTRIP_EXCEPTION');
+  }
+}
+
 const DIRAC_PASSKEY_FINAL_COOKIE_HANDOFF_V239 = 'dirac-passkey-final-cookie-handoff-v239';
 
 function diracPasskeyFinalizeDashboardCookieHandoffV239(req, res, owner, proof) {
@@ -16291,6 +16426,12 @@ function diracPasskeyFinalizeDashboardCookieHandoffV239(req, res, owner, proof) 
       DOMAIN_SIGNED_SESSION_COOKIE
     ];
     const targetNameSet = new Set(targetNames);
+    const legacyDomainClears = getCompactCookieDomainsForSession()
+      .filter((domain) => Boolean(normalizeCookieDomain(domain)))
+      .flatMap((domain) => [
+        makeCookie(CUSTOMER_MFA_COOKIE, '', { maxAge: 0, domain }),
+        makeCookie(DOMAIN_SIGNED_SESSION_COOKIE, '', { maxAge: 0, domain })
+      ]);
 
     const current = typeof res.getHeader === 'function' ? res.getHeader('Set-Cookie') : null;
     const previousCookies = Array.isArray(current)
@@ -16305,7 +16446,7 @@ function diracPasskeyFinalizeDashboardCookieHandoffV239(req, res, owner, proof) 
       return !targetNameSet.has(name);
     });
 
-    res.setHeader('Set-Cookie', retained.concat(finalCookies));
+    res.setHeader('Set-Cookie', retained.concat(legacyDomainClears, finalCookies));
 
     const publishedRaw = res.getHeader('Set-Cookie');
     const published = Array.isArray(publishedRaw)
@@ -16313,22 +16454,23 @@ function diracPasskeyFinalizeDashboardCookieHandoffV239(req, res, owner, proof) 
       : publishedRaw
         ? [String(publishedRaw)]
         : [];
-    for (let index = 0; index < finalCookies.length; index += 1) {
-      const expectedCookie = finalCookies[index];
-      const expectedName = targetNames[index];
-      const matching = published.filter((cookieValue) => {
-        const first = String(cookieValue || '').split(';', 1)[0];
-        const separator = first.indexOf('=');
-        const name = separator === -1 ? first.trim() : first.slice(0, separator).trim();
-        return name === expectedName;
-      });
-      if (matching.length !== 1
-          || matching[0] !== expectedCookie
-          || /;\s*Domain=/i.test(matching[0])
-          || !/;\s*Path=\//i.test(matching[0])
-          || !/;\s*HttpOnly(?:;|$)/i.test(matching[0])
-          || !/;\s*Secure(?:;|$)/i.test(matching[0])) {
+    for (const expectedCookie of finalCookies) {
+      const exactMatches = published.filter((cookieValue) => cookieValue === expectedCookie);
+      if (exactMatches.length !== 1
+          || /;\s*Domain=/i.test(expectedCookie)
+          || !/;\s*Path=\//i.test(expectedCookie)
+          || !/;\s*HttpOnly(?:;|$)/i.test(expectedCookie)
+          || !/;\s*Secure(?:;|$)/i.test(expectedCookie)) {
         return fail('passkey_final_cookie_publication_verification_failed');
+      }
+    }
+    for (const expectedClear of legacyDomainClears) {
+      const exactMatches = published.filter((cookieValue) => cookieValue === expectedClear);
+      if (exactMatches.length !== 1
+          || !/;\s*Domain=/i.test(expectedClear)
+          || !/;\s*Max-Age=0(?:;|$)/i.test(expectedClear)
+          || !/;\s*Expires=Thu, 01 Jan 1970 00:00:00 GMT(?:;|$)/i.test(expectedClear)) {
+        return fail('passkey_legacy_domain_cookie_clear_verification_failed');
       }
     }
 
