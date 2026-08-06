@@ -9820,6 +9820,7 @@ function customerSecurityIssueSignedSessionAnchorV228(req, res, user, requestedM
   return {
     binding,
     signedSessionValue: value,
+    signedSessionMaxAgeSeconds: signedMaxAge,
     expiresAtMs: anchorExpiresAt * 1000,
     maxAgeSeconds: anchorMaxAge
   };
@@ -9927,7 +9928,11 @@ function customerSecurityCreateDashboardMfaToken(req, user, method = 'recovery_c
     token: payloadBase64 + '.' + signature,
     expiresAtMs: payload.expiresAtMs,
     activeAtMs: payload.activeAtMs,
-    maxAgeSeconds: Number(anchor.maxAgeSeconds)
+    maxAgeSeconds: Number(anchor.maxAgeSeconds),
+    signedSessionValue: String(anchor.signedSessionValue || ''),
+    signedSessionMaxAgeSeconds: Number(anchor.signedSessionMaxAgeSeconds || 0),
+    sessionBinding: String(anchor.binding || ''),
+    securityEpoch: Number(payload.securityEpoch || 0)
   };
 }
 
@@ -16175,6 +16180,171 @@ async function diracPasskeyA2FStart(req, res) {
   });
 }
 
+
+const DIRAC_PASSKEY_FINAL_COOKIE_HANDOFF_V239 = 'dirac-passkey-final-cookie-handoff-v239';
+
+function diracPasskeyFinalizeDashboardCookieHandoffV239(req, res, owner, proof) {
+  const fail = (reason) => Object.freeze({
+    ok: false,
+    patch: DIRAC_PASSKEY_FINAL_COOKIE_HANDOFF_V239,
+    reason: String(reason || 'passkey_final_cookie_handoff_failed').slice(0, 96)
+  });
+
+  try {
+    const authUserId = String(owner && owner.authUserId || '').trim();
+    const customerId = String(owner && owner.customerId || '').trim();
+    const email = normalizeAuthEmail(owner && owner.email || '');
+    const signedSessionValue = String(proof && proof.signedSessionValue || '').trim();
+    const signedSessionMaxAgeSeconds = Math.floor(Number(proof && proof.signedSessionMaxAgeSeconds || 0));
+    const sessionBinding = String(proof && proof.sessionBinding || '').trim();
+    const securityEpoch = Number(proof && proof.securityEpoch || 0);
+    const mfaToken = String(proof && proof.token || '').trim();
+    const mfaMaxAgeSeconds = Math.floor(Number(proof && proof.maxAgeSeconds || 0));
+
+    if (!authUserId || !customerSecurityLooksLikeUuid(customerId) || !email
+        || !signedSessionValue || !mfaToken
+        || !/^[a-f0-9]{64}$/.test(sessionBinding)
+        || !Number.isSafeInteger(securityEpoch) || securityEpoch < 1
+        || !Number.isSafeInteger(signedSessionMaxAgeSeconds) || signedSessionMaxAgeSeconds < 60
+        || !Number.isSafeInteger(mfaMaxAgeSeconds) || mfaMaxAgeSeconds < 1) {
+      return fail('passkey_final_cookie_handoff_input_invalid');
+    }
+
+    const signedSession = customerSecurityDecodeSignedSessionAnchorV228(signedSessionValue);
+    if (!signedSession
+        || signedSession.userId !== authUserId
+        || signedSession.email !== email
+        || signedSession.securityEpoch !== securityEpoch
+        || !safeEqual(String(signedSession.binding || ''), sessionBinding)) {
+      return fail('passkey_final_signed_session_identity_invalid');
+    }
+
+    const mfaPayload = decodeCustomerDashboardMfaToken(mfaToken);
+    const expectedOriginHash = customerMfaBindingHash('origin', requestOrigin(req));
+    const expectedUaHash = customerMfaBindingHash('ua', requestUserAgent(req));
+    if (!mfaPayload
+        || mfaPayload.type !== CUSTOMER_MFA_SESSION_TYPE
+        || mfaPayload.method !== 'passkey'
+        || Number(mfaPayload.sessionBindingVersion) !== 5
+        || Number(mfaPayload.securityEpoch) !== securityEpoch
+        || !safeEqual(String(mfaPayload.sessionHash || ''), sessionBinding)
+        || !safeEqual(String(mfaPayload.emailHash || ''), customerMfaProfileId(email))
+        || !safeEqual(String(mfaPayload.authUserIdHash || ''), customerMfaBindingHash('auth_user_id', authUserId))
+        || !safeEqual(String(mfaPayload.customerIdHash || ''), customerMfaBindingHash('customer_id', customerId))
+        || !expectedOriginHash
+        || !safeEqual(String(mfaPayload.originHash || ''), expectedOriginHash)
+        || !expectedUaHash
+        || !safeEqual(String(mfaPayload.uaHash || ''), expectedUaHash)
+        || !Number.isSafeInteger(Number(mfaPayload.expiresAtMs))
+        || Number(mfaPayload.expiresAtMs) <= Date.now()) {
+      return fail('passkey_final_mfa_session_binding_invalid');
+    }
+
+    const deviceSessionMaxAgeSeconds = Math.max(
+      60,
+      Math.min(
+        60 * 60 * 24 * 7,
+        signedSessionMaxAgeSeconds,
+        Math.max(60, mfaMaxAgeSeconds)
+      )
+    );
+    const deviceSession = diracCentralCreateDeviceSessionCookieV223(
+      { userId: authUserId, email },
+      deviceSessionMaxAgeSeconds
+    );
+    if (!deviceSession || !deviceSession.cookie
+        || !/^[a-f0-9]{64}$/.test(String(deviceSession.binding || ''))) {
+      return fail('passkey_final_device_session_creation_failed');
+    }
+
+    const deviceCredential = diracCentralDeviceTokenV221(req, deviceSession.binding);
+    const deviceEnvelope = diracCentralVerifyDeviceEnvelopeV224(req, deviceCredential);
+    if (!deviceEnvelope || deviceEnvelope.ok !== true
+        || !deviceEnvelope.payload
+        || Number(deviceEnvelope.payload.sbv) !== 2
+        || !safeEqual(String(deviceEnvelope.payload.session || ''), String(deviceSession.binding))) {
+      return fail('passkey_final_device_credential_self_verification_failed');
+    }
+
+    const deviceSessionCookieName = diracCentralDeviceSessionCookieNameV223();
+    const deviceCredentialCookieName = diracCentralDeviceCookieNameV221();
+    const deviceCredentialMaxAgeSeconds = Math.min(24 * 60 * 60, deviceSessionMaxAgeSeconds);
+    const finalCookies = [
+      String(deviceSession.cookie),
+      makeCookie(deviceCredentialCookieName, deviceCredential, {
+        maxAge: deviceCredentialMaxAgeSeconds,
+        domain: ''
+      }),
+      makeCookie(CUSTOMER_MFA_COOKIE, mfaToken, {
+        maxAge: mfaMaxAgeSeconds,
+        domain: ''
+      }),
+      makeCookie(DOMAIN_SIGNED_SESSION_COOKIE, signedSessionValue, {
+        maxAge: signedSessionMaxAgeSeconds,
+        domain: ''
+      })
+    ];
+    const targetNames = [
+      deviceSessionCookieName,
+      deviceCredentialCookieName,
+      CUSTOMER_MFA_COOKIE,
+      DOMAIN_SIGNED_SESSION_COOKIE
+    ];
+    const targetNameSet = new Set(targetNames);
+
+    const current = typeof res.getHeader === 'function' ? res.getHeader('Set-Cookie') : null;
+    const previousCookies = Array.isArray(current)
+      ? current.map(String)
+      : current
+        ? [String(current)]
+        : [];
+    const retained = previousCookies.filter((cookieValue) => {
+      const first = String(cookieValue || '').split(';', 1)[0];
+      const separator = first.indexOf('=');
+      const name = separator === -1 ? first.trim() : first.slice(0, separator).trim();
+      return !targetNameSet.has(name);
+    });
+
+    res.setHeader('Set-Cookie', retained.concat(finalCookies));
+
+    const publishedRaw = res.getHeader('Set-Cookie');
+    const published = Array.isArray(publishedRaw)
+      ? publishedRaw.map(String)
+      : publishedRaw
+        ? [String(publishedRaw)]
+        : [];
+    for (let index = 0; index < finalCookies.length; index += 1) {
+      const expectedCookie = finalCookies[index];
+      const expectedName = targetNames[index];
+      const matching = published.filter((cookieValue) => {
+        const first = String(cookieValue || '').split(';', 1)[0];
+        const separator = first.indexOf('=');
+        const name = separator === -1 ? first.trim() : first.slice(0, separator).trim();
+        return name === expectedName;
+      });
+      if (matching.length !== 1
+          || matching[0] !== expectedCookie
+          || /;\s*Domain=/i.test(matching[0])
+          || !/;\s*Path=\//i.test(matching[0])
+          || !/;\s*HttpOnly(?:;|$)/i.test(matching[0])
+          || !/;\s*Secure(?:;|$)/i.test(matching[0])) {
+        return fail('passkey_final_cookie_publication_verification_failed');
+      }
+    }
+
+    return Object.freeze({
+      ok: true,
+      patch: DIRAC_PASSKEY_FINAL_COOKIE_HANDOFF_V239,
+      deviceSessionIssued: true,
+      deviceCredentialIssued: true,
+      signedSessionCanonicalized: true,
+      mfaSessionCanonicalized: true
+    });
+  } catch (_) {
+    return fail('passkey_final_cookie_handoff_exception');
+  }
+}
+
 async function diracPasskeyA2FVerify(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ ok: false, method: 'passkey', message: 'Gunakan POST untuk verifikasi Passkey A2F.' });
 
@@ -16509,6 +16679,36 @@ async function diracPasskeyA2FVerify(req, res) {
     });
   }
 
+  const finalCookieHandoff = diracPasskeyFinalizeDashboardCookieHandoffV239(req, res, owner, proof);
+  if (!finalCookieHandoff || finalCookieHandoff.ok !== true) {
+    const rollbackOk = await customerSecurityRevokeIssuedSessionV235(
+      req,
+      owner.customerId,
+      issuedSession.session_id,
+      'passkey_final_cookie_handoff_failed'
+    );
+    try {
+      console.error('[dirac-passkey-a2f-publication-debug-v238]', JSON.stringify({
+        patch: 'dirac-passkey-a2f-publication-debug-v238',
+        event: 'passkey_mfa_publication_failed',
+        stage: 'final_cookie_handoff',
+        handoff_reason: String(finalCookieHandoff && finalCookieHandoff.reason || 'unknown').slice(0, 96),
+        rollback_ok: Boolean(rollbackOk)
+      }));
+    } catch (_) {}
+    clearCurrentRequestSessionCookiesV235(req, res);
+    appendSetCookie(res, [
+      makeCookie(diracCentralDeviceSessionCookieNameV223(), '', { maxAge: 0, domain: '' }),
+      makeCookie(diracCentralDeviceCookieNameV221(), '', { maxAge: 0, domain: '' })
+    ]);
+    return res.status(503).json({
+      ok: false,
+      method: 'passkey',
+      code: 'PASSKEY_FINAL_COOKIE_HANDOFF_FAILED',
+      message: 'Passkey berhasil diverifikasi, tetapi handoff sesi dashboard belum terbentuk secara utuh. Sesi ditolak dan harus diverifikasi ulang.'
+    });
+  }
+
   return res.status(200).json({
     ok: true,
     verified: true,
@@ -16524,8 +16724,6 @@ async function diracPasskeyA2FVerify(req, res) {
     device_bound: true,
     device_binding_verified: true,
     device_binding_policy: 'webcrypto-nonextractable-v1',
-    handoff_round_trip_required: true,
-    handoff_version: 'dirac-passkey-dashboard-handoff-v239',
     webauthn_backup_eligible: Boolean(finalActivePasskeys[0]
       && finalActivePasskeys[0].credential_json
       && finalActivePasskeys[0].credential_json.webauthn
