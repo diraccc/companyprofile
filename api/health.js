@@ -16524,6 +16524,8 @@ async function diracPasskeyA2FVerify(req, res) {
     device_bound: true,
     device_binding_verified: true,
     device_binding_policy: 'webcrypto-nonextractable-v1',
+    handoff_round_trip_required: true,
+    handoff_version: 'dirac-passkey-dashboard-handoff-v239',
     webauthn_backup_eligible: Boolean(finalActivePasskeys[0]
       && finalActivePasskeys[0].credential_json
       && finalActivePasskeys[0].credential_json.webauthn
