@@ -1698,6 +1698,112 @@ async function recoverDomainRegisterFromSupabaseEmailDeliveryFailure(input) {
   };
 }
 
+const DIRAC_DEVICE_BOOTSTRAP_DIAGNOSTIC_V238 = 'dirac-device-bootstrap-diagnostic-v238';
+
+function diracDeviceBootstrapProviderReasonV238(data) {
+  const source = data && typeof data === 'object' ? data : {};
+  const code = String(source.code || source.error_code || source.error || '').trim().toLowerCase();
+  const message = String(source.message || source.msg || source.error_description || '').trim().toLowerCase();
+  const combined = (code + ' ' + message).slice(0, 2048);
+  if (/refresh[_ -]?token.*(?:not found|invalid|missing)|invalid.*refresh[_ -]?token/.test(combined)) return 'refresh_token_invalid_or_missing';
+  if (/refresh[_ -]?token.*(?:reuse|already used)|reuse.*refresh[_ -]?token/.test(combined)) return 'refresh_token_reuse_or_rotation_conflict';
+  if (/expired|expiration/.test(combined)) return 'credential_expired';
+  if (/bad[_ -]?jwt|invalid.*jwt|jwt.*invalid|invalid.*token/.test(combined)) return 'access_token_invalid';
+  if (/user.*not found|not found.*user/.test(combined)) return 'user_not_found';
+  if (/rate.?limit|too many request/.test(combined)) return 'provider_rate_limited';
+  if (/timeout|abort/.test(combined)) return 'provider_timeout';
+  return combined ? 'provider_rejected_unclassified' : '';
+}
+
+function diracDeviceBootstrapSafeCodeV238(value) {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  if (/\bBearer\s+|\beyJ[A-Za-z0-9_-]{12,}\.|[A-Z0-9._%+-]{1,64}@[A-Z0-9.-]{1,190}\.[A-Z]{2,24}\b/i.test(text)) return 'redacted_sensitive_value';
+  if (/\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/i.test(text)) return 'redacted_sensitive_value';
+  if (/(?:[A-Fa-f0-9]{32,}|[A-Za-z0-9+/_-]{48,}={0,2})/.test(text)) return 'redacted_sensitive_value';
+  return text.replace(/[^A-Za-z0-9._:-]+/g, '_').slice(0, 120);
+}
+
+function diracDeviceBootstrapJwtIdentityStateV238(token, providerData) {
+  const output = {
+    jwtPayloadDecodable: false,
+    jwtIdentityComplete: false,
+    providerIdentityComplete: false,
+    jwtProviderIdentityMatch: false
+  };
+  try {
+    const raw = String(token || '').trim();
+    if (!raw || raw.length > 8192) return output;
+    const parts = raw.split('.');
+    if (parts.length !== 3 || !/^[A-Za-z0-9_-]{2,8192}$/.test(parts[1])) return output;
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return output;
+    output.jwtPayloadDecodable = true;
+    const jwtUserId = String(payload.sub || payload.user_id || '').trim();
+    const jwtEmail = normalizeAuthEmail(payload.email || '');
+    output.jwtIdentityComplete = Boolean(jwtUserId && jwtEmail);
+    const provider = providerData && typeof providerData === 'object'
+      ? providerData.user && typeof providerData.user === 'object' ? providerData.user : providerData
+      : {};
+    const providerUserId = String(provider.id || provider.user_id || provider.sub || '').trim();
+    const providerEmail = normalizeAuthEmail(provider.email || '');
+    output.providerIdentityComplete = Boolean(providerUserId && providerEmail);
+    output.jwtProviderIdentityMatch = Boolean(output.jwtIdentityComplete
+      && output.providerIdentityComplete
+      && jwtUserId === providerUserId
+      && jwtEmail === providerEmail);
+  } catch (_) {}
+  return output;
+}
+
+function diracDeviceBootstrapDiagnosticV238(stage, details) {
+  try {
+    const ctx = typeof diracCentralCurrentContextV149 === 'function' ? diracCentralCurrentContextV149() : null;
+    const action = String(ctx && (ctx.action || ctx.rawAction) || '').trim().toLowerCase();
+    if (action !== 'domain_dashboard_me' && action !== 'domain_me') return false;
+    if (typeof diracCentralDebugEnabledV211 === 'function' && !diracCentralDebugEnabledV211()) return false;
+    const source = details && typeof details === 'object' ? details : {};
+    const payload = {
+      patch: DIRAC_DEVICE_BOOTSTRAP_DIAGNOSTIC_V238,
+      event: 'device_bootstrap_auth_diagnostic',
+      request_id: String(ctx && ctx.requestId || '').slice(0, 64),
+      action,
+      method: String(ctx && ctx.method || '').slice(0, 12),
+      stage: diracDeviceBootstrapSafeCodeV238(stage),
+      route: diracDeviceBootstrapSafeCodeV238(source.route),
+      auth_mode: source.authMode === 'service' ? 'service' : source.authMode === 'anon' ? 'anon' : '',
+      ok: source.ok === true,
+      status: Number.isFinite(Number(source.status)) ? Number(source.status) : 0,
+      provider_code: diracDeviceBootstrapSafeCodeV238(source.providerCode),
+      provider_reason_class: diracDeviceBootstrapSafeCodeV238(source.providerReasonClass),
+      transport_error: diracDeviceBootstrapSafeCodeV238(source.transportError),
+      candidate_count: Math.max(0, Math.min(32, Number(source.candidateCount || 0))),
+      verified_payload_count: Math.max(0, Math.min(32, Number(source.verifiedPayloadCount || 0))),
+      lookup_count: Math.max(0, Math.min(32, Number(source.lookupCount || 0))),
+      lookup_checked_count: Math.max(0, Math.min(32, Number(source.lookupCheckedCount || 0))),
+      lookup_user_found_count: Math.max(0, Math.min(32, Number(source.lookupUserFoundCount || 0))),
+      identity_mismatch_count: Math.max(0, Math.min(32, Number(source.identityMismatchCount || 0))),
+      user_present: source.userPresent === true,
+      access_token_present: source.accessTokenPresent === true,
+      refresh_token_present: source.refreshTokenPresent === true,
+      signed_identity_match: source.signedIdentityMatch === true,
+      jwt_payload_decodable: source.jwtPayloadDecodable === true,
+      jwt_identity_complete: source.jwtIdentityComplete === true,
+      provider_identity_complete: source.providerIdentityComplete === true,
+      jwt_provider_identity_match: source.jwtProviderIdentityMatch === true
+    };
+    console.error('[dirac-device-bootstrap-debug-v238]', JSON.stringify(payload));
+    return true;
+  } catch (diagnosticErrorV238) {
+    try {
+      if (typeof diracCentralRecordSuppressedExceptionV221 === 'function') {
+        diracCentralRecordSuppressedExceptionV221(diagnosticErrorV238);
+      }
+    } catch (_) {}
+    return false;
+  }
+}
+
 async function getSupabaseAuthUserByEmail(email) {
   const normalizedEmail = normalizeAuthEmail(email);
   if (!normalizedEmail || !isStrictDomainLoginEmail(normalizedEmail)) return { user: null, checked: false };
@@ -1706,6 +1812,15 @@ async function getSupabaseAuthUserByEmail(email) {
     const result = await supabaseFetch(`/auth/v1/admin/users?email=${encodeURIComponent(normalizedEmail)}`, {
       method: 'GET',
       auth: 'service'
+    });
+    diracDeviceBootstrapDiagnosticV238('signed_session_admin_lookup_result', {
+      route: 'auth_admin_users',
+      authMode: 'service',
+      ok: Boolean(result && result.ok),
+      status: Number(result && result.status || 0),
+      providerCode: result && result.data && (result.data.code || result.data.error_code || result.data.error) || '',
+      providerReasonClass: diracDeviceBootstrapProviderReasonV238(result && result.data),
+      userPresent: Boolean(result && result.data)
     });
 
     if (!result.ok || !result.data) return { user: null, checked: false };
@@ -4108,7 +4223,7 @@ async function supabaseFetch(path, options = {}) {
     response = await fetch(targetOrigin + cleanPath, fetchOptions);
     text = await diracReadResponseTextLimitedV210(response, 8 * 1024 * 1024);
   } catch (error) {
-    return {
+    const failedResult = {
       ok: false,
       status: error && error.name === 'AbortError' ? 504 : 502,
       data: {
@@ -4118,6 +4233,18 @@ async function supabaseFetch(path, options = {}) {
       },
       error: error && (error.code || error.name || error.message) || 'SUPABASE_FETCH_FAILED'
     };
+    if (cleanPath === '/auth/v1/user' || cleanPath === '/auth/v1/token?grant_type=refresh_token') {
+      diracDeviceBootstrapDiagnosticV238('supabase_auth_transport_result', {
+        route: cleanPath === '/auth/v1/user' ? 'auth_user' : 'auth_refresh',
+        authMode: options.auth === 'service' ? 'service' : 'anon',
+        ok: false,
+        status: failedResult.status,
+        providerCode: failedResult.data.code,
+        providerReasonClass: diracDeviceBootstrapProviderReasonV238(failedResult.data),
+        transportError: error && (error.code || error.name) || 'SUPABASE_FETCH_FAILED'
+      });
+    }
+    return failedResult;
   } finally {
     if (timer) clearTimeout(timer);
     if (upstreamSignal && upstreamAbortListener) {
@@ -4136,11 +4263,29 @@ async function supabaseFetch(path, options = {}) {
     data = text;
   }
 
-  return {
+  const result = {
     ok: response.ok,
     status: response.status,
     data
   };
+  if (cleanPath === '/auth/v1/user' || cleanPath === '/auth/v1/token?grant_type=refresh_token') {
+    diracDeviceBootstrapDiagnosticV238('supabase_auth_provider_result', {
+      route: cleanPath === '/auth/v1/user' ? 'auth_user' : 'auth_refresh',
+      authMode: options.auth === 'service' ? 'service' : 'anon',
+      ok: result.ok,
+      status: result.status,
+      providerCode: data && typeof data === 'object' && (data.code || data.error_code || data.error) || '',
+      providerReasonClass: diracDeviceBootstrapProviderReasonV238(data),
+      userPresent: Boolean(data && typeof data === 'object' && (data.id || data.user)),
+      accessTokenPresent: Boolean(data && typeof data === 'object' && data.access_token),
+      refreshTokenPresent: Boolean(data && typeof data === 'object' && data.refresh_token),
+      ...diracDeviceBootstrapJwtIdentityStateV238(
+        cleanPath === '/auth/v1/user' ? options.bearer : data && typeof data === 'object' && data.access_token,
+        data
+      )
+    });
+  }
+  return result;
 }
 
 
@@ -4888,18 +5033,52 @@ function makeSignedDomainSessionCookieSet(session, options = {}) {
 
 async function readSignedDomainSessionUser(cookies) {
   const values = readCookieTokenCandidates(cookies, DOMAIN_SIGNED_SESSION_COOKIE);
+  let verifiedPayloadCount = 0;
+  let lookupCount = 0;
+  let lookupCheckedCount = 0;
+  let lookupUserFoundCount = 0;
+  let identityMismatchCount = 0;
   for (const value of values) {
     const payload = verifyDomainSessionCookieValue(value);
     if (!payload) continue;
+    verifiedPayloadCount += 1;
 
+    lookupCount += 1;
     const checked = await getSupabaseAuthUserByEmail(payload.email);
+    if (checked && checked.checked === true) lookupCheckedCount += 1;
     if (checked && checked.user) {
+      lookupUserFoundCount += 1;
       const user = normalizeSupabaseAdminUser(checked.user);
       if (user && String(user.id || '') === payload.id) {
+        diracDeviceBootstrapDiagnosticV238('signed_session_resolution', {
+          route: 'signed_domain_session',
+          ok: true,
+          candidateCount: values.length,
+          verifiedPayloadCount,
+          lookupCount,
+          lookupCheckedCount,
+          lookupUserFoundCount,
+          identityMismatchCount,
+          userPresent: true,
+          signedIdentityMatch: true
+        });
         return user;
       }
+      identityMismatchCount += 1;
     }
   }
+  diracDeviceBootstrapDiagnosticV238('signed_session_resolution', {
+    route: 'signed_domain_session',
+    ok: false,
+    candidateCount: values.length,
+    verifiedPayloadCount,
+    lookupCount,
+    lookupCheckedCount,
+    lookupUserFoundCount,
+    identityMismatchCount,
+    userPresent: lookupUserFoundCount > 0,
+    signedIdentityMatch: false
+  });
   return null;
 }
 
