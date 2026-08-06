@@ -16185,16 +16185,76 @@ async function diracPasskeyA2FStart(req, res) {
 }
 
 
-const DIRAC_PASSKEY_COOKIE_ROUNDTRIP_V241 = 'dirac-passkey-cookie-roundtrip-v241';
+const DIRAC_PASSKEY_COOKIE_ROUNDTRIP_V241 = 'dirac-passkey-cookie-roundtrip-v243';
+const DIRAC_PASSKEY_COOKIE_ROUNDTRIP_MAX_CANDIDATES_V243 = 4;
 
-function diracPasskeyCookieRoundtripFailureV241(res, code) {
+function diracPasskeyCookieRoundtripFailureV241(res, code, details = {}) {
+  const safeCode = String(code || 'PASSKEY_COOKIE_ROUNDTRIP_FAILED')
+    .replace(/[^A-Z0-9_]/g, '')
+    .slice(0, 96) || 'PASSKEY_COOKIE_ROUNDTRIP_FAILED';
+  const safeDetails = Object.freeze({
+    signed_candidates: Math.max(0, Math.min(8, Number(details.signedCandidates || 0))),
+    mfa_candidates: Math.max(0, Math.min(8, Number(details.mfaCandidates || 0))),
+    device_session_candidates: Math.max(0, Math.min(8, Number(details.deviceSessionCandidates || 0))),
+    device_credential_candidates: Math.max(0, Math.min(8, Number(details.deviceCredentialCandidates || 0)))
+  });
+  try {
+    res.setHeader('Cache-Control', 'no-store, max-age=0');
+    res.setHeader('X-Dirac-Passkey-Roundtrip-Code', safeCode);
+  } catch (_) {}
+  try {
+    console.error('[dirac-passkey-cookie-roundtrip-v243]', JSON.stringify({
+      patch: DIRAC_PASSKEY_COOKIE_ROUNDTRIP_V241,
+      event: 'cookie_roundtrip_not_ready',
+      code: safeCode,
+      counts: safeDetails
+    }));
+  } catch (_) {}
   return res.status(409).json({
     ok: false,
     ready: false,
     patch: DIRAC_PASSKEY_COOKIE_ROUNDTRIP_V241,
-    code: String(code || 'PASSKEY_COOKIE_ROUNDTRIP_FAILED').slice(0, 96),
+    code: safeCode,
     message: 'Cookie sesi Passkey belum kembali lengkap dari browser. Dashboard tetap dikunci.'
   });
+}
+
+function diracPasskeyRoundtripCandidatesV243(cookies, name) {
+  const rawValues = cookies && cookies.__all && Array.isArray(cookies.__all[name])
+    ? cookies.__all[name].map((value) => String(value || '').trim()).filter(Boolean)
+    : [];
+  const values = typeof readCookieTokenCandidates === 'function'
+    ? readCookieTokenCandidates(cookies, name).map((value) => String(value || '').trim()).filter(Boolean)
+    : uniqueNonEmptyStrings(rawValues);
+  return Object.freeze({
+    rawCount: rawValues.length,
+    values: uniqueNonEmptyStrings(values).slice(0, 8)
+  });
+}
+
+function diracPasskeyRoundtripCanonicalRequestV243(req, selected, targetNames) {
+  const headers = Object.assign({}, req && req.headers || {});
+  const rawCookieHeader = String(headers.cookie || '');
+  const targets = new Set((targetNames || []).map((name) => String(name || '')).filter(Boolean));
+  const retained = rawCookieHeader
+    .split(';')
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .filter((part) => {
+      const separator = part.indexOf('=');
+      const name = String(separator === -1 ? part : part.slice(0, separator)).trim();
+      if (targets.has(name)) return false;
+      for (const target of targets) {
+        if (name.startsWith(target + '__')) return false;
+      }
+      return true;
+    });
+  for (const name of targetNames || []) {
+    const value = String(selected && selected[name] || '').trim();
+    if (value) retained.push(name + '=' + encodeURIComponent(value));
+  }
+  headers.cookie = retained.join('; ');
+  return { headers };
 }
 
 function diracPasskeyConfirmDashboardCookieRoundtripV241(req, res) {
@@ -16241,75 +16301,145 @@ function diracPasskeyConfirmDashboardCookieRoundtripV241(req, res) {
     }
 
     const cookies = parseCookies(req);
-    const exactValues = (name) => {
-      const values = cookies && cookies.__all && Array.isArray(cookies.__all[name])
-        ? cookies.__all[name].map(String)
-        : [];
-      return values.slice(0, 8);
+    const deviceSessionCookieName = diracCentralDeviceSessionCookieNameV223();
+    const deviceCredentialCookieName = diracCentralDeviceCookieNameV221();
+    const targetNames = [
+      DOMAIN_SIGNED_SESSION_COOKIE,
+      CUSTOMER_MFA_COOKIE,
+      deviceSessionCookieName,
+      deviceCredentialCookieName
+    ];
+    const signedSet = diracPasskeyRoundtripCandidatesV243(cookies, DOMAIN_SIGNED_SESSION_COOKIE);
+    const mfaSet = diracPasskeyRoundtripCandidatesV243(cookies, CUSTOMER_MFA_COOKIE);
+    const deviceSessionSet = diracPasskeyRoundtripCandidatesV243(cookies, deviceSessionCookieName);
+    const deviceCredentialSet = diracPasskeyRoundtripCandidatesV243(cookies, deviceCredentialCookieName);
+    const failureDetails = {
+      signedCandidates: signedSet.values.length,
+      mfaCandidates: mfaSet.values.length,
+      deviceSessionCandidates: deviceSessionSet.values.length,
+      deviceCredentialCandidates: deviceCredentialSet.values.length
     };
 
-    const signedValues = exactValues(DOMAIN_SIGNED_SESSION_COOKIE);
-    if (signedValues.length !== 1 || !signedValues[0]) {
-      return diracPasskeyCookieRoundtripFailureV241(res, 'PASSKEY_SIGNED_SESSION_MISSING_OR_AMBIGUOUS');
+    const candidateSets = [signedSet, mfaSet, deviceSessionSet, deviceCredentialSet];
+    if (candidateSets.some((set) => set.rawCount >= 8
+        || set.values.length > DIRAC_PASSKEY_COOKIE_ROUNDTRIP_MAX_CANDIDATES_V243)) {
+      return diracPasskeyCookieRoundtripFailureV241(
+        res,
+        'PASSKEY_COOKIE_ROUNDTRIP_CANDIDATE_LIMIT_EXCEEDED',
+        failureDetails
+      );
     }
-    const signedAnchor = customerSecurityDecodeSignedSessionAnchorV228(signedValues[0]);
-    if (!signedAnchor) {
-      return diracPasskeyCookieRoundtripFailureV241(res, 'PASSKEY_SIGNED_SESSION_INVALID');
+    if (!signedSet.values.length) {
+      return diracPasskeyCookieRoundtripFailureV241(res, 'PASSKEY_SIGNED_SESSION_MISSING', failureDetails);
     }
-
-    const mfaValues = exactValues(CUSTOMER_MFA_COOKIE);
-    if (mfaValues.length !== 1 || !mfaValues[0]) {
-      return diracPasskeyCookieRoundtripFailureV241(res, 'PASSKEY_MFA_SESSION_MISSING_OR_AMBIGUOUS');
+    if (!mfaSet.values.length) {
+      return diracPasskeyCookieRoundtripFailureV241(res, 'PASSKEY_MFA_SESSION_MISSING', failureDetails);
     }
-    const mfa = verifyCustomerDashboardMfaCookie(req, {
-      id: signedAnchor.userId,
-      email: signedAnchor.email
-    });
-    if (!mfa || mfa.ok !== true || mfa.method !== 'passkey'
-        || Number(mfa.securityEpoch) !== Number(signedAnchor.securityEpoch)) {
-      return diracPasskeyCookieRoundtripFailureV241(res, 'PASSKEY_MFA_SESSION_INVALID');
+    if (!deviceSessionSet.values.length) {
+      return diracPasskeyCookieRoundtripFailureV241(res, 'PASSKEY_DEVICE_SESSION_MISSING', failureDetails);
     }
-
-    const deviceSessionCookieName = diracCentralDeviceSessionCookieNameV223();
-    const deviceSessionValues = exactValues(deviceSessionCookieName);
-    if (deviceSessionValues.length !== 1 || !deviceSessionValues[0]) {
-      return diracPasskeyCookieRoundtripFailureV241(res, 'PASSKEY_DEVICE_SESSION_MISSING_OR_AMBIGUOUS');
-    }
-    const deviceSession = diracCentralVerifyDeviceSessionCookieV223(req);
-    if (!deviceSession || !deviceSession.identity || !deviceSession.payload
-        || String(deviceSession.identity.userId || '') !== String(signedAnchor.userId || '')
-        || normalizeAuthEmail(deviceSession.identity.email || '') !== normalizeAuthEmail(signedAnchor.email || '')) {
-      return diracPasskeyCookieRoundtripFailureV241(res, 'PASSKEY_DEVICE_SESSION_INVALID');
+    if (!deviceCredentialSet.values.length) {
+      return diracPasskeyCookieRoundtripFailureV241(res, 'PASSKEY_DEVICE_CREDENTIAL_MISSING', failureDetails);
     }
 
-    const deviceCredentialCookieName = diracCentralDeviceCookieNameV221();
-    const deviceCredentialValues = exactValues(deviceCredentialCookieName);
-    if (deviceCredentialValues.length !== 1 || !deviceCredentialValues[0]) {
-      return diracPasskeyCookieRoundtripFailureV241(res, 'PASSKEY_DEVICE_CREDENTIAL_MISSING_OR_AMBIGUOUS');
-    }
-    const deviceCredential = diracCentralVerifyDeviceTokenV221(req, deviceCredentialValues[0]);
-    if (!deviceCredential || deviceCredential.ok !== true || !deviceCredential.payload
-        || !safeEqual(String(deviceCredential.payload.session || ''), String(deviceSession.binding || ''))) {
-      return diracPasskeyCookieRoundtripFailureV241(res, 'PASSKEY_DEVICE_CREDENTIAL_INVALID');
+    let signedValid = false;
+    let mfaValid = false;
+    let deviceSessionValid = false;
+    let deviceCredentialValid = false;
+    let expiryInvalid = false;
+    let validChain = null;
+    let validChainCount = 0;
+
+    for (const signedValue of signedSet.values) {
+      const signedAnchor = customerSecurityDecodeSignedSessionAnchorV228(signedValue);
+      if (!signedAnchor) continue;
+      signedValid = true;
+
+      for (const mfaValue of mfaSet.values) {
+        const mfaReq = diracPasskeyRoundtripCanonicalRequestV243(req, {
+          [DOMAIN_SIGNED_SESSION_COOKIE]: signedValue,
+          [CUSTOMER_MFA_COOKIE]: mfaValue
+        }, targetNames);
+        const mfa = verifyCustomerDashboardMfaCookie(mfaReq, {
+          id: signedAnchor.userId,
+          email: signedAnchor.email
+        });
+        if (!mfa || mfa.ok !== true || mfa.method !== 'passkey'
+            || Number(mfa.securityEpoch) !== Number(signedAnchor.securityEpoch)) continue;
+        mfaValid = true;
+
+        for (const deviceSessionValue of deviceSessionSet.values) {
+          const deviceSessionReq = diracPasskeyRoundtripCanonicalRequestV243(req, {
+            [DOMAIN_SIGNED_SESSION_COOKIE]: signedValue,
+            [CUSTOMER_MFA_COOKIE]: mfaValue,
+            [deviceSessionCookieName]: deviceSessionValue
+          }, targetNames);
+          const deviceSession = diracCentralVerifyDeviceSessionCookieV223(deviceSessionReq);
+          if (!deviceSession || !deviceSession.identity || !deviceSession.payload
+              || String(deviceSession.identity.userId || '') !== String(signedAnchor.userId || '')
+              || normalizeAuthEmail(deviceSession.identity.email || '') !== normalizeAuthEmail(signedAnchor.email || '')) continue;
+          deviceSessionValid = true;
+
+          for (const deviceCredentialValue of deviceCredentialSet.values) {
+            const canonicalReq = diracPasskeyRoundtripCanonicalRequestV243(req, {
+              [DOMAIN_SIGNED_SESSION_COOKIE]: signedValue,
+              [CUSTOMER_MFA_COOKIE]: mfaValue,
+              [deviceSessionCookieName]: deviceSessionValue,
+              [deviceCredentialCookieName]: deviceCredentialValue
+            }, targetNames);
+            const deviceCredential = diracCentralVerifyDeviceTokenV221(canonicalReq, deviceCredentialValue);
+            if (!deviceCredential || deviceCredential.ok !== true || !deviceCredential.payload
+                || !safeEqual(String(deviceCredential.payload.session || ''), String(deviceSession.binding || ''))) continue;
+            deviceCredentialValid = true;
+
+            const expiresAtMs = Math.min(
+              Number(mfa.expiresAtMs || 0),
+              Number(signedAnchor.expiresAt || 0) * 1000,
+              Number(deviceSession.payload.exp || 0) * 1000,
+              Number(deviceCredential.payload.exp || 0)
+            );
+            if (!Number.isSafeInteger(expiresAtMs) || expiresAtMs <= Date.now()) {
+              expiryInvalid = true;
+              continue;
+            }
+
+            validChainCount += 1;
+            if (validChainCount > 1) {
+              return diracPasskeyCookieRoundtripFailureV241(
+                res,
+                'PASSKEY_COOKIE_ROUNDTRIP_MULTIPLE_VALID_CHAINS',
+                failureDetails
+              );
+            }
+            validChain = { expiresAtMs };
+          }
+        }
+      }
     }
 
-    const expiresAtMs = Math.min(
-      Number(mfa.expiresAtMs || 0),
-      Number(signedAnchor.expiresAt || 0) * 1000,
-      Number(deviceSession.payload.exp || 0) * 1000,
-      Number(deviceCredential.payload.exp || 0)
-    );
-    if (!Number.isSafeInteger(expiresAtMs) || expiresAtMs <= Date.now()) {
-      return diracPasskeyCookieRoundtripFailureV241(res, 'PASSKEY_COOKIE_ROUNDTRIP_EXPIRY_INVALID');
+    if (!validChain) {
+      const code = !signedValid
+        ? 'PASSKEY_SIGNED_SESSION_INVALID'
+        : !mfaValid
+          ? 'PASSKEY_MFA_SESSION_INVALID'
+          : !deviceSessionValid
+            ? 'PASSKEY_DEVICE_SESSION_INVALID'
+            : !deviceCredentialValid
+              ? 'PASSKEY_DEVICE_CREDENTIAL_INVALID'
+              : expiryInvalid
+                ? 'PASSKEY_COOKIE_ROUNDTRIP_EXPIRY_INVALID'
+                : 'PASSKEY_COOKIE_ROUNDTRIP_NO_VALID_CHAIN';
+      return diracPasskeyCookieRoundtripFailureV241(res, code, failureDetails);
     }
 
     res.setHeader('Cache-Control', 'no-store, max-age=0');
+    res.setHeader('X-Dirac-Passkey-Roundtrip-Code', 'PASSKEY_COOKIE_ROUNDTRIP_READY');
     return res.status(200).json({
       ok: true,
       ready: true,
       patch: DIRAC_PASSKEY_COOKIE_ROUNDTRIP_V241,
       method: 'passkey',
-      expiresAtMs
+      expiresAtMs: validChain.expiresAtMs
     });
   } catch (_) {
     return diracPasskeyCookieRoundtripFailureV241(res, 'PASSKEY_COOKIE_ROUNDTRIP_EXCEPTION');
