@@ -16598,6 +16598,32 @@ function diracPasskeyConfirmDashboardCookieRoundtripV241(req, res) {
 }
 
 
+const DIRAC_PASSKEY_STRICT_ANCHORED_SESSION_V247 = 'dirac-passkey-strict-anchored-session-v247';
+
+function diracPasskeyVerifyStrictAnchoredSessionV247(value) {
+  const anchor = customerSecurityDecodeSignedSessionAnchorV228(value);
+  if (!anchor || !anchor.payload) return null;
+
+  const sessionVersion = String(anchor.payload.session_version || '').trim();
+  if (!/^[1-9]\d*$/.test(sessionVersion)
+      || Number(sessionVersion) !== Number(anchor.securityEpoch)
+      || !Number.isSafeInteger(Number(anchor.expiresAt))
+      || Number(anchor.expiresAt) <= Math.floor(Date.now() / 1000)
+      || !/^[a-f0-9]{64}$/.test(String(anchor.binding || ''))) {
+    return null;
+  }
+
+  return Object.freeze({
+    id: String(anchor.userId),
+    email: normalizeAuthEmail(anchor.email),
+    exp: Number(anchor.expiresAt),
+    sessionId: String(anchor.sessionId || ''),
+    session_version: sessionVersion,
+    securityEpoch: Number(anchor.securityEpoch),
+    binding: String(anchor.binding)
+  });
+}
+
 const DIRAC_PASSKEY_ATOMIC_DEVICE_HANDOFF_V246 = 'dirac-passkey-atomic-device-handoff-v246';
 
 function diracPasskeyCreateAtomicDeviceChainV246(req, signedSessionValue, signedAnchor, maxAgeSeconds) {
@@ -16610,7 +16636,7 @@ function diracPasskeyCreateAtomicDeviceChainV246(req, signedSessionValue, signed
   try {
     const signedValue = String(signedSessionValue || '').trim();
     const anchor = signedAnchor && typeof signedAnchor === 'object' ? signedAnchor : null;
-    const centralSigned = verifyDomainSessionCookieValue(signedValue);
+    const centralSigned = diracPasskeyVerifyStrictAnchoredSessionV247(signedValue);
     const userId = String(anchor && anchor.userId || '').trim();
     const email = normalizeAuthEmail(anchor && anchor.email || '');
     const maxAge = Math.max(
@@ -20802,7 +20828,9 @@ try {
     verifyDomainSessionCookieValue = function verifyDomainSessionCookieValueUltra(value) {
       const payload = __diracUltraOriginalVerifySignedSession(value);
       if (!payload) return null;
-      if (isEnvTrue('DOMAIN_SIGNED_SESSION_DISABLE_FALLBACK')) return null;
+      if (isEnvTrue('DOMAIN_SIGNED_SESSION_DISABLE_FALLBACK')) {
+        return diracPasskeyVerifyStrictAnchoredSessionV247(value);
+      }
       if (isEnvTrue('DOMAIN_SIGNED_SESSION_STRICT_VERSION')) {
         const raw = String(value || '').trim();
         const body = raw.split('.')[0] || '';
