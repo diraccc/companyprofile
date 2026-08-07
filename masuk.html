@@ -7279,6 +7279,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
         var err = new Error(message);
         err.response = data;
         err.status = res.status;
+        err.code = data && data.code ? String(data.code) : '';
         lastError = err;
       }catch(e){
         lastError = e;
@@ -7647,6 +7648,25 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       }
       throw new Error('Server belum membuktikan penerbitan sesi dashboard Passkey secara lengkap. Dashboard tetap terkunci.');
     }catch(e){
+      if(e && e.code === 'PASSKEY_PRIMARY_SESSION_REAUTH_REQUIRED'){
+        try{ clearPendingAuth(); }catch(_e){}
+        try{ writeAuthSession({}); }catch(_e){}
+        try{
+          if(window.__DIRAC_BACKEND_AUTH_CONTEXT__) window.__DIRAC_BACKEND_AUTH_CONTEXT__ = {};
+          if(window.__DIRAC_BACKEND_MFA_CONTEXT__) window.__DIRAC_BACKEND_MFA_CONTEXT__ = {};
+        }catch(_e){}
+        var passwordInput = $('#password');
+        if(passwordInput) passwordInput.value = '';
+        status('error', lang()==='en'
+          ? 'Your primary login session needs to be renewed. Enter your password again before starting Passkey.'
+          : 'Sesi login utama perlu diperbarui. Masukkan password lagi sebelum memulai Passkey.');
+        showToast(lang()==='en' ? 'Sign in again before Passkey.' : 'Login ulang sebelum Passkey.');
+        setTimeout(function(){
+          var input = $('#password') || $('#identifier');
+          if(input) input.focus({preventScroll:true});
+        }, 50);
+        return;
+      }
       var msg = e && e.message ? e.message : t('passkeyNeedsServer');
       if(/relying party|rp id|securityerror|not a registrable domain|current domain/i.test(msg)){
         msg = 'Passkey gagal karena RP ID/origin tidak cocok. Pastikan A2F_ALLOWED_ORIGINS berisi https://diracgroup.store dan WEBAUTHN_RP_ID=diracgroup.store.';
