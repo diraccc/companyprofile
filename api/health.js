@@ -16083,6 +16083,52 @@ async function diracPasskeyA2FStart(req, res) {
       ? DIRAC_PASSKEY_ROTATION_PURPOSE_REPLACE_V237
       : DIRAC_PASSKEY_ROTATION_PURPOSE_INITIAL_V237;
   const jti = crypto.randomBytes(32).toString('base64url');
+
+  const authEscrow = await diracPasskeyPrepareRefreshEscrowAtStartV250(
+    req,
+    res,
+    owner,
+    jti
+  );
+  if (!authEscrow || authEscrow.ok !== true) {
+    const reauthRequired = authEscrow && authEscrow.reauth_required === true;
+    const securityFailure = authEscrow && authEscrow.security_failure === true;
+    const upstreamStatus = Number(authEscrow && authEscrow.upstream_status || 0);
+    const providerReasonClass = String(authEscrow && authEscrow.provider_reason_class || '');
+
+    if (securityFailure) {
+      clearCurrentRequestSessionCookiesV235(req, res);
+      diracPasskeyClearRefreshEscrowCookieV250(res);
+    }
+
+    return res.status(
+      providerReasonClass === 'provider_rate_limited' || upstreamStatus === 429
+        ? 429
+        : reauthRequired
+          ? 401
+          : securityFailure
+            ? 409
+            : 503
+    ).json({
+      ok: false,
+      method: 'passkey',
+      code: reauthRequired
+        ? 'PASSKEY_PRIMARY_SESSION_REAUTH_REQUIRED'
+        : providerReasonClass === 'provider_rate_limited' || upstreamStatus === 429
+          ? 'PASSKEY_AUTH_PROVIDER_RATE_LIMITED'
+          : securityFailure
+            ? 'PASSKEY_AUTH_ESCROW_SECURITY_FAILURE'
+            : 'PASSKEY_AUTH_ESCROW_UNAVAILABLE',
+      message: reauthRequired
+        ? 'Sesi login utama perlu diperbarui. Masukkan password lagi sebelum memulai Passkey.'
+        : providerReasonClass === 'provider_rate_limited' || upstreamStatus === 429
+          ? 'Penyedia autentikasi membatasi permintaan sementara. Challenge Passkey belum dibuat.'
+          : securityFailure
+            ? 'Rantai autentikasi tidak konsisten. Challenge Passkey tidak dibuat dan sesi tetap ditolak.'
+            : 'Rantai autentikasi belum dapat dipersiapkan. Challenge Passkey belum dibuat.'
+    });
+  }
+
   const payload = {
     type: DIRAC_PASSKEY_A2F_TOKEN_TYPE,
     method: 'passkey',
@@ -16099,6 +16145,12 @@ async function diracPasskeyA2FStart(req, res) {
     securityEpochAtStart,
     activeCredentialCountAtStart: activeSetAtStart.count,
     activeCredentialSetHashAtStart: activeSetAtStart.hash,
+    authHandoffV250: {
+      version: 250,
+      patch: DIRAC_PASSKEY_REFRESH_ESCROW_V250,
+      accessDigest: authEscrow.access_digest,
+      refreshDigest: authEscrow.refresh_digest
+    },
     lostPasskeyRecovery: isLostPasskeyRecoveryRegistration ? {
       requestId: lostRecoverySession.requestId,
       sessionId: lostRecoverySession.id,
@@ -16108,7 +16160,17 @@ async function diracPasskeyA2FStart(req, res) {
     expiresAtMs: now + DIRAC_PASSKEY_A2F_TTL_MS
   };
   const setupToken = diracPasskeyA2FEncodeToken(payload);
-  await diracPasskeyA2FStoreChallenge(setupToken, payload);
+  try {
+    await diracPasskeyA2FStoreChallenge(setupToken, payload);
+  } catch (_) {
+    diracPasskeyClearRefreshEscrowCookieV250(res);
+    return res.status(503).json({
+      ok: false,
+      method: 'passkey',
+      code: 'PASSKEY_CHALLENGE_STORE_FAILED',
+      message: 'Challenge Passkey tidak dapat disimpan. Tidak ada sesi Passkey yang diterbitkan.'
+    });
+  }
 
   const basePublicKey = {
     challenge,
@@ -16728,6 +16790,11 @@ function diracPasskeyCreateAtomicDeviceChainV246(req, signedSessionValue, signed
 
 const DIRAC_PASSKEY_SUPABASE_AUTH_HANDOFF_V249 = 'dirac-passkey-supabase-auth-handoff-v249';
 const DIRAC_PASSKEY_SUPABASE_AUTH_HANDOFF_CACHE_V249 = Symbol('dirac-passkey-supabase-auth-handoff-cache-v249');
+const DIRAC_PASSKEY_REFRESH_ESCROW_V250 = 'dirac-passkey-refresh-escrow-v250';
+const DIRAC_PASSKEY_REFRESH_ESCROW_CACHE_V250 = Symbol('dirac-passkey-refresh-escrow-cache-v250');
+const DIRAC_PASSKEY_REFRESH_ESCROW_COOKIE_V250 = process.env.NODE_ENV === 'production'
+  ? '__Host-dirac_passkey_refresh_v250'
+  : 'dirac_passkey_refresh_v250';
 const DIRAC_PASSKEY_FINAL_COOKIE_HANDOFF_V239 = 'dirac-passkey-final-cookie-handoff-v248';
 
 function diracPasskeyResponseTokenCandidatesV248(res, name) {
@@ -16920,6 +16987,495 @@ function diracPasskeyAuthHandoffDiagnosticV249(req, details = {}) {
       provider_reason_class: diracDeviceBootstrapSafeCodeV238(details.providerReasonClass || '')
     }));
   } catch (_) {}
+}
+
+
+function diracPasskeyRefreshEscrowGuardContextV250(req, expectedAction) {
+  let ctx = null;
+  try {
+    ctx = typeof diracCentralCurrentContextV149 === 'function'
+      ? diracCentralCurrentContextV149()
+      : null;
+  } catch (_) {
+    ctx = null;
+  }
+  const action = String(ctx && ctx.action || '');
+  const expected = String(expectedAction || '');
+  if (!ctx || ctx.req !== req
+      || !req || req.__diracCentralSecurityGuardPassedV146 !== true
+      || ctx.centralGuardFullyPassedV211 !== true
+      || !expected || action !== expected) {
+    return null;
+  }
+  return ctx;
+}
+
+function diracPasskeyRefreshEscrowAuthProvenanceV250(req, ctx) {
+  const contextAuthentication = ctx && ctx.authentication && typeof ctx.authentication === 'object'
+    ? ctx.authentication
+    : null;
+  if (contextAuthentication
+      && contextAuthentication.verified === true
+      && contextAuthentication.bootstrap === DIRAC_CENTRAL_DEVICE_AUTH_BOOTSTRAP_V224) {
+    if (contextAuthentication.source === 'verified_refresh_token') return 'verified_refresh_token';
+    if (contextAuthentication.source === 'verified_access_token') return 'verified_access_token';
+  }
+
+  const authDebug = req && req.__diracCustomerAuthDebugV219
+    && typeof req.__diracCustomerAuthDebugV219 === 'object'
+    ? req.__diracCustomerAuthDebugV219
+    : null;
+  if (authDebug && authDebug.authenticated === true) {
+    if (authDebug.path === 'refresh_token' && authDebug.refreshed === true) return 'verified_refresh_token';
+    if (authDebug.path === 'access_token' && authDebug.refreshed !== true) return 'verified_access_token';
+  }
+  return '';
+}
+
+function diracPasskeyRefreshEscrowDigestV250(kind, token, jti, owner) {
+  const value = String(token || '').trim();
+  const challengeId = String(jti || '').trim();
+  const authUserId = String(owner && owner.authUserId || '').trim();
+  const customerId = String(owner && owner.customerId || '').trim();
+  const email = normalizeAuthEmail(owner && owner.email || '');
+  if (!value || !challengeId
+      || !customerSecurityLooksLikeUuid(authUserId)
+      || !customerSecurityLooksLikeUuid(customerId)
+      || !isValidAuthEmail(email)) return '';
+  return crypto.createHmac('sha512', getCustomerMfaSecret())
+    .update(JSON.stringify([
+      DIRAC_PASSKEY_REFRESH_ESCROW_V250,
+      String(kind || ''),
+      challengeId,
+      authUserId,
+      customerId,
+      email,
+      value
+    ]))
+    .digest('hex');
+}
+
+function diracPasskeyClearRefreshEscrowCookieV250(res) {
+  appendSetCookie(res, makeCookie(
+    DIRAC_PASSKEY_REFRESH_ESCROW_COOKIE_V250,
+    '',
+    { maxAge: 0, domain: '' }
+  ));
+}
+
+function diracPasskeyClearCurrentRefreshCookieV250(req, res) {
+  const requestCookies = parseCookies(req);
+  const namesToClear = new Set([REFRESH_COOKIE]);
+  for (let index = 0; index < DOMAIN_COOKIE_MAX_CHUNKS; index += 1) {
+    const chunkName = `${REFRESH_COOKIE}__${index}`;
+    const duplicateValues = requestCookies.__all
+      && Array.isArray(requestCookies.__all[chunkName])
+      ? requestCookies.__all[chunkName]
+      : [];
+    if (Object.prototype.hasOwnProperty.call(requestCookies, chunkName)
+        || duplicateValues.length > 0) {
+      namesToClear.add(chunkName);
+    }
+  }
+  const clearCookies = [];
+  namesToClear.forEach((name) => {
+    clearCookies.push(...makeCompactClearCookie(name));
+  });
+  appendSetCookie(res, clearCookies);
+  return clearCookies.length > 0;
+}
+
+function diracPasskeyStripResponseRefreshCookiesV250(res) {
+  if (!res || typeof res.getHeader !== 'function' || typeof res.setHeader !== 'function') return false;
+  const current = res.getHeader('Set-Cookie');
+  const rows = Array.isArray(current) ? current.map(String) : current ? [String(current)] : [];
+  const retained = rows.filter((row) => {
+    const first = String(row || '').split(';', 1)[0];
+    const separator = first.indexOf('=');
+    const name = String(separator === -1 ? first : first.slice(0, separator)).trim();
+    return name !== REFRESH_COOKIE && !name.startsWith(REFRESH_COOKIE + '__');
+  });
+  res.setHeader('Set-Cookie', retained);
+  return true;
+}
+
+function diracPasskeyRefreshEscrowFailureV250(reason, details = {}) {
+  return Object.freeze({
+    ok: false,
+    patch: DIRAC_PASSKEY_REFRESH_ESCROW_V250,
+    reason: String(reason || 'passkey_refresh_escrow_failed').slice(0, 96),
+    upstream_status: Math.max(0, Math.min(599, Math.floor(Number(details.upstreamStatus || 0) || 0))),
+    provider_reason_class: diracDeviceBootstrapSafeCodeV238(details.providerReasonClass || ''),
+    reauth_required: details.reauthRequired === true,
+    security_failure: details.securityFailure === true
+  });
+}
+
+async function diracPasskeyPrepareRefreshEscrowAtStartV250(req, res, owner, jti) {
+  const ctx = diracPasskeyRefreshEscrowGuardContextV250(req, 'dirac_mfa_passkey_start');
+  if (!ctx) return diracPasskeyRefreshEscrowFailureV250(
+    'passkey_refresh_escrow_guard_context_invalid',
+    { securityFailure: true }
+  );
+
+  const authUserId = String(owner && owner.authUserId || '').trim();
+  const customerId = String(owner && owner.customerId || '').trim();
+  const email = normalizeAuthEmail(owner && owner.email || '');
+  if (!customerSecurityLooksLikeUuid(authUserId)
+      || !customerSecurityLooksLikeUuid(customerId)
+      || !isValidAuthEmail(email)
+      || !/^[A-Za-z0-9_-]{32,160}$/.test(String(jti || ''))) {
+    return diracPasskeyRefreshEscrowFailureV250(
+      'passkey_refresh_escrow_owner_or_jti_invalid',
+      { securityFailure: true }
+    );
+  }
+
+  diracPasskeyClearRefreshEscrowCookieV250(res);
+
+  const responseAccess = diracPasskeyResponseTokenCandidatesV248(res, ACCESS_COOKIE);
+  const responseRefresh = diracPasskeyResponseTokenCandidatesV248(res, REFRESH_COOKIE);
+  if (responseAccess.length > 1 || responseRefresh.length > 1
+      || responseAccess.length !== responseRefresh.length) {
+    return diracPasskeyRefreshEscrowFailureV250(
+      'passkey_refresh_escrow_response_session_ambiguous',
+      { securityFailure: true }
+    );
+  }
+
+  let verifiedSession = null;
+  let source = '';
+  const authProvenance = diracPasskeyRefreshEscrowAuthProvenanceV250(req, ctx);
+
+  if (responseAccess.length === 1 && responseRefresh.length === 1) {
+    if (authProvenance !== 'verified_refresh_token') {
+      return diracPasskeyRefreshEscrowFailureV250(
+        'passkey_refresh_escrow_response_provenance_invalid',
+        { securityFailure: true }
+      );
+    }
+    const verified = await diracPasskeyVerifySupabaseSessionV248({
+      access_token: responseAccess[0],
+      refresh_token: responseRefresh[0]
+    }, owner);
+    if (!verified || verified.ok !== true) {
+      return diracPasskeyRefreshEscrowFailureV250(
+        verified && verified.reason || 'passkey_refresh_escrow_response_session_invalid',
+        { securityFailure: true }
+      );
+    }
+    verifiedSession = verified.session;
+    source = 'central_verified_refresh_rotation';
+  } else {
+    if (authProvenance !== 'verified_access_token') {
+      return diracPasskeyRefreshEscrowFailureV250(
+        'passkey_refresh_escrow_primary_reauth_required',
+        { reauthRequired: true }
+      );
+    }
+
+    const cookies = parseCookies(req);
+    const requestRefresh = readCookieTokenCandidates(cookies, REFRESH_COOKIE);
+    if (!requestRefresh.length) {
+      diracPasskeyClearCurrentRefreshCookieV250(req, res);
+      return diracPasskeyRefreshEscrowFailureV250(
+        'passkey_refresh_escrow_refresh_missing',
+        { reauthRequired: true }
+      );
+    }
+    if (requestRefresh.length !== 1) {
+      return diracPasskeyRefreshEscrowFailureV250(
+        'passkey_refresh_escrow_refresh_ambiguous',
+        { securityFailure: true }
+      );
+    }
+
+    const refreshToken = requestRefresh[0];
+    let refreshResult = null;
+    let refreshError = null;
+    try {
+      refreshResult = await supabaseFetch('/auth/v1/token?grant_type=refresh_token', {
+        method: 'POST',
+        auth: 'anon',
+        body: { refresh_token: refreshToken }
+      });
+    } catch (error) {
+      refreshError = error;
+    }
+
+    if (!refreshResult || refreshResult.ok !== true || !refreshResult.data
+        || typeof refreshResult.data !== 'object') {
+      const providerReasonClass = diracPasskeyAuthHandoffProviderReasonV249(
+        refreshResult && refreshResult.data || refreshError
+      );
+      const softReauth = providerReasonClass === 'refresh_token_invalid_or_missing';
+      if (softReauth) diracPasskeyClearCurrentRefreshCookieV250(req, res);
+      return diracPasskeyRefreshEscrowFailureV250(
+        providerReasonClass
+          ? 'passkey_refresh_escrow_' + providerReasonClass
+          : 'passkey_refresh_escrow_provider_rejected',
+        {
+          upstreamStatus: refreshResult && refreshResult.status,
+          providerReasonClass,
+          reauthRequired: softReauth,
+          securityFailure: providerReasonClass === 'refresh_token_reuse_or_rotation_conflict'
+        }
+      );
+    }
+
+    const rotatedAccessToken = String(refreshResult.data.access_token || '').trim();
+    const rotatedRefreshToken = String(refreshResult.data.refresh_token || '').trim();
+    if (!rotatedAccessToken || !rotatedRefreshToken
+        || safeEqual(rotatedRefreshToken, refreshToken)) {
+      return diracPasskeyRefreshEscrowFailureV250(
+        'passkey_refresh_escrow_rotation_not_proven',
+        { upstreamStatus: refreshResult.status, securityFailure: true }
+      );
+    }
+
+    const verified = await diracPasskeyVerifySupabaseSessionV248(
+      Object.assign({}, refreshResult.data, {
+        access_token: rotatedAccessToken,
+        refresh_token: rotatedRefreshToken
+      }),
+      owner
+    );
+    if (!verified || verified.ok !== true) {
+      return diracPasskeyRefreshEscrowFailureV250(
+        verified && verified.reason || 'passkey_refresh_escrow_rotated_session_invalid',
+        { upstreamStatus: refreshResult.status, securityFailure: true }
+      );
+    }
+    verifiedSession = verified.session;
+    source = 'verified_start_refresh_rotation';
+
+    const accessMaxAgeSeconds = typeof diracV110SessionMaxAgeSeconds === 'function'
+      ? Math.max(60, Math.min(60 * 60 * 24 * 7, Math.floor(Number(diracV110SessionMaxAgeSeconds()) || 0)))
+      : 60 * 60 * 24 * 7;
+    appendSetCookie(res, makeTokenCookieSet(
+      ACCESS_COOKIE,
+      verifiedSession.access_token,
+      { maxAge: accessMaxAgeSeconds }
+    ));
+  }
+
+  const accessDigest = diracPasskeyRefreshEscrowDigestV250(
+    'access',
+    verifiedSession && verifiedSession.access_token,
+    jti,
+    owner
+  );
+  const refreshDigest = diracPasskeyRefreshEscrowDigestV250(
+    'refresh',
+    verifiedSession && verifiedSession.refresh_token,
+    jti,
+    owner
+  );
+  if (!/^[a-f0-9]{128}$/.test(accessDigest)
+      || !/^[a-f0-9]{128}$/.test(refreshDigest)) {
+    return diracPasskeyRefreshEscrowFailureV250(
+      'passkey_refresh_escrow_digest_failed',
+      { securityFailure: true }
+    );
+  }
+
+  diracPasskeyStripResponseRefreshCookiesV250(res);
+  diracPasskeyClearCurrentRefreshCookieV250(req, res);
+
+  const ttlSeconds = Math.max(
+    60,
+    Math.min(10 * 60, Math.ceil(Number(DIRAC_PASSKEY_A2F_TTL_MS || 0) / 1000) + 30)
+  );
+  appendSetCookie(res, makeCookie(
+    DIRAC_PASSKEY_REFRESH_ESCROW_COOKIE_V250,
+    verifiedSession.refresh_token,
+    { maxAge: ttlSeconds, domain: '' }
+  ));
+
+  return Object.freeze({
+    ok: true,
+    patch: DIRAC_PASSKEY_REFRESH_ESCROW_V250,
+    source,
+    access_digest: accessDigest,
+    refresh_digest: refreshDigest
+  });
+}
+
+async function diracPasskeyValidateRefreshEscrowAtVerifyV250(req, owner, payload) {
+  const ctx = diracPasskeyRefreshEscrowGuardContextV250(req, 'dirac_mfa_passkey_verify');
+  const binding = payload && payload.authHandoffV250;
+  if (!ctx || !binding || Number(binding.version) !== 250
+      || binding.patch !== DIRAC_PASSKEY_REFRESH_ESCROW_V250) {
+    return diracPasskeyRefreshEscrowFailureV250(
+      'passkey_refresh_escrow_challenge_binding_missing',
+      { securityFailure: true }
+    );
+  }
+
+  const cookies = parseCookies(req);
+  const normalRefresh = readCookieTokenCandidates(cookies, REFRESH_COOKIE);
+  const escrowRefresh = readCookieTokenCandidates(cookies, DIRAC_PASSKEY_REFRESH_ESCROW_COOKIE_V250);
+  const accessTokens = readCookieTokenCandidates(cookies, ACCESS_COOKIE);
+  if (normalRefresh.length !== 0) {
+    return diracPasskeyRefreshEscrowFailureV250(
+      'passkey_refresh_escrow_isolation_broken',
+      { securityFailure: true }
+    );
+  }
+  if (escrowRefresh.length !== 1 || accessTokens.length !== 1) {
+    return diracPasskeyRefreshEscrowFailureV250(
+      'passkey_refresh_escrow_material_missing_or_ambiguous',
+      { reauthRequired: true }
+    );
+  }
+
+  const expectedAccessDigest = diracPasskeyRefreshEscrowDigestV250(
+    'access',
+    accessTokens[0],
+    payload.jti,
+    owner
+  );
+  const expectedRefreshDigest = diracPasskeyRefreshEscrowDigestV250(
+    'refresh',
+    escrowRefresh[0],
+    payload.jti,
+    owner
+  );
+  if (!/^[a-f0-9]{128}$/.test(String(binding.accessDigest || ''))
+      || !/^[a-f0-9]{128}$/.test(String(binding.refreshDigest || ''))
+      || !safeEqual(String(binding.accessDigest), expectedAccessDigest)
+      || !safeEqual(String(binding.refreshDigest), expectedRefreshDigest)) {
+    return diracPasskeyRefreshEscrowFailureV250(
+      'passkey_refresh_escrow_challenge_binding_mismatch',
+      { securityFailure: true }
+    );
+  }
+
+  const verified = await diracPasskeyVerifySupabaseSessionV248({
+    access_token: accessTokens[0],
+    refresh_token: escrowRefresh[0]
+  }, owner);
+  if (!verified || verified.ok !== true) {
+    return diracPasskeyRefreshEscrowFailureV250(
+      verified && verified.reason || 'passkey_refresh_escrow_access_verification_failed',
+      { reauthRequired: true }
+    );
+  }
+
+  const sealed = Object.freeze({
+    ok: true,
+    patch: DIRAC_PASSKEY_REFRESH_ESCROW_V250,
+    request_id: String(ctx.requestId || ''),
+    created_at_ms: Date.now(),
+    auth_user_id: String(owner.authUserId || ''),
+    customer_id: String(owner.customerId || ''),
+    jti: String(payload.jti || ''),
+    refresh_token: escrowRefresh[0],
+    access_token: accessTokens[0]
+  });
+  try {
+    Object.defineProperty(req, DIRAC_PASSKEY_REFRESH_ESCROW_CACHE_V250, {
+      value: sealed,
+      writable: false,
+      enumerable: false,
+      configurable: false
+    });
+  } catch (_) {
+    return diracPasskeyRefreshEscrowFailureV250(
+      'passkey_refresh_escrow_verify_cache_failed',
+      { securityFailure: true }
+    );
+  }
+  return sealed;
+}
+
+async function diracPasskeyConsumeRefreshEscrowV250(req, res, owner, payload) {
+  const ctx = diracPasskeyRefreshEscrowGuardContextV250(req, 'dirac_mfa_passkey_verify');
+  let sealed = null;
+  try { sealed = req && req[DIRAC_PASSKEY_REFRESH_ESCROW_CACHE_V250] || null; } catch (_) { sealed = null; }
+  if (!ctx || !sealed || sealed.ok !== true
+      || sealed.patch !== DIRAC_PASSKEY_REFRESH_ESCROW_V250
+      || !safeEqual(String(sealed.request_id || ''), String(ctx.requestId || ''))
+      || !safeEqual(String(sealed.auth_user_id || ''), String(owner && owner.authUserId || ''))
+      || !safeEqual(String(sealed.customer_id || ''), String(owner && owner.customerId || ''))
+      || !safeEqual(String(sealed.jti || ''), String(payload && payload.jti || ''))) {
+    return diracPasskeyRefreshEscrowFailureV250(
+      'passkey_refresh_escrow_verified_cache_invalid',
+      { securityFailure: true }
+    );
+  }
+
+  let refreshResult = null;
+  let refreshError = null;
+  try {
+    refreshResult = await supabaseFetch('/auth/v1/token?grant_type=refresh_token', {
+      method: 'POST',
+      auth: 'anon',
+      body: { refresh_token: sealed.refresh_token }
+    });
+  } catch (error) {
+    refreshError = error;
+  }
+
+  if (!refreshResult || refreshResult.ok !== true || !refreshResult.data
+      || typeof refreshResult.data !== 'object') {
+    const providerReasonClass = diracPasskeyAuthHandoffProviderReasonV249(
+      refreshResult && refreshResult.data || refreshError
+    );
+    return diracPasskeyRefreshEscrowFailureV250(
+      providerReasonClass
+        ? 'passkey_refresh_escrow_final_' + providerReasonClass
+        : 'passkey_refresh_escrow_final_provider_rejected',
+      {
+        upstreamStatus: refreshResult && refreshResult.status,
+        providerReasonClass,
+        reauthRequired: providerReasonClass === 'refresh_token_invalid_or_missing',
+        securityFailure: providerReasonClass === 'refresh_token_reuse_or_rotation_conflict'
+      }
+    );
+  }
+
+  const rotatedAccessToken = String(refreshResult.data.access_token || '').trim();
+  const rotatedRefreshToken = String(refreshResult.data.refresh_token || '').trim();
+  if (!rotatedAccessToken || !rotatedRefreshToken
+      || safeEqual(rotatedRefreshToken, sealed.refresh_token)) {
+    return diracPasskeyRefreshEscrowFailureV250(
+      'passkey_refresh_escrow_final_rotation_not_proven',
+      { upstreamStatus: refreshResult.status, securityFailure: true }
+    );
+  }
+
+  const verified = await diracPasskeyVerifySupabaseSessionV248(
+    Object.assign({}, refreshResult.data, {
+      access_token: rotatedAccessToken,
+      refresh_token: rotatedRefreshToken
+    }),
+    owner
+  );
+  if (!verified || verified.ok !== true) {
+    return diracPasskeyRefreshEscrowFailureV250(
+      verified && verified.reason || 'passkey_refresh_escrow_final_session_invalid',
+      { upstreamStatus: refreshResult.status, securityFailure: true }
+    );
+  }
+
+  const handoff = diracPasskeySealPreparedSupabaseAuthHandoffV249(
+    req,
+    owner,
+    verified.session,
+    'verified_v250_escrow_rotation'
+  );
+  if (!handoff || handoff.ok !== true) {
+    return diracPasskeyRefreshEscrowFailureV250(
+      handoff && handoff.reason || 'passkey_refresh_escrow_final_handoff_seal_failed',
+      { securityFailure: true }
+    );
+  }
+  return Object.freeze({
+    ok: true,
+    patch: DIRAC_PASSKEY_REFRESH_ESCROW_V250,
+    handoff
+  });
 }
 
 function diracPasskeySealPreparedSupabaseAuthHandoffV249(req, owner, session, source) {
@@ -17459,11 +18015,40 @@ async function diracPasskeyA2FVerify(req, res) {
   }
   if (Number(payload.expiresAtMs || 0) <= Date.now()) {
     await diracA2FHardBanCurrentRequest('passkey_a2f_token_expired');
+    diracPasskeyClearRefreshEscrowCookieV250(res);
     return res.status(403).json({ ok: false, method: 'passkey', message: 'Challenge Passkey sudah expired. Ulangi dari tombol Passkey.' });
   }
+
+  const verifiedAuthEscrow = await diracPasskeyValidateRefreshEscrowAtVerifyV250(
+    req,
+    owner,
+    payload
+  );
+  if (!verifiedAuthEscrow || verifiedAuthEscrow.ok !== true) {
+    const reauthRequired = verifiedAuthEscrow && verifiedAuthEscrow.reauth_required === true;
+    const securityFailure = verifiedAuthEscrow && verifiedAuthEscrow.security_failure === true;
+    if (securityFailure) {
+      clearCurrentRequestSessionCookiesV235(req, res);
+    }
+    diracPasskeyClearRefreshEscrowCookieV250(res);
+    return res.status(reauthRequired ? 401 : securityFailure ? 409 : 503).json({
+      ok: false,
+      method: 'passkey',
+      code: reauthRequired
+        ? 'PASSKEY_PRIMARY_SESSION_REAUTH_REQUIRED'
+        : securityFailure
+          ? 'PASSKEY_AUTH_ESCROW_BINDING_INVALID'
+          : 'PASSKEY_AUTH_ESCROW_UNAVAILABLE',
+      message: reauthRequired
+        ? 'Sesi login utama perlu diperbarui. Masukkan password lagi sebelum memulai Passkey.'
+        : 'Binding autentikasi challenge Passkey tidak dapat dibuktikan. Sesi tidak diterbitkan.'
+    });
+  }
+
   const challengeUse = await diracPasskeyA2FConsumeChallenge(setupToken, payload);
   if (!challengeUse.ok) {
     await diracA2FHardBanCurrentRequest(challengeUse.reason || 'passkey_a2f_challenge_replay');
+    diracPasskeyClearRefreshEscrowCookieV250(res);
     return res.status(403).json({ ok: false, method: 'passkey', message: 'Challenge Passkey sudah dipakai atau tidak valid. Ulangi dari tombol Passkey.' });
   }
   if (!payload.emailHash || !safeEqual(String(payload.emailHash), customerMfaProfileId(owner.email))) {
@@ -17699,34 +18284,35 @@ async function diracPasskeyA2FVerify(req, res) {
     return res.status(409).json({ ok: false, method: 'passkey', code: 'PASSKEY_FINAL_STATE_INVALID', message: 'Passkey berubah sebelum sesi diterbitkan. Login ditolak.' });
   }
 
-  const preparedAuthHandoff = await diracPasskeyPrepareVerifiedSupabaseAuthHandoffV249(req, res, owner);
-  if (!preparedAuthHandoff || preparedAuthHandoff.ok !== true) {
-    const handoffReason = String(
-      preparedAuthHandoff && preparedAuthHandoff.reason
-      || 'passkey_supabase_auth_handoff_failed'
-    );
+  const consumedAuthEscrow = await diracPasskeyConsumeRefreshEscrowV250(
+    req,
+    res,
+    owner,
+    payload
+  );
+  if (!consumedAuthEscrow || consumedAuthEscrow.ok !== true) {
     const providerReasonClass = String(
-      preparedAuthHandoff && preparedAuthHandoff.provider_reason_class || ''
+      consumedAuthEscrow && consumedAuthEscrow.provider_reason_class || ''
     );
     const upstreamStatus = Number(
-      preparedAuthHandoff && preparedAuthHandoff.upstream_status || 0
+      consumedAuthEscrow && consumedAuthEscrow.upstream_status || 0
     );
-    const reauthRequired = handoffReason === 'passkey_supabase_refresh_token_missing'
-      || handoffReason === 'passkey_supabase_refresh_token_ambiguous'
-      || handoffReason === 'passkey_supabase_response_session_ambiguous'
-      || providerReasonClass === 'refresh_token_invalid_or_missing'
-      || providerReasonClass === 'refresh_token_reuse_or_rotation_conflict'
-      || providerReasonClass === 'credential_expired'
-      || providerReasonClass === 'access_token_invalid'
-      || providerReasonClass === 'user_not_found';
+    const reauthRequired = consumedAuthEscrow && consumedAuthEscrow.reauth_required === true;
+    const securityFailure = consumedAuthEscrow && consumedAuthEscrow.security_failure === true;
 
-    clearCurrentRequestSessionCookiesV235(req, res);
+    if (reauthRequired || securityFailure) {
+      clearCurrentRequestSessionCookiesV235(req, res);
+    }
+    diracPasskeyClearRefreshEscrowCookieV250(res);
+
     return res.status(
       providerReasonClass === 'provider_rate_limited' || upstreamStatus === 429
         ? 429
         : reauthRequired
           ? 401
-          : 503
+          : securityFailure
+            ? 409
+            : 503
     ).json({
       ok: false,
       method: 'passkey',
@@ -17734,12 +18320,16 @@ async function diracPasskeyA2FVerify(req, res) {
         ? 'PASSKEY_PRIMARY_SESSION_REAUTH_REQUIRED'
         : providerReasonClass === 'provider_rate_limited' || upstreamStatus === 429
           ? 'PASSKEY_AUTH_PROVIDER_RATE_LIMITED'
-          : 'PASSKEY_AUTH_HANDOFF_PRECHECK_FAILED',
+          : securityFailure
+            ? 'PASSKEY_AUTH_ESCROW_FINAL_SECURITY_FAILURE'
+            : 'PASSKEY_AUTH_ESCROW_FINAL_UNAVAILABLE',
       message: reauthRequired
-        ? 'Sesi login utama tidak lagi memiliki rantai refresh yang dapat dibuktikan. Login ulang diperlukan sebelum sesi Passkey diterbitkan.'
+        ? 'Sesi autentikasi berubah selama verifikasi Passkey. Login ulang diperlukan dan sesi dashboard tidak diterbitkan.'
         : providerReasonClass === 'provider_rate_limited' || upstreamStatus === 429
           ? 'Penyedia autentikasi membatasi permintaan sementara. Sesi Passkey tidak diterbitkan.'
-          : 'Handoff autentikasi utama belum dapat dibuktikan secara utuh. Sesi Passkey tidak diterbitkan dan login ulang diperlukan.'
+          : securityFailure
+            ? 'Rantai autentikasi berubah selama verifikasi Passkey. Sesi dashboard ditolak.'
+            : 'Rantai autentikasi akhir belum dapat dibuktikan. Sesi dashboard tidak diterbitkan.'
     });
   }
 
@@ -17845,6 +18435,8 @@ async function diracPasskeyA2FVerify(req, res) {
       message: 'Passkey berhasil diverifikasi, tetapi handoff sesi dashboard belum terbentuk secara utuh. Sesi ditolak dan harus diverifikasi ulang.'
     });
   }
+
+  diracPasskeyClearRefreshEscrowCookieV250(res);
 
   return res.status(200).json({
     ok: true,
