@@ -16506,7 +16506,7 @@ async function diracPasskeyA2FStart(req, res) {
         userVerification: 'required'
       },
       extensions: { credProps: true },
-      excludeCredentials: activePasskeys
+      excludeCredentials: (isLostPasskeyRecoveryRegistration ? [] : activePasskeys)
         .filter((row) => row && row.credential_id)
         .map((row) => ({
           type: 'public-key',
