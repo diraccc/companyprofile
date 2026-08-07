@@ -15026,7 +15026,7 @@ async function diracPasskeyA2FListActivePasskeys(owner, freshAfterMutation = fal
   } catch (_) {}
 
   if (!isRecoveryWorkerContext && owner && owner.email && isValidAuthEmail(owner.email)) {
-    { let scopedReadOk = false; let scopedReadError = null; for (const [ownerColumn, ownerValue] of [['customer_id', owner.customerId], ['auth_user_id', owner.authUserId]]) { if (!ownerValue || !customerSecurityLooksLikeUuid(ownerValue)) continue; try { await fetchRows(ownerColumn + '=eq.' + encodeURIComponent(ownerValue)); scopedReadOk = true; } catch (error) { scopedReadError = error; } } if (!scopedReadOk && scopedReadError) throw scopedReadError; }
+    await fetchRows('email=eq.' + encodeURIComponent(owner.email));
   }
 
   return rows;
