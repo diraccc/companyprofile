@@ -16813,6 +16813,9 @@ const DIRAC_PASSKEY_REFRESH_ESCROW_COOKIE_V250 = process.env.NODE_ENV === 'produ
 const DIRAC_PASSKEY_TRANSACTION_V300 = 'dirac-passkey-transaction-v300';
 const DIRAC_PASSKEY_AUTH_SESSION_V301 = 'dirac-passkey-auth-session-v301';
 const DIRAC_PASSKEY_AUTH_SESSION_CACHE_V301 = Symbol('dirac-passkey-auth-session-cache-v301');
+const DIRAC_PASSKEY_AUTH_SESSION_V302 = 'dirac-passkey-auth-session-v302';
+const DIRAC_PASSKEY_AUTH_SESSION_CACHE_V302 = Symbol('dirac-passkey-auth-session-cache-v302');
+const DIRAC_PASSKEY_FINAL_AUTH_CONTINUITY_V302 = 'dirac-passkey-final-auth-continuity-v302';
 const DIRAC_PASSKEY_AUTH_MIN_TTL_SECONDS_V301 = Math.max(
   120,
   Math.min(10 * 60, Math.ceil(Number(DIRAC_PASSKEY_A2F_TTL_MS || 0) / 1000) + 60)
@@ -17469,6 +17472,347 @@ async function diracPasskeyVerifyCanonicalAuthBindingV301(req, owner, payload) {
     return Object.freeze({ ok: true, patch: DIRAC_PASSKEY_AUTH_SESSION_V301 });
   } catch (_) {
     return fail('passkey_v301_verify_binding_exception', 503);
+  }
+}
+
+function diracPasskeyAuthFailureV302(reason, status = 401, details = {}) {
+  return Object.freeze({
+    ok: false,
+    patch: DIRAC_PASSKEY_AUTH_SESSION_V302,
+    reason: String(reason || 'passkey_v302_auth_session_invalid').slice(0, 96),
+    status: Math.max(400, Math.min(599, Math.floor(Number(status || 401) || 401))),
+    provider_reason_class: diracDeviceBootstrapSafeCodeV238(details.providerReasonClass || ''),
+    upstream_status: Math.max(0, Math.min(599, Math.floor(Number(details.upstreamStatus || 0) || 0)))
+  });
+}
+
+function diracPasskeyAuthDiagnosticV302(req, details = {}) {
+  try {
+    const ctx = typeof diracCentralCurrentContextV149 === 'function'
+      ? diracCentralCurrentContextV149()
+      : null;
+    console.error('[dirac-passkey-auth-session-v302]', JSON.stringify({
+      patch: DIRAC_PASSKEY_AUTH_SESSION_V302,
+      event: 'passkey_latest_guard_auth_generation',
+      request_id: String(ctx && ctx.requestId || '').slice(0, 64),
+      action: diracDeviceBootstrapSafeCodeV238(ctx && ctx.action || ''),
+      stage: diracDeviceBootstrapSafeCodeV238(details.stage || ''),
+      ok: details.ok === true,
+      reason: diracDeviceBootstrapSafeCodeV238(details.reason || ''),
+      source: diracDeviceBootstrapSafeCodeV238(details.source || ''),
+      remaining_ttl_seconds: Math.max(0, Math.min(86400, Math.floor(Number(details.remainingTtlSeconds || 0) || 0)))
+    }));
+  } catch (_) {}
+}
+
+async function diracPasskeyVerifyCanonicalAuthBindingV302(req, res, owner, payload) {
+  const fail = (reason, status = 401, details = {}) => {
+    const result = diracPasskeyAuthFailureV302(reason, status, details);
+    diracPasskeyAuthDiagnosticV302(req, {
+      stage: 'verify_latest_generation',
+      reason: result.reason,
+      source: details.source || ''
+    });
+    return result;
+  };
+
+  try {
+    const binding = payload && payload.primaryAuthV301;
+    if (!binding || Number(binding.version) !== 301
+        || binding.patch !== DIRAC_PASSKEY_AUTH_SESSION_V301
+        || !/^[a-f0-9]{64}$/.test(String(binding.sessionBinding || ''))
+        || !Number.isSafeInteger(Number(binding.accessExpiresAt))) {
+      return fail('passkey_v302_challenge_auth_binding_missing', 409);
+    }
+
+    const provenance = diracPasskeyAuthProvenanceV301(req);
+    const responseAccess = diracPasskeyResponseTokenCandidatesV248(res, ACCESS_COOKIE);
+    const responseRefresh = diracPasskeyResponseTokenCandidatesV248(res, REFRESH_COOKIE);
+    const requestCookies = parseCookies(req);
+    const requestAccess = readCookieTokenCandidates(requestCookies, ACCESS_COOKIE);
+    const requestRefresh = readCookieTokenCandidates(requestCookies, REFRESH_COOKIE);
+
+    if (responseAccess.length > 1 || responseRefresh.length > 1
+        || responseAccess.length !== responseRefresh.length) {
+      return fail('passkey_v302_guard_response_auth_ambiguous', 409, { source: provenance });
+    }
+
+    let candidate = null;
+    let source = '';
+    if (provenance === 'verified_refresh_token') {
+      if (responseAccess.length !== 1 || responseRefresh.length !== 1) {
+        return fail('passkey_v302_guard_refresh_generation_missing', 503, { source: provenance });
+      }
+      if (requestRefresh.some((token) => safeEqual(String(token), String(responseRefresh[0])))) {
+        return fail('passkey_v302_guard_refresh_rotation_not_proven', 409, { source: provenance });
+      }
+      candidate = {
+        access_token: String(responseAccess[0]),
+        refresh_token: String(responseRefresh[0])
+      };
+      source = 'central_guard_verified_refresh_generation';
+    } else if (provenance === 'verified_access_token') {
+      if (responseAccess.length !== 0 || responseRefresh.length !== 0) {
+        return fail('passkey_v302_unexpected_auth_generation_in_response', 409, { source: provenance });
+      }
+      if (requestAccess.length !== 1 || requestRefresh.length !== 1) {
+        return fail('passkey_v302_request_auth_pair_not_canonical', 401, { source: provenance });
+      }
+      candidate = {
+        access_token: String(requestAccess[0]),
+        refresh_token: String(requestRefresh[0])
+      };
+      source = 'central_guard_verified_request_generation';
+    } else {
+      return fail('passkey_v302_guard_auth_provenance_invalid', 401, { source: provenance });
+    }
+
+    const verified = await diracPasskeyVerifySupabaseSessionV248(candidate, owner);
+    if (!verified || verified.ok !== true) {
+      return fail(verified && verified.reason || 'passkey_v302_latest_generation_invalid', 401, { source });
+    }
+    const state = diracPasskeyJwtAuthStateV301(verified.session.access_token, owner);
+    if (!state || state.ok !== true) {
+      return fail(state && state.reason || 'passkey_v302_latest_access_state_invalid', 401, { source });
+    }
+    if (!safeEqual(String(state.binding), String(binding.sessionBinding))
+        || state.expiresAt < Number(binding.accessExpiresAt)
+        || state.remainingTtlSeconds < 120) {
+      return fail('passkey_v302_challenge_auth_generation_changed', 401, { source });
+    }
+
+    const sealed = Object.freeze({
+      patch: DIRAC_PASSKEY_AUTH_SESSION_V302,
+      authUserId: String(owner.authUserId || ''),
+      customerId: String(owner.customerId || ''),
+      email: normalizeAuthEmail(owner.email || ''),
+      sessionBinding: String(state.binding),
+      accessExpiresAt: state.expiresAt,
+      accessToken: String(verified.session.access_token),
+      refreshToken: String(verified.session.refresh_token),
+      source
+    });
+    try {
+      Object.defineProperty(req, DIRAC_PASSKEY_AUTH_SESSION_CACHE_V302, {
+        value: sealed,
+        enumerable: false,
+        writable: false,
+        configurable: false
+      });
+    } catch (_) {
+      return fail('passkey_v302_request_auth_seal_failed', 503, { source });
+    }
+
+    diracPasskeyAuthDiagnosticV302(req, {
+      stage: 'verify_latest_generation',
+      ok: true,
+      source,
+      remainingTtlSeconds: state.remainingTtlSeconds
+    });
+    return Object.freeze({ ok: true, patch: DIRAC_PASSKEY_AUTH_SESSION_V302, source });
+  } catch (_) {
+    return fail('passkey_v302_verify_binding_exception', 503);
+  }
+}
+
+function diracPasskeyReadCanonicalAuthForFinalV302(req, owner) {
+  const sealed = req && req[DIRAC_PASSKEY_AUTH_SESSION_CACHE_V302];
+  const authUserId = String(owner && owner.authUserId || '').trim();
+  const customerId = String(owner && owner.customerId || '').trim();
+  const email = normalizeAuthEmail(owner && owner.email || '');
+  if (!sealed || !Object.isFrozen(sealed)
+      || sealed.patch !== DIRAC_PASSKEY_AUTH_SESSION_V302
+      || sealed.authUserId !== authUserId
+      || sealed.customerId !== customerId
+      || sealed.email !== email
+      || !/^[a-f0-9]{64}$/.test(String(sealed.sessionBinding || ''))
+      || !hasValidDomainSessionTokens({
+        access_token: sealed.accessToken,
+        refresh_token: sealed.refreshToken
+      })) {
+    return diracPasskeyAuthFailureV302('passkey_v302_final_auth_seal_invalid', 503);
+  }
+
+  // Do not require the provider session to remain alive here. A recovery commit is
+  // allowed to revoke old provider sessions. Provider/signed-session continuity is
+  // proven below with the exact Central bootstrap authenticator before publication.
+  const state = diracPasskeyJwtAuthStateV301(sealed.accessToken, owner);
+  if (!state || state.ok !== true
+      || !safeEqual(String(state.binding), String(sealed.sessionBinding))) {
+    return diracPasskeyAuthFailureV302('passkey_v302_final_auth_binding_invalid', 503);
+  }
+
+  const maxAge = typeof diracV110SessionMaxAgeSeconds === 'function'
+    ? Math.max(60, Math.min(7 * 24 * 60 * 60, Math.floor(Number(diracV110SessionMaxAgeSeconds()) || 0)))
+    : 24 * 60 * 60;
+  const authCookies = makeTokenCookieSet(ACCESS_COOKIE, sealed.accessToken, { maxAge })
+    .concat(makeTokenCookieSet(REFRESH_COOKIE, sealed.refreshToken, { maxAge }));
+  if (!authCookies.length) {
+    return diracPasskeyAuthFailureV302('passkey_v302_final_auth_cookie_construction_failed', 503);
+  }
+
+  return Object.freeze({
+    ok: true,
+    patch: DIRAC_PASSKEY_AUTH_SESSION_V302,
+    accessToken: String(sealed.accessToken),
+    refreshToken: String(sealed.refreshToken),
+    authCookies: Object.freeze(authCookies.slice()),
+    authTargetNames: Object.freeze([ACCESS_COOKIE, REFRESH_COOKIE]),
+    source: String(sealed.source || 'latest_guard_generation'),
+    republished: true,
+    sessionBinding: String(sealed.sessionBinding)
+  });
+}
+
+function diracPasskeyCanonicalAuthClearsV302(req, existingAuthCookies) {
+  const names = new Set([ACCESS_COOKIE, REFRESH_COOKIE]);
+  const requestCookies = parseCookies(req);
+  for (const base of [ACCESS_COOKIE, REFRESH_COOKIE]) {
+    for (let index = 0; index < DOMAIN_COOKIE_MAX_CHUNKS; index += 1) {
+      const name = `${base}__${index}`;
+      const duplicateValues = requestCookies.__all && Array.isArray(requestCookies.__all[name])
+        ? requestCookies.__all[name]
+        : [];
+      if (Object.prototype.hasOwnProperty.call(requestCookies, name) || duplicateValues.length > 0) {
+        names.add(name);
+      }
+    }
+  }
+  for (const row of Array.isArray(existingAuthCookies) ? existingAuthCookies : []) {
+    const first = String(row || '').split(';', 1)[0];
+    const separator = first.indexOf('=');
+    if (separator <= 0) continue;
+    const name = first.slice(0, separator).trim();
+    if (name === ACCESS_COOKIE || name === REFRESH_COOKIE
+        || name.startsWith(ACCESS_COOKIE + '__') || name.startsWith(REFRESH_COOKIE + '__')) {
+      names.add(name);
+    }
+  }
+  return Array.from(names).map((name) => makeCookie(name, '', { maxAge: 0, domain: '' }));
+}
+
+async function diracPasskeyStabilizeFinalDashboardAuthV302(req, owner, primaryAccess, signedSessionValue, signedSessionMaxAgeSeconds) {
+  const fail = (reason) => Object.freeze({
+    ok: false,
+    patch: DIRAC_PASSKEY_FINAL_AUTH_CONTINUITY_V302,
+    reason: String(reason || 'passkey_v302_final_dashboard_auth_invalid').slice(0, 96)
+  });
+
+  try {
+    const authUserId = String(owner && owner.authUserId || '').trim();
+    const email = normalizeAuthEmail(owner && owner.email || '');
+    const signedValue = String(signedSessionValue || '').trim();
+    const signedMaxAge = Math.floor(Number(signedSessionMaxAgeSeconds || 0));
+    if (!primaryAccess || primaryAccess.ok !== true
+        || !customerSecurityLooksLikeUuid(authUserId) || !isValidAuthEmail(email)
+        || !signedValue || signedMaxAge < 60) {
+      return fail('passkey_v302_final_dashboard_auth_input_invalid');
+    }
+
+    const signedCookie = makeCookie(DOMAIN_SIGNED_SESSION_COOKIE, signedValue, {
+      maxAge: signedMaxAge,
+      domain: ''
+    });
+    const buildRequest = (authCookies) => diracPasskeyCanonicalRequestFromSetCookiesV248(
+      req,
+      (Array.isArray(authCookies) ? authCookies : []).concat([signedCookie]),
+      [ACCESS_COOKIE, REFRESH_COOKIE, DOMAIN_SIGNED_SESSION_COOKIE]
+    );
+
+    let accessToken = String(primaryAccess.accessToken || '');
+    let refreshToken = String(primaryAccess.refreshToken || '');
+    let authCookies = Array.isArray(primaryAccess.authCookies) ? primaryAccess.authCookies.slice() : [];
+    let canonicalReq = buildRequest(authCookies);
+    if (!canonicalReq) return fail('passkey_v302_final_dashboard_auth_request_build_failed');
+
+    let authentication = await diracCentralAuthenticateDeviceBootstrapV224(canonicalReq).catch(() => null);
+    if (!authentication || authentication.ok !== true || !authentication.identity
+        || String(authentication.identity.userId || '') !== authUserId
+        || normalizeAuthEmail(authentication.identity.email || '') !== email) {
+      return fail('passkey_v302_final_dashboard_bootstrap_authentication_failed');
+    }
+
+    let source = String(authentication.source || '');
+    if (source === 'verified_refresh_token') {
+      const session = authentication.session;
+      if (!hasValidDomainSessionTokens(session)
+          || !session.refresh_token
+          || safeEqual(String(session.refresh_token), refreshToken)) {
+        return fail('passkey_v302_final_dashboard_refresh_rotation_not_proven');
+      }
+      const verified = await diracPasskeyVerifySupabaseSessionV248(session, owner);
+      if (!verified || verified.ok !== true) {
+        return fail(verified && verified.reason || 'passkey_v302_final_dashboard_rotated_session_invalid');
+      }
+      const state = diracPasskeyJwtAuthStateV301(verified.session.access_token, owner);
+      if (!state || state.ok !== true
+          || !safeEqual(String(state.binding), String(primaryAccess.sessionBinding || ''))
+          || state.remainingTtlSeconds < 60) {
+        return fail('passkey_v302_final_dashboard_rotated_binding_invalid');
+      }
+      accessToken = String(verified.session.access_token);
+      refreshToken = String(verified.session.refresh_token);
+      const maxAge = typeof diracV110SessionMaxAgeSeconds === 'function'
+        ? Math.max(60, Math.min(7 * 24 * 60 * 60, Math.floor(Number(diracV110SessionMaxAgeSeconds()) || 0)))
+        : 24 * 60 * 60;
+      authCookies = makeTokenCookieSet(ACCESS_COOKIE, accessToken, { maxAge })
+        .concat(makeTokenCookieSet(REFRESH_COOKIE, refreshToken, { maxAge }));
+      canonicalReq = buildRequest(authCookies);
+      if (!canonicalReq) return fail('passkey_v302_final_dashboard_rotated_request_build_failed');
+
+      // A second check must now succeed by the fresh access token. This call cannot
+      // rotate refresh again because the access token was just verified above.
+      authentication = await diracCentralAuthenticateDeviceBootstrapV224(canonicalReq).catch(() => null);
+      if (!authentication || authentication.ok !== true
+          || authentication.source !== 'verified_access_token'
+          || !authentication.identity
+          || String(authentication.identity.userId || '') !== authUserId
+          || normalizeAuthEmail(authentication.identity.email || '') !== email) {
+        return fail('passkey_v302_final_dashboard_rotated_access_not_authoritative');
+      }
+      source = 'verified_refresh_token_canonicalized_to_access';
+    } else if (source === 'verified_access_token') {
+      if (!safeEqual(String(authentication.accessToken || ''), accessToken)) {
+        return fail('passkey_v302_final_dashboard_access_generation_mismatch');
+      }
+    } else if (source === 'verified_signed_session') {
+      // Recovery may intentionally revoke the old Supabase provider session. Central
+      // Guard already accepts the strict signed-session bootstrap. Remove the now
+      // non-authoritative provider cookies instead of repeatedly retrying stale tokens.
+      const signedIdentity = diracCentralDeviceAuthIdentityV224(authentication.user);
+      if (!signedIdentity || signedIdentity.userId !== authUserId || signedIdentity.email !== email) {
+        return fail('passkey_v302_final_dashboard_signed_identity_invalid');
+      }
+      authCookies = diracPasskeyCanonicalAuthClearsV302(req, authCookies);
+      accessToken = '';
+      refreshToken = '';
+      canonicalReq = buildRequest(authCookies);
+      if (!canonicalReq) return fail('passkey_v302_final_dashboard_signed_request_build_failed');
+      authentication = await diracCentralAuthenticateDeviceBootstrapV224(canonicalReq).catch(() => null);
+      if (!authentication || authentication.ok !== true
+          || authentication.source !== 'verified_signed_session'
+          || !authentication.identity
+          || String(authentication.identity.userId || '') !== authUserId
+          || normalizeAuthEmail(authentication.identity.email || '') !== email) {
+        return fail('passkey_v302_final_dashboard_signed_only_not_authoritative');
+      }
+      source = 'verified_signed_session_canonicalized';
+    } else {
+      return fail('passkey_v302_final_dashboard_auth_source_invalid');
+    }
+
+    return Object.freeze({
+      ok: true,
+      patch: DIRAC_PASSKEY_FINAL_AUTH_CONTINUITY_V302,
+      accessToken,
+      refreshToken,
+      authCookies: Object.freeze(authCookies.slice()),
+      authTargetNames: Object.freeze([ACCESS_COOKIE, REFRESH_COOKIE]),
+      authenticatedReq: canonicalReq,
+      source
+    });
+  } catch (_) {
+    return fail('passkey_v302_final_dashboard_auth_exception');
   }
 }
 
@@ -18411,32 +18755,28 @@ async function diracPasskeyFinalizeDashboardCookieHandoffV239(req, res, owner, p
       return fail('passkey_final_mfa_session_binding_invalid');
     }
 
-    const primaryAccess = await diracPasskeyReadCanonicalAuthForFinalV301(req, owner);
+    const primaryAccess = diracPasskeyReadCanonicalAuthForFinalV302(req, owner);
     if (!primaryAccess || primaryAccess.ok !== true || !primaryAccess.accessToken || !primaryAccess.refreshToken) {
-      return fail(primaryAccess && primaryAccess.reason || 'passkey_v301_primary_auth_invalid');
+      return fail(primaryAccess && primaryAccess.reason || 'passkey_v302_primary_auth_invalid');
     }
-    const authCookies = Array.isArray(primaryAccess.authCookies)
-      ? primaryAccess.authCookies.slice()
-      : [];
-    const authTargetNames = Array.isArray(primaryAccess.authTargetNames)
-      ? primaryAccess.authTargetNames.slice()
-      : [];
-
-    const preDeviceTargetNames = authTargetNames.concat([
-      DOMAIN_SIGNED_SESSION_COOKIE
-    ]);
-    const preDeviceCookies = authCookies.concat([
-      makeCookie(DOMAIN_SIGNED_SESSION_COOKIE, signedSessionValue, {
-        maxAge: signedSessionMaxAgeSeconds,
-        domain: ''
-      })
-    ]);
-    const authenticatedReq = diracPasskeyCanonicalRequestFromSetCookiesV248(
+    const stabilizedAuth = await diracPasskeyStabilizeFinalDashboardAuthV302(
       req,
-      preDeviceCookies,
-      preDeviceTargetNames
+      owner,
+      primaryAccess,
+      signedSessionValue,
+      signedSessionMaxAgeSeconds
     );
-    if (!authenticatedReq) return fail('passkey_supabase_auth_request_build_failed');
+    if (!stabilizedAuth || stabilizedAuth.ok !== true) {
+      return fail(stabilizedAuth && stabilizedAuth.reason || 'passkey_v302_final_dashboard_auth_unavailable');
+    }
+    const authCookies = Array.isArray(stabilizedAuth.authCookies)
+      ? stabilizedAuth.authCookies.slice()
+      : [];
+    const authTargetNames = Array.isArray(stabilizedAuth.authTargetNames)
+      ? stabilizedAuth.authTargetNames.slice()
+      : [];
+    const authenticatedReq = stabilizedAuth.authenticatedReq;
+    if (!authenticatedReq) return fail('passkey_v302_authenticated_request_missing');
 
     const atomicDeviceChain = diracPasskeyCreateAtomicDeviceChainV246(
       authenticatedReq,
@@ -18478,17 +18818,22 @@ async function diracPasskeyFinalizeDashboardCookieHandoffV239(req, res, owner, p
     const canonicalCookies = parseCookies(canonicalReq);
     const canonicalAccess = readCookieTokenCandidates(canonicalCookies, ACCESS_COOKIE);
     const canonicalRefresh = readCookieTokenCandidates(canonicalCookies, REFRESH_COOKIE);
+    const signedOnlyCanonical = stabilizedAuth.source === 'verified_signed_session_canonicalized';
     const canonicalJwtIdentity = canonicalAccess.length === 1
       ? diracCentralDeviceJwtUserV223(canonicalAccess[0])
       : null;
-    if (canonicalAccess.length !== 1
+    if (signedOnlyCanonical) {
+      if (canonicalAccess.length !== 0 || canonicalRefresh.length !== 0) {
+        return fail('passkey_v302_final_signed_only_auth_cleanup_failed');
+      }
+    } else if (canonicalAccess.length !== 1
         || canonicalRefresh.length !== 1
-        || !safeEqual(String(canonicalAccess[0] || ''), String(primaryAccess.accessToken || ''))
-        || !safeEqual(String(canonicalRefresh[0] || ''), String(primaryAccess.refreshToken || ''))
+        || !safeEqual(String(canonicalAccess[0] || ''), String(stabilizedAuth.accessToken || ''))
+        || !safeEqual(String(canonicalRefresh[0] || ''), String(stabilizedAuth.refreshToken || ''))
         || !canonicalJwtIdentity
         || canonicalJwtIdentity.userId !== authUserId
         || canonicalJwtIdentity.email !== email) {
-      return fail('passkey_v300_final_primary_access_binding_invalid');
+      return fail('passkey_v302_final_primary_access_binding_invalid');
     }
 
     const verifiedSigned = verifyDomainSessionCookieValue(signedSessionValue);
@@ -18565,9 +18910,10 @@ async function diracPasskeyFinalizeDashboardCookieHandoffV239(req, res, owner, p
     return Object.freeze({
       ok: true,
       patch: DIRAC_PASSKEY_FINAL_COOKIE_HANDOFF_V239,
-      authSessionRepublishedAtomically: primaryAccess.republished === true,
-      authSessionPatch: DIRAC_PASSKEY_TRANSACTION_V300,
-      authSessionSource: primaryAccess.source,
+      authSessionRepublishedAtomically: true,
+      authSessionPatch: DIRAC_PASSKEY_AUTH_SESSION_V302,
+      authSessionSource: stabilizedAuth.source,
+      finalAuthContinuityPatch: DIRAC_PASSKEY_FINAL_AUTH_CONTINUITY_V302,
       deviceSessionIssuedAtomically: true,
       deviceCredentialIssuedAtomically: true,
       deviceChainPatch: atomicDeviceChain.patch,
@@ -18639,7 +18985,7 @@ async function diracPasskeyA2FVerify(req, res) {
     return res.status(403).json({ ok: false, method: 'passkey', message: 'Challenge Passkey sudah expired. Ulangi dari tombol Passkey.' });
   }
 
-  const primaryAuthV301 = await diracPasskeyVerifyCanonicalAuthBindingV301(req, owner, payload);
+  const primaryAuthV301 = await diracPasskeyVerifyCanonicalAuthBindingV302(req, res, owner, payload);
   if (!primaryAuthV301 || primaryAuthV301.ok !== true) {
     return res.status(primaryAuthV301 && primaryAuthV301.status || 401).json({
       ok: false,
