@@ -16726,9 +16726,217 @@ function diracPasskeyCreateAtomicDeviceChainV246(req, signedSessionValue, signed
   }
 }
 
-const DIRAC_PASSKEY_FINAL_COOKIE_HANDOFF_V239 = 'dirac-passkey-final-cookie-handoff-v246';
+const DIRAC_PASSKEY_SUPABASE_AUTH_HANDOFF_V248 = 'dirac-passkey-supabase-auth-handoff-v248';
+const DIRAC_PASSKEY_FINAL_COOKIE_HANDOFF_V239 = 'dirac-passkey-final-cookie-handoff-v248';
 
-function diracPasskeyFinalizeDashboardCookieHandoffV239(req, res, owner, proof) {
+function diracPasskeyResponseTokenCandidatesV248(res, name) {
+  const cookieName = String(name || '').trim();
+  if (!cookieName || !res || typeof res.getHeader !== 'function') return [];
+
+  const raw = res.getHeader('Set-Cookie');
+  const rows = Array.isArray(raw) ? raw.map(String) : raw ? [String(raw)] : [];
+  const valuesByName = new Map();
+
+  for (const row of rows) {
+    if (/;\s*Max-Age=0(?:;|$)/i.test(row)
+        || /;\s*Expires=Thu, 01 Jan 1970 00:00:00 GMT(?:;|$)/i.test(row)) continue;
+    const first = String(row || '').split(';', 1)[0];
+    const separator = first.indexOf('=');
+    if (separator <= 0) continue;
+    const currentName = first.slice(0, separator).trim();
+    if (currentName !== cookieName && !currentName.startsWith(cookieName + '__')) continue;
+    let value = first.slice(separator + 1).trim();
+    try { value = decodeURIComponent(value); } catch (_) {}
+    if (!value) continue;
+    const list = valuesByName.get(currentName) || [];
+    if (!list.includes(value) && list.length < 8) list.push(value);
+    valuesByName.set(currentName, list);
+  }
+
+  const markers = valuesByName.get(cookieName) || [];
+  const output = [];
+  for (const marker of markers) {
+    const match = String(marker).match(/^__chunked_(\d+)$/);
+    if (!match) {
+      output.push(String(marker));
+      continue;
+    }
+    const count = Number(match[1]);
+    if (!Number.isSafeInteger(count) || count < 1 || count > DOMAIN_COOKIE_MAX_CHUNKS) continue;
+    let token = '';
+    let valid = true;
+    for (let index = 0; index < count; index += 1) {
+      const chunkValues = valuesByName.get(`${cookieName}__${index}`) || [];
+      if (chunkValues.length !== 1) {
+        valid = false;
+        break;
+      }
+      token += String(chunkValues[0]);
+    }
+    if (valid && token) output.push(token);
+  }
+  return uniqueNonEmptyStrings(output).slice(0, 8);
+}
+
+function diracPasskeyCanonicalRequestFromSetCookiesV248(req, setCookies, targetNames) {
+  const headers = Object.assign({}, req && req.headers || {});
+  const targets = new Set((targetNames || []).map((value) => String(value || '').trim()).filter(Boolean));
+  const isTargetName = (name) => {
+    if (targets.has(name)) return true;
+    for (const target of targets) {
+      if (name.startsWith(target + '__')) return true;
+    }
+    return false;
+  };
+
+  const retained = String(headers.cookie || '')
+    .split(';')
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .filter((part) => {
+      const separator = part.indexOf('=');
+      const name = String(separator === -1 ? part : part.slice(0, separator)).trim();
+      return !isTargetName(name);
+    });
+
+  const publishedNames = new Set();
+  for (const row of Array.isArray(setCookies) ? setCookies : []) {
+    const raw = String(row || '');
+    if (!raw || /;\s*Max-Age=0(?:;|$)/i.test(raw)
+        || /;\s*Expires=Thu, 01 Jan 1970 00:00:00 GMT(?:;|$)/i.test(raw)) continue;
+    const first = raw.split(';', 1)[0];
+    const separator = first.indexOf('=');
+    if (separator <= 0) continue;
+    const name = first.slice(0, separator).trim();
+    if (!isTargetName(name) || publishedNames.has(name)) return null;
+    publishedNames.add(name);
+    retained.push(first);
+  }
+
+  headers.cookie = retained.join('; ');
+  return { headers };
+}
+
+function diracPasskeyFakeResponseV248() {
+  const headers = new Map();
+  return {
+    statusCode: 200,
+    body: null,
+    setHeader(name, value) { headers.set(String(name).toLowerCase(), value); },
+    getHeader(name) { return headers.get(String(name).toLowerCase()); },
+    status(code) { this.statusCode = Number(code); return this; },
+    json(value) { this.body = value; return this; },
+    end(value) { this.body = value; return this; }
+  };
+}
+
+async function diracPasskeyVerifySupabaseSessionV248(session, owner) {
+  const authUserId = String(owner && owner.authUserId || '').trim();
+  const email = normalizeAuthEmail(owner && owner.email || '');
+  if (!customerSecurityLooksLikeUuid(authUserId) || !isValidAuthEmail(email)
+      || !hasValidDomainSessionTokens(session)) {
+    return Object.freeze({ ok: false, reason: 'passkey_supabase_session_input_invalid' });
+  }
+
+  const userResult = await supabaseFetch('/auth/v1/user', {
+    method: 'GET',
+    auth: 'anon',
+    bearer: session.access_token
+  }).catch(() => null);
+  const user = userResult && userResult.ok && userResult.data ? userResult.data : null;
+  const userId = String(user && user.id || '').trim();
+  const userEmail = normalizeAuthEmail(user && user.email || '');
+  const jwtIdentity = diracCentralDeviceJwtUserV223(session.access_token);
+  if (!user || !customerSecurityLooksLikeUuid(userId) || !isValidAuthEmail(userEmail)) {
+    return Object.freeze({ ok: false, reason: 'passkey_supabase_access_token_invalid' });
+  }
+  if (userId !== authUserId || userEmail !== email
+      || !jwtIdentity || jwtIdentity.userId !== authUserId || jwtIdentity.email !== email) {
+    return Object.freeze({ ok: false, reason: 'passkey_supabase_auth_owner_mismatch' });
+  }
+
+  return Object.freeze({
+    ok: true,
+    session: Object.freeze(Object.assign({}, session, { user })),
+    user: Object.freeze({ id: userId, email: userEmail })
+  });
+}
+
+async function diracPasskeyCreateVerifiedSupabaseAuthHandoffV248(req, res, owner) {
+  const fail = (reason) => Object.freeze({
+    ok: false,
+    patch: DIRAC_PASSKEY_SUPABASE_AUTH_HANDOFF_V248,
+    reason: String(reason || 'passkey_supabase_auth_handoff_failed').slice(0, 96)
+  });
+
+  try {
+    const responseRefresh = diracPasskeyResponseTokenCandidatesV248(res, REFRESH_COOKIE);
+    if (responseRefresh.length > 1) {
+      return fail('passkey_supabase_response_refresh_ambiguous');
+    }
+
+    const cookies = parseCookies(req);
+    const requestRefresh = readCookieTokenCandidates(cookies, REFRESH_COOKIE);
+    const refreshCandidates = uniqueNonEmptyStrings([
+      ...responseRefresh,
+      ...requestRefresh
+    ]).slice(0, 8);
+    if (!refreshCandidates.length) return fail('passkey_supabase_refresh_token_missing');
+
+    for (const refreshToken of refreshCandidates) {
+      const refreshResult = await supabaseFetch('/auth/v1/token?grant_type=refresh_token', {
+        method: 'POST',
+        auth: 'anon',
+        body: { refresh_token: refreshToken }
+      }).catch(() => null);
+      if (!refreshResult || !refreshResult.ok || !refreshResult.data
+          || !refreshResult.data.access_token) continue;
+
+      const session = Object.assign({}, refreshResult.data, {
+        refresh_token: refreshResult.data.refresh_token || refreshToken
+      });
+      const verified = await diracPasskeyVerifySupabaseSessionV248(session, owner);
+      if (!verified.ok) {
+        if (verified.reason === 'passkey_supabase_auth_owner_mismatch') return fail(verified.reason);
+        continue;
+      }
+      return Object.freeze({
+        ok: true,
+        patch: DIRAC_PASSKEY_SUPABASE_AUTH_HANDOFF_V248,
+        session: verified.session,
+        source: responseRefresh.includes(refreshToken)
+          ? 'verified_response_refresh_rotation'
+          : 'verified_request_refresh_rotation'
+      });
+    }
+
+    return fail('passkey_supabase_refresh_rotation_failed');
+  } catch (_) {
+    return fail('passkey_supabase_auth_handoff_exception');
+  }
+}
+
+function diracPasskeyLegacyDomainClearsV248(finalCookies) {
+  const names = new Set([
+    ACCESS_COOKIE,
+    REFRESH_COOKIE,
+    CUSTOMER_MFA_COOKIE,
+    DOMAIN_SIGNED_SESSION_COOKIE
+  ]);
+  for (const row of Array.isArray(finalCookies) ? finalCookies : []) {
+    const first = String(row || '').split(';', 1)[0];
+    const separator = first.indexOf('=');
+    if (separator <= 0) continue;
+    const name = first.slice(0, separator).trim();
+    if (name.startsWith(ACCESS_COOKIE + '__') || name.startsWith(REFRESH_COOKIE + '__')) names.add(name);
+  }
+
+  return getCompactCookieDomainsForSession()
+    .filter((domain) => Boolean(normalizeCookieDomain(domain)))
+    .flatMap((domain) => Array.from(names).map((name) => makeCookie(name, '', { maxAge: 0, domain })));
+}
+
+async function diracPasskeyFinalizeDashboardCookieHandoffV239(req, res, owner, proof) {
   const fail = (reason) => Object.freeze({
     ok: false,
     patch: DIRAC_PASSKEY_FINAL_COOKIE_HANDOFF_V239,
@@ -16746,7 +16954,8 @@ function diracPasskeyFinalizeDashboardCookieHandoffV239(req, res, owner, proof) 
     const mfaToken = String(proof && proof.token || '').trim();
     const mfaMaxAgeSeconds = Math.floor(Number(proof && proof.maxAgeSeconds || 0));
 
-    if (!authUserId || !customerSecurityLooksLikeUuid(customerId) || !email
+    if (!customerSecurityLooksLikeUuid(authUserId)
+        || !customerSecurityLooksLikeUuid(customerId) || !isValidAuthEmail(email)
         || !signedSessionValue || !mfaToken
         || !/^[a-f0-9]{64}$/.test(sessionBinding)
         || !Number.isSafeInteger(securityEpoch) || securityEpoch < 1
@@ -16785,8 +16994,49 @@ function diracPasskeyFinalizeDashboardCookieHandoffV239(req, res, owner, proof) 
       return fail('passkey_final_mfa_session_binding_invalid');
     }
 
-    const atomicDeviceChain = diracPasskeyCreateAtomicDeviceChainV246(
+    const authHandoff = await diracPasskeyCreateVerifiedSupabaseAuthHandoffV248(req, res, owner);
+    if (!authHandoff || authHandoff.ok !== true || !hasValidDomainSessionTokens(authHandoff.session)) {
+      return fail(authHandoff && authHandoff.reason || 'passkey_supabase_auth_handoff_invalid');
+    }
+
+    const authMaxAgeSeconds = typeof diracV110SessionMaxAgeSeconds === 'function'
+      ? Math.max(60, Math.min(60 * 60 * 24 * 7, Math.floor(Number(diracV110SessionMaxAgeSeconds()) || 0)))
+      : 60 * 60 * 24 * 7;
+    const accessCookies = makeTokenCookieSet(
+      ACCESS_COOKIE,
+      authHandoff.session.access_token,
+      { maxAge: authMaxAgeSeconds }
+    );
+    const refreshCookies = makeTokenCookieSet(
+      REFRESH_COOKIE,
+      authHandoff.session.refresh_token,
+      { maxAge: authMaxAgeSeconds }
+    );
+    if (!accessCookies.length || !refreshCookies.length) {
+      return fail('passkey_supabase_auth_cookie_issue_failed');
+    }
+    const authCookies = accessCookies.concat(refreshCookies);
+
+    const preDeviceTargetNames = [
+      ACCESS_COOKIE,
+      REFRESH_COOKIE,
+      DOMAIN_SIGNED_SESSION_COOKIE
+    ];
+    const preDeviceCookies = authCookies.concat([
+      makeCookie(DOMAIN_SIGNED_SESSION_COOKIE, signedSessionValue, {
+        maxAge: signedSessionMaxAgeSeconds,
+        domain: ''
+      })
+    ]);
+    const authenticatedReq = diracPasskeyCanonicalRequestFromSetCookiesV248(
       req,
+      preDeviceCookies,
+      preDeviceTargetNames
+    );
+    if (!authenticatedReq) return fail('passkey_supabase_auth_request_build_failed');
+
+    const atomicDeviceChain = diracPasskeyCreateAtomicDeviceChainV246(
+      authenticatedReq,
       signedSessionValue,
       signedSession,
       signedSessionMaxAgeSeconds
@@ -16798,7 +17048,7 @@ function diracPasskeyFinalizeDashboardCookieHandoffV239(req, res, owner, proof) 
 
     const deviceSessionCookieName = diracCentralDeviceSessionCookieNameV223();
     const deviceCredentialCookieName = diracCentralDeviceCookieNameV221();
-    const finalCookies = [
+    const finalCookies = authCookies.concat([
       makeCookie(CUSTOMER_MFA_COOKIE, mfaToken, {
         maxAge: mfaMaxAgeSeconds,
         domain: ''
@@ -16809,20 +17059,56 @@ function diracPasskeyFinalizeDashboardCookieHandoffV239(req, res, owner, proof) 
       }),
       atomicDeviceChain.sessionCookie,
       atomicDeviceChain.credentialCookie
-    ];
+    ]);
     const targetNames = [
+      ACCESS_COOKIE,
+      REFRESH_COOKIE,
       CUSTOMER_MFA_COOKIE,
       DOMAIN_SIGNED_SESSION_COOKIE,
       deviceSessionCookieName,
       deviceCredentialCookieName
     ];
     const targetNameSet = new Set(targetNames);
-    const legacyDomainClears = getCompactCookieDomainsForSession()
-      .filter((domain) => Boolean(normalizeCookieDomain(domain)))
-      .flatMap((domain) => [
-        makeCookie(CUSTOMER_MFA_COOKIE, '', { maxAge: 0, domain }),
-        makeCookie(DOMAIN_SIGNED_SESSION_COOKIE, '', { maxAge: 0, domain })
-      ]);
+    const legacyDomainClears = diracPasskeyLegacyDomainClearsV248(finalCookies);
+
+    const canonicalReq = diracPasskeyCanonicalRequestFromSetCookiesV248(req, finalCookies, targetNames);
+    if (!canonicalReq) return fail('passkey_final_cookie_request_build_failed');
+
+    const fakeRes = diracPasskeyFakeResponseV248();
+    const verifiedUser = await requireDomainUser(canonicalReq, fakeRes).catch(() => null);
+    if (!verifiedUser
+        || String(verifiedUser.id || '') !== authUserId
+        || normalizeAuthEmail(verifiedUser.email || '') !== email
+        || Number(fakeRes.statusCode || 200) >= 400
+        || String(fakeRes.getHeader('X-Domain-Token-Refreshed') || '').toLowerCase() === 'true') {
+      return fail('passkey_final_require_domain_user_verification_failed');
+    }
+
+    const verifiedSigned = verifyDomainSessionCookieValue(signedSessionValue);
+    const verifiedMfa = verifyCustomerDashboardMfaCookie(canonicalReq, {
+      id: authUserId,
+      email
+    });
+    const verifiedDeviceSession = diracCentralVerifyDeviceSessionCookieV223(canonicalReq);
+    const verifiedDeviceCredential = diracCentralVerifyDeviceTokenV221(
+      canonicalReq,
+      atomicDeviceChain.credentialValue
+    );
+    if (!verifiedSigned
+        || String(verifiedSigned.id || '') !== authUserId
+        || normalizeAuthEmail(verifiedSigned.email || '') !== email
+        || !verifiedMfa || verifiedMfa.ok !== true || verifiedMfa.method !== 'passkey'
+        || !verifiedDeviceSession || !verifiedDeviceSession.identity
+        || String(verifiedDeviceSession.identity.userId || '') !== authUserId
+        || normalizeAuthEmail(verifiedDeviceSession.identity.email || '') !== email
+        || !verifiedDeviceCredential || verifiedDeviceCredential.ok !== true
+        || !verifiedDeviceCredential.payload
+        || !safeEqual(
+          String(verifiedDeviceCredential.payload.session || ''),
+          String(verifiedDeviceSession.binding || '')
+        )) {
+      return fail('passkey_final_complete_chain_verification_failed');
+    }
 
     const current = typeof res.getHeader === 'function' ? res.getHeader('Set-Cookie') : null;
     const previousCookies = Array.isArray(current)
@@ -16834,7 +17120,11 @@ function diracPasskeyFinalizeDashboardCookieHandoffV239(req, res, owner, proof) 
       const first = String(cookieValue || '').split(';', 1)[0];
       const separator = first.indexOf('=');
       const name = separator === -1 ? first.trim() : first.slice(0, separator).trim();
-      return !targetNameSet.has(name);
+      if (targetNameSet.has(name)) return false;
+      for (const target of targetNameSet) {
+        if (name.startsWith(target + '__')) return false;
+      }
+      return true;
     });
 
     res.setHeader('Set-Cookie', retained.concat(legacyDomainClears, finalCookies));
@@ -16868,6 +17158,9 @@ function diracPasskeyFinalizeDashboardCookieHandoffV239(req, res, owner, proof) 
     return Object.freeze({
       ok: true,
       patch: DIRAC_PASSKEY_FINAL_COOKIE_HANDOFF_V239,
+      authSessionRepublishedAtomically: true,
+      authSessionPatch: authHandoff.patch,
+      authSessionSource: authHandoff.source,
       deviceSessionIssuedAtomically: true,
       deviceCredentialIssuedAtomically: true,
       deviceChainPatch: atomicDeviceChain.patch,
@@ -17213,7 +17506,7 @@ async function diracPasskeyA2FVerify(req, res) {
     });
   }
 
-  const finalCookieHandoff = diracPasskeyFinalizeDashboardCookieHandoffV239(req, res, owner, proof);
+  const finalCookieHandoff = await diracPasskeyFinalizeDashboardCookieHandoffV239(req, res, owner, proof);
   if (!finalCookieHandoff || finalCookieHandoff.ok !== true) {
     const rollbackOk = await customerSecurityRevokeIssuedSessionV235(
       req,
