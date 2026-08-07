@@ -15016,7 +15016,7 @@ async function diracPasskeyA2FListActivePasskeys(owner, freshAfterMutation = fal
   };
 
   if (owner && owner.customerId && customerSecurityLooksLikeUuid(owner.customerId)) {
-    await fetchRows('user_id=eq.' + encodeURIComponent(owner.customerId));
+    if (!(typeof diracCentralCurrentContextV149 === 'function' && diracCentralCurrentContextV149()?.action === 'domain_health')) await fetchRows('user_id=eq.' + encodeURIComponent(owner.customerId));
   }
 
   let isRecoveryWorkerContext = false;
