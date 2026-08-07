@@ -5130,6 +5130,61 @@ function makeSignedDomainSessionCookieSet(session, options = {}) {
   return cookies;
 }
 
+const DIRAC_PASSKEY_SIGNED_USER_ID_RESOLUTION_V307 = 'dirac-passkey-signed-user-id-resolution-v307';
+
+async function diracPasskeyLookupSupabaseUserBySignedIdV307(userId) {
+  const cleanUserId = String(userId || '').trim();
+  if (!customerSecurityLooksLikeUuid(cleanUserId)) {
+    return Object.freeze({ ok: false, checked: false, definitive: true, status: 400, user: null });
+  }
+
+  try {
+    const result = await supabaseFetch('/auth/v1/admin/users/' + encodeURIComponent(cleanUserId), {
+      method: 'GET',
+      auth: 'service'
+    });
+    const status = Math.max(0, Math.min(599, Number(result && result.status || 0) || 0));
+    const rawUser = result && result.ok === true && result.data
+      ? normalizeSupabaseAdminUser(result.data)
+      : null;
+    const normalizedUser = rawUser && typeof rawUser === 'object' ? rawUser : null;
+    const returnedUserId = String(normalizedUser && normalizedUser.id || '').trim();
+
+    diracDeviceBootstrapDiagnosticV238('signed_session_direct_user_lookup', {
+      patch: DIRAC_PASSKEY_SIGNED_USER_ID_RESOLUTION_V307,
+      route: 'auth_admin_user_by_id',
+      ok: Boolean(result && result.ok === true && normalizedUser),
+      status,
+      userPresent: Boolean(normalizedUser),
+      exactUserIdMatch: Boolean(returnedUserId && safeEqual(returnedUserId, cleanUserId)),
+      providerCode: result && result.data && (result.data.code || result.data.error_code || result.data.error) || '',
+      providerReasonClass: diracDeviceBootstrapProviderReasonV238(result && result.data)
+    });
+
+    if (result && result.ok === true && normalizedUser) {
+      return Object.freeze({
+        ok: true,
+        checked: true,
+        definitive: true,
+        status,
+        user: normalizedUser
+      });
+    }
+
+    // 4xx from the exact UUID endpoint is authoritative for this signed identity.
+    // Do not fall back to an email search that could accidentally resolve another account.
+    if (status >= 400 && status < 500) {
+      return Object.freeze({ ok: false, checked: true, definitive: true, status, user: null });
+    }
+
+    // Network/provider 5xx is not an identity decision. The existing exact-email + UUID
+    // comparison may be used only as an availability fallback and still must match both.
+    return Object.freeze({ ok: false, checked: false, definitive: false, status, user: null });
+  } catch (_) {
+    return Object.freeze({ ok: false, checked: false, definitive: false, status: 0, user: null });
+  }
+}
+
 async function readSignedDomainSessionUser(cookies) {
   const values = readCookieTokenCandidates(cookies, DOMAIN_SIGNED_SESSION_COOKIE);
   let verifiedPayloadCount = 0;
@@ -5137,23 +5192,77 @@ async function readSignedDomainSessionUser(cookies) {
   let lookupCheckedCount = 0;
   let lookupUserFoundCount = 0;
   let identityMismatchCount = 0;
+  let directLookupCount = 0;
+  let directLookupCheckedCount = 0;
+  let directLookupUserFoundCount = 0;
+  let emailFallbackCount = 0;
+
   for (const value of values) {
     const payload = verifyDomainSessionCookieValue(value);
-    if (!payload) continue;
+    if (!payload || !customerSecurityLooksLikeUuid(String(payload.id || '').trim())) continue;
     verifiedPayloadCount += 1;
 
+    directLookupCount += 1;
+    const direct = await diracPasskeyLookupSupabaseUserBySignedIdV307(payload.id);
+    if (direct && direct.checked === true) directLookupCheckedCount += 1;
+    if (direct && direct.user) {
+      directLookupUserFoundCount += 1;
+      lookupUserFoundCount += 1;
+      const directUser = normalizeSupabaseAdminUser(direct.user);
+      const directUserId = String(directUser && directUser.id || '').trim();
+      const directEmail = normalizeAuthEmail(directUser && directUser.email || '');
+      if (directUser
+          && safeEqual(directUserId, String(payload.id || ''))
+          && directEmail === normalizeAuthEmail(payload.email || '')) {
+        diracDeviceBootstrapDiagnosticV238('signed_session_resolution', {
+          patch: DIRAC_PASSKEY_SIGNED_USER_ID_RESOLUTION_V307,
+          route: 'signed_domain_session_direct_id',
+          ok: true,
+          candidateCount: values.length,
+          verifiedPayloadCount,
+          directLookupCount,
+          directLookupCheckedCount,
+          directLookupUserFoundCount,
+          emailFallbackCount,
+          lookupCount,
+          lookupCheckedCount,
+          lookupUserFoundCount,
+          identityMismatchCount,
+          userPresent: true,
+          signedIdentityMatch: true
+        });
+        return directUser;
+      }
+      identityMismatchCount += 1;
+      continue;
+    }
+
+    // A definitive exact-ID result (including 404/other 4xx) must fail closed for
+    // this candidate. Never search by email after the exact signed UUID was rejected.
+    if (direct && direct.definitive === true) continue;
+
+    emailFallbackCount += 1;
     lookupCount += 1;
     const checked = await getSupabaseAuthUserByEmail(payload.email);
     if (checked && checked.checked === true) lookupCheckedCount += 1;
     if (checked && checked.user) {
       lookupUserFoundCount += 1;
       const user = normalizeSupabaseAdminUser(checked.user);
-      if (user && String(user.id || '') === payload.id) {
+      const fallbackUserId = String(user && user.id || '').trim();
+      const fallbackEmail = normalizeAuthEmail(user && user.email || '');
+      if (user
+          && safeEqual(fallbackUserId, String(payload.id || ''))
+          && fallbackEmail === normalizeAuthEmail(payload.email || '')) {
         diracDeviceBootstrapDiagnosticV238('signed_session_resolution', {
-          route: 'signed_domain_session',
+          patch: DIRAC_PASSKEY_SIGNED_USER_ID_RESOLUTION_V307,
+          route: 'signed_domain_session_email_fallback',
           ok: true,
           candidateCount: values.length,
           verifiedPayloadCount,
+          directLookupCount,
+          directLookupCheckedCount,
+          directLookupUserFoundCount,
+          emailFallbackCount,
           lookupCount,
           lookupCheckedCount,
           lookupUserFoundCount,
@@ -5166,16 +5275,22 @@ async function readSignedDomainSessionUser(cookies) {
       identityMismatchCount += 1;
     }
   }
+
   diracDeviceBootstrapDiagnosticV238('signed_session_resolution', {
+    patch: DIRAC_PASSKEY_SIGNED_USER_ID_RESOLUTION_V307,
     route: 'signed_domain_session',
     ok: false,
     candidateCount: values.length,
     verifiedPayloadCount,
+    directLookupCount,
+    directLookupCheckedCount,
+    directLookupUserFoundCount,
+    emailFallbackCount,
     lookupCount,
     lookupCheckedCount,
     lookupUserFoundCount,
     identityMismatchCount,
-    userPresent: lookupUserFoundCount > 0,
+    userPresent: lookupUserFoundCount > 0 || directLookupUserFoundCount > 0,
     signedIdentityMatch: false
   });
   return null;
