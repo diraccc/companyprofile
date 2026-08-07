@@ -5131,6 +5131,60 @@ function makeSignedDomainSessionCookieSet(session, options = {}) {
 }
 
 const DIRAC_PASSKEY_SIGNED_USER_ID_RESOLUTION_V307 = 'dirac-passkey-signed-user-id-resolution-v307';
+const DIRAC_PASSKEY_STRICT_SIGNED_IDENTITY_V308 = 'dirac-passkey-strict-signed-identity-v308';
+
+async function diracPasskeyResolveStrictSignedIdentityV308(value) {
+  const signedValue = String(value || '').trim();
+  if (!signedValue) return Object.freeze({ strict: false, ok: false, user: null });
+
+  const payload = verifyDomainSessionCookieValue(signedValue);
+  const strictSigned = diracPasskeyVerifyStrictAnchoredSessionV247(signedValue);
+  const anchor = customerSecurityDecodeSignedSessionAnchorV228(signedValue);
+  const isStrict = Boolean(payload && strictSigned && anchor);
+  if (!isStrict) return Object.freeze({ strict: false, ok: false, user: null });
+
+  if (!customerSecurityLooksLikeUuid(String(payload.id || '').trim())
+      || String(strictSigned.id || '') !== String(payload.id || '')
+      || normalizeAuthEmail(strictSigned.email || '') !== normalizeAuthEmail(payload.email || '')
+      || String(anchor.userId || '') !== String(payload.id || '')
+      || normalizeAuthEmail(anchor.email || '') !== normalizeAuthEmail(payload.email || '')
+      || !customerSecurityLooksLikeUuid(String(strictSigned.sessionId || ''))
+      || !safeEqual(String(strictSigned.sessionId || ''), String(anchor.sessionId || ''))
+      || Number(strictSigned.securityEpoch || 0) !== Number(anchor.securityEpoch || 0)
+      || !safeEqual(String(strictSigned.binding || ''), String(anchor.binding || ''))) {
+    return Object.freeze({ strict: true, ok: false, user: null, reason: 'strict_signed_identity_binding_invalid' });
+  }
+
+  const authUserId = String(payload.id || '').trim();
+  const email = normalizeAuthEmail(payload.email || '');
+  const linkResult = await customerSecurityFetchAuthLink(authUserId).catch(() => null);
+  const rows = linkResult && linkResult.ok === true && Array.isArray(linkResult.data)
+    ? linkResult.data.filter((row) => row && typeof row === 'object')
+    : [];
+  const activeRows = rows.filter((row) =>
+    String(row.link_status || '').toLowerCase() === 'active'
+    && !row.disabled_at
+    && !row.revoked_at
+    && safeEqual(String(row.auth_user_id || ''), authUserId)
+    && normalizeAuthEmail(row.email || '') === email
+    && customerSecurityLooksLikeUuid(String(row.customer_id || ''))
+  );
+  if (!linkResult || linkResult.ok !== true || activeRows.length !== 1) {
+    return Object.freeze({ strict: true, ok: false, user: null, reason: 'strict_signed_identity_owner_link_invalid' });
+  }
+
+  return Object.freeze({
+    strict: true,
+    ok: true,
+    user: Object.freeze({
+      id: authUserId,
+      email,
+      customer_id: String(activeRows[0].customer_id || ''),
+      dirac_signed_identity: DIRAC_PASSKEY_STRICT_SIGNED_IDENTITY_V308
+    })
+  });
+}
+
 
 async function diracPasskeyLookupSupabaseUserBySignedIdV307(userId) {
   const cleanUserId = String(userId || '').trim();
@@ -5201,6 +5255,27 @@ async function readSignedDomainSessionUser(cookies) {
     const payload = verifyDomainSessionCookieValue(value);
     if (!payload || !customerSecurityLooksLikeUuid(String(payload.id || '').trim())) continue;
     verifiedPayloadCount += 1;
+
+    const strictIdentity = await diracPasskeyResolveStrictSignedIdentityV308(value).catch(() => null);
+    if (strictIdentity && strictIdentity.strict === true) {
+      const strictUser = strictIdentity.ok === true ? strictIdentity.user : null;
+      if (strictUser
+          && safeEqual(String(strictUser.id || ''), String(payload.id || ''))
+          && normalizeAuthEmail(strictUser.email || '') === normalizeAuthEmail(payload.email || '')) {
+        diracDeviceBootstrapDiagnosticV238('signed_session_resolution', {
+          patch: DIRAC_PASSKEY_STRICT_SIGNED_IDENTITY_V308,
+          route: 'strict_passkey_signed_identity',
+          ok: true,
+          candidateCount: values.length,
+          verifiedPayloadCount,
+          userPresent: true,
+          signedIdentityMatch: true
+        });
+        return strictUser;
+      }
+      identityMismatchCount += 1;
+      continue;
+    }
 
     directLookupCount += 1;
     const direct = await diracPasskeyLookupSupabaseUserBySignedIdV307(payload.id);
