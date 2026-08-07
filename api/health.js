@@ -5157,6 +5157,45 @@ async function diracPasskeyResolveStrictSignedIdentityV308(value) {
 
   const authUserId = String(payload.id || '').trim();
   const email = normalizeAuthEmail(payload.email || '');
+
+  // V309: stage-0 identity bootstrap MUST NOT query an owner-protected table.
+  // The signed session is only an authentication identity here; authorization
+  // remains fail-closed in the unchanged Central Guard owner/IDOR/MFA/device stages.
+  let ctx = null;
+  try {
+    ctx = typeof diracCentralCurrentContextV149 === 'function'
+      ? diracCentralCurrentContextV149()
+      : null;
+  } catch (_) {
+    ctx = null;
+  }
+  if (!ctx || !ctx.req || typeof ctx.action !== 'string' || !ctx.action) {
+    return Object.freeze({ strict: true, ok: false, user: null, reason: 'strict_signed_identity_guard_context_missing' });
+  }
+
+  let fullGuardPassed = false;
+  try {
+    fullGuardPassed = typeof diracCentralHandlerContextFullyPassedV211 === 'function'
+      && diracCentralHandlerContextFullyPassedV211(ctx, ctx.req) === true;
+  } catch (_) {
+    fullGuardPassed = false;
+  }
+
+  if (!fullGuardPassed) {
+    return Object.freeze({
+      strict: true,
+      ok: true,
+      user: Object.freeze({
+        id: authUserId,
+        email,
+        dirac_signed_identity: 'dirac-passkey-strict-signed-bootstrap-v309',
+        dirac_identity_scope: 'central_guard_bootstrap_only'
+      })
+    });
+  }
+
+  // After Central Guard is fully passed, preserve the stronger V308 active-link
+  // postcondition. This branch cannot participate in the stage-0 circular dependency.
   const linkResult = await customerSecurityFetchAuthLink(authUserId).catch(() => null);
   const rows = linkResult && linkResult.ok === true && Array.isArray(linkResult.data)
     ? linkResult.data.filter((row) => row && typeof row === 'object')
@@ -5180,11 +5219,10 @@ async function diracPasskeyResolveStrictSignedIdentityV308(value) {
       id: authUserId,
       email,
       customer_id: String(activeRows[0].customer_id || ''),
-      dirac_signed_identity: DIRAC_PASSKEY_STRICT_SIGNED_IDENTITY_V308
+      dirac_signed_identity: 'dirac-passkey-strict-signed-bootstrap-v309'
     })
   });
 }
-
 
 async function diracPasskeyLookupSupabaseUserBySignedIdV307(userId) {
   const cleanUserId = String(userId || '').trim();
