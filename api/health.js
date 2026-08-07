@@ -14991,7 +14991,7 @@ function diracPasskeyA2FOwnerMatches(row, owner) {
 async function diracPasskeyA2FListActivePasskeys(owner, freshAfterMutation = false) {
   const select = (freshAfterMutation === true
     ? ['id', 'user_id', 'email', 'credential_id', 'credential_json', 'transports', 'sign_count', 'is_active', 'rotation_state', 'rotation_id', 'credential_epoch', 'public_key_sha256', 'backup_eligible', 'backup_state', 'confirmed_at', 'activated_at', 'revoked_at', 'revoke_reason', 'created_at', 'updated_at', 'last_used_at']
-    : ['id', 'user_id', 'email', 'credential_id', 'credential_json', 'transports', 'sign_count', 'is_active', 'created_at', 'last_used_at']).join(',');
+    : ['id', 'user_id', 'email', 'credential_id', 'credential_json', 'transports', 'sign_count', 'is_active', 'credential_epoch', 'created_at', 'last_used_at']).join(',');
   const seen = new Set();
   const rows = [];
   const fetchRows = async (filter) => {
@@ -15026,7 +15026,7 @@ async function diracPasskeyA2FListActivePasskeys(owner, freshAfterMutation = fal
   } catch (_) {}
 
   if (!isRecoveryWorkerContext && owner && owner.email && isValidAuthEmail(owner.email)) {
-    await fetchRows('email=eq.' + encodeURIComponent(owner.email));
+    { let scopedReadOk = false; let scopedReadError = null; for (const [ownerColumn, ownerValue] of [['customer_id', owner.customerId], ['auth_user_id', owner.authUserId]]) { if (!ownerValue || !customerSecurityLooksLikeUuid(ownerValue)) continue; try { await fetchRows(ownerColumn + '=eq.' + encodeURIComponent(ownerValue)); scopedReadOk = true; } catch (error) { scopedReadError = error; } } if (!scopedReadOk && scopedReadError) throw scopedReadError; }
   }
 
   return rows;
