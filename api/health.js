@@ -3300,6 +3300,7 @@ function verifyCustomerDashboardMfaCookie(req, user) {
     activeAtMs: Number(payload.activeAtMs || 0),
     expiresAtMs: Number(payload.expiresAtMs || 0),
     securityEpoch,
+    sessionHash: String(payload.sessionHash || ''),
     source: proof.source
   };
 }
