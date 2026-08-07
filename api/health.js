@@ -2369,9 +2369,9 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user, mfa) {
     && sessionSecurityEpoch === accountSecurityEpoch
     && mfaSecurityEpoch === accountSecurityEpoch;
   if (!epochMatches) {
-    await supabaseFetch('/rest/v1/security_customer_sessions?id=eq.' + encodeURIComponent(row.id)
-      + '&customer_id=eq.' + encodeURIComponent(customerId)
-      + '&session_token_hash=eq.' + encodeURIComponent(fingerprint.session_token_hash), {
+    await supabaseFetch('/rest/v1/security_customer_sessions?customer_id=eq.' + encodeURIComponent(customerId)
+      + '&session_token_hash=eq.' + encodeURIComponent(fingerprint.session_token_hash)
+      + '&security_epoch=eq.' + encodeURIComponent(String(sessionSecurityEpoch)), {
       method: 'PATCH',
       auth: 'service',
       prefer: 'return=minimal',
@@ -2447,9 +2447,9 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user, mfa) {
       ? String(row.revoke_reason || 'session_revoked')
       : 'session_expired';
 
-    await supabaseFetch('/rest/v1/security_customer_sessions?id=eq.' + encodeURIComponent(row.id)
-      + '&customer_id=eq.' + encodeURIComponent(customerId)
-      + '&session_token_hash=eq.' + encodeURIComponent(fingerprint.session_token_hash), {
+    await supabaseFetch('/rest/v1/security_customer_sessions?customer_id=eq.' + encodeURIComponent(customerId)
+      + '&session_token_hash=eq.' + encodeURIComponent(fingerprint.session_token_hash)
+      + '&security_epoch=eq.' + encodeURIComponent(String(sessionSecurityEpoch)), {
       method: 'PATCH',
       auth: 'service',
       prefer: 'return=minimal',
@@ -6354,10 +6354,10 @@ async function customerSecurityRevokeIssuedSessionV235(req, customerId, sessionI
   const fingerprint = customerSecurityBuildSessionFingerprint(req, cleanCustomerId);
   if (!customerSecurityLooksLikeUuid(cleanCustomerId)
       || !customerSecurityLooksLikeUuid(cleanSessionId)
-      || !fingerprint || !fingerprint.session_token_hash) return false;
+      || !fingerprint || !/^[a-f0-9]{64}$/.test(String(fingerprint.session_token_hash || ''))) return false;
 
   const readPath = '/rest/v1/security_customer_sessions?select=' +
-    encodeURIComponent('id,customer_id,session_token_hash,status,revoked_at') +
+    encodeURIComponent('id,customer_id,session_token_hash,status,security_epoch,revoked_at') +
     '&customer_id=eq.' + encodeURIComponent(cleanCustomerId) +
     '&session_token_hash=eq.' + encodeURIComponent(fingerprint.session_token_hash) +
     '&limit=2';
@@ -6372,26 +6372,40 @@ async function customerSecurityRevokeIssuedSessionV235(req, customerId, sessionI
 
   const row = rows[0];
   const boundSessionId = String(row && row.id || '').trim();
+  const securityEpoch = Number(row && row.security_epoch || 0);
   if (!customerSecurityLooksLikeUuid(boundSessionId)
       || !safeEqual(boundSessionId, cleanSessionId)
       || !safeEqual(String(row && row.customer_id || ''), cleanCustomerId)
       || !safeEqual(String(row && row.session_token_hash || ''), String(fingerprint.session_token_hash))
-      || String(row && row.status || '').trim().toLowerCase() !== 'active'
-      || Boolean(row && row.revoked_at)) return false;
+      || !Number.isSafeInteger(securityEpoch) || securityEpoch < 1) return false;
+  if (String(row.status || '').trim().toLowerCase() === 'revoked' && row.revoked_at) return true;
+  if (String(row.status || '').trim().toLowerCase() !== 'active' || row.revoked_at) return false;
 
-  const result = await supabaseFetch('/rest/v1/security_customer_sessions?id=eq.' + encodeURIComponent(boundSessionId)
-    + '&customer_id=eq.' + encodeURIComponent(cleanCustomerId)
-    + '&session_token_hash=eq.' + encodeURIComponent(fingerprint.session_token_hash), {
+  const patchPath = '/rest/v1/security_customer_sessions?select=' +
+    encodeURIComponent('id,customer_id,session_token_hash,status,security_epoch,revoked_at,revoke_reason') +
+    '&customer_id=eq.' + encodeURIComponent(cleanCustomerId) +
+    '&session_token_hash=eq.' + encodeURIComponent(fingerprint.session_token_hash) +
+    '&security_epoch=eq.' + encodeURIComponent(String(securityEpoch)) +
+    '&status=eq.active';
+  const result = await supabaseFetch(patchPath, {
     method: 'PATCH',
     auth: 'service',
-    prefer: 'return=minimal',
+    prefer: 'return=representation',
     body: {
       status: 'revoked',
       revoked_at: new Date().toISOString(),
       revoke_reason: String(reason || 'passkey_session_issuance_failed').slice(0, 80)
     }
   }).catch(() => null);
-  return Boolean(result && result.ok === true);
+  const patchedRows = result && result.ok === true && Array.isArray(result.data) ? result.data : [];
+  const patchedRow = patchedRows.length === 1 ? patchedRows[0] : null;
+  return Boolean(patchedRow
+    && safeEqual(String(patchedRow.id || ''), boundSessionId)
+    && safeEqual(String(patchedRow.customer_id || ''), cleanCustomerId)
+    && safeEqual(String(patchedRow.session_token_hash || ''), String(fingerprint.session_token_hash))
+    && String(patchedRow.status || '').trim().toLowerCase() === 'revoked'
+    && patchedRow.revoked_at
+    && Number(patchedRow.security_epoch || 0) === securityEpoch);
 }
 
 async function customerSecurityTouchCurrentSession(req, customerId, verifiedExistingSession, issuanceContext) {
@@ -6521,10 +6535,15 @@ async function customerSecurityTouchCurrentSession(req, customerId, verifiedExis
     if (rows.length && rows[0] && rows[0].id) {
       activeStage = 'update';
       const updateStartedAtMs = Date.now();
+      const previousSecurityEpoch = Number(rows[0].security_epoch || 0);
+      if (!Number.isSafeInteger(previousSecurityEpoch) || previousSecurityEpoch < 1) {
+        return { ok: false, reason: 'session_update_previous_epoch_invalid', status: 409 };
+      }
       const patched = await supabaseFetch('/rest/v1/security_customer_sessions?select=' +
-        encodeURIComponent('id,security_epoch') +
-        '&id=eq.' + encodeURIComponent(rows[0].id) +
-        '&customer_id=eq.' + encodeURIComponent(customerId), {
+        encodeURIComponent('id,customer_id,session_token_hash,status,security_epoch,revoked_at') +
+        '&customer_id=eq.' + encodeURIComponent(customerId) +
+        '&session_token_hash=eq.' + encodeURIComponent(fingerprint.session_token_hash) +
+        '&security_epoch=eq.' + encodeURIComponent(String(previousSecurityEpoch)), {
         method: 'PATCH',
         auth: 'service',
         prefer: 'return=representation',
@@ -6557,6 +6576,10 @@ async function customerSecurityTouchCurrentSession(req, customerId, verifiedExis
       const patchedRows = Array.isArray(patched.data) ? patched.data : [];
       const patchedRow = patchedRows.length === 1 ? patchedRows[0] : null;
       if (!patchedRow || String(patchedRow.id || '') !== String(rows[0].id)
+          || !safeEqual(String(patchedRow.customer_id || ''), String(customerId))
+          || !safeEqual(String(patchedRow.session_token_hash || ''), String(fingerprint.session_token_hash))
+          || String(patchedRow.status || '').trim().toLowerCase() !== 'active'
+          || patchedRow.revoked_at
           || Number(patchedRow.security_epoch || 0) !== resolvedSecurityEpoch) {
         return { ok: false, reason: 'session_update_epoch_postcondition_failed', status: 409 };
       }
@@ -6567,7 +6590,7 @@ async function customerSecurityTouchCurrentSession(req, customerId, verifiedExis
         customer_digest: customerSecurityShortDigestV219(customerId),
         session_id_digest: customerSecurityShortDigestV219(rows[0].id)
       });
-      return { ok: true, created: false, session_id: rows[0].id, security_epoch: resolvedSecurityEpoch };
+      return { ok: true, created: false, session_id: rows[0].id, security_epoch: resolvedSecurityEpoch, session_token_hash: fingerprint.session_token_hash };
     }
 
     activeStage = 'create';
@@ -6658,7 +6681,7 @@ async function customerSecurityTouchCurrentSession(req, customerId, verifiedExis
             customer_digest: customerSecurityShortDigestV219(customerId),
             session_id_digest: customerSecurityShortDigestV219(conflictRow.id)
           });
-          return { ok: true, created: false, session_id: conflictRow.id, security_epoch: resolvedSecurityEpoch };
+          return { ok: true, created: false, session_id: conflictRow.id, security_epoch: resolvedSecurityEpoch, session_token_hash: fingerprint.session_token_hash };
         }
 
         customerSecuritySessionDecisionDebugV219(req, 'session_touch.create_conflict_rejected', {
@@ -6754,7 +6777,7 @@ async function customerSecurityTouchCurrentSession(req, customerId, verifiedExis
       customer_digest: customerSecurityShortDigestV219(customerId),
       session_id_digest: customerSecurityShortDigestV219(createdSessionId)
     });
-    return { ok: true, created: true, session_id: createdSessionId, security_epoch: resolvedSecurityEpoch };
+    return { ok: true, created: true, session_id: createdSessionId, security_epoch: resolvedSecurityEpoch, session_token_hash: fingerprint.session_token_hash };
   } catch (error) {
     const diagnostic = customerSecuritySessionStoreDiagnosticV218(req, activeStage + '_exception', {
       ok: false,
@@ -17154,6 +17177,7 @@ const DIRAC_PASSKEY_AUTH_SESSION_CACHE_V302 = Symbol('dirac-passkey-auth-session
 const DIRAC_PASSKEY_FINAL_AUTH_CONTINUITY_V302 = 'dirac-passkey-final-auth-continuity-v302';
 const DIRAC_PASSKEY_SIGNED_AUTHORITY_V304 = 'dirac-passkey-signed-authority-v304';
 const DIRAC_PASSKEY_SIGNED_CONTINUITY_V305 = 'dirac-passkey-signed-continuity-v305';
+const DIRAC_PASSKEY_OWNER_HASH_SESSION_SCOPE_V306 = 'dirac-passkey-owner-hash-session-scope-v306';
 const DIRAC_PASSKEY_SIGNED_AUTHORITY_MIN_TTL_SECONDS_V304 = 120;
 const DIRAC_PASSKEY_AUTH_MIN_TTL_SECONDS_V301 = Math.max(
   120,
@@ -17612,17 +17636,22 @@ async function diracPasskeyStrictSignedAuthorityV304(req, owner) {
       return fail('passkey_v304_signed_security_epoch_invalid');
     }
 
+    const fingerprint = customerSecurityBuildSessionFingerprint(req, customerId);
+    if (!fingerprint || !/^[a-f0-9]{64}$/.test(String(fingerprint.session_token_hash || ''))) {
+      return fail('passkey_v304_signed_session_fingerprint_invalid');
+    }
     const sessionPath = '/rest/v1/security_customer_sessions?select=' +
       encodeURIComponent('id,customer_id,session_token_hash,status,security_epoch,last_seen_at,expires_at,revoked_at') +
-      '&id=eq.' + encodeURIComponent(String(strictSigned.sessionId)) +
       '&customer_id=eq.' + encodeURIComponent(customerId) +
+      '&session_token_hash=eq.' + encodeURIComponent(fingerprint.session_token_hash) +
+      '&security_epoch=eq.' + encodeURIComponent(String(epoch)) +
+      '&status=eq.active' +
       '&limit=2';
     const sessionResult = await supabaseFetch(sessionPath, { method: 'GET', auth: 'service' });
     const sessionRows = sessionResult && sessionResult.ok && Array.isArray(sessionResult.data)
       ? sessionResult.data
       : [];
     const sessionRow = sessionRows.length === 1 ? sessionRows[0] : null;
-    const fingerprint = customerSecurityBuildSessionFingerprint(req, customerId);
     const sessionExpiresAtMs = Date.parse(String(sessionRow && sessionRow.expires_at || ''));
     const sessionLastSeenAtMs = Date.parse(String(sessionRow && sessionRow.last_seen_at || ''));
     const sessionIdleMs = Number.isFinite(sessionLastSeenAtMs) ? Math.max(0, Date.now() - sessionLastSeenAtMs) : Number.POSITIVE_INFINITY;
@@ -17677,64 +17706,90 @@ async function diracPasskeyStrictSignedAuthorityV304(req, owner) {
 }
 
 
-async function diracPasskeyRevokeIssuedSessionByIdV305(owner, issuedSession, reason) {
+function diracPasskeySessionHashCandidatesV306(req, owner, issuedSession, extraHashes = []) {
+  const customerId = String(owner && owner.customerId || '').trim();
+  const fingerprint = customerSecurityBuildSessionFingerprint(req, customerId);
+  return uniqueNonEmptyStrings([
+    issuedSession && issuedSession.session_token_hash,
+    fingerprint && fingerprint.session_token_hash,
+    ...(Array.isArray(extraHashes) ? extraHashes : [])
+  ]).filter((value) => /^[a-f0-9]{64}$/.test(String(value || ''))).slice(0, 4);
+}
+
+async function diracPasskeyRevokeIssuedSessionV306(req, owner, issuedSession, reason, extraHashes = []) {
   try {
+    const ctx = typeof diracCentralCurrentContextV149 === 'function'
+      ? diracCentralCurrentContextV149()
+      : null;
+    if (!ctx || ctx.req !== req
+        || String(ctx.action || '') !== 'dirac_mfa_passkey_verify'
+        || typeof diracCentralHandlerContextFullyPassedV211 !== 'function'
+        || diracCentralHandlerContextFullyPassedV211(ctx, req) !== true) return false;
+
     const customerId = String(owner && owner.customerId || '').trim();
     const sessionId = String(issuedSession && issuedSession.session_id || '').trim();
     const securityEpoch = Number(issuedSession && issuedSession.security_epoch || 0);
+    const hashCandidates = diracPasskeySessionHashCandidatesV306(req, owner, issuedSession, extraHashes);
     if (!customerSecurityLooksLikeUuid(customerId)
         || !customerSecurityLooksLikeUuid(sessionId)
-        || !Number.isSafeInteger(securityEpoch) || securityEpoch < 1) return false;
+        || !Number.isSafeInteger(securityEpoch) || securityEpoch < 1
+        || !hashCandidates.length) return false;
 
-    const readPath = '/rest/v1/security_customer_sessions?select=' +
-      encodeURIComponent('id,customer_id,status,security_epoch,revoked_at') +
-      '&id=eq.' + encodeURIComponent(sessionId) +
-      '&customer_id=eq.' + encodeURIComponent(customerId) +
-      '&limit=2';
-    const read = await supabaseFetch(readPath, { method: 'GET', auth: 'service' }).catch(() => null);
-    const rows = read && read.ok === true && Array.isArray(read.data) ? read.data : [];
-    const row = rows.length === 1 ? rows[0] : null;
-    if (!row
-        || String(row.id || '') !== sessionId
-        || String(row.customer_id || '') !== customerId
-        || Number(row.security_epoch || 0) !== securityEpoch) return false;
-    if (String(row.status || '').trim().toLowerCase() === 'revoked' && row.revoked_at) return true;
-    if (String(row.status || '').trim().toLowerCase() !== 'active' || row.revoked_at) return false;
+    for (const sessionHash of hashCandidates) {
+      const readPath = '/rest/v1/security_customer_sessions?select=' +
+        encodeURIComponent('id,customer_id,session_token_hash,status,security_epoch,revoked_at') +
+        '&customer_id=eq.' + encodeURIComponent(customerId) +
+        '&session_token_hash=eq.' + encodeURIComponent(sessionHash) +
+        '&security_epoch=eq.' + encodeURIComponent(String(securityEpoch)) +
+        '&limit=2';
+      const read = await supabaseFetch(readPath, { method: 'GET', auth: 'service' }).catch(() => null);
+      const rows = read && read.ok === true && Array.isArray(read.data) ? read.data : [];
+      const row = rows.length === 1 ? rows[0] : null;
+      if (!row
+          || !safeEqual(String(row.id || ''), sessionId)
+          || !safeEqual(String(row.customer_id || ''), customerId)
+          || !safeEqual(String(row.session_token_hash || ''), sessionHash)
+          || Number(row.security_epoch || 0) !== securityEpoch) continue;
+      if (String(row.status || '').trim().toLowerCase() === 'revoked' && row.revoked_at) return true;
+      if (String(row.status || '').trim().toLowerCase() !== 'active' || row.revoked_at) return false;
 
-    const patched = await supabaseFetch(
-      '/rest/v1/security_customer_sessions?id=eq.' + encodeURIComponent(sessionId)
-        + '&customer_id=eq.' + encodeURIComponent(customerId)
-        + '&security_epoch=eq.' + encodeURIComponent(String(securityEpoch))
-        + '&status=eq.active',
-      {
+      const patchPath = '/rest/v1/security_customer_sessions?select=' +
+        encodeURIComponent('id,customer_id,session_token_hash,status,security_epoch,revoked_at,revoke_reason') +
+        '&customer_id=eq.' + encodeURIComponent(customerId) +
+        '&session_token_hash=eq.' + encodeURIComponent(sessionHash) +
+        '&security_epoch=eq.' + encodeURIComponent(String(securityEpoch)) +
+        '&status=eq.active';
+      const patched = await supabaseFetch(patchPath, {
         method: 'PATCH',
         auth: 'service',
         prefer: 'return=representation',
         body: {
           status: 'revoked',
           revoked_at: new Date().toISOString(),
-          revoke_reason: String(reason || 'passkey_v305_session_rollback').slice(0, 80)
+          revoke_reason: String(reason || 'passkey_v306_session_rollback').slice(0, 80)
         }
-      }
-    ).catch(() => null);
-    const patchedRows = patched && patched.ok === true && Array.isArray(patched.data) ? patched.data : [];
-    const patchedRow = patchedRows.length === 1 ? patchedRows[0] : null;
-    return Boolean(patchedRow
-      && String(patchedRow.id || '') === sessionId
-      && String(patchedRow.customer_id || '') === customerId
-      && String(patchedRow.status || '').trim().toLowerCase() === 'revoked'
-      && patchedRow.revoked_at
-      && Number(patchedRow.security_epoch || 0) === securityEpoch);
+      }).catch(() => null);
+      const patchedRows = patched && patched.ok === true && Array.isArray(patched.data) ? patched.data : [];
+      const patchedRow = patchedRows.length === 1 ? patchedRows[0] : null;
+      return Boolean(patchedRow
+        && safeEqual(String(patchedRow.id || ''), sessionId)
+        && safeEqual(String(patchedRow.customer_id || ''), customerId)
+        && safeEqual(String(patchedRow.session_token_hash || ''), sessionHash)
+        && String(patchedRow.status || '').trim().toLowerCase() === 'revoked'
+        && patchedRow.revoked_at
+        && Number(patchedRow.security_epoch || 0) === securityEpoch);
+    }
+    return false;
   } catch (_) {
     return false;
   }
 }
 
-async function diracPasskeyRebindIssuedSessionToSignedAuthorityV305(req, owner, issuedSession, proof) {
+async function diracPasskeyRebindIssuedSessionToSignedAuthorityV306(req, owner, issuedSession, proof) {
   const fail = (reason) => Object.freeze({
     ok: false,
-    patch: DIRAC_PASSKEY_SIGNED_CONTINUITY_V305,
-    reason: String(reason || 'passkey_v305_signed_session_rebind_failed').slice(0, 96)
+    patch: DIRAC_PASSKEY_OWNER_HASH_SESSION_SCOPE_V306,
+    reason: String(reason || 'passkey_v306_signed_session_rebind_failed').slice(0, 96)
   });
   try {
     const ctx = typeof diracCentralCurrentContextV149 === 'function'
@@ -17744,7 +17799,7 @@ async function diracPasskeyRebindIssuedSessionToSignedAuthorityV305(req, owner, 
         || String(ctx.action || '') !== 'dirac_mfa_passkey_verify'
         || typeof diracCentralHandlerContextFullyPassedV211 !== 'function'
         || diracCentralHandlerContextFullyPassedV211(ctx, req) !== true) {
-      return fail('passkey_v305_rebind_central_guard_not_fully_passed');
+      return fail('passkey_v306_rebind_central_guard_not_fully_passed');
     }
 
     const customerId = String(owner && owner.customerId || '').trim();
@@ -17752,14 +17807,16 @@ async function diracPasskeyRebindIssuedSessionToSignedAuthorityV305(req, owner, 
     const email = normalizeAuthEmail(owner && owner.email || '');
     const sessionId = String(issuedSession && issuedSession.session_id || '').trim();
     const securityEpoch = Number(issuedSession && issuedSession.security_epoch || 0);
+    const issuedHash = String(issuedSession && issuedSession.session_token_hash || '').trim();
     const signedSessionValue = String(proof && proof.signedSessionValue || '').trim();
     if (!customerSecurityLooksLikeUuid(customerId)
         || !customerSecurityLooksLikeUuid(authUserId)
         || !isValidAuthEmail(email)
         || !customerSecurityLooksLikeUuid(sessionId)
         || !Number.isSafeInteger(securityEpoch) || securityEpoch < 1
+        || !/^[a-f0-9]{64}$/.test(issuedHash)
         || !signedSessionValue) {
-      return fail('passkey_v305_rebind_input_invalid');
+      return fail('passkey_v306_rebind_input_invalid');
     }
 
     const signed = diracPasskeyVerifyStrictAnchoredSessionV247(signedSessionValue);
@@ -17771,38 +17828,41 @@ async function diracPasskeyRebindIssuedSessionToSignedAuthorityV305(req, owner, 
         || !safeEqual(String(anchor.sessionId || ''), sessionId)
         || Number(signed.securityEpoch || 0) !== securityEpoch
         || Number(anchor.securityEpoch || 0) !== securityEpoch) {
-      return fail('passkey_v305_rebind_signed_anchor_invalid');
+      return fail('passkey_v306_rebind_signed_anchor_invalid');
     }
 
     const currentFingerprint = customerSecurityBuildSessionFingerprint(req, customerId);
     const currentHash = String(currentFingerprint && currentFingerprint.session_token_hash || '');
     const signedHash = customerSecuritySha256(signedSessionValue);
-    if (!/^[a-f0-9]{64}$/.test(currentHash) || !/^[a-f0-9]{64}$/.test(signedHash)) {
-      return fail('passkey_v305_rebind_fingerprint_invalid');
+    if (!/^[a-f0-9]{64}$/.test(currentHash)
+        || !safeEqual(currentHash, issuedHash)
+        || !/^[a-f0-9]{64}$/.test(signedHash)) {
+      return fail('passkey_v306_rebind_fingerprint_invalid');
     }
 
     const readPath = '/rest/v1/security_customer_sessions?select=' +
       encodeURIComponent('id,customer_id,session_token_hash,status,security_epoch,revoked_at') +
-      '&id=eq.' + encodeURIComponent(sessionId) +
       '&customer_id=eq.' + encodeURIComponent(customerId) +
+      '&session_token_hash=eq.' + encodeURIComponent(currentHash) +
+      '&security_epoch=eq.' + encodeURIComponent(String(securityEpoch)) +
+      '&status=eq.active' +
       '&limit=2';
     const read = await supabaseFetch(readPath, { method: 'GET', auth: 'service' });
     const rows = read && read.ok && Array.isArray(read.data) ? read.data : [];
     const row = rows.length === 1 ? rows[0] : null;
     if (!read || read.ok !== true || !row
-        || String(row.id || '') !== sessionId
-        || String(row.customer_id || '') !== customerId
+        || !safeEqual(String(row.id || ''), sessionId)
+        || !safeEqual(String(row.customer_id || ''), customerId)
         || String(row.status || '').trim().toLowerCase() !== 'active'
         || row.revoked_at
         || Number(row.security_epoch || 0) !== securityEpoch
         || !safeEqual(String(row.session_token_hash || ''), currentHash)) {
-      return fail('passkey_v305_rebind_existing_session_invalid');
+      return fail('passkey_v306_rebind_existing_session_invalid');
     }
 
     if (!safeEqual(currentHash, signedHash)) {
       const patchPath = '/rest/v1/security_customer_sessions?select=' +
         encodeURIComponent('id,customer_id,session_token_hash,status,security_epoch,revoked_at') +
-        '&id=eq.' + encodeURIComponent(sessionId) +
         '&customer_id=eq.' + encodeURIComponent(customerId) +
         '&session_token_hash=eq.' + encodeURIComponent(currentHash) +
         '&status=eq.active' +
@@ -17816,25 +17876,26 @@ async function diracPasskeyRebindIssuedSessionToSignedAuthorityV305(req, owner, 
       const patchedRows = patched && patched.ok && Array.isArray(patched.data) ? patched.data : [];
       const patchedRow = patchedRows.length === 1 ? patchedRows[0] : null;
       if (!patched || patched.ok !== true || !patchedRow
-          || String(patchedRow.id || '') !== sessionId
-          || String(patchedRow.customer_id || '') !== customerId
+          || !safeEqual(String(patchedRow.id || ''), sessionId)
+          || !safeEqual(String(patchedRow.customer_id || ''), customerId)
           || String(patchedRow.status || '').trim().toLowerCase() !== 'active'
           || patchedRow.revoked_at
           || Number(patchedRow.security_epoch || 0) !== securityEpoch
           || !safeEqual(String(patchedRow.session_token_hash || ''), signedHash)) {
-        return fail('passkey_v305_rebind_update_postcondition_failed');
+        return fail('passkey_v306_rebind_update_postcondition_failed');
       }
     }
 
     return Object.freeze({
       ok: true,
-      patch: DIRAC_PASSKEY_SIGNED_CONTINUITY_V305,
+      patch: DIRAC_PASSKEY_OWNER_HASH_SESSION_SCOPE_V306,
       sessionId,
       securityEpoch,
+      originalSessionHash: currentHash,
       signedSessionHash: signedHash
     });
   } catch (_) {
-    return fail('passkey_v305_signed_session_rebind_exception');
+    return fail('passkey_v306_signed_session_rebind_exception');
   }
 }
 
@@ -19760,7 +19821,7 @@ async function diracPasskeyFinalizeDashboardCookieHandoffV239(req, res, owner, p
       authSessionRepublishedAtomically: true,
       authSessionPatch: DIRAC_PASSKEY_AUTH_SESSION_V302,
       authSessionSource: 'verified_signed_session_v305',
-      finalAuthContinuityPatch: DIRAC_PASSKEY_SIGNED_CONTINUITY_V305,
+      finalAuthContinuityPatch: DIRAC_PASSKEY_OWNER_HASH_SESSION_SCOPE_V306,
       deviceSessionIssuedAtomically: true,
       deviceCredentialIssuedAtomically: true,
       deviceChainPatch: atomicDeviceChain.patch,
@@ -20156,21 +20217,23 @@ async function diracPasskeyA2FVerify(req, res) {
       message: 'Passkey berhasil diverifikasi, tetapi binding sesi MFA belum dapat dibentuk secara aman. Silakan login ulang lalu verifikasi Passkey kembali.'
     });
   }
-  const signedSessionRebind = await diracPasskeyRebindIssuedSessionToSignedAuthorityV305(
+  const signedSessionRebind = await diracPasskeyRebindIssuedSessionToSignedAuthorityV306(
     req,
     owner,
     issuedSession,
     proof
   );
   if (!signedSessionRebind || signedSessionRebind.ok !== true) {
-    const rollbackOk = await diracPasskeyRevokeIssuedSessionByIdV305(
+    const rollbackOk = await diracPasskeyRevokeIssuedSessionV306(
+      req,
       owner,
       issuedSession,
-      'passkey_signed_session_rebind_failed'
+      'passkey_signed_session_rebind_failed',
+      [customerSecuritySha256(String(proof && proof.signedSessionValue || ''))]
     );
     try {
       console.error('[dirac-passkey-a2f-publication-debug-v238]', JSON.stringify({
-        patch: DIRAC_PASSKEY_SIGNED_CONTINUITY_V305,
+        patch: DIRAC_PASSKEY_OWNER_HASH_SESSION_SCOPE_V306,
         event: 'passkey_signed_session_rebind_failed',
         reason: String(signedSessionRebind && signedSessionRebind.reason || 'unknown').slice(0, 96),
         rollback_ok: Boolean(rollbackOk)
@@ -20186,10 +20249,12 @@ async function diracPasskeyA2FVerify(req, res) {
   }
 
   if (!customerSecuritySetDashboardMfaCookie(res, proof)) {
-    const rollbackOk = await diracPasskeyRevokeIssuedSessionByIdV305(
+    const rollbackOk = await diracPasskeyRevokeIssuedSessionV306(
+      req,
       owner,
       issuedSession,
-      'mfa_cookie_publication_failed'
+      'mfa_cookie_publication_failed',
+      [signedSessionRebind.signedSessionHash]
     );
     try {
       console.error('[dirac-passkey-a2f-publication-debug-v238]', JSON.stringify({
@@ -20211,10 +20276,12 @@ async function diracPasskeyA2FVerify(req, res) {
 
   const finalCookieHandoff = await diracPasskeyFinalizeDashboardCookieHandoffV239(req, res, owner, proof);
   if (!finalCookieHandoff || finalCookieHandoff.ok !== true) {
-    const rollbackOk = await diracPasskeyRevokeIssuedSessionByIdV305(
+    const rollbackOk = await diracPasskeyRevokeIssuedSessionV306(
+      req,
       owner,
       issuedSession,
-      'passkey_final_cookie_handoff_failed'
+      'passkey_final_cookie_handoff_failed',
+      [signedSessionRebind.signedSessionHash]
     );
     try {
       console.error('[dirac-passkey-a2f-publication-debug-v238]', JSON.stringify({
