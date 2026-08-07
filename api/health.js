@@ -16185,7 +16185,7 @@ async function diracPasskeyA2FStart(req, res) {
 }
 
 
-const DIRAC_PASSKEY_COOKIE_ROUNDTRIP_V241 = 'dirac-passkey-cookie-roundtrip-v245';
+const DIRAC_PASSKEY_COOKIE_ROUNDTRIP_V241 = 'dirac-passkey-cookie-roundtrip-v246';
 const DIRAC_PASSKEY_COOKIE_ROUNDTRIP_MAX_CANDIDATES_V243 = 4;
 
 function diracPasskeyCookieRoundtripFailureV241(res, code, details = {}) {
@@ -16203,7 +16203,7 @@ function diracPasskeyCookieRoundtripFailureV241(res, code, details = {}) {
     res.setHeader('X-Dirac-Passkey-Roundtrip-Code', safeCode);
   } catch (_) {}
   try {
-    console.error('[dirac-passkey-cookie-roundtrip-v245]', JSON.stringify({
+    console.error('[dirac-passkey-cookie-roundtrip-v246]', JSON.stringify({
       patch: DIRAC_PASSKEY_COOKIE_ROUNDTRIP_V241,
       event: 'cookie_roundtrip_not_ready',
       code: safeCode,
@@ -16493,7 +16493,10 @@ function diracPasskeyConfirmDashboardCookieRoundtripV241(req, res) {
 
     for (const signedValue of signedSet.values) {
       const signedAnchor = customerSecurityDecodeSignedSessionAnchorV228(signedValue);
-      if (!signedAnchor) continue;
+      const centralSignedSession = verifyDomainSessionCookieValue(signedValue);
+      if (!signedAnchor || !centralSignedSession
+          || String(centralSignedSession.id || '') !== String(signedAnchor.userId || '')
+          || normalizeAuthEmail(centralSignedSession.email || '') !== normalizeAuthEmail(signedAnchor.email || '')) continue;
       signedValid = true;
 
       for (const mfaValue of mfaSet.values) {
@@ -16515,8 +16518,7 @@ function diracPasskeyConfirmDashboardCookieRoundtripV241(req, res) {
             [CUSTOMER_MFA_COOKIE]: mfaValue,
             [deviceSessionCookieName]: deviceSessionValue
           }, targetNames);
-          const deviceSession = diracCentralVerifyDeviceSessionCookieV223(deviceSessionReq)
-            || diracPasskeyVerifyDeviceSessionValueV245(deviceSessionReq, deviceSessionValue, signedAnchor);
+          const deviceSession = diracCentralVerifyDeviceSessionCookieV223(deviceSessionReq);
           if (!deviceSession || !deviceSession.identity || !deviceSession.payload
               || String(deviceSession.identity.userId || '') !== String(signedAnchor.userId || '')
               || normalizeAuthEmail(deviceSession.identity.email || '') !== normalizeAuthEmail(signedAnchor.email || '')) continue;
@@ -16529,14 +16531,10 @@ function diracPasskeyConfirmDashboardCookieRoundtripV241(req, res) {
               [deviceSessionCookieName]: deviceSessionValue,
               [deviceCredentialCookieName]: deviceCredentialValue
             }, targetNames);
-            const deviceCredential = diracCentralVerifyDeviceTokenV221(canonicalReq, deviceCredentialValue);
-            const verifiedDeviceCredential = deviceCredential && deviceCredential.ok === true
-              ? deviceCredential
-              : diracPasskeyVerifyDeviceCredentialValueV245(
-                canonicalReq,
-                deviceCredentialValue,
-                deviceSession.binding
-              );
+            const verifiedDeviceCredential = diracCentralVerifyDeviceTokenV221(
+              canonicalReq,
+              deviceCredentialValue
+            );
             if (!verifiedDeviceCredential || verifiedDeviceCredential.ok !== true
                 || !verifiedDeviceCredential.payload
                 || !safeEqual(
@@ -16599,7 +16597,110 @@ function diracPasskeyConfirmDashboardCookieRoundtripV241(req, res) {
   }
 }
 
-const DIRAC_PASSKEY_FINAL_COOKIE_HANDOFF_V239 = 'dirac-passkey-final-cookie-handoff-v239';
+
+const DIRAC_PASSKEY_ATOMIC_DEVICE_HANDOFF_V246 = 'dirac-passkey-atomic-device-handoff-v246';
+
+function diracPasskeyCreateAtomicDeviceChainV246(req, signedSessionValue, signedAnchor, maxAgeSeconds) {
+  const fail = (reason) => Object.freeze({
+    ok: false,
+    patch: DIRAC_PASSKEY_ATOMIC_DEVICE_HANDOFF_V246,
+    reason: String(reason || 'passkey_atomic_device_chain_failed').slice(0, 96)
+  });
+
+  try {
+    const signedValue = String(signedSessionValue || '').trim();
+    const anchor = signedAnchor && typeof signedAnchor === 'object' ? signedAnchor : null;
+    const centralSigned = verifyDomainSessionCookieValue(signedValue);
+    const userId = String(anchor && anchor.userId || '').trim();
+    const email = normalizeAuthEmail(anchor && anchor.email || '');
+    const maxAge = Math.max(
+      60,
+      Math.min(60 * 60 * 24 * 7, Math.floor(Number(maxAgeSeconds || 0)))
+    );
+
+    if (!signedValue || !anchor || !centralSigned || !userId || !email
+        || String(centralSigned.id || '') !== userId
+        || normalizeAuthEmail(centralSigned.email || '') !== email
+        || !Number.isSafeInteger(maxAge) || maxAge < 60) {
+      return fail('passkey_atomic_central_signed_session_invalid');
+    }
+
+    const createdSession = diracCentralCreateDeviceSessionCookieV223(
+      { userId, email },
+      maxAge
+    );
+    if (!createdSession || !createdSession.value || !createdSession.cookie
+        || !/^[a-f0-9]{64}$/.test(String(createdSession.binding || ''))) {
+      return fail('passkey_atomic_device_session_issue_failed');
+    }
+
+    const deviceSessionCookieName = diracCentralDeviceSessionCookieNameV223();
+    const deviceCredentialCookieName = diracCentralDeviceCookieNameV221();
+    const targetNames = [
+      DOMAIN_SIGNED_SESSION_COOKIE,
+      deviceSessionCookieName,
+      deviceCredentialCookieName
+    ];
+    const sessionReq = diracPasskeyRoundtripCanonicalRequestV243(req, {
+      [DOMAIN_SIGNED_SESSION_COOKIE]: signedValue,
+      [deviceSessionCookieName]: createdSession.value
+    }, targetNames);
+
+    const credentialValue = diracCentralDeviceTokenV221(
+      sessionReq,
+      createdSession.binding
+    );
+    if (!credentialValue) return fail('passkey_atomic_device_credential_issue_failed');
+
+    const canonicalReq = diracPasskeyRoundtripCanonicalRequestV243(req, {
+      [DOMAIN_SIGNED_SESSION_COOKIE]: signedValue,
+      [deviceSessionCookieName]: createdSession.value,
+      [deviceCredentialCookieName]: credentialValue
+    }, targetNames);
+    const verifiedSession = diracCentralVerifyDeviceSessionCookieV223(canonicalReq);
+    const verifiedCredential = diracCentralVerifyDeviceTokenV221(
+      canonicalReq,
+      credentialValue
+    );
+
+    if (!verifiedSession || !verifiedSession.identity
+        || String(verifiedSession.identity.userId || '') !== userId
+        || normalizeAuthEmail(verifiedSession.identity.email || '') !== email
+        || !safeEqual(
+          String(verifiedSession.binding || ''),
+          String(createdSession.binding || '')
+        )) {
+      return fail('passkey_atomic_device_session_self_verification_failed');
+    }
+    if (!verifiedCredential || verifiedCredential.ok !== true
+        || !verifiedCredential.payload
+        || Number(verifiedCredential.payload.sbv) !== 2
+        || !safeEqual(
+          String(verifiedCredential.payload.session || ''),
+          String(createdSession.binding || '')
+        )) {
+      return fail('passkey_atomic_device_credential_self_verification_failed');
+    }
+
+    return Object.freeze({
+      ok: true,
+      patch: DIRAC_PASSKEY_ATOMIC_DEVICE_HANDOFF_V246,
+      binding: String(createdSession.binding),
+      sessionValue: String(createdSession.value),
+      credentialValue: String(credentialValue),
+      sessionCookie: String(createdSession.cookie),
+      credentialCookie: makeCookie(
+        deviceCredentialCookieName,
+        credentialValue,
+        { maxAge: 24 * 60 * 60, domain: '' }
+      )
+    });
+  } catch (_) {
+    return fail('passkey_atomic_device_chain_exception');
+  }
+}
+
+const DIRAC_PASSKEY_FINAL_COOKIE_HANDOFF_V239 = 'dirac-passkey-final-cookie-handoff-v246';
 
 function diracPasskeyFinalizeDashboardCookieHandoffV239(req, res, owner, proof) {
   const fail = (reason) => Object.freeze({
@@ -16658,16 +16759,19 @@ function diracPasskeyFinalizeDashboardCookieHandoffV239(req, res, owner, proof) 
       return fail('passkey_final_mfa_session_binding_invalid');
     }
 
-    const preservedDeviceChain = diracPasskeySelectPreservedDeviceChainV245(
+    const atomicDeviceChain = diracPasskeyCreateAtomicDeviceChainV246(
       req,
-      res,
-      signedSession
+      signedSessionValue,
+      signedSession,
+      signedSessionMaxAgeSeconds
     );
-    if (!preservedDeviceChain || preservedDeviceChain.ok !== true) {
-      return fail(preservedDeviceChain && preservedDeviceChain.reason
-        || 'passkey_preserved_device_chain_invalid');
+    if (!atomicDeviceChain || atomicDeviceChain.ok !== true) {
+      return fail(atomicDeviceChain && atomicDeviceChain.reason
+        || 'passkey_atomic_device_chain_invalid');
     }
 
+    const deviceSessionCookieName = diracCentralDeviceSessionCookieNameV223();
+    const deviceCredentialCookieName = diracCentralDeviceCookieNameV221();
     const finalCookies = [
       makeCookie(CUSTOMER_MFA_COOKIE, mfaToken, {
         maxAge: mfaMaxAgeSeconds,
@@ -16676,11 +16780,15 @@ function diracPasskeyFinalizeDashboardCookieHandoffV239(req, res, owner, proof) 
       makeCookie(DOMAIN_SIGNED_SESSION_COOKIE, signedSessionValue, {
         maxAge: signedSessionMaxAgeSeconds,
         domain: ''
-      })
+      }),
+      atomicDeviceChain.sessionCookie,
+      atomicDeviceChain.credentialCookie
     ];
     const targetNames = [
       CUSTOMER_MFA_COOKIE,
-      DOMAIN_SIGNED_SESSION_COOKIE
+      DOMAIN_SIGNED_SESSION_COOKIE,
+      deviceSessionCookieName,
+      deviceCredentialCookieName
     ];
     const targetNameSet = new Set(targetNames);
     const legacyDomainClears = getCompactCookieDomainsForSession()
@@ -16734,9 +16842,9 @@ function diracPasskeyFinalizeDashboardCookieHandoffV239(req, res, owner, proof) 
     return Object.freeze({
       ok: true,
       patch: DIRAC_PASSKEY_FINAL_COOKIE_HANDOFF_V239,
-      deviceSessionPreserved: true,
-      deviceCredentialPreserved: true,
-      deviceChainSource: preservedDeviceChain.chain.source,
+      deviceSessionIssuedAtomically: true,
+      deviceCredentialIssuedAtomically: true,
+      deviceChainPatch: atomicDeviceChain.patch,
       signedSessionCanonicalized: true,
       mfaSessionCanonicalized: true
     });
