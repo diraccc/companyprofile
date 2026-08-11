@@ -25523,7 +25523,7 @@ async function diracCentralBackendComplianceGateV230() {
     });
   }
   const dynamic = await DIRAC_CENTRAL_BACKEND_DYNAMIC_GATE_PROMISE_V230;
-  return Object.freeze({ ...dynamic, attestation: attestation.payload || null });
+  return Object.freeze({ ...dynamic, attestation: null });
 }
 
 module.exports = async function diracCentralArchitectureConsolidationV202(req, res) {
