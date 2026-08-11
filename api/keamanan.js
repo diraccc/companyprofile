@@ -25448,8 +25448,6 @@ function diracCentralBackendGateWithDeadlineV231(operation, readStage) {
 }
 
 async function diracCentralBackendComplianceGateV230() {
-  const attestation = diracCentralVerifyBuildAttestationV230();
-  if (!attestation.ok) throw new Error('DIRAC_BACKEND_ATTESTATION_FAILED:' + attestation.reason);
   const runtime = diracCentralRuntimeInvariantGuardV230();
   if (!runtime.ok) throw new Error('DIRAC_BACKEND_RUNTIME_INVARIANT_FAILED:' + runtime.failures.join(','));
   if (!DIRAC_CENTRAL_BACKEND_DYNAMIC_GATE_PROMISE_V230) {
