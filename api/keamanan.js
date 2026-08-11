@@ -8373,6 +8373,39 @@ function diracUltraRedactString(value) {
     .slice(0, 5000);
 }
 
+
+function diracSecurityRedactDiagnosticV210(error, maximum = 220) {
+  let limit = 220;
+  try {
+    const numericMaximum = Number(maximum);
+    if (Number.isSafeInteger(numericMaximum)) limit = Math.max(32, Math.min(1000, numericMaximum));
+  } catch (_) {}
+
+  let source = 'security_internal_error';
+  try {
+    if (typeof error === 'string') source = error;
+    else if (error && typeof error === 'object') source = typeof error.message === 'string' ? error.message : 'security_internal_error';
+    else if (error !== undefined && error !== null) source = String(error);
+  } catch (_) {}
+
+  try {
+    let text = String(source || 'security_internal_error')
+      .replace(/[\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/g, ' ');
+    if (/(?:authorization|bearer|cookie|secret|service[_-]?role|access[_-]?token|refresh[_-]?token|password|passwd|passkey|private[_-]?key|api[_-]?key|client[_-]?secret|smtp[_-]?(?:pass|password)|argon2|pepper|signature)\s*[:=]/i.test(text)) {
+      return '[redacted-sensitive-diagnostic]'.slice(0, limit);
+    }
+    text = diracUltraRedactString(text)
+      .replace(/-----BEGIN(?: RSA| EC| OPENSSH)? PRIVATE KEY-----[\s\S]*?-----END(?: RSA| EC| OPENSSH)? PRIVATE KEY-----/gi, '[redacted-private-key]')
+      .replace(/\bBearer\s+[A-Za-z0-9._~+\/-]{8,}={0,2}\b/gi, 'Bearer [redacted]')
+      .replace(/\b[A-Z0-9._%+-]{1,64}@[A-Z0-9.-]{1,190}\.[A-Z]{2,24}\b/gi, '[redacted-email]')
+      .replace(/\b[A-Fa-f0-9]{32,}\b/g, '[redacted-hex]')
+      .replace(/\b[A-Za-z0-9+\/_-]{48,}={0,2}\b/g, '[redacted-token]');
+    return text.slice(0, limit);
+  } catch (_) {
+    return 'security_internal_error'.slice(0, limit);
+  }
+}
+
 function diracUltraNormalizeAction(action) {
   const clean = String(action || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
   const aliases = {
