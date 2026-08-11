@@ -16467,7 +16467,7 @@ async function diracPasskeyA2FStart(req, res) {
       expires_in: Math.floor(DIRAC_PASSKEY_A2F_TTL_MS / 1000),
       publicKey: {
         ...basePublicKey,
-        allowCredentials: []
+        allowCredentials: activePasskeys
           .filter((row) => row && row.credential_id)
           .map((row) => ({
             type: 'public-key',
