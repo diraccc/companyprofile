@@ -2607,6 +2607,7 @@ async function domainDashboardMe(req, res) {
     ok: true,
     dashboard: true,
     user: sanitizeUser(user),
+    email: normalizeAuthEmail(user && user.email || ''),
     mfa: {
       active: true,
       method: mfa.method || '',
