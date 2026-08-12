@@ -34706,7 +34706,7 @@ async function guardDeviceBindingV202(ctx) {
       ? 'device_credential_rotated_after_verified_bootstrap'
       : undefined;
   return credential && credential.ok ? diracV202StageResult(true, decision)
-    : credential && credential.reason === 'authentication_required' ? diracV202StageResult(false, { directCode: 'AUTHENTICATION_REQUIRED' }) : diracV202StageResult(false, { reason: credential && credential.reason || 'device_credential_guard_failed' });
+    : diracV202StageResult(false, { reason: credential && credential.reason || 'device_credential_guard_failed' });
 }
 async function guardAdminAuthenticationV202(ctx) {
   if (ctx.preflightValidatedV221 === true) return diracCentralPreflightStageResultV221(ctx, 'admin_authentication');
@@ -36317,7 +36317,7 @@ async function diracCentralAuthenticateDeviceBootstrapV224(req) {
     });
   }
 
-  return Object.freeze({ ok: false, reason: (!accessTokens.length && !refreshTokens.length && !(typeof readCookieTokenCandidates === 'function' ? readCookieTokenCandidates(cookies, DOMAIN_SIGNED_SESSION_COOKIE).filter(Boolean).length : String(cookies && cookies[DOMAIN_SIGNED_SESSION_COOKIE] || '').trim())) ? 'authentication_required' : 'device_bootstrap_authentication_failed' });
+  return Object.freeze({ ok: false, reason: 'device_bootstrap_authentication_failed' });
 }
 
 function diracCentralPublishVerifiedAuthSessionV224(res, authentication, maxAge) {
