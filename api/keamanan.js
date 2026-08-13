@@ -5152,7 +5152,7 @@ async function customerSecurityRequireAccess(req, res, options = {}) {
     return null;
   }
 
-  await customerSecurityEnsureSettingsRow(customerId).catch(() => null);
+  const settingsVerificationV251 = await customerSecurityFetchRows('security_customer_settings', ['id', 'customer_id', 'two_factor_enabled', 'two_factor_method', 'security_epoch'], customerId, 'created_at.desc', 2); if (!settingsVerificationV251 || settingsVerificationV251.ok !== true || !Array.isArray(settingsVerificationV251.data) || settingsVerificationV251.data.length !== 1 || !settingsVerificationV251.data[0] || !safeEqual(String(settingsVerificationV251.data[0].customer_id || ''), customerId) || settingsVerificationV251.data[0].two_factor_enabled !== true || String(settingsVerificationV251.data[0].two_factor_method || '').trim().toLowerCase() !== 'passkey' || !Number.isSafeInteger(Number(settingsVerificationV251.data[0].security_epoch)) || Number(settingsVerificationV251.data[0].security_epoch) < 1) throw Object.assign(new Error('CUSTOMER_SECURITY_SETTINGS_STRICT_VERIFICATION_FAILED_V251'), { code: 'CUSTOMER_SECURITY_SETTINGS_STRICT_VERIFICATION_FAILED_V251' });
 
   let mfa = null;
   if (options.requireMfa) {
@@ -7782,7 +7782,7 @@ async function customerSecurityTrustCurrentDeviceV2(req, res, action) {
     return res.status(400).json({ ok: false, message: 'Sesi perangkat belum terbaca.' });
   }
 
-  await customerSecurityTouchCurrentSession(req, access.customerId).catch(() => null);
+  const protectedSessionVerificationV251 = await requireDomainProtectedDatabaseSessionLockSafe(req, res, access.user, access.mfa); if (!protectedSessionVerificationV251) return; if (protectedSessionVerificationV251.ok !== true || protectedSessionVerificationV251.touched !== true || !customerSecurityLooksLikeUuid(String(protectedSessionVerificationV251.sessionId || '').trim()) || !safeEqual(String(protectedSessionVerificationV251.customerId || ''), access.customerId)) throw Object.assign(new Error('CUSTOMER_SECURITY_PROTECTED_SESSION_STRICT_VERIFICATION_FAILED_V251'), { code: 'CUSTOMER_SECURITY_PROTECTED_SESSION_STRICT_VERIFICATION_FAILED_V251' });
 
   const nowIso = new Date().toISOString();
   const patched = await supabaseFetch('/rest/v1/security_customer_sessions?customer_id=eq.' +
