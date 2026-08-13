@@ -20412,7 +20412,7 @@ function diracCentralSecureJsonSerializeV230(payload) {
   const isPublicPerfumeCatalog = Boolean(
     ctx
     && String(ctx.method || '').toUpperCase() === 'GET'
-    && diracPerfumePublicProductsV117IsCatalogAction(String(ctx.action || ''))
+    && ['public_products', 'products_public', 'catalog_products', 'product_catalog', 'public_catalog', 'parfum_products', 'perfume_products', 'parfum_catalog', 'katalog_parfum', 'katalog_produk', 'lihat_produk'].includes(String(ctx.action || ''))
   );
   const maximumNodes = isPublicPerfumeCatalog ? 30000 : 10000;
   let nodes = 0;
