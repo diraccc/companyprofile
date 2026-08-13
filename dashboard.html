@@ -3820,7 +3820,7 @@ html[data-effective-theme="light"] .app-search-result-copy strong,html[data-effe
     if(activitySyncTimer) return;
     activitySyncTimer = setTimeout(function(){
       activitySyncTimer = 0;
-      touchBackendSessionFromActivity();
+      activitySyncTimer = 1; touchBackendSessionFromActivity().then(function(){ activitySyncTimer = 0; }, function(){ activitySyncTimer = 0; });
     }, 300);
   }
 
