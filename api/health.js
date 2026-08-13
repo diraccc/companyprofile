@@ -6688,9 +6688,10 @@ async function customerSecurityTouchCurrentSession(req, customerId, verifiedExis
     } else {
       const path = '/rest/v1/security_customer_sessions?select=id,status,security_epoch,revoked_at,revoke_reason&customer_id=eq.' +
         encodeURIComponent(customerId) +
-        '&session_token_hash=eq.' +
-        encodeURIComponent(fingerprint.session_token_hash) +
-        '&limit=1';
+        (issuancePermit
+          ? ''
+          : '&session_token_hash=eq.' + encodeURIComponent(fingerprint.session_token_hash)) +
+        '&limit=' + (issuancePermit ? '2' : '1');
 
       activeStage = 'read';
       const readStartedAtMs = Date.now();
@@ -6713,7 +6714,10 @@ async function customerSecurityTouchCurrentSession(req, customerId, verifiedExis
       }
 
       rows = Array.isArray(existing.data) ? existing.data : [];
-      databaseOperation = 'GET';
+      if (issuancePermit && rows.length > 1) {
+        return { ok: false, reason: 'session_customer_row_ambiguous', status: 409 };
+      }
+      databaseOperation = issuancePermit ? 'GET_CUSTOMER_SINGLE_ROW' : 'GET';
     }
 
     const now = new Date().toISOString();
@@ -6756,6 +6760,8 @@ async function customerSecurityTouchCurrentSession(req, customerId, verifiedExis
       expires_at: fingerprint.expires_at
     };
     if (issuancePermit) {
+      updateBody.session_token_hash = fingerprint.session_token_hash;
+      updateBody.trusted_device = false;
       updateBody.security_epoch = resolvedSecurityEpoch;
       updateBody.revoked_at = null;
       updateBody.revoke_reason = null;
@@ -6771,7 +6777,7 @@ async function customerSecurityTouchCurrentSession(req, customerId, verifiedExis
       const patched = await supabaseFetch('/rest/v1/security_customer_sessions?select=' +
         encodeURIComponent('id,customer_id,session_token_hash,status,security_epoch,revoked_at') +
         '&customer_id=eq.' + encodeURIComponent(customerId) +
-        '&session_token_hash=eq.' + encodeURIComponent(fingerprint.session_token_hash) +
+        '&id=eq.' + encodeURIComponent(String(rows[0].id)) +
         '&security_epoch=eq.' + encodeURIComponent(String(previousSecurityEpoch)), {
         method: 'PATCH',
         auth: 'service',
@@ -6851,6 +6857,49 @@ async function customerSecurityTouchCurrentSession(req, customerId, verifiedExis
       const isSessionTokenHashRace = Number(created.status || 0) === 409
         && createProviderCode === '23505'
         && /security_customer_sessions_token_hash_unique/i.test(createProviderConflictText);
+      const isCustomerIdRace = Number(created.status || 0) === 409
+        && createProviderCode === '23505'
+        && /security_customer_sessions_customer_id_unique_v1|Key \(customer_id\)=/i.test(createProviderConflictText);
+
+      if (isCustomerIdRace && issuancePermit) {
+        activeStage = 'create_customer_conflict_update';
+        const conflictPatched = await supabaseFetch('/rest/v1/security_customer_sessions?select=' +
+          encodeURIComponent('id,customer_id,session_token_hash,status,security_epoch,revoked_at') +
+          '&customer_id=eq.' + encodeURIComponent(customerId) +
+          '&security_epoch=eq.' + encodeURIComponent(String(resolvedSecurityEpoch)), {
+          method: 'PATCH',
+          auth: 'service',
+          prefer: 'return=representation',
+          body: updateBody
+        });
+        const conflictPatchedRows = conflictPatched && conflictPatched.ok && Array.isArray(conflictPatched.data)
+          ? conflictPatched.data
+          : [];
+        const conflictPatchedRow = conflictPatchedRows.length === 1
+          ? conflictPatchedRows[0]
+          : null;
+
+        if (conflictPatchedRow
+            && safeEqual(String(conflictPatchedRow.customer_id || ''), String(customerId))
+            && safeEqual(String(conflictPatchedRow.session_token_hash || ''), String(fingerprint.session_token_hash))
+            && String(conflictPatchedRow.status || '').trim().toLowerCase() === 'active'
+            && !conflictPatchedRow.revoked_at
+            && Number(conflictPatchedRow.security_epoch || 0) === resolvedSecurityEpoch) {
+          return {
+            ok: true,
+            created: false,
+            session_id: conflictPatchedRow.id,
+            security_epoch: resolvedSecurityEpoch,
+            session_token_hash: fingerprint.session_token_hash
+          };
+        }
+
+        return {
+          ok: false,
+          reason: 'session_customer_conflict_update_failed',
+          status: 409
+        };
+      }
 
       if (isSessionTokenHashRace) {
         activeStage = 'create_conflict_read';
