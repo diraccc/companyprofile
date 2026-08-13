@@ -8011,8 +8011,8 @@ async function customerSecurityOverviewSessionLimitV3(req, res) {
 
   const customerId = String(link.customer_id || '').trim();
 
-  await customerSecurityEnsureSettingsRow(customerId);
-  await customerSecurityTouchCurrentSession(req, customerId);
+  const settingsVerificationV250 = await customerSecurityFetchRows('security_customer_settings', ['id', 'customer_id', 'two_factor_enabled', 'two_factor_method', 'security_epoch'], customerId, 'created_at.desc', 2); if (!settingsVerificationV250 || settingsVerificationV250.ok !== true || !Array.isArray(settingsVerificationV250.data) || settingsVerificationV250.data.length !== 1 || !settingsVerificationV250.data[0] || !safeEqual(String(settingsVerificationV250.data[0].customer_id || ''), customerId) || settingsVerificationV250.data[0].two_factor_enabled !== true || String(settingsVerificationV250.data[0].two_factor_method || '').trim().toLowerCase() !== 'passkey' || !Number.isSafeInteger(Number(settingsVerificationV250.data[0].security_epoch)) || Number(settingsVerificationV250.data[0].security_epoch) < 1 || Number(settingsVerificationV250.data[0].security_epoch) !== Number(access.mfa && access.mfa.securityEpoch || 0)) throw Object.assign(new Error('CUSTOMER_SECURITY_SETTINGS_STRICT_VERIFICATION_FAILED'), { code: 'CUSTOMER_SECURITY_SETTINGS_STRICT_VERIFICATION_FAILED' });
+  if (!access.protectedLock || access.protectedLock.ok !== true || access.protectedLock.touched !== true || !customerSecurityLooksLikeUuid(String(access.protectedLock.sessionId || '').trim()) || !safeEqual(String(access.protectedLock.customerId || ''), customerId)) throw Object.assign(new Error('CUSTOMER_SECURITY_PROTECTED_SESSION_STRICT_VERIFICATION_FAILED'), { code: 'CUSTOMER_SECURITY_PROTECTED_SESSION_STRICT_VERIFICATION_FAILED' });
   const sessionPrune = await customerSecurityFeaturePruneSessionsV3(customerId).catch((error) => ({
     ok: false,
     pruned: 0,
