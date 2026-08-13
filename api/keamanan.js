@@ -1786,7 +1786,7 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user, mfa) {
     '&limit=1';
 
   const protectedReadStartedAtMs = Date.now();
-  const found = await supabaseFetch(readPath, { method: 'GET', auth: 'service' });
+  const protectedSessionFetchV249 = (...args) => supabaseFetch(...args), found = await protectedSessionFetchV249(readPath, { method: 'GET', auth: 'service' });
   if (!found.ok) {
     const diagnostic = customerSecuritySessionStoreDiagnosticV218(req, 'protected_read', found, {
       elapsed_ms: Date.now() - protectedReadStartedAtMs,
@@ -1962,13 +1962,13 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user, mfa) {
     };
   }
 
-  const touched = await customerSecurityTouchCurrentSession(req, customerId, {
+  const touched = await diracDomainDashboardTouchVerifiedSessionV249(req, customerId, {
     id: row.id,
     customer_id: row.customer_id,
     session_token_hash: row.session_token_hash,
     status: row.status,
     security_epoch: row.security_epoch
-  }).catch(() => null);
+  }, protectedSessionFetchV249).catch(() => null);
   customerSecuritySessionDecisionDebugV219(req, 'protected_session.refresh_result', {
     decision: touched && touched.ok === true && String(touched.session_id || '') === String(row.id)
       ? 'refresh_accepted'
@@ -25695,4 +25695,621 @@ Object.defineProperty(module.exports, '__diracServer1RecoveryTransportOnlyV220',
 Object.freeze(module.exports);
 if (!Object.isFrozen(module.exports)) {
   throw new Error('DIRAC_V230_FINAL_EXPORT_FREEZE_FAILED');
+}
+
+
+/* DIRAC DOMAIN DASHBOARD STRICT SESSION RESTORATION v249 - narrow fail-closed patch */
+const DIRAC_CUSTOMER_SESSION_STORE_DEBUG_V218 = 'dirac_customer_session_store_debug_v218';
+const DIRAC_CUSTOMER_SESSION_DECISION_DEBUG_V219 = 'dirac_customer_session_decision_debug_v219';
+const DIRAC_CUSTOMER_MFA_SIGNED_SESSION_ANCHOR_V228 = 'dirac-customer-mfa-signed-session-anchor-v228';
+const DIRAC_PASSKEY_STRICT_ANCHORED_SESSION_V247 = 'dirac-passkey-strict-anchored-session-v247';
+
+function customerSecurityLooksLikeUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
+}
+
+function customerSecuritySessionStoreDiagnosticV218(req, stage, result, extra = {}) {
+  const response = result && typeof result === 'object' ? result : {};
+  const data = response.data;
+  const status = Number(response.status || 0);
+  const cleanStage = String(stage || 'unknown').replace(/[^a-zA-Z0-9_]/g, '_').toUpperCase().slice(0, 80) || 'UNKNOWN';
+  const providerCodeRaw = data && typeof data === 'object'
+    ? (data.code || data.error_code || data.error || '')
+    : response.error || '';
+  const providerMessageRaw = data && typeof data === 'object'
+    ? (data.message || data.msg || data.error_description || '')
+    : typeof data === 'string' ? data : '';
+  const providerDetailsRaw = data && typeof data === 'object' ? (data.details || '') : '';
+  const providerHintRaw = data && typeof data === 'object' ? (data.hint || '') : '';
+  const safeProviderText = (value) => diracSecurityRedactDiagnosticV210(String(value || ''), 260)
+    .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/gi, '[redacted-uuid]')
+    .replace(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g, '[redacted-ip]');
+  const providerCode = String(providerCodeRaw || '').replace(/[^a-zA-Z0-9_.-]/g, '_').slice(0, 120);
+  const responseRows = Array.isArray(data) ? data : [];
+  const responseHasId = Boolean(responseRows[0] && responseRows[0].id);
+  const condition = String(extra && extra.condition || '').trim().toLowerCase();
+
+  let diagnosticCode = 'SESSION_STORE_' + cleanStage + '_UNKNOWN_FAILURE';
+  if (condition === 'response_missing_id') diagnosticCode = 'SESSION_STORE_' + cleanStage + '_RESPONSE_MISSING_ID';
+  else if (condition === 'exception') diagnosticCode = 'SESSION_STORE_' + cleanStage + '_INTERNAL_EXCEPTION';
+  else if (condition === 'local_failure') diagnosticCode = 'SESSION_STORE_' + cleanStage + '_LOCAL_FAILURE';
+  else if (status === 504 || /timeout|abort/i.test(providerCode)) diagnosticCode = 'SESSION_STORE_' + cleanStage + '_TIMEOUT';
+  else if (status === 400) diagnosticCode = 'SESSION_STORE_' + cleanStage + '_DB_REJECTED_400';
+  else if (status === 401 || status === 403) diagnosticCode = 'SESSION_STORE_' + cleanStage + '_CREDENTIAL_OR_POLICY_REJECTED_' + status;
+  else if (status === 404) diagnosticCode = 'SESSION_STORE_' + cleanStage + '_TABLE_OR_SCHEMA_NOT_FOUND_404';
+  else if (status === 409) diagnosticCode = 'SESSION_STORE_' + cleanStage + '_CONSTRAINT_CONFLICT_409';
+  else if (status === 422) diagnosticCode = 'SESSION_STORE_' + cleanStage + '_VALIDATION_REJECTED_422';
+  else if (status >= 500) diagnosticCode = 'SESSION_STORE_' + cleanStage + '_UPSTREAM_FAILURE_' + status;
+  else if (status > 0) diagnosticCode = 'SESSION_STORE_' + cleanStage + '_HTTP_' + status;
+
+  let ctx = null;
+  try { ctx = diracCentralCurrentContextV149(); } catch (_) { void 0; }
+  const failurePoint = 'customerSecuritySessionStore.' + cleanStage.toLowerCase();
+  const diagnostic = Object.freeze({
+    patch: DIRAC_CUSTOMER_SESSION_STORE_DEBUG_V218,
+    diagnostic_code: diagnosticCode,
+    failure_point: failurePoint,
+    failure_id: (() => { try { return diracCentralFailureIdV211(ctx); } catch (_) { return 'DG-CENTRAL-UNAVAILABLE'; } })(),
+    table: 'security_customer_sessions',
+    method: String(extra && extra.method || (cleanStage.includes('CREATE') ? 'POST' : cleanStage.includes('UPDATE') ? 'PATCH' : 'GET')).toUpperCase().slice(0, 12),
+    reason: String(extra && extra.reason || 'session_store_failure').slice(0, 120),
+    upstream_status: status || 0,
+    provider_code: providerCode || undefined,
+    provider_message: providerMessageRaw ? safeProviderText(providerMessageRaw) : undefined,
+    provider_details: providerDetailsRaw ? safeProviderText(providerDetailsRaw) : undefined,
+    provider_hint: providerHintRaw ? safeProviderText(providerHintRaw) : undefined,
+    response_body_type: Array.isArray(data) ? 'array' : data === null ? 'null' : typeof data,
+    response_row_count: responseRows.length,
+    response_has_id: responseHasId,
+    elapsed_ms: Math.max(0, Number(extra && extra.elapsed_ms || 0)),
+    central_guard_passed: Boolean(req && req.__diracCentralSecurityGuardPassedV146 === true),
+    central_guard_fully_passed: Boolean(ctx && ctx.centralGuardFullyPassedV211 === true)
+  });
+
+  if (ctx) {
+    ctx.customerSessionStoreDebugV218 = diagnostic;
+    diracCentralEmitDebugV211(ctx, 'customer_session_store_failure', diagnostic);
+  } else {
+    try { console.error('[customer-session-store-debug-v218]', JSON.stringify(diagnostic)); } catch (_) { void 0; }
+  }
+  return diagnostic;
+}
+
+function customerSecurityShortDigestV219(value) {
+  const text = String(value || '');
+  if (!text) return '';
+  return customerSecuritySha256('dirac-session-debug-v219|' + text).slice(0, 16);
+}
+
+function customerSecuritySessionFingerprintSelectionV219(req) {
+  try {
+    const cookies = parseCookies(req);
+    const headerToken = getBearerToken(req);
+    const accessCookieTokens = readCookieTokenCandidates(cookies, ACCESS_COOKIE);
+    const headerRefreshToken = String((req && req.headers && (req.headers['x-domain-refresh'] || req.headers['x-refresh-token'])) || '').trim();
+    const refreshCookieTokens = readCookieTokenCandidates(cookies, REFRESH_COOKIE);
+    const signedCookieTokens = readCookieTokenCandidates(cookies, DOMAIN_SIGNED_SESSION_COOKIE);
+    const candidates = [
+      { source: 'bearer_header', value: headerToken },
+      ...accessCookieTokens.map((value, index) => ({ source: 'access_cookie_' + index, value })),
+      { source: 'refresh_header', value: headerRefreshToken },
+      ...refreshCookieTokens.map((value, index) => ({ source: 'refresh_cookie_' + index, value })),
+      ...signedCookieTokens.map((value, index) => ({ source: 'signed_session_cookie_' + index, value }))
+    ];
+    const selected = candidates.find((item) => String(item && item.value || '').trim()) || null;
+    return Object.freeze({
+      source: selected ? selected.source : 'missing',
+      token_digest: selected ? customerSecurityShortDigestV219(selected.value) : '',
+      bearer_present: Boolean(headerToken),
+      access_material_count: accessCookieTokens.filter(Boolean).length,
+      refresh_header_present: Boolean(headerRefreshToken),
+      refresh_material_count: refreshCookieTokens.filter(Boolean).length,
+      signed_material_count: signedCookieTokens.filter(Boolean).length
+    });
+  } catch (_) {
+    return Object.freeze({
+      source: 'debug_selection_unavailable',
+      token_digest: '',
+      bearer_present: false,
+      access_material_count: 0,
+      refresh_header_present: false,
+      refresh_material_count: 0,
+      signed_material_count: 0
+    });
+  }
+}
+
+function customerSecuritySetAuthDebugV219(req, details) {
+  if (!req || typeof req !== 'object') return null;
+  const safe = Object.freeze({
+    source: String(details && details.source || 'unknown').replace(/[^a-zA-Z0-9_.-]/g, '_').slice(0, 80),
+    path: String(details && details.path || 'unknown').replace(/[^a-zA-Z0-9_.-]/g, '_').slice(0, 80),
+    token_digest: String(details && details.token_digest || '').replace(/[^a-f0-9]/gi, '').slice(0, 16),
+    access_candidate_count: Math.max(0, Math.min(20, Number(details && details.access_candidate_count || 0))),
+    refresh_candidate_count: Math.max(0, Math.min(20, Number(details && details.refresh_candidate_count || 0))),
+    frontend_headers_accepted: Boolean(details && details.frontend_headers_accepted),
+    refreshed: Boolean(details && details.refreshed),
+    authenticated: Boolean(details && details.authenticated)
+  });
+  try { Object.defineProperty(req, '__diracCustomerAuthDebugV219', { value: safe, writable: false, enumerable: false, configurable: true }); }
+  catch (_) { try { req.__diracCustomerAuthDebugV219 = safe; } catch (_) { void 0; } }
+  return safe;
+}
+
+function customerSecurityRevokeReasonCodeV219(value) {
+  const clean = String(value || '').trim().toLowerCase();
+  if (!clean) return 'none';
+  if (/idle/.test(clean)) return 'idle_timeout';
+  if (/expir/.test(clean)) return 'expired';
+  if (/logout|signout|sign_out/.test(clean)) return 'logout';
+  if (/replac|rotat|supersed/.test(clean)) return 'session_replaced';
+  if (/manual|admin/.test(clean)) return 'manual_revoke';
+  if (/security|threat|risk|ban|attack/.test(clean)) return 'security_revoke';
+  return 'other';
+}
+
+function customerSecuritySessionDecisionDetailsV219(details) {
+  const source = details && typeof details === 'object' ? details : {};
+  const out = Object.create(null);
+  const stringKeys = [
+    'decision', 'reason', 'result', 'auth_source', 'auth_path', 'fingerprint_source',
+    'mfa_code', 'mfa_source', 'session_status', 'revoke_reason_code', 'database_operation',
+    'diagnostic_code', 'failure_point', 'provider_code'
+  ];
+  const booleanKeys = [
+    'authenticated', 'refreshed', 'frontend_headers_accepted', 'fingerprint_matches_authenticated_token',
+    'row_found', 'row_has_id', 'revoked', 'expired', 'idle_expired', 'has_last_seen',
+    'clear_cookies', 'guard_passed', 'guard_fully_passed', 'context_request_match',
+    'bearer_present', 'refresh_header_present', 'touch_ok', 'session_id_match'
+  ];
+  const numberKeys = [
+    'access_candidate_count', 'refresh_candidate_count', 'access_material_count', 'refresh_material_count',
+    'signed_material_count', 'row_count', 'idle_ms', 'idle_timeout_ms', 'expires_in_ms',
+    'last_seen_age_ms', 'upstream_status', 'elapsed_ms'
+  ];
+  const digestKeys = ['auth_token_digest', 'fingerprint_token_digest', 'customer_digest', 'session_id_digest'];
+
+  for (const key of stringKeys) {
+    if (source[key] === undefined || source[key] === null || source[key] === '') continue;
+    out[key] = String(source[key]).replace(/[^a-zA-Z0-9_.:-]/g, '_').slice(0, 160);
+  }
+  for (const key of booleanKeys) {
+    if (source[key] === undefined || source[key] === null) continue;
+    out[key] = Boolean(source[key]);
+  }
+  for (const key of numberKeys) {
+    if (source[key] === undefined || source[key] === null || source[key] === '') continue;
+    const number = Number(source[key]);
+    if (Number.isFinite(number)) out[key] = Math.max(-31536000000, Math.min(31536000000, Math.trunc(number)));
+  }
+  for (const key of digestKeys) {
+    const digest = String(source[key] || '').replace(/[^a-f0-9]/gi, '').slice(0, 16);
+    if (digest) out[key] = digest;
+  }
+  return out;
+}
+
+function customerSecuritySessionDecisionDebugV219(req, phase, details = {}) {
+  try {
+    let ctx = null;
+    try { ctx = diracCentralCurrentContextV149(); } catch (_) { void 0; }
+    const reqRequestId = String(req && req.__diracCentralRequestIdV211 || '').slice(0, 64);
+    const ctxRequestId = String(ctx && ctx.requestId || '').slice(0, 64);
+    const authDebug = req && req.__diracCustomerAuthDebugV219 && typeof req.__diracCustomerAuthDebugV219 === 'object'
+      ? req.__diracCustomerAuthDebugV219
+      : null;
+    const fingerprintDebug = customerSecuritySessionFingerprintSelectionV219(req);
+    const payload = customerSecuritySessionDecisionDetailsV219({
+      ...details,
+      auth_source: details.auth_source || authDebug && authDebug.source || 'unknown',
+      auth_path: details.auth_path || authDebug && authDebug.path || 'unknown',
+      auth_token_digest: details.auth_token_digest || authDebug && authDebug.token_digest || '',
+      fingerprint_source: details.fingerprint_source || fingerprintDebug.source,
+      fingerprint_token_digest: details.fingerprint_token_digest || fingerprintDebug.token_digest,
+      authenticated: details.authenticated !== undefined ? details.authenticated : Boolean(authDebug && authDebug.authenticated),
+      refreshed: details.refreshed !== undefined ? details.refreshed : Boolean(authDebug && authDebug.refreshed),
+      frontend_headers_accepted: details.frontend_headers_accepted !== undefined
+        ? details.frontend_headers_accepted
+        : Boolean(authDebug && authDebug.frontend_headers_accepted),
+      access_candidate_count: details.access_candidate_count !== undefined
+        ? details.access_candidate_count
+        : authDebug && authDebug.access_candidate_count,
+      refresh_candidate_count: details.refresh_candidate_count !== undefined
+        ? details.refresh_candidate_count
+        : authDebug && authDebug.refresh_candidate_count,
+      access_material_count: fingerprintDebug.access_material_count,
+      refresh_material_count: fingerprintDebug.refresh_material_count,
+      signed_material_count: fingerprintDebug.signed_material_count,
+      bearer_present: fingerprintDebug.bearer_present,
+      refresh_header_present: fingerprintDebug.refresh_header_present,
+      fingerprint_matches_authenticated_token: Boolean(
+        authDebug && authDebug.token_digest && fingerprintDebug.token_digest
+        && safeEqual(String(authDebug.token_digest), String(fingerprintDebug.token_digest))
+      ),
+      guard_passed: Boolean(req && req.__diracCentralSecurityGuardPassedV146 === true),
+      guard_fully_passed: Boolean(ctx && ctx.centralGuardFullyPassedV211 === true),
+      context_request_match: Boolean(reqRequestId && ctxRequestId && safeEqual(reqRequestId, ctxRequestId))
+    });
+    const cleanPhase = String(phase || 'unknown').replace(/[^a-zA-Z0-9_.-]/g, '_').slice(0, 100);
+    const diagnostic = Object.freeze({
+      patch: DIRAC_CUSTOMER_SESSION_DECISION_DEBUG_V219,
+      phase: cleanPhase,
+      ...payload
+    });
+
+    let trace = req && Array.isArray(req.__diracCustomerSessionDecisionTraceV219)
+      ? req.__diracCustomerSessionDecisionTraceV219
+      : null;
+    if (!trace) {
+      trace = [];
+      if (req && typeof req === 'object') {
+        try { Object.defineProperty(req, '__diracCustomerSessionDecisionTraceV219', { value: trace, writable: false, enumerable: false, configurable: false }); } catch (_) { void 0; }
+      }
+    }
+    trace.push(diagnostic);
+    if (trace.length > 24) trace.shift();
+    if (ctx) ctx.customerSessionDecisionTraceV219 = trace;
+
+    const terminal = /^(?:auth\.rejected|mfa\.rejected|protected_session\.(?:exception|rejected)|dashboard_response\.200|session_touch\.(?:update_failed|create_failed|create_missing_id))$/.test(cleanPhase);
+    if (terminal && ctx) {
+      diracCentralEmitDebugV211(ctx, 'customer_session_decision_terminal', {
+        patch: DIRAC_CUSTOMER_SESSION_DECISION_DEBUG_V219,
+        terminal_phase: cleanPhase,
+        trace_count: trace.length,
+        session_trace: trace.slice()
+      });
+    } else if (terminal) {
+      try { console.info('[customer-session-decision-v219]', JSON.stringify({ terminal_phase: cleanPhase, trace_count: trace.length, session_trace: trace })); } catch (_) { void 0; }
+    }
+    return diagnostic;
+  } catch (_) {
+    return null;
+  }
+}
+
+function customerSecurityBuildSessionFingerprint(req, customerId) {
+  const cookies = parseCookies(req);
+  const headerToken = getBearerToken(req);
+  const headerRefreshToken = String((req.headers && (req.headers['x-domain-refresh'] || req.headers['x-refresh-token'])) || '').trim();
+  const tokenMaterial = uniqueNonEmptyStrings([
+    headerToken,
+    ...readCookieTokenCandidates(cookies, ACCESS_COOKIE),
+    headerRefreshToken,
+    ...readCookieTokenCandidates(cookies, REFRESH_COOKIE),
+    ...readCookieTokenCandidates(cookies, DOMAIN_SIGNED_SESSION_COOKIE)
+  ])[0] || '';
+
+  const userAgent = String((req.headers && req.headers['user-agent']) || '').trim().slice(0, 512);
+  const ip = customerSecurityRequestIp(req);
+  if (!tokenMaterial) return null;
+
+  const sessionTokenHash = customerSecuritySha256(tokenMaterial);
+  const deviceId = customerSecuritySha256(['device', userAgent, ip].filter(Boolean).join('|')).slice(0, 48);
+
+  return {
+    session_token_hash: sessionTokenHash,
+    device_id: deviceId,
+    device_name: customerSecurityDeviceName(userAgent),
+    browser_name: customerSecurityBrowserName(userAgent),
+    operating_system: customerSecurityOperatingSystem(userAgent),
+    user_agent: userAgent,
+    ip_address: ip,
+    expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+  };
+}
+
+function customerSecuritySha256(value) {
+  return crypto.createHash('sha256').update(String(value || '')).digest('hex');
+}
+
+function customerSecurityRequestIp(req) {
+  const forwarded = String((req.headers && (req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.headers['cf-connecting-ip'])) || '').trim();
+  const first = forwarded.split(',')[0].trim();
+  if (!first) return null;
+  if (/^[0-9a-f:.]+$/i.test(first)) return first.slice(0, 64);
+  return null;
+}
+
+function customerSecurityDeviceName(userAgent) {
+  const ua = String(userAgent || '');
+  if (/iPhone/i.test(ua)) return 'iPhone';
+  if (/iPad/i.test(ua)) return 'iPad';
+  if (/Android/i.test(ua)) return /Mobile/i.test(ua) ? 'Android Phone' : 'Android Tablet';
+  if (/Macintosh|Mac OS X/i.test(ua)) return 'Mac';
+  if (/Windows/i.test(ua)) return 'Windows PC';
+  if (/Linux/i.test(ua)) return 'Linux Device';
+  return 'Unknown Device';
+}
+
+function customerSecurityBrowserName(userAgent) {
+  const ua = String(userAgent || '');
+  if (/Edg\//i.test(ua)) return 'Microsoft Edge';
+  if (/OPR\//i.test(ua)) return 'Opera';
+  if (/CriOS\//i.test(ua)) return 'Chrome iOS';
+  if (/Chrome\//i.test(ua)) return 'Chrome';
+  if (/FxiOS\//i.test(ua)) return 'Firefox iOS';
+  if (/Firefox\//i.test(ua)) return 'Firefox';
+  if (/Safari\//i.test(ua)) return 'Safari';
+  return 'Unknown Browser';
+}
+
+function customerSecurityOperatingSystem(userAgent) {
+  const ua = String(userAgent || '');
+  if (/iPhone|iPad|iPod/i.test(ua)) return 'iOS';
+  if (/Android/i.test(ua)) return 'Android';
+  if (/Windows NT/i.test(ua)) return 'Windows';
+  if (/Mac OS X|Macintosh/i.test(ua)) return 'macOS';
+  if (/Linux/i.test(ua)) return 'Linux';
+  return 'Unknown OS';
+}
+
+function customerSecuritySafeLogError(error) {
+  return diracSecurityRedactDiagnosticV210(error, 180);
+}
+
+function customerSecurityDecodeSignedSessionPayloadV228(value) {
+  const raw = String(value || '').trim();
+  const parts = raw.split('.');
+  if (parts.length !== 2 || !parts[0] || !parts[1]) return null;
+
+  const secret = getDomainSignedSessionSecret();
+  if (!secret) return null;
+  const expected = crypto.createHmac('sha256', secret).update(parts[0]).digest('base64url');
+  if (!safeEqual(parts[1], expected)) return null;
+
+  let payload;
+  try {
+    payload = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8'));
+  } catch (_) {
+    return null;
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const issuedAt = Number(payload && payload.iat || 0);
+  const expiresAt = Number(payload && payload.exp || 0);
+  const userId = String(payload && (payload.uid || payload.id) || '').trim();
+  const email = normalizeAuthEmail(payload && payload.email || '');
+  const sessionId = payload && payload.sid !== undefined
+    ? normalizeDomainSignedSessionId(payload.sid)
+    : '';
+
+  if (!payload || payload.typ !== DOMAIN_SIGNED_SESSION_TYPE
+      || !userId || !email
+      || !Number.isSafeInteger(issuedAt) || !Number.isSafeInteger(expiresAt)
+      || issuedAt > now + 60 || expiresAt <= now
+      || expiresAt - issuedAt <= 0 || expiresAt - issuedAt > 60 * 60 * 24 * 7 + 60
+      || (payload.sid !== undefined && !sessionId)) return null;
+
+  return { payload, userId, email, sessionId, issuedAt, expiresAt };
+}
+
+function customerSecurityDecodeSignedSessionAnchorV228(value) {
+  const decoded = customerSecurityDecodeSignedSessionPayloadV228(value);
+  if (!decoded) return null;
+
+  const now = Math.floor(Date.now() / 1000);
+  const anchorId = String(decoded.payload.mfa_bid_v228 || '').trim();
+  const anchorIssuedAt = Number(decoded.payload.mfa_iat_v228 || 0);
+  const anchorExpiresAt = Number(decoded.payload.mfa_exp_v228 || 0);
+  const securityEpoch = Number(decoded.payload.mfa_epoch_v235 || 0);
+
+  if (!/^[A-Za-z0-9_-]{43}$/.test(anchorId)
+      || !Number.isSafeInteger(anchorIssuedAt) || !Number.isSafeInteger(anchorExpiresAt)
+      || !Number.isSafeInteger(securityEpoch) || securityEpoch < 1
+      || anchorIssuedAt > now + 60 || anchorExpiresAt <= now
+      || anchorIssuedAt < decoded.issuedAt - 60
+      || anchorExpiresAt > decoded.expiresAt
+      || anchorExpiresAt - anchorIssuedAt <= 0
+      || anchorExpiresAt - anchorIssuedAt > 60 * 60 + 60) return null;
+
+  const binding = customerMfaBindingHash(
+    'signed_session_anchor_v228',
+    JSON.stringify([
+      DIRAC_CUSTOMER_MFA_SIGNED_SESSION_ANCHOR_V228,
+      decoded.userId,
+      decoded.email,
+      anchorId,
+      securityEpoch
+    ])
+  );
+  if (!/^[a-f0-9]{64}$/.test(binding)) return null;
+
+  return Object.assign({}, decoded, {
+    anchorId,
+    anchorIssuedAt,
+    anchorExpiresAt,
+    securityEpoch,
+    binding
+  });
+}
+
+function customerSecuritySignedSessionAnchorMatchesV228(req, user, expectedBinding, expectedSecurityEpoch) {
+  const expected = String(expectedBinding || '').trim();
+  const userId = String(user && user.id || '').trim();
+  const email = normalizeAuthEmail(user && user.email || '');
+  const epoch = Number(expectedSecurityEpoch || 0);
+  if (!/^[a-f0-9]{64}$/.test(expected) || !userId || !email
+      || !Number.isSafeInteger(epoch) || epoch < 1) return false;
+
+  const cookies = parseCookies(req);
+  const candidates = readCookieTokenCandidates(cookies, DOMAIN_SIGNED_SESSION_COOKIE).slice(0, 8);
+  return candidates.some((value) => {
+    const decoded = customerSecurityDecodeSignedSessionAnchorV228(value);
+    return Boolean(decoded
+      && decoded.userId === userId
+      && decoded.email === email
+      && decoded.securityEpoch === epoch
+      && safeEqual(decoded.binding, expected));
+  });
+}
+
+function diracPasskeyVerifyStrictAnchoredSessionV247(value) {
+  const anchor = customerSecurityDecodeSignedSessionAnchorV228(value);
+  if (!anchor || !anchor.payload) return null;
+
+  const sessionVersion = String(anchor.payload.session_version || '').trim();
+  if (!/^[1-9]\d*$/.test(sessionVersion)
+      || Number(sessionVersion) !== Number(anchor.securityEpoch)
+      || !Number.isSafeInteger(Number(anchor.expiresAt))
+      || Number(anchor.expiresAt) <= Math.floor(Date.now() / 1000)
+      || !/^[a-f0-9]{64}$/.test(String(anchor.binding || ''))) {
+    return null;
+  }
+
+  return Object.freeze({
+    id: String(anchor.userId),
+    email: normalizeAuthEmail(anchor.email),
+    exp: Number(anchor.expiresAt),
+    sessionId: String(anchor.sessionId || ''),
+    session_version: sessionVersion,
+    securityEpoch: Number(anchor.securityEpoch),
+    binding: String(anchor.binding)
+  });
+}
+
+async function diracDomainDashboardTouchVerifiedSessionV249(req, customerId, verifiedExistingSession, databaseFetch) {
+  let activeStage = 'fingerprint';
+  try {
+    if (typeof databaseFetch !== 'function') {
+      return { ok: false, reason: 'protected_session_database_transport_unavailable', status: 503 };
+    }
+    const fingerprint = customerSecurityBuildSessionFingerprint(req, customerId);
+    if (!fingerprint || !fingerprint.session_token_hash) {
+      const diagnostic = customerSecuritySessionStoreDiagnosticV218(req, 'protected_refresh_fingerprint', {
+        ok: false,
+        status: 0,
+        data: { code: 'SESSION_FINGERPRINT_MISSING', message: 'Session fingerprint tidak tersedia.' }
+      }, {
+        reason: 'missing_session_fingerprint',
+        condition: 'local_failure',
+        method: 'LOCAL'
+      });
+      return {
+        ok: false,
+        reason: 'missing_session_fingerprint',
+        diagnostic_code: diagnostic.diagnostic_code,
+        failure_point: diagnostic.failure_point,
+        upstream_status: diagnostic.upstream_status,
+        provider_code: diagnostic.provider_code,
+        failure_id: diagnostic.failure_id
+      };
+    }
+
+    const cleanCustomerId = String(customerId || '').trim();
+    const row = verifiedExistingSession && typeof verifiedExistingSession === 'object'
+      ? verifiedExistingSession
+      : null;
+    const rowId = String(row && row.id || '').trim();
+    const rowCustomerId = String(row && row.customer_id || '').trim();
+    const rowTokenHash = String(row && row.session_token_hash || '').trim();
+    const rowStatus = String(row && row.status || '').trim().toLowerCase();
+    const securityEpoch = Number(row && row.security_epoch || 0);
+
+    if (!customerSecurityLooksLikeUuid(cleanCustomerId)
+        || !customerSecurityLooksLikeUuid(rowId)
+        || !safeEqual(rowCustomerId, cleanCustomerId)
+        || !safeEqual(rowTokenHash, String(fingerprint.session_token_hash || ''))
+        || rowStatus !== 'active'
+        || !Number.isSafeInteger(securityEpoch)
+        || securityEpoch < 1) {
+      return { ok: false, reason: 'protected_session_verified_row_invalid', status: 401 };
+    }
+
+    activeStage = 'update';
+    const now = new Date().toISOString();
+    const updateStartedAtMs = Date.now();
+    const updatePath = '/rest/v1/security_customer_sessions?select=' +
+      encodeURIComponent('id,customer_id,session_token_hash,status,security_epoch,revoked_at') +
+      '&id=eq.' + encodeURIComponent(rowId) +
+      '&customer_id=eq.' + encodeURIComponent(cleanCustomerId) +
+      '&session_token_hash=eq.' + encodeURIComponent(fingerprint.session_token_hash) +
+      '&security_epoch=eq.' + encodeURIComponent(String(securityEpoch)) +
+      '&status=eq.active&revoked_at=is.null';
+    const patched = await databaseFetch(updatePath, {
+      method: 'PATCH',
+      auth: 'service',
+      prefer: 'return=representation',
+      body: {
+        device_id: fingerprint.device_id,
+        device_name: fingerprint.device_name,
+        browser_name: fingerprint.browser_name,
+        operating_system: fingerprint.operating_system,
+        user_agent: fingerprint.user_agent,
+        ip_address: fingerprint.ip_address || null,
+        last_seen_at: now,
+        expires_at: fingerprint.expires_at
+      }
+    });
+
+    if (!patched || patched.ok !== true) {
+      const diagnostic = customerSecuritySessionStoreDiagnosticV218(req, 'protected_refresh_update', patched || {
+        ok: false,
+        status: 0,
+        data: { code: 'SESSION_UPDATE_NO_RESPONSE', message: 'Session update response tidak tersedia.' }
+      }, {
+        elapsed_ms: Date.now() - updateStartedAtMs,
+        reason: 'protected_session_refresh_update_failed',
+        method: 'PATCH'
+      });
+      return {
+        ok: false,
+        reason: 'protected_session_refresh_update_failed',
+        status: Number(patched && patched.status || 503),
+        diagnostic_code: diagnostic.diagnostic_code,
+        failure_point: diagnostic.failure_point,
+        upstream_status: diagnostic.upstream_status,
+        provider_code: diagnostic.provider_code,
+        failure_id: diagnostic.failure_id
+      };
+    }
+
+    const patchedRows = Array.isArray(patched.data) ? patched.data : [];
+    const patchedRow = patchedRows.length === 1 ? patchedRows[0] : null;
+    if (!patchedRow
+        || !safeEqual(String(patchedRow.id || ''), rowId)
+        || !safeEqual(String(patchedRow.customer_id || ''), cleanCustomerId)
+        || !safeEqual(String(patchedRow.session_token_hash || ''), String(fingerprint.session_token_hash))
+        || String(patchedRow.status || '').trim().toLowerCase() !== 'active'
+        || patchedRow.revoked_at
+        || Number(patchedRow.security_epoch || 0) !== securityEpoch) {
+      return { ok: false, reason: 'protected_session_refresh_postcondition_failed', status: 409 };
+    }
+
+    customerSecuritySessionDecisionDebugV219(req, 'session_touch.update_succeeded', {
+      decision: 'return_success',
+      database_operation: 'PATCH',
+      touch_ok: true,
+      customer_digest: customerSecurityShortDigestV219(cleanCustomerId),
+      session_id_digest: customerSecurityShortDigestV219(rowId)
+    });
+    return {
+      ok: true,
+      created: false,
+      session_id: rowId,
+      security_epoch: securityEpoch,
+      session_token_hash: fingerprint.session_token_hash
+    };
+  } catch (error) {
+    const diagnostic = customerSecuritySessionStoreDiagnosticV218(req, activeStage + '_exception', {
+      ok: false,
+      status: 0,
+      data: {
+        code: error && (error.code || error.name) || 'SESSION_EXCEPTION',
+        message: error && error.message || 'Session store exception'
+      }
+    }, {
+      reason: 'session_exception',
+      condition: 'exception',
+      method: activeStage === 'update' ? 'PATCH' : 'LOCAL'
+    });
+    return {
+      ok: false,
+      reason: 'session_exception',
+      diagnostic_code: diagnostic.diagnostic_code,
+      failure_point: diagnostic.failure_point,
+      upstream_status: diagnostic.upstream_status,
+      provider_code: diagnostic.provider_code,
+      failure_id: diagnostic.failure_id
+    };
+  }
 }
