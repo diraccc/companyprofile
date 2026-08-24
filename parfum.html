@@ -1,7 +1,380 @@
 <!doctype html>
 <html lang="id">
 <head>
-<meta http-equiv="Content-Security-Policy" content="default-src &#x27;self&#x27;; base-uri &#x27;none&#x27;; object-src &#x27;none&#x27;; frame-src &#x27;none&#x27;; child-src &#x27;none&#x27;; script-src &#x27;self&#x27; &#x27;sha512-s3VWRJZYGfA1wDpUaBv0VMs2hzLEt5okQKZT1OdlS6/b2n0+lzUZZxVBrsiQERmdmZWUr2zkIoXQLhLeAhvEaA==&#x27; &#x27;sha512-bbtT6epKVUudt1lIeoRB22I9uJLE5JsNgjQB1/ahLEZnHf6unyyXme4heXZlCwAYpkyB2VwnCXmZyKFLbYc+Hw==&#x27; &#x27;sha512-ON2wNyY399Xp5lSWaz3eVFaUXbXWOKgITOntc4vUT37KO0jHFqUpECoHajZVAdYRGCs4LlM/MaK62IFy+Z3kYA==&#x27; &#x27;sha512-AY7tx0V0mcf720z+X+VIvcXtluUN1kqBQwHZShBpzW3AJKOIWxrQmfHbwt6p1+xUpPcMxDYTljFyvaR7UGH9Fw==&#x27; &#x27;sha512-WG5DfWGeT08TGNLijo0+ZSnoR12XxAKJE+Ut1uGWYrrByJ7f6xmQoUmzOoHiTGNV4KV57baOG/o7qP4SMGMX+g==&#x27; &#x27;sha512-3KHhPT9O3pT9Nh7kZz0DfjdG1I196YTjMrJ+RM9/rJbB6mJ8ibDwjZRiatYdu4L//JWIYVV5f6s0TkkmiowgSA==&#x27; &#x27;sha512-KC303aAkfTcoW9jqTdFKF50m3CjobTn9K+YsBg30Xfymn45MIPXRuwl4zzOiLdKRtkKmtDDr7MSpEpAyIFFIcg==&#x27; &#x27;sha512-TCiW1sMTBaGR58ihlzsVpeC7oY8SWJ+A6UY3ge2hWwOsEcHO+/UrhCg3JfAoqu8Ra/A8UpC1odCiOKbbeRRfQg==&#x27; &#x27;sha512-iSxA7PQ4E1YvViY5OJ4oVb95xn6gUcxfJjyRWOPG2r9tz1msjSbLreAeNZJ65apQ7NJHtCX6BYBlCp0tvC/klA==&#x27; &#x27;sha512-Z6vPGFvE0Lrc+IPwI09M9ontZafaN3yca8YJxGWbfnYfwp2V/j2KOUmlX5LSf0oK2Su/MIOC6Zh+UTphYd4DaQ==&#x27; &#x27;sha512-5hZGzsprVrumzSwJ8P69mNCddImOkLAjX8lgGnt9BkjawOjdDkDEhV9Df7KSnaMaKvVLMwcjZex9b7KeArJMDg==&#x27; &#x27;sha512-gU9zbsvhmFjgwcZWSuoQ+RN86xhHWt9wNrCmuqMOZmaxc4DSQ9DfLc5tiAzHKT6x8EfgvyCNN77jbtDvppBjRA==&#x27; &#x27;sha512-A/phzAzYLK3BssUujo1IOUtK68hS/2gyo15qdMWOlk560LUI4lq8DwOlT7buNC7UtLNdfWvWRf6ZeWEIpYQy7w==&#x27; &#x27;sha512-JqdrB8v3wH+ibL03CU41PTw2G5cddwxQZgCcQia22chXaZaOtQW6fIMg9BkUbMExQcCLQ/zdXkadinSbeCAdog==&#x27; &#x27;sha512-9d11oQQSVbghnAng1ulALsA/Mq/pp1EJ5r780uIblrfXaZtVu3zXwvCohWJQrTrRZEG74Q1+c7xzWzBSmoK/dw==&#x27; &#x27;sha512-WDFVvxcMb7J3//3PaVCNN1Qy2TilRWcEQiQmtGfYAOFgMvts6OMyfUzupGN9PmqxhoKHXT4sPrw7btvHPDPQ0w==&#x27; &#x27;sha512-X2cRtV+vDBfGt6VjVW1XcOjBPMKkP6R/VAjhx+UHonGj/NCz4PRJmVcoRCVo/9nG2QrIhGWuxh8/xQ9xOhEj/g==&#x27; &#x27;sha512-2RQ0wp1EMAU4UQs3YxpYJ4Ht4G7Ir8PjgvwRCPhgRZSox1NC6RnvRn38UM8vrqUjGNE+/XIxK7EKxnc/KSwp0g==&#x27; &#x27;sha512-RxSlDAB6moN+zMB6eHTs9sBKaxNvHSVemnlAu0A7CzlbQTq+tgjTfIag7s7iJ6lDFP9dJDERcARXoQ92BO8Xog==&#x27; &#x27;sha512-ZxTooEOCwKDJj0nWOkTTi7J9xD4YFMrHozf8Yko1vbpBIwfmcmOAk050O2I9wjvRw5MqWTZwi0an4gWsDLwcgQ==&#x27; &#x27;sha512-xaKL//vn94QqhJP6D6x5i8qXL+Q4bVsU3nIt0fQiU7WPUTmgrGWZV5vpZXg5dPSO9qsNxRTiE+L2EF5ko82WBA==&#x27; &#x27;sha512-Xfv0oF8h+MYAGURqfkL7Er1zX4l1ELeYGoCzkAZpbiAiD13sj351Cw5UL/VzsqaUP5Xi7rFUXYfmf1MYo7/kNw==&#x27; &#x27;sha512-w0GFBg7Y/t9wgP/Q4KX1LdVg8z8jqZHrfUTUKbJqg3zIqdkvp1BRhD61mrXbtrrqXu22uBib6Qenu4vZLfmQrA==&#x27; &#x27;sha512-tdPwEdd3mFA590cpDtivafIg9BfQBiTwGUjZAL7gDlPxU7la3lQ9WkLcy9HYvNIJI14XZEEpoRKmrzOXmZGoyA==&#x27; &#x27;sha512-0jnEzHpcbyNJ/AtMzgv0Q3Jwpk9LkrTjN86MLjUwJEyNOZ9jA1u3kRt4c0BwDgdfZmL4Mn9JUgJ5x/UnCP/pFA==&#x27; &#x27;sha512-sMB+TA962GVihCprS1fhaizR9hjNzTJjdJrwPnudyCBxAx/n/Kz7ZlwWyuACAlftQ4ee7zgipzN+pAMYAKe3Gw==&#x27; &#x27;sha512-H+/gYPXQ9F3z7D9fYHxCyHGuPgO3KWLS3Y5ZBZI0tnMWRqrjK8PtowJfHWFZ52ceo/ZnaCfjDAfjca0J4cCfuA==&#x27; &#x27;sha512-XySB0rH3i2TxQr8a0U+QD+/DhuRWHdmoPJVu91ze/yxUhIlKGt0loPfhmNE6aRbv2cZavOqfzFzS+YJBjIDXBg==&#x27; &#x27;sha512-TaHkypJhr2V4PKEjRGlavpSwZd3GS7AnLDJGbOSidgTE9HxpIqjNj+sx0eOEyBthouZyB4O/AAmTGlbRY5j/Dw==&#x27; &#x27;sha512-6pt6a9qlvYd56yqBkNuhBkUp4JE+Uur36v1662Ti1iiMAQlN/ESxJii/gZWjOOXrHYGVs3do770lo47gv20Ajg==&#x27; &#x27;sha512-uckIS3Jvm7iryIR3WLhsQT9PQ41qZtzx/w6SsA4M6OzFAnumIH9VDVLlRkukG7+cIxuiJm3XMAyjFp3HeB2p1Q==&#x27; &#x27;sha512-HbSNKbrqV8LOpnIubFcpGaFXAn85sWtkJRlvi2Bp6cZWGhZ4auz0x8aCJlv6NVuoFvN+SxKK+iUTgLx1InaywQ==&#x27; &#x27;sha512-YG5CyILlraI22Krq56ejITF6FQF8xeViArAndBf6Tp7Ocgj2N3ep/1Rq0OAhgyUnfUrkMu6Fs5YAzB+wrYHfuA==&#x27; &#x27;sha512-1YSpg5BuBNM/bcESXEYNE287piu6UibWHZXA/C1OvhqaWdzv9uY/nhfFB+Nh0E8cnQT2zAyfqaQpdlLex8hANQ==&#x27; &#x27;sha512-sY9U5JeubFzov+SNZsmyqCNZqU/V30B4D16TH+dZ8z+LMLmYHMWPOCvAxSG2Qc9S4FQHELaaTNLc8j64zcXweA==&#x27; &#x27;sha512-uwg4+8+/xJOpLFDjY7P1jlki1BfLoSGxvG2D+UJ2VXkNRbHAnydA0Dhy83RsQLXitmx9EHK5/alFgXITpZoRFg==&#x27; &#x27;sha512-eGXdQUxx91YAT1aXoocY6np9GfJS5KhdkCxAOXnRSE6tTbz6zqBNNMQQiEPV5y4nFJMIU4PN5aAZQHJMuGCBFA==&#x27; &#x27;sha512-ccW3EmdUQp1CZMA7aqPaeIXTn/v2UOTgL/wgXyypG8iVRQiWxYuVBKtVaVNl1EiG4fRmWlQiONlpDOnXnvAGOA==&#x27; &#x27;sha512-5kFJrmoLadC/VHxT3+FeE0X3T5X/Z/u1OROXfAYUDkGm5NVldibkvZ/N/EIfalinxQnGbwiFeVvOjOd4ii5qpg==&#x27;; script-src-attr &#x27;none&#x27;; style-src &#x27;self&#x27; https://fonts.googleapis.com &#x27;sha512-0tawS1DQYkrO1oLVSqwZIeqQ1idyfyis0rVRzPNoyvsKhExBaxzNWAEfkpFoT5urNXPP6T24/zA0xxyVH/1Jeg==&#x27; &#x27;sha512-xJkwN41LvY3znjpoGpR0pO0eV4GR4Lrhy5d4urPrS+I031pDyAFFCu3mZl2HOStyXN58dym1wlDcjWL02/Tzkw==&#x27; &#x27;sha512-H2I8co0qz+OOtB5+umgHt/OdrU7fyDliMZRXrrO6nLw4pVBXl4M9kbi/1Hv6F6/qDb6NQU+YsbIB6uMqoRtJnw==&#x27; &#x27;sha512-Ojz1O1Nd5MueXlN1aQzpPr4/KM/ptKuqRsjLi/MOi6sWYK9I2o1ApT2fr5yG6wiF0cGW5bwgBXsWs9kE4cOMbA==&#x27; &#x27;sha512-gPNoN4V9PGeG5WNCF9wnqu5sZdBOuBnqOE/SHXNa87DUmDgIy0dxrLbhHbOoB4ppyb2BT3Ct0H37O8UOcMVGDA==&#x27; &#x27;sha512-pAigYa9gqEk/i0ykiURYIYElmsDLNlzQJIqzjV0iYm+NpIYqituLCdxzwUH6pxjM7zBdBeToOFOpmVA5gyj9zQ==&#x27; &#x27;sha512-/9vcRC4dKK2OC8tPBGK5Tps4/4Cl525bI+iLVtdqSWq9dv5afGuZyU8zcaQJC4APUhpJgXliyKinptP3ZlCNjg==&#x27; &#x27;sha512-Ur+kZlKQYpsDjMjggAxKx7LClFCzAm0RdTdUzQfztWNSSpAj+ZnvEWa5pUOFGt609IKVq3fFmzppeEfBvLElOw==&#x27; &#x27;sha512-3cz/aCKP0XswbHB3nEOD/zeM+7l6qL6ndSsUjTxL8AFLv6LtSA2hjkh1kjw6Z2f0mRtmGCHWFBNb4ZALu4MWbw==&#x27; &#x27;sha512-SQgtxHPwUxL9903xesVdDg/AAjpVCBtWXhuI3Mn6eT0G4MXvBX674PoQag0M6vaQqU1ErwRxHEjczJxjCeHU6w==&#x27; &#x27;sha512-mFkEY8h3tKaI3O/mZxKyfmfW0Qb2dbNMCQvsKNrxAZoQXYLY9BhZhBr/C1yKf9p3V6dG6ztniBGYU4EW6KQl7Q==&#x27; &#x27;sha512-pCBrrVBIAHc6unUQNuzVJK42YbcAk57ljL9aHt21ohuv/TZn8bNg77HDWHLgmOc2mYoDUF8KIjQT0MvUUIN8gw==&#x27; &#x27;sha512-rAczzfYS7SIVszd4Vh4s61NniupgHEPa8bwPYFYM6wq2vJksZh6+UeyK8inQhBoscPIEmviMRX7UgDJN5T1vag==&#x27; &#x27;sha512-kodH9KII2W3sxz+VM6hMr2N+0T2ImNefr8ZFp1RqKIM9KLJ5nVrmn2UPU8/WkJ1pp8hLr8HbFjIRXq+M7Un09Q==&#x27; &#x27;sha512-4dlTkPWOPOi9w3ONph6C8EiWI9wMyraAMsmDngy2vgixxEhRKJvB+H8zJQ9J5EkLI0ZnHKnUOagz597SUeh49Q==&#x27; &#x27;sha512-qVPgjA/7ZQUt6EFjonvEsOT2cOggBax6P2ycIh8bNcwYvDrUqWxHIiqxdr9imIgrH9maF5CJpM3EmrB5rmB1LA==&#x27; &#x27;sha512-q4gApce2XZrQm8ne6rk3YoMxVSuBGpNp3jDEwSnEPNXv5kqArf2NKlIdIY7amIui2Fo/2Mjeqw18883emjPm4A==&#x27; &#x27;sha512-TnWSYQ+vuIJLjWFvKquLb1ptF+EaxGGQ5XAq+VzeD7d3yo6uRWNGjmjx5cfO0SlyJ/zydgz/lU6tI6dWXFbvJg==&#x27; &#x27;sha512-+uZ7vnSRXdUshkN8myx9JEYyEYw53e6nQoY0cPB++Ak+gdPDDa1N5Yynnf0pb6pTrQceEgGWEyV3gzGpnAy9RQ==&#x27; &#x27;sha512-823c9C/PnHMkuCjJIL6LKyRFd6J4swVkkejl/eRg7j/hcnKKSgBDtMsNHmilDNs3xtgPCDbSPvZGjqAW43duKQ==&#x27; &#x27;sha512-06J+5zdOHk6vyKtsGuAgOfVXuKn7kUiR4gMw6vr9MOGwAjbeqAJj24/mRISsDi8hA7QHrbmPijRrhRuSmePBVA==&#x27; &#x27;sha512-R2aEmBh3L5gwFe/17WsD6yHxhSbinqGD5afY416mYLjKBdKQWU2km1BPLU04rcLoiaaFi29nv8CUIlkLyeWenA==&#x27; &#x27;sha512-zn2TYoNoAdofGJnCeE4gc0/yUbe2boWA1cZt7AgaGK2o43YRWvKvgahvALPhvZe8MBj2tt0BZOvdDmcvyuqvrw==&#x27; &#x27;sha512-BQW4WtbUId+Xw//OrpwV6guQPROpSwPuwjCXeafVTN26ZeGLOTFIPW6onj6eswYLw+pt5127cZcU45Uzu6nJhQ==&#x27; &#x27;sha512-EN85v4z9Q5daiYfxIX2GSBErrR3IU8zIPLwegTUm5PiRdPBvQwSLosvxXDJriVOjaAvufOT8R667OiIS/Rwriw==&#x27; &#x27;sha512-NcpjeXspBWiIlL939E2Yns1Q8lgRk+J8i5O0Mij6e88S5UVGfefHHmrBs16Gj/T7VubWh9FNMJwn9IN2kQFe6Q==&#x27; &#x27;sha512-vfb39vuo87i8DHuonU98MOwsHCw9syOVki1QQsnlJYxK7EcJ8C4hdmbGjlHrnBUYRv1yguFFqqoXdc5ReVXfgg==&#x27; &#x27;sha512-CrQYc90AAhPLDunVNu9/rhyH7QAN4ITx58oYywit+CzD+DbmCouAI5FBNW7ze30CBv7anHbb+umioP9fyqSiqw==&#x27; &#x27;sha512-QWKdm+XA6y6KZSP721Kiumbk5Ojt5bwfH/vh0BPSJiCzvigv+6ZUFTDaHSRAr/ssmXKLIJlJ4KH2/08cvStJGQ==&#x27; &#x27;sha512-mVofPsREGRyLD8kx4K16tlClpBidE1kkp1RRpnIM20nAeFv29WqC3auu3g7ei+WTYV+OokDhfU+agrSSXRxJXw==&#x27; &#x27;sha512-59fcnMNn5lhvtIxOzdlAS3foQMvL+TW9qODMqKaiDozl/ufSOL9n1SaaiK4g6RUa1QcMiFd0OsJRevKme/1vdw==&#x27; &#x27;sha512-p14Qc1rR8kBI92rgF19KoGrP6yPIXsPwEhAdN/fY+rB2pCk3TEx843hxpKhnNFkPI3jclCLGcnPVqRWtHp931Q==&#x27; &#x27;sha512-ZyNks9BVOPduOEYuTIdDnTDUnm69uhQ+mkXokO1iIy4F/rtkzPc2z2jGBbH5+hKOGpwLg1y4ODoH0ffTTivU3w==&#x27; &#x27;sha512-CECk+stfz+IkStzjFZ4AKhHLPC+GS5d2wNzUTJovNTfKgpBC8fxtoGU9HAzIl+gOOSCFYb82sXg5ZTEKr3SIOA==&#x27; &#x27;sha512-EOlZpGi5/a0HyD/JaDFia7t67+lIP+3hCIpQ6WjIIEppHw0/X/hFo3dwKpVHoQDGK0JtcalvJWKI2E8SEEk4Gg==&#x27; &#x27;sha512-1jp6A2olfiCGUbvlaWiK8LFhuz5gJ1EuWc8azGyGSekWB21m7WMqaCARiXAfSq6gFLxkVNA78tffEM2l/Hpw7A==&#x27;; style-src-attr &#x27;none&#x27;; font-src &#x27;self&#x27; https://fonts.gstatic.com data:; img-src &#x27;self&#x27; data: blob:; connect-src &#x27;self&#x27;; media-src &#x27;self&#x27; data:; manifest-src &#x27;self&#x27;; worker-src &#x27;none&#x27;; form-action &#x27;self&#x27;; frame-ancestors &#x27;none&#x27;; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; script-src 'self' 'sha512-s3VWRJZYGfA1wDpUaBv0VMs2hzLEt5okQKZT1OdlS6/b2n0+lzUZZxVBrsiQERmdmZWUr2zkIoXQLhLeAhvEaA==' 'sha512-VgrWS8N7V2yWrEeH8qN8jNHt0salw6QUWmXpel94RA5RO3lpphCAcAQrQGPWZ71Qv2CBEm12rz5l7cj0I6s+MA==' 'sha512-uBedBmfN/feklKxW9HZ8dPeai7/41omFZKasKOSr5gesxar3UZ34v3RuSsoZktXnHrYloyf+9iGfguBPu/G2gQ==' 'sha512-ON2wNyY399Xp5lSWaz3eVFaUXbXWOKgITOntc4vUT37KO0jHFqUpECoHajZVAdYRGCs4LlM/MaK62IFy+Z3kYA==' 'sha512-AY7tx0V0mcf720z+X+VIvcXtluUN1kqBQwHZShBpzW3AJKOIWxrQmfHbwt6p1+xUpPcMxDYTljFyvaR7UGH9Fw==' 'sha512-WG5DfWGeT08TGNLijo0+ZSnoR12XxAKJE+Ut1uGWYrrByJ7f6xmQoUmzOoHiTGNV4KV57baOG/o7qP4SMGMX+g==' 'sha512-3KHhPT9O3pT9Nh7kZz0DfjdG1I196YTjMrJ+RM9/rJbB6mJ8ibDwjZRiatYdu4L//JWIYVV5f6s0TkkmiowgSA==' 'sha512-KC303aAkfTcoW9jqTdFKF50m3CjobTn9K+YsBg30Xfymn45MIPXRuwl4zzOiLdKRtkKmtDDr7MSpEpAyIFFIcg==' 'sha512-TCiW1sMTBaGR58ihlzsVpeC7oY8SWJ+A6UY3ge2hWwOsEcHO+/UrhCg3JfAoqu8Ra/A8UpC1odCiOKbbeRRfQg==' 'sha512-CEHLICOD0gki8VMuXEof5DivDjv+C/zhuLb3O6h1wcIuhkt9DJEUqJYsgIw96ch45IPdaaBOMkR8wFSDPaTmow==' 'sha512-U2eIuvKy9hC5fQmqbx+jhjo0zAF/TG3HsZs0k3YuZy8Q+e6wx0FM/b3nMR+gbZFvDQHyjiCe1ucQ5Cr5xUaFwg==' 'sha512-5hZGzsprVrumzSwJ8P69mNCddImOkLAjX8lgGnt9BkjawOjdDkDEhV9Df7KSnaMaKvVLMwcjZex9b7KeArJMDg==' 'sha512-ziH0X/bulmZvvLTty0nc/KwUCtlSEgXXK3Idxj/LCZ4+Ipw1jhNIOcom5Xj7O/fNLNmcz8z7jExfldEEgQmfGw==' 'sha512-A/phzAzYLK3BssUujo1IOUtK68hS/2gyo15qdMWOlk560LUI4lq8DwOlT7buNC7UtLNdfWvWRf6ZeWEIpYQy7w==' 'sha512-JqdrB8v3wH+ibL03CU41PTw2G5cddwxQZgCcQia22chXaZaOtQW6fIMg9BkUbMExQcCLQ/zdXkadinSbeCAdog==' 'sha512-9d11oQQSVbghnAng1ulALsA/Mq/pp1EJ5r780uIblrfXaZtVu3zXwvCohWJQrTrRZEG74Q1+c7xzWzBSmoK/dw==' 'sha512-WDFVvxcMb7J3//3PaVCNN1Qy2TilRWcEQiQmtGfYAOFgMvts6OMyfUzupGN9PmqxhoKHXT4sPrw7btvHPDPQ0w==' 'sha512-X2cRtV+vDBfGt6VjVW1XcOjBPMKkP6R/VAjhx+UHonGj/NCz4PRJmVcoRCVo/9nG2QrIhGWuxh8/xQ9xOhEj/g==' 'sha512-2RQ0wp1EMAU4UQs3YxpYJ4Ht4G7Ir8PjgvwRCPhgRZSox1NC6RnvRn38UM8vrqUjGNE+/XIxK7EKxnc/KSwp0g==' 'sha512-RxSlDAB6moN+zMB6eHTs9sBKaxNvHSVemnlAu0A7CzlbQTq+tgjTfIag7s7iJ6lDFP9dJDERcARXoQ92BO8Xog==' 'sha512-ZxTooEOCwKDJj0nWOkTTi7J9xD4YFMrHozf8Yko1vbpBIwfmcmOAk050O2I9wjvRw5MqWTZwi0an4gWsDLwcgQ==' 'sha512-xaKL//vn94QqhJP6D6x5i8qXL+Q4bVsU3nIt0fQiU7WPUTmgrGWZV5vpZXg5dPSO9qsNxRTiE+L2EF5ko82WBA==' 'sha512-Xfv0oF8h+MYAGURqfkL7Er1zX4l1ELeYGoCzkAZpbiAiD13sj351Cw5UL/VzsqaUP5Xi7rFUXYfmf1MYo7/kNw==' 'sha512-w0GFBg7Y/t9wgP/Q4KX1LdVg8z8jqZHrfUTUKbJqg3zIqdkvp1BRhD61mrXbtrrqXu22uBib6Qenu4vZLfmQrA==' 'sha512-tdPwEdd3mFA590cpDtivafIg9BfQBiTwGUjZAL7gDlPxU7la3lQ9WkLcy9HYvNIJI14XZEEpoRKmrzOXmZGoyA==' 'sha512-DSHUrralDz8Obi1jvNO8qQi45gndXiu5Wo8fpXqy/81IgqMbHBUvyaTkXI7oK/iskJrj3kVRKato7hUIVOMyZw==' 'sha512-sMB+TA962GVihCprS1fhaizR9hjNzTJjdJrwPnudyCBxAx/n/Kz7ZlwWyuACAlftQ4ee7zgipzN+pAMYAKe3Gw==' 'sha512-H+/gYPXQ9F3z7D9fYHxCyHGuPgO3KWLS3Y5ZBZI0tnMWRqrjK8PtowJfHWFZ52ceo/ZnaCfjDAfjca0J4cCfuA==' 'sha512-XySB0rH3i2TxQr8a0U+QD+/DhuRWHdmoPJVu91ze/yxUhIlKGt0loPfhmNE6aRbv2cZavOqfzFzS+YJBjIDXBg==' 'sha512-HlbSPcvWjyAQx4pkmLQzKsrZ3avHZtJ206aX+wI+W069wVLVLaUPLTfSrDJfbGVEU4mfYZXx2xSLsvpuQ7RWgA==' 'sha512-6pt6a9qlvYd56yqBkNuhBkUp4JE+Uur36v1662Ti1iiMAQlN/ESxJii/gZWjOOXrHYGVs3do770lo47gv20Ajg==' 'sha512-uckIS3Jvm7iryIR3WLhsQT9PQ41qZtzx/w6SsA4M6OzFAnumIH9VDVLlRkukG7+cIxuiJm3XMAyjFp3HeB2p1Q==' 'sha512-HbSNKbrqV8LOpnIubFcpGaFXAn85sWtkJRlvi2Bp6cZWGhZ4auz0x8aCJlv6NVuoFvN+SxKK+iUTgLx1InaywQ==' 'sha512-YG5CyILlraI22Krq56ejITF6FQF8xeViArAndBf6Tp7Ocgj2N3ep/1Rq0OAhgyUnfUrkMu6Fs5YAzB+wrYHfuA==' 'sha512-1YSpg5BuBNM/bcESXEYNE287piu6UibWHZXA/C1OvhqaWdzv9uY/nhfFB+Nh0E8cnQT2zAyfqaQpdlLex8hANQ==' 'sha512-sY9U5JeubFzov+SNZsmyqCNZqU/V30B4D16TH+dZ8z+LMLmYHMWPOCvAxSG2Qc9S4FQHELaaTNLc8j64zcXweA==' 'sha512-uwg4+8+/xJOpLFDjY7P1jlki1BfLoSGxvG2D+UJ2VXkNRbHAnydA0Dhy83RsQLXitmx9EHK5/alFgXITpZoRFg==' 'sha512-cbufRO8euHChR43Q4vTqPmZgnQLfioW1J7IB/XO0dMfl2DAlYSVFOjvRrLI9K09UPFjq3X0idYs4C0cjcUEipA==' 'sha512-WJHR+2zUYVmBqDtP6oDxi915QXZuhXC1HWMf543YswfmW5iiIg/BueMEdGU5NTe65YhlkLEpBDBGB8/RabQBfA==' 'sha512-9JryJ+6oHtYrmwDxvjcl65en6Px2HeHLUcMl+xsFmi4jX6Avn8Z62Y56FwUWDVx4CyzwzefWx5/28NMneUPbwQ==' 'sha512-Mmdss3Eoe/TMydI6yrYUarmHDB/5QyGHeTA3qRkid9I02VH2ZDCmpDN3yV4eAlLcRmhfEsM6MXeKV7kuLOHpwg==' 'sha512-VIXMuK9LlhazBJy6Ppc0xnrzqdMGrYuM7bySlbdQv22sJAa3xqVWXLK5OToIGOMmct18C5XEzMbFpA8/e/QOjA==' 'sha512-kMUMes78qSTFFYscO6+Y8Hh+rrcgF7zNxOoD6/22jvhJkLuNRA4SJsn1tkS5IVM8l05ZdjICEoWQMrMOGj3g2Q==' 'sha512-kCY5vGS3ugnFFXqVyWYFHlhgHfWV7zKuhWDyChCBVOuSCna5XZRNyAlwQFFdyrm0AuSga3fnkMo1BzZn5sv6Eg==' 'sha512-e6eebdOBYbdlq83oIL45FO4ae1sGuWKccsZ3urjovUqPikQdFPY6iDQZY0r5viq4FaCXoZ1YB6x9+7c5n2rx9w==' 'sha512-CWQJWtQc61B49l1L00k6j4XiSb70mbTxsmwbN8RX5GvTI9zE6vIQNrbLyc2bqF1fNytMUk6pwLeElDDuTCM3yQ==' 'sha512-jAQ12zoaAvy33Ci7VLzZ0n0wPTStSShvGFW3eZyqLtcfq+p+N+718hP7WX1EItUtxAiz49lIIl8him0VumrVsg==' 'sha512-iF7ubUGqDgdagb0/T9Mjllio1jbPhWjuDIZKZqjQZvlXg8R56NiIlrBLkJHhmNS5ozH9kem1aT8B0IzRpTXPDA==' 'sha512-KsQpZgs53yvPf4R6cbCG+uBINOD/j1xMTCn/ujwG5vzi4CHL8Qn5n7KbAfu8/aE1gYXNl/m0REmPIgGViYD8vA==' 'sha512-K4ID6CogoWyea2042px181sywS6mxodMBp0mH+V50xk5uBVbEhz7mZ9B0Il24Ujqxsl3A5q0i+IQt1uhfR4/uQ==' 'sha512-qHi0aCEnJyuq8AJKaBqT+Rfl5ygbP5NQErmqKJA9D/H5q3Re+EL/ZVdudIsZV4lqQKZT+udw9RSJ450PQcmp/A=='; script-src-attr 'none'; style-src 'self' https://fonts.googleapis.com 'sha512-0tawS1DQYkrO1oLVSqwZIeqQ1idyfyis0rVRzPNoyvsKhExBaxzNWAEfkpFoT5urNXPP6T24/zA0xxyVH/1Jeg==' 'sha512-xJkwN41LvY3znjpoGpR0pO0eV4GR4Lrhy5d4urPrS+I031pDyAFFCu3mZl2HOStyXN58dym1wlDcjWL02/Tzkw==' 'sha512-H2I8co0qz+OOtB5+umgHt/OdrU7fyDliMZRXrrO6nLw4pVBXl4M9kbi/1Hv6F6/qDb6NQU+YsbIB6uMqoRtJnw==' 'sha512-Ojz1O1Nd5MueXlN1aQzpPr4/KM/ptKuqRsjLi/MOi6sWYK9I2o1ApT2fr5yG6wiF0cGW5bwgBXsWs9kE4cOMbA==' 'sha512-gPNoN4V9PGeG5WNCF9wnqu5sZdBOuBnqOE/SHXNa87DUmDgIy0dxrLbhHbOoB4ppyb2BT3Ct0H37O8UOcMVGDA==' 'sha512-pAigYa9gqEk/i0ykiURYIYElmsDLNlzQJIqzjV0iYm+NpIYqituLCdxzwUH6pxjM7zBdBeToOFOpmVA5gyj9zQ==' 'sha512-/9vcRC4dKK2OC8tPBGK5Tps4/4Cl525bI+iLVtdqSWq9dv5afGuZyU8zcaQJC4APUhpJgXliyKinptP3ZlCNjg==' 'sha512-Ur+kZlKQYpsDjMjggAxKx7LClFCzAm0RdTdUzQfztWNSSpAj+ZnvEWa5pUOFGt609IKVq3fFmzppeEfBvLElOw==' 'sha512-3cz/aCKP0XswbHB3nEOD/zeM+7l6qL6ndSsUjTxL8AFLv6LtSA2hjkh1kjw6Z2f0mRtmGCHWFBNb4ZALu4MWbw==' 'sha512-SQgtxHPwUxL9903xesVdDg/AAjpVCBtWXhuI3Mn6eT0G4MXvBX674PoQag0M6vaQqU1ErwRxHEjczJxjCeHU6w==' 'sha512-mFkEY8h3tKaI3O/mZxKyfmfW0Qb2dbNMCQvsKNrxAZoQXYLY9BhZhBr/C1yKf9p3V6dG6ztniBGYU4EW6KQl7Q==' 'sha512-pCBrrVBIAHc6unUQNuzVJK42YbcAk57ljL9aHt21ohuv/TZn8bNg77HDWHLgmOc2mYoDUF8KIjQT0MvUUIN8gw==' 'sha512-rAczzfYS7SIVszd4Vh4s61NniupgHEPa8bwPYFYM6wq2vJksZh6+UeyK8inQhBoscPIEmviMRX7UgDJN5T1vag==' 'sha512-kodH9KII2W3sxz+VM6hMr2N+0T2ImNefr8ZFp1RqKIM9KLJ5nVrmn2UPU8/WkJ1pp8hLr8HbFjIRXq+M7Un09Q==' 'sha512-4dlTkPWOPOi9w3ONph6C8EiWI9wMyraAMsmDngy2vgixxEhRKJvB+H8zJQ9J5EkLI0ZnHKnUOagz597SUeh49Q==' 'sha512-qVPgjA/7ZQUt6EFjonvEsOT2cOggBax6P2ycIh8bNcwYvDrUqWxHIiqxdr9imIgrH9maF5CJpM3EmrB5rmB1LA==' 'sha512-q4gApce2XZrQm8ne6rk3YoMxVSuBGpNp3jDEwSnEPNXv5kqArf2NKlIdIY7amIui2Fo/2Mjeqw18883emjPm4A==' 'sha512-TnWSYQ+vuIJLjWFvKquLb1ptF+EaxGGQ5XAq+VzeD7d3yo6uRWNGjmjx5cfO0SlyJ/zydgz/lU6tI6dWXFbvJg==' 'sha512-+uZ7vnSRXdUshkN8myx9JEYyEYw53e6nQoY0cPB++Ak+gdPDDa1N5Yynnf0pb6pTrQceEgGWEyV3gzGpnAy9RQ==' 'sha512-823c9C/PnHMkuCjJIL6LKyRFd6J4swVkkejl/eRg7j/hcnKKSgBDtMsNHmilDNs3xtgPCDbSPvZGjqAW43duKQ==' 'sha512-06J+5zdOHk6vyKtsGuAgOfVXuKn7kUiR4gMw6vr9MOGwAjbeqAJj24/mRISsDi8hA7QHrbmPijRrhRuSmePBVA==' 'sha512-R2aEmBh3L5gwFe/17WsD6yHxhSbinqGD5afY416mYLjKBdKQWU2km1BPLU04rcLoiaaFi29nv8CUIlkLyeWenA==' 'sha512-zn2TYoNoAdofGJnCeE4gc0/yUbe2boWA1cZt7AgaGK2o43YRWvKvgahvALPhvZe8MBj2tt0BZOvdDmcvyuqvrw==' 'sha512-BQW4WtbUId+Xw//OrpwV6guQPROpSwPuwjCXeafVTN26ZeGLOTFIPW6onj6eswYLw+pt5127cZcU45Uzu6nJhQ==' 'sha512-EN85v4z9Q5daiYfxIX2GSBErrR3IU8zIPLwegTUm5PiRdPBvQwSLosvxXDJriVOjaAvufOT8R667OiIS/Rwriw==' 'sha512-NcpjeXspBWiIlL939E2Yns1Q8lgRk+J8i5O0Mij6e88S5UVGfefHHmrBs16Gj/T7VubWh9FNMJwn9IN2kQFe6Q==' 'sha512-vfb39vuo87i8DHuonU98MOwsHCw9syOVki1QQsnlJYxK7EcJ8C4hdmbGjlHrnBUYRv1yguFFqqoXdc5ReVXfgg==' 'sha512-CrQYc90AAhPLDunVNu9/rhyH7QAN4ITx58oYywit+CzD+DbmCouAI5FBNW7ze30CBv7anHbb+umioP9fyqSiqw==' 'sha512-QWKdm+XA6y6KZSP721Kiumbk5Ojt5bwfH/vh0BPSJiCzvigv+6ZUFTDaHSRAr/ssmXKLIJlJ4KH2/08cvStJGQ==' 'sha512-mVofPsREGRyLD8kx4K16tlClpBidE1kkp1RRpnIM20nAeFv29WqC3auu3g7ei+WTYV+OokDhfU+agrSSXRxJXw==' 'sha512-59fcnMNn5lhvtIxOzdlAS3foQMvL+TW9qODMqKaiDozl/ufSOL9n1SaaiK4g6RUa1QcMiFd0OsJRevKme/1vdw==' 'sha512-p14Qc1rR8kBI92rgF19KoGrP6yPIXsPwEhAdN/fY+rB2pCk3TEx843hxpKhnNFkPI3jclCLGcnPVqRWtHp931Q==' 'sha512-ZyNks9BVOPduOEYuTIdDnTDUnm69uhQ+mkXokO1iIy4F/rtkzPc2z2jGBbH5+hKOGpwLg1y4ODoH0ffTTivU3w==' 'sha512-CECk+stfz+IkStzjFZ4AKhHLPC+GS5d2wNzUTJovNTfKgpBC8fxtoGU9HAzIl+gOOSCFYb82sXg5ZTEKr3SIOA==' 'sha512-EOlZpGi5/a0HyD/JaDFia7t67+lIP+3hCIpQ6WjIIEppHw0/X/hFo3dwKpVHoQDGK0JtcalvJWKI2E8SEEk4Gg==' 'sha512-1jp6A2olfiCGUbvlaWiK8LFhuz5gJ1EuWc8azGyGSekWB21m7WMqaCARiXAfSq6gFLxkVNA78tffEM2l/Hpw7A==' 'sha512-mgEUxaEGJJg3unGn/NZaUnZKP+aiWI+uoya4SbFi2om1L6Ce9UTy7pV7aLxujY3Nax0cxeohNvn7lsMI11+r3w=='; style-src-attr 'none'; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://api.diracgroup.store; media-src 'self' data:; manifest-src 'self'; worker-src 'none'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta name="dirac-base-domain" content="">
+<style id="dirac-html-shell-v1-css">.dhg-overlay{position:fixed;inset:0;z-index:2147483600;display:grid;place-items:center;padding:24px;background:rgba(3,7,18,.74);backdrop-filter:blur(14px);opacity:0;visibility:hidden;transition:opacity .24s ease,visibility .24s ease}
+.dhg-overlay.is-open{opacity:1;visibility:visible}
+.dhg-card{width:min(520px,100%);position:relative;overflow:hidden;border:1px solid rgba(148,163,184,.22);border-radius:28px;padding:32px;background:linear-gradient(145deg,rgba(15,23,42,.98),rgba(3,7,18,.98));color:#f8fafc;box-shadow:0 32px 100px rgba(0,0,0,.55);transform:translateY(12px) scale(.98);transition:transform .24s ease}
+.dhg-overlay.is-open .dhg-card{transform:none}
+.dhg-card:before{content:"";position:absolute;inset:-45% auto auto 35%;width:300px;height:300px;border-radius:50%;background:rgba(56,189,248,.14);filter:blur(40px);pointer-events:none}
+.dhg-mark{position:relative;display:grid;place-items:center;width:56px;height:56px;margin-bottom:22px;border:1px solid rgba(251,191,36,.38);border-radius:18px;background:linear-gradient(145deg,rgba(245,158,11,.22),rgba(239,68,68,.12));color:#fbbf24;font:800 28px/1 system-ui,sans-serif;box-shadow:inset 0 1px 0 rgba(255,255,255,.14)}
+.dhg-eyebrow{position:relative;margin:0 0 8px;color:#7dd3fc;font:700 12px/1.4 system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase}
+.dhg-card h2{position:relative;margin:0;color:#fff;font:750 clamp(24px,5vw,34px)/1.12 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:-.035em}
+.dhg-copy{position:relative;margin:15px 0 0;color:#cbd5e1;font:450 15px/1.72 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.dhg-meter{position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:25px 0}
+.dhg-meter-step{height:7px;border-radius:99px;background:#1e293b;transition:background .2s ease,box-shadow .2s ease}
+.dhg-meter-step.is-on{background:linear-gradient(90deg,#38bdf8,#fbbf24);box-shadow:0 0 18px rgba(56,189,248,.28)}
+.dhg-actions{position:relative;display:flex;align-items:center;justify-content:space-between;gap:14px}
+.dhg-link{color:#bae6fd!important;text-decoration:none!important;font:650 14px/1.4 system-ui,sans-serif}
+.dhg-link:hover{text-decoration:underline!important}
+.dhg-button{appearance:none;border:0;border-radius:14px;padding:12px 18px;background:#f8fafc;color:#0f172a;cursor:pointer;font:750 14px/1 system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.22)}
+.dhg-button:focus-visible,.dhg-link:focus-visible{outline:3px solid #38bdf8;outline-offset:3px}
+@media(max-width:520px){.dhg-overlay{padding:14px;align-items:end}.dhg-card{border-radius:24px;padding:26px 22px}.dhg-actions{align-items:stretch;flex-direction:column-reverse}.dhg-button{width:100%;padding:14px}.dhg-link{text-align:center}}
+@media(prefers-reduced-motion:reduce){.dhg-overlay,.dhg-card,.dhg-meter-step{transition:none}}
+</style>
+<script id="dirac-html-shell-v1" data-input-mode="active">(function(){
+  'use strict';
+  if(window.__DIRAC_HTML_SHELL_V1__) return;
+  window.__DIRAC_HTML_SHELL_V1__ = true;
+
+  var bootScript = document.currentScript;
+  var inputMode = bootScript && bootScript.getAttribute('data-input-mode') === 'delegate' ? 'delegate' : 'active';
+  var APP_LABELS = {auth:1,panel:1,order:1,security:1,project:1,api:1,www:1};
+  var PAGE_ROUTES = {
+    'masuk.html':'auth',
+    'dashboard.html':'panel',
+    'pesanan.html':'order',
+    'parfum.html':'shop',
+    'keamanan.html':'security',
+    'website.html':'project',
+    'project-website.html':'project'
+  };
+  var ROLE_FILES = {
+    auth:'/masuk.html',
+    panel:'/dashboard.html',
+    order:'/pesanan.html',
+    shop:'/parfum.html',
+    security:'/keamanan.html',
+    project:'/website.html'
+  };
+
+  function isIPv4(host){
+    if(!/^(?:\d{1,3}\.){3}\d{1,3}$/.test(host)) return false;
+    return host.split('.').every(function(part){ return Number(part) >= 0 && Number(part) <= 255; });
+  }
+  function isIPv6(host){ return host.indexOf(':') !== -1; }
+  function validDomain(value){
+    var host = String(value || '').trim().toLowerCase().replace(/^\.+|\.+$/g,'');
+    if(host === 'localhost' || isIPv4(host) || isIPv6(host)) return host;
+    if(host.length < 3 || host.length > 253 || host.indexOf('.') === -1) return '';
+    var labels = host.split('.');
+    return labels.every(function(label){ return /^(?!-)[a-z0-9-]{1,63}(?<!-)$/.test(label); }) ? host : '';
+  }
+  function configuredBase(){
+    var direct = validDomain(window.__DIRAC_BASE_DOMAIN__);
+    if(direct) return direct;
+    var meta = document.querySelector('meta[name="dirac-base-domain"]');
+    return validDomain(meta && meta.getAttribute('content'));
+  }
+  function deriveBase(){
+    var configured = configuredBase();
+    if(configured) return configured;
+    var host = validDomain(location.hostname) || String(location.hostname || '').toLowerCase();
+    if(host === 'localhost' || isIPv4(host) || isIPv6(host)) return host;
+    var labels = host.split('.');
+    if(labels.length > 2 && APP_LABELS[labels[0]]) labels.shift();
+    return validDomain(labels.join('.')) || host;
+  }
+  var baseDomain = deriveBase();
+  var localHost = baseDomain === 'localhost' || isIPv4(baseDomain) || isIPv6(baseDomain);
+  function originFor(role){
+    if(localHost) return location.origin;
+    if(role === 'shop') return 'https://' + baseDomain;
+    return 'https://' + role + '.' + baseDomain;
+  }
+  function routeUrl(role){
+    var file = ROLE_FILES[role] || ROLE_FILES.shop;
+    return originFor(role) + file;
+  }
+  function apiUrl(path){
+    var safePath = String(path || '/api/health');
+    if(safePath.charAt(0) !== '/') safePath = '/' + safePath;
+    return originFor('api') + safePath;
+  }
+  function routeWithTail(role, query, hash){
+    return routeUrl(role) + (query || '') + (hash || '');
+  }
+  function rewriteHref(raw){
+    if(!raw || /^(?:#|mailto:|tel:|javascript:|data:)/i.test(raw)) return raw;
+    try{
+      var url = new URL(raw, location.href);
+      var file = (url.pathname.split('/').pop() || '').toLowerCase();
+      var role = PAGE_ROUTES[file];
+      if(!role) return raw;
+      return routeWithTail(role, url.search, url.hash);
+    }catch(_){ return raw; }
+  }
+  function rewriteNode(root){
+    if(!root || root.nodeType !== 1) return;
+    var nodes = root.matches && root.matches('a[href],form[action]') ? [root] : [];
+    if(root.querySelectorAll) nodes = nodes.concat(Array.prototype.slice.call(root.querySelectorAll('a[href],form[action]')));
+    nodes.forEach(function(node){
+      var attr = node.tagName === 'FORM' ? 'action' : 'href';
+      var raw = node.getAttribute(attr);
+      var next = rewriteHref(raw);
+      if(next && next !== raw) node.setAttribute(attr, next);
+    });
+  }
+  window.DiracRoutes = Object.freeze({
+    baseDomain:baseDomain,
+    apiOrigin:originFor('api'),
+    origin:originFor,
+    url:routeUrl,
+    api:apiUrl,
+    rewrite:rewriteHref
+  });
+
+  function safeString(value){ return String(value == null ? '' : value); }
+  function decodeNumericEntities(text){
+    return text
+      .replace(/&#x([0-9a-f]{1,6});?/gi,function(_,hex){ var n=parseInt(hex,16); return n<=1114111 ? String.fromCodePoint(n) : ' '; })
+      .replace(/&#([0-9]{1,7});?/g,function(_,dec){ var n=parseInt(dec,10); return n<=1114111 ? String.fromCodePoint(n) : ' '; })
+      .replace(/&lt;?/gi,'<').replace(/&gt;?/gi,'>').replace(/&quot;?/gi,'"').replace(/&apos;?/gi,"'").replace(/&colon;?/gi,':')
+      .replace(/&sol;?/gi,'/').replace(/&tab;?/gi,'\t').replace(/&newline;?/gi,'\n').replace(/&amp;?/gi,'&');
+  }
+  function decodePercent(text){
+    return text.replace(/(?:%[0-9a-f]{2})+/gi,function(run){
+      try{ return decodeURIComponent(run); }catch(_){ return run.replace(/%([0-9a-f]{2})/gi,function(__,hex){ return String.fromCharCode(parseInt(hex,16)); }); }
+    });
+  }
+  function normalize(value){
+    var text = safeString(value).slice(0,65536);
+    try{ text = text.normalize('NFKC'); }catch(_){}
+    text = text.replace(/%u([0-9a-f]{4})/gi,function(_,hex){ return String.fromCharCode(parseInt(hex,16)); });
+    text = text.replace(/\\x([0-9a-f]{2})/gi,function(_,hex){ return String.fromCharCode(parseInt(hex,16)); });
+    text = text.replace(/\\u\{([0-9a-f]{1,6})\}/gi,function(_,hex){ var n=parseInt(hex,16); return n<=1114111 ? String.fromCodePoint(n) : ' '; });
+    text = text.replace(/\\u([0-9a-f]{4})/gi,function(_,hex){ return String.fromCharCode(parseInt(hex,16)); });
+    for(var i=0;i<3;i++){
+      var before = text;
+      text = decodePercent(text.replace(/\+/g,' '));
+      text = decodeNumericEntities(text);
+      if(text === before) break;
+    }
+    try{ text = text.normalize('NFKC'); }catch(_){}
+    return text.replace(/[\u0000\u0008\u000b\u000c\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff]/g,'').toLowerCase();
+  }
+  var RULES = [
+    ['xss_html',/<\s*\/?\s*(?:script|iframe|object|embed|svg|math|meta|link|base|template)\b/i],
+    ['xss_media_event',/<\s*(?:img|image|video|audio|body|details|form|input|button|textarea)\b[\s\S]{0,240}(?:\bon[a-z]{3,32}\s*=|(?:javascript|vbscript|data\s*:\s*(?:text\/html|image\/svg\+xml))\s*:)/i],
+    ['xss_event',/\bon[a-z]{3,32}\s*=\s*(?:["']|[^\s>])/i],
+    ['xss_scheme',/(?:javascript|vbscript|data\s*:\s*(?:text\/html|image\/svg\+xml))\s*:/i],
+    ['xss_dom',/(?:srcdoc|xlink\s*:\s*href|formaction)\s*=|document\s*\.\s*(?:cookie|write|writeln)|location\s*\.\s*(?:href|assign|replace)\s*(?:=|\()/i],
+    ['xss_expression',/(?:expression\s*\(|@import\s+(?:url\s*\()?|url\s*\(\s*["']?\s*javascript\s*:)/i],
+    ['sql_union',/\bunion\s+(?:all\s+|distinct\s+)?select\b/i],
+    ['sql_statement',/\b(?:select\s+[\s\S]{1,160}\s+from|insert\s+into|update\s+[a-z0-9_.`"\[\]-]+\s+set|delete\s+from|drop\s+(?:table|database|schema)|alter\s+table|create\s+(?:table|database)|truncate\s+table)\b/i],
+    ['sql_tautology',/(?:'|"|`)\s*(?:or|and)\s+(?:'[^']{0,40}'|"[^"]{0,40}"|\d+)\s*=\s*(?:'[^']{0,40}'|"[^"]{0,40}"|\d+)/i],
+    ['sql_time_file',/\b(?:sleep|benchmark|pg_sleep|xp_cmdshell|load_file|pg_read_file|extractvalue|updatexml)\s*\(|\bwaitfor\s+delay\b|\binto\s+(?:out|dump)file\b|\binformation_schema\s*\./i],
+    ['sql_comment',/\b(?:select|union|insert|update|delete|drop|alter|exec(?:ute)?)\b[\s\S]{0,180}(?:--|#|\/\*)/i],
+    ['nosql',/(?:^|[\s,{[])['"]?\$(?:where|ne|gt|gte|lt|lte|regex|in|nin|exists|expr|function|accumulator|or|and|not)['"]?\s*:/i],
+    ['command_chain',/(?:;|&&|\|\||\|)\s*(?:\/[a-z0-9._/-]+\/)?(?:sh|bash|zsh|cmd(?:\.exe)?|powershell|pwsh|curl|wget|nc|ncat|netcat|python\d*|perl|ruby|php|node|chmod|chown|rm|cat|whoami|uname)\b/i],
+    ['command_standalone',/(?:\/bin\/(?:ba|z|da)?sh\b|cmd\.exe\s+\/c\b|powershell(?:\.exe)?\s+-(?:enc|encodedcommand)\b)/i],
+    ['command_substitution',/(?:\$\(|`)[\s\S]{0,300}\b(?:curl|wget|cat|id|whoami|uname|sh|bash|powershell|cmd|nc|python|perl|php|node)\b/i],
+    ['shellshock',/\(\)\s*\{\s*:;\s*\};/i],
+    ['path_traversal',/\.\.[/\\]|\/(?:etc\/(?:passwd|shadow)|proc\/self\/(?:environ|cmdline)|var\/run\/secrets\/)|[a-z]:\\windows\\win\.ini/i],
+    ['file_wrapper',/\b(?:php|file|expect|gopher|dict|phar|zip):\/\//i],
+    ['ssrf',/https?:\/\/(?:localhost|127(?:\.\d{1,3}){0,3}|0\.0\.0\.0|10(?:\.\d{1,3}){3}|192\.168(?:\.\d{1,3}){2}|172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2}|169\.254\.169\.254|169\.254\.170\.2|100\.100\.100\.200|2130706433|0x7f000001|0177\.0\.0\.1|\[::1\]|\[0:0:0:0:0:ffff:127\.0\.0\.1\]|metadata\.google\.internal)(?::\d+)?(?:[/?#]|$)/i],
+    ['cloud_metadata',/\b(?:latest\/meta-data|metadata\/identity\/oauth2\/token|metadata\/computeMetadata|instance-data\/latest)\b/i],
+    ['xxe',/<!\s*doctype[\s\S]{0,500}<!\s*entity|<!\s*entity[\s\S]{0,300}\b(?:system|public)\b|\bsystem\s+["'](?:file|https?|ftp):/i],
+    ['ssti',/(?:\{\{|\$\{|#\{)[\s\S]{0,180}(?:\*|\/|__|\.\s*(?:class|mro|subclasses)|config|request|globals|builtins|popen|runtime|process|constructor)[\s\S]{0,180}(?:\}\}|\})|<%=?[\s\S]{0,240}%>/i],
+    ['jndi',/\$\{\s*jndi\s*:\s*(?:ldap|ldaps|rmi|dns|iiop|corba):/i],
+    ['ldap',/\(\s*[|&!]\s*\([^)]{1,120}\)|\)\s*\(\s*\|\s*\(/i],
+    ['xpath',/(?:'|")\s+(?:or|and)\s+(?:'|")?\d+(?:'|")?\s*=\s*(?:'|")?\d+/i],
+    ['crlf_header',/(?:\r\n|\n)(?:host|content-length|transfer-encoding|location|set-cookie|x-forwarded-(?:for|host|proto)|x-original-url)\s*:/i],
+    ['request_smuggling',/(?:\bcontent-length\s*:\s*\d+[\s\S]{0,180}\btransfer-encoding\s*:\s*(?:chunked|identity)|\btransfer-encoding\s*:\s*(?:chunked|identity)[\s\S]{0,180}\bcontent-length\s*:\s*\d+|\bcontent-length\s*:\s*\d+[\s\S]{0,180}\bcontent-length\s*:\s*\d+)/i],
+    ['deserialization',/(?:\bac\s*ed\s*00\s*05\b|\brO0AB[a-z0-9+/=]{16,}|\bO:\d+:"[^"]{1,120}":\d+:\{|!!python\/object|\bgASV[a-z0-9+/=]{16,})/i],
+    ['prototype_pollution',/(?:["']?__proto__["']?|["']?constructor["']?\s*:\s*\{\s*["']?prototype|constructor\s*\.\s*prototype|prototype\s*\[\s*["'][^"']+["']\s*\])\s*(?:[:=.\[]|$)/i],
+    ['formula_injection',/^\s*[=+@-]\s*(?:cmd(?:\.exe)?\s*\||powershell\s*\||hyperlink\s*\(|importxml\s*\(|importdata\s*\(|webservice\s*\(|dde\b|msexcel\b)/i],
+    ['open_redirect',/\b(?:redirect(?:_uri)?|return(?:_to|url)?|next|continue|callback|url)\s*=\s*(?:https?:)?\/\//i],
+    ['graphql_introspection',/\bquery\b[\s\S]{0,120}\{[\s\S]{0,120}\b(?:__schema|__type)\b[\s\S]{0,120}\{/i]
+  ];
+  var PROMPT_RULE = /\b(?:ignore|disregard|override)\s+(?:all\s+)?(?:previous|prior|system|developer)\s+(?:instructions?|messages?|rules?)\b|\b(?:reveal|print|show|leak)\s+(?:the\s+)?(?:system|developer)\s+(?:prompt|message|instructions?)\b/i;
+  function ssrfUrl(text){
+    var urls = text.match(/https?:\/\/[^\s"'<>]{1,2048}/gi) || [];
+    return urls.some(function(raw){
+      try{
+        var url = new URL(raw), host = url.hostname.toLowerCase().replace(/^\[|\]$/g,'');
+        if(/^(?:localhost|metadata\.google\.internal)$/.test(host)) return true;
+        if(/^(?:2130706433|0x7f000001|0177\.0\.0\.1)$/.test(host)) return true;
+        if(host === '::1' || host.indexOf('::ffff:127.') === 0 || /^::ffff:(?:7f[0-9a-f]{2}|a00|ac(?:1[0-9a-f]|2[0-9a-f]|3[01])|c0a8|a9fe):/.test(host) || /^f[cd][0-9a-f]{2}:/.test(host) || /^fe[89ab][0-9a-f]:/.test(host)) return true;
+        if(!isIPv4(host)) return false;
+        var p=host.split('.').map(Number);
+        return p[0]===0||p[0]===10||p[0]===127||(p[0]===169&&p[1]===254)||(p[0]===172&&p[1]>=16&&p[1]<=31)||(p[0]===192&&p[1]===168)||(p[0]===100&&p[1]===100&&p[2]===100&&p[3]===200);
+      }catch(_){ return false; }
+    });
+  }
+  function check(value, context){
+    var text = normalize(value);
+    var samples = [text, text.replace(/\/\*[\s\S]{0,64}?\*\//g,'')];
+    if(ssrfUrl(text)) return {detected:true,family:'ssrf',normalized:text};
+    for(var i=0;i<RULES.length;i++) for(var s=0;s<samples.length;s++) if(RULES[i][1].test(samples[s])) return {detected:true,family:RULES[i][0],normalized:text};
+    if(context && context.ai === true && PROMPT_RULE.test(text)) return {detected:true,family:'prompt_injection',normalized:text};
+    return {detected:false,family:'',normalized:text};
+  }
+  function hashText(value){
+    var text = safeString(value), hash = 2166136261;
+    for(var i=0;i<text.length;i++){ hash ^= text.charCodeAt(i); hash = Math.imul(hash,16777619); }
+    return (hash >>> 0).toString(16);
+  }
+  var WARNING_KEY = 'dirac_html_guard_warning_v1';
+  var WARNING_COOKIE = 'dirac_html_guard_warning_v1';
+  var WINDOW_MS = 24 * 60 * 60 * 1000;
+  var lastGate = {key:'',at:0};
+  function readCookie(){
+    try{
+      var match = document.cookie.match(new RegExp('(?:^|;\\s*)' + WARNING_COOKIE + '=([^;]*)'));
+      return match ? JSON.parse(decodeURIComponent(match[1])) : null;
+    }catch(_){ return null; }
+  }
+  function readState(){
+    var state = readCookie();
+    if(!state) try{ state = JSON.parse(localStorage.getItem(WARNING_KEY) || 'null'); }catch(_){}
+    var now = Date.now();
+    if(!state || !Number.isFinite(Number(state.startedAt)) || now - Number(state.startedAt) > WINDOW_MS) return {count:0,startedAt:now,updatedAt:now};
+    state.count = Math.max(0, Math.min(1000, Number(state.count) || 0));
+    return state;
+  }
+  function writeState(state){
+    var encoded = encodeURIComponent(JSON.stringify(state));
+    try{ localStorage.setItem(WARNING_KEY, JSON.stringify(state)); }catch(_){}
+    try{
+      var domain = !localHost && baseDomain.indexOf('.') !== -1 ? '; Domain=.' + baseDomain : '';
+      document.cookie = WARNING_COOKIE + '=' + encoded + '; Path=/; Max-Age=86400; SameSite=Lax; Secure' + domain;
+    }catch(_){}
+  }
+  function buildModal(){
+    var root = document.getElementById('diracHtmlGuardDialog');
+    if(root) return root;
+    root = document.createElement('div');
+    root.id = 'diracHtmlGuardDialog';
+    root.className = 'dhg-overlay';
+    root.setAttribute('role','dialog');
+    root.setAttribute('aria-modal','true');
+    root.setAttribute('aria-labelledby','diracHtmlGuardTitle');
+    var card = document.createElement('section'); card.className = 'dhg-card';
+    var mark = document.createElement('div'); mark.className = 'dhg-mark'; mark.textContent = '!'; mark.setAttribute('aria-hidden','true');
+    var eyebrow = document.createElement('p'); eyebrow.className = 'dhg-eyebrow'; eyebrow.textContent = 'Perlindungan input Dirac';
+    var title = document.createElement('h2'); title.id = 'diracHtmlGuardTitle';
+    var body = document.createElement('p'); body.id = 'diracHtmlGuardBody'; body.className = 'dhg-copy';
+    var meter = document.createElement('div'); meter.className = 'dhg-meter'; meter.setAttribute('aria-hidden','true');
+    for(var i=0;i<3;i++){ var bar=document.createElement('span'); bar.className='dhg-meter-step'; meter.appendChild(bar); }
+    var actions = document.createElement('div'); actions.className = 'dhg-actions';
+    var rules = document.createElement('a'); rules.id='diracHtmlGuardRules'; rules.className='dhg-link'; rules.textContent='Lihat aturan input'; rules.href=routeUrl('project');
+    var close = document.createElement('button'); close.id='diracHtmlGuardClose'; close.className='dhg-button'; close.type='button'; close.textContent='Saya mengerti';
+    actions.appendChild(rules); actions.appendChild(close);
+    card.appendChild(mark); card.appendChild(eyebrow); card.appendChild(title); card.appendChild(body); card.appendChild(meter); card.appendChild(actions); root.appendChild(card);
+    close.addEventListener('click',function(){ root.classList.remove('is-open'); });
+    root.addEventListener('click',function(event){ if(event.target === root) root.classList.remove('is-open'); });
+    document.body.appendChild(root);
+    return root;
+  }
+  function showWarning(count, family, escalated){
+    if(!document.body) return;
+    var root = buildModal();
+    var title = document.getElementById('diracHtmlGuardTitle');
+    var body = document.getElementById('diracHtmlGuardBody');
+    var steps = root.querySelectorAll('.dhg-meter-step');
+    for(var i=0;i<steps.length;i++) steps[i].classList.toggle('is-on', i < Math.min(count,3));
+    if(escalated){
+      title.textContent = 'Aktivitas diblokir dan dilaporkan';
+      body.textContent = 'Pola serangan terdeteksi lagi setelah tiga peringatan. Input tetap diblokir dan laporan keamanan dikirim tanpa menyertakan isi teks mentah.';
+    }else{
+      title.textContent = count === 3 ? 'Peringatan terakhir (3 dari 3)' : 'Peringatan ' + count + ' dari 3';
+      body.textContent = 'Input menyerupai pola serangan ' + safeString(family).replace(/_/g,' ') + '. Teks diblokir. Ubah menjadi kalimat biasa; laporan belum dikirim.';
+    }
+    root.classList.add('is-open');
+    var close = document.getElementById('diracHtmlGuardClose'); if(close) close.focus();
+  }
+  function report(field, family, count, length){
+    var body = {
+      action:'security_report',
+      reason:'html_detected_attack',
+      type:'input_guard',
+      page:(location.pathname.split('/').pop() || 'unknown.html').slice(0,80),
+      event:'fourth_high_confidence_input_violation',
+      evidence:'family='+safeString(family).replace(/[^a-z0-9_-]/gi,'').slice(0,64)+';field='+safeString(field).replace(/[^a-z0-9_-]/gi,'').slice(0,64)+';length='+Math.max(0,Number(length)||0)+';warning_count='+Math.max(0,Number(count)||0),
+      version:'dirac-html-shell-v1'
+    };
+    try{
+      fetch(apiUrl('/api/health?action=security_report'),{method:'POST',mode:'cors',credentials:'include',cache:'no-store',keepalive:true,headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(body)}).catch(function(){});
+    }catch(_){}
+  }
+  function gate(field, reason, meta){
+    meta = meta || {};
+    var family = safeString(meta.family || reason || 'detected_attack').slice(0,64);
+    var fingerprint = hashText(field + '|' + family + '|' + safeString(meta.value).slice(0,1024));
+    var now = Date.now();
+    if(lastGate.key === fingerprint && now - lastGate.at < 1500) return false;
+    lastGate = {key:fingerprint,at:now};
+    var state = readState();
+    state.count += 1; state.updatedAt = now; writeState(state);
+    if(state.count <= 3){ showWarning(state.count,family,false); return false; }
+    showWarning(state.count,family,true);
+    if(state.count === 4 && inputMode !== 'delegate' && meta.delegateReport !== true) report(field,family,state.count,safeString(meta.value).length);
+    return state.count === 4;
+  }
+  function eligible(target){
+    if(!target || target.nodeType !== 1 || target.matches('[data-dirac-input-guard="off"], [readonly], [disabled]')) return false;
+    if(target.isContentEditable) return true;
+    if(target.tagName === 'TEXTAREA') return true;
+    if(target.tagName !== 'INPUT') return false;
+    var type = safeString(target.type || 'text').toLowerCase();
+    if(!/^(?:text|search|url)$/.test(type)) return false;
+    var autocomplete = safeString(target.autocomplete).toLowerCase();
+    var inputmode = safeString(target.inputMode).toLowerCase();
+    return !/(?:password|one-time-code|cc-|webauthn)/.test(autocomplete) && !/^(?:numeric|decimal|tel)$/.test(inputmode);
+  }
+  function fieldName(target){ return safeString(target.name || target.id || target.getAttribute('aria-label') || 'text_input').slice(0,64); }
+  function currentValue(target){ return target && target.isContentEditable ? safeString(target.textContent) : safeString(target && target.value); }
+  function candidateValue(target, insert){
+    var current = currentValue(target);
+    if(target && !target.isContentEditable && typeof target.selectionStart === 'number' && typeof target.selectionEnd === 'number') return current.slice(0,target.selectionStart) + insert + current.slice(target.selectionEnd);
+    return current + insert;
+  }
+  function rememberClean(target){ if(eligible(target) && !check(currentValue(target)).detected) target.dataset.diracLastClean = currentValue(target); }
+  function restoreClean(target){
+    var clean = target && target.dataset ? safeString(target.dataset.diracLastClean) : '';
+    if(target && target.isContentEditable) target.textContent = clean; else if(target) target.value = clean;
+  }
+  function block(target, value, event){
+    var ai = !!(target && (target.matches('[data-dirac-ai-input="true"]') || /(?:^|[-_])(?:ai|chat|assistant)(?:$|[-_])/i.test(safeString(target.id || target.name))));
+    var result = check(value,{ai:ai}); if(!result.detected) return false;
+    if(event && event.cancelable) event.preventDefault();
+    restoreClean(target);
+    gate(fieldName(target),result.family,{family:result.family,value:value});
+    return true;
+  }
+  function bindInputGuard(){
+    document.addEventListener('focusin',function(event){ rememberClean(event.target); },true);
+    document.addEventListener('beforeinput',function(event){
+      if(event.isComposing || !eligible(event.target) || !event.data || /(?:delete|paste|drop)/i.test(event.inputType || '')) return;
+      block(event.target,candidateValue(event.target,safeString(event.data)),event);
+    },true);
+    document.addEventListener('compositionend',function(event){ if(eligible(event.target) && !block(event.target,currentValue(event.target),event)) rememberClean(event.target); },true);
+    document.addEventListener('paste',function(event){
+      if(!eligible(event.target)) return;
+      var text=''; try{ text=event.clipboardData ? event.clipboardData.getData('text/plain') : ''; }catch(_){}
+      if(text) block(event.target,candidateValue(event.target,text),event);
+    },true);
+    document.addEventListener('drop',function(event){
+      if(!eligible(event.target)) return;
+      var text=''; try{ text=event.dataTransfer ? event.dataTransfer.getData('text/plain') : ''; }catch(_){}
+      if(text) block(event.target,candidateValue(event.target,text),event);
+    },true);
+    document.addEventListener('input',function(event){
+      if(!eligible(event.target)) return;
+      if(!block(event.target,currentValue(event.target),event)) rememberClean(event.target);
+    },true);
+  }
+  window.DiracHTMLGuard = Object.freeze({version:'dirac-html-shell-v1',mode:inputMode,normalize:normalize,check:check,gate:gate,rules:RULES.map(function(rule){return rule[0];})});
+  function boot(){
+    rewriteNode(document.documentElement);
+    if(inputMode === 'active') bindInputGuard();
+    try{ new MutationObserver(function(records){ records.forEach(function(record){ Array.prototype.forEach.call(record.addedNodes,rewriteNode); }); }).observe(document.documentElement,{childList:true,subtree:true}); }catch(_){}
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded',boot,{once:true}); else boot();
+})();
+</script>
 
 <script id="dirac-safe-dom-builder-v1">
 (function(){
@@ -46,6 +419,7 @@
   var TOKEN_HEADER = 'X-CSRF-Token';
   var RESPONSE_HEADER = 'X-Dirac-CSRF-Token';
   var API_PATH = '/api/health';
+  var API_ORIGIN = window.DiracRoutes.apiOrigin;
   var TOKEN_ACTION = 'domain_health';
   var nativeFetch = window.fetch;
 
@@ -68,14 +442,14 @@
   }
 
   function sameOriginUrl(url){
-    try{ return new URL(String(url || API_PATH), window.location.href); }
+    try{ return new URL(String(url || (API_ORIGIN + API_PATH)), window.location.href); }
     catch(_){ return null; }
   }
 
   function isHealthEndpointUrl(url){
     var parsed = sameOriginUrl(url);
     if(!parsed) return false;
-    return parsed.origin === window.location.origin && parsed.pathname === API_PATH;
+    return parsed.origin === API_ORIGIN && parsed.pathname === API_PATH;
   }
 
   function getInputUrl(input){
@@ -129,17 +503,17 @@
   }
 
   function tokenUrlFor(action){
-    var url = new URL(API_PATH, window.location.href);
+    var url = new URL(API_PATH, API_ORIGIN);
     url.searchParams.set('action', action || TOKEN_ACTION);
     url.searchParams.set('_csrf_bootstrap', String(Date.now()));
-    return url.pathname + url.search;
+    return url.toString();
   }
 
   function refreshToken(action){
     if(TOKEN_PROMISE) return TOKEN_PROMISE;
     TOKEN_PROMISE = nativeFetch.call(window, tokenUrlFor(action || TOKEN_ACTION), {
       method: 'GET',
-      mode: 'same-origin',
+      mode: 'cors',
       credentials: 'include',
       cache: 'no-store',
       headers: { 'Accept': 'application/json' }
@@ -221,6 +595,7 @@
   window.__DIRAC_DASHBOARD_SESSION_SINGLEFLIGHT_V1__ = true;
 
   var upstreamFetch = window.fetch;
+  var API_ORIGIN = window.DiracRoutes.apiOrigin;
   var inFlightByKey = Object.create(null);
 
   if(typeof upstreamFetch !== 'function') return;
@@ -252,10 +627,10 @@
       && !init.signal
       && init.body === undefined
       && readMethod(init) === 'GET'
-      && readOption(init, 'mode', '') === 'same-origin'
+      && readOption(init, 'mode', '') === 'cors'
       && readOption(init, 'credentials', '') === 'include'
       && readOption(init, 'cache', '') === 'no-store'
-      && url.origin === window.location.origin
+      && url.origin === API_ORIGIN
       && url.pathname === '/api/health'
       && url.searchParams.get('action') === 'domain_dashboard_me';
   }
@@ -961,7 +1336,7 @@ img[loading="lazy"]{content-visibility:auto}
 .blog-card,.feature-card,.info-card,.faq-item{content-visibility:auto;contain-intrinsic-size:260px}
 </style>
 
-<link rel="preload" as="image" href="logo1.webp">
+<link rel="preload" as="image" href="umroh.webp">
 
 <style id="dirac-antilag-css">
 /* Lightweight product paging for GitHub Pages.
@@ -5801,7 +6176,7 @@ body.dirac-checkout-security-open{overflow:hidden!important}
       <a class="brand" href="#beranda" aria-label="Dirac Group Beranda">
         <span class="brand-mark" aria-hidden="true">
           <span class="brand-fallback-text">DP</span>
-          <img class="brand-logo-img" src="logo1.webp" alt="" loading="eager" data-dirac-logo-image="1" decoding="async" fetchpriority="high">
+          <img class="brand-logo-img" src="umroh.webp" alt="" loading="eager" data-dirac-logo-image="1" decoding="async" fetchpriority="high">
         </span>
         <span class="brand-name brand-typewriter" data-brand-typewriter data-no-i18n aria-label="Dirac Group"><span class="brand-typewriter-text" aria-hidden="true">Dirac Group</span></span>
       </a>
@@ -5832,7 +6207,7 @@ body.dirac-checkout-security-open{overflow:hidden!important}
       <header class="du-top">
         <div class="du-handle" id="diracUltraMenuHandle" aria-hidden="true"></div>
         <div class="du-top-row">
-          <div class="du-brand" aria-hidden="true"><img class="du-brand-logo" src="logo 3.webp" alt="" loading="eager" decoding="async"></div>
+          <div class="du-brand" aria-hidden="true"><img class="du-brand-logo" src="umroh.webp" alt="" loading="eager" decoding="async"></div>
           <div class="du-title">
             <strong id="menuTitle" data-i18n="menuTitle">Menu Dashboard</strong>
             <small data-i18n="menuSub">Navigasi utama pelanggan.</small>
@@ -5870,7 +6245,7 @@ body.dirac-checkout-security-open{overflow:hidden!important}
               <span class="du-copy"><strong>Domain Saya</strong><small>Daftar domain pelanggan</small></span>
               <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
             </a>
-            <a class="du-card du-searchable" data-menu-order="4" href="project-website.html" data-keyword="project website daftar project website">
+            <a class="du-card du-searchable" data-menu-order="4" href="website.html" data-keyword="project website daftar project website">
               <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M4 5h16v11H4V5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 20h8M10 16v4M14 16v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
               <span class="du-copy"><strong>Project Website</strong><small>Daftar project website</small></span>
               <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
@@ -5992,11 +6367,11 @@ body.dirac-checkout-security-open{overflow:hidden!important}
 
     <section class="back-home-panel" aria-label="Kembali ke halaman utama">
       <div class="container back-home-wrap">
-        <a class="back-home-btn" href="https://diracgroup.store" aria-label="Back to home menuju website utama Dirac Group">
+        <a class="back-home-btn" href="parfum.html" aria-label="Back to home menuju website utama Dirac Group">
           <span class="back-home-icon" aria-hidden="true">←</span>
           <span>back to home</span>
         </a>
-        <a class="back-home-btn cek-resi-btn" href="https://diracgroup.store/cekresi.html" aria-label="Cek Resi menuju halaman pelacakan pesanan Dirac Group">
+        <a class="back-home-btn cek-resi-btn" href="cekresi.html" aria-label="Cek Resi menuju halaman pelacakan pesanan Dirac Group">
           <span>Cek Resi</span>
         </a>
       </div>
@@ -6249,7 +6624,7 @@ body.dirac-checkout-security-open{overflow:hidden!important}
           <div class="dirac-final-scanner-orbit"><span></span></div>
           <div class="dirac-final-logo-edge-light"></div>
           <div class="dirac-final-particle-field" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
-          <img class="dirac-final-logo-img" src="dirac-security.png" alt="Dirac Security" decoding="async" loading="eager">
+          <img class="dirac-final-logo-img" src="umroh.webp" alt="Dirac Group" decoding="async" loading="eager">
         </div>
         <h1 class="dirac-final-session-title">Mengecek Sesi Pelanggan<span class="dirac-final-dots">...</span></h1>
         <div class="dirac-final-progress-track" aria-hidden="true"></div>
@@ -6759,6 +7134,7 @@ body.dirac-checkout-security-open{overflow:hidden!important}
     return value.length > max ? value.slice(0, max) : value;
   }
   function hasPayload(value){
+    if(window.DiracHTMLGuard && typeof window.DiracHTMLGuard.check === 'function') return window.DiracHTMLGuard.check(value).detected === true;
     var v = String(value || '').normalize('NFKC').toLowerCase();
     return /[<>"'`;\{}\[\]|=]/.test(v) ||
       /(--|\/\*|\*\/|#)/.test(v) ||
@@ -6768,6 +7144,7 @@ body.dirac-checkout-security-open{overflow:hidden!important}
       /\bwaitfor\s+delay\b/.test(v);
   }
   function cleanDetail(value){
+    if(window.DiracHTMLGuard) return String(value || '').normalize('NFKC').replace(/[\x00-\x1F\x7F]/g,'').slice(0,180);
     var before = String(value || '').normalize('NFKC');
     before = before.replace(/[\x00-\x1F\x7F]/g,'');
     before = before.replace(/(--|\/\*|\*\/|#)/g, ' ');
@@ -7007,7 +7384,7 @@ body.dirac-checkout-security-open{overflow:hidden!important}
     var AUTH_KEY='dirac_auth_session_v1';
     var A2F_KEY='dirac_auth_a2f_v1';
     var A2F_READY_KEY='dirac_auth_a2f_dashboard_ready_v1';
-    var DOMAIN_AUTH_API='/api/health';
+    var DOMAIN_AUTH_API=window.DiracRoutes.api('/api/health');
     var DOMAIN_ME_ENDPOINT=DOMAIN_AUTH_API+'?action=domain_dashboard_me';
     var DOMAIN_LOGOUT_ENDPOINT=DOMAIN_AUTH_API+'?action=domain_logout';
     var BACKEND_VERIFICATION_MAX_AGE_MS=2*60*1000;
@@ -7022,11 +7399,11 @@ body.dirac-checkout-security-open{overflow:hidden!important}
     function sessionHeaders(){return {'Accept':'application/json'};}
     function mergeRefreshedTokens(res){}
     function markBackendVerified(user){var safeUser=(user&&typeof user==='object')?user:{};if(!(safeUser.id||safeUser.email))return false;backendVerified=true;backendVerifiedAt=Date.now();backendUser=safeUser;try{var s=refreshAuthState().session||{};s.user=safeUser;s.email=safeUser.email||s.email||s.identifier||'';s.identifier=s.email||s.identifier||'';s.serverAuthenticated=true;s.dashboardVerifiedByBackend=true;s.dashboardVerifiedAt=new Date(backendVerifiedAt).toISOString();writeJson(AUTH_KEY,s);}catch(e){}document.documentElement.setAttribute('data-product-backend','verified');return true;}
-    function verifyExistingLoginSession(){if(verificationPromise)return verificationPromise;verificationPromise=fetch(DOMAIN_ME_ENDPOINT,{method:'GET',mode:'same-origin',credentials:'include',cache:'no-store',headers:sessionHeaders()}).then(function(res){if(!res.ok){return res.clone().json().catch(function(){return null}).then(function(data){var msg=(data&&(data.message||data.error||data.hint))||('Backend menolak akses halaman produk. Status '+res.status+'. Login dan A2F ulang.');clearBackendVerification(msg);if(res.status===401||res.status===403||res.status===419){try{localStorage.removeItem(A2F_READY_KEY);localStorage.removeItem('dirac_dashboard_gate_v1')}catch(e){}}return false;});}mergeRefreshedTokens(res);return res.json().then(function(data){if(!data||data.ok!==true||data.dashboard!==true||!data.user||!(data.user.id||data.user.email)){clearBackendVerification('Respons backend dashboard/A2F tidak valid. Login dan verifikasi A2F ulang.');return false;}setGateReason('Halaman produk diverifikasi backend. Membuka...');return markBackendVerified(data.user);}).catch(function(){clearBackendVerification('Respons backend tidak bisa dibaca. Cek deploy API dan CORS.');return false;});}).catch(function(){clearBackendVerification('Tidak bisa menghubungi backend dashboard. Cek domain API, CORS, atau koneksi.');return false;}).then(function(ok){verificationPromise=null;return ok===true;},function(){verificationPromise=null;clearBackendVerification();return false;});return verificationPromise;}
+    function verifyExistingLoginSession(){if(verificationPromise)return verificationPromise;verificationPromise=fetch(DOMAIN_ME_ENDPOINT,{method:'GET',mode:'cors',credentials:'include',cache:'no-store',headers:sessionHeaders()}).then(function(res){if(!res.ok){return res.clone().json().catch(function(){return null}).then(function(data){var msg=(data&&(data.message||data.error||data.hint))||('Backend menolak akses halaman produk. Status '+res.status+'. Login dan A2F ulang.');clearBackendVerification(msg);if(res.status===401||res.status===403||res.status===419){try{localStorage.removeItem(A2F_READY_KEY);localStorage.removeItem('dirac_dashboard_gate_v1')}catch(e){}}return false;});}mergeRefreshedTokens(res);return res.json().then(function(data){if(!data||data.ok!==true||data.dashboard!==true||!data.user||!(data.user.id||data.user.email)){clearBackendVerification('Respons backend dashboard/A2F tidak valid. Login dan verifikasi A2F ulang.');return false;}setGateReason('Halaman produk diverifikasi backend. Membuka...');return markBackendVerified(data.user);}).catch(function(){clearBackendVerification('Respons backend tidak bisa dibaca. Cek deploy API dan CORS.');return false;});}).catch(function(){clearBackendVerification('Tidak bisa menghubungi backend dashboard. Cek domain API, CORS, atau koneksi.');return false;}).then(function(ok){verificationPromise=null;return ok===true;},function(){verificationPromise=null;clearBackendVerification();return false;});return verificationPromise;}
     function lockPage(){document.body.classList.add('gate-locked');document.documentElement.removeAttribute('data-product-unlocked');}
     function unlockPage(){document.body.classList.remove('gate-locked','gate-checking');document.documentElement.setAttribute('data-product-unlocked','true');}
     function enforceProductAccess(){document.body.classList.add('gate-locked','gate-checking');verifyExistingLoginSession().then(function(ok){document.body.classList.remove('gate-checking');if(ok&&authAllowed())unlockPage();else lockPage();}).catch(function(){document.body.classList.remove('gate-checking');clearBackendVerification();lockPage();});}
-    window.diracProductGate={enforce:enforceProductAccess,authAllowed:authAllowed,logout:function(){try{fetch(DOMAIN_LOGOUT_ENDPOINT,{method:'POST',mode:'same-origin',credentials:'include',cache:'no-store',keepalive:true,headers:sessionHeaders()}).catch(function(){})}catch(e){};try{localStorage.removeItem(AUTH_KEY);localStorage.removeItem(A2F_KEY);localStorage.removeItem(A2F_READY_KEY);localStorage.removeItem('dirac_dashboard_gate_v1')}catch(e){};clearBackendVerification();lockPage();location.href='masuk.html';}};
+    window.diracProductGate={enforce:enforceProductAccess,authAllowed:authAllowed,logout:function(){try{fetch(DOMAIN_LOGOUT_ENDPOINT,{method:'POST',mode:'cors',credentials:'include',cache:'no-store',keepalive:true,headers:sessionHeaders()}).catch(function(){})}catch(e){};try{localStorage.removeItem(AUTH_KEY);localStorage.removeItem(A2F_KEY);localStorage.removeItem(A2F_READY_KEY);localStorage.removeItem('dirac_dashboard_gate_v1')}catch(e){};clearBackendVerification();lockPage();location.href=window.DiracRoutes.url('auth');}};
     document.addEventListener('DOMContentLoaded',function(){enforceProductAccess();window.addEventListener('storage',function(e){if(e&&/^(dirac_auth_session_v1|dirac_auth_a2f_v1|dirac_auth_a2f_dashboard_ready_v1|dirac_dashboard_gate_v1)$/.test(e.key||''))enforceProductAccess();});document.addEventListener('visibilitychange',function(){if(!document.hidden)enforceProductAccess();});window.addEventListener('pageshow',function(e){if(e.persisted)enforceProductAccess();});setInterval(function(){if(authAllowed())enforceProductAccess();},120000);});
   })();
   </script>
@@ -10817,15 +11194,15 @@ body.dirac-checkout-security-open{overflow:hidden!important}
       try{
         const stamp = encodeURIComponent(String(Date.now()));
         const urls = [
-          '/api/health?action=domain_health&_csrf_bootstrap=' + stamp + '&_dirac_page_nonce_for=checkout_order',
-          '/api/health?action=domain_health&_csrf_bootstrap=' + stamp + '&_page_nonce_for=checkout_order',
-          '/api/health?action=domain_health&_csrf_bootstrap=' + stamp + '&page_nonce_for=checkout_order'
+          window.DiracRoutes.api('/api/health?action=domain_health&_csrf_bootstrap=' + stamp + '&_dirac_page_nonce_for=checkout_order'),
+          window.DiracRoutes.api('/api/health?action=domain_health&_csrf_bootstrap=' + stamp + '&_page_nonce_for=checkout_order'),
+          window.DiracRoutes.api('/api/health?action=domain_health&_csrf_bootstrap=' + stamp + '&page_nonce_for=checkout_order')
         ];
         for(const url of urls){
           try{
             const response = await fetch(url, {
               method: 'GET',
-              mode: 'same-origin',
+              mode: 'cors',
               credentials: 'include',
               cache: 'no-store',
               headers: { 'Accept': 'application/json' }
@@ -10913,9 +11290,9 @@ body.dirac-checkout-security-open{overflow:hidden!important}
       try{
         const checkoutPageNonce = await diracFetchCheckoutPageNonce();
         if(!checkoutPageNonce) throw new Error('Token keamanan checkout belum siap. Muat ulang halaman lalu coba lagi.');
-        const response = await fetch('/api/health?action=checkout_order', {
+        const response = await fetch(window.DiracRoutes.api('/api/health?action=checkout_order'), {
           method: 'POST',
-          mode: 'same-origin',
+          mode: 'cors',
           credentials: 'include',
           cache: 'no-store',
           headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-Dirac-Page-Nonce': checkoutPageNonce, 'X-Page-Nonce': checkoutPageNonce },
@@ -11051,7 +11428,7 @@ body.dirac-checkout-security-open{overflow:hidden!important}
       panel.appendChild(grid);
       panel.appendChild(DiracSafeDOM.el('div',{className:'dirac-payment-note',text:'Payment gateway belum aktif, jadi tombol bayar belum membuka halaman pembayaran. Data invoice sudah disimpan agar bisa tampil di dashboard pelanggan.'}));
       const actions = DiracSafeDOM.el('div',{className:'dirac-invoice-actions'});
-      actions.appendChild(DiracSafeDOM.el('a',{className:'btn-secondary',text:'Lihat di Dashboard',attrs:{href:'dashboard.html#pesanan-saya'}}));
+      actions.appendChild(DiracSafeDOM.el('a',{className:'btn-secondary',text:'Lihat di Dashboard',attrs:{href:window.DiracRoutes.url('panel')+'#pesanan-saya'}}));
       if(paymentReady){
         actions.appendChild(DiracSafeDOM.el('a',{className:'btn-primary',text:'Bayar Sekarang',attrs:{href:String(invoice.payment_url || ''),rel:'noopener noreferrer'}}));
       }else{
@@ -11434,7 +11811,7 @@ body.dirac-checkout-security-open{overflow:hidden!important}
 
   // Semua aktivitas katalog dan checkout website toko lewat backend.
   // Tidak ada SUPABASE_URL, SUPABASE_ANON_KEY, atau REST Supabase di HTML ini.
-  const DIRAC_PRODUCTS_ENDPOINT = '/api/health?action=parfum_products&limit=5000';
+  const DIRAC_PRODUCTS_ENDPOINT = window.DiracRoutes.api('/api/health?action=parfum_products&limit=5000');
 
   function cleanText(value, fallback){
     const text = String(value ?? '').trim();
@@ -11518,7 +11895,7 @@ body.dirac-checkout-security-open{overflow:hidden!important}
   function backendGetProducts(){
     return fetch(DIRAC_PRODUCTS_ENDPOINT, {
       method: 'GET',
-      mode: 'same-origin',
+      mode: 'cors',
       credentials: 'omit',
       cache: 'no-store',
       headers: { 'Accept': 'application/json' }
@@ -14110,8 +14487,8 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   if(window.__DIRAC_AI_ASSISTANT_INSTALLED__) return;
   window.__DIRAC_AI_ASSISTANT_INSTALLED__ = true;
 
-  const DEFAULT_AI_ENDPOINT = '/api/chat';
-  const AI_ENDPOINTS = Array.from(new Set([window.DIRAC_AI_ENDPOINT || DEFAULT_AI_ENDPOINT, DEFAULT_AI_ENDPOINT, '/api/chat'].filter(Boolean)));
+  const DEFAULT_AI_ENDPOINT = window.DiracRoutes.api('/api/chat');
+  const AI_ENDPOINTS = Array.from(new Set([window.DIRAC_AI_ENDPOINT || DEFAULT_AI_ENDPOINT, DEFAULT_AI_ENDPOINT].filter(Boolean)));
   const AI_ENDPOINT = AI_ENDPOINTS[0];
   const ANALYTICS_ENDPOINT = window.DIRAC_AI_ANALYTICS_URL || '';
   const FEEDBACK_ENDPOINT = window.DIRAC_AI_FEEDBACK_URL || '';
@@ -15089,7 +15466,7 @@ function staticGeneralAnswerLocal(text) {
     if(/\b(presiden indonesia|presiden ri|presiden republik indonesia)\b/.test(n) && /\b(ada berapa|berapa jumlah|berapa orang|daftar|urutan)\b/.test(n)) return {text:'Indonesia sudah memiliki 8 presiden: Soekarno, Soeharto, B.J. Habibie, Abdurrahman Wahid, Megawati Soekarnoputri, Susilo Bambang Yudhoyono, Joko Widodo, dan Prabowo Subianto.', links:[], products:[]};
     if(/\b(presiden indonesia|presiden ri|presiden republik indonesia)\b/.test(n)) return {text:'Presiden Indonesia saat ini adalah Prabowo Subianto. Wakil presidennya adalah Gibran Rakabuming Raka. Mereka menjabat untuk periode 2024-2029.', links:[], products:[]};
     if(/\b(presiden amerika|presiden amerika serikat|presiden as|presiden usa|presiden us)\b/.test(n) && /\b(ada berapa|berapa jumlah|berapa orang|daftar|urutan)\b/.test(n)) return {text:'Amerika Serikat memiliki 47 nomor presiden. Karena Grover Cleveland dan Donald Trump dihitung dua kali untuk masa jabatan yang tidak berurutan, jumlah orang yang pernah menjadi presiden AS adalah 45 orang.', links:[], products:[]};
-    if(intent.brand) return {text:'Dirac Group adalah perusahaan yang bergerak di bidang reseller parfum serta pengembangan dan pembuatan website, dengan fokus pada penyediaan produk parfum berkualitas dan layanan digital profesional yang mendukung kebutuhan individu maupun bisnis; melalui komitmen pada kualitas, inovasi, dan pelayanan yang terpercaya, Dirac Group hadir sebagai mitra strategis dalam memenuhi kebutuhan gaya hidup sekaligus memperkuat kehadiran bisnis pelanggan di era digital.\nhttps://diracgroup.store', links:[{label:'Buka website Dirac Group', url:'https://diracgroup.store'}], products:[]};
+    if(intent.brand){ var brandUrl=window.DiracRoutes.origin('shop'); return {text:'Dirac Group adalah perusahaan yang bergerak di bidang reseller parfum serta pengembangan dan pembuatan website, dengan fokus pada penyediaan produk parfum berkualitas dan layanan digital profesional yang mendukung kebutuhan individu maupun bisnis; melalui komitmen pada kualitas, inovasi, dan pelayanan yang terpercaya, Dirac Group hadir sebagai mitra strategis dalam memenuhi kebutuhan gaya hidup sekaligus memperkuat kehadiran bisnis pelanggan di era digital.\n'+brandUrl, links:[{label:'Buka website Dirac Group', url:brandUrl}], products:[]}; }
     if(intent.productCount) return {text:productCountReplyLocal(), links:[], products:[]};
     if(intent.math) return {text:solveMathQuestionLocal(message), links:[], products:[]};
     if(intent.productPrice) return productPriceReplyLocal(message);
@@ -15107,8 +15484,8 @@ function staticGeneralAnswerLocal(text) {
       if(/\b(harga|kurs|harga hari ini|terbaru|sekarang|saat ini)\b/.test(n)) return {text:'Saya tidak punya akses data real-time untuk topik itu. Cek sumber resmi terbaru agar hasilnya akurat. Untuk produk Dirac, saya bisa membaca harga dari kartu katalog jika Anda sebutkan nama produknya.', links:[], products:[]};
       return {text:'Ini pertanyaan umum, bukan produk Dirac. Saya tidak akan mengubahnya menjadi rekomendasi parfum. Jika AI utama sedang tidak aktif, saya tetap bisa menjawab matematika, beberapa geografi Indonesia, info dasar parfum, dan harga produk katalog. Untuk topik umum yang sangat luas atau terbaru, aktifkan API AI utama agar jawabannya lengkap dan akurat.', links:[], products:[]};
     }
-    if(intent.website) return {text:'Website resmi Dirac Group ada di sini:\nhttps://diracgroup.store', links:[{label:'Buka website Dirac Group', url:'https://diracgroup.store'}], products:[]};
-    if(intent.tracking) return {text:'Untuk cek resi, buka halaman Cek Resi Dirac Group lalu masukkan nomor resi dan pilih kurir:\nhttps://diracgroup.store/cekresi.html', links:[{label:'Buka Cek Resi', url:'https://diracgroup.store/cekresi.html'}], products:[]};
+    if(intent.website){ var websiteUrl=window.DiracRoutes.origin('shop'); return {text:'Website resmi Dirac Group ada di sini:\n'+websiteUrl, links:[{label:'Buka website Dirac Group', url:websiteUrl}], products:[]}; }
+    if(intent.tracking){ var trackingUrl=window.DiracRoutes.origin('shop')+'/cekresi.html'; return {text:'Untuk cek resi, buka halaman Cek Resi Dirac Group lalu masukkan nomor resi dan pilih kurir:\n'+trackingUrl, links:[{label:'Buka Cek Resi', url:trackingUrl}], products:[]}; }
     if(intent.cart) return {text:'Cara beli: pilih produk, klik Tambah, buka keranjang, isi data, lalu Checkout database. Kalau ingin dibantu admin, klik tombol WhatsApp di halaman.', links:[{label:'Chat Admin WhatsApp', url:'https://wa.me/6287892523968'}], products:[]};
     if(/\b(bandingkan|perbandingan|compare|versus|vs|beda|bedanya|lebih bagus mana|pilih mana)\b/.test(n)){
       updateRecommendationState(message);
@@ -16619,8 +16996,8 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
     - verifikasi akses tetap lewat backend HttpOnly cookie: /api/health?action=domain_dashboard_me.
   */
 
-  var LOGIN_PAGE = 'masuk.html';
-  var API_BASE = '/api/health';
+  var LOGIN_PAGE = window.DiracRoutes.url('auth');
+  var API_BASE = window.DiracRoutes.api('/api/health');
   var VERIFY_ENDPOINT = API_BASE + '?action=domain_dashboard_me';
   var LOGOUT_ENDPOINT = API_BASE + '?action=domain_logout';
   var IDLE_LIMIT_MS = 5 * 60 * 1000;
@@ -16720,7 +17097,7 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
     var particles = DiracSafeDOM.el('div',{className:'dirac-final-particle-field',attrs:{'aria-hidden':'true'}});
     for(var i=0;i<10;i+=1) particles.appendChild(DiracSafeDOM.el('span'));
     stage.appendChild(particles);
-    stage.appendChild(DiracSafeDOM.el('img',{className:'dirac-final-logo-img',attrs:{src:'dirac-security.png',alt:'Dirac Security',decoding:'async',loading:'eager'}}));
+    stage.appendChild(DiracSafeDOM.el('img',{className:'dirac-final-logo-img',attrs:{src:'umroh.webp',alt:'Dirac Group',decoding:'async',loading:'eager'}}));
     loader.appendChild(stage);
     loader.appendChild(DiracSafeDOM.el('h1',{className:'dirac-final-session-title'}, 'Mengecek Sesi Pelanggan', DiracSafeDOM.el('span',{className:'dirac-final-dots',text:'...'})));
     loader.appendChild(DiracSafeDOM.el('div',{className:'dirac-final-progress-track',attrs:{'aria-hidden':'true'}}));
@@ -16811,7 +17188,7 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
     try{
       var res = await fetch(withCacheBust(VERIFY_ENDPOINT), {
         method: 'GET',
-        mode: 'same-origin',
+        mode: 'cors',
         credentials: 'include',
         cache: 'no-store',
         headers: { 'Accept': 'application/json' }
@@ -16849,7 +17226,7 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
       await Promise.race([
         fetch(withCacheBust(LOGOUT_ENDPOINT), {
           method: 'POST',
-          mode: 'same-origin',
+          mode: 'cors',
           credentials: 'include',
           cache: 'no-store',
           keepalive: true,
@@ -16895,7 +17272,7 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
     try{
       var res = await fetch(withCacheBust(VERIFY_ENDPOINT), {
         method: 'GET',
-        mode: 'same-origin',
+        mode: 'cors',
         credentials: 'include',
         cache: 'no-store',
         headers: { 'Accept': 'application/json' }
@@ -17848,7 +18225,7 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
   if(window.__DIRAC_CHECKOUT_FINAL_SECURITY_JS__) return;
   window.__DIRAC_CHECKOUT_FINAL_SECURITY_JS__ = true;
 
-  var API_BASE = '/api/health';
+  var API_BASE = window.DiracRoutes.api('/api/health');
   var ME_ENDPOINT = API_BASE + '?action=domain_dashboard_me';
   var LOGOUT_ENDPOINT = API_BASE + '?action=domain_logout';
   var SECURITY_REPORT_ENDPOINT = API_BASE + '?action=security_report';
@@ -17872,10 +18249,10 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
   function setError(message){ var el=$('checkoutError'); if(el){ el.classList.remove('success'); el.textContent=message||''; el.classList.toggle('show', !!message); } }
   function triggerInput(el){ if(!el) return; try{ el.dispatchEvent(new Event('input',{bubbles:true})); }catch(_){ } try{ el.dispatchEvent(new Event('change',{bubbles:true})); }catch(_){ } }
 
-  function invalidNameChars(value){ return /[^A-Za-z ]/.test(safeText(value)); }
-  function invalidTextChars(value){ return /[^A-Za-z0-9 ]/.test(safeText(value)); }
-  function invalidMenuChars(value){ return /[^A-Za-z ]/.test(safeText(value)); }
-  function invalidSearchChars(value){ return /[^A-Za-z0-9 ]/.test(safeText(value)); }
+  function invalidNameChars(value){ return /[^\p{L}\p{M} .'-]/u.test(safeText(value)); }
+  function invalidTextChars(value){ return /[^\p{L}\p{M}\p{N}\s.,#/'()&:+-]/u.test(safeText(value)); }
+  function invalidMenuChars(value){ return /[^\p{L}\p{M}\p{N}\s.,'&-]/u.test(safeText(value)); }
+  function invalidSearchChars(value){ return /[^\p{L}\p{M}\p{N}\s.,#/'()&:+-]/u.test(safeText(value)); }
   function invalidPromoChars(value){ return /[^A-Z0-9]/.test(safeText(value)); }
   function invalidPhoneChars(value){ var v=safeText(value); return /[^0-9+]/.test(v) || /\+/.test(v.slice(1)) || (v.indexOf('+') > 0); }
   function decodeThreatText(value){
@@ -17896,6 +18273,7 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
       .replace(/&\s*apos\s*;?/gi,"'");
   }
   function hasPayload(value){
+    if(window.DiracHTMLGuard && typeof window.DiracHTMLGuard.check === 'function') return window.DiracHTMLGuard.check(value).detected === true;
     var raw = safeText(value).normalize('NFKC');
     var decoded = decodeThreatText(raw).normalize('NFKC');
     var samples = [raw, decoded, raw.replace(/\+/g,' '), decoded.replace(/\+/g,' ')];
@@ -18382,14 +18760,15 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
   function cleanForKind(kind, value){
     var v = safeText(value).normalize('NFKC');
     if(kind === 'promo') return v.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,32);
-    if(kind === 'name' || kind === 'menu') return v.replace(/[^A-Za-z ]/g,'');
-    if(kind === 'detail' || kind === 'note' || kind === 'search') return v.replace(/[^A-Za-z0-9 ]/g,'');
+    if(kind === 'name') return v.replace(/[^\p{L}\p{M} .'-]/gu,'');
+    if(kind === 'menu') return v.replace(/[^\p{L}\p{M}\p{N}\s.,'&-]/gu,'');
+    if(kind === 'detail' || kind === 'note' || kind === 'search') return v.replace(/[^\p{L}\p{M}\p{N}\s.,#/'()&:+-]/gu,'');
     if(kind === 'phone') return v.replace(/[^\d+]/g,'').replace(/(?!^)\+/g,'');
     return v;
   }
-  function nameIsComplete(value){ var v=compactSpace(value); return v.length>=2 && v.length<=80 && /^[A-Za-z]+(?: [A-Za-z]+)*$/.test(v) && !hasPayload(v); }
-  function detailIsComplete(value){ var v=compactSpace(value); return v.length>=5 && v.length<=180 && /^[A-Za-z0-9]+(?: [A-Za-z0-9]+)*$/.test(v) && !hasPayload(v); }
-  function noteIsCompleteOrEmpty(value){ var v=compactSpace(value); return !v || (v.length<=180 && /^[A-Za-z0-9]+(?: [A-Za-z0-9]+)*$/.test(v) && !hasPayload(v)); }
+  function nameIsComplete(value){ var v=compactSpace(value); return v.length>=2 && v.length<=80 && /^[\p{L}\p{M}]+(?:[ .'-][\p{L}\p{M}]+)*$/u.test(v) && !hasPayload(v); }
+  function detailIsComplete(value){ var v=compactSpace(value); return v.length>=5 && v.length<=180 && /^[\p{L}\p{M}\p{N}\s.,#/'()&:+-]+$/u.test(v) && !hasPayload(v); }
+  function noteIsCompleteOrEmpty(value){ var v=compactSpace(value); return !v || (v.length<=180 && /^[\p{L}\p{M}\p{N}\s.,#/'()&:+-]+$/u.test(v) && !hasPayload(v)); }
   function phoneIsComplete(value){ var v=compactSpace(value); return /^\+?[0-9]{8,20}$/.test(v) && !invalidPhoneChars(v); }
 
   function ensureModal(){
@@ -18424,11 +18803,11 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
       setTimeout(function(){ try{ fake.remove(); }catch(_){} }, 250);
       return;
     }catch(_){}
-    try{ fetch(LOGOUT_ENDPOINT,{method:'POST',mode:'same-origin',credentials:'include',cache:'no-store',keepalive:true,headers:{'Accept':'application/json'}}).catch(function(){}); }catch(_){}
+    try{ fetch(LOGOUT_ENDPOINT,{method:'POST',mode:'cors',credentials:'include',cache:'no-store',keepalive:true,headers:{'Accept':'application/json'}}).catch(function(){}); }catch(_){}
     try{
       ['dirac_auth_session_v1','dirac_auth_a2f_v1','dirac_auth_a2f_dashboard_ready_v1','dirac_dashboard_gate_v1','dirac_domain_session','dirac_domain_refresh','dirac_customer_mfa_session','sb-auth-token','supabase.auth.token'].forEach(function(k){ try{ localStorage.removeItem(k); sessionStorage.removeItem(k); }catch(__){} });
     }catch(_){}
-    try{ location.replace('masuk.html?protected=1&reason=checkout_security&t=' + now()); }catch(_){ location.href = 'masuk.html'; }
+    try{ location.replace(window.DiracRoutes.url('auth')+'?protected=1&reason=checkout_security&t=' + now()); }catch(_){ location.href = window.DiracRoutes.url('auth'); }
   }
 
   function showSecurityModal(state){
@@ -18462,18 +18841,22 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
     try{
       fetch(SECURITY_REPORT_ENDPOINT, {
         method:'POST',
-        mode:'same-origin',
+        mode:'cors',
         credentials:'include',
         cache:'no-store',
         keepalive:true,
         headers:{'Content-Type':'application/json','Accept':'application/json'},
         body:JSON.stringify({
+          action:'security_report',
           dirac_frontend_security_report_v1:true,
           source:'parfum_html_input_guard',
           field:String(field||'input').slice(0,40),
-          reason:String(reason||'frontend_threat').slice(0,80),
-          threat_family:'xss_or_sql',
-          page:'parfum.html'
+          reason:'html_detected_attack',
+          type:'input_guard',
+          event:'fourth_high_confidence_input_violation',
+          threat_family:String(reason||'frontend_threat').slice(0,80),
+          page:'parfum.html',
+          version:'dirac-html-shell-v1'
         })
       }).catch(function(){});
     }catch(_){}
@@ -18481,6 +18864,7 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
   }
 
   function armSecurityViolation(field, reason){
+    if(/^(?:invalid_key|invalid_paste|invalid_drop|invalid_input|frontend_threat)$/.test(String(reason||'')) && window.DiracHTMLGuard && typeof window.DiracHTMLGuard.gate === 'function' && !window.DiracHTMLGuard.gate(field,reason,{family:reason,delegateReport:true})) return;
     var attempts = Number(readJson(ATTEMPT_KEY, 0) || 0) + 1;
     if(!Number.isFinite(attempts) || attempts < 1) attempts = 1;
     if(attempts > 5) attempts = 5;
@@ -18517,7 +18901,7 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
       var htmlIndex = lower.indexOf('.html');
       if(htmlIndex === -1) return false;
       if(htmlIndex + 5 !== path.length) return true;
-      return !!(window.location.search || window.location.hash);
+      return false;
     }catch(_){ return false; }
   }
   function guardCleanHtmlUrl(){
@@ -18541,13 +18925,14 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
 
   function setFieldHardening(){
     var name=$('buyerName'), phone=$('buyerPhone'), email=$('buyerEmail'), detail=$('buyerAddressDetail'), note=$('buyerNote'), pay=$('paymentMethod'), menu=$('diracUltraMenuSearch'), search=$('searchInput'), promo=$('promoInput');
-    if(name){ name.setAttribute('autocapitalize','none'); name.setAttribute('spellcheck','false'); name.setAttribute('pattern','[A-Za-z ]{2,80}'); name.setAttribute('maxlength','80'); }
+    [name,phone,email,detail,note,menu,search,promo].forEach(function(el){ if(el) el.setAttribute('data-dirac-input-guard','off'); });
+    if(name){ name.setAttribute('autocapitalize','words'); name.setAttribute('spellcheck','false'); name.setAttribute('pattern',"[\\p{L}\\p{M} .'-]{2,80}"); name.setAttribute('maxlength','80'); }
     if(phone){ phone.setAttribute('autocapitalize','none'); phone.setAttribute('spellcheck','false'); phone.setAttribute('pattern','\\+?[0-9]{8,20}'); phone.setAttribute('maxlength','20'); }
     if(email){ email.setAttribute('readonly','readonly'); email.setAttribute('aria-readonly','true'); email.setAttribute('data-dirac-email-locked','true'); email.addEventListener('keydown', function(e){ e.preventDefault(); }, true); email.addEventListener('paste', function(e){ e.preventDefault(); }, true); email.addEventListener('drop', function(e){ e.preventDefault(); }, true); }
-    if(detail){ detail.setAttribute('autocapitalize','none'); detail.setAttribute('spellcheck','false'); detail.setAttribute('pattern','[A-Za-z0-9 ]{5,180}'); detail.setAttribute('maxlength','180'); }
-    if(note){ note.setAttribute('autocapitalize','none'); note.setAttribute('spellcheck','false'); note.setAttribute('pattern','[A-Za-z0-9 ]{0,180}'); note.setAttribute('maxlength','180'); }
-    if(menu){ menu.setAttribute('autocapitalize','none'); menu.setAttribute('spellcheck','false'); menu.setAttribute('pattern','[A-Za-z ]*'); menu.setAttribute('maxlength','80'); }
-    if(search){ search.setAttribute('autocapitalize','none'); search.setAttribute('spellcheck','false'); search.setAttribute('pattern','[A-Za-z0-9 ]*'); search.setAttribute('maxlength','120'); }
+    if(detail){ detail.setAttribute('autocapitalize','sentences'); detail.setAttribute('spellcheck','false'); detail.setAttribute('pattern',"[\\p{L}\\p{M}\\p{N}\\s.,#/'()&:+-]{5,180}"); detail.setAttribute('maxlength','180'); }
+    if(note){ note.setAttribute('autocapitalize','sentences'); note.setAttribute('spellcheck','false'); note.setAttribute('pattern',"[\\p{L}\\p{M}\\p{N}\\s.,#/'()&:+-]{0,180}"); note.setAttribute('maxlength','180'); }
+    if(menu){ menu.setAttribute('autocapitalize','sentences'); menu.setAttribute('spellcheck','false'); menu.setAttribute('maxlength','80'); }
+    if(search){ search.setAttribute('autocapitalize','sentences'); search.setAttribute('spellcheck','false'); search.setAttribute('maxlength','120'); }
     if(promo){ promo.setAttribute('autocapitalize','characters'); promo.setAttribute('spellcheck','false'); promo.setAttribute('pattern','[A-Z0-9]*'); promo.setAttribute('maxlength','32'); }
     if(pay){ pay.value='payment_gateway'; if(pay.tagName !== 'INPUT') pay.style.display='none'; }
   }
@@ -18638,7 +19023,7 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
 
   async function getBackendEmail(){
     if(emailPromise) return emailPromise;
-    emailPromise = fetch(ME_ENDPOINT, {method:'GET', mode:'same-origin', credentials:'include', cache:'no-store', headers:{'Accept':'application/json'}})
+    emailPromise = fetch(ME_ENDPOINT, {method:'GET', mode:'cors', credentials:'include', cache:'no-store', headers:{'Accept':'application/json'}})
       .then(function(res){ return res.json().catch(function(){return null;}).then(function(data){ return {res:res,data:data}; }); })
       .then(function(out){
         var data = out.data || {};
