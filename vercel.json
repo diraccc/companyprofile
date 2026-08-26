@@ -5,7 +5,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; connect-src 'self' https://diracgroup.store https://www.diracgroup.store https://api.diracgroup.store; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self' https://wa.me https://api.whatsapp.com; worker-src 'self' blob:; manifest-src 'self'; media-src 'self' data:"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; connect-src 'self' https://diracgroup.store https://www.diracgroup.store https://api.diracgroup.store https://parfum.diracgroup.store; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self' https://wa.me https://api.whatsapp.com; worker-src 'self' blob:; manifest-src 'self'; media-src 'self' data:"
         }
       ]
     }
