@@ -1,0 +1,15 @@
+/*
+  Content-Security-Policy: default-src 'self'; base-uri 'self'; connect-src 'self'; font-src 'self' data:; form-action 'self' https://wa.me; frame-ancestors 'none'; frame-src 'none'; img-src 'self' data:; manifest-src 'self'; media-src 'none'; object-src 'none'; script-src 'self' 'sha256-5JU1WIyKpbcSg5nYrVBi/etuz4FlHRRqmvBPeuN7xbw=' 'sha256-7ehrATmjMzz3FFY9aNXtvzA/Q0KAHjzDssDNnFGXAGI=' 'sha256-Ac42GGFLkVHlQ/Qbv8VKcHjswn4OybxcSO3gRBE/XS0=' 'sha256-B/NSt7qwM2kjXksMm26KNJX7otr+yJcuGoI5+ibmpHU=' 'sha256-EETwYSCo0lZ4YIlirahLbfSATvWQjdXqOhxO2un5APA=' 'sha256-EF4k+LAiJSb/yokVOpNIYWeUAdzbZfnF19aa3EZOPnA=' 'sha256-I8pQV4h2XwKOEgjhiyBqIUo5xsnXwWyzKzUJn6azmLk=' 'sha256-JKnCJt19s6ZT4+fJRtL20TUg21XM4LxdfqsPhttP9Jc=' 'sha256-NC0le7rqrSKiNL4MH8Ye05Z3ZnaoeLGsJOcwDGL6aBk=' 'sha256-ObTuwmcwJ7LpJvPlGh7k760K86vRXNExC4DxbAibiSA=' 'sha256-Qyjw98waqiT5m03H61wQO+zPkywv54r711iqcovFgWU=' 'sha256-UM551MX7o+CdxNTmtDvt6jiZjmqSkS75hP4uT9iB7ZU=' 'sha256-UpBhfH6QJ8851sOqrnzweS3G7PJ7LmZv/0CDYSjJeRk=' 'sha256-gujs1GKlRy5EexzgmtY4jtw/l//qHV69SOigP11m4mw=' 'sha256-kei1fdMlbEocvb4P2Kbtj9USgybfQA92HAoJ8z9nLEk=' 'sha256-lEMDn1HfRzRTZwkggEIABcSiWGa0Uo8QUIYkUB6tbe0=' 'sha256-mdbaByHSV+imlTWJgsFOUDImgiC+HxLqIaONRrxDeDo=' 'sha256-otT2luQrhvHOVqx428ud8GCRPlrOVIBGiip9b8BUcfg=' 'sha256-r+WeVfCXYIlLrjnKXhR3u7zEkovBv16m0DCQjbhK2Xg=' 'sha256-ur+OFz6UvcLiHaoP3o50rVkF9+yN3hZeGASu9ZjI7pY=' 'sha256-v28XZUkRoEyEHvN0oSaH32GTMaVbYXTnY0pOHmXiPBA=' 'sha256-vyD0tDLKSgU2naTnaXTz2+x9ZDwIx28ZDvB62usV+EQ=' 'sha256-wqOuaFmrQGtyvw1mzlOZlbANkIe+2PiK5AX+rFKJfFU=' 'sha256-xYKH4AjkFY1/VfOZNHLI7jNqd/uoprPncdqsJvVWU3g='; script-src-attr 'none'; style-src 'self' 'sha256-noAuSrHGh/BFjXWkiXB5EwquJXXHZ5DCiU+IP1j1D3o='; style-src-attr 'none'; upgrade-insecure-requests; worker-src 'none'
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Resource-Policy: same-origin
+  Permissions-Policy: camera=(), geolocation=(), microphone=(), payment=(), usb=()
+  Referrer-Policy: strict-origin-when-cross-origin
+  Strict-Transport-Security: max-age=31536000
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+
+/assets/*
+  Cache-Control: public, max-age=3600, must-revalidate
+
+/*.html
+  Cache-Control: public, max-age=300, must-revalidate

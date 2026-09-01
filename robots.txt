@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://diracgroup.store/sitemap.xml
+Sitemap: https://digdaya-inovasi-nusantara.art0ihsan.chatgpt.site/sitemap.xml
