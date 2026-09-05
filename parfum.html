@@ -1,7 +1,316 @@
 <!doctype html>
 <html lang="id">
 <head>
-<meta http-equiv="Content-Security-Policy" content="default-src &#x27;self&#x27;; base-uri &#x27;none&#x27;; object-src &#x27;none&#x27;; frame-src &#x27;none&#x27;; child-src &#x27;none&#x27;; script-src &#x27;self&#x27; &#x27;sha512-vVEkS7QvF2ii4MZMy6MEIF1LtZN5LnDg3CAHzpc3IEvtH8PoG9JMoNFYsb6zx/v1BCCnatqasM5Uz21uwPUgnA==&#x27; &#x27;sha512-s3VWRJZYGfA1wDpUaBv0VMs2hzLEt5okQKZT1OdlS6/b2n0+lzUZZxVBrsiQERmdmZWUr2zkIoXQLhLeAhvEaA==&#x27; &#x27;sha512-dxY1BapRrq31+PCJMkQCSym2fG4qqYScxZOhtz2M3Ql4TyoCJ/JgCGtWRlUNQJOLXBdbdJcPDCCwXXJAxMYAdg==&#x27; &#x27;sha512-61sM/CtKqdTECY/4YW9R/GY4SxHufQ+blY9HiomBRiZYcxGVBrTOLHzAR/S5+KAxkk9UmJL5t3Z+wEaygmFEew==&#x27; &#x27;sha512-ON2wNyY399Xp5lSWaz3eVFaUXbXWOKgITOntc4vUT37KO0jHFqUpECoHajZVAdYRGCs4LlM/MaK62IFy+Z3kYA==&#x27; &#x27;sha512-AY7tx0V0mcf720z+X+VIvcXtluUN1kqBQwHZShBpzW3AJKOIWxrQmfHbwt6p1+xUpPcMxDYTljFyvaR7UGH9Fw==&#x27; &#x27;sha512-WG5DfWGeT08TGNLijo0+ZSnoR12XxAKJE+Ut1uGWYrrByJ7f6xmQoUmzOoHiTGNV4KV57baOG/o7qP4SMGMX+g==&#x27; &#x27;sha512-3KHhPT9O3pT9Nh7kZz0DfjdG1I196YTjMrJ+RM9/rJbB6mJ8ibDwjZRiatYdu4L//JWIYVV5f6s0TkkmiowgSA==&#x27; &#x27;sha512-KC303aAkfTcoW9jqTdFKF50m3CjobTn9K+YsBg30Xfymn45MIPXRuwl4zzOiLdKRtkKmtDDr7MSpEpAyIFFIcg==&#x27; &#x27;sha512-N/+lhc+oeHeCKmxGJibdZsSlPkx0BeNfnwM+InpYkTiOphmXA3ngRsHapZmlSl4b+Iz47V3wiUoqv0V8Pqjh9A==&#x27; &#x27;sha512-zZ64IkZ55Gi8Fa4TXmUvJ2EqnCZxkFBMtnNMojqlfy86SXz809MV8LWzQPBP7fW9KQffHmSjZ+l4nk/tMmCi7w==&#x27; &#x27;sha512-fdPA1N8IAKecIv2mpv2CL0vvnBjlX5QTHo/vhuMMhnOxZl4bvSm4Css8K/KmcA//i5s6F+PN8typ8B01njD9zw==&#x27; &#x27;sha512-A/phzAzYLK3BssUujo1IOUtK68hS/2gyo15qdMWOlk560LUI4lq8DwOlT7buNC7UtLNdfWvWRf6ZeWEIpYQy7w==&#x27; &#x27;sha512-JqdrB8v3wH+ibL03CU41PTw2G5cddwxQZgCcQia22chXaZaOtQW6fIMg9BkUbMExQcCLQ/zdXkadinSbeCAdog==&#x27; &#x27;sha512-9d11oQQSVbghnAng1ulALsA/Mq/pp1EJ5r780uIblrfXaZtVu3zXwvCohWJQrTrRZEG74Q1+c7xzWzBSmoK/dw==&#x27; &#x27;sha512-Qv0JhKF9HuvyAYncaCejP5vDKM/+p2P/IMvmE2A2WKKYMPBEBXt/B1QM1JnVjbg8onnXs15A5hxNPZnvAdHPMA==&#x27; &#x27;sha512-X2cRtV+vDBfGt6VjVW1XcOjBPMKkP6R/VAjhx+UHonGj/NCz4PRJmVcoRCVo/9nG2QrIhGWuxh8/xQ9xOhEj/g==&#x27; &#x27;sha512-2RQ0wp1EMAU4UQs3YxpYJ4Ht4G7Ir8PjgvwRCPhgRZSox1NC6RnvRn38UM8vrqUjGNE+/XIxK7EKxnc/KSwp0g==&#x27; &#x27;sha512-RxSlDAB6moN+zMB6eHTs9sBKaxNvHSVemnlAu0A7CzlbQTq+tgjTfIag7s7iJ6lDFP9dJDERcARXoQ92BO8Xog==&#x27; &#x27;sha512-ZxTooEOCwKDJj0nWOkTTi7J9xD4YFMrHozf8Yko1vbpBIwfmcmOAk050O2I9wjvRw5MqWTZwi0an4gWsDLwcgQ==&#x27; &#x27;sha512-xaKL//vn94QqhJP6D6x5i8qXL+Q4bVsU3nIt0fQiU7WPUTmgrGWZV5vpZXg5dPSO9qsNxRTiE+L2EF5ko82WBA==&#x27; &#x27;sha512-Xfv0oF8h+MYAGURqfkL7Er1zX4l1ELeYGoCzkAZpbiAiD13sj351Cw5UL/VzsqaUP5Xi7rFUXYfmf1MYo7/kNw==&#x27; &#x27;sha512-w0GFBg7Y/t9wgP/Q4KX1LdVg8z8jqZHrfUTUKbJqg3zIqdkvp1BRhD61mrXbtrrqXu22uBib6Qenu4vZLfmQrA==&#x27; &#x27;sha512-vY3AeLKye6RiLwmShQZinTq1xa6vE9lgOYZBk5FekWcmG/vRe+tfKtUdgGkmnfl7MLAOE5iSnDxVg3GweKernQ==&#x27; &#x27;sha512-jAQ12zoaAvy33Ci7VLzZ0n0wPTStSShvGFW3eZyqLtcfq+p+N+718hP7WX1EItUtxAiz49lIIl8him0VumrVsg==&#x27; &#x27;sha512-sMB+TA962GVihCprS1fhaizR9hjNzTJjdJrwPnudyCBxAx/n/Kz7ZlwWyuACAlftQ4ee7zgipzN+pAMYAKe3Gw==&#x27; &#x27;sha512-5HnPgO4xNs9w2hdcKOl1O1AAzU6unsxp3FOBgKzCkJ7HZ9f/1VYeBZ95r2QCn6e+h2e4NQZr626nP5BSBibMIg==&#x27; &#x27;sha512-XySB0rH3i2TxQr8a0U+QD+/DhuRWHdmoPJVu91ze/yxUhIlKGt0loPfhmNE6aRbv2cZavOqfzFzS+YJBjIDXBg==&#x27; &#x27;sha512-F70Ie5wTJHS7gj7avoma+cM3LHhRDIEFfRh2eRp5VCqxYs+MiQKfEZhxha4dI+4z63io74JoYc9zfURwqTgerw==&#x27; &#x27;sha512-6pt6a9qlvYd56yqBkNuhBkUp4JE+Uur36v1662Ti1iiMAQlN/ESxJii/gZWjOOXrHYGVs3do770lo47gv20Ajg==&#x27; &#x27;sha512-uckIS3Jvm7iryIR3WLhsQT9PQ41qZtzx/w6SsA4M6OzFAnumIH9VDVLlRkukG7+cIxuiJm3XMAyjFp3HeB2p1Q==&#x27; &#x27;sha512-HbSNKbrqV8LOpnIubFcpGaFXAn85sWtkJRlvi2Bp6cZWGhZ4auz0x8aCJlv6NVuoFvN+SxKK+iUTgLx1InaywQ==&#x27; &#x27;sha512-YG5CyILlraI22Krq56ejITF6FQF8xeViArAndBf6Tp7Ocgj2N3ep/1Rq0OAhgyUnfUrkMu6Fs5YAzB+wrYHfuA==&#x27; &#x27;sha512-1YSpg5BuBNM/bcESXEYNE287piu6UibWHZXA/C1OvhqaWdzv9uY/nhfFB+Nh0E8cnQT2zAyfqaQpdlLex8hANQ==&#x27; &#x27;sha512-sY9U5JeubFzov+SNZsmyqCNZqU/V30B4D16TH+dZ8z+LMLmYHMWPOCvAxSG2Qc9S4FQHELaaTNLc8j64zcXweA==&#x27; &#x27;sha512-uwg4+8+/xJOpLFDjY7P1jlki1BfLoSGxvG2D+UJ2VXkNRbHAnydA0Dhy83RsQLXitmx9EHK5/alFgXITpZoRFg==&#x27; &#x27;sha512-YmHmk0l1a5jC+8BMsRKsDcyxqACrshZ4coMY+T+EvWDGIwDGev8UGi7kvpjGCHwCJ3RQ/i/u8T9ehjJY0J0AcQ==&#x27;; script-src-attr &#x27;none&#x27;; style-src &#x27;self&#x27; https://fonts.googleapis.com &#x27;sha512-mgEUxaEGJJg3unGn/NZaUnZKP+aiWI+uoya4SbFi2om1L6Ce9UTy7pV7aLxujY3Nax0cxeohNvn7lsMI11+r3w==&#x27; &#x27;sha512-0tawS1DQYkrO1oLVSqwZIeqQ1idyfyis0rVRzPNoyvsKhExBaxzNWAEfkpFoT5urNXPP6T24/zA0xxyVH/1Jeg==&#x27; &#x27;sha512-xJkwN41LvY3znjpoGpR0pO0eV4GR4Lrhy5d4urPrS+I031pDyAFFCu3mZl2HOStyXN58dym1wlDcjWL02/Tzkw==&#x27; &#x27;sha512-H2I8co0qz+OOtB5+umgHt/OdrU7fyDliMZRXrrO6nLw4pVBXl4M9kbi/1Hv6F6/qDb6NQU+YsbIB6uMqoRtJnw==&#x27; &#x27;sha512-Ojz1O1Nd5MueXlN1aQzpPr4/KM/ptKuqRsjLi/MOi6sWYK9I2o1ApT2fr5yG6wiF0cGW5bwgBXsWs9kE4cOMbA==&#x27; &#x27;sha512-gPNoN4V9PGeG5WNCF9wnqu5sZdBOuBnqOE/SHXNa87DUmDgIy0dxrLbhHbOoB4ppyb2BT3Ct0H37O8UOcMVGDA==&#x27; &#x27;sha512-pAigYa9gqEk/i0ykiURYIYElmsDLNlzQJIqzjV0iYm+NpIYqituLCdxzwUH6pxjM7zBdBeToOFOpmVA5gyj9zQ==&#x27; &#x27;sha512-/9vcRC4dKK2OC8tPBGK5Tps4/4Cl525bI+iLVtdqSWq9dv5afGuZyU8zcaQJC4APUhpJgXliyKinptP3ZlCNjg==&#x27; &#x27;sha512-Ur+kZlKQYpsDjMjggAxKx7LClFCzAm0RdTdUzQfztWNSSpAj+ZnvEWa5pUOFGt609IKVq3fFmzppeEfBvLElOw==&#x27; &#x27;sha512-3cz/aCKP0XswbHB3nEOD/zeM+7l6qL6ndSsUjTxL8AFLv6LtSA2hjkh1kjw6Z2f0mRtmGCHWFBNb4ZALu4MWbw==&#x27; &#x27;sha512-SQgtxHPwUxL9903xesVdDg/AAjpVCBtWXhuI3Mn6eT0G4MXvBX674PoQag0M6vaQqU1ErwRxHEjczJxjCeHU6w==&#x27; &#x27;sha512-mFkEY8h3tKaI3O/mZxKyfmfW0Qb2dbNMCQvsKNrxAZoQXYLY9BhZhBr/C1yKf9p3V6dG6ztniBGYU4EW6KQl7Q==&#x27; &#x27;sha512-pCBrrVBIAHc6unUQNuzVJK42YbcAk57ljL9aHt21ohuv/TZn8bNg77HDWHLgmOc2mYoDUF8KIjQT0MvUUIN8gw==&#x27; &#x27;sha512-rAczzfYS7SIVszd4Vh4s61NniupgHEPa8bwPYFYM6wq2vJksZh6+UeyK8inQhBoscPIEmviMRX7UgDJN5T1vag==&#x27; &#x27;sha512-kodH9KII2W3sxz+VM6hMr2N+0T2ImNefr8ZFp1RqKIM9KLJ5nVrmn2UPU8/WkJ1pp8hLr8HbFjIRXq+M7Un09Q==&#x27; &#x27;sha512-4dlTkPWOPOi9w3ONph6C8EiWI9wMyraAMsmDngy2vgixxEhRKJvB+H8zJQ9J5EkLI0ZnHKnUOagz597SUeh49Q==&#x27; &#x27;sha512-qVPgjA/7ZQUt6EFjonvEsOT2cOggBax6P2ycIh8bNcwYvDrUqWxHIiqxdr9imIgrH9maF5CJpM3EmrB5rmB1LA==&#x27; &#x27;sha512-q4gApce2XZrQm8ne6rk3YoMxVSuBGpNp3jDEwSnEPNXv5kqArf2NKlIdIY7amIui2Fo/2Mjeqw18883emjPm4A==&#x27; &#x27;sha512-TnWSYQ+vuIJLjWFvKquLb1ptF+EaxGGQ5XAq+VzeD7d3yo6uRWNGjmjx5cfO0SlyJ/zydgz/lU6tI6dWXFbvJg==&#x27; &#x27;sha512-+uZ7vnSRXdUshkN8myx9JEYyEYw53e6nQoY0cPB++Ak+gdPDDa1N5Yynnf0pb6pTrQceEgGWEyV3gzGpnAy9RQ==&#x27; &#x27;sha512-823c9C/PnHMkuCjJIL6LKyRFd6J4swVkkejl/eRg7j/hcnKKSgBDtMsNHmilDNs3xtgPCDbSPvZGjqAW43duKQ==&#x27; &#x27;sha512-06J+5zdOHk6vyKtsGuAgOfVXuKn7kUiR4gMw6vr9MOGwAjbeqAJj24/mRISsDi8hA7QHrbmPijRrhRuSmePBVA==&#x27; &#x27;sha512-R2aEmBh3L5gwFe/17WsD6yHxhSbinqGD5afY416mYLjKBdKQWU2km1BPLU04rcLoiaaFi29nv8CUIlkLyeWenA==&#x27; &#x27;sha512-zn2TYoNoAdofGJnCeE4gc0/yUbe2boWA1cZt7AgaGK2o43YRWvKvgahvALPhvZe8MBj2tt0BZOvdDmcvyuqvrw==&#x27; &#x27;sha512-BQW4WtbUId+Xw//OrpwV6guQPROpSwPuwjCXeafVTN26ZeGLOTFIPW6onj6eswYLw+pt5127cZcU45Uzu6nJhQ==&#x27; &#x27;sha512-EN85v4z9Q5daiYfxIX2GSBErrR3IU8zIPLwegTUm5PiRdPBvQwSLosvxXDJriVOjaAvufOT8R667OiIS/Rwriw==&#x27; &#x27;sha512-NcpjeXspBWiIlL939E2Yns1Q8lgRk+J8i5O0Mij6e88S5UVGfefHHmrBs16Gj/T7VubWh9FNMJwn9IN2kQFe6Q==&#x27; &#x27;sha512-vfb39vuo87i8DHuonU98MOwsHCw9syOVki1QQsnlJYxK7EcJ8C4hdmbGjlHrnBUYRv1yguFFqqoXdc5ReVXfgg==&#x27; &#x27;sha512-CrQYc90AAhPLDunVNu9/rhyH7QAN4ITx58oYywit+CzD+DbmCouAI5FBNW7ze30CBv7anHbb+umioP9fyqSiqw==&#x27; &#x27;sha512-QWKdm+XA6y6KZSP721Kiumbk5Ojt5bwfH/vh0BPSJiCzvigv+6ZUFTDaHSRAr/ssmXKLIJlJ4KH2/08cvStJGQ==&#x27; &#x27;sha512-mVofPsREGRyLD8kx4K16tlClpBidE1kkp1RRpnIM20nAeFv29WqC3auu3g7ei+WTYV+OokDhfU+agrSSXRxJXw==&#x27; &#x27;sha512-59fcnMNn5lhvtIxOzdlAS3foQMvL+TW9qODMqKaiDozl/ufSOL9n1SaaiK4g6RUa1QcMiFd0OsJRevKme/1vdw==&#x27; &#x27;sha512-p14Qc1rR8kBI92rgF19KoGrP6yPIXsPwEhAdN/fY+rB2pCk3TEx843hxpKhnNFkPI3jclCLGcnPVqRWtHp931Q==&#x27; &#x27;sha512-ZyNks9BVOPduOEYuTIdDnTDUnm69uhQ+mkXokO1iIy4F/rtkzPc2z2jGBbH5+hKOGpwLg1y4ODoH0ffTTivU3w==&#x27; &#x27;sha512-CECk+stfz+IkStzjFZ4AKhHLPC+GS5d2wNzUTJovNTfKgpBC8fxtoGU9HAzIl+gOOSCFYb82sXg5ZTEKr3SIOA==&#x27; &#x27;sha512-EOlZpGi5/a0HyD/JaDFia7t67+lIP+3hCIpQ6WjIIEppHw0/X/hFo3dwKpVHoQDGK0JtcalvJWKI2E8SEEk4Gg==&#x27; &#x27;sha512-EAP93e8rdanrYj6PnbjpseAF4Cp6R2PNIytuJSQDORKvxhlOltgoGCnEqyz088gIFL06yYVHXbUR5KV2roJjLA==&#x27;; style-src-attr &#x27;none&#x27;; font-src &#x27;self&#x27; https://fonts.gstatic.com data:; img-src &#x27;self&#x27; data: blob:; connect-src &#x27;self&#x27; https://api.diracgroup.store https://parfum.diracgroup.store; media-src &#x27;self&#x27; data:; manifest-src &#x27;self&#x27;; worker-src &#x27;none&#x27;; form-action &#x27;self&#x27;; frame-ancestors &#x27;none&#x27;; upgrade-insecure-requests;">
+<meta http-equiv="Content-Security-Policy" content="default-src &#x27;self&#x27;; base-uri &#x27;none&#x27;; object-src &#x27;none&#x27;; frame-src &#x27;none&#x27;; child-src &#x27;none&#x27;; script-src &#x27;sha512-IS0NH0O6Dzb6JiVJAKkHec8jDkCsihTZ1qgSaKnsH8GUrXcKsZvawkHcIo1vstEK6GNczatdjr1ATUFsRtB4SA==&#x27; &#x27;self&#x27; &#x27;sha512-wkTUEcMbxN3nd/s9ebyaEvgccacHzQSxnnYQAmax1oq9nV9cm+3R25Mpvt6Ao29nMSihugs9J3Ca2M5AE+/jTg==&#x27; &#x27;sha512-s3VWRJZYGfA1wDpUaBv0VMs2hzLEt5okQKZT1OdlS6/b2n0+lzUZZxVBrsiQERmdmZWUr2zkIoXQLhLeAhvEaA==&#x27; &#x27;sha512-G6S+6XAYOnArA+MbXdw7XOSe38PE8chG1pslP8zv0xnXlOGuakzt5RjKJhaqBtOtIhN06sSXaO45SYixa+pcwA==&#x27; &#x27;sha512-61sM/CtKqdTECY/4YW9R/GY4SxHufQ+blY9HiomBRiZYcxGVBrTOLHzAR/S5+KAxkk9UmJL5t3Z+wEaygmFEew==&#x27; &#x27;sha512-ON2wNyY399Xp5lSWaz3eVFaUXbXWOKgITOntc4vUT37KO0jHFqUpECoHajZVAdYRGCs4LlM/MaK62IFy+Z3kYA==&#x27; &#x27;sha512-AY7tx0V0mcf720z+X+VIvcXtluUN1kqBQwHZShBpzW3AJKOIWxrQmfHbwt6p1+xUpPcMxDYTljFyvaR7UGH9Fw==&#x27; &#x27;sha512-WG5DfWGeT08TGNLijo0+ZSnoR12XxAKJE+Ut1uGWYrrByJ7f6xmQoUmzOoHiTGNV4KV57baOG/o7qP4SMGMX+g==&#x27; &#x27;sha512-3KHhPT9O3pT9Nh7kZz0DfjdG1I196YTjMrJ+RM9/rJbB6mJ8ibDwjZRiatYdu4L//JWIYVV5f6s0TkkmiowgSA==&#x27; &#x27;sha512-KC303aAkfTcoW9jqTdFKF50m3CjobTn9K+YsBg30Xfymn45MIPXRuwl4zzOiLdKRtkKmtDDr7MSpEpAyIFFIcg==&#x27; &#x27;sha512-N/+lhc+oeHeCKmxGJibdZsSlPkx0BeNfnwM+InpYkTiOphmXA3ngRsHapZmlSl4b+Iz47V3wiUoqv0V8Pqjh9A==&#x27; &#x27;sha512-zZ64IkZ55Gi8Fa4TXmUvJ2EqnCZxkFBMtnNMojqlfy86SXz809MV8LWzQPBP7fW9KQffHmSjZ+l4nk/tMmCi7w==&#x27; &#x27;sha512-fdPA1N8IAKecIv2mpv2CL0vvnBjlX5QTHo/vhuMMhnOxZl4bvSm4Css8K/KmcA//i5s6F+PN8typ8B01njD9zw==&#x27; &#x27;sha512-A/phzAzYLK3BssUujo1IOUtK68hS/2gyo15qdMWOlk560LUI4lq8DwOlT7buNC7UtLNdfWvWRf6ZeWEIpYQy7w==&#x27; &#x27;sha512-JqdrB8v3wH+ibL03CU41PTw2G5cddwxQZgCcQia22chXaZaOtQW6fIMg9BkUbMExQcCLQ/zdXkadinSbeCAdog==&#x27; &#x27;sha512-9d11oQQSVbghnAng1ulALsA/Mq/pp1EJ5r780uIblrfXaZtVu3zXwvCohWJQrTrRZEG74Q1+c7xzWzBSmoK/dw==&#x27; &#x27;sha512-Qv0JhKF9HuvyAYncaCejP5vDKM/+p2P/IMvmE2A2WKKYMPBEBXt/B1QM1JnVjbg8onnXs15A5hxNPZnvAdHPMA==&#x27; &#x27;sha512-X2cRtV+vDBfGt6VjVW1XcOjBPMKkP6R/VAjhx+UHonGj/NCz4PRJmVcoRCVo/9nG2QrIhGWuxh8/xQ9xOhEj/g==&#x27; &#x27;sha512-2RQ0wp1EMAU4UQs3YxpYJ4Ht4G7Ir8PjgvwRCPhgRZSox1NC6RnvRn38UM8vrqUjGNE+/XIxK7EKxnc/KSwp0g==&#x27; &#x27;sha512-RxSlDAB6moN+zMB6eHTs9sBKaxNvHSVemnlAu0A7CzlbQTq+tgjTfIag7s7iJ6lDFP9dJDERcARXoQ92BO8Xog==&#x27; &#x27;sha512-ZxTooEOCwKDJj0nWOkTTi7J9xD4YFMrHozf8Yko1vbpBIwfmcmOAk050O2I9wjvRw5MqWTZwi0an4gWsDLwcgQ==&#x27; &#x27;sha512-xaKL//vn94QqhJP6D6x5i8qXL+Q4bVsU3nIt0fQiU7WPUTmgrGWZV5vpZXg5dPSO9qsNxRTiE+L2EF5ko82WBA==&#x27; &#x27;sha512-Xfv0oF8h+MYAGURqfkL7Er1zX4l1ELeYGoCzkAZpbiAiD13sj351Cw5UL/VzsqaUP5Xi7rFUXYfmf1MYo7/kNw==&#x27; &#x27;sha512-w0GFBg7Y/t9wgP/Q4KX1LdVg8z8jqZHrfUTUKbJqg3zIqdkvp1BRhD61mrXbtrrqXu22uBib6Qenu4vZLfmQrA==&#x27; &#x27;sha512-vY3AeLKye6RiLwmShQZinTq1xa6vE9lgOYZBk5FekWcmG/vRe+tfKtUdgGkmnfl7MLAOE5iSnDxVg3GweKernQ==&#x27; &#x27;sha512-jAQ12zoaAvy33Ci7VLzZ0n0wPTStSShvGFW3eZyqLtcfq+p+N+718hP7WX1EItUtxAiz49lIIl8him0VumrVsg==&#x27; &#x27;sha512-Btgb7j4DJF1KBR7onXr9ZlNPIV22jFeRtP0Yo51eYaYUw5PftwY4SXgfAEcZipUkrgFWO5GLQpiOED0wqjKbiQ==&#x27; &#x27;sha512-5HnPgO4xNs9w2hdcKOl1O1AAzU6unsxp3FOBgKzCkJ7HZ9f/1VYeBZ95r2QCn6e+h2e4NQZr626nP5BSBibMIg==&#x27; &#x27;sha512-XySB0rH3i2TxQr8a0U+QD+/DhuRWHdmoPJVu91ze/yxUhIlKGt0loPfhmNE6aRbv2cZavOqfzFzS+YJBjIDXBg==&#x27; &#x27;sha512-R1XAD9a+XG6PyVt1ojHM8rLUWUF/SVXFFxX8Oslzr3zh3LfHjASwDYpDLoe/tNPTl0lDn/TRi83ofC66MknJcw==&#x27; &#x27;sha512-6pt6a9qlvYd56yqBkNuhBkUp4JE+Uur36v1662Ti1iiMAQlN/ESxJii/gZWjOOXrHYGVs3do770lo47gv20Ajg==&#x27; &#x27;sha512-uckIS3Jvm7iryIR3WLhsQT9PQ41qZtzx/w6SsA4M6OzFAnumIH9VDVLlRkukG7+cIxuiJm3XMAyjFp3HeB2p1Q==&#x27; &#x27;sha512-HbSNKbrqV8LOpnIubFcpGaFXAn85sWtkJRlvi2Bp6cZWGhZ4auz0x8aCJlv6NVuoFvN+SxKK+iUTgLx1InaywQ==&#x27; &#x27;sha512-YG5CyILlraI22Krq56ejITF6FQF8xeViArAndBf6Tp7Ocgj2N3ep/1Rq0OAhgyUnfUrkMu6Fs5YAzB+wrYHfuA==&#x27; &#x27;sha512-1YSpg5BuBNM/bcESXEYNE287piu6UibWHZXA/C1OvhqaWdzv9uY/nhfFB+Nh0E8cnQT2zAyfqaQpdlLex8hANQ==&#x27; &#x27;sha512-sY9U5JeubFzov+SNZsmyqCNZqU/V30B4D16TH+dZ8z+LMLmYHMWPOCvAxSG2Qc9S4FQHELaaTNLc8j64zcXweA==&#x27; &#x27;sha512-uwg4+8+/xJOpLFDjY7P1jlki1BfLoSGxvG2D+UJ2VXkNRbHAnydA0Dhy83RsQLXitmx9EHK5/alFgXITpZoRFg==&#x27; &#x27;sha512-H6VmtR6TKP3F5ieSyOnCL5RMpc1DV1zzmJvqD9Ekxhg2v2jz/34Y1a1prbgZfscW0sSX7NhpxaZphfLBfmm5ew==&#x27;; script-src-attr &#x27;none&#x27;; style-src &#x27;self&#x27; https://fonts.googleapis.com &#x27;sha512-mgEUxaEGJJg3unGn/NZaUnZKP+aiWI+uoya4SbFi2om1L6Ce9UTy7pV7aLxujY3Nax0cxeohNvn7lsMI11+r3w==&#x27; &#x27;sha512-0tawS1DQYkrO1oLVSqwZIeqQ1idyfyis0rVRzPNoyvsKhExBaxzNWAEfkpFoT5urNXPP6T24/zA0xxyVH/1Jeg==&#x27; &#x27;sha512-xJkwN41LvY3znjpoGpR0pO0eV4GR4Lrhy5d4urPrS+I031pDyAFFCu3mZl2HOStyXN58dym1wlDcjWL02/Tzkw==&#x27; &#x27;sha512-H2I8co0qz+OOtB5+umgHt/OdrU7fyDliMZRXrrO6nLw4pVBXl4M9kbi/1Hv6F6/qDb6NQU+YsbIB6uMqoRtJnw==&#x27; &#x27;sha512-Ojz1O1Nd5MueXlN1aQzpPr4/KM/ptKuqRsjLi/MOi6sWYK9I2o1ApT2fr5yG6wiF0cGW5bwgBXsWs9kE4cOMbA==&#x27; &#x27;sha512-gPNoN4V9PGeG5WNCF9wnqu5sZdBOuBnqOE/SHXNa87DUmDgIy0dxrLbhHbOoB4ppyb2BT3Ct0H37O8UOcMVGDA==&#x27; &#x27;sha512-pAigYa9gqEk/i0ykiURYIYElmsDLNlzQJIqzjV0iYm+NpIYqituLCdxzwUH6pxjM7zBdBeToOFOpmVA5gyj9zQ==&#x27; &#x27;sha512-/9vcRC4dKK2OC8tPBGK5Tps4/4Cl525bI+iLVtdqSWq9dv5afGuZyU8zcaQJC4APUhpJgXliyKinptP3ZlCNjg==&#x27; &#x27;sha512-Ur+kZlKQYpsDjMjggAxKx7LClFCzAm0RdTdUzQfztWNSSpAj+ZnvEWa5pUOFGt609IKVq3fFmzppeEfBvLElOw==&#x27; &#x27;sha512-3cz/aCKP0XswbHB3nEOD/zeM+7l6qL6ndSsUjTxL8AFLv6LtSA2hjkh1kjw6Z2f0mRtmGCHWFBNb4ZALu4MWbw==&#x27; &#x27;sha512-SQgtxHPwUxL9903xesVdDg/AAjpVCBtWXhuI3Mn6eT0G4MXvBX674PoQag0M6vaQqU1ErwRxHEjczJxjCeHU6w==&#x27; &#x27;sha512-mFkEY8h3tKaI3O/mZxKyfmfW0Qb2dbNMCQvsKNrxAZoQXYLY9BhZhBr/C1yKf9p3V6dG6ztniBGYU4EW6KQl7Q==&#x27; &#x27;sha512-pCBrrVBIAHc6unUQNuzVJK42YbcAk57ljL9aHt21ohuv/TZn8bNg77HDWHLgmOc2mYoDUF8KIjQT0MvUUIN8gw==&#x27; &#x27;sha512-rAczzfYS7SIVszd4Vh4s61NniupgHEPa8bwPYFYM6wq2vJksZh6+UeyK8inQhBoscPIEmviMRX7UgDJN5T1vag==&#x27; &#x27;sha512-kodH9KII2W3sxz+VM6hMr2N+0T2ImNefr8ZFp1RqKIM9KLJ5nVrmn2UPU8/WkJ1pp8hLr8HbFjIRXq+M7Un09Q==&#x27; &#x27;sha512-4dlTkPWOPOi9w3ONph6C8EiWI9wMyraAMsmDngy2vgixxEhRKJvB+H8zJQ9J5EkLI0ZnHKnUOagz597SUeh49Q==&#x27; &#x27;sha512-qVPgjA/7ZQUt6EFjonvEsOT2cOggBax6P2ycIh8bNcwYvDrUqWxHIiqxdr9imIgrH9maF5CJpM3EmrB5rmB1LA==&#x27; &#x27;sha512-q4gApce2XZrQm8ne6rk3YoMxVSuBGpNp3jDEwSnEPNXv5kqArf2NKlIdIY7amIui2Fo/2Mjeqw18883emjPm4A==&#x27; &#x27;sha512-TnWSYQ+vuIJLjWFvKquLb1ptF+EaxGGQ5XAq+VzeD7d3yo6uRWNGjmjx5cfO0SlyJ/zydgz/lU6tI6dWXFbvJg==&#x27; &#x27;sha512-+uZ7vnSRXdUshkN8myx9JEYyEYw53e6nQoY0cPB++Ak+gdPDDa1N5Yynnf0pb6pTrQceEgGWEyV3gzGpnAy9RQ==&#x27; &#x27;sha512-823c9C/PnHMkuCjJIL6LKyRFd6J4swVkkejl/eRg7j/hcnKKSgBDtMsNHmilDNs3xtgPCDbSPvZGjqAW43duKQ==&#x27; &#x27;sha512-06J+5zdOHk6vyKtsGuAgOfVXuKn7kUiR4gMw6vr9MOGwAjbeqAJj24/mRISsDi8hA7QHrbmPijRrhRuSmePBVA==&#x27; &#x27;sha512-R2aEmBh3L5gwFe/17WsD6yHxhSbinqGD5afY416mYLjKBdKQWU2km1BPLU04rcLoiaaFi29nv8CUIlkLyeWenA==&#x27; &#x27;sha512-zn2TYoNoAdofGJnCeE4gc0/yUbe2boWA1cZt7AgaGK2o43YRWvKvgahvALPhvZe8MBj2tt0BZOvdDmcvyuqvrw==&#x27; &#x27;sha512-BQW4WtbUId+Xw//OrpwV6guQPROpSwPuwjCXeafVTN26ZeGLOTFIPW6onj6eswYLw+pt5127cZcU45Uzu6nJhQ==&#x27; &#x27;sha512-EN85v4z9Q5daiYfxIX2GSBErrR3IU8zIPLwegTUm5PiRdPBvQwSLosvxXDJriVOjaAvufOT8R667OiIS/Rwriw==&#x27; &#x27;sha512-NcpjeXspBWiIlL939E2Yns1Q8lgRk+J8i5O0Mij6e88S5UVGfefHHmrBs16Gj/T7VubWh9FNMJwn9IN2kQFe6Q==&#x27; &#x27;sha512-vfb39vuo87i8DHuonU98MOwsHCw9syOVki1QQsnlJYxK7EcJ8C4hdmbGjlHrnBUYRv1yguFFqqoXdc5ReVXfgg==&#x27; &#x27;sha512-CrQYc90AAhPLDunVNu9/rhyH7QAN4ITx58oYywit+CzD+DbmCouAI5FBNW7ze30CBv7anHbb+umioP9fyqSiqw==&#x27; &#x27;sha512-QWKdm+XA6y6KZSP721Kiumbk5Ojt5bwfH/vh0BPSJiCzvigv+6ZUFTDaHSRAr/ssmXKLIJlJ4KH2/08cvStJGQ==&#x27; &#x27;sha512-mVofPsREGRyLD8kx4K16tlClpBidE1kkp1RRpnIM20nAeFv29WqC3auu3g7ei+WTYV+OokDhfU+agrSSXRxJXw==&#x27; &#x27;sha512-59fcnMNn5lhvtIxOzdlAS3foQMvL+TW9qODMqKaiDozl/ufSOL9n1SaaiK4g6RUa1QcMiFd0OsJRevKme/1vdw==&#x27; &#x27;sha512-p14Qc1rR8kBI92rgF19KoGrP6yPIXsPwEhAdN/fY+rB2pCk3TEx843hxpKhnNFkPI3jclCLGcnPVqRWtHp931Q==&#x27; &#x27;sha512-ZyNks9BVOPduOEYuTIdDnTDUnm69uhQ+mkXokO1iIy4F/rtkzPc2z2jGBbH5+hKOGpwLg1y4ODoH0ffTTivU3w==&#x27; &#x27;sha512-CECk+stfz+IkStzjFZ4AKhHLPC+GS5d2wNzUTJovNTfKgpBC8fxtoGU9HAzIl+gOOSCFYb82sXg5ZTEKr3SIOA==&#x27; &#x27;sha512-EOlZpGi5/a0HyD/JaDFia7t67+lIP+3hCIpQ6WjIIEppHw0/X/hFo3dwKpVHoQDGK0JtcalvJWKI2E8SEEk4Gg==&#x27; &#x27;sha512-EAP93e8rdanrYj6PnbjpseAF4Cp6R2PNIytuJSQDORKvxhlOltgoGCnEqyz088gIFL06yYVHXbUR5KV2roJjLA==&#x27;; style-src-attr &#x27;none&#x27;; font-src &#x27;self&#x27; https://fonts.gstatic.com data:; img-src &#x27;self&#x27; data: blob:; connect-src &#x27;self&#x27; https://api.diracgroup.store https://parfum.diracgroup.store; media-src &#x27;self&#x27; data:; manifest-src &#x27;self&#x27;; worker-src &#x27;none&#x27;; form-action &#x27;self&#x27;; frame-ancestors &#x27;none&#x27;; upgrade-insecure-requests;">
+<script id="dirac-security-boundary-20260905" data-page="parfum.html">
+(function(){
+  'use strict';
+  function isIPv4(host){ return /^(?:\d{1,3}\.){3}\d{1,3}$/.test(host) && host.split('.').every(function(p){return Number(p)<=255;}); }
+  function safeString(value){ return String(value == null ? '' : value); }
+  function decodeNumericEntities(text){
+    return text
+      .replace(/&#x([0-9a-f]{1,6});?/gi,function(_,hex){ var n=parseInt(hex,16); return n<=1114111 ? String.fromCodePoint(n) : ' '; })
+      .replace(/&#([0-9]{1,7});?/g,function(_,dec){ var n=parseInt(dec,10); return n<=1114111 ? String.fromCodePoint(n) : ' '; })
+      .replace(/&lt;?/gi,'<').replace(/&gt;?/gi,'>').replace(/&quot;?/gi,'"').replace(/&apos;?/gi,"'").replace(/&colon;?/gi,':')
+      .replace(/&sol;?/gi,'/').replace(/&tab;?/gi,'\t').replace(/&newline;?/gi,'\n').replace(/&amp;?/gi,'&');
+  }
+  function decodePercent(text){
+    return text.replace(/(?:%[0-9a-f]{2})+/gi,function(run){
+      try{ return decodeURIComponent(run); }catch(_){ return run.replace(/%([0-9a-f]{2})/gi,function(__,hex){ return String.fromCharCode(parseInt(hex,16)); }); }
+    });
+  }
+  function normalize(value){
+    var text = safeString(value).slice(0,65536);
+    try{ text = text.normalize('NFKC'); }catch(_){}
+    text = text.replace(/%u([0-9a-f]{4})/gi,function(_,hex){ return String.fromCharCode(parseInt(hex,16)); });
+    text = text.replace(/\\x([0-9a-f]{2})/gi,function(_,hex){ return String.fromCharCode(parseInt(hex,16)); });
+    text = text.replace(/\\u\{([0-9a-f]{1,6})\}/gi,function(_,hex){ var n=parseInt(hex,16); return n<=1114111 ? String.fromCodePoint(n) : ' '; });
+    text = text.replace(/\\u([0-9a-f]{4})/gi,function(_,hex){ return String.fromCharCode(parseInt(hex,16)); });
+    for(var i=0;i<6;i++){
+      var before = text;
+      text = decodePercent(text.replace(/\+/g,' '));
+      text = decodeNumericEntities(text);
+      if(text === before) break;
+    }
+    try{ text = text.normalize('NFKC'); }catch(_){}
+    return text.replace(/[\u0000\u0008\u000b\u000c\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff]/g,'').toLowerCase();
+  }
+  var RULES = [
+    ['sql_boolean',/(?:^|[\s('"`])(?:or|and)\s+\d+\s*=\s*\d+(?:$|[\s)'"`])|^\s*\(?\s*1\s*=\s*1\s*\)?\s*$/i],
+    ['scanner_command',/\b(?:sqlmap|nuclei|nikto|nmap|gobuster|ffuf|dalfox)\s+(?:--[a-z][a-z-]*|-[a-zA-Z])(?:\s|=)/i],
+    ['script_scheme_obfuscated',/\bj\s*a\s*v\s*a\s*s\s*c\s*r\s*i\s*p\s*t\s*:/i],
+    ['xss_html',/<\s*\/?\s*(?:script|iframe|object|embed|svg|math|meta|link|base|template)\b/i],
+    ['xss_media_event',/<\s*(?:img|image|video|audio|body|details|form|input|button|textarea)\b[\s\S]{0,240}(?:\bon[a-z]{3,32}\s*=|(?:javascript|vbscript|data\s*:\s*(?:text\/html|image\/svg\+xml))\s*:)/i],
+    ['xss_event',/\bon[a-z]{3,32}\s*=\s*(?:["']|[^\s>])/i],
+    ['xss_scheme',/(?:javascript|vbscript|data\s*:\s*(?:text\/html|image\/svg\+xml))\s*:/i],
+    ['xss_dom',/(?:srcdoc|xlink\s*:\s*href|formaction)\s*=|document\s*\.\s*(?:cookie|write|writeln)|location\s*\.\s*(?:href|assign|replace)\s*(?:=|\()/i],
+    ['xss_expression',/(?:expression\s*\(|@import\s+(?:url\s*\()?|url\s*\(\s*["']?\s*javascript\s*:)/i],
+    ['sql_union',/\bunion\s+(?:all\s+|distinct\s+)?select\b/i],
+    ['sql_statement',/\b(?:select\s+[\s\S]{1,160}\s+from|insert\s+into|update\s+[a-z0-9_.`"\[\]-]+\s+set|delete\s+from|drop\s+(?:table|database|schema)|alter\s+table|create\s+(?:table|database)|truncate\s+table)\b/i],
+    ['sql_tautology',/(?:'|"|`)\s*(?:or|and)\s+(?:'[^']{0,40}'|"[^"]{0,40}"|\d+)\s*=\s*(?:'[^']{0,40}'|"[^"]{0,40}"|\d+)/i],
+    ['sql_time_file',/\b(?:sleep|benchmark|pg_sleep|xp_cmdshell|load_file|pg_read_file|extractvalue|updatexml)\s*\(|\bwaitfor\s+delay\b|\binto\s+(?:out|dump)file\b|\binformation_schema\s*\./i],
+    ['sql_comment',/\b(?:select|union|insert|update|delete|drop|alter|exec(?:ute)?)\b[\s\S]{0,180}(?:--|#|\/\*)/i],
+    ['nosql',/(?:^|[\s,{[])['"]?\$(?:where|ne|gt|gte|lt|lte|regex|in|nin|exists|expr|function|accumulator|or|and|not)['"]?\s*:/i],
+    ['command_chain',/(?:;|&&|\|\||\|)\s*(?:\/[a-z0-9._/-]+\/)?(?:sh|bash|zsh|cmd(?:\.exe)?|powershell|pwsh|curl|wget|nc|ncat|netcat|python\d*|perl|ruby|php|node|chmod|chown|rm|cat|whoami|uname)\b/i],
+    ['command_standalone',/(?:\/bin\/(?:ba|z|da)?sh\b|cmd\.exe\s+\/c\b|powershell(?:\.exe)?\s+-(?:enc|encodedcommand)\b)/i],
+    ['command_substitution',/(?:\$\(|`)[\s\S]{0,300}\b(?:curl|wget|cat|id|whoami|uname|sh|bash|powershell|cmd|nc|python|perl|php|node)\b/i],
+    ['shellshock',/\(\)\s*\{\s*:;\s*\};/i],
+    ['path_traversal',/\.\.[/\\]|\/(?:etc\/(?:passwd|shadow)|proc\/self\/(?:environ|cmdline)|var\/run\/secrets\/)|[a-z]:\\windows\\win\.ini/i],
+    ['file_wrapper',/\b(?:php|file|expect|gopher|dict|phar|zip):\/\//i],
+    ['ssrf',/https?:\/\/(?:localhost|127(?:\.\d{1,3}){0,3}|0\.0\.0\.0|10(?:\.\d{1,3}){3}|192\.168(?:\.\d{1,3}){2}|172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2}|169\.254\.169\.254|169\.254\.170\.2|100\.100\.100\.200|2130706433|0x7f000001|0177\.0\.0\.1|\[::1\]|\[0:0:0:0:0:ffff:127\.0\.0\.1\]|metadata\.google\.internal)(?::\d+)?(?:[/?#]|$)/i],
+    ['cloud_metadata',/\b(?:latest\/meta-data|metadata\/identity\/oauth2\/token|metadata\/computeMetadata|instance-data\/latest)\b/i],
+    ['xxe',/<!\s*doctype[\s\S]{0,500}<!\s*entity|<!\s*entity[\s\S]{0,300}\b(?:system|public)\b|\bsystem\s+["'](?:file|https?|ftp):/i],
+    ['ssti',/(?:\{\{|\$\{|#\{)[\s\S]{0,180}(?:\*|\/|__|\.\s*(?:class|mro|subclasses)|config|request|globals|builtins|popen|runtime|process|constructor)[\s\S]{0,180}(?:\}\}|\})|<%=?[\s\S]{0,240}%>/i],
+    ['jndi',/\$\{\s*jndi\s*:\s*(?:ldap|ldaps|rmi|dns|iiop|corba):/i],
+    ['ldap',/\(\s*[|&!]\s*\([^)]{1,120}\)|\)\s*\(\s*\|\s*\(/i],
+    ['xpath',/(?:'|")\s+(?:or|and)\s+(?:'|")?\d+(?:'|")?\s*=\s*(?:'|")?\d+/i],
+    ['crlf_header',/(?:\r\n|\n)(?:host|content-length|transfer-encoding|location|set-cookie|x-forwarded-(?:for|host|proto)|x-original-url)\s*:/i],
+    ['request_smuggling',/(?:\bcontent-length\s*:\s*\d+[\s\S]{0,180}\btransfer-encoding\s*:\s*(?:chunked|identity)|\btransfer-encoding\s*:\s*(?:chunked|identity)[\s\S]{0,180}\bcontent-length\s*:\s*\d+|\bcontent-length\s*:\s*\d+[\s\S]{0,180}\bcontent-length\s*:\s*\d+)/i],
+    ['deserialization',/(?:\bac\s*ed\s*00\s*05\b|\brO0AB[a-z0-9+/=]{16,}|\bO:\d+:"[^"]{1,120}":\d+:\{|!!python\/object|\bgASV[a-z0-9+/=]{16,})/i],
+    ['prototype_pollution',/(?:["']?__proto__["']?|["']?constructor["']?\s*:\s*\{\s*["']?prototype|constructor\s*\.\s*prototype|prototype\s*\[\s*["'][^"']+["']\s*\])\s*(?:[:=.\[]|$)/i],
+    ['formula_injection',/^\s*[=+@-]\s*(?:cmd(?:\.exe)?\s*\||powershell\s*\||hyperlink\s*\(|importxml\s*\(|importdata\s*\(|webservice\s*\(|dde\b|msexcel\b)/i],
+    ['open_redirect',/\b(?:redirect(?:_uri)?|return(?:_to|url)?|next|continue|callback|url)\s*=\s*(?:https?:)?\/\//i],
+    ['graphql_introspection',/\bquery\b[\s\S]{0,120}\{[\s\S]{0,120}\b(?:__schema|__type)\b[\s\S]{0,120}\{/i]
+  ];
+  var PROMPT_RULE = /\b(?:ignore|disregard|override)\s+(?:all\s+)?(?:previous|prior|system|developer)\s+(?:instructions?|messages?|rules?)\b|\b(?:reveal|print|show|leak)\s+(?:the\s+)?(?:system|developer)\s+(?:prompt|message|instructions?)\b/i;
+  function ssrfUrl(text){
+    var urls = text.match(/https?:\/\/[^\s"'<>]{1,2048}/gi) || [];
+    return urls.some(function(raw){
+      try{
+        var url = new URL(raw), host = url.hostname.toLowerCase().replace(/^\[|\]$/g,'');
+        if(/^(?:localhost|metadata\.google\.internal)$/.test(host)) return true;
+        if(/^(?:2130706433|0x7f000001|0177\.0\.0\.1)$/.test(host)) return true;
+        if(host === '::1' || host.indexOf('::ffff:127.') === 0 || /^::ffff:(?:7f[0-9a-f]{2}|a00|ac(?:1[0-9a-f]|2[0-9a-f]|3[01])|c0a8|a9fe):/.test(host) || /^f[cd][0-9a-f]{2}:/.test(host) || /^fe[89ab][0-9a-f]:/.test(host)) return true;
+        if(!isIPv4(host)) return false;
+        var p=host.split('.').map(Number);
+        return p[0]===0||p[0]===10||p[0]===127||(p[0]===169&&p[1]===254)||(p[0]===172&&p[1]>=16&&p[1]<=31)||(p[0]===192&&p[1]===168)||(p[0]===100&&p[1]===100&&p[2]===100&&p[3]===200);
+      }catch(_){ return false; }
+    });
+  }
+  function check(value, context){
+    if(safeString(value).length > 65536) return {detected:true,family:'oversized_input'};
+    var text = normalize(value);
+    var samples = [text, text.replace(/\/\*[\s\S]{0,256}?\*\//g,''), text.replace(/\/\*[\s\S]{0,256}?\*\//g,' ')];
+    if(ssrfUrl(text)) return {detected:true,family:'ssrf',normalized:text};
+    for(var i=0;i<RULES.length;i++) for(var s=0;s<samples.length;s++) if(RULES[i][1].test(samples[s])) return {detected:true,family:RULES[i][0],normalized:text};
+    if(context && context.ai === true && PROMPT_RULE.test(text)) return {detected:true,family:'prompt_injection',normalized:text};
+    return {detected:false,family:'',normalized:text};
+  }
+  // Browser validation is an additional boundary. Identity and bans remain server-owned.
+  var page = document.currentScript.getAttribute('data-page');
+  var incident = null, running = false, finished = false;
+  var nativeFetch = window.fetch.bind(window);
+  var opaqueKey = /(?:password|passwd|secret|token|credential|assertion|attestation|clientdata|authenticatordata|signature|ciphertext|envelope|recovery.?code|setupToken|transport_)/i;
+  var fieldKey = /^(?:identifier|email|name|full_?name|phone|customer_(?:address|note)|address|address_detail|detail|note|message|content|text|query|q|search|promo|promo_code|title|product_title|subject|description)$/i;
+  function text(value){ return String(value == null ? '' : value); }
+  function codeMessage(value){
+    var data = value && value.response || value || {};
+    var code = [typeof data === 'string' ? data : '',data.code,data.error_code,data.reason,data.message,typeof data.error === 'string' ? data.error : '',value && value.message].map(text).join(' ');
+    if(/(?:PERSISTENT|MEMORY|GLOBAL)_BAN_ACTIVE|ACCOUNT_(?:BANNED|BLOCKED)|USER_BANNED|\bbanned\b/i.test(code)) return 'Akses diblokir oleh server. Hubungi admin untuk pemeriksaan status pemblokiran.';
+    if(/CENTRAL_SECURITY_BLOCKED|SECURITY_BLOCKED|Permintaan ditolak oleh sistem keamanan/i.test(code)) return 'Akses ditolak oleh sistem keamanan server. Hubungi admin dengan kode pemeriksaan yang ditampilkan.';
+    if(/CSRF|PAGE_NONCE|BOOTSTRAP_(?:REQUIRED|PROOF_INVALID)/i.test(code)) return 'Verifikasi keamanan permintaan belum valid. Muat ulang halaman dan coba kembali.';
+    return '';
+  }
+  function serverError(response, data){
+    var message = codeMessage(data) || (response.status === 429 ? 'Terlalu banyak percobaan. Tunggu sesuai batas waktu server.' : response.status >= 500 ? 'Layanan verifikasi keamanan belum tersedia. Coba kembali nanti.' : 'Permintaan verifikasi ditolak oleh server.');
+    var id = text(data && (data.request_id || data.failure_id));
+    if(/^[A-Za-z0-9_-]{1,80}$/.test(id)) message += ' Kode pemeriksaan: ' + id + '.';
+    var error = new Error(message);
+    error.status = response.status; error.code = text(data && data.code); error.response = data; error.diracPublicMessage = message;
+    return error;
+  }
+  function rejectResponse(response){
+    return response.clone().json().catch(function(){ return null; }).then(function(data){ throw serverError(response,data); });
+  }
+  function notice(message){
+    if(!document.body) return;
+    var node = document.getElementById('diracBoundaryNotice');
+    if(!node){ node = document.createElement('dialog'); node.id = 'diracBoundaryNotice'; node.setAttribute('aria-label','Pemeriksaan keamanan'); document.body.appendChild(node); }
+    node.textContent = message;
+    if(!node.open && typeof node.showModal === 'function') node.showModal();
+  }
+  function healthPath(){
+    return page === 'masuk.html' ? '/api/health' : window.DiracRoutes.api('/api/health');
+  }
+  function signed(value){ return /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(text(value)) && value.length >= 48 && value.length <= 4096; }
+  async function guardedPost(action, body){
+    var base = healthPath();
+    var headers = {'Accept':'application/json','Content-Type':'application/json'};
+    // Auth and parfum reports already acquire an action-bound nonce in their existing bridges.
+    if(page !== 'masuk.html' && page !== 'keamanan.html' && !(page === 'parfum.html' && action === 'security_report')){
+      var proof = await window.fetch(base + '?action=domain_health&_dirac_page_nonce_for=' + action + '&_t=' + Date.now(), {method:'GET',mode:'cors',credentials:'include',cache:'no-store',redirect:'error',headers:{Accept:'application/json'}});
+      if(!proof.ok) return rejectResponse(proof);
+      var csrf = text(proof.headers.get('X-Dirac-CSRF-Token') || proof.headers.get('X-CSRF-Token'));
+      var nonce = text(proof.headers.get('X-Dirac-Page-Nonce'));
+      if(!signed(csrf) || !signed(nonce)) throw new Error('DIRAC_CSRF_BOOTSTRAP_REQUIRED');
+      headers['X-CSRF-Token'] = csrf; headers['X-Dirac-CSRF-Token'] = csrf; headers['X-Dirac-Page-Nonce'] = nonce;
+    }
+    return window.fetch(base + '?action=' + action,{method:'POST',mode:page === 'masuk.html'?'same-origin':'cors',credentials:'include',cache:'no-store',redirect:'error',keepalive:true,headers:headers,body:JSON.stringify(body)});
+  }
+  function reportBody(){
+    var url = incident.family === 'forbidden_html_suffix';
+    var field = text(incident.field).replace(/[^a-z0-9_-]/gi,'').slice(0,64) || 'input';
+    var family = text(incident.family).replace(/[^a-z0-9_-]/gi,'').slice(0,64);
+    // Keep the existing server's exact legacy event label; no warning count is fabricated.
+    var legacy = page === 'parfum.html' && (url || /^(?:name|detail|note|phone|menu|search|promo)$/.test(field));
+    return {action:'security_report',reason:'html_detected_attack',type:url?'url_guard':'input_guard',page:page,
+      event:url?'forbidden_html_url_suffix':legacy?'fourth_high_confidence_input_violation':'high_confidence_input_violation',
+      evidence:legacy?'family='+(url?'forbidden_html_suffix':'frontend_threat')+';field='+field+';source=parfum_checkout_security':'family='+family+';field='+field+';source=html_boundary',version:'dirac-html-shell-v1'};
+  }
+  async function respond(){
+    if(!incident || running || finished) return;
+    running = true;
+    notice('Permintaan dihentikan. Laporan keamanan sedang dikirim, kemudian sesi akan dikeluarkan.');
+    var reportResponse = null, reportFailure = null, logoutOk = false;
+    try{ reportResponse = await guardedPost('security_report',reportBody()); }catch(error){ reportFailure = error; }
+    // Always attempt the existing domain_logout action, including after report rejection.
+    try{ var logout = await guardedPost('domain_logout',{}); logoutOk = logout.ok; }catch(error){ if(!reportFailure) reportFailure = error; }
+    finished = true; running = false;
+    window.__DIRAC_BACKEND_AUTH_CONTEXT__ = null;
+    if(logoutOk){
+      var login = page === 'masuk.html' ? location.origin + '/masuk.html' : window.DiracRoutes.url('auth');
+      location.replace(login); return;
+    }else{
+      var message = reportFailure && (reportFailure.diracPublicMessage || codeMessage(reportFailure));
+      if(!message && reportResponse && !reportResponse.ok){
+        try{ message = codeMessage(await reportResponse.clone().json()); }catch(_){}
+      }
+      notice(message || 'Permintaan dihentikan. Logout belum dikonfirmasi oleh server. Muat ulang halaman masuk atau hubungi admin.');
+    }
+  }
+  function signal(field, family){
+    if(incident) return;
+    incident = {field:field,family:family};
+    if(document.readyState !== 'loading') Promise.resolve().then(respond);
+  }
+  function suffix(){
+    var url = new URL(location.href), path = '/' + page;
+    if(url.pathname.toLowerCase().indexOf(path) !== 0) return false;
+    return url.href.slice(url.origin.length).length > path.length;
+  }
+  function inspectLocation(){
+    if(!suffix()) return;
+    signal('url','forbidden_html_suffix');
+    // Capture the violation first; actually restore this document's canonical URL.
+    // No forged cross-origin referrer, exemption or server guard flag is used.
+    history.replaceState(history.state,document.title,location.origin + '/' + page);
+  }
+  function isApi(url){
+    var origin = window.DiracRoutes && window.DiracRoutes.apiOrigin || window.DiracApiRuntime && window.DiracApiRuntime.origin;
+    return /^\/api\//.test(url.pathname) && (url.origin === location.origin || url.origin === origin);
+  }
+  function incidentAction(url){
+    var action = url.searchParams.get('action');
+    return url.pathname === '/api/health' && (action === 'security_report' || action === 'domain_logout' || action === 'domain_health' && /^(security_report|domain_logout)$/.test(url.searchParams.get('_dirac_page_nonce_for') || ''));
+  }
+  function fieldAlias(name){
+    var aliases={buyerName:'name',buyerAddressDetail:'detail',buyerNote:'note',buyerPhone:'phone',diracUltraMenuSearch:'menu',searchInput:'search',promoInput:'promo',customer_address:'detail',customer_note:'note',address_detail:'detail'};
+    return aliases[name] || name;
+  }
+  function inspectBody(value, key, depth){
+    if(depth > 12) throw new Error('DIRAC_INPUT_STRUCTURE_INVALID');
+    if(opaqueKey.test(key)) return null;
+    if(typeof value === 'string'){
+      if(!fieldKey.test(key)) return null;
+      var result = check(value);
+      if(result.detected) return {field:fieldAlias(key),family:result.family};
+      return null;
+    }
+    if(!value || typeof value !== 'object') return null;
+    var keys = Object.keys(value);
+    if(keys.length > 2048) throw new Error('DIRAC_INPUT_STRUCTURE_INVALID');
+    for(var i=0;i<keys.length;i++){
+      if(/^(?:__proto__|prototype|constructor)$/.test(keys[i])) return {field:'input',family:'prototype_pollution'};
+      var found = inspectBody(value[keys[i]],keys[i],depth+1); if(found) return found;
+    }
+    return null;
+  }
+  async function outgoing(input, init){
+    var url = new URL(typeof input === 'string' || input instanceof URL ? String(input) : input.url,location.href);
+    if(!isApi(url)) return nativeFetch(input,init);
+    inspectLocation();
+    if(incident && !incidentAction(url)) throw new Error('DIRAC_SECURITY_INCIDENT_PENDING');
+    if(!incidentAction(url)){
+      var found = null;
+      url.searchParams.forEach(function(value,key){ if(!found && fieldKey.test(key)){ var result=check(value); if(result.detected) found={field:fieldAlias(key),family:result.family}; } });
+      var body = init && init.body;
+      if(body === undefined && typeof Request !== 'undefined' && input instanceof Request && !/^(GET|HEAD)$/.test(input.method)) body = await input.clone().text();
+      if(typeof body === 'string'){
+        try{ var parsed = JSON.parse(body); }catch(_){ parsed = null; }
+        if(parsed) found = found || inspectBody(parsed,'',0);
+      }else if(typeof FormData !== 'undefined' && body instanceof FormData || typeof URLSearchParams !== 'undefined' && body instanceof URLSearchParams){
+        body.forEach(function(value,key){ if(!found && typeof value === 'string') found=inspectBody(value,key,0); });
+      }
+      if(found){ signal(found.field,found.family); throw new Error('DIRAC_INPUT_REJECTED'); }
+    }
+    if(incidentAction(url)){
+      var controller = new AbortController();
+      var next = Object.assign({},init || {});
+      var previousSignal = next.signal || (input && input.signal);
+      if(previousSignal){
+        if(previousSignal.aborted) controller.abort();
+        else previousSignal.addEventListener('abort',function(){controller.abort();},{once:true});
+      }
+      next.signal = controller.signal;
+      var timer = setTimeout(function(){controller.abort();},12000);
+      try{return await nativeFetch(input,next);}finally{clearTimeout(timer);}
+    }
+    return nativeFetch(input,init);
+  }
+  window.fetch = outgoing;
+  function eligible(el){
+    return el && el.matches && el.matches('input,textarea,[contenteditable="true"]') && !el.matches('[disabled],[readonly],input[type="hidden"],input[type="file"],input[type="checkbox"],input[type="radio"]') && !opaqueKey.test(text(el.id)+' '+text(el.name)+' '+text(el.type)+' '+text(el.autocomplete)) && !/one-time-code/.test(text(el.autocomplete));
+  }
+  function candidate(el, insertion){
+    var current = text(el.isContentEditable?el.textContent:el.value);
+    return typeof el.selectionStart === 'number' ? current.slice(0,el.selectionStart)+insertion+current.slice(el.selectionEnd) : current+insertion;
+  }
+  function inputEvent(event){
+    var el = event.target;
+    if(!eligible(el) || event.isComposing) return;
+    var value = text(el.isContentEditable?el.textContent:el.value);
+    if(event.type === 'beforeinput'){
+      if(!event.data || /^delete/.test(event.inputType || '')) return;
+      value = candidate(el,event.data);
+    }else if(event.type === 'paste' || event.type === 'drop'){
+      var transfer = event.clipboardData || event.dataTransfer;
+      if(transfer) value = candidate(el,transfer.getData('text/plain') || transfer.getData('text'));
+    }
+    var result = check(value);
+    if(!result.detected) return;
+    if(event.cancelable) event.preventDefault();
+    event.stopImmediatePropagation();
+    if(el.isContentEditable) el.textContent=''; else el.value='';
+    signal(fieldAlias(el.id || el.name || 'input'),result.family);
+  }
+  ['beforeinput','paste','drop','input','compositionend','change'].forEach(function(type){ document.addEventListener(type,inputEvent,true); });
+  document.addEventListener('submit',function(event){
+    var fields=event.target.querySelectorAll('input,textarea,[contenteditable="true"]');
+    for(var i=0;i<fields.length;i++) if(eligible(fields[i])){ var result=check(text(fields[i].isContentEditable?fields[i].textContent:fields[i].value)); if(result.detected){signal(fieldAlias(fields[i].id||fields[i].name||'input'),result.family);break;} }
+    if(incident){event.preventDefault();event.stopImmediatePropagation();}
+  },true);
+  document.addEventListener('click',function(event){
+    if(incident){event.preventDefault();event.stopImmediatePropagation();return;}
+    var anchor=event.target.closest && event.target.closest('a[href]');
+    if(!anchor || anchor.hasAttribute('download')) return;
+    var target=new URL(anchor.href,location.href);
+    if(target.origin === location.origin && target.pathname === location.pathname && !target.search && target.hash){
+      var el;try{el=document.getElementById(decodeURIComponent(target.hash.slice(1)));}catch(_){}
+      if(el){event.preventDefault();el.scrollIntoView({block:'start',behavior:'smooth'});}
+    }
+  },true);
+  window.addEventListener('hashchange',inspectLocation);
+  window.addEventListener('popstate',inspectLocation);
+  window.addEventListener('pageshow',inspectLocation);
+  document.addEventListener('DOMContentLoaded',function(){inspectLocation();void respond();},{once:true});
+  window.DiracSecurityBoundary=Object.freeze({check:check,signal:signal,pending:function(){return !!incident;},rejectResponse:rejectResponse,message:function(value){return value && value.diracPublicMessage || codeMessage(value);}});
+  ['pushState','replaceState'].forEach(function(method){
+    var original = history[method];
+    history[method] = function(){var result=original.apply(history,arguments);inspectLocation();return result;};
+  });
+  inspectLocation();
+})();
+</script>
 <meta name="dirac-base-domain" content="">
 <style id="dirac-html-shell-v1-css">.dhg-overlay{position:fixed;inset:0;z-index:2147483600;display:grid;place-items:center;padding:24px;background:rgba(3,7,18,.74);backdrop-filter:blur(14px);opacity:0;visibility:hidden;transition:opacity .24s ease,visibility .24s ease}
 .dhg-overlay.is-open{opacity:1;visibility:visible}
@@ -502,6 +811,9 @@
     });
   }
   function check(value, context){
+    return window.DiracSecurityBoundary.check(value, context);
+  }
+  function legacyCheck(value, context){
     var text = normalize(value);
     var samples = [text, text.replace(/\/\*[\s\S]{0,64}?\*\//g,'')];
     if(ssrfUrl(text)) return {detected:true,family:'ssrf',normalized:text};
@@ -513,32 +825,6 @@
     var text = safeString(value), hash = 2166136261;
     for(var i=0;i<text.length;i++){ hash ^= text.charCodeAt(i); hash = Math.imul(hash,16777619); }
     return (hash >>> 0).toString(16);
-  }
-  var WARNING_KEY = 'dirac_html_guard_warning_v1';
-  var WARNING_COOKIE = 'dirac_html_guard_warning_v1';
-  var WINDOW_MS = 24 * 60 * 60 * 1000;
-  var lastGate = {key:'',at:0};
-  function readCookie(){
-    try{
-      var match = document.cookie.match(new RegExp('(?:^|;\\s*)' + WARNING_COOKIE + '=([^;]*)'));
-      return match ? JSON.parse(decodeURIComponent(match[1])) : null;
-    }catch(_){ return null; }
-  }
-  function readState(){
-    var state = readCookie();
-    if(!state) try{ state = JSON.parse(localStorage.getItem(WARNING_KEY) || 'null'); }catch(_){}
-    var now = Date.now();
-    if(!state || !Number.isFinite(Number(state.startedAt)) || now - Number(state.startedAt) > WINDOW_MS) return {count:0,startedAt:now,updatedAt:now};
-    state.count = Math.max(0, Math.min(1000, Number(state.count) || 0));
-    return state;
-  }
-  function writeState(state){
-    var encoded = encodeURIComponent(JSON.stringify(state));
-    try{ localStorage.setItem(WARNING_KEY, JSON.stringify(state)); }catch(_){}
-    try{
-      var domain = !localHost && baseDomain.indexOf('.') !== -1 ? '; Domain=.' + baseDomain : '';
-      document.cookie = WARNING_COOKIE + '=' + encoded + '; Path=/; Max-Age=86400; SameSite=Lax; Secure' + domain;
-    }catch(_){}
   }
   function buildModal(){
     var root = document.getElementById('diracHtmlGuardDialog');
@@ -598,18 +884,8 @@
     }catch(_){}
   }
   function gate(field, reason, meta){
-    meta = meta || {};
-    var family = safeString(meta.family || reason || 'detected_attack').slice(0,64);
-    var fingerprint = hashText(field + '|' + family + '|' + safeString(meta.value).slice(0,1024));
-    var now = Date.now();
-    if(lastGate.key === fingerprint && now - lastGate.at < 1500) return false;
-    lastGate = {key:fingerprint,at:now};
-    var state = readState();
-    state.count += 1; state.updatedAt = now; writeState(state);
-    if(state.count <= 3){ showWarning(state.count,family,false); return false; }
-    showWarning(state.count,family,true);
-    if(state.count === 4 && inputMode !== 'delegate' && meta.delegateReport !== true) report(field,family,state.count,safeString(meta.value).length);
-    return state.count >= 4;
+    window.DiracSecurityBoundary.signal(field, meta && meta.family || reason || 'frontend_threat');
+    return false;
   }
   function eligible(target){
     if(!target || target.nodeType !== 1 || target.matches('[data-dirac-input-guard="off"], [readonly], [disabled]')) return false;
@@ -778,9 +1054,9 @@
 
   function readResponseToken(response){
     try{
-      if(response && response.headers && typeof response.headers.get === 'function'){
-        var token = response.headers.get(RESPONSE_HEADER) || response.headers.get('x-dirac-csrf-token') || '';
-        if(token) TOKEN = String(token);
+      if(response && response.ok && !response.redirected && isHealthEndpointUrl(response.url) && response.headers && typeof response.headers.get === 'function'){
+        var token = readFreshResponseToken(response);
+        if(token) TOKEN = token;
       }
     }catch(_){}
     return TOKEN;
@@ -850,10 +1126,14 @@
       cache: 'no-store',
       headers: { 'Accept': 'application/json' }
     })).then(function(response){
+      if(!response.ok) return window.DiracSecurityBoundary.rejectResponse(response);
+      TOKEN = '';
       readResponseToken(response);
+      if(!TOKEN) throw new TypeError('DIRAC_CSRF_BOOTSTRAP_REQUIRED');
       return TOKEN;
-    }).catch(function(){
-      return TOKEN;
+    }).catch(function(error){
+      TOKEN = '';
+      throw error;
     }).then(function(token){
       TOKEN_PROMISE = null;
       return token;
@@ -14405,7 +14685,7 @@ function staticGeneralAnswerLocal(text) {
         window.setTimeout(function(){
           try{target.scrollIntoView({behavior:'smooth',block:'start'});}
           catch(error){target.scrollIntoView(true);}
-          try{history.replaceState(null,'',hash);}catch(error){}
+          // Scroll only: internal navigation keeps the canonical HTML URL.
         },80);
       }
       return;
@@ -14981,10 +15261,11 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
 
   function loginUrl(reason){
     var clean = encodeURIComponent(String(reason || 'locked').replace(/[^a-z0-9_-]/gi, '').slice(0, 32) || 'locked');
-    return LOGIN_PAGE + '?protected=1&reason=' + clean + '&t=' + now();
+    return LOGIN_PAGE;
   }
 
   function replaceToLogin(reason){
+    if(window.DiracSecurityBoundary.pending()) return false;
     try{
       window.location.replace(loginUrl(reason));
     }catch(_){
@@ -15163,6 +15444,7 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
   }
 
   async function forceLogout(reason){
+    if(window.DiracSecurityBoundary.pending()) return false;
     if(loggingOut) return;
     loggingOut = true;
     setChecking(false);
@@ -15176,6 +15458,7 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
   }
 
   async function verifyBackendSession(reason){
+    if(window.DiracSecurityBoundary.pending()) return false;
     if(loggingOut || checking) return;
     if(isIdleExpired()){
       await forceLogout('idle');
@@ -16775,7 +17058,7 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
     try{
       ['dirac_auth_session_v1','dirac_auth_a2f_v1','dirac_auth_a2f_dashboard_ready_v1','dirac_dashboard_gate_v1','dirac_domain_session','dirac_domain_refresh','dirac_customer_mfa_session','sb-auth-token','supabase.auth.token'].forEach(function(k){ try{ localStorage.removeItem(k); sessionStorage.removeItem(k); }catch(__){} });
     }catch(_){}
-    try{ location.replace(window.DiracRoutes.url('auth')+'?protected=1&reason=checkout_security&t=' + now()); }catch(_){ location.href = window.DiracRoutes.url('auth'); }
+    try{ location.replace(window.DiracRoutes.url('auth')); }catch(_){ location.href = window.DiracRoutes.url('auth'); }
   }
 
   function showSecurityModal(state){
@@ -16842,22 +17125,8 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
   }
 
   function armSecurityViolation(field, reason){
-    if(/^(?:invalid_key|invalid_paste|invalid_drop|invalid_input|frontend_threat)$/.test(String(reason||'')) && window.DiracHTMLGuard && typeof window.DiracHTMLGuard.gate === 'function' && !window.DiracHTMLGuard.gate(field,reason,{family:reason,delegateReport:true})) return;
-    var attempts = Number(securityAttemptCount || 0) + 1;
-    if(!Number.isFinite(attempts) || attempts < 1) attempts = 1;
-    if(attempts > 5) attempts = 5;
-    var createdAt = now();
-    var logoutAt = createdAt + LOGOUT_DELAY_MS;
-    var activeLogoutAt = Number(securityAlertState && securityAlertState.logoutAt || 0);
-    if(Number.isFinite(activeLogoutAt) && activeLogoutAt > 0 && activeLogoutAt < logoutAt) logoutAt = activeLogoutAt;
-    securityAttemptCount = attempts;
-    var alertState = {active:true, logoutAt:logoutAt, field:String(field||''), reason:String(reason||'invalid_input'), attempt:attempts, createdAt:createdAt};
-    securityAlertState = alertState;
-    reportGlobalSecurityViolation(field, reason);
-    try{ if(window.DiracSound && typeof window.DiracSound.play === 'function') window.DiracSound.play('danger'); }catch(_){}
-    showSecurityModal(alertState);
+    window.DiracSecurityBoundary.signal(field, reason);
   }
-
   function hasForbiddenHtmlUrlSuffix(){
     try{
       var path = String(window.location.pathname || '');
@@ -16865,7 +17134,7 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
       var htmlIndex = lower.indexOf('.html');
       if(htmlIndex === -1) return false;
       if(htmlIndex + 5 !== path.length) return true;
-      return false;
+      return /[?#]/.test(String(window.location.href || '').slice(String(window.location.origin || '').length));
     }catch(_){ return false; }
   }
   var guardedForbiddenHtmlPath = '';
